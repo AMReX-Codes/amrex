@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.15 1998-05-06 17:50:44 lijewski Exp $
+// $Id: AmrLevel.H,v 1.16 1998-05-13 23:15:04 almgren Exp $
 //
 
 #include <REAL.H>
@@ -85,7 +85,8 @@ public:
                                    int                   sub_cycle,
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
-                                   Array<Real>&          dt_level) = 0;
+                                   Array<Real>&          dt_level,
+                                   REAL                  stop_time) = 0;
 
     /*@ManDoc: Compute the next time step.  This is a pure virtual function
                and hence MUST be implemented by derived classes.
@@ -134,7 +135,7 @@ public:
                This is a pure virtual function and hence MUST be
                implemented by derived classes.
     */
-    virtual  void post_init () = 0;
+    virtual  void post_init (REAL stop_time) = 0;
 
     /*@ManDoc: Is it ok to continue the calculation?
                This is a pure virtual function and hence MUST be

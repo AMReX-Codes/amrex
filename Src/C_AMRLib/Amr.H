@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.13 1998-05-12 22:12:42 lijewski Exp $
+// $Id: Amr.H,v 1.14 1998-05-13 23:15:03 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -51,7 +51,7 @@ public:
     //
     //@ManDoc: Init data after construction. Must be called before timestepping.
     //
-    void init ();
+    void init (REAL stop_time);
     //
     //@ManDoc: Set the timestep on each level.
     //
@@ -204,7 +204,7 @@ protected:
     //
     // Initialize grid hierarchy.
     //
-    void initialInit ();
+    void initialInit (REAL stop_time);
     //
     // Check for valid input.
     //

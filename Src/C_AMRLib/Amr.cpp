@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.40 1998-05-13 18:57:09 almgren Exp $
+// $Id: Amr.cpp,v 1.41 1998-05-13 23:15:04 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -533,7 +533,7 @@ Amr::checkInput ()
 }
 
 void
-Amr::init ()
+Amr::init (REAL stop_time)
 {
     TRACER("Amr::init()");
 
@@ -543,7 +543,7 @@ Amr::init ()
     }
     else
     {
-        initialInit();
+        initialInit(stop_time);
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
             writePlotFile();
@@ -551,7 +551,7 @@ Amr::init ()
 }
 
 void
-Amr::initialInit ()
+Amr::initialInit (REAL stop_time)
 {
     TRACER("Amr::initialInit()");
 
@@ -594,14 +594,15 @@ Amr::initialInit ()
     // Compute dt and set time levels of all grid data.
     //
     amr_level[0].computeInitialDt(finest_level,sub_cycle,
-                                  n_cycle,ref_ratio,dt_level);
+                                  n_cycle,ref_ratio,dt_level,
+                                  stop_time);
     for (lev = 0; lev <= finest_level; lev++)
         amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
     //
     // Perform any special post_initialization operations.
     //
     for (lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_init();
+        amr_level[lev].post_init(stop_time);
 
     for (lev = 0; lev <= finest_level; lev++)
     {
