@@ -382,7 +382,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		   //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
-		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, &integrate));
+		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	
