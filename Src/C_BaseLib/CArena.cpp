@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.8 1998-02-09 22:02:14 lijewski Exp $
+// $Id: CArena.cpp,v 1.9 1998-02-09 22:45:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,7 +20,9 @@ using std::pair;
 #include <iomanip.h>
 #include <fstream.h>
 #include <stdlib.h>
+#if !((defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__))
 #include <utility.h>
+#endif
 #endif
 
 #include <CArena.H>
