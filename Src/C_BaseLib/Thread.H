@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.12 2001-09-04 16:59:41 car Exp $
+// $Id: Thread.H,v 1.13 2001-09-14 04:03:39 car Exp $
 //
 
 #include <Utility.H>
@@ -503,7 +503,7 @@ namespace Thread
     int getID();
     enum CancelState { Enable, Disable };
     CancelState setCancelState(CancelState state);
-};
+}
 
 
 
