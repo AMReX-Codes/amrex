@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_3D.F,v 1.7 2002-07-18 21:28:15 lijewski Exp $
+c $Id: FILCC_3D.F,v 1.8 2002-07-31 22:32:02 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -84,14 +84,14 @@ c
             if (ilo+2 .le. ie) then
                do k = ARG_L3(q),ARG_H3(q)
                   do j = ARG_L2(q),ARG_H2(q)
-                     q(ilo-1,j,k) = (fifteen*q(ilo,j,k) - ten*q(ilo+1,j,k) + 
-     $                    three*q(ilo+2,j,k)) * eighth
+                     q(ilo-1,j,k) = (15*q(ilo,j,k) - 10*q(ilo+1,j,k) + 
+     $                    3*q(ilo+2,j,k)) * eighth
                   end do
                end do
             else  
                do k = ARG_L3(q),ARG_H3(q)
                   do j = ARG_L2(q),ARG_H2(q)
-                     q(ilo-1,j,k) = half*(three*q(ilo,j,k) - q(ilo+1,j,k))
+                     q(ilo-1,j,k) = half*(3*q(ilo,j,k) - q(ilo+1,j,k))
                   end do
                end do
             end if
@@ -136,14 +136,14 @@ c
             if (ihi-2 .ge. is) then
                do k = ARG_L3(q),ARG_H3(q)
                   do j = ARG_L2(q),ARG_H2(q)
-                     q(ihi+1,j,k) = (fifteen*q(ihi,j,k) - ten*q(ihi-1,j,k) + 
-     $                    three*q(ihi-2,j,k)) * eighth
+                     q(ihi+1,j,k) = (15*q(ihi,j,k) - 10*q(ihi-1,j,k) + 
+     $                    3*q(ihi-2,j,k)) * eighth
                   end do
                end do
             else
                do k = ARG_L3(q),ARG_H3(q)
                   do j = ARG_L2(q),ARG_H2(q)
-                     q(ihi+1,j,k) = half*(three*q(ihi,j,k) - q(ihi-1,j,k))
+                     q(ihi+1,j,k) = half*(3*q(ihi,j,k) - q(ihi-1,j,k))
                   end do
                end do
             end if
@@ -188,14 +188,14 @@ c
             if (jlo+2 .le. je) then
                do k = ARG_L3(q),ARG_H3(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,jlo-1,k) = (fifteen*q(i,jlo,k) - ten*q(i,jlo+1,k) + 
-     $                    three*q(i,jlo+2,k)) * eighth
+                     q(i,jlo-1,k) = (15*q(i,jlo,k) - 10*q(i,jlo+1,k) + 
+     $                    3*q(i,jlo+2,k)) * eighth
                   end do
                end do
 	    else
                do k = ARG_L3(q),ARG_H3(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,jlo-1,k) = half*(three*q(i,jlo,k) - q(i,jlo+1,k))
+                     q(i,jlo-1,k) = half*(3*q(i,jlo,k) - q(i,jlo+1,k))
                   end do
                end do
 	    end if
@@ -240,14 +240,14 @@ c
             if (jhi-2 .ge. js) then
                do k = ARG_L3(q),ARG_H3(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,jhi+1,k) = (fifteen*q(i,jhi,k) - ten*q(i,jhi-1,k) + 
-     $                    three*q(i,jhi-2,k)) * eighth
+                     q(i,jhi+1,k) = (15*q(i,jhi,k) - 10*q(i,jhi-1,k) + 
+     $                    3*q(i,jhi-2,k)) * eighth
                   end do
                end do
 	    else
                do k = ARG_L3(q),ARG_H3(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,jhi+1,k) = half*(three*q(i,jhi,k) - q(i,jhi-1,k))
+                     q(i,jhi+1,k) = half*(3*q(i,jhi,k) - q(i,jhi-1,k))
                   end do
                end do
 	    end if
@@ -292,14 +292,14 @@ c
             if (klo+2 .le. ke) then
                do j = ARG_L2(q),ARG_H2(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,j,klo-1) = (fifteen*q(i,j,klo) - ten*q(i,j,klo+1) + 
-     $                    three*q(i,j,klo+2)) * eighth
+                     q(i,j,klo-1) = (15*q(i,j,klo) - 10*q(i,j,klo+1) + 
+     $                    3*q(i,j,klo+2)) * eighth
                   end do
                end do
 	    else
                do j = ARG_L2(q),ARG_H2(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,j,klo-1) = half*(three*q(i,j,klo) - q(i,j,klo+1))
+                     q(i,j,klo-1) = half*(3*q(i,j,klo) - q(i,j,klo+1))
                   end do
                end do
 	    end if
@@ -344,14 +344,14 @@ c
             if (khi-2 .ge. ks) then
                do j = ARG_L2(q),ARG_H2(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,j,khi+1) = (fifteen*q(i,j,khi) - ten*q(i,j,khi-1) + 
-     $                    three*q(i,j,khi-2)) * eighth
+                     q(i,j,khi+1) = (15*q(i,j,khi) - 10*q(i,j,khi-1) + 
+     $                    3*q(i,j,khi-2)) * eighth
                   end do
                end do
 	    else
                do j = ARG_L2(q),ARG_H2(q)
                   do i = ARG_L1(q),ARG_H1(q)
-                     q(i,j,khi+1) = half*(three*q(i,j,khi) - q(i,j,khi-1))
+                     q(i,j,khi+1) = half*(3*q(i,j,khi) - q(i,j,khi-1))
                   end do
                end do
 	    end if
@@ -381,48 +381,48 @@ c
          if (jlo+2 .le. je) then
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jlo-1,k) = half * eighth * 
-     $              (fifteen*q(ilo-1,jlo,k) - ten*q(ilo-1,jlo+1,k) + 
-     $              three*q(ilo-1,jlo+2,k))
+     $              (15*q(ilo-1,jlo,k) - 10*q(ilo-1,jlo+1,k) + 
+     $              3*q(ilo-1,jlo+2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jlo-1,k) = half * half * 
-     $              (three*q(ilo-1,jlo,k) - q(ilo-1,jlo+1,k))
+     $              (3*q(ilo-1,jlo,k) - q(ilo-1,jlo+1,k))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half * eighth * 
-     $              (fifteen*q(ilo,jlo-1,k) - ten*q(ilo+1,jlo-1,k) + 
-     $              three*q(ilo+2,jlo-1,k))
+     $              (15*q(ilo,jlo-1,k) - 10*q(ilo+1,jlo-1,k) + 
+     $              3*q(ilo+2,jlo-1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half * half * 
-     $              (three*q(ilo,jlo-1,k) - q(ilo+1,jlo-1,k))
+     $              (3*q(ilo,jlo-1,k) - q(ilo+1,jlo-1,k))
             end do
          end if
 
          if (ndwn .gt. 0 .and. bc(3,1) .eq. HOEXTRAP) then
             if (klo+2 .le. ke) then
                q(ilo-1,jlo-1,klo-1) = eighth * (
-     $              (fifteen*q(ilo-1,jlo-1,klo) - ten*q(ilo-1,jlo-1,klo+1) +
-     $              three*q(ilo-1,jlo-1,klo+2)) )
+     $              (15*q(ilo-1,jlo-1,klo) - 10*q(ilo-1,jlo-1,klo+1) +
+     $              3*q(ilo-1,jlo-1,klo+2)) )
             else
                q(ilo-1,jlo-1,klo-1) = half * 
-     $              (three*q(ilo-1,jlo-1,klo) - q(ilo-1,jlo-1,klo+1))
+     $              (3*q(ilo-1,jlo-1,klo) - q(ilo-1,jlo-1,klo+1))
             end if
          end if
 
          if (nup .gt. 0 .and. bc(3,2) .eq. HOEXTRAP) then
             if (khi-2 .ge. ks) then
                q(ilo-1,jlo-1,khi+1) = eighth * (
-     $              (fifteen*q(ilo-1,jlo-1,khi) - ten*q(ilo-1,jlo-1,khi-1) +
-     $              three*q(ilo-1,jlo-1,khi-2)) )
+     $              (15*q(ilo-1,jlo-1,khi) - 10*q(ilo-1,jlo-1,khi-1) +
+     $              3*q(ilo-1,jlo-1,khi-2)) )
             else
                q(ilo-1,jlo-1,khi+1) = half * 
-     $              (three*q(ilo-1,jlo-1,khi) - q(ilo-1,jlo-1,khi-1))
+     $              (3*q(ilo-1,jlo-1,khi) - q(ilo-1,jlo-1,khi-1))
             end if
          end if
 
@@ -435,48 +435,48 @@ c
          if (jhi-2 .ge. js) then 
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jhi+1,k) = half * eighth * 
-     $              (fifteen*q(ilo-1,jhi,k) - ten*q(ilo-1,jhi-1,k) + 
-     $              three*q(ilo-1,jhi-2,k))
+     $              (15*q(ilo-1,jhi,k) - 10*q(ilo-1,jhi-1,k) + 
+     $              3*q(ilo-1,jhi-2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jhi+1,k) = half * half * 
-     $              (three*q(ilo-1,jhi,k) - q(ilo-1,jhi-1,k))
+     $              (3*q(ilo-1,jhi,k) - q(ilo-1,jhi-1,k))
             end do
          end if
 
          if (ilo+2 .le. ie) then 
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half * eighth * 
-     $              (fifteen*q(ilo,jhi+1,k) - ten*q(ilo+1,jhi+1,k) + 
-     $              three*q(ilo+2,jhi+1,k))
+     $              (15*q(ilo,jhi+1,k) - 10*q(ilo+1,jhi+1,k) + 
+     $              3*q(ilo+2,jhi+1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half * half * 
-     $              (three*q(ilo,jhi+1,k) - q(ilo+1,jhi+1,k))
+     $              (3*q(ilo,jhi+1,k) - q(ilo+1,jhi+1,k))
             end do
          end if
 
          if (ndwn .gt. 0 .and. bc(3,1) .eq. HOEXTRAP) then
             if (klo+2 .le. ke) then
                q(ilo-1,jhi+1,klo-1) = eighth * (
-     $              (fifteen*q(ilo-1,jhi+1,klo) - ten*q(ilo-1,jhi+1,klo+1) +
-     $              three*q(ilo-1,jhi+1,klo+2)) )
+     $              (15*q(ilo-1,jhi+1,klo) - 10*q(ilo-1,jhi+1,klo+1) +
+     $              3*q(ilo-1,jhi+1,klo+2)) )
             else
                q(ilo-1,jhi+1,klo-1) = half * 
-     $              (three*q(ilo-1,jhi+1,klo) - q(ilo-1,jhi+1,klo+1))
+     $              (3*q(ilo-1,jhi+1,klo) - q(ilo-1,jhi+1,klo+1))
             end if
          end if
 
          if (nup .gt. 0 .and. bc(3,2) .eq. HOEXTRAP) then
             if (khi-2 .ge. ks) then
                q(ilo-1,jhi+1,khi+1) = eighth * (
-     $              (fifteen*q(ilo-1,jhi+1,khi) - ten*q(ilo-1,jhi+1,khi-1) +
-     $              three*q(ilo-1,jhi+1,khi-2)) )
+     $              (15*q(ilo-1,jhi+1,khi) - 10*q(ilo-1,jhi+1,khi-1) +
+     $              3*q(ilo-1,jhi+1,khi-2)) )
             else
                q(ilo-1,jhi+1,khi+1) = half * 
-     $              (three*q(ilo-1,jhi+1,khi) - q(ilo-1,jhi+1,khi-1))
+     $              (3*q(ilo-1,jhi+1,khi) - q(ilo-1,jhi+1,khi-1))
             end if
          end if
 
@@ -489,48 +489,48 @@ c
          if (jlo+2 .le. je) then 
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jlo-1,k) = half * eighth * 
-     $              (fifteen*q(ihi+1,jlo,k) - ten*q(ihi+1,jlo+1,k) + 
-     $              three*q(ihi+1,jlo+2,k))
+     $              (15*q(ihi+1,jlo,k) - 10*q(ihi+1,jlo+1,k) + 
+     $              3*q(ihi+1,jlo+2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jlo-1,k) = half * half * 
-     $              (three*q(ihi+1,jlo,k) - q(ihi+1,jlo+1,k))
+     $              (3*q(ihi+1,jlo,k) - q(ihi+1,jlo+1,k))
             end do
          end if
 
          if (ihi-2 .ge. is) then 
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half * eighth * 
-     $              (fifteen*q(ihi,jlo-1,k) - ten*q(ihi-1,jlo-1,k) + 
-     $              three*q(ihi-2,jlo-1,k))
+     $              (15*q(ihi,jlo-1,k) - 10*q(ihi-1,jlo-1,k) + 
+     $              3*q(ihi-2,jlo-1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half * half * 
-     $              (three*q(ihi,jlo-1,k) - q(ihi-1,jlo-1,k))
+     $              (3*q(ihi,jlo-1,k) - q(ihi-1,jlo-1,k))
             end do
          end if
 
          if (ndwn .gt. 0 .and. bc(3,1) .eq. HOEXTRAP) then
             if (klo+2 .le. ke) then
                q(ihi+1,jlo-1,klo-1) = eighth * 
-     $              (fifteen*q(ihi+1,jlo-1,klo) - ten*q(ihi+1,jlo-1,klo+1) +
-     $              three*q(ihi+1,jlo-1,klo+2))
+     $              (15*q(ihi+1,jlo-1,klo) - 10*q(ihi+1,jlo-1,klo+1) +
+     $              3*q(ihi+1,jlo-1,klo+2))
             else
                q(ihi+1,jlo-1,klo-1) = half * 
-     $              (three*q(ihi+1,jlo-1,klo) - q(ihi+1,jlo-1,klo+1))
+     $              (3*q(ihi+1,jlo-1,klo) - q(ihi+1,jlo-1,klo+1))
             end if
          end if
 
          if (nup .gt. 0 .and. bc(3,2) .eq. HOEXTRAP) then
             if (khi-2 .ge. ks) then
                q(ihi+1,jlo-1,khi+1) = eighth * 
-     $              (fifteen*q(ihi+1,jlo-1,khi) - ten*q(ihi+1,jlo-1,khi-1) +
-     $              three*q(ihi+1,jlo-1,khi-2))
+     $              (15*q(ihi+1,jlo-1,khi) - 10*q(ihi+1,jlo-1,khi-1) +
+     $              3*q(ihi+1,jlo-1,khi-2))
             else
                q(ihi+1,jlo-1,khi+1) = half * 
-     $              (three*q(ihi+1,jlo-1,khi) - q(ihi+1,jlo-1,khi-1))
+     $              (3*q(ihi+1,jlo-1,khi) - q(ihi+1,jlo-1,khi-1))
             end if
          end if
 
@@ -543,48 +543,48 @@ c
          if (jhi-2 .ge. js) then
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jhi+1,k) = half * eighth * 
-     $              (fifteen*q(ihi+1,jhi,k) - ten*q(ihi+1,jhi-1,k) + 
-     $              three*q(ihi+1,jhi-2,k))
+     $              (15*q(ihi+1,jhi,k) - 10*q(ihi+1,jhi-1,k) + 
+     $              3*q(ihi+1,jhi-2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jhi+1,k) = half * half * 
-     $              (three*q(ihi+1,jhi,k) - q(ihi+1,jhi-1,k))
+     $              (3*q(ihi+1,jhi,k) - q(ihi+1,jhi-1,k))
             end do
          end if
 
          if (ihi-2 .ge. is) then
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half * eighth * 
-     $              (fifteen*q(ihi,jhi+1,k) - ten*q(ihi-1,jhi+1,k) + 
-     $              three*q(ihi-2,jhi+1,k))
+     $              (15*q(ihi,jhi+1,k) - 10*q(ihi-1,jhi+1,k) + 
+     $              3*q(ihi-2,jhi+1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half * half * 
-     $              (three*q(ihi,jhi+1,k) - q(ihi-1,jhi+1,k))
+     $              (3*q(ihi,jhi+1,k) - q(ihi-1,jhi+1,k))
             end do
          end if
 
          if (ndwn .gt. 0 .and. bc(3,1) .eq. HOEXTRAP) then
             if (klo+2 .le. ke) then
                q(ihi+1,jhi+1,klo-1) = eighth *
-     $              (fifteen*q(ihi+1,jhi+1,klo) - ten*q(ihi+1,jhi+1,klo+1) +
-     $              three*q(ihi+1,jhi+1,klo+2))
+     $              (15*q(ihi+1,jhi+1,klo) - 10*q(ihi+1,jhi+1,klo+1) +
+     $              3*q(ihi+1,jhi+1,klo+2))
             else
                q(ihi+1,jhi+1,klo-1) = half * 
-     $              (three*q(ihi+1,jhi+1,klo) - q(ihi+1,jhi+1,klo+1))
+     $              (3*q(ihi+1,jhi+1,klo) - q(ihi+1,jhi+1,klo+1))
             end if
          end if
 
          if (nup .gt. 0 .and. bc(3,2) .eq. HOEXTRAP) then
             if (khi-2 .ge. ks) then
                q(ihi+1,jhi+1,khi+1) = eighth *
-     $              (fifteen*q(ihi+1,jhi+1,khi) - ten*q(ihi+1,jhi+1,khi-1) +
-     $              three*q(ihi+1,jhi+1,khi-2))
+     $              (15*q(ihi+1,jhi+1,khi) - 10*q(ihi+1,jhi+1,khi-1) +
+     $              3*q(ihi+1,jhi+1,khi-2))
             else
                q(ihi+1,jhi+1,khi+1) = half * 
-     $              (three*q(ihi+1,jhi+1,khi) - q(ihi+1,jhi+1,khi-1))
+     $              (3*q(ihi+1,jhi+1,khi) - q(ihi+1,jhi+1,khi-1))
             end if
          end if
 
@@ -597,26 +597,26 @@ c
          if (klo+2 .le. ke) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,klo-1) = half * eighth * 
-     $              (fifteen*q(ilo-1,j,klo) - ten*q(ilo-1,j,klo+1) + 
-     $              three*q(ilo-1,j,klo+2))
+     $              (15*q(ilo-1,j,klo) - 10*q(ilo-1,j,klo+1) + 
+     $              3*q(ilo-1,j,klo+2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,klo-1) = half * half * 
-     $              (three*q(ilo-1,j,klo) - q(ilo-1,j,klo+1))
+     $              (3*q(ilo-1,j,klo) - q(ilo-1,j,klo+1))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half * eighth * 
-     $              (fifteen*q(ilo,j,klo-1) - ten*q(ilo+1,j,klo-1) + 
-     $              three*q(ilo+2,j,klo-1))
+     $              (15*q(ilo,j,klo-1) - 10*q(ilo+1,j,klo-1) + 
+     $              3*q(ilo+2,j,klo-1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half * half * 
-     $              (three*q(ilo,j,klo-1) - q(ilo+1,j,klo-1))
+     $              (3*q(ilo,j,klo-1) - q(ilo+1,j,klo-1))
             end do
          end if
       end if
@@ -628,26 +628,26 @@ c
          if (khi-2 .ge. ks) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,khi+1) = half * eighth * 
-     $              (fifteen*q(ilo-1,j,khi) - ten*q(ilo-1,j,khi-1) + 
-     $              three*q(ilo-1,j,khi-2))
+     $              (15*q(ilo-1,j,khi) - 10*q(ilo-1,j,khi-1) + 
+     $              3*q(ilo-1,j,khi-2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,khi+1) = half * half * 
-     $              (three*q(ilo-1,j,khi) - q(ilo-1,j,khi-1))
+     $              (3*q(ilo-1,j,khi) - q(ilo-1,j,khi-1))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half * eighth * 
-     $              (fifteen*q(ilo,j,khi+1) - ten*q(ilo+1,j,khi+1) + 
-     $              three*q(ilo+2,j,khi+1))
+     $              (15*q(ilo,j,khi+1) - 10*q(ilo+1,j,khi+1) + 
+     $              3*q(ilo+2,j,khi+1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half * half * 
-     $              (three*q(ilo,j,khi+1) - q(ilo+1,j,khi+1))
+     $              (3*q(ilo,j,khi+1) - q(ilo+1,j,khi+1))
             end do
          end if
       end if
@@ -659,26 +659,26 @@ c
          if (klo+2 .le. ke) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,klo-1) = half * eighth *
-     $              (fifteen*q(ihi+1,j,klo) - ten*q(ihi+1,j,klo+1) + 
-     $              three*q(ihi+1,j,klo+2))
+     $              (15*q(ihi+1,j,klo) - 10*q(ihi+1,j,klo+1) + 
+     $              3*q(ihi+1,j,klo+2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,klo-1) = half * half * 
-     $              (three*q(ihi+1,j,klo) - q(ihi+1,j,klo+1))
+     $              (3*q(ihi+1,j,klo) - q(ihi+1,j,klo+1))
             end do
          end if
 
          if (ihi-2 .ge. is) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half * eighth *
-     $              (fifteen*q(ihi,j,klo-1) - ten*q(ihi-1,j,klo-1) + 
-     $              three*q(ihi-2,j,klo-1))
+     $              (15*q(ihi,j,klo-1) - 10*q(ihi-1,j,klo-1) + 
+     $              3*q(ihi-2,j,klo-1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half * half * 
-     $              (three*q(ihi,j,klo-1) - q(ihi-1,j,klo-1))
+     $              (3*q(ihi,j,klo-1) - q(ihi-1,j,klo-1))
             end do
          end if
       end if
@@ -690,25 +690,25 @@ c
          if (khi-2 .ge. ks) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,khi+1) = half * eighth * 
-     $              (fifteen*q(ihi+1,j,khi) - ten*q(ihi+1,j,khi-1) + 
-     $              three*q(ihi+1,j,khi-2))
+     $              (15*q(ihi+1,j,khi) - 10*q(ihi+1,j,khi-1) + 
+     $              3*q(ihi+1,j,khi-2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,khi+1) = half * half * 
-     $              (three*q(ihi+1,j,khi) - q(ihi+1,j,khi-1))
+     $              (3*q(ihi+1,j,khi) - q(ihi+1,j,khi-1))
             end do
          end if
          if (ihi-2 .ge. is) then
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half * eighth * 
-     $              (fifteen*q(ihi,j,khi+1) - ten*q(ihi-1,j,khi+1) + 
-     $              three*q(ihi-2,j,khi+1))
+     $              (15*q(ihi,j,khi+1) - 10*q(ihi-1,j,khi+1) + 
+     $              3*q(ihi-2,j,khi+1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half * half * 
-     $              (three*q(ihi,j,khi+1) - q(ihi-1,j,khi+1))
+     $              (3*q(ihi,j,khi+1) - q(ihi-1,j,khi+1))
             end do
          end if
       end if
@@ -720,25 +720,25 @@ c
          if (klo+2 .le. ke) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,klo-1) = half * eighth *
-     $              (fifteen*q(i,jlo-1,klo) - ten*q(i,jlo-1,klo+1) + 
-     $              three*q(i,jlo-1,klo+2))
+     $              (15*q(i,jlo-1,klo) - 10*q(i,jlo-1,klo+1) + 
+     $              3*q(i,jlo-1,klo+2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,klo-1) = half * half * 
-     $              (three*q(i,jlo-1,klo) - q(i,jlo-1,klo+1))
+     $              (3*q(i,jlo-1,klo) - q(i,jlo-1,klo+1))
             end do
          end if
          if (jlo+2 .le. je) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half * eighth * 
-     $              (fifteen*q(i,jlo,klo-1) - ten*q(i,jlo+1,klo-1) + 
-     $              three*q(i,jlo+2,klo-1))
+     $              (15*q(i,jlo,klo-1) - 10*q(i,jlo+1,klo-1) + 
+     $              3*q(i,jlo+2,klo-1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half * half * 
-     $              (three*q(i,jlo,klo-1) - q(i,jlo+1,klo-1))
+     $              (3*q(i,jlo,klo-1) - q(i,jlo+1,klo-1))
             end do
          end if
       end if
@@ -750,26 +750,26 @@ c
          if (khi-2 .ge. ks) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,khi+1) = half * eighth * 
-     $              (fifteen*q(i,jlo-1,khi) - ten*q(i,jlo-1,khi-1) + 
-     $              three*q(i,jlo-1,khi-2))
+     $              (15*q(i,jlo-1,khi) - 10*q(i,jlo-1,khi-1) + 
+     $              3*q(i,jlo-1,khi-2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,khi+1) = half * half *
-     $              (three*q(i,jlo-1,khi) - q(i,jlo-1,khi-1))
+     $              (3*q(i,jlo-1,khi) - q(i,jlo-1,khi-1))
             end do
          end if
 
          if (jlo+2 .le. je) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half * eighth * 
-     $              (fifteen*q(i,jlo,khi+1) - ten*q(i,jlo+1,khi+1) + 
-     $              three*q(i,jlo+2,khi+1))
+     $              (15*q(i,jlo,khi+1) - 10*q(i,jlo+1,khi+1) + 
+     $              3*q(i,jlo+2,khi+1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half * half *
-     $              (three*q(i,jlo,khi+1) - q(i,jlo+1,khi+1))
+     $              (3*q(i,jlo,khi+1) - q(i,jlo+1,khi+1))
             end do
          end if
       end if
@@ -781,25 +781,25 @@ c
          if (klo+2 .le. ke) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,klo-1) = half * eighth * 
-     $              (fifteen*q(i,jhi+1,klo) - ten*q(i,jhi+1,klo+1) + 
-     $              three*q(i,jhi+1,klo+2))
+     $              (15*q(i,jhi+1,klo) - 10*q(i,jhi+1,klo+1) + 
+     $              3*q(i,jhi+1,klo+2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,klo-1) = half * half * 
-     $              (three*q(i,jhi+1,klo) - q(i,jhi+1,klo+1))
+     $              (3*q(i,jhi+1,klo) - q(i,jhi+1,klo+1))
             end do
          end if
          if (jhi-2 .ge. js) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half * eighth * 
-     $              (fifteen*q(i,jhi,klo-1) - ten*q(i,jhi-1,klo-1) + 
-     $              three*q(i,jhi-2,klo-1))
+     $              (15*q(i,jhi,klo-1) - 10*q(i,jhi-1,klo-1) + 
+     $              3*q(i,jhi-2,klo-1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half * half * 
-     $              (three*q(i,jhi,klo-1) - q(i,jhi-1,klo-1))
+     $              (3*q(i,jhi,klo-1) - q(i,jhi-1,klo-1))
             end do
          end if
       end if
@@ -811,25 +811,25 @@ c
          if (khi-2 .ge. ks) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,khi+1) = half * eighth * 
-     $              (fifteen*q(i,jhi+1,khi) - ten*q(i,jhi+1,khi-1) + 
-     $              three*q(i,jhi+1,khi-2))
+     $              (15*q(i,jhi+1,khi) - 10*q(i,jhi+1,khi-1) + 
+     $              3*q(i,jhi+1,khi-2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,khi+1) = half * half * 
-     $              (three*q(i,jhi+1,khi) - q(i,jhi+1,khi-1))
+     $              (3*q(i,jhi+1,khi) - q(i,jhi+1,khi-1))
             end do
          end if
          if (jhi-2 .ge. js) then
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half * eighth * 
-     $              (fifteen*q(i,jhi,khi+1) - ten*q(i,jhi-1,khi+1) + 
-     $              three*q(i,jhi-2,khi+1))
+     $              (15*q(i,jhi,khi+1) - 10*q(i,jhi-1,khi+1) + 
+     $              3*q(i,jhi-2,khi+1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
                q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half * half * 
-     $              (three*q(i,jhi,khi+1) - q(i,jhi-1,khi+1))
+     $              (3*q(i,jhi,khi+1) - q(i,jhi-1,khi+1))
             end do
          end if
       end if
@@ -862,7 +862,7 @@ c
       ndwn = max(0,domlo(3)-ARG_L3(q))
       nup  = max(0,ARG_H3(q)-domhi(3))
 c
-c     ::::: first fill sides
+c     First fill sides.
 c
       if (nlft .gt. 0) then
          ilo = domlo(1)
@@ -877,14 +877,14 @@ c
          if (ilo+2 .le. ie) then
             do k = ARG_L3(q),ARG_H3(q)
                do j = ARG_L2(q),ARG_H2(q)
-                  q(ilo-1,j,k) = (fifteen*q(ilo,j,k) - ten*q(ilo+1,j,k) + 
-     $                 three*q(ilo+2,j,k)) * eighth
+                  q(ilo-1,j,k) = 3*q(ilo,j,k) - 3*q(ilo+1,j,k) +
+     $                           q(ilo+2,j,k)
                end do
             end do
          else  
             do k = ARG_L3(q),ARG_H3(q)
                do j = ARG_L2(q),ARG_H2(q)
-                  q(ilo-1,j,k) = half*(three*q(ilo,j,k) - q(ilo+1,j,k))
+                  q(ilo-1,j,k) = 2*q(ilo,j,k) - q(ilo+1,j,k)
                end do
             end do
          end if
@@ -903,14 +903,14 @@ c
          if (ihi-2 .ge. is) then
             do k = ARG_L3(q),ARG_H3(q)
                do j = ARG_L2(q),ARG_H2(q)
-                  q(ihi+1,j,k) = (fifteen*q(ihi,j,k) - ten*q(ihi-1,j,k) + 
-     $                 three*q(ihi-2,j,k)) * eighth
+                  q(ihi+1,j,k) = 3*q(ihi,j,k) - 3*q(ihi-1,j,k) +
+     $                           q(ihi-2,j,k)
                end do
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                do j = ARG_L2(q),ARG_H2(q)
-                  q(ihi+1,j,k) = half*(three*q(ihi,j,k) - q(ihi-1,j,k))
+                  q(ihi+1,j,k) = 2*q(ihi,j,k) - q(ihi-1,j,k)
                end do
             end do
          end if
@@ -929,14 +929,14 @@ c
          if (jlo+2 .le. je) then
             do k = ARG_L3(q),ARG_H3(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,jlo-1,k) = (fifteen*q(i,jlo,k) - ten*q(i,jlo+1,k) + 
-     $                 three*q(i,jlo+2,k)) * eighth
+                  q(i,jlo-1,k) = 3*q(i,jlo,k) - 3*q(i,jlo+1,k) +
+     $                           q(i,jlo+2,k)
                end do
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,jlo-1,k) = half*(three*q(i,jlo,k) - q(i,jlo+1,k))
+                  q(i,jlo-1,k) = 2*q(i,jlo,k) - q(i,jlo+1,k)
                end do
             end do
          end if
@@ -955,14 +955,14 @@ c
          if (jhi-2 .ge. js) then
             do k = ARG_L3(q),ARG_H3(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,jhi+1,k) = (fifteen*q(i,jhi,k) - ten*q(i,jhi-1,k) + 
-     $                 three*q(i,jhi-2,k)) * eighth
+                  q(i,jhi+1,k) = 3*q(i,jhi,k) - 3*q(i,jhi-1,k) +
+     $                           q(i,jhi-2,k)
                end do
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,jhi+1,k) = half*(three*q(i,jhi,k) - q(i,jhi-1,k))
+                  q(i,jhi+1,k) = 2*q(i,jhi,k) - q(i,jhi-1,k)
                end do
             end do
          end if
@@ -981,14 +981,14 @@ c
          if (klo+2 .le. ke) then
             do j = ARG_L2(q),ARG_H2(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,j,klo-1) = (fifteen*q(i,j,klo) - ten*q(i,j,klo+1) + 
-     $                 three*q(i,j,klo+2)) * eighth
+                  q(i,j,klo-1) = 3*q(i,j,klo) - 3*q(i,j,klo+1) +
+     $                           q(i,j,klo+2)
                end do
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,j,klo-1) = half*(three*q(i,j,klo) - q(i,j,klo+1))
+                  q(i,j,klo-1) = 2*q(i,j,klo) - q(i,j,klo+1)
                end do
             end do
          end if
@@ -1007,14 +1007,14 @@ c
          if (khi-2 .ge. ks) then
             do j = ARG_L2(q),ARG_H2(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,j,khi+1) = (fifteen*q(i,j,khi) - ten*q(i,j,khi-1) + 
-     $                 three*q(i,j,khi-2)) * eighth
+                  q(i,j,khi+1) = 3*q(i,j,khi) - 3*q(i,j,khi-1) +
+     $                           q(i,j,khi-2)
                end do
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
                do i = ARG_L1(q),ARG_H1(q)
-                  q(i,j,khi+1) = half*(three*q(i,j,khi) - q(i,j,khi-1))
+                  q(i,j,khi+1) = 2*q(i,j,khi) - q(i,j,khi-1)
                end do
             end do
          end if
@@ -1025,49 +1025,49 @@ c
       if ((nlft .gt. 0) .and. (nbot .gt. 0)) then
          if (jlo+2 .le. je) then
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jlo-1,k) = half * eighth * 
-     $              (fifteen*q(ilo-1,jlo,k) - ten*q(ilo-1,jlo+1,k) + 
-     $              three*q(ilo-1,jlo+2,k))
+               q(ilo-1,jlo-1,k) = half *
+     $              (3*q(ilo-1,jlo,k) - 3*q(ilo-1,jlo+1,k) +
+     $              q(ilo-1,jlo+2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jlo-1,k) = half * half * 
-     $              (three*q(ilo-1,jlo,k) - q(ilo-1,jlo+1,k))
+               q(ilo-1,jlo-1,k) = half *
+     $              (2*q(ilo-1,jlo,k) - q(ilo-1,jlo+1,k))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half * eighth * 
-     $              (fifteen*q(ilo,jlo-1,k) - ten*q(ilo+1,jlo-1,k) + 
-     $              three*q(ilo+2,jlo-1,k))
+               q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half *
+     $              (3*q(ilo,jlo-1,k) - 3*q(ilo+1,jlo-1,k) + 
+     $              q(ilo+2,jlo-1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half * half * 
-     $              (three*q(ilo,jlo-1,k) - q(ilo+1,jlo-1,k))
+               q(ilo-1,jlo-1,k) = q(ilo-1,jlo-1,k) + half *
+     $              (2*q(ilo,jlo-1,k) - q(ilo+1,jlo-1,k))
             end do
          end if
 
          if (ndwn .gt. 0) then
             if (klo+2 .le. ke) then
-               q(ilo-1,jlo-1,klo-1) = eighth * (
-     $              (fifteen*q(ilo-1,jlo-1,klo) - ten*q(ilo-1,jlo-1,klo+1) +
-     $              three*q(ilo-1,jlo-1,klo+2)) )
+               q(ilo-1,jlo-1,klo-1) = 
+     $              (3*q(ilo-1,jlo-1,klo) - 3*q(ilo-1,jlo-1,klo+1) +
+     $              q(ilo-1,jlo-1,klo+2))
             else
-               q(ilo-1,jlo-1,klo-1) = half * 
-     $              (three*q(ilo-1,jlo-1,klo) - q(ilo-1,jlo-1,klo+1))
+               q(ilo-1,jlo-1,klo-1) = 
+     $              (2*q(ilo-1,jlo-1,klo) - q(ilo-1,jlo-1,klo+1))
             end if
          end if
 
          if (nup .gt. 0) then
             if (khi-2 .ge. ks) then
-               q(ilo-1,jlo-1,khi+1) = eighth * (
-     $              (fifteen*q(ilo-1,jlo-1,khi) - ten*q(ilo-1,jlo-1,khi-1) +
-     $              three*q(ilo-1,jlo-1,khi-2)) )
+               q(ilo-1,jlo-1,khi+1) = 
+     $              (3*q(ilo-1,jlo-1,khi) - 3*q(ilo-1,jlo-1,khi-1) +
+     $              q(ilo-1,jlo-1,khi-2))
             else
-               q(ilo-1,jlo-1,khi+1) = half * 
-     $              (three*q(ilo-1,jlo-1,khi) - q(ilo-1,jlo-1,khi-1))
+               q(ilo-1,jlo-1,khi+1) =
+     $              (2*q(ilo-1,jlo-1,khi) - q(ilo-1,jlo-1,khi-1))
             end if
          end if
 
@@ -1078,49 +1078,49 @@ c
       if ((nlft .gt. 0) .and. (ntop .gt. 0)) then
          if (jhi-2 .ge. js) then 
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jhi+1,k) = half * eighth * 
-     $              (fifteen*q(ilo-1,jhi,k) - ten*q(ilo-1,jhi-1,k) + 
-     $              three*q(ilo-1,jhi-2,k))
+               q(ilo-1,jhi+1,k) = half *
+     $              (3*q(ilo-1,jhi,k) - 3*q(ilo-1,jhi-1,k) + 
+     $              q(ilo-1,jhi-2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jhi+1,k) = half * half * 
-     $              (three*q(ilo-1,jhi,k) - q(ilo-1,jhi-1,k))
+               q(ilo-1,jhi+1,k) = half *
+     $              (2*q(ilo-1,jhi,k) - q(ilo-1,jhi-1,k))
             end do
          end if
 
          if (ilo+2 .le. ie) then 
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half * eighth * 
-     $              (fifteen*q(ilo,jhi+1,k) - ten*q(ilo+1,jhi+1,k) + 
-     $              three*q(ilo+2,jhi+1,k))
+               q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half *
+     $              (3*q(ilo,jhi+1,k) - 3*q(ilo+1,jhi+1,k) + 
+     $              q(ilo+2,jhi+1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half * half * 
-     $              (three*q(ilo,jhi+1,k) - q(ilo+1,jhi+1,k))
+               q(ilo-1,jhi+1,k) = q(ilo-1,jhi+1,k) + half *
+     $              (2*q(ilo,jhi+1,k) - q(ilo+1,jhi+1,k))
             end do
          end if
 
          if (ndwn .gt. 0) then
             if (klo+2 .le. ke) then
-               q(ilo-1,jhi+1,klo-1) = eighth * (
-     $              (fifteen*q(ilo-1,jhi+1,klo) - ten*q(ilo-1,jhi+1,klo+1) +
-     $              three*q(ilo-1,jhi+1,klo+2)) )
+               q(ilo-1,jhi+1,klo-1) = 
+     $              (3*q(ilo-1,jhi+1,klo) - 3*q(ilo-1,jhi+1,klo+1) +
+     $              q(ilo-1,jhi+1,klo+2))
             else
-               q(ilo-1,jhi+1,klo-1) = half * 
-     $              (three*q(ilo-1,jhi+1,klo) - q(ilo-1,jhi+1,klo+1))
+               q(ilo-1,jhi+1,klo-1) =
+     $              (2*q(ilo-1,jhi+1,klo) - q(ilo-1,jhi+1,klo+1))
             end if
          end if
 
          if (nup .gt. 0) then
             if (khi-2 .ge. ks) then
-               q(ilo-1,jhi+1,khi+1) = eighth * (
-     $              (fifteen*q(ilo-1,jhi+1,khi) - ten*q(ilo-1,jhi+1,khi-1) +
-     $              three*q(ilo-1,jhi+1,khi-2)) )
+               q(ilo-1,jhi+1,khi+1) =
+     $              (3*q(ilo-1,jhi+1,khi) - 3*q(ilo-1,jhi+1,khi-1) +
+     $              q(ilo-1,jhi+1,khi-2))
             else
-               q(ilo-1,jhi+1,khi+1) = half * 
-     $              (three*q(ilo-1,jhi+1,khi) - q(ilo-1,jhi+1,khi-1))
+               q(ilo-1,jhi+1,khi+1) =
+     $              (2*q(ilo-1,jhi+1,khi) - q(ilo-1,jhi+1,khi-1))
             end if
          end if
 
@@ -1131,49 +1131,49 @@ c
       if ((nrgt .gt. 0) .and. (nbot .gt. 0)) then
          if (jlo+2 .le. je) then 
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jlo-1,k) = half * eighth * 
-     $              (fifteen*q(ihi+1,jlo,k) - ten*q(ihi+1,jlo+1,k) + 
-     $              three*q(ihi+1,jlo+2,k))
+               q(ihi+1,jlo-1,k) = half *
+     $              (3*q(ihi+1,jlo,k) - 3*q(ihi+1,jlo+1,k) + 
+     $              q(ihi+1,jlo+2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jlo-1,k) = half * half * 
-     $              (three*q(ihi+1,jlo,k) - q(ihi+1,jlo+1,k))
+               q(ihi+1,jlo-1,k) = half *
+     $              (2*q(ihi+1,jlo,k) - q(ihi+1,jlo+1,k))
             end do
          end if
 
          if (ihi-2 .ge. is) then 
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half * eighth * 
-     $              (fifteen*q(ihi,jlo-1,k) - ten*q(ihi-1,jlo-1,k) + 
-     $              three*q(ihi-2,jlo-1,k))
+               q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half *
+     $              (3*q(ihi,jlo-1,k) - 3*q(ihi-1,jlo-1,k) + 
+     $              q(ihi-2,jlo-1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half * half * 
-     $              (three*q(ihi,jlo-1,k) - q(ihi-1,jlo-1,k))
+               q(ihi+1,jlo-1,k) = q(ihi+1,jlo-1,k) + half *
+     $              (2*q(ihi,jlo-1,k) - q(ihi-1,jlo-1,k))
             end do
          end if
 
          if (ndwn .gt. 0) then
             if (klo+2 .le. ke) then
-               q(ihi+1,jlo-1,klo-1) = eighth * 
-     $              (fifteen*q(ihi+1,jlo-1,klo) - ten*q(ihi+1,jlo-1,klo+1) +
-     $              three*q(ihi+1,jlo-1,klo+2))
+               q(ihi+1,jlo-1,klo-1) =
+     $              (3*q(ihi+1,jlo-1,klo) - 3*q(ihi+1,jlo-1,klo+1) +
+     $              q(ihi+1,jlo-1,klo+2))
             else
-               q(ihi+1,jlo-1,klo-1) = half * 
-     $              (three*q(ihi+1,jlo-1,klo) - q(ihi+1,jlo-1,klo+1))
+               q(ihi+1,jlo-1,klo-1) =
+     $              (2*q(ihi+1,jlo-1,klo) - q(ihi+1,jlo-1,klo+1))
             end if
          end if
 
          if (nup .gt. 0) then
             if (khi-2 .ge. ks) then
-               q(ihi+1,jlo-1,khi+1) = eighth * 
-     $              (fifteen*q(ihi+1,jlo-1,khi) - ten*q(ihi+1,jlo-1,khi-1) +
-     $              three*q(ihi+1,jlo-1,khi-2))
+               q(ihi+1,jlo-1,khi+1) =
+     $              (3*q(ihi+1,jlo-1,khi) - 3*q(ihi+1,jlo-1,khi-1) +
+     $              q(ihi+1,jlo-1,khi-2))
             else
-               q(ihi+1,jlo-1,khi+1) = half * 
-     $              (three*q(ihi+1,jlo-1,khi) - q(ihi+1,jlo-1,khi-1))
+               q(ihi+1,jlo-1,khi+1) =
+     $              (2*q(ihi+1,jlo-1,khi) - q(ihi+1,jlo-1,khi-1))
             end if
          end if
 
@@ -1184,49 +1184,49 @@ c
       if ((nrgt .gt. 0) .and. (ntop .gt. 0)) then
          if (jhi-2 .ge. js) then
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jhi+1,k) = half * eighth * 
-     $              (fifteen*q(ihi+1,jhi,k) - ten*q(ihi+1,jhi-1,k) + 
-     $              three*q(ihi+1,jhi-2,k))
+               q(ihi+1,jhi+1,k) = half *
+     $              (3*q(ihi+1,jhi,k) - 3*q(ihi+1,jhi-1,k) + 
+     $              q(ihi+1,jhi-2,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jhi+1,k) = half * half * 
-     $              (three*q(ihi+1,jhi,k) - q(ihi+1,jhi-1,k))
+               q(ihi+1,jhi+1,k) = half *
+     $              (2*q(ihi+1,jhi,k) - q(ihi+1,jhi-1,k))
             end do
          end if
 
          if (ihi-2 .ge. is) then
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half * eighth * 
-     $              (fifteen*q(ihi,jhi+1,k) - ten*q(ihi-1,jhi+1,k) + 
-     $              three*q(ihi-2,jhi+1,k))
+               q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half *
+     $              (3*q(ihi,jhi+1,k) - 3*q(ihi-1,jhi+1,k) + 
+     $              q(ihi-2,jhi+1,k))
             end do
          else
             do k = ARG_L3(q),ARG_H3(q)
-               q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half * half * 
-     $              (three*q(ihi,jhi+1,k) - q(ihi-1,jhi+1,k))
+               q(ihi+1,jhi+1,k) = q(ihi+1,jhi+1,k) + half *
+     $              (2*q(ihi,jhi+1,k) - q(ihi-1,jhi+1,k))
             end do
          end if
 
          if (ndwn .gt. 0) then
             if (klo+2 .le. ke) then
-               q(ihi+1,jhi+1,klo-1) = eighth *
-     $              (fifteen*q(ihi+1,jhi+1,klo) - ten*q(ihi+1,jhi+1,klo+1) +
-     $              three*q(ihi+1,jhi+1,klo+2))
+               q(ihi+1,jhi+1,klo-1) =
+     $              (3*q(ihi+1,jhi+1,klo) - 3*q(ihi+1,jhi+1,klo+1) +
+     $              q(ihi+1,jhi+1,klo+2))
             else
-               q(ihi+1,jhi+1,klo-1) = half * 
-     $              (three*q(ihi+1,jhi+1,klo) - q(ihi+1,jhi+1,klo+1))
+               q(ihi+1,jhi+1,klo-1) =
+     $              (2*q(ihi+1,jhi+1,klo) - q(ihi+1,jhi+1,klo+1))
             end if
          end if
 
          if (nup .gt. 0) then
             if (khi-2 .ge. ks) then
-               q(ihi+1,jhi+1,khi+1) = eighth *
-     $              (fifteen*q(ihi+1,jhi+1,khi) - ten*q(ihi+1,jhi+1,khi-1) +
-     $              three*q(ihi+1,jhi+1,khi-2))
+               q(ihi+1,jhi+1,khi+1) =
+     $              (3*q(ihi+1,jhi+1,khi) - 3*q(ihi+1,jhi+1,khi-1) +
+     $              q(ihi+1,jhi+1,khi-2))
             else
-               q(ihi+1,jhi+1,khi+1) = half * 
-     $              (three*q(ihi+1,jhi+1,khi) - q(ihi+1,jhi+1,khi-1))
+               q(ihi+1,jhi+1,khi+1) =
+     $              (2*q(ihi+1,jhi+1,khi) - q(ihi+1,jhi+1,khi-1))
             end if
          end if
 
@@ -1237,27 +1237,27 @@ c
       if ((nlft .gt. 0) .and. (ndwn .gt. 0)) then
          if (klo+2 .le. ke) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,klo-1) = half * eighth * 
-     $              (fifteen*q(ilo-1,j,klo) - ten*q(ilo-1,j,klo+1) + 
-     $              three*q(ilo-1,j,klo+2))
+               q(ilo-1,j,klo-1) = half *
+     $              (3*q(ilo-1,j,klo) - 3*q(ilo-1,j,klo+1) + 
+     $              q(ilo-1,j,klo+2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,klo-1) = half * half * 
-     $              (three*q(ilo-1,j,klo) - q(ilo-1,j,klo+1))
+               q(ilo-1,j,klo-1) = half *
+     $              (2*q(ilo-1,j,klo) - q(ilo-1,j,klo+1))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half * eighth * 
-     $              (fifteen*q(ilo,j,klo-1) - ten*q(ilo+1,j,klo-1) + 
-     $              three*q(ilo+2,j,klo-1))
+               q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half *
+     $              (3*q(ilo,j,klo-1) - 3*q(ilo+1,j,klo-1) + 
+     $              q(ilo+2,j,klo-1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half * half * 
-     $              (three*q(ilo,j,klo-1) - q(ilo+1,j,klo-1))
+               q(ilo-1,j,klo-1) = q(ilo-1,j,klo-1) + half *
+     $              (2*q(ilo,j,klo-1) - q(ilo+1,j,klo-1))
             end do
          end if
       end if
@@ -1267,27 +1267,27 @@ c
       if ((nlft .gt. 0) .and. (nup .gt. 0)) then
          if (khi-2 .ge. ks) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,khi+1) = half * eighth * 
-     $              (fifteen*q(ilo-1,j,khi) - ten*q(ilo-1,j,khi-1) + 
-     $              three*q(ilo-1,j,khi-2))
+               q(ilo-1,j,khi+1) = half *
+     $              (3*q(ilo-1,j,khi) - 3*q(ilo-1,j,khi-1) + 
+     $              q(ilo-1,j,khi-2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,khi+1) = half * half * 
-     $              (three*q(ilo-1,j,khi) - q(ilo-1,j,khi-1))
+               q(ilo-1,j,khi+1) = half *
+     $              (2*q(ilo-1,j,khi) - q(ilo-1,j,khi-1))
             end do
          end if
 
          if (ilo+2 .le. ie) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half * eighth * 
-     $              (fifteen*q(ilo,j,khi+1) - ten*q(ilo+1,j,khi+1) + 
-     $              three*q(ilo+2,j,khi+1))
+               q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half *
+     $              (3*q(ilo,j,khi+1) - 3*q(ilo+1,j,khi+1) + 
+     $              q(ilo+2,j,khi+1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half * half * 
-     $              (three*q(ilo,j,khi+1) - q(ilo+1,j,khi+1))
+               q(ilo-1,j,khi+1) = q(ilo-1,j,khi+1) + half *
+     $              (2*q(ilo,j,khi+1) - q(ilo+1,j,khi+1))
             end do
          end if
       end if
@@ -1297,27 +1297,27 @@ c
       if ((nrgt .gt. 0) .and. (ndwn .gt. 0)) then
          if (klo+2 .le. ke) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,klo-1) = half * eighth *
-     $              (fifteen*q(ihi+1,j,klo) - ten*q(ihi+1,j,klo+1) + 
-     $              three*q(ihi+1,j,klo+2))
+               q(ihi+1,j,klo-1) = half *
+     $              (3*q(ihi+1,j,klo) - 3*q(ihi+1,j,klo+1) + 
+     $              q(ihi+1,j,klo+2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,klo-1) = half * half * 
-     $              (three*q(ihi+1,j,klo) - q(ihi+1,j,klo+1))
+               q(ihi+1,j,klo-1) = half *
+     $              (2*q(ihi+1,j,klo) - q(ihi+1,j,klo+1))
             end do
          end if
 
          if (ihi-2 .ge. is) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half * eighth *
-     $              (fifteen*q(ihi,j,klo-1) - ten*q(ihi-1,j,klo-1) + 
-     $              three*q(ihi-2,j,klo-1))
+               q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half *
+     $              (3*q(ihi,j,klo-1) - 3*q(ihi-1,j,klo-1) + 
+     $              q(ihi-2,j,klo-1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half * half * 
-     $              (three*q(ihi,j,klo-1) - q(ihi-1,j,klo-1))
+               q(ihi+1,j,klo-1) = q(ihi+1,j,klo-1) + half *
+     $              (2*q(ihi,j,klo-1) - q(ihi-1,j,klo-1))
             end do
          end if
       end if
@@ -1327,26 +1327,26 @@ c
       if ((nrgt .gt. 0) .and. (nup .gt. 0)) then
          if (khi-2 .ge. ks) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,khi+1) = half * eighth * 
-     $              (fifteen*q(ihi+1,j,khi) - ten*q(ihi+1,j,khi-1) + 
-     $              three*q(ihi+1,j,khi-2))
+               q(ihi+1,j,khi+1) = half *
+     $              (3*q(ihi+1,j,khi) - 3*q(ihi+1,j,khi-1) + 
+     $              q(ihi+1,j,khi-2))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,khi+1) = half * half * 
-     $              (three*q(ihi+1,j,khi) - q(ihi+1,j,khi-1))
+               q(ihi+1,j,khi+1) = half *
+     $              (2*q(ihi+1,j,khi) - q(ihi+1,j,khi-1))
             end do
          end if
          if (ihi-2 .ge. is) then
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half * eighth * 
-     $              (fifteen*q(ihi,j,khi+1) - ten*q(ihi-1,j,khi+1) + 
-     $              three*q(ihi-2,j,khi+1))
+               q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half *
+     $              (3*q(ihi,j,khi+1) - 3*q(ihi-1,j,khi+1) + 
+     $              q(ihi-2,j,khi+1))
             end do
          else
             do j = ARG_L2(q),ARG_H2(q)
-               q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half * half * 
-     $              (three*q(ihi,j,khi+1) - q(ihi-1,j,khi+1))
+               q(ihi+1,j,khi+1) = q(ihi+1,j,khi+1) + half *
+     $              (2*q(ihi,j,khi+1) - q(ihi-1,j,khi+1))
             end do
          end if
       end if
@@ -1356,26 +1356,26 @@ c
       if ((nbot .gt. 0) .and. (ndwn .gt. 0)) then
          if (klo+2 .le. ke) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,klo-1) = half * eighth *
-     $              (fifteen*q(i,jlo-1,klo) - ten*q(i,jlo-1,klo+1) + 
-     $              three*q(i,jlo-1,klo+2))
+               q(i,jlo-1,klo-1) = half *
+     $              (3*q(i,jlo-1,klo) - 3*q(i,jlo-1,klo+1) + 
+     $              q(i,jlo-1,klo+2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,klo-1) = half * half * 
-     $              (three*q(i,jlo-1,klo) - q(i,jlo-1,klo+1))
+               q(i,jlo-1,klo-1) = half *
+     $              (2*q(i,jlo-1,klo) - q(i,jlo-1,klo+1))
             end do
          end if
          if (jlo+2 .le. je) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half * eighth * 
-     $              (fifteen*q(i,jlo,klo-1) - ten*q(i,jlo+1,klo-1) + 
-     $              three*q(i,jlo+2,klo-1))
+               q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half *
+     $              (3*q(i,jlo,klo-1) - 3*q(i,jlo+1,klo-1) + 
+     $              q(i,jlo+2,klo-1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half * half * 
-     $              (three*q(i,jlo,klo-1) - q(i,jlo+1,klo-1))
+               q(i,jlo-1,klo-1) = q(i,jlo-1,klo-1) + half *
+     $              (2*q(i,jlo,klo-1) - q(i,jlo+1,klo-1))
             end do
          end if
       end if
@@ -1385,27 +1385,27 @@ c
       if ((nbot .gt. 0) .and. (nup .gt. 0)) then
          if (khi-2 .ge. ks) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,khi+1) = half * eighth * 
-     $              (fifteen*q(i,jlo-1,khi) - ten*q(i,jlo-1,khi-1) + 
-     $              three*q(i,jlo-1,khi-2))
+               q(i,jlo-1,khi+1) = half *
+     $              (3*q(i,jlo-1,khi) - 3*q(i,jlo-1,khi-1) + 
+     $              q(i,jlo-1,khi-2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,khi+1) = half * half *
-     $              (three*q(i,jlo-1,khi) - q(i,jlo-1,khi-1))
+               q(i,jlo-1,khi+1) = half *
+     $              (2*q(i,jlo-1,khi) - q(i,jlo-1,khi-1))
             end do
          end if
 
          if (jlo+2 .le. je) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half * eighth * 
-     $              (fifteen*q(i,jlo,khi+1) - ten*q(i,jlo+1,khi+1) + 
-     $              three*q(i,jlo+2,khi+1))
+               q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half *
+     $              (3*q(i,jlo,khi+1) - 3*q(i,jlo+1,khi+1) + 
+     $              q(i,jlo+2,khi+1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half * half *
-     $              (three*q(i,jlo,khi+1) - q(i,jlo+1,khi+1))
+               q(i,jlo-1,khi+1) = q(i,jlo-1,khi+1) + half *
+     $              (2*q(i,jlo,khi+1) - q(i,jlo+1,khi+1))
             end do
          end if
       end if
@@ -1415,26 +1415,26 @@ c
       if ((ntop .gt. 0) .and. (ndwn .gt. 0)) then
          if (klo+2 .le. ke) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,klo-1) = half * eighth * 
-     $              (fifteen*q(i,jhi+1,klo) - ten*q(i,jhi+1,klo+1) + 
-     $              three*q(i,jhi+1,klo+2))
+               q(i,jhi+1,klo-1) = half *
+     $              (3*q(i,jhi+1,klo) - 3*q(i,jhi+1,klo+1) + 
+     $              q(i,jhi+1,klo+2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,klo-1) = half * half * 
-     $              (three*q(i,jhi+1,klo) - q(i,jhi+1,klo+1))
+               q(i,jhi+1,klo-1) = half *
+     $              (2*q(i,jhi+1,klo) - q(i,jhi+1,klo+1))
             end do
          end if
          if (jhi-2 .ge. js) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half * eighth * 
-     $              (fifteen*q(i,jhi,klo-1) - ten*q(i,jhi-1,klo-1) + 
-     $              three*q(i,jhi-2,klo-1))
+               q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half *
+     $              (3*q(i,jhi,klo-1) - 3*q(i,jhi-1,klo-1) + 
+     $              q(i,jhi-2,klo-1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half * half * 
-     $              (three*q(i,jhi,klo-1) - q(i,jhi-1,klo-1))
+               q(i,jhi+1,klo-1) = q(i,jhi+1,klo-1) + half *
+     $              (2*q(i,jhi,klo-1) - q(i,jhi-1,klo-1))
             end do
          end if
       end if
@@ -1444,26 +1444,26 @@ c
       if ((ntop .gt. 0) .and. (nup .gt. 0)) then
          if (khi-2 .ge. ks) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,khi+1) = half * eighth * 
-     $              (fifteen*q(i,jhi+1,khi) - ten*q(i,jhi+1,khi-1) + 
-     $              three*q(i,jhi+1,khi-2))
+               q(i,jhi+1,khi+1) = half *
+     $              (3*q(i,jhi+1,khi) - 3*q(i,jhi+1,khi-1) + 
+     $              q(i,jhi+1,khi-2))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,khi+1) = half * half * 
-     $              (three*q(i,jhi+1,khi) - q(i,jhi+1,khi-1))
+               q(i,jhi+1,khi+1) = half *
+     $              (2*q(i,jhi+1,khi) - q(i,jhi+1,khi-1))
             end do
          end if
          if (jhi-2 .ge. js) then
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half * eighth * 
-     $              (fifteen*q(i,jhi,khi+1) - ten*q(i,jhi-1,khi+1) + 
-     $              three*q(i,jhi-2,khi+1))
+               q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half *
+     $              (3*q(i,jhi,khi+1) - 3*q(i,jhi-1,khi+1) + 
+     $              q(i,jhi-2,khi+1))
             end do
          else
             do i = ARG_L1(q),ARG_H1(q)
-               q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half * half * 
-     $              (three*q(i,jhi,khi+1) - q(i,jhi-1,khi+1))
+               q(i,jhi+1,khi+1) = q(i,jhi+1,khi+1) + half *
+     $              (2*q(i,jhi,khi+1) - q(i,jhi-1,khi+1))
             end do
          end if
       end if
