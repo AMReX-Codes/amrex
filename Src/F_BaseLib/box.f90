@@ -247,7 +247,7 @@ contains
   function box_empty(bx) result(r)
     logical :: r
     type(box), intent(in) :: bx
-    r = ( bx%dim == 0) .OR. ( any(bx%lo(1:bx%dim) > bx%hi(1:bx%dim)) )
+    r = ( bx%dim == 0) .or. ( any(bx%lo(1:bx%dim) > bx%hi(1:bx%dim)) )
   end function box_empty
 
   !! Builds a box given a low and high end of index space.  It is an error
@@ -496,7 +496,7 @@ contains
   function box_equal(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
-    r = all(bx1%lo == bx2%lo .AND. bx1%hi == bx2%hi)
+    r = all(bx1%lo == bx2%lo .and. bx1%hi == bx2%hi)
   end function box_equal
   function box_not_equal(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
@@ -525,14 +525,21 @@ contains
     type(box), intent(in) :: bx1, bx2
     logical :: r
     r = all(bx1%lo(1:bx1%dim) <= bx2%lo(1:bx2%dim)) &
-         .AND. all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
+         .and. all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
   end function box_contains
+
+  function box_contains_strict(bx1, bx2) result(r)
+    type(box), intent(in) :: bx1, bx2
+    logical :: r
+    r = all(bx1%lo(1:bx1%dim) < bx2%lo(1:bx2%dim)) &
+         .and. all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
+  end function box_contains_strict
 
   function box_contains_iv(bx1, iv) result(r)
     type(box), intent(in) :: bx1
     integer, intent(in) :: iv(:)
     logical :: r
-    r = all(bx1%lo(1:bx1%dim) <= iv) .AND. all(bx1%hi(1:bx1%dim) >= iv)
+    r = all(bx1%lo(1:bx1%dim) <= iv) .and. all(bx1%hi(1:bx1%dim) >= iv)
   end function box_contains_iv
 
   function box_shift_v_m(bx, iv, mask) result(r)
