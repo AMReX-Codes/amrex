@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.22 2001-11-01 23:21:34 lijewski Exp $
+// $Id: BLThread.cpp,v 1.23 2001-11-07 22:00:57 car Exp $
 //
 
 #include <winstd.H>
@@ -455,25 +455,6 @@ extern "C"
 //
 // Thread
 //
-#ifdef WIN32
-#else
-
-int
-Thread::max_threads()
-{
-#ifdef PTHREAD_THREADS_MAX
-    return PTHREAD_THREADS_MAX;
-#else
-    return 64;
-#endif
-}
-
-void
-Thread::exit(void* st)
-{
-    pthread_exit(st);
-}
-
 int
 Thread::getID()
 {
@@ -490,6 +471,36 @@ bool
 Thread::baseThread ()
 {
     return getID() == 0;
+}
+
+Thread::CancelState
+Thread::setCancelState(CancelState cs)
+{
+    return cs;
+}
+
+#ifdef WIN32
+int
+Thread::max_threads()
+{
+    return 2;			// FIXME
+}
+#else
+
+int
+Thread::max_threads()
+{
+#ifdef PTHREAD_THREADS_MAX
+    return PTHREAD_THREADS_MAX;
+#else
+    return 64;
+#endif
+}
+
+void
+Thread::exit(void* st)
+{
+    pthread_exit(st);
 }
 
 void
@@ -703,7 +714,7 @@ public:
     void* set (const void* v);
     void* get () const;
 private:
-    HANDLE m_key;
+    DWORD m_key;
 };
 
 ThreadSpecificData<void>::Implementation::Implementation(void (*tsd)(void*))
@@ -711,15 +722,20 @@ ThreadSpecificData<void>::Implementation::Implementation(void (*tsd)(void*))
     m_key = TlsAlloc();
 }
 
+ThreadSpecificData<void>::Implementation::~Implementation()
+{
+    TlsFree(m_key);
+}
+
 void*
 ThreadSpecificData<void>::Implementation::set(const void* v)
 {
     void* ov = TlsGetValue(m_key);
-    TlsSetValue(m_key, v);
+    TlsSetValue(m_key, const_cast<void*>(v));
     return ov;
 }
 
-void
+void*
 ThreadSpecificData<void>::Implementation::get() const
 {
     return TlsGetValue(m_key);
@@ -832,9 +848,9 @@ private:
     mutable bool m_jod;
 };
 
-FunctionThread::Implementation::Implementation(Thread_Function func_, void* arg_, DetachState st_)
+FunctionThread::Implementation::Implementation(Thread_Function func_, void* arg_, DetachState st_, int stacksize)
 {
-    m_tid = (HANDLE) _beginthreadex(0,0, reinterpret_cast<unsigned int (*)(void*)>(func_),arg_,0,0);
+    m_tid = (HANDLE) _beginthreadex(0, stacksize, reinterpret_cast<unsigned int (__stdcall*)(void*)>(func_),arg_,0,0);
 }
 
 void*
@@ -844,7 +860,14 @@ FunctionThread::Implementation::join() const
     {
 	CloseHandle(m_tid);
     }
+    return 0;
 }
+
+FunctionThread::Implementation::~Implementation()
+{
+    detach();
+}
+
 void
 FunctionThread::Implementation::detach() const
 {
@@ -1055,29 +1078,3 @@ FunctionThread::detach() const
 }
 
 #endif
-
-    // #include <process.h>
-    // #define pthread_t HANDLE
-    // #define pthread_attr_t DWORD
-    // #define pthread_create(thhandle,attr,thfunc,tharg)
-    // ((thhandle=(HANDLE)_beginthreadex(NULL,0,thfunc,tharg,0, NULL))==NULL)
-    // #define pthread_self() GetCurrentThreadId()
-    // #define THREAD_FUNCTION void *
-    // #define THREAD_FUNCTION_RETURN void *
-    // #define THREAD_SPECIFIC_INDEX pthread_key_t
-    // #define ts_key_create(ts_key, destructor) pthread_key_create (&(ts_key), destructor);
-/* Syncrhronization macros - Assume NT 4.0 or 2000 */
-    // #define pthread_mutex_t HANDLE
-    // #define pthread_condvar_t HANDLE
-    // #define CV_TIMEOUT 100 /* Arbitrary value */
-/* USE THE FOLLOWING FOR WINDOWS 9X */
-//#define cond_var_wait(cv,mutex) {
-//ReleaseMutex(mutex);
-//WaitForSingleObject(cv,CV_TIMEOUT);
-//WaitForSingleObject(mutex,INFINITE);
-//};*/
-// #define pthread_cond_wait(cv,mutex) {
-//SignalObjectAndWait(mutex,cv,INFINITE,FALSE);
-//WaitForSingleObject(mutex,INFINITE);
-//};
-// #define pthread_cond_broadcast(cv) PulseEvent(cv)
