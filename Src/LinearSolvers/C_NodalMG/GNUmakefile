@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.19 1998-11-10 02:21:59 car Exp $
+# $Id: GNUmakefile,v 1.20 1998-11-13 16:03:07 car Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -16,6 +16,7 @@ USE_MPI   = TRUE
 # To build the executable: EBASE=proj LBASE=
 #
 EBASE = 
+EBASE = proj
 
 ifneq ($(EBASE),proj)
 override EBASE = 
@@ -30,17 +31,15 @@ TOP = $(PBOXLIB_HOME)
 #
 INSTALL_ROOT = $(PBOXLIB_HOME)
 
-include $(TOP)/mk/Make.defs ./Make.package
+include $(TOP)/mk/Make.defs
+include ./Make.package
 
 ifeq ($(LBASE),proj)
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
-endif
-
 INCLUDE_LOCATIONS += $(TOP)/include
 
-ifeq ($(LBASE),proj)
 ifeq ($(COMP),KCC)
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
 endif
@@ -48,10 +47,16 @@ all: $(optionsLib)
 endif
 
 ifeq ($(EBASE),proj)
+include	$(TOP)/pBoxLib_2/Make.package
+
 CPPFLAGS          += -DHG_DEBUG
-LIBRARIES         += -lproj$(optionsSuffix) -lbox$(DIM)d
-LIBRARY_LOCATIONS += . $(TOP)/lib/$(machineSuffix)
+LIBRARIES         +=
+LIBRARY_LOCATIONS +=
 CEXE_sources      += proj.cpp
+
+INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
+vpath %.cpp	. $(TOP)/pBoxLib_2
+vpath %.F	. 
 all: $(executable)
 endif
 

@@ -69,7 +69,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw( "task_bdy_fill::init(): FIXME" );
+	throw( "task_bdy_fill::init(): FIXME" ); /*NOTREACHED*/
 	return false;
     }
 private:
@@ -88,7 +88,7 @@ task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, co
 
 bool task_bdy_fill::ready()
 {
-    throw( "task_bdy_fill::ready(): FIXME" );
+    throw( "task_bdy_fill::ready(): FIXME" ); /*NOTREACHED*/
     bdy->fill(fab, region, src[grid], domain);
     return true;
 }
@@ -103,18 +103,18 @@ task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_
 bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
-    throw( "task_fill_patch::init(): FIXME" ) ;
+    throw( "task_fill_patch::init(): FIXME" ) ; /*NOTREACHED*/
     return true;
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    throw( "task_fill_patch::~task_fill_patch(): FIXME" );
+    throw( "task_fill_patch::~task_fill_patch(): FIXME" ); /*NOTREACHED*/
 }
 
 bool task_fill_patch::ready()
 {
-    throw( "task_fill_patch::ready(): FIXME" );
+    throw( "task_fill_patch::ready(): FIXME" ); /*NOTREACHED*/
     fill_patch();
     tl.execute();
     return true;

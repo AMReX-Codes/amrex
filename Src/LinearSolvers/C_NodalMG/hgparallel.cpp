@@ -180,7 +180,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    throw( "task_copy_local::ready(): FIXME" );
+    throw( "task_copy_local::ready(): FIXME" ); /*NOTREACHED*/
     return m_local;
 }
 
@@ -330,7 +330,7 @@ bool task_fab::init(sequence_number sno, MPI_Comm comm)
 bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
-    throw( "task_fab_get::init(): FIXME" );
+    throw( "task_fab_get::init(): FIXME" ); /*NOTREACHED*/
     return false;
 }
 
@@ -345,6 +345,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    throw( "task_fab_get::ready(): FIXME" );
+    throw( "task_fab_get::ready(): FIXME" ); /*NOTREACHED*/
     return true;
 }
