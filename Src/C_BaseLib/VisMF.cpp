@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.26 1997-11-14 00:59:55 lijewski Exp $
+// $Id: VisMF.cpp,v 1.27 1997-11-14 20:22:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -391,11 +391,12 @@ VisMF::WriteHeader (const aString& mf_name,
 
         MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
+#ifdef BL_USE_SETBUF
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
         ofstream MFHdrFile;
 
 #ifdef BL_USE_SETBUF
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
         MFHdrFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
@@ -455,11 +456,12 @@ VisMF::Write (const MultiFab& mf,
         FabFileName += VisMF::FabFileSuffix;
         FabFileName += VisMF::ToString(PD::MyProc());
 
+#ifdef BL_USE_SETBUF
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
         ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
         FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
@@ -497,11 +499,12 @@ VisMF::Write (const MultiFab& mf,
             FabFileName += VisMF::FabFileSuffix;
             FabFileName += VisMF::ToString(mfi.index());
 
+#ifdef BL_USE_SETBUF
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
             ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
             FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
@@ -561,11 +564,12 @@ VisMF::VisMF (const aString& mf_name)
 
     file += VisMF::MultiFabHdrFileSuffix;
 
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
     ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
     ifs.open(file.c_str(), ios::in);
@@ -600,11 +604,12 @@ VisMF::readFAB (int i) const
 
     const aString& file = m_hdr.m_fod[i].m_name;
 
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
     ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
     ifs.open(file.c_str(), ios::in);
