@@ -829,3 +829,134 @@ Array<int> level_interface::geo_array(int idim, int i) const
     }
     return ga;
 }
+
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <vector>
+#include <list>
+#include <map>
+using namespace std;
+#else
+#include <vector.h>
+#include <list.h>
+#include <map.h>
+#endif
+
+#ifdef	WIN32
+#pragma warning (disable : 4786)
+#endif
+
+// See Sedgewick, Algorithms in c++
+vector<int> val;
+map<int, list<int> > adj;
+vector<int> resl;
+
+const int unseen = -1;
+int id = -1;
+int V;
+
+void visit(int);
+
+void search()
+{
+    for (int k = 0; k < V; k++) val[k] = unseen;
+    for (int k = 0; k < V; k++)
+	if (val[k] == unseen) visit(k);
+}
+
+void visit(int k) //DFS
+{
+    val[k] = ++id;
+    for (list<int>::iterator li = adj[k].begin(); li != adj[k].end(); ++li)
+    {
+	if (val[*li] == unseen) visit(*li);
+    }
+    resl.push_back(k);
+}
+
+#ifdef TEST_TSORT
+inline int VV(char c) { return int(c - 'A');}
+
+main()
+{
+    V = 0;
+    {
+	// 0 A -> F, B, C, G
+	list<int> ls;
+	ls.push_back(VV('F')); ls.push_back(VV('B')); ls.push_back(VV('C'));ls.push_back(VV('G'));
+	adj[V++] = ls;
+    }
+    {
+	// 1 B 
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    {
+	// 2 C
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    {
+	// 3 D
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    {
+	// 4 E -> D
+	list<int> ls;
+	ls.push_back(VV('D'));
+	adj[V++] = ls;
+    }
+    {
+	// 5 F -> D, E
+	list<int> ls;
+	ls.push_back(VV('D')); ls.push_back(VV('E'));
+	adj[V++] = ls;
+    }
+    {
+	// 6 G -> C, E, H
+	list<int> ls;
+	ls.push_back(VV('C')); ls.push_back(VV('E')); ls.push_back(VV('H'));
+	adj[V++] = ls;
+    }
+    {
+	// 7 H -> I
+	list<int> ls;
+	ls.push_back(VV('I'));
+	adj[V++] = ls;
+    }
+    {
+	// 8 I
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    {
+	// 9 J -> G, K, L, M
+	list<int> ls;
+	ls.push_back(VV('G')); ls.push_back(VV('K')); ls.push_back(VV('L')); ls.push_back(VV('M'));
+	adj[V++] = ls;
+    }
+    {
+	// 10 K
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    {
+	// 11 L -> G, M
+	list<int> ls;
+	ls.push_back(VV('G')); ls.push_back(VV('M'));
+	adj[V++] = ls;
+    }
+    {
+	// 12 M
+	list<int> ls;
+	adj[V++] = ls;
+    }
+    val.resize(V);
+    search();
+    for(int i = 0; i < V; ++i)
+    {
+	cout << i << " <==> " << char(resl[i] + 'A') << endl;
+    }
+}
+#endif
