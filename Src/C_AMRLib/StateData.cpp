@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.16 1998-04-27 19:42:55 lijewski Exp $
+// $Id: StateData.cpp,v 1.17 1998-05-06 17:50:50 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -36,15 +36,6 @@ StateData::StateData ()
    new_time.stop  = INVALID_TIME;
    old_time.start = INVALID_TIME;
    old_time.stop  = INVALID_TIME;
-}
-
-StateData::StateData (const Box&             p_domain,
-                      const BoxArray&        grds,
-                      const StateDescriptor* d,
-                      Real                   time,
-                      Real                   dt)
-{
-    define(p_domain, grds, *d, time, dt);
 }
 
 void
@@ -85,6 +76,14 @@ StateData::define (const Box&             p_domain,
 
     old_data = 0;
     buildBC();
+}
+
+void
+StateData::reset ()
+{
+    new_time = old_time;
+    old_time.start = old_time.stop = INVALID_TIME;
+    Swap(old_data, new_data);
 }
 
 void
@@ -199,30 +198,6 @@ StateData::swapTimeLevels (Real dt)
 }
 
 void
-StateData::allocOldData ()
-{
-    if (old_data == 0)
-    {
-        old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
-    }
-}
-
-void
-StateData::removeOldData()
-{
-    delete old_data;
-    old_data = 0;
-}
-
-void
-StateData::reset ()
-{
-    new_time = old_time;
-    old_time.start = old_time.stop = INVALID_TIME;
-    Swap(old_data, new_data);
-}
-
-void
 StateData::FillBoundary (const Real*    dx,
                          const RealBox& prob_domain,
                          int            src_comp,
@@ -288,13 +263,13 @@ StateData::FillBoundary (FArrayBox&     dest,
                          int            num_comp)
 {
     Box dbox(dest.box());
-    assert( dbox.ixType() == desc->getType() );
+    assert(dbox.ixType() == desc->getType());
    
     if (domain.contains(dbox))
         return;
 
     dbox &= domain;
-    const Box& bx = dest.box();
+    const Box& bx  = dest.box();
     const int* dlo = dest.loVect();
     const int* dhi = dest.hiVect();
     const int* plo = domain.loVect();
@@ -315,7 +290,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         setBC(bx,domain,desc->getBC(sc),bcr);
         desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
                             plo,phi,dx,xlo,&time,bcr.vect());
-    }                                  
+    }
 }
 
 void

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.7 1998-01-06 23:43:58 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.8 1998-05-06 17:50:51 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -16,12 +16,6 @@ DescriptorList::DescriptorList ()
 DescriptorList::~DescriptorList () {}
 
 void
-DescriptorList::clear ()
-{
-    desc.clear();
-}
-
-void
 DescriptorList::addDescriptor (int                         indx,
                                IndexType                   typ,
                                StateDescriptor::TimeCenter ttyp,
@@ -31,33 +25,8 @@ DescriptorList::addDescriptor (int                         indx,
 {
     if (indx >= desc.length())
         desc.resize(indx+1);
-    StateDescriptor* sd = new StateDescriptor(typ,ttyp,indx,nextra,
-                                              num_comp,interp);
-    desc.set(indx,sd);
+    desc.set(indx, new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp));
 }  
-
-void
-DescriptorList::setComponent (int            indx,
-                              int            comp,
-                              const aString& nm,
-                              const BCRec&   bc,
-                              BndryFunc      func,
-                              Interpolater*  interp,
-                              int            max_map_start_comp, 
-                              int            min_map_end_comp)
-{
-    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
-                            min_map_end_comp);
-}  
-
-void
-DescriptorList::resetComponentBCs (int          indx,
-                                   int          comp,
-                                   const BCRec& bc,
-                                   BndryFunc    func)
-{
-    desc[indx].resetComponentBCs(comp,bc,func);
-}
 
 StateDescriptor::StateDescriptor ()
     :
@@ -132,10 +101,9 @@ StateDescriptor::setComponent (int            comp,
                                int            min_map_end_comp_)
 {
     assert(comp >= 0 && comp < ncomp && names[comp].isNull());
-    names[comp] = nm;
-    bc_func[comp] = func;
-    bc[comp] = bcr;
-
+    names[comp]       = nm;
+    bc_func[comp]     = func;
+    bc[comp]          = bcr;
     mapper_comp[comp] = interp;
 
     if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
@@ -154,21 +122,12 @@ StateDescriptor::setComponent (int            comp,
 }
 
 void
-StateDescriptor::resetComponentBCs (int          comp,
-                                    const BCRec& bcr,
-                                    BndryFunc    func)
-{
-    assert(comp >= 0 && comp < ncomp);
-    bc_func[comp] = func;
-    bc[comp] = bcr;
-}
-
-void
 StateDescriptor::dumpNames (ostream& os,
                             int      start_comp,
                             int      num_comp) const
 {
     assert(start_comp >= 0 && start_comp+num_comp <= ncomp);
+
     for (int k = 0; k < num_comp; k++)
     {
         os << names[start_comp+k] << ' ';

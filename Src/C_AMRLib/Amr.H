@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.11 1998-04-22 23:56:20 almgren Exp $
+// $Id: Amr.H,v 1.12 1998-05-06 17:50:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,157 +28,171 @@ class AmrLevel;
 class LevelBld;
 
 //
-// Manages hierarchy of levels for time-dependent AMR computations.
-//
-// The Amr class is designed to manage parts of the computation  which do
-// not belong on a single level, like establishing and updating the hierarchy
-// of levels, global timestepping, and managing the different AmrLevels
-//
+//@Man:
+//@Memo: Manages hierarchy of levels for time-dependent AMR computations.
+/*@Doc:
+
+  The Amr class is designed to manage parts of the computation  which do
+  not belong on a single level, like establishing and updating the hierarchy
+  of levels, global timestepping, and managing the different AmrLevels
+*/
 
 class Amr
 {
 public:
-
+    //
+    //@ManDoc: The constructor.
+    //
     Amr ();
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~Amr ();
     //
-    // Init ata after construction - must be called before timestepping.
+    //@ManDoc: Init data after construction. Must be called before timestepping.
     //
     void init ();
-
+    //
+    //@ManDoc: Set the timestep on each level.
+    //
     void setDtLevel (const Array<Real>& dt_lev);
-
+    //
+    //@ManDoc: Set the cycle count on each level.
+    //
     void setNCycle (const Array<int>& mss);
     //
-    // Largest allowable grid.
+    //@ManDoc: Largest allowable grid.
     //
     int maxGridSize () const;
     //
-    // Subcycle in time?
+    //@ManDoc: Subcycle in time?
     //
     int subCycle () const;
     //
-    // Maximum allowable level.
+    //@ManDoc: Maximum allowable level.
     //
     int maxLevel () const;
     //
-    // Finest currently existing level.
+    //@ManDoc: Finest currently existing level.
     //
     int finestLevel () const;
     //
-    //  Physical time.
+    //@ManDoc: Physical time.
     //
     Real cumTime () const;
     //
-    // Time step at specified level.
+    //@ManDoc: Time step at specified level.
     //
     Real dtLevel (int level) const;
     //
-    // Array of time steps at all levels.
+    //@ManDoc: Array of time steps at all levels.
+    //
     const Array<Real>& dtLevel () const;
     //
-    // Geometry object.
+    //@ManDoc: Geometry object.
     //
     const Geometry& Geom (int level) const;
     //
-    // Number of subcycled time steps.
+    //@ManDoc: Number of subcycled time steps.
     //
     int nCycle (int level) const;
     //
-    // Refinement ratio.
+    //@ManDoc: Refinement ratio.
     //
     IntVect refRatio (int coarse_level) const;
     //
-    // Maximum refinement ratio in any direction.
+    //@ManDoc: Maximum refinement ratio in any direction.
     //
     int MaxRefRatio (int level) const;
     //
-    // Refinement ratios between all levels.
+    //@ManDoc: Refinement ratios between all levels.
     //
     const Array<IntVect>& refRatio () const;
     //
-    // Number of time steps at specified level.
+    //@ManDoc: Number of time steps at specified level.
     //
     int levelSteps (int lev) const;
     //
-    // Interval between regridding.
+    //@ManDoc: Interval between regridding.
     //
-    int  regridInt(int lev) const;
+    int regridInt(int lev) const;
     //
-    // Number of time steps between checkpoint files.
+    //@ManDoc: Number of time steps between checkpoint files.
     //
     int checkInt () const;
     //
-    // Time between checkpoint files.
+    //@ManDoc: Time between checkpoint files.
     //
     Real checkPer() const;
     //
-    // Number of time steps between plot files.
+    //@ManDoc: Number of time steps between plot files.
     //
     int plotInt() const;
     //
-    // Time between plot files.
+    //@ManDoc: Time between plot files.
     //
     Real plotPer() const;
     //
-    // Number of buffer cells in error estimator.
+    //@ManDoc: Number of buffer cells in error estimator.
     //
     int nErrorBuf (int lev) const;
     //
-    // Minimum allowable grid efficiency.
+    //@ManDoc: Minimum allowable grid efficiency.
     //
     Real gridEff () const;
     //
-    // Blocking factor in grid generation.
+    //@ManDoc: Blocking factor in grid generation.
     //
     int blockingFactor () const;
     //
-    // List of grids at each level.
+    //@ManDoc: List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
     //
-    // AmrLevel lev.
+    //@ManDoc: AmrLevel lev.
+    //
     AmrLevel&  getLevel (int lev);
     //
-    // PArray of AmrLevels.
+    //@ManDoc: PArray of AmrLevels.
     //
     PArray<AmrLevel>& getAmrLevels ();
     //
-    // Total number of cells.
+    //@ManDoc: Total number of cells.
     //
     long cellCount ();
     //
-    // Number of cells at given level.
+    //@ManDoc: Number of cells at given level.
     //
     long cellCount (int lev);
     //
-    // Total number of grids.
+    //@ManDoc: Total number of grids.
     //
     int numGrids ();
     //
-    // Number of grids at given level.
+    //@ManDoc: Number of grids at given level.
     //
     int numGrids (int lev);
-
-    virtual int okToContinue();
     //
-    // Do a complete integration cycle.
+    //@ManDoc: More work to be done?
+    //
+    virtual int okToContinue ();
+    //
+    //@ManDoc: Do a complete integration cycle.
     //
     void coarseTimeStep (Real stop_time);
     //
-    // Retrieve derived data.
-    //
-    // The user is responsible for deleting this pointer when done with it.
+    //@ManDoc: Retrieve derived data. User is responsible for deleting pointer.
     //
     MultiFab* derive (const aString& name,
                       Real           time,
                       int            lev,
                       int            ngrow);
-
+    //
+    //@ManDoc: Write a plotfile to disk.
+    //
     void writePlotFile ();
     //
-    // Name of the restart file.
+    //@ManDoc: Name of the restart file.
     //
     const aString& theRestartFile () const;
 
@@ -447,4 +461,4 @@ Amr::theRestartFile () const
     return restart_file;
 }
 
-#endif
+#endif /*_Amr_H_*/

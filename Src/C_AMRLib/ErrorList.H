@@ -4,7 +4,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.6 1998-04-07 15:52:23 lijewski Exp $
+// $Id: ErrorList.H,v 1.7 1998-05-06 17:50:47 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -12,11 +12,11 @@
 #include <aString.H>
 #include <ArrayLim.H>
 
-//
-// Function called by ErrorRec to do tagging of cells for refinement.
-//
 extern "C"
 {
+//
+//@ManDoc: Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
+//
 typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
                           Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
@@ -28,19 +28,26 @@ typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
 }
 
 //
-// ErrorRec is designed to tag cells for regridding based on the state
-// data contained in AmrLevel and its derivatives.  It is conceivable that
-// actual error tagging will be through derivation, so provision is made
-// for this as well.
-//
+//@Man:
+//@Memo: Error Record.
+/*@Doc:
+
+  ErrorRec is designed to tag cells for regridding based on the state
+  data contained in AmrLevel and its derivatives.  It is conceivable that
+  actual error tagging will be through derivation, so provision is made
+  for this as well.
+*/
+
 class ErrorRec
 {
 public:
     //
-    // Error types.
+    //@ManDoc: Error types.
     //
     enum ErrorType { Richardson=0, Special };
-
+    //
+    //@ManDoc: The constructor.
+    //
     ErrorRec (const aString& nm,
               int            ng,
               ErrorType      etyp,
@@ -51,15 +58,25 @@ public:
         err_func(f),
         err_type(etyp)
     {}
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~ErrorRec () {}
-
+    //
+    //@ManDoc: The name of the quantity to derive.
+    //
     const aString& name () const { return derive_name; }
-
+    //
+    //@ManDoc: The number of extra zones needed for derivation.
+    //
     int nGrow () const { return ngrow; }
-
+    //
+    //@ManDoc: The type of the error tagging.
+    //
     ErrorType errType () const { return err_type; }
-
+    //
+    //@ManDoc: The extern "C" function to do the error tagging.
+    //
     ErrorFunc errFunc () const { return err_func; }
 
 private:
@@ -81,18 +98,34 @@ private:
     ErrorType err_type; 
 };
 
+//
+//@Man:
+//@Memo: A List of ErrorRecs.
+/*@Doc:
+
+  Container class for ErrorRecs.
+*/
+
 class ErrorList
 {
     friend ostream& operator<< (ostream& os, const ErrorList& el);
 
 public:
-
+    //
+    //@ManDoc: The constructor.
+    //
     ErrorList () {}
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~ErrorList () {}
-
+    //
+    //@ManDoc: The number of ErrorRecs in the list.
+    //
     int length () const { return lst.length(); }
-
+    //
+    //@ManDoc: Append a new ErrorRec to the list.
+    //
     void add (const aString&      name,
               int                 nextra, 
               ErrorRec::ErrorType typ,
@@ -103,7 +136,9 @@ public:
         //
         lst.append(ErrorRec(name, nextra, typ, func));
     }
-
+    //
+    //@ManDoc: The kth ErrorRec.
+    //
     const ErrorRec* operator[] (int k) const;
 
 protected:

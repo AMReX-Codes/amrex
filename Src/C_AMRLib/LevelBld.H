@@ -4,7 +4,7 @@
 #define _LEVELBLD_H_
 
 //
-// $Id: LevelBld.H,v 1.4 1997-12-11 23:27:52 lijewski Exp $
+// $Id: LevelBld.H,v 1.5 1998-05-06 17:50:49 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -13,17 +13,53 @@
 #include <Amr.H>
 #include <AmrLevel.H>
 
-extern LevelBld* getLevelBld();
+extern LevelBld* getLevelBld ();
+
+//
+//@Man:
+//@Memo: Builds problem-specific AmrLevels.
+/*@Doc:
+
+  Abstract base class specifying an interface for building problem-specific
+  AmrLevels.  
+*/
 
 class LevelBld
 {
 public:
-    virtual void variableSetUp() = 0;
-    virtual void variableCleanUp() = 0;
-    virtual AmrLevel* operator()()  = 0;
-    virtual AmrLevel* operator()(Amr &papa, int lev,
-                                 const Geometry &geom_lev,
-                                 const BoxArray &ba, Real time) = 0;
+
+    /*@ManDoc: Perform any problem-dependent setup such as physical
+               boundary condition and derived quantities.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual void variableSetUp () = 0;
+
+    /*@ManDoc: Perform any problem-dependent cleanup.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual void variableCleanUp () = 0;
+
+    /*@ManDoc: This is a virtual constructor for types derived
+               from AmrLevel.  The derived type is initialized
+               with the default constructor.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual AmrLevel* operator() () = 0;
+
+    /*@ManDoc: This is a virtual constructor for types derived
+               from AmrLevel.  The derived type is initialized
+               with the five specified variables.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual AmrLevel* operator() (Amr&            papa,
+                                  int             lev,
+                                  const Geometry& geom_lev,
+                                  const BoxArray& ba,
+                                  Real            time) = 0;
 };
 
-#endif
+#endif /*_LEVELBLD_H_*/

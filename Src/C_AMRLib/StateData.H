@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.10 1998-04-27 19:42:55 lijewski Exp $
+// $Id: StateData.H,v 1.11 1998-05-06 17:50:50 lijewski Exp $
 //
 
 #include <Box.H>
@@ -17,56 +17,83 @@
 #include <VisMF.H>
 
 //
-// Current and previous level-time data.
-//
-// StateData holds state data on a level for the current and previous time step
-//
+//@Man:
+//@Memo: Current and previous level-time data.
+/*@Doc:
+
+  StateData holds state data on a level for the current and previous time step.
+*/
+
 class StateData
 {
 
 public:
 
 #ifdef __GNUG__
-     bool operator== (const StateData& rhs) const { return true; }
+    bool operator== (const StateData& rhs) const { return true; }
     StateData(const StateData& rhs);
     StateData& operator= (const StateData& rhs);
-
 #endif
     //
-    // Bogus constructor.
+    //@ManDoc: The default constructor.
     //
     StateData ();
     //
-    // Constructor.
+    //@ManDoc: Constructor that properly initializes data members.
     //
     StateData (const Box&             p_domain,
                const BoxArray&        grds,
                const StateDescriptor* d,
                Real                   cur_time,
-               Real                   dt);
+               Real                   dt)
+    {
+        define(p_domain, grds, *d, cur_time, dt);
+    }
     //
-    // Destructor.
+    //@ManDoc: The destructor.
     //
     ~StateData ();
     //
-    // Initialize data members.
+    //@ManDoc: Initializes data members if you used default constructor.
     //
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
                  const StateDescriptor& d, 
                  Real                   cur_time,
                  Real                   dt);
-
+    //
+    //@ManDoc: Sets up the boundary conditions.
+    //
     void buildBC ();
-
-    void allocOldData ();
-
-    void removeOldData ();
-
+    //
+    //@ManDoc: Allocates space for old timestep data.
+    //
+    void allocOldData ()
+    {
+        if (old_data == 0)
+        {
+            old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+        }
+    }
+    //
+    //@ManDoc: Deletes the space used by the old timestep data.
+    //
+    void removeOldData ()
+    {
+        delete old_data;
+        old_data = 0;
+    }
+    //
+    //@ManDoc: Reverts back to initial state.
+    //
     void reset ();
-
+    //
+    //@ManDoc: Old data becomes new data and new time is incremented by dt.
+    //
     void swapTimeLevels (Real dt);
-
+    //
+    //@ManDoc: Sets time of old and new data.
+    //
     void setTimeLevel (Real t_new,
                        Real dt_old,
                        Real dt_new);
@@ -95,7 +122,7 @@ public:
                            int                      num_comp,
                            bool                     extrap = false);
     //
-    // Set physical bndry values for all state variables in range.
+    //@ManDoc: Set physical bndry values for all state variables in range.
     //
     void FillBoundary (FArrayBox&     dest,
                        Real           time,
@@ -105,49 +132,79 @@ public:
                        int            src_comp,
                        int            num_comp = 1);
     //
-    // Set physical bndry values for all state variables in range.
+    //@ManDoc: Set physical bndry values for all state variables in range.
     //
     void FillBoundary (const Real*    dx,
                        const RealBox& prob_domain,
                        int            src_comp,
                        int            num_comp = 1,
                        int            do_new = 1);
-
+    //
+    //@ManDoc: Write the state data to a checkpoint file.
+    //
     void checkPoint (const aString& name,
                      const aString& fullpathname,
                      ostream&       os,
                      VisMF::How     how,
                      bool           dump_old = true);
-
+    //
+    //@ManDoc: Initializes state data from a checkpoint file.
+    //
     void restart (istream&               is,
                   const StateDescriptor& d,
                   const aString&         restart_file);
-
+    //
+    //@ManDoc: Returns the StateDescriptor.
+    //
     const StateDescriptor* descriptor () const { return desc; }
-
+    //
+    //@ManDoc: Returns the valid domain.
+    //
     const Box& getDomain () const { return domain; }
-
+    //
+    //@ManDoc: Returns the BoxArray.
+    //
     const BoxArray& boxArray () const { return grids; }
-
+    //
+    //@ManDoc: Returns the current time.
+    //
     Real curTime () const { return 0.5*(new_time.start + new_time.stop); }
-
+    //
+    //@ManDoc: Returns the previous time.
+    //
     Real prevTime () const { return 0.5*(old_time.start + old_time.stop); }
-
+    //
+    //@ManDoc: Returns the new data.
+    //
     MultiFab& newData () { return *new_data; }
-
+    //
+    //@ManDoc: Returns the old data.
+    //
     MultiFab& oldData () { return *old_data; }
-
+    //
+    //@ManDoc: Returns the FAB of new data at grid index `i'.
+    //
     FArrayBox& newGrid (int i) { return (*new_data)[i]; }
-
+    //
+    //@ManDoc: Returns the FAB of old data at grid index `i'.
+    //
     FArrayBox& oldGrid (int i) { return (*old_data)[i]; }
-
+    //
+    //@ManDoc: Returns the boundary conditions of specified component.
+    //
     Array<BCRec>& getBCs (int comp) { return bc[comp]; }
-
+    //
+    //@ManDoc: Returns boundary conditions of specified component and direction.
+    //
     const BCRec& getBC (int comp, int i) const { return bc[comp][i]; }
-
+    //
+    //@ManDoc: Prints out the time interval.
+    //
     void printTimeInterval (ostream& os) const;
-
-    int hasOldData () const { return old_data != 0; }
+    //
+    //@ManDoc: True if there is any old data available.
+    //
+    bool hasOldData () const { return old_data != 0; }
 
 protected:
 
