@@ -1,11 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.7 1998-11-30 18:52:05 lijewski Exp $
+// $Id: StationData.cpp,v 1.8 1998-11-30 21:13:38 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
+#include <cstdio>
 #include <cstring>
 #else
+#include <stdio.h>
 #include <string.h>
 #endif
 
