@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.93 2001-12-03 22:24:54 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.94 2001-12-03 22:35:54 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -705,7 +705,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
     BL_ASSERT(!(sendbuf == 0));
     BL_ASSERT(!(recvbuf == 0));
 
-    MPI_Datatype typ = Mpi_typemap<Real>::type(),
+    MPI_Datatype typ = Mpi_typemap<Real>::type();
 
     BL_MPI_REQUIRE( MPI_Gather(sendbuf,
                                nsend,

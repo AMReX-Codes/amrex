@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.89 2001-12-03 22:24:54 lijewski Exp $
+// $Id: VisMF.cpp,v 1.90 2001-12-03 22:35:54 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -470,7 +470,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
             BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
                                      2*m_ncomp*nFabs,
-                                     Mpi_typemap<Real>::type(),
+                                     ParallelDescriptor::Mpi_typemap<Real>::type(),
                                      IOProc,
                                      SeqNo,
                                      ParallelDescriptor::Communicator()) );
@@ -505,7 +505,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
                 BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
                                           2*m_ncomp*fabs[i],
-                                          Mpi_typemap<Real>::type(),
+                                          ParallelDescriptor::Mpi_typemap<Real>::type(),
                                           i,
                                           SeqNo,
                                           ParallelDescriptor::Communicator(),
