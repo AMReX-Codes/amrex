@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.15 2002-10-08 21:33:28 vince Exp $
+c $Id: INTERP_3D.F,v 1.16 2002-10-11 18:23:00 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2139,7 +2139,7 @@ c :::
 
       integer rMAX
       parameter (rMAX = 4)
-      REAL_T alpha, sumN, sumP, crseTot, negVal
+      REAL_T alpha, sumN, sumP, crseTot, negVal, posVal
       REAL_T sum_fine_new,sum_fine_old
       REAL_T orig_fine(0:rMAX-1,0:rMAX-1,0:rMAX-1)
       integer redo_me
@@ -2256,20 +2256,39 @@ c                the remaining positive proportionally.
                    enddo
                    enddo
 
-                   alpha = (crseTot - abs(sumN)) / sumP
+                   if (sumP > 0.d0) then
 
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
-                      if (fine_state(i,j,k,n) .gt. 0.d0) then
-                        fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
-                      endif
-                   enddo
-                   enddo
-                   enddo
+                    alpha = (crseTot - abs(sumN)) / sumP
+
+                    do koff = 0, lratioz-1
+                    do joff = 0, lratioy-1
+                    do ioff = 0, lratiox-1
+                       i = lratiox*ic + ioff
+                       j = lratioy*jc + joff
+                       k = lratioz*kc + koff
+                       if (fine_state(i,j,k,n) .gt. 0.d0) then
+                         fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
+                       endif
+                    enddo
+                    enddo
+                    enddo
+
+                  else
+
+                    posVal = (crseTot - abs(sumN)) / float(lratiox*lratioy*lratioz)
+
+                    do koff = 0, lratioz-1
+                    do joff = 0, lratioy-1
+                    do ioff = 0, lratiox-1
+                       i = lratiox*ic + ioff
+                       j = lratioy*jc + joff
+                       k = lratioz*kc + koff
+                       fine(i,j,k,n) = fine(i,j,k,n) + posVal
+                    enddo
+                    enddo
+                    enddo
+
+                  endif
             
                  endif
 
