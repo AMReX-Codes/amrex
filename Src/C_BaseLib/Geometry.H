@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.37 2001-08-01 21:50:50 lijewski Exp $
+// $Id: Geometry.H,v 1.38 2001-08-09 22:50:20 marc Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -11,7 +11,7 @@
 #include <ParallelDescriptor.H>
 #include <RealBox.H>
 
-class FPB;
+struct FPB;
 
 //
 //@Man:
