@@ -28,6 +28,7 @@ ifeq ($(PROFILE), TRUE)
 #
 #CXXPRFF	 += -happrentice
 #XTRALIBS += -lapp
+#FPRFF += -eA
 #
 # the following is for pat
 #
@@ -37,7 +38,6 @@ endif
 FC     = f90 -N 80 -e I
 FOPTF += -O,aggress,pipeline2,vector3,split0 -apad
 FDEBF += -g
-FPRFF += -eA
 
 COPTF += -O2
 CDEBF += -g
