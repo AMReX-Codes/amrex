@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.42 1998-04-08 23:29:16 lijewski Exp $
+// $Id: VisMF.cpp,v 1.43 1998-04-13 19:44:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -356,16 +356,63 @@ VisMF::Header::Header (const MultiFab& mf,
                 min_n_max[i]         = m_min[idx][i];
                 min_n_max[m_ncomp+i] = m_max[idx][i];
             }
+#ifdef BL_USE_MPI
+            int rc = MPI_Send(min_n_max.dataPtr(),
+                              2 * m_ncomp,
+                              sizeof(Real)==sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                              ParallelDescriptor::IOProcessor(),
+                              0,
+                              MPI_COMM_WORLD);
+
+            if (!(rc == MPI_SUCCESS))
+                ParallelDescriptor::Abort(rc);
+#else
             ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
                                          &idx,
                                          min_n_max.dataPtr(),
                                          2 * sizeof(Real) * m_ncomp);
+#endif
         }
     }
 
+#ifdef BL_USE_MPI
+    if (ParallelDescriptor::IOProcessor())
+    {
+        const int IoProc = ParallelDescriptor::IOProcessorNumber();
+
+        const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
+
+        for (int idx = 0, N = procmap.length(); idx < N; idx++)
+        {
+            if (!(procmap[idx] == IoProc))
+            {
+                m_min[idx].resize(m_ncomp);
+                m_max[idx].resize(m_ncomp);
+
+                MPI_Status status;
+
+                int rc = MPI_Recv(min_n_max.dataPtr(),
+                                  2 * m_ncomp,
+                                  sizeof(Real)==sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                                  procmap[idx],
+                                  0,
+                                  MPI_COMM_WORLD,
+                                  &status);
+
+                if (!(rc == MPI_SUCCESS))
+                    ParallelDescriptor::Abort(rc);
+
+                for (int i = 0; i < m_ncomp; i++)
+                {
+                    m_min[idx][i] = min_n_max[i];
+                    m_max[idx][i] = min_n_max[m_ncomp+i];
+                }
+            }
+        }
+    }
+#else
     for (int len, idx; ParallelDescriptor::GetMessageHeader(len, &idx); )
     {
-        assert(ParallelDescriptor::IOProcessor());
         assert(len == 2 * sizeof(Real) * m_ncomp);
 
         m_min[idx].resize(m_ncomp);
@@ -379,6 +426,7 @@ VisMF::Header::Header (const MultiFab& mf,
             m_max[idx][i] = min_n_max[m_ncomp+i];
         }
     }
+#endif
 }
 
 long
