@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.16 2001-08-09 22:42:00 marc Exp $
+// $Id: BndryData.cpp,v 1.17 2002-11-26 22:47:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -176,9 +176,10 @@ BndryData::define (const BoxArray& _grids,
             //
             for (int g = 0; g < ngrd; g++)
             {
-                if (grids[g].intersects(face_box))
+                Box ovlp = grids[g] & face_box;
+
+                if (ovlp.ok())
                 {
-                    Box ovlp = grids[g] & face_box;
                     m->setVal(covered,ovlp,0);
                 }
             }
@@ -192,14 +193,17 @@ BndryData::define (const BoxArray& _grids,
                 for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     m->shift(pshifts[iiv]);
+
                     for (int g = 0; g < ngrd; g++)
                     {
-                        if (grids[g].intersects(m->box()))
+                        Box ovlp = grids[g] & m->box();
+
+                        if (ovlp.ok())
                         {
-                            Box ovlp = grids[g] & m->box();
                             m->setVal(covered,ovlp,0);
                         }
                     }
+
                     m->shift(-pshifts[iiv]);
                 }
             }
