@@ -723,6 +723,47 @@ contains
     r = itsol_converged(dd, uu, Anorm, Ynorm, mgt%eps)
   end function mg_tower_converged
 
+  recursive subroutine mg_tower_v_cycle_c(mgt, lev, c, ss, uu, rh, mm, nu1, nu2)
+    type(mg_tower), intent(inout) :: mgt
+    type(multifab), intent(in) :: rh
+    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: ss
+    type(imultifab), intent(in) :: mm
+    integer, intent(in) :: c
+    integer, intent(in) :: lev
+    integer, intent(in) :: nu1, nu2
+    integer :: i
+    real(dp_t) :: nrm
+
+    call timer_start(mgt%tm(lev))
+    if ( lev == 1 ) then
+       call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+    else 
+
+       do i = 1, nu1
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+
+
+       call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
+                                 mgt%mm(lev),mgt%mm(lev-1))
+       call setval(mgt%uu(lev-1), zero, all = .TRUE.)
+       call mg_tower_v_cycle_c(mgt, lev-1, c, mgt%ss(lev-1), mgt%uu(lev-1), &
+                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2)
+       ! uu  += cc, done, by convention, using the prolongation routine.
+       call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+
+       do i = 1, nu2
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
+
+    end if
+
+    call timer_stop(mgt%tm(lev))
+
+  end subroutine mg_tower_v_cycle_c
+
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
