@@ -4,7 +4,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.5 1999-02-10 21:09:57 lijewski Exp $
+// $Id: ParmParse.H,v 1.6 1999-05-07 15:36:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -731,15 +731,19 @@ class PP_entry
 {
 private:
     friend class ParmParse;
-    PP_entry() {}
+
+    PP_entry() : queried(false) {}
+
     PP_entry (aString&          name,
               ParmParse::PPType typ,
               List<aString>&    vals);
+
     ~PP_entry() {}
 
-    aString               defname;
-    ParmParse::PPType     deftype;
-    Array<aString>        val;
+    Array<aString>    val;
+    aString           defname;
+    ParmParse::PPType deftype;
+    bool              queried;
 
     void dump (ostream& os) const;
 };

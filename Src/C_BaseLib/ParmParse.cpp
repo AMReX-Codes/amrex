@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.7 1998-09-30 20:07:18 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.8 1999-05-07 15:36:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,9 +49,10 @@ PP_entry::PP_entry (aString&          name,
                     ParmParse::PPType typ,
                     List<aString>&    vals)
     :
+    val(vals.length()),
     defname(name),
     deftype(typ),
-    val(vals.length())
+    queried(false)
 {
    ListIterator<aString> li(vals);
    for (int i = 0; li; i++, ++li)
@@ -116,12 +117,46 @@ ParmParse::ppinit (const char* parfile)
 
 ParmParse::~ParmParse ()
 {
-   if (--num_obj == 0)
-   {
-      for (ListIterator<PP_entry*> li(table); li; ++li)
-         delete table[li];
-      table.clear();
-   }
+    if (--num_obj == 0)
+    {
+        //
+        // First loop through and delete all queried entries.
+        //
+        for (ListIterator<PP_entry*> li(table); li; )
+        {
+            if (li()->queried)
+            {
+                delete table[li];
+
+                ListIterator<PP_entry*> tmp = li++;
+                
+                table.remove(tmp);
+            }
+            else
+            {
+                ++li;
+            }
+        }
+
+        if (!table.isEmpty())
+        {
+            //
+            // Now spit out unused entries.
+            //
+            cout << "\nUnused ParmParse Variables: ";
+
+            for (ListIterator<PP_entry*> li(table); li; ++li)
+            {
+                cout << li()->defname << ' ';
+
+                delete table[li];
+            }
+
+            cout << '\n' << '\n';
+
+            table.clear();
+        }
+    }
 }
 
 //
@@ -145,7 +180,9 @@ ppfound (const char*    keyword,
         return (key == tmp);
     }
     else
+    {
         return (key == keyword);
+    }
 }
 
 //
@@ -172,7 +209,15 @@ ParmParse::contains (const char* name)
     for (ListIterator<PP_entry*> li(table); li; ++li)
     {
        if (ppfound(name,li()->defname,thePrefix))
+       {
+           //
+           // Found an entry; mark all occurences of name as used.
+           //
+           for (ListIterator<PP_entry*> lli(table); lli; ++lli)
+               if (ppfound(name,lli()->defname,thePrefix))
+                   lli()->queried = true;
            return true;
+       }
     }
     return false;
 }
@@ -187,7 +232,8 @@ const PP_entry*
 ParmParse::ppindex (int         n,
                     const char* name) const
 {
-    const PP_entry* fnd = 0;
+    PP_entry* fnd = 0;
+
     if (n < 0)
     {
         //
@@ -209,14 +255,24 @@ ParmParse::ppindex (int         n,
             if (ppfound(name,li()->defname,thePrefix))
             {
                 fnd = li();
-                n--;
-                if (n < 0)
+                if (--n < 0)
                     break;
             }
         }
         if (n >= 0)
             fnd = 0;
     }
+
+    if (fnd)
+    {
+        //
+        // Found an entry; mark all occurences of name as used.
+        //
+        for (ListIterator<PP_entry*> li(table); li; ++li)
+            if (ppfound(name,li()->defname,thePrefix))
+                li()->queried = true;
+    }
+
     return fnd;
 }
 
