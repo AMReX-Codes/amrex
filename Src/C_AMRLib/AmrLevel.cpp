@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.66 2000-03-24 22:10:02 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.67 2000-04-21 22:31:04 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1285,8 +1285,8 @@ AmrLevel::derive (const aString& name,
         BoxArray srcBA(mf.boxArray());
         BoxArray dstBA(mf.boxArray());
 
-        srcBA.convert(rec->boxMap());
-        dstBA.convert(rec->deriveType());
+        srcBA.convert(state[index].boxArray()[0].ixType());
+        BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
 
         MultiFab srcMF(srcBA,rec->numState(),ngrow);
 
@@ -1319,7 +1319,8 @@ AmrLevel::derive (const aString& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const Real* xlo     = grid_loc[idx].lo();
+            const RealBox temp  = RealBox(mf[idx].box(),geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
             rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
