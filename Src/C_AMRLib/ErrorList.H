@@ -4,7 +4,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.3 1997-11-26 19:18:48 lijewski Exp $
+// $Id: ErrorList.H,v 1.4 1997-12-02 19:12:17 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -12,80 +12,95 @@
 #include <aString.H>
 #include <ArrayLim.H>
 
-/// Function called by ErrorRec to do actual tagging of cells for refinement.
 
-typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-			  const int* tagval, const int* clearval,
-			  Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int * hi, const int* nvar,
-			  const int* domain_lo, const int* domain_hi,
-			  const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-			  const int* level);
-
-enum ErrorType { Richardson=0, Special };
-
-/// Contains necessary info and functions for tagging cells for regridding
+//
+// ErrorRec is designed to tag cells for regridding based on the state
+// data contained in AmrLevel and its derivatives.  It is conceivable that
+// actual error tagging will be through derivation, so provision is made
+// for this as well.
+//
 class ErrorRec
 {
+public:
+    //
+    // Error types.
+    //
+    enum ErrorType { Richardson=0, Special };
+    //
+    // Function called by ErrorRec to do tagging of cells for refinement.
+    //
+    typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
+                              const int* tagval, const int* clearval,
+                              Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                              const int* lo, const int * hi, const int* nvar,
+                              const int* domain_lo, const int* domain_hi,
+                              const Real* dx, const Real* xlo,
+                              const Real* prob_lo, const Real* time,
+                              const int* level);
 
-  /** ErrorRec is designed to tag cells for regridding based on the state
-    data contained in AmrLevel and its derivatives.  It is conceivable that
-    actual error tagging will be through derivation, so provision is made for
-    this as well.
-    */
+    ErrorRec (const aString& nm,
+              int            ng,
+              ErrorType      etyp,
+              ErrorFunc      f)
+        :
+        derive_name(nm),
+        ngrow(ng),
+        err_func(f),
+        err_type(etyp)
+    {}
 
-    friend class ErrorList;
-    friend ostream& operator << (ostream&, const ErrorList& );
+    ~ErrorRec () {}
+
+    const aString& name () const { return derive_name; }
+
+    int nGrow () const { return ngrow; }
+
+    ErrorType errType () const { return err_type; }
+
+    ErrorFunc errFunc () const { return err_func; }
 
 private:
- // name of quantity to derive
-    aString derive_name; 
-//  number of extra zones
-    int	   ngrow;	
-//  function to do error estimation
-    ErrorFunc    err_func;
-// 
-    ErrorType    err_type;      
-///
-public:
-//  constructor
-    ErrorRec(const aString &nm, int ng, ErrorType et, ErrorFunc f);
-//  destructor
-    ~ErrorRec();      
-///
-    const aString& name() const { return derive_name; }
-///
-    int nGrow() const { return ngrow; }
-///
-    ErrorType errType() const { return err_type; }
-///
-    ErrorFunc errFunc() const { return err_func; }
+    //
+    // Name of quantity to derive.
+    //
+    aString derive_name;
+    //
+    // Number of extra zones.
+    //
+    int ngrow;
+    //
+    // Function to do error estimation.
+    //
+    ErrorFunc err_func;
+    //
+    // The type of Error.
+    //
+    ErrorType err_type; 
 };
 
-/// Container class for ErrorRec
 class ErrorList
 {
-///
-    friend ostream& operator << (ostream&, const ErrorList& );
+    friend ostream& operator<< (ostream& os, const ErrorList& el);
 
 public:
-///
-    ErrorList();
-///
-    ~ErrorList();
-///
-    void clear();
-///
-    int length() const {return lst.length(); }
-///
-    void add(const aString &name, int nextra, 
-	     ErrorType typ, ErrorFunc func);
-///
+
+    ErrorList () {}
+
+    ~ErrorList ();
+
+    void clear ();
+
+    int length () const { return lst.length(); }
+
+    void add (const aString&      name,
+              int                 nextra, 
+              ErrorRec::ErrorType typ,
+              ErrorRec::ErrorFunc func);
+
     const ErrorRec* operator[] (int k) const;
 
 protected:
-///
+
     List<ErrorRec*> lst;
 };
 
