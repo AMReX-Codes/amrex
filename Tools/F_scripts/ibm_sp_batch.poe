@@ -1,0 +1,16 @@
+#!/bin/ksh
+#@ job_name        = newmg
+#@ job_type        = parallel
+#@ class           = premium
+#@ tasks_per_node  = 4
+#@ node            = 1
+#@ output          = mg.$(host).$(jobid).out
+#@ error           = mg.$(host).$(jobid).err
+#@ wall_clock_limit= 00:30:00
+#@ notification    = never
+#@ network.MPI     = csss,not_shared,us
+#@ node_usage	   = not_shared
+#@ queue
+
+
+poe ./main.exe
