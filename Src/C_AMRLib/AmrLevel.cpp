@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.85 2002-10-09 13:59:04 car Exp $
+// $Id: AmrLevel.cpp,v 1.86 2002-10-11 13:28:27 car Exp $
 //
 #include <winstd.H>
 
@@ -528,6 +528,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      int           ncomp,
                                      Interpolater* mapper)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Initialize()");
     BL_ASSERT(mapper);
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
@@ -1254,6 +1255,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       scomp,
                            int       ncomp)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillCoarsePatch()");
     //
     // Must fill this region on crse level and interpolate.
     //
