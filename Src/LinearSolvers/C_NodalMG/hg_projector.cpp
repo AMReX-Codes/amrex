@@ -1151,7 +1151,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                    use_u, H, tol, Lev_min, Lev_max, scale);
 }
 
-extern "C"    bool writeMF (const MultiFab* mf, const char*     file);
+//extern "C"    bool writeMF (const MultiFab* mf, const char*     file);
 
 void
 holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
@@ -1169,6 +1169,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           int               Lev_max,
                                           Real              scale)
 {
+#if 0
     if (false) 
     {
 	std::cout << "Lev_min = " << Lev_min << std::endl;
@@ -1183,6 +1184,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	    writeMF(&Sigma[0], "Sigma[0]");
 	}
     }
+#endif
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
