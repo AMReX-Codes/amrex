@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.110 2000-06-16 17:39:49 lijewski Exp $
+// $Id: Amr.cpp,v 1.111 2000-07-11 21:03:56 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -1091,7 +1091,7 @@ Amr::checkPoint ()
     //
     // Dump out any SlabStats MultiFabs.
     //
-    AmrLevel::get_slabstat_lst().checkPoint(level_steps[0]);
+    AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
     //
     // Don't forget to reset FAB format.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.8 2000-04-22 00:34:14 sstanley Exp $
+// $Id: SlabStat.cpp,v 1.9 2000-07-11 21:03:56 sstanley Exp $
 //
 
 #include <AmrLevel.H>
@@ -194,7 +194,8 @@ SlabStatList::update (AmrLevel& amrlevel,
 }
 
 void
-SlabStatList::checkPoint (const int level0_step)
+SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
+                          const int level0_step)
 {
     if (m_list.isEmpty()) return;
     //
@@ -237,9 +238,25 @@ SlabStatList::checkPoint (const int level0_step)
         HeaderFile << m_list.length() << '\n';
 
         for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
-            HeaderFile << li()->name() << '\n';
+            HeaderFile << li()->name() << " " << li()->level() << '\n';
 
         HeaderFile << m_list.firstElement()->interval() << '\n';
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            HeaderFile << Geometry::ProbLo(dir) << " ";
+        HeaderFile << '\n';
+
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            HeaderFile << Geometry::ProbHi(dir) << " ";
+        HeaderFile << '\n';
+
+        for (int level = 0; level < amrLevels.length(); level++)
+        {
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                HeaderFile << amrLevels[level].Geom().CellSize(dir) << " ";
+
+            HeaderFile << '\n';
+        }
 
         HeaderFile.precision(prec);
 

@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.6 2000-04-22 00:34:14 sstanley Exp $
+// $Id: SlabStat.H,v 1.7 2000-07-11 21:03:55 sstanley Exp $
 //
 
 #include <ArrayLim.H>
@@ -221,7 +221,8 @@ public:
     //
     //@ManDoc: Write out any SlabStats in the list.
     //
-    void checkPoint (const int level0_step);
+    void checkPoint (PArray<AmrLevel>& amrLevels,
+                     const int level0_step);
 
     List<SlabStatRec*>& list () { return m_list; }
 
