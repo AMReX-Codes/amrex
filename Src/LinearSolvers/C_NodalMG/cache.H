@@ -77,7 +77,7 @@ public:
     const Real* dataPtr() const;
     Real* dataPtr();
 
-private:
+//private:
     // data are public so that users may set up their own calls
     int nsets;
     Real *dptr, *sptr;
@@ -134,7 +134,7 @@ public:
 	nvals  = start + 3 * nsets;
 #endif
     }
-    
+    unroll_cache(MultiFab&);
     ~unroll_cache() 
     {
 	delete [] start;
@@ -160,10 +160,10 @@ public:
 	nvals[i]  = Nvals;
     }
 #endif
-private:
+//private:
     // data are public so that users may set up their own calls
     const int nsets;
-    Real* const ptr;
+    Real* ptr;
     int *start;
 #if (BL_SPACEDIM == 2)
     int *strid;

@@ -3,7 +3,7 @@
 
 #include "amr_multi.H"
 
-#ifndef HG_CONSTANT
+//#ifndef HG_CONSTANT
 
 #ifndef HG_TERRAIN
 #  if (BL_SPACEDIM == 3)
@@ -48,7 +48,7 @@ public:
 
 //const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor_class;
 
-#endif
+//#endif
 
 class holy_grail_amr_multigrid : public amr_multigrid 
 {

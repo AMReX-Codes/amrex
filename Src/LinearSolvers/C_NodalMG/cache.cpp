@@ -738,3 +738,33 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
   bdy->set_border_cache(this, nsets, iset, r, lev_interface, w);
   nsets = iset;
 }
+
+unroll_cache::unroll_cache(MultiFab& r)
+: nsets(r.length())
+{
+    assert(nsets > 0);
+    
+    Real *baseptr = r[0].dataPtr();
+    ptr = baseptr;
+    
+#if (BL_SPACEDIM == 2)
+    start = new int[3 * nsets];
+    strid = start + nsets;
+    nvals = start + 2 * nsets;
+#else
+    start  = new int[4 * nsets];
+    strid1 = start + nsets;
+    strid2 = start + 2 * nsets;
+    nvals  = start + 3 * nsets;
+#endif
+    
+    for (int igrid = 0; igrid < r.length(); igrid++) 
+    {
+	set(igrid, r[igrid].dataPtr() - baseptr,
+	    r[igrid].box().length(0),
+#if (BL_SPACEDIM == 3)
+	    r[igrid].box().length(0) * r[igrid].box().length(1),
+#endif
+	    r[igrid].box().numPts());
+    }
+}
