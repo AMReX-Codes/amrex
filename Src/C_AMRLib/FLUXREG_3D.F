@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.9 2001-08-01 21:50:45 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.10 2002-11-14 23:04:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -139,12 +139,10 @@ c
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
@@ -164,12 +162,10 @@ c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
@@ -191,12 +187,10 @@ c
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1
@@ -260,12 +254,10 @@ c
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
-            write(6,*) "FORT_FRFAADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFAADD: bad register direction")
          end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
-            write(6,*) "FORT_FRFAADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
@@ -288,12 +280,10 @@ c
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
-            write(6,*) "FORT_FRFAADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFAADD: bad register direction")
          end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
-            write(6,*) "FORT_FRFAADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
@@ -316,12 +306,10 @@ c
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
-            write(6,*) "FORT_FRFAADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFAADD: bad register direction")
          end if
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
-            write(6,*) "FORT_FRFAADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1

@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.22 2002-11-10 14:57:54 almgren Exp $
+c $Id: INTERP_3D.F,v 1.23 2002-11-14 23:04:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -253,8 +253,7 @@ c ::: local var
       REAL_T x, y
       REAL_T denom
 #endif
-      write(6,*) "FORT_CBINTERP not implemented"
-      stop
+      call bl_abort("FORT_CBINTERP not implemented")
 
       end
 
@@ -728,14 +727,14 @@ c               Limit slopes so as to not introduce new maxs or mins.
                            print *,'ICC = ',icc
                            print *,'ALPHA = ',alpha(icc)
                            print *,'ORIG_CORR_FACT = ',orig_corr_fact
-                           stop
+                           call bl_abort(" ")
                          endif
                          if (alpha(icc) .gt. 1.d0) then
                            print *,'OOPS - ALPHA SHOULD BE <= 1. IN CCINTERP '
                            print *,'ICC = ',icc
                            print *,'ALPHA = ',alpha(icc)
                            print *,'ORIG_CORR_FACT = ',orig_corr_fact
-                           stop
+                           call bl_abort(" ")
                          endif
 #endif
                        end do
@@ -1741,8 +1740,8 @@ c :::
       REAL_T cvcy(cb_l2:cb_h2+1)
       REAL_T cvcz(cb_l3:cb_h3+1)
 
-      print *,'QUADRATIC INTERP NOT IMPLEMEMNTED IN 3-D'
-      stop
+      call bl_abort('QUADRATIC INTERP NOT IMPLEMEMNTED IN 3-D')
+
       end
 
 # if 0

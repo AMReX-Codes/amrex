@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.7 2001-08-15 19:23:55 lijewski Exp $
+c $Id: COORDSYS_3D.F,v 1.8 2002-11-14 23:04:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -49,7 +49,7 @@ c
           end do
        else
           write(6,*) "FORT_SETVOLUME not define for coord = ",coord
-          stop
+          call bl_abort(" ")
        end if
        
        end
@@ -84,7 +84,7 @@ c ::
              fa = dx(1)*dx(2)
           else
              write(6,*) "FORT_SETAREA: invalid dir = ",dir
-             stop
+             call bl_abort(" ")
           end if
           do k = ARG_L3(area), ARG_H3(area)
              do j = ARG_L2(area), ARG_H2(area)
@@ -95,7 +95,7 @@ c ::
           end do
        else
           write(6,*) "FORT_SETAREA not define for coord = ",coord
-          stop
+          call bl_abort(" ")
        end if
        
        end
@@ -136,7 +136,7 @@ c
 
        else 
 	 write(6,*)' non-cartesian not allowed in 3D yet'
-	stop
+	call bl_abort(" ")
 
 	endif
 

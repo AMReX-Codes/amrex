@@ -56,8 +56,7 @@ c         ::::: 1D spherical
                   vol(i) = abs(v)
                enddo
 	     else
-	        write(6,*)' bogus value of coord... bndrylib::SETVOL '
-	        stop
+	        call bl_abort('bogus value of coord... bndrylib::SETVOL')
 	     endif
 	 endif
        endif
@@ -102,8 +101,7 @@ c
 	 	 vol(i) = abs(vol(i))
 	         enddo
 	      else
-	         write(6,*) ' bogus value of coord ... bndrylib::SETVOLPT'
-	         stop
+	         call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
 	      endif
 	   endif
 	endif
@@ -164,8 +162,7 @@ c         ::::: 1d spherical
                    dloga(i) = dlga
                 enddo
              else
-                write(6,*)'setdloga: illegal coordinate system ',coord
-                stop
+                call abort('setdloga: illegal coordinate system')
              endif
 	  endif
        endif
@@ -218,8 +215,7 @@ c         ::::: 1d spherical
 	           area(i) = abs(a)
                 enddo
 	      else
-	        write(6,*)' bogus value for coord... SETAREA '
-	        stop
+	        call bl_abort('bogus value for coord... SETAREA')
 	      endif
 	  endif
        endif
