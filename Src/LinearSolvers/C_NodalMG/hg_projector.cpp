@@ -1,3 +1,6 @@
+#include <winstd.H>
+#include <fstream>
+
 #include "hg_projector.H"
 
 #if defined( BL_FORT_USE_UNDERSCORE )
@@ -1185,6 +1188,15 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	    writeMF(&rhs[0], "rhs_0");
 	    writeMF(&Sigma[0], "Sigma_0");
 	}
+    }
+    if ( false )
+    {
+	static cnt = 0;
+	static std::ofstream ofs("pud");
+	ofs << "cnt = " << cnt << std::endl;
+	ofs << "rhs = " << rhs[0][0] << std::endl;
+	ofs << "p   = " << p[0][0] << std::endl;
+	cnt++;
     }
 #endif
     Box crse_domain(crse_geom.Domain());
