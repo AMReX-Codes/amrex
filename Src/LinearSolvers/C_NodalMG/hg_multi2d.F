@@ -28,6 +28,12 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       integer ir, jr, idim, idir
       double precision hxm2, hym2, fac0, fac1, tmp
       integer i, is, j, js, m, n
+
+      if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
+         print *,'I DONT THINK WE SHOULD BE IN HGFRES AT I=0 '
+         stop
+      endif
+
       if (idim .eq. 0) then
          i = regl0
          if (idir .eq. 1) then
