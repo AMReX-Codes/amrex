@@ -1,5 +1,5 @@
 //
-// $Id: CArena.cpp,v 1.27 2001-08-01 18:14:13 lijewski Exp $
+// $Id: CArena.cpp,v 1.28 2001-10-12 17:44:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include <CArena.H>
+#include <Thread.H>
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
@@ -23,6 +24,8 @@ static BArena The_Static_FAB_BArena;
 Arena* The_FAB_Arena = &The_Static_FAB_BArena;
 
 #endif
+
+static Mutex the_carena_mutex;
 
 CArena::CArena (size_t hunk_size)
 {
@@ -44,6 +47,8 @@ CArena::~CArena ()
 void*
 CArena::alloc (size_t nbytes)
 {
+    Lock<Mutex> lock(the_carena_mutex);
+
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -119,6 +124,8 @@ CArena::free (void* vp)
         // Allow calls with NULL as allowed by C++ delete.
         //
         return;
+
+    Lock<Mutex> lock(the_carena_mutex);
     //
     // `vp' had better be in the busy list.
     //
@@ -190,57 +197,10 @@ CArena::free (void* vp)
     }
 }
 
-size_t CArena::heap_space_used () const { return m_used; }
-
-void*
-CArena::calloc (size_t nmemb,
-                size_t size)
+size_t
+CArena::heap_space_used () const
 {
-    BL_ASSERT(!(size == 0));
-    BL_ASSERT(!(nmemb == 0));
-    void* vp = CArena::alloc(nmemb*size);
-    memset(vp, 0, nmemb*size);
-    return vp;
-}
+    Lock<Mutex> lock(the_carena_mutex);
 
-void*
-CArena::realloc (void*  ptr,
-                 size_t size)
-{
-    if (ptr == 0)
-    {
-        BL_ASSERT(!(size == 0));
-
-        return CArena::alloc(size);
-    }
-    else
-    {
-        if (size == 0)
-        {
-            CArena::free(ptr);
-        }
-        else
-        {
-            //
-            // It had better be in the busy list.
-            //
-            NL::iterator busy_it = m_busylist.find(Node(ptr,0));
-
-            BL_ASSERT(!(busy_it == m_busylist.end()));
-            BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
-
-            if (size > (*busy_it).size())
-            {
-                //
-                // If the new size is larger than old allocate new chunk.
-                //
-                void* vp = CArena::alloc(size);
-                memcpy(vp, ptr, (*busy_it).size());
-                CArena::free(ptr);
-                ptr = vp;
-            }
-        }
-
-        return ptr;
-    }
+    return m_used;
 }
