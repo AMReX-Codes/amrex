@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.51 1999-03-26 19:19:34 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.52 1999-03-27 01:00:24 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -75,6 +75,22 @@ CommData::operator== (const CommData& rhs) const
             return false;
 
     return true;
+}
+
+ostream&
+operator<< (ostream&        os,
+            const CommData& cd)
+{
+    os << cd.face()       << ' '
+       << cd.fabindex()   << ' '
+       << cd.fromproc()   << ' '
+       << cd.id()         << ' '
+       << cd.nComp()      << ' '
+       << cd.srcComp()    << ' '
+       << cd.fabarrayid() << ' '
+       << cd.box();
+
+    return os;
 }
 
 #ifdef BL_USE_MPI
