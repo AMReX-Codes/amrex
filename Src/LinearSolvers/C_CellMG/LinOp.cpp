@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.21 2000-08-24 22:39:02 car Exp $
+// $Id: LinOp.cpp,v 1.22 2000-08-24 22:45:46 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -472,7 +472,7 @@ LinOp::smooth (MultiFab&       solnL,
                LinOp::BC_Mode  bc_mode)
 {
 #ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "residual()");
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::smooth()");
 #endif
     if (!AlternateApplyBC)
     {
