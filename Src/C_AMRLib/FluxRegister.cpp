@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.32 1998-05-26 00:27:07 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.33 1998-05-26 17:08:54 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -226,7 +226,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    int overlapId = 0;
+    vector<FillBoxId>::iterator fillBoxIdIter = fillBoxId.begin();
 
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
@@ -260,7 +260,8 @@ FluxRegister::Reflux (MultiFab&       S,
                     if (ovlp.ok())
                     {
                         Real mult      = fi().isLow() ? -scale : scale;
-                        FillBoxId fbid = fillBoxId[overlapId++];
+                        assert(!(fillBoxIdIter == fillBoxId.end()));
+                        FillBoxId fbid = *fillBoxIdIter++;
                         reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
                         const Real* reg_dat = reg.dataPtr();
@@ -316,7 +317,8 @@ FluxRegister::Reflux (MultiFab&       S,
                         if (ovlp.ok())
                         {
                             Real mult      = (fi().isLow() ? -scale : scale);
-                            FillBoxId fbid = fillBoxId[overlapId++];
+                            assert(!(fillBoxIdIter == fillBoxId.end()));
+                            FillBoxId fbid = *fillBoxIdIter++;
                             assert(bndry[fi()].box(k) == fbid.box());
                             reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
@@ -435,7 +437,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    int overlapId = 0;
+    vector<FillBoxId>::iterator fillBoxIdIter = fillBoxId.begin();;
 
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
@@ -450,13 +452,13 @@ FluxRegister::Reflux (MultiFab&       S,
             {
                 for (OrientationIter fi; fi; ++fi)
                 {
-                    Box fine_face = ::adjCell(grids[k],fi());
                     //
                     // low(high) face of fine grid => high (low)
                     // face of the exterior coarse grid cell updated.
                     // Adjust sign of scale accordingly.
                     //
-                    Box ovlp = mfi.validbox() & fine_face;
+                    Box fine_face = ::adjCell(grids[k],fi());
+                    Box ovlp      = mfi.validbox() & fine_face;
 
                     if (ovlp.ok())
                     {
@@ -464,7 +466,8 @@ FluxRegister::Reflux (MultiFab&       S,
                         Real* s_dat     = mfi().dataPtr(dest_comp);
                         const int* slo  = mfi().loVect();
                         const int* shi  = mfi().hiVect();
-                        FillBoxId fbid  = fillBoxId[overlapId++];
+                        assert(!(fillBoxIdIter == fillBoxId.end()));
+                        FillBoxId fbid  = *fillBoxIdIter++;
                         reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
 			const Real* reg_dat = reg.dataPtr(0);
@@ -484,6 +487,7 @@ FluxRegister::Reflux (MultiFab&       S,
             if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
             {
                 geom.periodicShift(bx,mfi.validbox(),pshifts);
+
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
                     IntVect iv = pshifts[iiv];
@@ -505,7 +509,8 @@ FluxRegister::Reflux (MultiFab&       S,
                             Real* s_dat     = mfi().dataPtr(dest_comp);
                             const int* slo  = mfi().loVect();
                             const int* shi  = mfi().hiVect();
-                            FillBoxId fbid  = fillBoxId[overlapId++];
+                            assert(!(fillBoxIdIter == fillBoxId.end()));
+                            FillBoxId fbid  = *fillBoxIdIter++;
                             assert(bndry[fi()].box(k) == fbid.box());
                             reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
@@ -515,8 +520,8 @@ FluxRegister::Reflux (MultiFab&       S,
                             const int* lo       = ovlp.loVect();
                             const int* hi       = ovlp.hiVect();
                             FORT_FRCVREFLUX(s_dat,ARLIM(slo),ARLIM(shi),dx,
-                                            reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
-                                            &num_comp,&mult);
+                                            reg_dat,ARLIM(rlo),ARLIM(rhi),
+                                            lo,hi,&num_comp,&mult);
                         }
                     }
                     mfi().shift(-iv);
