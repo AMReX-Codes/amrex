@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.8 2000-02-28 23:26:37 lijewski Exp $
+# $Id: Make.package,v 1.9 2000-04-21 16:26:15 sstanley Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -19,7 +19,8 @@ C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
 
 F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
 
-F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F
+F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
+                           SLABSTAT_$(DIM)D.F ARRAYLIM_$(DIM)D.F
 
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
