@@ -2,7 +2,7 @@
       integer dbunit
       logical dbnorm, dbmat, dbon
       common /hgdbg/ dbunit, dbnorm, dbmat, dbon
-      save hgdbg
+      save /hgdbg/
 #else
 #ifndef _HG_DEBUG_F_H_
 #define _HG_DEBUG_F_H_
