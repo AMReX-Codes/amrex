@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.54 2000-06-01 21:39:54 car Exp $
+// $Id: TagBox.cpp,v 1.55 2000-08-02 16:06:33 car Exp $
 //
 
 #include <TagBox.H>
@@ -25,6 +25,10 @@ using std::unique;
 #endif
 
 #include <ccse-mpi.H>
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 //
 // Number of IntVects that can fit into m_CollateSpace
@@ -545,6 +549,9 @@ struct IntVectComp
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::collate()");
+#endif
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)

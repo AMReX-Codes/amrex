@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.57 2000-06-01 21:39:54 car Exp $
+// $Id: FluxRegister.cpp,v 1.58 2000-08-02 16:06:33 car Exp $
 //
 
 #include <FluxRegister.H>
@@ -15,6 +15,10 @@
 using std::vector;
 #else
 #include <vector.h>
+#endif
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
 #endif
 
 #include <ccse-mpi.H>
@@ -178,6 +182,9 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Reflux(MultiFab&,...)");
+#endif
     static RunStats stats("reflux");
 
     stats.start();
@@ -386,6 +393,9 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Reflux(MultiFab&, Real,...)");
+#endif
     static RunStats stats("reflux");
 
     stats.start();
@@ -785,6 +795,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 void
 FluxRegister::CrseInitFinish ()
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::CrseInitFinish()");
+#endif
     if (ParallelDescriptor::NProcs() == 1)
         return;
 
