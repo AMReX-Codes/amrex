@@ -1,14 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.2 1997-11-09 00:58:56 lijewski Exp $
+// $Id: VisMF.cpp,v 1.3 1997-11-09 19:45:29 lijewski Exp $
 //
 
 #include <VisMF.H>
 
-static const aString FabFileSuffix("_data_");
-static const aString MultiFabHdrFileSuffix("_hdr_");
-static const aString FabOnDiskIOPrefix("FabOnDisk:");
+const aString VisMF::FabFileSuffix("_data_");
+const aString VisMF::MultiFabHdrFileSuffix("_hdr_");
+const aString VisMF::FabOnDisk::IOPrefix("FabOnDisk:");
 
 ostream&
 operator<< (ostream&                os,
@@ -16,9 +16,9 @@ operator<< (ostream&                os,
 {
     const char SPC = ' ';
 
-    os << FabOnDiskIOPrefix << SPC
-       << fad.m_name        << SPC
-       << fad.m_head        << SPC
+    os << VisMF::FabOnDisk::IOPrefix << SPC
+       << fad.m_name                 << SPC
+       << fad.m_head                 << SPC
        << fad.m_data;
 
     if (!os.good())
@@ -125,14 +125,11 @@ VisMF::Header::Header (const MultiFab& mf,
     }
 }
 
-static
 aString
-TheCpuNumber ()
+VisMF::TheCpuNumber ()
 {
     //
-    // Return the CPU number as a four character string.
-    //
-    // TODO -- make this work in Parallel!!!
+    // TODO -- finish this!!!
     //
     return aString("0000");
 }
@@ -148,8 +145,8 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
 
     aString fab_file_name = mf_name;
 
-    fab_file_name += FabFileSuffix;
-    fab_file_name += TheCpuNumber();
+    fab_file_name += VisMF::FabFileSuffix;
+    fab_file_name += VisMF::TheCpuNumber();
 
     {
         ofstream fab_file(fab_file_name.c_str());
@@ -164,7 +161,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
     //
     aString mf_hdr_file_name = mf_name;
 
-    mf_hdr_file_name += MultiFabHdrFileSuffix;
+    mf_hdr_file_name += VisMF::MultiFabHdrFileSuffix;
 
     ofstream mf_hdr_file(mf_hdr_file_name.c_str());
 

@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.2 1997-11-09 00:58:56 lijewski Exp $
+// $Id: VisMF.H,v 1.3 1997-11-09 19:45:29 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -48,6 +48,10 @@ public:
         aString m_name; // The name of file containing the FAB.
         off_t   m_head; // Offset of start of FAB header in file.
         off_t   m_data; // Offset of start of FAB data in file.
+        //
+        // Prefixed to lines of FabOnDisk I/O.
+        //
+        static const aString IOPrefix;
     };
     //
     // An on-disk MultiFab contains this info in a header file.
@@ -102,6 +106,19 @@ private:
 
     static void WriteOneFilePerFab (const MultiFab& mf,
                                     const aString&  mf_name);
+    //
+    // Returns the CPU number as a four character string.
+    //
+    static aString TheCpuNumber ();
+    //
+    // The suffix appended to files containing FAB data.
+    //
+    static const aString FabFileSuffix;
+    //
+    // The suffix appended to files containing MultiFabs.
+    //
+    static const aString MultiFabHdrFileSuffix;
+
 };
 
 //
