@@ -1,11 +1,8 @@
+CPP = /usr/lib/acpp
+
 ifeq ($(WHICHIRIX64), ESCHER)
-  CPP = /usr/lib/acpp
   XTRALIBS +=  /usr/lib64/libfortran.so
 endif
-ifeq ($(WHICHIRIX64), GENERICSGI)
-  CPP = /lib/cpp
-endif
-
 
 ifeq ($(COMP),CC)
 CXX     := CC -ptused -LANG:ansi-for-init-scope=ON -64
@@ -15,7 +12,13 @@ CXXDEBF += -g
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
 XTRALIBS          +=  -lftn -lm -lXm -lXt -lX11 -lm
-XTRAINCLOC        += /usr/include/X11 /usr/include/Xm
+
+ifeq ($(WHICHIRIX64), ERC2000)
+  XTRAINCLOC        += /usr/include/X11 /usr/lib/Xm
+else
+  XTRAINCLOC        += /usr/include/X11 /usr/include/Xm
+endif
+
 override XTRADEFS += -DBL_USE_SETBUF -DBL_OLD_STL
 endif
 
@@ -33,8 +36,7 @@ endif
 ifeq ($(WHICHIRIX64), ESCHER)
   FC     = f90 -64
   FOPTF += -O2 -OPT:Olimit=4800
-endif
-ifeq ($(WHICHIRIX64), GENERICSGI)
+else
   FC     = f77 -64
   FOPTF += -g3  -Ofast=ip27
 endif
