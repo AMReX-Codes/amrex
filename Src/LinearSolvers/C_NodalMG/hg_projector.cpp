@@ -567,7 +567,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     const int mgc = ml_index[lev-1];
     
     const IntVect& rat = gen_ratio[lev-1];
-    // PARALLEL
     task_list tl;
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
@@ -603,7 +602,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     tl.execute();
 #if (BL_SPACEDIM == 3)
-    // PARALLEL    
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -641,7 +639,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     tl.execute();
 #endif
-    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
 	// find a fine grid touching this corner
@@ -692,7 +689,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     const int mgc = ml_index[lev-1];
     
     const IntVect& rat = gen_ratio[lev-1];
-    // PARALLEL
     task_list tl;
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
@@ -744,7 +740,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     
 #if (BL_SPACEDIM == 3)
     
-    // PARALLEL
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -794,7 +789,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     
 #endif
-    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
 	// find a fine grid touching this corner
@@ -843,7 +837,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     tl.execute();
 #else
-    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
 	// find a fine grid touching this corner
