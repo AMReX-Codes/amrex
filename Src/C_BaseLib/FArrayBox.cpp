@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.18 1998-08-14 17:26:40 car Exp $
+// $Id: FArrayBox.cpp,v 1.19 1998-09-14 21:50:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -160,13 +160,12 @@ FABio::write_header (ostream&         os,
 bool FArrayBox::Initialized = false;
 
 //
-// Default format to NATIVE FP type.
+// Default format and FABio pointer to NATIVE type.
+//
+// Note: these should ALWAYS be changed in concert.
 //
 FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
 
-//
-// The default FABio pointer must also be NATIVE.
-//
 FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
@@ -219,7 +218,8 @@ FArrayBox::resize (const Box& b,
 void
 FArrayBox::setFormat (FABio::Format fmt)
 {
-    FABio* fio = 0;
+    FABio*          fio = 0;
+    RealDescriptor* rd  = 0;
 
     switch (fmt)
     {
@@ -230,7 +230,8 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_8bit;
         break;
     case FABio::FAB_NATIVE:
-        fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+        rd = FPC::NativeRealDescriptor().clone();
+        fio = new FABio_binary(rd);
         break;
     case FABio::FAB_IEEE:
         BoxLib::Warning("FABio::FAB_IEEE has been deprecated");
@@ -238,12 +239,16 @@ FArrayBox::setFormat (FABio::Format fmt)
         // Fall through ...
         //
     case FABio::FAB_IEEE_32:
-        fio = new FABio_binary(FPC::Ieee32NormalRealDescriptor().clone());
+        rd = FPC::Ieee32NormalRealDescriptor().clone();
+        fio = new FABio_binary(rd);
         break;
     default:
         cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         BoxLib::Abort();
     }
+
+    FArrayBox::format = fmt;
+
     setFABio(fio);
 }
 
@@ -301,31 +306,51 @@ FArrayBox::init ()
     ParmParse pp("fab");
 
     aString ord, fmt;
-
     //
     // This block can legitimately set FAB output format.
     //
     if (pp.query("format", fmt))
     {
-        FABio* fio = 0;
+        FABio*          fio = 0;
+        RealDescriptor* rd  = 0;
 
         if (fmt == "ASCII")
+        {
+            FArrayBox::format = FABio::FAB_ASCII;
             fio = new FABio_ascii;
+        }
         else if (fmt == "8BIT")
+        {
+            FArrayBox::format = FABio::FAB_8BIT;
             fio = new FABio_8bit;
+        }
         else if (fmt == "NATIVE")
-            fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+        {
+            FArrayBox::format = FABio::FAB_NATIVE;
+            rd = FPC::NativeRealDescriptor().clone();
+            fio = new FABio_binary(rd);
+        }
         else if (fmt == "IEEE" || fmt == "IEEE32")
         {
             if (fmt == "IEEE")
+            {
+                FArrayBox::format = FABio::FAB_IEEE;
                 BoxLib::Warning("IEEE fmt in ParmParse files is deprecated");
-            fio = new FABio_binary(FPC::Ieee32NormalRealDescriptor().clone());
+            }
+            else
+            {
+                FArrayBox::format = FABio::FAB_IEEE_32;
+            }
+            rd = FPC::Ieee32NormalRealDescriptor().clone();
+
+            fio = new FABio_binary(rd);
         }
         else
         {
             cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
             BoxLib::Abort();
         }
+
         setFABio(fio);
     }
     //
