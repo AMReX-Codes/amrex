@@ -272,6 +272,7 @@ void task_copy::hint() const
 
 const FArrayBox& task_fab::fab()
 {
+    if ( target == 0 ) throw( "zero target!!!" );
     return *target;
 }
 

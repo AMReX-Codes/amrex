@@ -215,11 +215,11 @@ public:
     }
     virtual bool ready()
     {
-	bool result = false;
+	bool result = true;
 	for(vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
 	{
 	    bool tresult = (*tfi)->ready();
-	    result = tresult || result;
+	    result = tresult && result;
 	}
 	if ( !result ) return false;
 	return true;
@@ -244,7 +244,7 @@ protected:
     }
     const FArrayBox& task_fab_result(int n)
     {
-	assert(n>=0 && n < tfvect.size());
+	if ( n < 0 || n >= tfvect.size() ) throw( "bad_arg" );
 	return tfvect[n]->fab();
     }
 private:
