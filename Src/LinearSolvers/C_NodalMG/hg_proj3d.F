@@ -1131,9 +1131,9 @@ c each quadrant is two octants and their share of the two central edges
                   do 30 ic = cregl0, cregh0
                      if = ic * ir
  30                  src(if,jf,kf) = src(if,jf,kf) + r3 *
-     @                 (hxm1c *        (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
-     @                  hym1c * jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
-     @                  hzm1c * kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
+     @            (hxm1c *        (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
+     @	     hym1c * jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
+     @             hzm1c * kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
                end if
  40            continue
 c faces
@@ -1155,20 +1155,20 @@ c each face is two faces and two sides of an edge
                         do 50 if = ir*cregl0, ir*cregh0, ir
  50                        src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (hxm1 *
-     @                       (uf(if-m,jf+n,kuf) - uf(if-m-1,jf+n,kuf) +
-     @                        uf(if-m,jf+n-1,kuf) - uf(if-m-1,jf+n-1,kuf) +
-     @                        uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
-     @                        uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @		(uf(if-m,jf+n,kuf) - uf(if-m-1,jf+n,kuf) +
+     @                 uf(if-m,jf+n-1,kuf) - uf(if-m-1,jf+n-1,kuf) +
+     @                 uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
+     @                 uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
      @                                        hym1 *
-     @                       (vf(if-m,jf+n,kuf) - vf(if-m,jf+n-1,kuf) +
-     @                        vf(if-m-1,jf+n,kuf) - vf(if-m-1,jf+n-1,kuf) +
-     @                        vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
-     @                        vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @                (vf(if-m,jf+n,kuf) - vf(if-m,jf+n-1,kuf) +
+     @                 vf(if-m-1,jf+n,kuf) - vf(if-m-1,jf+n-1,kuf) +
+     @                 vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
+     @                 vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
      @                                        hzm1 * kdir *
-     @                       (wf(if-m,jf+n,kuf) + wf(if-m,jf+n-1,kuf) +
-     @                        wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
-     @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
-     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+     @                (wf(if-m,jf+n,kuf) + wf(if-m,jf+n-1,kuf) +
+     @                 wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
+     @                 wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
+     @                 wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
@@ -1183,20 +1183,20 @@ c each face is two faces and two sides of an edge
                         do 60 if = ir*cregl0, ir*cregh0, ir
  60                        src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (hxm1 *
-     @                       (uf(if-m,juf,kf+l) - uf(if-m-1,juf,kf+l) +
-     @                        uf(if-m,juf,kf+l-1) - uf(if-m-1,juf,kf+l-1) +
-     @                        uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
-     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @                (uf(if-m,juf,kf+l) - uf(if-m-1,juf,kf+l) +
+     @                 uf(if-m,juf,kf+l-1) - uf(if-m-1,juf,kf+l-1) +
+     @                 uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
+     @                 uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
      @                                        hym1 * jdir *
-     @                       (vf(if-m,juf,kf+l) + vf(if-m,juf,kf+l-1) +
-     @                        vf(if-m-1,juf,kf+l) + vf(if-m-1,juf,kf+l-1) +
-     @                        vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
-     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @                (vf(if-m,juf,kf+l) + vf(if-m,juf,kf+l-1) +
+     @                 vf(if-m-1,juf,kf+l) + vf(if-m-1,juf,kf+l-1) +
+     @                 vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
+     @                 vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
      @                                        hzm1 *
-     @                       (wf(if-m,juf,kf+l) - wf(if-m,juf,kf+l-1) +
-     @                        wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
-     @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
-     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+     @                (wf(if-m,juf,kf+l) - wf(if-m,juf,kf+l-1) +
+     @                 wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
+     @                 wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
+     @                 wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                end if
  70            continue
 c weighting
@@ -1239,9 +1239,9 @@ c each quadrant is two octants and their share of the two central edges
                   do 130 jc = cregl1, cregh1
                      jf = jc * jr
  130                 src(if,jf,kf) = src(if,jf,kf) + r3 *
-     @                 (hxm1c * idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
-     @                  hym1c *        (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
-     @                  hzm1c * kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
+     @            (hxm1c * idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
+     @             hym1c *        (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
+     @             hzm1c * kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
                end if
  140           continue
 c faces
@@ -1263,20 +1263,20 @@ c each face is two faces and two sides of an edge
                         do 150 jf = jr*cregl1, jr*cregh1, jr
  150                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (hxm1 *
-     @                       (uf(if+m,jf-n,kuf) - uf(if+m-1,jf-n,kuf) +
-     @                        uf(if+m,jf-n-1,kuf) - uf(if+m-1,jf-n-1,kuf) +
-     @                        uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
-     @                        uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @		(uf(if+m,jf-n,kuf) - uf(if+m-1,jf-n,kuf) +
+     @                 uf(if+m,jf-n-1,kuf) - uf(if+m-1,jf-n-1,kuf) +
+     @                 uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
+     @                 uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
      @                                        hym1 *
-     @                       (vf(if+m,jf-n,kuf) - vf(if+m,jf-n-1,kuf) +
-     @                        vf(if+m-1,jf-n,kuf) - vf(if+m-1,jf-n-1,kuf) +
-     @                        vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
-     @                        vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @                (vf(if+m,jf-n,kuf) - vf(if+m,jf-n-1,kuf) +
+     @                 vf(if+m-1,jf-n,kuf) - vf(if+m-1,jf-n-1,kuf) +
+     @                 vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
+     @                 vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
      @                                        hzm1 * kdir *
-     @                       (wf(if+m,jf-n,kuf) + wf(if+m,jf-n-1,kuf) +
-     @                        wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
-     @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
-     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+     @                (wf(if+m,jf-n,kuf) + wf(if+m,jf-n-1,kuf) +
+     @                 wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
+     @                 wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
+     @                 wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
@@ -1291,20 +1291,20 @@ c each face is two faces and two sides of an edge
                         do 160 jf = jr*cregl1, jr*cregh1, jr
  160                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (hxm1 * idir *
-     @                       (uf(iuf,jf-n,kf+l) + uf(iuf,jf-n-1,kf+l) +
-     @                        uf(iuf,jf-n,kf+l-1) + uf(iuf,jf-n-1,kf+l-1) +
-     @                        uf(iuf,jf+n,kf+l) + uf(iuf,jf+n-1,kf+l) +
-     @                        uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
+     @                (uf(iuf,jf-n,kf+l) + uf(iuf,jf-n-1,kf+l) +
+     @                 uf(iuf,jf-n,kf+l-1) + uf(iuf,jf-n-1,kf+l-1) +
+     @                 uf(iuf,jf+n,kf+l) + uf(iuf,jf+n-1,kf+l) +
+     @                 uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
      @                                        hym1 *
-     @                       (vf(iuf,jf-n,kf+l) - vf(iuf,jf-n-1,kf+l) +
-     @                        vf(iuf,jf-n,kf+l-1) - vf(iuf,jf-n-1,kf+l-1) +
-     @                        vf(iuf,jf+n,kf+l) - vf(iuf,jf+n-1,kf+l) +
-     @                        vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @                (vf(iuf,jf-n,kf+l) - vf(iuf,jf-n-1,kf+l) +
+     @                 vf(iuf,jf-n,kf+l-1) - vf(iuf,jf-n-1,kf+l-1) +
+     @                 vf(iuf,jf+n,kf+l) - vf(iuf,jf+n-1,kf+l) +
+     @                 vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
      @                                        hzm1 *
-     @                       (wf(iuf,jf-n,kf+l) - wf(iuf,jf-n,kf+l-1) +
-     @                        wf(iuf,jf-n-1,kf+l) - wf(iuf,jf-n-1,kf+l-1) +
-     @                        wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
-     @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
+     @                (wf(iuf,jf-n,kf+l) - wf(iuf,jf-n,kf+l-1) +
+     @                 wf(iuf,jf-n-1,kf+l) - wf(iuf,jf-n-1,kf+l-1) +
+     @                 wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
+     @                 wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
                end if
  170           continue
 c weighting
@@ -1347,9 +1347,9 @@ c each quadrant is two octants and their share of the two central edges
                   do 230 kc = cregl2, cregh2
                      kf = kc * kr
  230                 src(if,jf,kf) = src(if,jf,kf) + r3 *
-     @                 (hxm1c * idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
-     @                  hym1c * jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
-     @                  hzm1c *        (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
+     @             (hxm1c * idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
+     @              hym1c * jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
+     @              hzm1c *        (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
                end if
  240           continue
 c faces
@@ -1371,20 +1371,20 @@ c each face is two faces and two sides of an edge
                         do 250 kf = kr*cregl2, kr*cregh2, kr
  250                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (hxm1 *
-     @                       (uf(if+m,juf,kf-l) - uf(if+m-1,juf,kf-l) +
-     @                        uf(if+m,juf,kf-l-1) - uf(if+m-1,juf,kf-l-1) +
-     @                        uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
-     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @		(uf(if+m,juf,kf-l) - uf(if+m-1,juf,kf-l) +
+     @                 uf(if+m,juf,kf-l-1) - uf(if+m-1,juf,kf-l-1) +
+     @                 uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
+     @                 uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
      @                                        hym1 * jdir *
-     @                       (vf(if+m,juf,kf-l) + vf(if+m,juf,kf-l-1) +
-     @                        vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
-     @                        vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
-     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @                (vf(if+m,juf,kf-l) + vf(if+m,juf,kf-l-1) +
+     @                 vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
+     @                 vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
+     @                 vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
      @                                        hzm1 *
-     @                       (wf(if+m,juf,kf-l) - wf(if+m,juf,kf-l-1) +
-     @                        wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
-     @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
-     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+     @                (wf(if+m,juf,kf-l) - wf(if+m,juf,kf-l-1) +
+     @                 wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
+     @                 wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
+     @                 wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
