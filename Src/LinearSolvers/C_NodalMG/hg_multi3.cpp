@@ -51,9 +51,7 @@ extern "C"
     void FORT_HGRLX_TERRAIN (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLNF_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intS, const int*, const int*);
 #if (BL_SPACEDIM==3)
-    void FORT_HGRESU        (Real*, intS, const Real*, const Real*, const Real*, const Real*, intS);
     void FORT_HGRLX         (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
-    void FORT_HGRLXU        (Real*, const Real*, const Real*, const Real*, intS, Real*, intS);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intS, const int*);
     void FORT_HGRLNF        (Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int*, const int*);
 #else
@@ -66,6 +64,8 @@ extern "C"
     void FORT_HGRLNF        (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
     void FORT_HGRLNF_FULL   (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
 #endif
+    void FORT_HGRESU        (Real*, intS, const Real*, const Real*, const Real*, const Real*, intS);
+    void FORT_HGRLXU        (Real*, const Real*, const Real*, const Real*, intS, Real*, intS);
     void FORT_HGRLNB        (Real*, intS, Real*, intS, intS, const int*, const int*);
     
     void FORT_HGCG1         (Real*, const Real*, Real*, Real*, const Real*, const Real*, const Real*, intS, const Real&, Real&);
@@ -125,7 +125,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    DependentMultiFabIterator d_dmfi(r_mfi, d);
 	    const Box& rbox = r_mfi->box();
 	    const Box& freg = lev_interface[mglev].part_fine(r_mfi.index());
-#if BL_SPACEDIM == 2
+#if BL_SPACEDIM == 2 && 0
 	    DependentMultiFabIterator D_DECL(s0_dmfi(r_mfi, sigma_nd[0][mglev]),
 					     s1_dmfi(r_mfi, sigma_nd[1][mglev]),
 					     s2_dmfi(r_mfi, sigma_nd[2][mglev]));
@@ -142,7 +142,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    {
 		clear_part_interface(r, lev_interface[mglev]);
 	    }
-#elif BL_SPACEDIM == 3
+#else
 	    DependentMultiFabIterator m_dmfi(r_mfi, mask[mglev]);
 	    DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
 	    FORT_HGRESU(r_mfi->dataPtr(), DIMLIST(rbox),
@@ -239,7 +239,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    } 
 		    else if (m_hg_cross_stencil)
 		    {
-#if BL_SPACEDIM==3
+#if BL_SPACEDIM==3 || 1
 			DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
 			DependentMultiFabIterator m_dmfi(r_mfi, mask[mglev]);
 			FORT_HGRLXU(c_dmfi->dataPtr(),

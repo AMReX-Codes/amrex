@@ -433,7 +433,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	
 	if (m_hg_cross_stencil)
 	{
-#if	BL_SPACEDIM==3
+//#if	BL_SPACEDIM==3
 	    sigma_node.resize(mglev_max + 1);
 	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	    {
@@ -480,7 +480,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    }
 		}
 	    }
-#endif
+//#endif
 	}
 	
     }
@@ -541,7 +541,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    {
 		const Box& cenbox = c_mfi->box();
 		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-#if BL_SPACEDIM == 2
+#if BL_SPACEDIM == 2 && 0
 		const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
 		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
 		    sn1(c_mfi, sigma_nd[1][mglev]),
@@ -561,7 +561,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     
     if (m_hg_cross_stencil)
     {
-#if BL_SPACEDIM==3
+// #if BL_SPACEDIM==3
 	mask.resize(mglev_max + 1);
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
@@ -575,7 +575,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    HG_TEST_NORM(mtmp, "buildsigma 2");
 	    clear_part_interface(mtmp, lev_interface[mglev]);
 	}
-#endif
+//#endif
     }
 }
 
@@ -628,7 +628,7 @@ void holy_grail_amr_multigrid::clear()
 	    delete sigma.remove(mglev);
 	    if (sigma_node.ready() && sigma_node.defined(mglev))
 		delete sigma_node.remove(mglev);
-#if BL_SPACEDIM == 2
+#if BL_SPACEDIM == 2 && 0
 	    if (mglev < mglev_max) 
 	    {
 		sigma_nd[0].remove(mglev);
@@ -910,7 +910,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    else if (m_hg_full_stencil)
 	    {
 #if defined(HG_FULL_STENCIL)
-#if (BL_SPACEDIM != 3)
+#if (BL_SPACEDIM == 2)
 		DependentMultiFabIterator D_DECL(s0_dmfi(w_mfi, sigma_nd[0][lto]),
 						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
@@ -925,7 +925,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    }
 	    else
 	    {
-#if (BL_SPACEDIM != 3)
+#if (BL_SPACEDIM == 2) && 0
 		DependentMultiFabIterator D_DECL(s0_dmfi(w_mfi, sigma_nd[0][lto]),
 						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
