@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.64 2001-07-22 19:38:17 car Exp $
+// $Id: ParallelDescriptor.H,v 1.65 2001-07-23 04:16:52 car Exp $
 //
 
 #include <BLassert.H>
@@ -494,8 +494,6 @@ std::vector<T>
 ParallelDescriptor::Gather(const T& t, int root)
 {
     std::vector<T> resl;
-    std::cout << "MyProc() = " << MyProc << std::endl;
-    std::cout << "root = " << root << std::endl;
     if ( root == MyProc() ) resl.resize(NProcs());
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t), 1, Mpi_typemap<T>::type(),
 			    &resl[0], 1, Mpi_typemap<T>::type(),
