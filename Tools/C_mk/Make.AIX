@@ -8,6 +8,18 @@ ifeq ($(COMP),CC)
   override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 endif
 
+ifeq ($(COMP),xlC)
+  CXX     := xlC
+  CXXOPTF += -Q -O3 -qrtti=all
+  CXXDEBF += -Q -g
+endif
+
+ifeq ($(COMP),mpCC)
+  CXX     := mpCC
+  CXXOPTF += -Q -O3 -qrtti=all
+  CXXDEBF += -Q -g
+endif
+
 ifeq ($(COMP),KCC)
   CXX     := KCC
   CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
@@ -56,7 +68,7 @@ ifeq ($(AIXLARGEMEM),TRUE)
   fDEBF   += -q64
   LDFLAGS += -bmaxdata:0xF0000000
 else
-  LDFLAGS += -bmaxdata:0x80000000
+#  LDFLAGS += -bmaxdata:0x80000000
 endif
 
 ifeq ($(USE_THREADS),TRUE)
@@ -73,7 +85,7 @@ CPRFF +=
 #XTRALIBS += libmiranda.a -lm -lxlf90
 XTRALIBS += -lm -lxlf90
 
-DEFINES += -D_POSIX_SOURCE
+#DEFINES += -D_POSIX_SOURCE
 
 FORTLINK := LOWERCASE
 FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
