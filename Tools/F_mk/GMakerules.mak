@@ -7,7 +7,7 @@ doc:	$(html_sources)
 	mv *.html $(hdir)
 
 clean::
-	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.exe *~
+	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.$(suf).exe *~
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
@@ -15,6 +15,7 @@ clean::
 
 realclean:: clean
 	$(RM) -fr t
+	$(RM) *.exe
 
 deppairs: $(f90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
