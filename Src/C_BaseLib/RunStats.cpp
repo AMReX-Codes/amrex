@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.16 1999-05-10 18:54:23 car Exp $
+// $Id: RunStats.cpp,v 1.17 1999-06-16 22:13:03 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -235,17 +235,8 @@ RunStats::report (ostream& os)
             os << "\nTimings for level " << lev << " ...\n\n";
             it.rewind();
             for ( ; it; ++it)
-            {
-                if (it().level == lev)
-                {
-                    ListIterator<RunStatsData> iti(TheTotals);
-                    for ( ; iti; ++iti)
-                        if (iti().name == it().name && iti().level == -1)
-                            break;
-                    if (it().is_on)
-                        Print(os,it(),tot_run_time,tot_run_wtime);
-                }
-            }
+                if (it().level == lev && it().is_on)
+                    Print(os,it(),tot_run_time,tot_run_wtime);
         }
         os << "\nTotals for all levels ...\n\n";
 
