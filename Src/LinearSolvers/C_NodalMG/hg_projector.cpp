@@ -2,7 +2,7 @@
 
 #include "hg_projector.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGDIV		hgdiv_
 #define   FORT_HGDIV_TERRAIN    hgdiv_terrain_
 #define   FORT_HGFDIV		hgfdiv_
@@ -20,7 +20,7 @@
 #define   FORT_HGFAVG		hgfavg_
 #define   FORT_HGEAVG		hgeavg_
 #define   FORT_HGCAVG		hgcavg_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGDIV		HGDIV
 #define   FORT_HGDIV_TERRAIN    HGDIV_TERRAIN
 #define   FORT_HGFDIV		HGFDIV
@@ -38,6 +38,26 @@
 #define   FORT_HGFAVG		HGFAVG
 #define   FORT_HGEAVG		HGEAVG
 #define   FORT_HGCAVG		HGCAVG
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define   FORT_HGDIV		hgdiv
+#define   FORT_HGDIV_TERRAIN    hgdiv_terrain
+#define   FORT_HGFDIV		hgfdiv
+#define   FORT_HGFDIV_TERRAIN   hgfdiv_terrain
+#define   FORT_HGEDIV		hgediv
+#define   FORT_HGEDIV_TERRAIN   hgediv_terrain
+#define   FORT_HGCDIV		hgcdiv
+#define   FORT_HGCDIV_TERRAIN   hgcdiv_terrain
+#define   FORT_HGODIV		hgodiv
+#define   FORT_HGIDIV		hgidiv
+#define   FORT_HGDDIV		hgddiv
+#define   FORT_HGGRAD		hggrad
+#define   FORT_HGGRAD_TERRAIN   hggrad_terrain
+#define   FORT_HGAVG		hgavg
+#define   FORT_HGFAVG		hgfavg
+#define   FORT_HGEAVG		hgeavg
+#define   FORT_HGCAVG		hgcavg
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 

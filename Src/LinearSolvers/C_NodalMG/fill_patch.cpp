@@ -2,12 +2,17 @@
 
 #include "fill_patch.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FIPRODC   iprodc_
 #define FORT_FIPRODN   iprodn_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define FORT_FIPRODC   IPRODC
 #define FORT_FIPRODN   IPRODN
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define FORT_FIPRODC   iprodc
+#define FORT_FIPRODN   iprodn
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C"

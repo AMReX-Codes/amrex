@@ -2,7 +2,7 @@
 
 #include "hg_multi.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGRES		hgres_
 #define   FORT_HGRES_TERRAIN	hgres_terrain_
 #define   FORT_HGRES_FULL	hgres_full_
@@ -21,7 +21,7 @@
 #define   FORT_HGCG1		hgcg1_
 #define   FORT_HGCG2		hgcg2_
 #define   FORT_HGIP		hgip_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGRES		HGRES
 #define   FORT_HGRES_TERRAIN    HGRES_TERRAIN
 #define   FORT_HGRES_FULL	HGRES_FULL
@@ -40,6 +40,27 @@
 #define   FORT_HGCG1		HGCG1
 #define   FORT_HGCG2		HGCG2
 #define   FORT_HGIP		HGIP
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define   FORT_HGRES		hgres
+#define   FORT_HGRES_TERRAIN    hgres_terrain
+#define   FORT_HGRES_FULL	hgres_full
+#define   FORT_HGRESU		hgresu
+#define   FORT_HGRLX		hgrlx
+#define   FORT_HGRLX_TERRAIN    hgrlx_terrain
+#define   FORT_HGRLX_FULL	hgrlx_full
+#define   FORT_HGRLXU		hgrlxu
+#define   FORT_HGRLXL		hgrlxl
+#define   FORT_HGRLXL_FULL	hgrlxl_full
+#define   FORT_HGRLNF		hgrlnf
+#define   FORT_HGRLNF_TERRAIN   hgrlnf_terrain
+#define   FORT_HGRLNF_FULL	hgrlnf_full
+#define   FORT_HGRLNB		hgrlnb
+#define   FORT_HGCG		hgcg
+#define   FORT_HGCG1		hgcg1
+#define   FORT_HGCG2		hgcg2
+#define   FORT_HGIP		hgip
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 
