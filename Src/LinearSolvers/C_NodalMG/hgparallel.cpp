@@ -72,11 +72,20 @@ task::~task ()
     assert(m_sno != 0);
 }
 
-bool task::startup () { return m_started = true; }
+bool
+task::startup ()
+{
+    return m_started = true;
+}
 
-bool task::work_to_do () const { return true; }
+bool
+task::work_to_do () const
+{
+    return true;
+}
 
-void task::print_dependencies (ostream& os) const
+void
+task::print_dependencies (ostream& os) const
 {
     os << "Task " << get_sequence_number() << " depends on ( ";
     for (list<task_proxy>::const_iterator lit = dependencies.begin(); lit != dependencies.end(); ++lit)
@@ -89,7 +98,8 @@ void task::print_dependencies (ostream& os) const
     os << ") ";
 }
 
-bool task::depend_ready ()
+bool
+task::depend_ready ()
 {
     for (list<task_proxy>::iterator lit = dependencies.begin(); lit != dependencies.end();)
     {
@@ -106,7 +116,8 @@ bool task::depend_ready ()
     return dependencies.empty();
 }
 
-void task::_hint () const
+void
+task::_hint () const
 {
 #ifdef HG_DEBUG
     assert(m_sno != 0);
@@ -115,24 +126,28 @@ void task::_hint () const
 #endif
 }
 
-void task::hint () const
+void
+task::hint () const
 {
     task::_hint();
     HG_DEBUG_OUT(")" << endl);
 }
 
-bool task::depends_on_q (const task* t1) const
+bool
+task::depends_on_q (const task* t1) const
 {
     return false;
 }
 
-void task::depend_on (const task_proxy& t1)
+void
+task::depend_on (const task_proxy& t1)
 {
     if (!t1.null())
         dependencies.push_back(t1);
 }
 
-bool task::ready ()
+bool
+task::ready ()
 {
     assert(is_started());
     return true;
@@ -166,7 +181,8 @@ task::task_proxy task_list::add_task (task* t)
     }
 }
 
-void task_list::print_dependencies (ostream& os) const
+void
+task_list::print_dependencies (ostream& os) const
 {
     os << "Task list ( " << endl;
     for (list<task::task_proxy>::const_iterator tli = tasks.begin(); tli != tasks.end(); ++tli)
@@ -177,7 +193,8 @@ void task_list::print_dependencies (ostream& os) const
     os << ")" << endl;
 }
 
-void task_list::execute ()
+void
+task_list::execute ()
 {
 #ifdef BL_USE_MPI
     if (HG_is_debugging)
@@ -243,7 +260,8 @@ restart:
 
             // r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
-void task_copy::init ()
+void
+task_copy::init ()
 {
     if (work_to_do())
     {
@@ -341,12 +359,15 @@ task_copy::task_copy (task_list&        tl_,
     init();
 }
 
-inline bool mfeq (const MultiFab& a, const MultiFab& b)
+inline
+bool
+mfeq (const MultiFab& a, const MultiFab& b)
 {
     return &a == &b;
 }
 
-bool task_copy::depends_on_q (const task* t1) const
+bool
+task_copy::depends_on_q (const task* t1) const
 {
     if (!work_to_do()) return false;
 
@@ -363,7 +384,8 @@ bool task_copy::depends_on_q (const task* t1) const
     return false;
 }
 
-void task::_do_depend ()
+void
+task::_do_depend ()
 {
     if (ParallelDescriptor::NProcs() == 1)
         //
@@ -388,12 +410,14 @@ task_copy::~task_copy ()
 #endif
 }
 
-bool task_copy::work_to_do () const
+bool
+task_copy::work_to_do () const
 {
     return (is_local(m_mf,m_dgrid) || is_local(m_smf,m_sgrid)) && !m_done;
 }
 
-bool task_copy::startup ()
+bool
+task_copy::startup ()
 {
     m_started = true;
 
@@ -429,14 +453,15 @@ bool task_copy::startup ()
     return result;
 }
 
-bool task_copy::ready ()
+bool
+task_copy::ready ()
 {
     assert(is_started());
 
     if (m_local)
     {
-        if (!m_done)
-            m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
+        assert(!m_done);
+        m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
         return true;
     }
 
@@ -467,7 +492,8 @@ bool task_copy::ready ()
     return false;
 }
 
-void task_copy::hint () const
+void
+task_copy::hint () const
 {
     task::_hint();
     if (is_local(m_smf, m_sgrid) && is_local(m_mf, m_dgrid))
@@ -536,22 +562,19 @@ task_copy_local::~task_copy_local ()
     delete tmp;
 }
 
-bool task_copy_local::work_to_do () const
+bool
+task_copy_local::work_to_do () const
 {
-//    return m_fab != 0 || is_local(m_smf,m_sgrid);
     return (m_fab != 0 || is_local(m_smf,m_sgrid)) && !m_done;
 }
 
-bool task_copy_local::startup ()
+bool
+task_copy_local::startup ()
 {
     m_started = true;
 
     bool result = true;
 
-//    if (m_fab != 0 && is_local(m_smf, m_sgrid))
-//    {
-//        m_local = true;
-//    }
 #ifdef BL_USE_MPI
     if (!m_local)
     {
@@ -582,14 +605,15 @@ bool task_copy_local::startup ()
     return result;
 }
 
-bool task_copy_local::ready ()
+bool
+task_copy_local::ready ()
 {
     assert(is_started());
 
     if (m_local)
     {
-        if (!m_done)
-            m_fab->copy(m_smf[m_sgrid], m_bx);
+        assert(!m_done);
+        m_fab->copy(m_smf[m_sgrid], m_bx);
         return true;
     }
         
@@ -621,7 +645,8 @@ bool task_copy_local::ready ()
     return false;
 }
 
-void task_copy_local::hint () const
+void
+task_copy_local::hint () const
 {
     task::_hint();
     if (m_fab !=0 && is_local(m_smf, m_sgrid))
@@ -636,7 +661,8 @@ void task_copy_local::hint () const
     HG_DEBUG_OUT(")" << endl);
 }
 
-bool task_copy_local::depends_on_q (const task* t1) const
+bool
+task_copy_local::depends_on_q (const task* t1) const
 {
     if (!work_to_do()) return false;
 
@@ -671,13 +697,15 @@ task_fab::~task_fab ()
     delete target;
 }
 
-const FArrayBox& task_fab::fab ()
+const FArrayBox&
+task_fab::fab ()
 {
     assert(target != 0);
     return *target;
 }
 
-bool task_fab::work_to_do () const
+bool
+task_fab::work_to_do () const
 {
     return ParallelDescriptor::MyProc() == m_target_proc_id;
 }
@@ -688,7 +716,8 @@ task_fec_base::task_fec_base (task_list& tl_,
     :
     task(tl_),
     s(s_),
-    igrid(igrid_)
+    igrid(igrid_),
+    done(false)
 {}
 
 task_fec_base::~task_fec_base ()
@@ -696,12 +725,14 @@ task_fec_base::~task_fec_base ()
     HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
 }
 
-bool task_fec_base::work_to_do () const
+bool
+task_fec_base::work_to_do () const
 {
-    return is_local_target() || !tfvect.empty();
+    return (is_local_target() || !tfvect.empty()) && !done;
 }
 
-void task_fec_base::push_back (task_fab* tf)
+void
+task_fec_base::push_back (task_fab* tf)
 {
     task_proxy tp = m_task_list.add_task(tf);
 

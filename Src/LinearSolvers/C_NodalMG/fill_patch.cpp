@@ -111,7 +111,7 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
     m_target_proc_id(target_proc_id),
     m_local(false)
 {
-    m_bx = ::grow(src_.box(grid_),src_.nGrow());
+    m_bx = ::grow(src_.boxArray()[grid_],src_.nGrow());
 
     assert(m_bdy != 0);
     assert(is_remote(src_, grid_) || m_bx == src_[grid_].box());
@@ -231,23 +231,21 @@ task_fill_patch::~task_fill_patch () {}
 bool
 task_fill_patch::work_to_do () const
 {
-    //
-    // TODO -- refine this if at all possible.
-    //
-    return true;
+    return task_fab::work_to_do() || !dependencies.empty();
 }
 
 bool
 task_fill_patch::fill_patch_blindly ()
 {
+    const BoxArray& r_ba = r.boxArray();
+
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	Box tb = r.box(igrid);
-	if (is_local(r, igrid)) 
+	if (is_local(r,igrid)) 
 	{
-	    assert(::grow(r[igrid].box(),-r.nGrow()) == tb);
+	    assert(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
 	}
-	if (tb.contains(region)) 
+	if (r_ba[igrid].contains(region)) 
 	{
 	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), region, r, igrid)));
 	    // target->copy(r[igrid], region);
@@ -256,14 +254,13 @@ task_fill_patch::fill_patch_blindly ()
     }
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	Box tb = r.box(igrid);
-	if (is_local(r, igrid))
+	if (is_local(r,igrid))
 	{
-	    assert(::grow(r[igrid].box(),-r.nGrow()) == tb);
+	    assert(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
 	}
-	if (tb.intersects(region)) 
+	if (r_ba[igrid].intersects(region)) 
 	{
-	    tb &= region;
+            Box tb = r_ba[igrid] & region;
 	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), tb, r, igrid)));
 	    // target->copy(r[igrid], tb);
 	}
@@ -320,7 +317,7 @@ task_fill_patch::fill_patch ()
     assert(target == 0 || type(*target) == region.type());
     // tdomain.convert(type(*target));
     Box idomain = ::grow(tdomain, IntVect::TheZeroVector() - type(r));
-    
+
     if (idim == -1) 
     {
 	if (idomain.contains(region) || bdy == 0) 
@@ -347,6 +344,7 @@ task_fill_patch::fill_patch ()
         //
 	// FIXME!!!
         //
+        const BoxArray& r_ba = r.boxArray();
 	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
 	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
@@ -362,8 +360,7 @@ task_fill_patch::fill_patch ()
 			gridnum[j+1] = -1;
 			if (igrid >= 0) 
 			{
-			    Box tb = r.box(igrid);
-			    tb &= region;
+			    Box tb = r_ba[igrid] & region;
 			    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), tb, r, igrid)));
 			}
 			else 
@@ -629,6 +626,8 @@ fill_internal_borders (MultiFab&              r,
 	    }
 	}
 #endif
+        const BoxArray& r_ba = r.boxArray();
+
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -642,10 +641,10 @@ fill_internal_borders (MultiFab&              r,
             Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
             for (int i = 0; i < idim; i++) 
             {
-                if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i)) bj.growLo(i,w);
-                if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))     bj.growHi(i,w);
-                if (r.box(igrid).smallEnd(i) == bi.smallEnd(i)) bi.growLo(i,w);
-                if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))     bi.growHi(i,w);
+                if (r_ba[jgrid].smallEnd(i) == bj.smallEnd(i)) bj.growLo(i,w);
+                if (r_ba[jgrid].bigEnd(i)   == bj.bigEnd(i))   bj.growHi(i,w);
+                if (r_ba[igrid].smallEnd(i) == bi.smallEnd(i)) bi.growLo(i,w);
+                if (r_ba[igrid].bigEnd(i)   == bi.bigEnd(i))   bi.growHi(i,w);
             }
             bj.shift(idim, -1).growLo(idim, w-1);
             bi.shift(idim,  1).growHi(idim, w-1);
@@ -653,13 +652,15 @@ fill_internal_borders (MultiFab&              r,
 	    tl.add_task(new task_copy(tl,r,jgrid,r,igrid,bj));
 	    tl.add_task(new task_copy(tl,r,igrid,r,jgrid,bi));
 #else
-	    tl.add_task(new task_copy(tl,r,jgrid,r,igrid,w_shift(b,r.box(jgrid), r.nGrow(), -w)));
-	    tl.add_task(new task_copy(tl,r,igrid,r,jgrid,w_shift(b,r.box(igrid), r.nGrow(),  w)));
+	    tl.add_task(new task_copy(tl,r,jgrid,r,igrid,w_shift(b,r_ba[jgrid], r.nGrow(), -w)));
+	    tl.add_task(new task_copy(tl,r,igrid,r,jgrid,w_shift(b,r_ba[igrid], r.nGrow(),  w)));
 #endif
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
     {
+        const BoxArray& r_ba = r.boxArray();
+
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -679,10 +680,10 @@ fill_internal_borders (MultiFab&              r,
 	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);
 	    for (int i = 0; i < idim; i++) 
 	    {
-		if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i)) bj.growLo(i,w);
-		if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))     bj.growHi(i,w);
-		if (r.box(igrid).smallEnd(i) == bi.smallEnd(i)) bi.growLo(i,w);
-		if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))     bi.growHi(i,w);
+		if (r_ba[jgrid].smallEnd(i) == bj.smallEnd(i)) bj.growLo(i,w);
+		if (r_ba[jgrid].bigEnd(i)   == bj.bigEnd(i))   bj.growHi(i,w);
+		if (r_ba[igrid].smallEnd(i) == bi.smallEnd(i)) bi.growLo(i,w);
+		if (r_ba[igrid].bigEnd(i)   == bi.bigEnd(i))   bi.growHi(i,w);
 	    }
 	    bj.growLo(idim, w).convert(IntVect::TheCellVector());
 	    bi.growHi(idim, w).convert(IntVect::TheCellVector());
@@ -907,15 +908,18 @@ restrict_level (MultiFab&                   dest,
 
     HG_TEST_NORM( dest, "restrict_level a");
 
+    const BoxArray& r_ba    = r.boxArray();
+    const BoxArray& dest_ba = dest.boxArray();
+
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
-	const Box& region = dest.box(jgrid);
+	const Box& region = dest_ba[jgrid];
 
 	for (int igrid = 0; igrid < r.length(); igrid++) 
 	{
-	    Box cbox = r.box(igrid);
-	    cbox = restric.box(cbox, rat);
+	    Box cbox = restric.box(r_ba[igrid], rat);
+
 	    if (region.intersects(cbox)) 
 	    {
 		cbox &= region;
