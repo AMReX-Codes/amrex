@@ -2,7 +2,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.10 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxLib.H,v 1.11 2001-07-18 23:07:06 lijewski Exp $
 //
 
 //
@@ -19,62 +19,52 @@
 */
 
 #ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
+namespace BoxLib
+#define BL_STATIC
+#else
+#define BL_STATIC static
+struct BoxLib
 #endif
-
-class BoxLib
 {
-protected:
-    //
-    // A null string used as a default argument by the following functions.
-    //
-    static const char* nullString;
-public:
     //
     //@ManDoc: Print out message to cerr and exit via BoxLib::Abort().
     //
-    static void Error (const char * msg = nullString);
+    BL_STATIC void Error (const char * msg = 0);
     //
     //@ManDoc: Print out warning message to cerr.
     //
-    static void Warning (const char * msg = nullString);
+    BL_STATIC void Warning (const char * msg);
     //
     //@ManDoc: Print out message to cerr and exit via abort().
     //
-    static void Abort (const char * msg = nullString);
+    BL_STATIC void Abort (const char * msg = 0);
 
     /*@ManDoc: Prints assertion failed messages to cerr and exits
                via abort().  Intended for use by the BL\_ASSERT() macro
                in <BLassert.H>.
     */
-    static void Assert (const char* EX,
-                        const char* file,
-                        int         line);
+    BL_STATIC void Assert (const char* EX,
+                           const char* file,
+                           int         line);
 
     /*@ManDoc: Prints out an out-of-memory message and aborts.  It is
              called by various BoxLib routines when a call to new fails.
 
              Called as BoxLib::OutOfMemory(\_\_FILE\_\_, \_\_LINE\_\_);
     */
-    static void OutOfMemory (const char* file,
-                             int         line);
+    BL_STATIC void OutOfMemory (const char* file,
+                                int         line);
 
-    /*@ManDoc: The BoxLib version string.
-    
-       Has the form:
-    
-         boxlib version 2.0 built Jun 25 1996 at 14:52:36
-   */
-    static const char * const version;
-
-};
 
 #ifdef BL_NAMESPACE
 }
 #ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
+using namespace BoxLib;
 #endif
+#else
+};
 #endif
+
+#undef BL_STATIC
 
 #endif /*BL_BOXLIB_H*/

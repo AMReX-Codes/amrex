@@ -2,7 +2,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.13 2001-07-17 23:02:24 lijewski Exp $
+// $Id: IntVect.H,v 1.14 2001-07-18 23:07:07 lijewski Exp $
 //
 
 #include <algorithm>
@@ -253,10 +253,6 @@ public:
     //@ManDoc: Print an IntVect to the ostream.
     //
     void printOn (std::ostream& os = std::cout) const;
-    //
-    //@ManDoc: Print an IntVect to the ostream a bit more verbosely.
-    //
-    void dumpOn (std::ostream& os = std::cout) const;
 
     /*@ManDoc:
       This static member function returns a reference to a constant IntVect

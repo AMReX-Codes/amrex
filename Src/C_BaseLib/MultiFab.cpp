@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.54 2001-07-18 22:21:16 car Exp $
+// $Id: MultiFab.cpp,v 1.55 2001-07-18 23:07:07 lijewski Exp $
 //
 
 #include <algorithm>
@@ -12,7 +12,7 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 
-#include <BoxLib/Profiler.H>
+#include <Profiler.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -827,11 +827,7 @@ void
 MultiFab::FillBoundary (int scomp,
                         int ncomp)
 {
-  BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
-
-    static RunStats stats("fill_boundary");
-
-    stats.start();
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
 
     MultiFabCopyDescriptor mfcd;
     SI&                    si   = TheFBsirec(scomp,ncomp,*this);
@@ -860,8 +856,6 @@ MultiFab::FillBoundary (int scomp,
         //
         mfcd.FillFab(mfid,si.m_sirec[i].m_fbid,(*this)[si.m_sirec[i].m_i]);
     }
-
-    stats.end();
 }
 
 #ifdef BL_NAMESPACE

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.122 2001-07-18 22:21:15 car Exp $
+// $Id: FabArray.H,v 1.123 2001-07-18 23:07:06 lijewski Exp $
 //
 
 #include <climits>
@@ -23,10 +23,9 @@
 #include <FArrayBox.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
-#include <RunStats.H>
 #include <ccse-mpi.H>
 
-#include <BoxLib/Profiler.H>
+#include <Profiler.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -1155,7 +1154,6 @@ FabArray<T,FAB>::AllocFabs ()
         Box tmp = BL_NAMESPACE::grow(fai.validbox(), n_grow);
 #endif
         fabparray.set(fai.index(), new FAB(tmp, n_comp));
-        RunStats::addNumPts(tmp.numPts());
     }
 }
 
@@ -1214,7 +1212,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dcomp,
                        int                    ncomp)
 {
-  BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
 
 #ifdef BL_USE_MPI
 
@@ -1289,10 +1287,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     }
 
     if (NProcs == 1) return;
-
-    static RunStats stats("fabarray_copy");
-
-    stats.start();
 
     const int seqno = ParallelDescriptor::SeqNum();
 
@@ -1401,8 +1395,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         }
     }
 
-    stats.end();
-
 #else
 
     if (boxarray == src.boxarray)
@@ -1483,8 +1475,9 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        dcomp,
                        int        ncomp) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
+
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -2242,7 +2235,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
-    static RunStats stats("collect_data");
 
     static Array<int>         Snds(NProcs);
     static Array<int>         Rcvs(NProcs);
@@ -2253,8 +2245,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     static Array<MPI_Status>  status(NProcs);
     static Array<CommData>    senddata;
     static Array<CommData>    recv_cd;
-
-    stats.start();
 
     for (int i = 0; i < NProcs; i++)
         Snds[i] = Rcvs[i] = 0;
@@ -2579,8 +2569,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             fab_data[indx[k]] = 0;
         }
     }
-
-    stats.end();
 #endif /*BL_USE_MPI*/
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.12 2001-07-17 23:02:18 lijewski Exp $
+// $Id: Box.cpp,v 1.13 2001-07-18 23:07:06 lijewski Exp $
 //
 
 #include <climits>
@@ -1093,24 +1093,6 @@ operator>> (std::istream& is,
         BoxLib::Error("operator>>(istream&,Box&) failed");
 
     return is;
-}
-
-void
-Box::dumpOn (std::ostream& strm) const
-{
-    strm << "Box ("
-         << BoxLib::version
-         << ")"
-         << smallend
-         << " to "
-         << bigend
-         << " type ["
-         << btype.ixType()
-         << "]"
-         << '\n';
-
-    if (strm.fail())
-        BoxLib::Error("Box::dumpOn(ostream&) failed");
 }
 
 //
