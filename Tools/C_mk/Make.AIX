@@ -13,8 +13,9 @@ endif
 
 ifeq ($(COMP),KCC)
   CXX     := KCC
-  CXXOPTF += +K2
-  CXXDEBF += +K0
+  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
+  CXXDEBF += +K0 --no_exceptions
+  override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),newKCC)
@@ -25,7 +26,6 @@ endif
 
 ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
-#  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=8192'
   CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
   override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
@@ -46,10 +46,15 @@ FDEBF += -g
 fOPTF += -O3 -qarch=auto -qtune=auto
 fDEBF += -g
 else
-FOPTF += -O3 -qarch=auto -qtune=auto -qdpc
+FOPTF += -O3 -qarch=auto -qtune=auto
 FDEBF += -g -qdpc
-fOPTF += -O3 -qarch=auto -qtune=auto -qdpc
+fOPTF += -O3 -qarch=auto -qtune=auto
 fDEBF += -g -qdpc
+endif
+
+ifeq ($(USE_THREADS),TRUE)
+FOPTF += -qnosave -qthreaded
+fOPTF += -qnosave -qthreaded
 endif
 
 COPTF += -O2
