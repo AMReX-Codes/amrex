@@ -1,6 +1,5 @@
-
 //
-// $Id: BoxArray.cpp,v 1.17 2000-11-12 17:26:12 car Exp $
+// $Id: BoxArray.cpp,v 1.18 2001-07-17 23:02:19 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -10,6 +9,38 @@
 namespace BL_NAMESPACE
 {
 #endif
+
+int
+BoxArray::length () const
+{
+    return m_ref->m_abox.length();
+}
+
+bool
+BoxArray::ready () const
+{
+    return m_ref->m_abox.ready();
+}
+
+const Box&
+BoxArray::operator[] (int index) const
+{
+    return m_ref->m_abox.get(index);
+}
+
+const Box&
+BoxArray::get (int index) const
+{
+    return m_ref->m_abox.get(index);
+}
+
+void
+BoxArray::reserve (long _truesize)
+{
+    if (!m_ref.unique())
+        uniqify();
+    m_ref->m_abox.reserve(_truesize);
+}
 
 BoxArray::Ref::Ref () {}
 
@@ -28,12 +59,12 @@ BoxArray::BoxArray (const BoxList& bl)
     m_ref(new BoxArray::Ref(bl))
 {}
 
-BoxArray::Ref::Ref (istream& is)
+BoxArray::Ref::Ref (std::istream& is)
 {
     define(is);
 }
 
-BoxArray::BoxArray (istream& is)
+BoxArray::BoxArray (std::istream& is)
     :
     m_ref(new BoxArray::Ref(is))
 {}
@@ -114,7 +145,7 @@ BoxArray::set (int        i,
 #define BL_IGNORE_MAX 100000
 
 void
-BoxArray::define (istream& is)
+BoxArray::define (std::istream& is)
 {
     BL_ASSERT(length() == 0);
     if (!m_ref.unique())
@@ -123,7 +154,7 @@ BoxArray::define (istream& is)
 }
 
 void
-BoxArray::Ref::define (istream& is)
+BoxArray::Ref::define (std::istream& is)
 {
     //
     // TODO -- completely remove the fiction of a hash value.
@@ -374,8 +405,8 @@ BoxArray::convert (Box (*fp)(const Box&))
     return *this;
 }
 
-ostream&
-BoxArray::writeOn (ostream& os) const
+std::ostream&
+BoxArray::writeOn (std::ostream& os) const
 {
     //
     // TODO -- completely remove the fiction of a hash value.
@@ -448,15 +479,15 @@ BoxArray::maxSize (int block_size)
     return *this;
 }
 
-ostream&
-operator<< (ostream&        os,
+std::ostream&
+operator<< (std::ostream&   os,
             const BoxArray& ba)
 {
     return ba.print(os);
 }
 
-ostream&
-BoxArray::print (ostream& os) const
+std::ostream&
+BoxArray::print (std::ostream& os) const
 {
     //
     // TODO -- completely remove the fiction of a hash value.

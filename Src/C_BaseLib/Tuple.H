@@ -1,16 +1,11 @@
-
 #ifndef BL_TUPLE_H
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.9 2000-10-02 20:52:38 lijewski Exp $
+// $Id: Tuple.H,v 1.10 2001-07-17 23:02:28 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <BLassert.H>
 

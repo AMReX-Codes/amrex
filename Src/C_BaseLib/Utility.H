@@ -1,20 +1,11 @@
-
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.33 2000-10-02 20:52:39 lijewski Exp $
+// $Id: Utility.H,v 1.34 2001-07-17 23:02:28 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#endif
 
 #ifndef WIN32
 #include <sys/types.h>
@@ -248,41 +239,6 @@ public:
 */
 #define BL_ARCH_CRAY 1
 #endif /*BL_ARCH_CRAY*/
-
-#ifdef BL_ARCH_IEEE
-#undef BL_ARCH_IEEE
-/*@ManDoc:
-  The macro BL\_ARCH\_IEEE is defined only when compiling on a Cray architecture.
-  The make subsystem automatically sets this if it detects that a compilation
-  is taking place on a non-Cray system.  That is to say, we assume all
-  architectures, with the exception of Cray, are IEEE.
-*/
-#define BL_ARCH_IEEE 1
-#endif /*BL_ARCH_IEEE*/
-
-#ifdef BL_USE_FLOAT
-#undef BL_USE_FLOAT
-/*@ManDoc:
-  The macro BL\_USE\_FLOAT indicates that C++ floating-point calculations should
-  use "float" variables and Fortran floating-point calculations should use
-  "real*4" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must always be
-  defined when compiling and using BoxLib.
-*/
-#define BL_USE_FLOAT 1
-#endif /*BL_USE_FLOAT*/
-
-#ifdef BL_USE_DOUBLE
-#undef BL_USE_DOUBLE
-/*@ManDoc:
-  The macro BL\_USE\_DOUBLE indicates that C++ floating-point calculations
-  should use "double" variables and Fortran floating-point calculations
-  should use "real*8" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must
-  always be defined when compiling and using BoxLib.  This macro is not
-  allowed on Cray architectures; i.e. only BL\_USE\_FLOAT is allowed on Cray
-  architectures.
-*/
-#define BL_USE_DOUBLE 1
-#endif /*BL_USE_DOUBLE*/
 
 #ifdef BL_LANG_FORT
 #undef BL_LANG_FORT

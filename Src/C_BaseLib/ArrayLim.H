@@ -1,9 +1,8 @@
-
 #ifndef BL_ARRAYLIM_H
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.8 2001-02-14 19:05:44 lijewski Exp $
+** $Id: ArrayLim.H,v 1.9 2001-07-17 23:02:18 lijewski Exp $
 */
 
 #if !defined(BL_LANG_FORT)

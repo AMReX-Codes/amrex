@@ -1,8 +1,6 @@
+#ifndef BL_CARENA_H
+#define BL_CARENA_H
 
-#ifndef BL_CARENA
-#define BL_CARENA
-
-#ifdef BL_USE_NEW_HFILES
 #ifdef WIN32
 #pragma warning (disable : 4786)
 #endif
@@ -10,15 +8,6 @@
 #include <iostream>
 #include <set>
 #include <vector>
-using std::set;
-using std::ostream;
-using std::vector;
-#else
-#include <stddef.h>
-#include <iostream.h>
-#include <set.h>
-#include <vector.h>
-#endif
 
 #include <Arena.H>
 #include <Array.H>
@@ -162,11 +151,11 @@ protected:
     // The type of our freelist and blocklist.
     // We use a set sorted from lo to hi memory addresses.
     //
-    typedef set<Node> NL;
+    typedef std::set<Node> NL;
     //
     // The list of blocks allocated via ::operator new().
     //
-    vector<void*> m_alloc;
+    std::vector<void*> m_alloc;
     //
     // The free list of allocated but not currently used blocks.
     // Maintained in lo to hi memory sorted order.
@@ -206,4 +195,4 @@ using namespace BL_NAMESPACE;
 #endif
 #endif
 
-#endif /*BL_CARENA*/
+#endif /*BL_CARENA_H*/

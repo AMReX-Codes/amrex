@@ -1,9 +1,8 @@
-
 #ifndef BL_SPACE_H
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.6 2000-11-15 20:12:02 car Exp $
+** $Id: SPACE.H,v 1.7 2001-07-17 23:02:27 lijewski Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)

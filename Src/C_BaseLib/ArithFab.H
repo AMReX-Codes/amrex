@@ -1,25 +1,14 @@
-
 #ifndef BL_ARITHFAB_H
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.5 2000-10-02 20:52:31 lijewski Exp $
+// $Id: ArithFab.H,v 1.6 2001-07-17 23:02:17 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <iomanip>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#include <iomanip.h>
-#endif
 
 #include <BaseFab.H>
-#include <Misc.H>
 #include <REAL.H>
 #include <Looping.H>
 

@@ -1,16 +1,11 @@
-
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.27 2000-11-08 22:01:50 car Exp $
+// $Id: BaseFab.H,v 1.28 2001-07-17 23:02:18 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <BLassert.H>
 #include <Box.H>
@@ -18,17 +13,6 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <PArray.H>
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-#include <PointBaseFab.H>
-#include <PointDomain.H>
-#endif /*BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
-
-#ifdef BL_USE_POINTLIB
-#include <PointLooping.H>
-#endif
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -100,19 +84,6 @@ public:
     //
     explicit BaseFab (const Box& bx,
                       int        n = 1);
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-
-    /*@ManDoc: This constructor constructs a BaseFab based on the points in a
-               PointBaseFab f. This constructor is only defined
-               if BL\_CRAY\_BUG\_DEFARG not defined and if BL\_USE\_POINTLIB
-               is defined.
-    */
-    BaseFab (const PointBaseFab<PointDomain,T>& f,
-             T                                  v);
-#endif
-#endif
     //
     //@ManDoc: The destructor deletes the array memory.
     //
@@ -368,23 +339,6 @@ protected:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-    //
-    // This function is called by the `PointBaseFab' copy
-    // operations.  This function is only
-    // defined if BL\_CRAY\_BUG\_DEFARG is NOT defined and if
-    // BL_USE_POINTLIB is defined.
-    //
-    void performCopy (const PointBaseFab<PointDomain,T>& src,
-                      const Box&                         srcbox,
-                      int                                srccomp,
-                      const Box&                         destbox,
-                      int                                destcomp,
-                      int                                numcomp);
-#endif
-#endif
     //
     // This function is called by the `BaseFab' setVal operations.
     //
@@ -791,27 +745,6 @@ BaseFab<T>::BaseFab (const Box& bx,
     define();
 }
 
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-template <class T>
-BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
-                     T                                  val)
-    :
-    domain(pbf.minimalBox()),
-    nvar(pbf.nComp()),
-    numpts(domain.numPts()),
-    dptr(0)
-{
-    define();
-    setVal(val);
-    PointForAllCX(PointDomain,T,pbf)
-    {
-        this->operator()(ivR,nR) = pbfR;
-    } EndPointForAll
-}
-#endif /*BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
-
 template <class T>
 void
 BaseFab<T>::resize (const Box& b,
@@ -1001,37 +934,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
      }}}}}}
 #endif
 }
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-template <class T>
-void
-BaseFab<T>::performCopy (const PointBaseFab<PointDomain,T>& src,
-                         const Box&                         srcbox,
-                         int                                srccomp,
-                         const Box&                         destbox,
-                         int                                destcomp,
-                         int                                numcomp)
-{
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-    destcomp -= srccomp;
-    Box bx(domain);
-    bx &= srcbox;
-    bx &= destbox;
-    if (bx.ok())
-    {
-        PointForAllCXBNN(PointDomain,T,src,bx,srccomp,numcomp)
-        {
-            this->operator()(ivR, destcomp + nR) = srcR;
-        } EndPointForAll
-    }
-}
-#endif /*!BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
 
 template <class T>
 void

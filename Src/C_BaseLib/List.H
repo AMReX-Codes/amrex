@@ -1,9 +1,8 @@
-
 #ifndef BL_LIST_H
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.11 2000-10-02 20:52:36 lijewski Exp $
+// $Id: List.H,v 1.12 2001-07-17 23:02:24 lijewski Exp $
 //
 
 #include <BLassert.H>

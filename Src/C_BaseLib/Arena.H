@@ -1,16 +1,11 @@
-
-#ifndef BL_ARENA
-#define BL_ARENA
+#ifndef BL_ARENA_H
+#define BL_ARENA_H
 
 //
-// $Id: Arena.H,v 1.8 2000-10-02 20:52:31 lijewski Exp $
+// $Id: Arena.H,v 1.9 2001-07-17 23:02:17 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstddef>
-#else
-#include <stddef.h>
-#endif
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -86,4 +81,4 @@ using namespace BL_NAMESPACE;
 #endif
 
 
-#endif /*BL_ARENA*/
+#endif /*BL_ARENA_H*/

@@ -1,22 +1,11 @@
-
 #ifndef BL_FABCONV_H
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.9 2000-10-02 20:52:35 lijewski Exp $
+// $Id: FabConv.H,v 1.10 2001-07-17 23:02:21 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::ostream;
-using std::istream;
-#else
-#include <iostream.h>
-#endif
 
 #include <Array.H>
 #include <BLassert.H>
@@ -84,13 +73,13 @@ public:
     //
     //@ManDoc: Write out an IntDescriptor to an ostream in ASCII.
     //
-    friend ostream& operator<< (ostream&             os,
-                                const IntDescriptor& id);
+    friend std::ostream& operator<< (std::ostream&        os,
+                                     const IntDescriptor& id);
     //
     //@ManDoc: Read in an IntDescriptor from an istream.
     //
-    friend istream& operator>> (istream&       is,
-                                IntDescriptor& id);
+    friend std::istream& operator>> (std::istream&  is,
+                                     IntDescriptor& id);
 protected:
     long     numbytes;
     Ordering ord;
@@ -223,13 +212,13 @@ public:
     */
     static void convertToNativeFormat (Real*                 out,
                                        long                  nitems,
-                                       istream&              is,
+                                       std::istream&         is,
                                        const RealDescriptor& id);
 
     /*@ManDoc: Convert nitems Reals in native format to RealDescriptor format
                and write them to the ostream.
     */
-    static void convertFromNativeFormat (ostream&              os,
+    static void convertFromNativeFormat (std::ostream&         os,
                                          long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
@@ -245,149 +234,18 @@ public:
     //
     //@ManDoc: Write out an RealDescriptor to an ostream in ASCII.
     //
-    friend ostream& operator<< (ostream&              os,
-                                const RealDescriptor& id);
+    friend std::ostream& operator<< (std::ostream&         os,
+                                     const RealDescriptor& id);
     //
     //@ManDoc: Read in a RealDescriptor from an istream.
     //
-    friend istream& operator>> (istream&        is,
-                                RealDescriptor& id);
+    friend std::istream& operator>> (std::istream&   is,
+                                     RealDescriptor& id);
 protected:
     Array<long> fr;
     Array<int>  ord;
     static bool bAlwaysFixDenormals;
 };
-
-//
-// Inlines.
-//
-
-inline
-IntDescriptor::IntDescriptor ()
-{}
-
-inline
-IntDescriptor::IntDescriptor (long     nb,
-                              Ordering o)
-    : numbytes(nb),
-      ord(o)
-{}
-
-inline
-IntDescriptor::Ordering
-IntDescriptor::order () const
-{
-    return ord;
-}
-
-inline
-int
-IntDescriptor::numBytes () const
-{
-    return numbytes;
-}
-
-inline
-bool
-IntDescriptor::operator== (const IntDescriptor& id) const
-{
-    return ord == id.ord && numbytes == id.numbytes;
-}
-
-inline
-bool
-IntDescriptor::operator!= (const IntDescriptor& id) const
-{
-    return !operator==(id);
-}
-
-inline
-RealDescriptor::RealDescriptor ()
-{}
-
-inline
-RealDescriptor::RealDescriptor (const long* fr_,
-                                const int*  ord_,
-                                int         ordl_)
-    : fr(fr_, 8),
-      ord(ord_, ordl_)
-{}
-
-inline
-RealDescriptor::RealDescriptor (const RealDescriptor& rhs)
-    : fr(rhs.fr),
-      ord(rhs.ord)
-{}
-
-inline
-RealDescriptor&
-RealDescriptor::operator= (const RealDescriptor& rhs)
-{
-    fr  = rhs.fr;
-    ord = rhs.ord;
-    return *this;
-}
-
-inline
-const long*
-RealDescriptor::format () const
-{
-    BL_ASSERT(fr.length() != 0);
-    return fr.dataPtr();
-}
-
-inline
-const Array<long>&
-RealDescriptor::formatarray () const
-{
-    BL_ASSERT(fr.length() != 0);
-    return fr;
-}
-
-inline
-const int*
-RealDescriptor::order () const
-{
-    BL_ASSERT(ord.length() != 0);
-    return ord.dataPtr();
-}
-
-inline
-const Array<int>&
-RealDescriptor::orderarray () const
-{
-    BL_ASSERT(ord.length() != 0);
-    return ord;
-}
-
-inline
-int
-RealDescriptor::numBytes () const
-{
-    BL_ASSERT(fr.length() != 0);
-    return (fr[0] + 7 ) >> 3;
-}
-
-inline
-bool
-RealDescriptor::operator== (const RealDescriptor& rd) const
-{
-    return fr == rd.fr && ord == rd.ord;
-}
-
-inline
-bool
-RealDescriptor::operator != (const RealDescriptor& rd) const
-{
-    return !operator==(rd);
-}
-
-inline
-void
-RealDescriptor::SetFixDenormals()
-{
-    bAlwaysFixDenormals = true;
-}
 
 #ifdef BL_NAMESPACE
 }

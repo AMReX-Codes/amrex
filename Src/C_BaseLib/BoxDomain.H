@@ -1,22 +1,12 @@
-
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.12 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxDomain.H,v 1.13 2001-07-17 23:02:19 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <stdlib.h>
-#include <iostream.h>
-#endif
 
 #include <IndexType.H>
 #include <Box.H>
@@ -64,8 +54,8 @@ public:
     //
     //@ManDoc: Output a BoxDomain to an ostream is ASCII format.
     //
-    friend ostream& operator<< (ostream&         os,
-                                const BoxDomain& bd);
+    friend std::ostream& operator<< (std::ostream&    os,
+                                     const BoxDomain& bd);
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
@@ -262,163 +252,6 @@ public:
         :
         ListIterator<Box>(bl.lbox) {}
 };
-
-//
-// Inlines.
-//
-
-inline
-const Box&
-BoxDomain::operator[] (const BoxDomainIterator& bli) const
-{
-    return lbox[bli];
-}
-
-inline
-bool
-BoxDomain::contains (const IntVect& v) const
-{
-    return BoxList::contains(v);
-}
-
-inline
-bool
-BoxDomain::contains (const Box& b) const
-{
-    return BoxList::contains(b);
-}
-
-inline
-bool
-BoxDomain::contains (const BoxList& bl) const
-{
-    return BoxList::contains(bl);
-}
-
-inline
-BoxDomain&
-BoxDomain::intersect (const Box& b)
-{
-    BoxList::intersect(b);
-    BL_ASSERT(ok());
-    return *this;
-}
-
-inline
-void
-intersect (BoxDomain&       dest,
-           const BoxDomain& fin,
-           const Box&       b)
-{
-   dest = fin;
-   dest.intersect(b);
-}
-
-inline
-BoxDomain&
-BoxDomain::refine (int ratio)
-{
-    BoxList::refine(ratio);
-    BL_ASSERT(ok());
-    return *this;
-}
-
-inline
-void
-refine (BoxDomain&       dest,
-        const BoxDomain& fin,
-        int              ratio)
-{
-    dest = fin;
-    dest.refine(ratio);
-}
-
-inline
-void
-accrete (BoxDomain&       dest,
-         const BoxDomain& fin,
-         int              sz)
-{
-    dest = fin;
-    dest.accrete(sz);
-}
-
-inline
-void
-coarsen (BoxDomain&       dest,
-         const BoxDomain& fin,
-         int              ratio)
-{
-    dest = fin;
-    dest.coarsen(ratio);
-}
-
-inline
-BoxDomain&
-BoxDomain::complementIn (const Box&       b,
-                         const BoxDomain& bl)
-{
-    BoxList::complementIn(b,bl);
-    BL_ASSERT(ok());
-    return *this;
-}
-
-inline
-BoxDomain
-complementIn (const Box&       b,
-              const BoxDomain& bl)
-{
-    BoxDomain result;
-    result.complementIn(b,bl);
-    return result;
-}
-
-inline
-BoxDomain&
-BoxDomain::shift (int dir,
-                  int nzones)
-{
-    BoxList::shift(dir, nzones);
-    return *this;
-}
-
-inline
-BoxDomain&
-BoxDomain::shiftHalf (int dir,
-                      int num_halfs)
-{
-    BoxList::shiftHalf(dir, num_halfs);
-    return *this;
-}
-
-inline
-BoxDomain&
-BoxDomain::shiftHalf (const IntVect& iv)
-{
-    BoxList::shiftHalf(iv);
-    return *this;
-}
-
-inline
-BoxList
-BoxDomain::boxList () const
-{
-    return BoxList(*this);
-}
-
-inline
-bool
-BoxDomain::operator== (const BoxDomain& rhs) const
-{
-    return BoxList::operator==(rhs);
-}
-
-inline
-bool
-BoxDomain::operator!= (const BoxDomain& rhs) const
-{
-    return !BoxList::operator==(rhs);
-}
 
 #ifdef BL_NAMESPACE
 }

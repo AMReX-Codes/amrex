@@ -1,6 +1,5 @@
-
 //
-// $Id: FPC.cpp,v 1.4 2000-10-02 20:52:35 lijewski Exp $
+// $Id: FPC.cpp,v 1.5 2001-07-17 23:02:21 lijewski Exp $
 //
 
 #include <FPC.H>

@@ -1,26 +1,13 @@
-
 //
-// $Id: ParmParse.cpp,v 1.14 2001-04-24 19:42:19 car Exp $
+// $Id: ParmParse.cpp,v 1.15 2001-07-17 23:02:26 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstddef>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <cctype>
-using std::cin;
-using std::cout;
-using std::cerr;
-#else
-#include <iostream.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#endif
 
 #include <BoxLib.H>
 #include <ParmParse.H>
@@ -49,6 +36,399 @@ tok_name[] =
    "EQ_SIGN",
    "EOF"
 };
+
+int
+ParmParse::countval (const char* name,
+                     int         n)
+{
+    //
+    // First find n'th occurance of name in table.
+    //
+    const PP_entry* def = ppindex(n,name);
+    return def == 0 ? 0 : def->val.length();
+}
+
+
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   bool&        ptr,
+                   int         ival)
+{
+    getval(name,ppBool,&ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                bool&        ptr,
+                int ival)
+{
+    getval(name,ppBool,&ptr,ival,-1);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     bool&        ptr,
+                     int         ival)
+{
+    return queryval(name,ppBool,&ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  bool&        ptr,
+                  int         ival)
+{
+    return queryval(name,ppBool,&ptr,ival,-1);
+}
+
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   int&        ptr,
+                   int         ival)
+{
+    getval(name,ppInt,&ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                int&        ptr,
+                int ival)
+{
+    getval(name,ppInt,&ptr,ival,-1);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     int&        ptr,
+                     int         ival)
+{
+    return queryval(name,ppInt,&ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  int&        ptr,
+                  int         ival)
+{
+    return queryval(name,ppInt,&ptr,ival,-1);
+}
+
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   float&      ptr,
+                   int         ival)
+{
+    getval(name,ppFloat,&ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                float&      ptr,
+                int         ival)
+{
+    getval(name,ppFloat,&ptr,ival,-1);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     float&      ptr,
+                     int         ival)
+{
+    return queryval(name,ppFloat,&ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  float&      ptr,
+                  int         ival)
+{
+    return queryval(name,ppFloat,&ptr,ival,-1);
+}
+
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   double&     ptr,
+                   int         ival)
+{
+    getval(name,ppDouble,&ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                double&     ptr,
+                int         ival)
+{
+    getval(name,ppDouble,&ptr,ival,-1);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     double&     ptr,
+                     int         ival)
+{
+    return queryval(name,ppDouble,&ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  double&     ptr,
+                  int         ival)
+{
+    return queryval(name,ppDouble,&ptr,ival,-1);
+}
+
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   aString&    ptr,
+                   int         ival)
+{
+    getval(name,ppString,&ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                aString&    ptr,
+                int         ival)
+{
+    getval(name,ppString,&ptr,ival,-1);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     aString&    ptr,
+                     int         ival)
+{
+    return queryval(name,ppString,&ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  aString&    ptr,
+                  int         ival)
+{
+    return queryval(name,ppString,&ptr,ival,-1);
+}
+
+void
+ParmParse::getktharr (const char* name,
+                      int         k,
+                      Array<int>& ptr,
+                      int         start_ix,
+                      int         num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppInt,&(ptr[0]),start_ix,num_val,k);
+}
+
+void
+ParmParse::getarr (const char* name,
+                   Array<int>& ptr,
+                   int         start_ix,
+                   int         num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppInt,&(ptr[0]),start_ix,num_val,-1);
+}
+
+int
+ParmParse::queryktharr (const char* name,
+                        int         k,
+                        Array<int>& ptr,
+                        int         start_ix,
+                        int         num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppInt,&(ptr[0]),start_ix,num_val,k);
+}
+
+int
+ParmParse::queryarr (const char* name,
+                     Array<int>& ptr,
+                     int         start_ix,
+                     int         num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppInt,&(ptr[0]),start_ix,num_val,-1);
+}
+
+void
+ParmParse::getktharr (const char*   name,
+                      int           k,
+                      Array<float>& ptr,
+                      int           start_ix,
+                      int           num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppFloat,&(ptr[0]),start_ix,num_val,k);
+}
+
+void
+ParmParse::getarr (const char*   name,
+                   Array<float>& ptr,
+                   int           start_ix,
+                   int           num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppFloat,&(ptr[0]),start_ix,num_val,-1);
+}
+
+int
+ParmParse::queryktharr (const char*   name,
+                        int           k,
+                        Array<float>& ptr,
+                        int           start_ix,
+                        int           num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppFloat,&(ptr[0]),start_ix, num_val,k);
+}
+
+int
+ParmParse::queryarr (const char*   name,
+                     Array<float>& ptr,
+                     int           start_ix,
+                     int           num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppFloat,&(ptr[0]),start_ix,num_val,-1);
+}
+
+void
+ParmParse::getktharr (const char*    name,
+                      int            k,
+                      Array<double>& ptr,
+                      int            start_ix,
+                      int            num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppDouble,&(ptr[0]),start_ix,num_val,k);
+}
+
+void
+ParmParse::getarr (const char*    name,
+                   Array<double>& ptr,
+                   int            start_ix,
+                   int            num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppDouble,&(ptr[0]),start_ix,num_val,-1);
+}
+
+int
+ParmParse::queryktharr (const char*    name,
+                        int            k,
+                        Array<double>& ptr,
+                        int            start_ix,
+                        int            num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppDouble,&(ptr[0]),start_ix, num_val,k);
+}
+
+int
+ParmParse::queryarr (const char*    name,
+                     Array<double>& ptr,
+                     int            start_ix,
+                     int            num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppDouble,&(ptr[0]),start_ix,num_val,-1);
+}
+
+void
+ParmParse::getktharr (const char*     name,
+                      int             k,
+                      Array<aString>& ptr,
+                      int             start_ix,
+                      int             num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppString,&(ptr[0]),start_ix,num_val,k);
+}
+
+void
+ParmParse::getarr (const char*     name,
+                   Array<aString>& ptr,
+                   int             start_ix,
+                   int             num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    getarr(name,ppString,&(ptr[0]),start_ix,num_val,-1);
+}
+
+int
+ParmParse::queryktharr (const char*     name,
+                        int             k,
+                        Array<aString>& ptr,
+                        int             start_ix,
+                        int             num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppString,&(ptr[0]),start_ix, num_val,k);
+}
+
+int
+ParmParse::queryarr (const char*     name,
+                     Array<aString>& ptr,
+                     int             start_ix,
+                     int             num_val)
+{
+    if (ptr.length() < num_val)
+        ptr.resize(num_val);
+    return queryarr(name,ppString,&(ptr[0]),start_ix,num_val,-1);
+}
+
+bool
+ParmParse::isInteger (const aString& str,
+                      int&           val)
+{
+    //
+    // Start token scan.
+    //
+    char* endp = 0;
+    val = int(::strtol(str.c_str(), &endp, 10));
+    return *endp == 0;
+}
+
+bool
+ParmParse::isDouble (const aString& str,
+                     double&        val)
+{
+   char* endp = 0;
+   val = ::strtod(str.c_str(), &endp);
+   return *endp == 0;
+}
+
+int
+ParmParse::countname (const aString& name)
+{
+    return countname(name.c_str());
+}
 
 PP_entry::PP_entry (aString&          name,
                     ParmParse::PPType typ,
@@ -86,7 +466,8 @@ ParmParse::ParmParse (const char* prefix)
        thePrefix = prefix;
 }
 
-void ParmParse::dumpTable (ostream& os)
+void
+ParmParse::dumpTable (std::ostream& os)
 {
    for (ListIterator<PP_entry*> li(table); li; ++li)
       li()->dump(os);
@@ -149,18 +530,18 @@ ParmParse::~ParmParse ()
             // Now spit out unused entries.
             //
             if (ParallelDescriptor::IOProcessor())
-                cout << "\nUnused ParmParse Variables: ";
+                std::cout << "\nUnused ParmParse Variables: ";
 
             for (ListIterator<PP_entry*> li(table); li; ++li)
             {
                 if (ParallelDescriptor::IOProcessor())
-                    cout << li()->defname << ' ';
+                    std::cout << li()->defname << ' ';
 
                 delete table[li];
             }
 
             if (ParallelDescriptor::IOProcessor())
-                cout << '\n' << '\n';
+                std::cout << '\n' << '\n';
 
             table.clear();
         }
@@ -293,20 +674,20 @@ ParmParse::getval (const char*  name,
 {
     if (queryval(name,type,ptr,ival,occurence) == 0)
     {
-        cerr << "ParmParse::getval ";
+        std::cerr << "ParmParse::getval ";
         if (occurence >= 0)
-            cerr << "occurence number "
-                 << occurence
-                 << " of ";
+            std::cerr << "occurence number "
+                      << occurence
+                      << " of ";
 
         if (!thePrefix.isNull())
-            cerr << thePrefix << '.';
+            std::cerr << thePrefix << '.';
 
-        cerr << "ParmParse::getval(): "
-             << name
-             << " not found in table"
-             << '\n';
-        dumpTable(cerr);
+        std::cerr << "ParmParse::getval(): "
+                  << name
+                  << " not found in table"
+                  << '\n';
+        dumpTable(std::cerr);
         BoxLib::Abort();
     }
 }
@@ -329,14 +710,14 @@ ParmParse::queryval (const char*  name,
     //
     if (ival >= def->val.length())
     {
-        cerr << "ParmParse::queryval no value number"
-             << ival << " for ";
+        std::cerr << "ParmParse::queryval no value number"
+                  << ival << " for ";
         if (occurence < 0)
-            cerr << "last occurence of ";
+            std::cerr << "last occurence of ";
         else
-            cerr << " occurence " << occurence << " of ";
-        cerr << def->defname << '\n';
-        def->dump(cerr);
+            std::cerr << " occurence " << occurence << " of ";
+        std::cerr << def->defname << '\n';
+        def->dump(std::cerr);
         BoxLib::Abort();
     }
 
@@ -373,18 +754,18 @@ ParmParse::queryval (const char*  name,
     }
     if (!ok)
     {
-        cerr << "ParmParse::queryval type mismatch on value number "
-             << ival << " of " << '\n';
+        std::cerr << "ParmParse::queryval type mismatch on value number "
+                  << ival << " of " << '\n';
         if (occurence < 0)
-            cerr << " last occurence of ";
+            std::cerr << " last occurence of ";
         else
-            cerr << " occurence number " << occurence << " of ";
-        cerr << def->defname << '\n';
-        cerr << " Expected "
-             << tok_name[type]
-             << " value = "
-             << valname << '\n';
-        def->dump(cerr);
+            std::cerr << " occurence number " << occurence << " of ";
+        std::cerr << def->defname << '\n';
+        std::cerr << " Expected "
+                  << tok_name[type]
+                  << " value = "
+                  << valname << '\n';
+        def->dump(std::cerr);
         BoxLib::Abort();
     }
     return 1;
@@ -400,16 +781,16 @@ ParmParse::getarr (const char*  name,
 {
     if (queryarr(name,type,ptr,start_ix,num_val,occurence) == 0)
     {
-        cerr << "ParmParse::getarr ";
+        std::cerr << "ParmParse::getarr ";
         if (occurence >= 0)
-            cerr << "occurence number " << occurence << " of ";
+            std::cerr << "occurence number " << occurence << " of ";
         if (!thePrefix.isNull())
-            cerr << thePrefix << '.';
-        cerr << "ParmParse::getarr(): "
-             << name
-             << " not found in table"
-             << '\n';
-        dumpTable(cerr);
+            std::cerr << thePrefix << '.';
+        std::cerr << "ParmParse::getarr(): "
+                  << name
+                  << " not found in table"
+                  << '\n';
+        dumpTable(std::cerr);
         BoxLib::Abort();
     }
 }
@@ -435,13 +816,13 @@ ParmParse::queryarr (const char*  name,
     int stop_ix = start_ix + num_val - 1;
     if (stop_ix >= def->val.length())
     {
-        cerr << "ParmParse::queryarr too many values requested for";
+        std::cerr << "ParmParse::queryarr too many values requested for";
         if (occurence < 0)
-            cerr << " last occurence of ";
+            std::cerr << " last occurence of ";
         else
-            cerr << " occurence " << occurence << " of ";
-        cerr << def->defname << '\n';
-        def->dump(cerr);
+            std::cerr << " occurence " << occurence << " of ";
+        std::cerr << def->defname << '\n';
+        def->dump(std::cerr);
         BoxLib::Abort();
     }
 
@@ -483,18 +864,18 @@ ParmParse::queryarr (const char*  name,
        }
        if (!ok)
        {
-           cerr << "ParmParse::queryarr type mismatch on value number "
+           std::cerr << "ParmParse::queryarr type mismatch on value number "
                 <<  n << " of ";
            if (occurence < 0)
-               cerr << " last occurence of ";
+               std::cerr << " last occurence of ";
            else
-               cerr << " occurence number " << occurence << " of ";
-           cerr << def->defname << '\n';
-           cerr << " Expected "
-                << tok_name[type]
-                << " value = "
-                << valname << '\n';
-           def->dump(cerr);
+               std::cerr << " occurence number " << occurence << " of ";
+           std::cerr << def->defname << '\n';
+           std::cerr << " Expected "
+                     << tok_name[type]
+                     << " value = "
+                     << valname << '\n';
+           def->dump(std::cerr);
            BoxLib::Abort();
        }
     }
@@ -515,9 +896,9 @@ ParmParse::read_file (const char*      fname,
         FILE* pffd = fopen(fname, "rb");
         if (pffd == 0)
         {
-            cerr << "ParmParse::read_file(): couldn't open \""
-                 << fname
-                 << "\"";
+            std::cerr << "ParmParse::read_file(): couldn't open \""
+                      << fname
+                      << "\"";
             BoxLib::Abort();
         }
         //
@@ -531,12 +912,12 @@ ParmParse::read_file (const char*      fname,
         int nread = fread(str, 1, pflen, pffd);
         if (!(nread == pflen))
         {
-            cerr << "ParmParse::read_file(): fread() only "
-                 << nread
-                 << " bytes out of "
-                 << pflen
-                 << " from "
-                 << fname;
+            std::cerr << "ParmParse::read_file(): fread() only "
+                      << nread
+                      << " bytes out of "
+                      << pflen
+                      << " from "
+                      << fname;
             BoxLib::Abort();
         }
         fclose(pffd);
@@ -617,10 +998,10 @@ ParmParse::getToken (const char* str,
 {
 #define ERROR_MESS \
    ostr[k++] = '\0'; \
-   cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
-   cerr << "STATE = " << state_name[state] \
-        << ", next char = " << ch << '\n'; \
-   cerr << ", rest of input = \n" << (str+i) << '\n'; \
+   std::cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
+   std::cerr << "STATE = " << state_name[state] \
+             << ", next char = " << ch << '\n'; \
+   std::cerr << ", rest of input = \n" << (str+i) << '\n'; \
    BoxLib::Abort()
    //
    // Eat white space and comments.
@@ -873,7 +1254,7 @@ ParmParse::addDefn (aString&         def,
     //
     if (val.isEmpty())
     {
-        cerr << "ParmParse::addDefn(): no values for definition " << def;
+        std::cerr << "ParmParse::addDefn(): no values for definition " << def;
         BoxLib::Abort();
     }
     //
@@ -897,7 +1278,7 @@ ParmParse::addDefn (aString&         def,
 }
 
 void
-PP_entry::dump (ostream& os) const
+PP_entry::dump (std::ostream& os) const
 {
     static const char TokenInitial[] = { 'N','O','I','F','D','S','=','E' };
 

@@ -1,19 +1,11 @@
-
 //
-// $Id: Utility.cpp,v 1.42 2000-10-03 20:26:49 lijewski Exp $
+// $Id: Utility.cpp,v 1.43 2001-07-17 23:02:28 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
 #include <cstdio>
-#else
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdio.h>
-#endif
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -23,7 +15,6 @@
 #include <errno.h>
 
 #include <REAL.H>
-#include <Misc.H>
 #include <BoxLib.H>
 #include <Utility.H>
 

@@ -1,21 +1,15 @@
+//
+// $Id: RunStats.cpp,v 1.25 2001-07-17 23:02:27 lijewski Exp $
+//
 
-//
-// $Id: RunStats.cpp,v 1.24 2001-05-09 22:42:22 lijewski Exp $
-//
+#include <algorithm>
 
 #include <Utility.H>
-#include <Misc.H>
 #include <ParmParse.H>
 #include <RunStats.H>
 
 #ifdef BL_USE_MPI
 #include <ccse-mpi.H>
-#endif
-
-#ifdef BL_USE_NEW_HFILES
-using std::setw;
-using std::ios;
-using std::setprecision;
 #endif
 
 #ifdef BL_NAMESPACE
@@ -142,7 +136,7 @@ RunStats::addNumPts (long count)
 }
 
 void
-RunStats::Print (ostream&            os,
+RunStats::Print (std::ostream&       os,
                  const RunStatsData& data,
                  Real                tot_run_time,
                  Real                tot_run_wtime)
@@ -354,7 +348,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
 }
 
 void
-RunStats::report (ostream& os)
+RunStats::report (std::ostream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -382,14 +376,14 @@ RunStats::report (ostream& os)
         const Real tot_run_time  = RunStats::TotalCPU + rtime;
         const Real tot_run_wtime = RunStats::TotalWCT + rwtime;
 
-        os.setf(ios::showpoint);
+        os.setf(std::ios::showpoint);
 
         int old_prec = os.precision(15);
 
         int maxlev = 0;
         ListIterator<RunStatsData> it(TheTotals);
         for ( ; it; ++it)
-            maxlev = Max(maxlev, it().level);
+            maxlev = std::max(maxlev, it().level);
 
         it.rewind();
 
@@ -437,7 +431,7 @@ RunStats::report_names (Array<aString>& stat_names)
         if (ldi().level == -1)
         {
             stat_names[ind] = ldi().name;
-            cout << " found statistic = " << stat_names[ind] << '\n';
+            std::cout << " found statistic = " << stat_names[ind] << '\n';
             ind++;
         }
     }
@@ -487,7 +481,7 @@ RunStats::report_values (const Array<aString>& stat_names,
 }
 
 void
-RunStats::dumpStats (ofstream& os)
+RunStats::dumpStats (std::ofstream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -542,15 +536,15 @@ RunStats::dumpStats (ofstream& os)
 }
 
 void
-RunStats::readStats (ifstream& is,
-                     bool      restart)
+RunStats::readStats (std::ifstream& is,
+                     bool           restart)
 {
     is.ignore(BL_IGNORE_MAX,'(');
     aString s;
     is >> s;
     if (s != "ListRunStats")
     {
-        cerr << "unexpected token " << s << '\n';
+        std::cerr << "unexpected token " << s << '\n';
         BoxLib::Error();
     }
     int n;
@@ -617,8 +611,8 @@ RunStats::CollectNumPts ()
     Incremental_Num_Pts = 0;
 }
 
-ostream&
-operator<< (ostream&            os,
+std::ostream&
+operator<< (std::ostream&       os,
             const RunStatsData& rd)
 {
     os << "(RunStatsData "
@@ -630,8 +624,8 @@ operator<< (ostream&            os,
     return os;
 }
 
-istream &
-operator>> (istream&      is,
+std::istream &
+operator>> (std::istream& is,
             RunStatsData& rd)
 {
     is.ignore(BL_IGNORE_MAX, '(');
@@ -639,7 +633,7 @@ operator>> (istream&      is,
     is >> s;
     if (s != "RunStatsData")
     {
-        cerr << "unexpected token " << s << '\n';
+        std::cerr << "unexpected token " << s << '\n';
         BoxLib::Abort();
     }
     is >> rd.name;
@@ -651,8 +645,8 @@ operator>> (istream&      is,
     return is;
 }
 
-ostream&
-operator<< (ostream&        os,
+std::ostream&
+operator<< (std::ostream&   os,
             const RunStats& r)
 {
     os << "(RunStats "

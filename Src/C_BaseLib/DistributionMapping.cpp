@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.47 2001-04-24 19:42:19 car Exp $
+// $Id: DistributionMapping.cpp,v 1.48 2001-07-17 23:02:20 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -7,7 +7,6 @@
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstdlib>
 #include <list>
@@ -15,21 +14,6 @@
 #include <queue>
 #include <algorithm>
 #include <numeric>
-using namespace std;
-#else
-#include <iostream.h>
-#include <stdlib.h>
-#include <vector.h>
-#include <list.h>
-#if defined(BL_OLD_STL)
-#include <stack.h>
-#include <algo.h>
-#else
-#include <queue.h>
-#include <algorithm.h>
-#include <numeric.h>
-#endif
-#endif /*BL_USE_NEW_HFILES*/
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -44,6 +28,30 @@ DistributionMapping::m_Strategy = DistributionMapping::KNAPSACK;
 
 DistributionMapping::PVMF
 DistributionMapping::m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
+
+const Array<int>&
+DistributionMapping::ProcessorMap () const
+{
+    return m_procmap;
+}
+
+int
+DistributionMapping::operator[] (int index) const
+{
+    return m_procmap[index];
+}
+
+DistributionMapping::Strategy
+DistributionMapping::strategy ()
+{
+    return DistributionMapping::m_Strategy;
+}
+
+int
+DistributionMapping::CacheSize ()
+{
+    return m_Cache.size();
+}
 
 void
 DistributionMapping::strategy (DistributionMapping::Strategy how)
@@ -111,7 +119,7 @@ DistributionMapping::init ()
 //
 // Our cache of processor maps.
 //
-vector< Array<int> > DistributionMapping::m_Cache;
+std::vector< Array<int> > DistributionMapping::m_Cache;
 
 bool
 DistributionMapping::GetMap (const BoxArray& boxes)
@@ -292,7 +300,7 @@ public:
 
 class WeightedBoxList
 {
-    list<WeightedBox> m_lb;
+    std::list<WeightedBox> m_lb;
     long              m_weight;
 public:
     WeightedBoxList() : m_weight(0) {}
@@ -300,7 +308,7 @@ public:
     {
         return m_weight;
     }
-    void erase (list<WeightedBox>::iterator& it)
+    void erase (std::list<WeightedBox>::iterator& it)
     {
         m_weight -= (*it).weight();
         m_lb.erase(it);
@@ -310,10 +318,10 @@ public:
         m_weight += bx.weight();
         m_lb.push_back(bx);
     }
-    list<WeightedBox>::const_iterator begin () const { return m_lb.begin(); }
-    list<WeightedBox>::iterator begin ()             { return m_lb.begin(); }
-    list<WeightedBox>::const_iterator end () const   { return m_lb.end();   }
-    list<WeightedBox>::iterator end ()               { return m_lb.end();   }
+    std::list<WeightedBox>::const_iterator begin () const { return m_lb.begin(); }
+    std::list<WeightedBox>::iterator begin ()             { return m_lb.begin(); }
+    std::list<WeightedBox>::const_iterator end () const   { return m_lb.end();   }
+    std::list<WeightedBox>::iterator end ()               { return m_lb.end();   }
 
     bool operator< (const WeightedBoxList& rhs) const
     {
@@ -322,29 +330,29 @@ public:
 };
 
 static
-vector< list<int> >
-knapsack (const vector<long>& pts, int nprocs)
+std::vector< std::list<int> >
+knapsack (const std::vector<long>& pts, int nprocs)
 {
     //
     // Sort balls by size largest first.
     //
-    static list<int> empty_list;  // Work-around MSVC++ bug :-(
+    static std::list<int> empty_list;  // Work-around MSVC++ bug :-(
 
-    vector< list<int> > result(nprocs, empty_list);
+    std::vector< std::list<int> > result(nprocs, empty_list);
 
-    vector<WeightedBox> lb;
+    std::vector<WeightedBox> lb;
     lb.reserve(pts.size());
     for (unsigned int i = 0; i < pts.size(); ++i)
     {
         lb.push_back(WeightedBox(i, pts[i]));
     }
     BL_ASSERT(lb.size() == pts.size());
-    sort(lb.begin(), lb.end());
+    std::sort(lb.begin(), lb.end());
     BL_ASSERT(lb.size() == pts.size());
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
-    priority_queue<WeightedBoxList> wblq;
+    std::priority_queue<WeightedBoxList> wblq;
     for (int i  = 0; i < nprocs; ++i)
     {
         wblq.push(WeightedBoxList());
@@ -358,7 +366,7 @@ knapsack (const vector<long>& pts, int nprocs)
         wblq.push(wbl);
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
-    list<WeightedBoxList> wblqg;
+    std::list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
@@ -371,7 +379,7 @@ knapsack (const vector<long>& pts, int nprocs)
     //
     double max_weight = 0;
     double sum_weight = 0;
-    list<WeightedBoxList>::iterator it = wblqg.begin();
+    std::list<WeightedBoxList>::iterator it = wblqg.begin();
     for ( ; it != wblqg.end(); ++it)
     {
         long wgt = (*it).weight();
@@ -379,14 +387,14 @@ knapsack (const vector<long>& pts, int nprocs)
         max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
 top:
-    list<WeightedBoxList>::iterator it_top = wblqg.begin();
-    list<WeightedBoxList>::iterator it_chk = it_top;
+    std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
+    std::list<WeightedBoxList>::iterator it_chk = it_top;
     it_chk++;
     WeightedBoxList wbl_top = *it_top;
     //
     // For each ball in the heaviest box.
     //
-    list<WeightedBox>::iterator it_wb = wbl_top.begin();
+    std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
     for ( ; it_wb != wbl_top.end(); ++it_wb )
     {
         //
@@ -395,7 +403,7 @@ top:
         for ( ; it_chk != wblqg.end(); ++it_chk)
         {
             WeightedBoxList wbl_chk = *it_chk;
-            list<WeightedBox>::iterator it_owb = wbl_chk.begin();
+            std::list<WeightedBox>::iterator it_owb = wbl_chk.begin();
             for ( ; it_owb != wbl_chk.end(); ++it_owb)
             {
                 //
@@ -424,7 +432,7 @@ top:
                     wbl_chk.erase(it_owb);
                     wbl_top.push_back(owb);
                     wbl_chk.push_back(wb);
-                    list<WeightedBoxList> tmp;
+                    std::list<WeightedBoxList> tmp;
                     tmp.push_back(wbl_top);
                     tmp.push_back(wbl_chk);
                     tmp.sort();
@@ -443,11 +451,11 @@ top:
     //
     // Here I am "load-balanced".
     //
-    list<WeightedBoxList>::const_iterator cit = wblqg.begin();
+    std::list<WeightedBoxList>::const_iterator cit = wblqg.begin();
     for (int i = 0; i < nprocs; ++i)
     {
         const WeightedBoxList& wbl = *cit;
-        list<WeightedBox>::const_iterator it1 = wbl.begin();
+        std::list<WeightedBox>::const_iterator it1 = wbl.begin();
         for ( ; it1 != wbl.end(); ++it1)
         {
             result[i].push_back((*it1).boxid());
@@ -460,7 +468,8 @@ top:
 #endif /*BL_USE_MPI*/
 
 void
-DistributionMapping::KnapSackProcessorMap (const vector<long>& pts, int nprocs)
+DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
+                                           int                      nprocs)
 {
     BL_ASSERT(pts.size() > 0);
     m_procmap.resize(pts.size()+1);
@@ -472,11 +481,11 @@ DistributionMapping::KnapSackProcessorMap (const vector<long>& pts, int nprocs)
     else
     {
 #ifdef BL_USE_MPI
-        vector< list<int> > vec = knapsack(pts,nprocs);
+        std::vector< std::list<int> > vec = knapsack(pts,nprocs);
 
         BL_ASSERT(int(vec.size()) == nprocs);
 
-        list<int>::iterator lit;
+        std::list<int>::iterator lit;
 
         for (unsigned int i = 0; i < vec.size(); i++)
         {
@@ -508,16 +517,16 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
     else
     {
 #ifdef BL_USE_MPI
-        vector<long> pts(boxes.length());
+        std::vector<long> pts(boxes.length());
 
         for (unsigned int i = 0; i < pts.size(); i++)
             pts[i] = boxes[i].numPts();
 
-        vector< list<int> > vec = knapsack(pts,nprocs);
+        std::vector< std::list<int> > vec = knapsack(pts,nprocs);
 
         BL_ASSERT(int(vec.size()) == nprocs);
 
-        list<int>::iterator lit;
+        std::list<int>::iterator lit;
 
         for (unsigned int i = 0; i < vec.size(); i++)
         {
@@ -537,7 +546,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
 }
 
 void
-DistributionMapping::CacheStats (ostream& os)
+DistributionMapping::CacheStats (std::ostream& os)
 {
     os << "The DistributionMapping cache contains "
        << DistributionMapping::m_Cache.size()
@@ -557,8 +566,8 @@ DistributionMapping::CacheStats (ostream& os)
     }
 }
 
-ostream&
-operator<< (ostream&                   os,
+std::ostream&
+operator<< (std::ostream&              os,
             const DistributionMapping& pmap)
 {
     os << "(DistributionMapping" << '\n';

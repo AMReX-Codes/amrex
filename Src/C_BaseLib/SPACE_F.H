@@ -1,9 +1,8 @@
-
 #ifndef BL_SPACE_F_H
 #define BL_SPACE_F_H
 
 /*
-** $Id: SPACE_F.H,v 1.5 2000-10-02 20:52:38 lijewski Exp $
+** $Id: SPACE_F.H,v 1.6 2001-07-17 23:02:27 lijewski Exp $
 */
 
 #include <SPACE.H>

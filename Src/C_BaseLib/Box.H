@@ -1,28 +1,17 @@
-
 #ifndef BL_BOX_H
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.17 2000-10-02 20:52:32 lijewski Exp $
+// $Id: Box.H,v 1.18 2001-07-17 23:02:18 lijewski Exp $
 //
 
 #ifdef NODEV
 #undef NODEV
 #endif
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::ws;
-#else
-#include <iostream.h>
-#endif
 
 #include <IntVect.H>
-#include <Misc.H>
 #include <IndexType.H>
 #include <Orientation.H>
 #include <SPACE.H>
@@ -481,8 +470,8 @@ public:
     /*@ManDoc: Grow Box in all directions by given amount.
                NOTE: n\_cell negative shrinks the Box by that number of cells.
     */
-    friend inline Box grow (const Box& b,
-                            int        i);
+    friend Box grow (const Box& b,
+                     int        i);
     //
     //@ManDoc: Grow Box in each direction by specified amount.
     //
@@ -490,8 +479,8 @@ public:
     //
     //@ManDoc: Grow Box in each direction by specified amount.
     //
-    friend inline Box grow (const Box&     b,
-                            const IntVect& v);
+    friend Box grow (const Box&     b,
+                     const IntVect& v);
 
     /*@ManDoc: Grow the Box on the low and high end by n\_cell cells
                in direction idir.
@@ -606,18 +595,18 @@ public:
     //
     //@ManDoc: Write an ASCII representation to the ostream.
     //
-    friend ostream& operator<< (ostream&   os,
-                                const Box& bx);
+    friend std::ostream& operator<< (std::ostream& os,
+                                     const Box&    bx);
     //
     //@ManDoc: Read from istream.
     //
-    friend istream& operator>> (istream& os,
-                                Box&     bx);
+    friend std::istream& operator>> (std::istream& os,
+                                     Box&          bx);
 
     /*@ManDoc: Gives more detail than printOn.
                Useful for exiting due to an error.
     */
-    void dumpOn (ostream& strm = cerr) const;
+    void dumpOn (std::ostream& strm = std::cerr) const;
 
     /*@ManDoc: This static member function returns a constant reference to 
                an object of type Box representing the unit box in
@@ -640,541 +629,6 @@ protected:
     mutable IntVect len;
     IndexType       btype;
 };
-
-//
-//@ManDoc: BOX is a typedef for Box provided for backward compatibility.
-//
-
-typedef Box BOX;
-
-//
-// Inlines.
-//
-
-inline
-Box::Box (const Box& b)
-    :
-    smallend(b.smallend),
-    bigend(b.bigend),
-    btype(b.btype)
-{ }
-
-inline
-Box::Box ()
-    :
-    smallend(IntVect::TheUnitVector()),
-    bigend(IntVect::TheZeroVector()),
-    btype()
-{ }
-
-inline
-Box::Box (const IntVect& small,
-          const int*     vec_len)
-    :
-    smallend(small),
-    bigend(D_DECL(small[0]+vec_len[0]-1,
-                  small[1]+vec_len[1]-1,
-                  small[2]+vec_len[2]-1))
-{ }
-
-inline
-Box::Box (const IntVect&   small,
-          const IntVect&   big,
-          const IndexType& t)
-    :
-    smallend(small),
-    bigend(big),
-    btype(t)
-{ }
-
-inline
-Box::Box (const IntVect& small,
-          const IntVect& big)
-    :
-    smallend(small),
-    bigend(big)
-{ }
-
-inline
-Box::Box (const IntVect& small,
-          const IntVect& big,
-          const IntVect& typ)
-    :
-    smallend(small),
-    bigend(big),
-    btype(typ)
-{
-    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
-}
-
-inline
-Box&
-Box::operator= (const Box& b)
-{
-    smallend = b.smallend;
-    bigend   = b.bigend;
-    btype    = b.btype;
-    return *this;
-}
-
-inline
-bool
-Box::ok () const
-{
-    return (bigend >= smallend) && btype.ok();
-}
-
-inline
-const IntVect&
-Box::smallEnd () const
-{
-    return smallend;
-}
-
-inline
-int
-Box::smallEnd (int dir) const
-{
-    return smallend[dir];
-}
-
-inline
-const IntVect&
-Box::bigEnd () const
-{
-    return bigend;
-}
-
-inline
-int
-Box::bigEnd (int dir) const
-{
-    return bigend[dir];
-}
-
-inline
-IndexType
-Box::ixType () const
-{
-    return btype;
-}
-
-inline
-IntVect
-Box::type () const
-{
-    return btype.ixType();
-}
-
-inline
-IndexType::CellIndex
-Box::type (int dir) const
-{
-    return btype.ixType(dir);
-}
-
-inline
-int
-Box::length (int dir) const
-{
-    return bigend[dir] - smallend[dir] + 1;
-}
-
-inline
-const int*
-Box::loVect () const
-{
-    return smallend.getVect();
-}
-
-inline
-const int*
-Box::hiVect () const
-{
-    return bigend.getVect();
-}
-
-inline
-const int*
-Box::getVect () const
-{
-    return smallend.getVect();
-}
-
-inline
-int
-Box::operator[] (const Orientation& face) const
-{
-    const int dir = face.coordDir();
-    return face.isLow() ? smallend[dir] : bigend[dir];
-}
-
-inline
-bool
-Box::numPtsOK () const
-{
-    long ignore;
-    return numPtsOK(ignore);
-}
-
-inline
-bool
-Box::isEmpty () const
-{
-    return numPts() == 0;
-}
-
-inline
-bool
-Box::contains (const IntVect& p) const
-{
-    return p >= smallend && p <= bigend;
-}
-
-inline
-bool
-Box::sameType (const Box &b) const
-{
-    return btype == b.btype;
-}
-
-inline
-bool
-Box::contains (const Box& b) const
-{
-    BL_ASSERT(sameType(b));
-    return b.smallend >= smallend && b.bigend <= bigend;
-}
-
-inline
-bool
-Box::sameSize (const Box& b) const
-{
-    BL_ASSERT(sameType(b));
-    return D_TERM(length(0) == b.length(0),
-                  && length(1)==b.length(1),
-                  && length(2)==b.length(2));
-}
-
-inline
-bool
-Box::operator== (const Box& b) const
-{
-    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
-}
-
-inline
-bool
-Box::operator!= (const Box& b) const
-{
-    return !operator==(b);
-}
-
-inline
-bool
-Box::cellCentered () const
-{
-    return !btype.any();
-}
-
-inline
-bool
-Box::volumeOK () const
-{
-    long ignore;
-    return volumeOK(ignore);
-}
-
-inline
-long
-Box::index (const IntVect& v) const
-{
-    long result = v.vect[0]-smallend.vect[0];
-#if   BL_SPACEDIM==2
-    result += length(0)*(v.vect[1]-smallend.vect[1]);
-#elif BL_SPACEDIM==3
-    result += length(0)*(v.vect[1]-smallend.vect[1]
-                      +(v.vect[2]-smallend.vect[2])*length(1));
-#endif
-    return result;
-}
-
-inline
-const IntVect&
-Box::length () const
-{
-    D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
-           len[1] = bigend[1]-smallend[1] + 1,
-           len[2] = bigend[2]-smallend[2] + 1);
-
-    return len;
-}
-
-inline
-Box&
-Box::setSmall (const IntVect& sm)
-{
-    smallend = sm;
-    return *this;
-}
-
-inline
-Box&
-Box::setSmall (int dir,
-               int sm_index)
-{
-    smallend.setVal(dir,sm_index);
-    return *this;
-}
-
-inline
-Box&
-Box::setBig (const IntVect& bg)
-{
-    bigend = bg;
-    return *this;
-}
-
-inline
-Box&
-Box::setBig (int dir,
-             int bg_index)
-{
-    bigend.setVal(dir,bg_index);
-    return *this;
-}
-
-inline
-Box&
-Box::setRange (int dir,
-               int sm_index,
-               int n_cells)
-{
-    smallend.setVal(dir,sm_index);
-    bigend.setVal(dir,sm_index+n_cells-1);
-    return *this;
-}
-
-inline
-Box&
-Box::shift (int dir,
-            int nzones)
-{
-    smallend.shift(dir,nzones);
-    bigend.shift(dir,nzones);
-    return *this;
-}
-
-inline
-Box&
-Box::shift (const IntVect& iv)
-{
-    smallend.shift(iv);
-    bigend.shift(iv);
-    return *this;
-}
-
-inline
-Box&
-Box::convert (const IntVect& typ)
-{
-    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
-    IntVect shft(typ - btype.ixType());
-    bigend += shft;
-    btype = IndexType(typ);
-    return *this;
-}
-
-inline
-Box&
-Box::surroundingNodes (int dir)
-{
-    if (!(btype[dir]))
-    {
-        bigend.shift(dir,1);
-        //
-        // Set dir'th bit to 1 = IndexType::NODE.
-        //
-        btype.set(dir);
-    }
-    return *this;
-}
-
-inline
-Box&
-Box::enclosedCells (int dir)
-{
-    if (btype[dir])
-    {
-        bigend.shift(dir,-1);
-        //
-        // Set dir'th bit to 0 = IndexType::CELL.
-        //
-        btype.unset(dir);
-    }
-    return *this;
-}
-
-inline
-Box
-surroundingNodes (const Box& b,
-                  int        dir)
-{
-    Box bx(b);
-    return bx.surroundingNodes(dir);
-}
-
-inline
-Box
-surroundingNodes (const Box& b)
-{
-    Box bx(b);
-    return bx.surroundingNodes();
-}
-
-inline
-Box
-enclosedCells (const Box& b,
-               int        dir)
-{
-    Box bx(b);
-    return bx.enclosedCells(dir);
-}
-
-inline
-Box
-enclosedCells (const Box& b)
-{
-    Box bx(b);
-    return bx.enclosedCells();
-}
-
-inline
-Box&
-Box::operator+= (const IntVect& v)
-{
-    smallend += v;
-    bigend   += v;
-    return *this;
-}
-
-inline
-Box
-Box::operator+  (const IntVect& v) const
-{
-    IntVect small(smallend);
-    IntVect big(bigend);
-    small += v;
-    big   += v;
-    return Box(small,big,btype);
-}
-
-inline
-Box&
-Box::operator-= (const IntVect& v)
-{
-    smallend -= v;
-    bigend   -= v;
-    return *this;
-}
-
-inline
-Box
-Box::operator-  (const IntVect& v) const
-{
-    IntVect small = smallend;
-    IntVect big = bigend;
-    small -= v;
-    big   -= v;
-    return Box(small,big,btype);
-}
-
-inline
-Box&
-Box::grow (int i)
-{
-    smallend.diagShift(-i);
-    bigend.diagShift(i);
-    return *this;
-}
-
-inline
-Box
-grow (const Box& b,
-      int        i)
-{
-    IntVect small = diagShift(b.smallend,-i);
-    IntVect big   = diagShift(b.bigend,i);
-    return Box(small,big,b.btype);
-}
-
-inline
-Box&
-Box::grow (const IntVect& v)
-{
-    smallend -= v;
-    bigend   += v;
-    return *this;
-}
-
-inline
-Box
-grow (const Box&     b,
-      const IntVect& v)
-{
-    IntVect small = b.smallend - v;
-    IntVect big   = b.bigend   + v;
-    return Box(small,big,b.btype);
-}
-
-inline
-Box&
-Box::grow (int idir,
-           int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    bigend.shift(idir, n_cell);
-    return *this;
-}
-
-inline
-Box&
-Box::growLo (int idir,
-             int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    return *this;
-}
-
-inline
-Box&
-Box::growHi (int idir,
-             int n_cell)
-{
-    bigend.shift(idir,n_cell);
-    return *this;
-}
-
-inline
-Box&
-Box::grow (const Orientation& face,
-           int                n_cell)
-{
-    int idir = face.coordDir();
-    if (face.isLow())
-        smallend.shift(idir, -n_cell);
-    else
-        bigend.shift(idir,n_cell);
-    return *this;
-}
-
-inline
-Box
-Box::operator& (const Box& rhs) const
-{
-    Box lhs(*this);
-    return lhs &= rhs;
-}
 
 #ifdef BL_NAMESPACE
 }

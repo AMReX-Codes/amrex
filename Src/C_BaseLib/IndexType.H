@@ -1,19 +1,12 @@
-
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.8 2000-10-02 20:52:35 lijewski Exp $
+// $Id: IndexType.H,v 1.9 2001-07-17 23:02:22 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::flush;
-#else
-#include <iostream.h>
-#endif
 
-#include <Misc.H>
 #include <IntVect.H>
 #include <SPACE.H>
 
@@ -144,13 +137,13 @@ public:
     //
     //@ManDoc: Write an IndexType to an ostream in ASCII.
     //
-    friend ostream& operator<< (ostream&         os,
-                                const IndexType& itype);
+    friend std::ostream& operator<< (std::ostream&    os,
+                                     const IndexType& itype);
     //
     //@ManDoc: Read an IndexType from an istream.
     //
-    friend istream& operator>> (istream&   is,
-                                IndexType& itype);
+    friend std::istream& operator>> (std::istream& is,
+                                     IndexType&    itype);
 private:
     //
     // Returns 1<<k.
@@ -161,159 +154,6 @@ private:
     //
     unsigned int itype;
 };
-
-//
-// Inlines.
-//
-
-inline
-int
-IndexType::mask (int k)
-{
-    return 1<<k;
-}
-
-inline
-IndexType::IndexType ()
-    : itype(0)
-{}
-
-inline
-IndexType::IndexType (const IndexType& bt)
-    : itype(bt.itype)
-{}
-
-inline
-IndexType& IndexType::operator= (const IndexType& bt)
-{
-    itype = bt.itype;
-    return *this;
-}
-
-inline
-IndexType::IndexType (const IntVect& iv)
-{
-    itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
-}
-
-inline
-IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
-{
-    itype = D_TERM(i, | (j<<1), | (k<<2));
-}
-
-inline
-void
-IndexType::set (int dir)
-{
-    itype |= mask(dir);
-}
-
-inline
-void
-IndexType::unset (int dir)
-{
-    itype &= ~mask(dir);
-}
-
-inline
-bool
-IndexType::test (int dir) const
-{
-    return (itype & mask(dir)) != 0;
-}
-
-inline
-void
-IndexType::setall ()
-{
-    itype = (1 << BL_SPACEDIM) - 1;
-}
-
-inline
-void
-IndexType::clear ()
-{
-    itype = 0;
-}
-
-inline
-bool
-IndexType::any () const
-{
-    return itype != 0;
-}
-
-inline
-bool
-IndexType::ok () const
-{
-    return itype < (1 << BL_SPACEDIM);
-}
-
-inline
-void
-IndexType::flip (int i)
-{
-    itype ^= mask(i);
-}
-
-inline
-bool
-IndexType::operator== (const IndexType& t) const
-{
-    return t.itype == itype;
-}
-
-inline
-bool
-IndexType::operator!= (const IndexType& t) const
-{
-    return t.itype != itype;
-}
-
-inline
-bool
-IndexType::cellCentered () const
-{
-    return itype == 0;
-}
-
-inline
-bool
-IndexType::nodeCentered () const
-{
-    return itype == (1<<BL_SPACEDIM)-1;
-}
-
-inline
-void
-IndexType::setType (int       dir,
-                    CellIndex t)
-{
-    t == CELL ? unset(dir) : set(dir);
-}
-
-inline
-IndexType::CellIndex
-IndexType::ixType (int dir) const
-{
-    return (CellIndex) ((itype & (1<<dir)) >> dir);
-}
-
-inline
-int
-IndexType::operator[] (int dir) const
-{
-    return test(dir);
-}
-
-inline
-IntVect
-IndexType::ixType () const
-{
-    return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
-}
 
 #ifdef BL_NAMESPACE
 }

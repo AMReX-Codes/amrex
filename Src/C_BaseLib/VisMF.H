@@ -1,9 +1,8 @@
-
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.44 2000-10-02 20:52:39 lijewski Exp $
+// $Id: VisMF.H,v 1.45 2001-07-17 23:02:29 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -171,7 +170,7 @@ public:
     //
     //@ManDoc: The file offset of the passed ostream.
     //
-    static long FileOffset (ostream& os);
+    static long FileOffset (std::ostream& os);
     //
     //@ManDoc: Read the entire fab (all components).
     //
@@ -192,7 +191,7 @@ private:
 
     static FabOnDisk Write (const FArrayBox& fab,
                             const aString&   filename,
-                            ostream&         os,
+                            std::ostream&    os,
                             long&            bytes);
 
     static long WriteHeader (const aString& mf_name,
@@ -236,136 +235,32 @@ private:
 //
 // Write a FabOnDisk to an ostream in ASCII.
 //
-ostream& operator<< (ostream& os, const VisMF::FabOnDisk& fod);
+std::ostream& operator<< (std::ostream& os, const VisMF::FabOnDisk& fod);
 
 //
 // Read a FabOnDisk from an istream.
 //
-istream& operator>> (istream& is, VisMF::FabOnDisk& fod);
+std::istream& operator>> (std::istream& is, VisMF::FabOnDisk& fod);
 
 //
 // Write an Array<FabOnDisk> to an ostream in ASCII.
 //
-ostream& operator<< (ostream& os, const Array<VisMF::FabOnDisk>& fa);
+std::ostream& operator<< (std::ostream& os, const Array<VisMF::FabOnDisk>& fa);
 
 //
 // Read an Array<FabOnDisk> from an istream.
 //
-istream& operator>> (istream& is, Array<VisMF::FabOnDisk>& fa);
+std::istream& operator>> (std::istream& is, Array<VisMF::FabOnDisk>& fa);
 
 //
 // Write a VisMF::Header to an ostream in ASCII.
 //
-ostream& operator<< (ostream& os, const VisMF::Header& hd);
+std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 
 //
 // Read a VisMF::Header from an istream.
 //
-istream& operator>> (istream& is, VisMF::Header& hd);
-
-//
-// Inlines.
-//
-
-inline
-int
-VisMF::nComp () const
-{
-    return m_hdr.m_ncomp;
-}
-
-inline
-int
-VisMF::nGrow () const
-{
-    return m_hdr.m_ngrow;
-}
-
-inline
-int
-VisMF::length () const
-{
-    return m_hdr.m_ba.length();
-}
-
-inline
-const BoxArray&
-VisMF::boxArray () const
-{
-    return m_hdr.m_ba;
-}
-
-inline
-Real
-VisMF::min (int fabIndex,
-            int nComp) const
-{
-    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    return m_hdr.m_min[fabIndex][nComp];
-}
-
-inline
-Real
-VisMF::max (int fabIndex,
-            int nComp) const
-{
-    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    return m_hdr.m_max[fabIndex][nComp];
-}
-
-inline
-const FArrayBox&
-VisMF::GetFab (int fabIndex,
-               int ncomp) const
-{
-    if (m_pa[ncomp][fabIndex] == 0)
-    {
-        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_mfname,m_hdr,ncomp);
-    }
-    return *m_pa[ncomp][fabIndex];
-}
-
-inline
-void
-VisMF::clear (int fabIndex,
-              int compIndex)
-{
-    delete m_pa[compIndex][fabIndex];
-}
-
-inline
-long
-VisMF::FileOffset (ostream& os)
-{
-    return
-#if defined(__KCC) 
-#if BL_KCC_MAJOR_VERSION >= 4 || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3)
-      os.tellp();
-#else
-    os.tellp().offset();
-#endif
-#else
-    os.tellp();
-#endif
-}
-
-inline
-FArrayBox*
-VisMF::readFAB (int            idx,
-                const aString& mf_name)
-{
-    return VisMF::readFAB(idx,mf_name,m_hdr,-1);
-}
-
-inline
-FArrayBox*
-VisMF::readFAB (int idx,
-		int ncomp)
-{
-    return VisMF::readFAB(idx,m_mfname,m_hdr,ncomp);
-}
+std::istream& operator>> (std::istream& is, VisMF::Header& hd);
 
 #ifdef BL_NAMESPACE
 }

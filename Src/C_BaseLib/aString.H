@@ -1,29 +1,14 @@
-
 #ifndef BL_ASTRING_H
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.11 2000-10-02 20:52:40 lijewski Exp $
+// $Id: aString.H,v 1.12 2001-07-17 23:02:30 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
 #include <vector>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::ostream;
-using std::istream;
-using std::vector;
-#else
-#include <iostream.h>
-#include <string.h>
-#include <stdlib.h>
-#include <vector.h>
-#endif
 
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -51,24 +36,6 @@ public:
     //
     void resize (int n);
 };
-
-//
-// StringRep inlines.
-//
-
-inline
-StringRep::StringRep (int _len)
-{
-    bufferlength = _len;
-    s = new char [bufferlength];
-}
-
-inline
-StringRep::~StringRep ()
-{
-    delete [] s;
-    s = 0;
-}
 
 //
 //@Man:
@@ -161,11 +128,11 @@ public:
                istream, but it is NOT stored in the aString.  There is no
                limit to the length of string that can be extracted.
     */
-    istream& getline (istream& strm);
+    std::istream& getline (std::istream& strm);
     //
     //@ManDoc: Returns the tokens in the aString.
     //
-    vector<aString> tokenize (const aString& separators) const;
+    std::vector<aString> tokenize (const aString& separators) const;
 
     /*@ManDoc: Returns the number of characters stored in this aString.
                This does not include the terminating null character.
@@ -215,8 +182,8 @@ public:
     //
     //@ManDoc: Write to an ostream in ASCII format.
     //
-    friend ostream& operator<< (ostream&       os,
-                                const aString& str);
+    friend std::ostream& operator<< (std::ostream&  os,
+                                     const aString& str);
 
     /*@ManDoc: Read a whitespace delimited string from an istream.
                This function discards leading whitespace and then reads
@@ -230,8 +197,8 @@ public:
                read in a string that contains whitespace, you might
                want to use getline() instead.
     */
-    friend istream& operator>> (istream& is,
-                                aString& str);
+    friend std::istream& operator>> (std::istream& is,
+                                     aString&      str);
 
 protected:
     void copyModify ();
@@ -239,311 +206,102 @@ protected:
 private:
     LnClassPtr<StringRep> p;
     int                   len;
-
     //
-    // None of the following functions need to be friends.  I've made
-    // them friends solely so they'll show up nicely in the HTML documentaion
-    // spewed out by doc++.
+    // Catenate.
     //
-
+    friend aString operator+  (const aString& left,
+                               const aString& right);
     //
     // Is left lexically less than right?
     //
-    friend inline bool operator<  (const aString& left,
-                                   const aString& right);
+    friend bool operator<  (const aString& left,
+                            const aString& right);
     //
     // Is left lexically less than or equal to right?
     //
-    friend inline bool operator<= (const aString& left,
-                                   const aString& right);
+    friend bool operator<= (const aString& left,
+                            const aString& right);
     //
     // Is left not equal to right?
     //
-    friend inline bool operator!= (const aString& left,
-                                   const aString& right);
+    friend bool operator!= (const aString& left,
+                            const aString& right);
     //
     // Is left equal to right?
     //
-    friend inline bool operator== (const aString& left,
-                                   const aString& right);
+    friend bool operator== (const aString& left,
+                            const aString& right);
     //
     // Is left lexically greater than or equal to right?
     //
-    friend inline bool operator>= (const aString& left,
-                                   const aString& right);
+    friend bool operator>= (const aString& left,
+                            const aString& right);
     //
     // Is left lexically greater than right?
     //
-    friend inline bool operator>  (const aString& left,
-                                   const aString& right);
+    friend bool operator>  (const aString& left,
+                            const aString& right);
     //
     // Is left lexically less than right?
     //
-    friend inline bool operator<  (const aString& left,
-                                   const char*    right);
+    friend bool operator<  (const aString& left,
+                            const char*    right);
     //
     // Is left lexically less than or equal to right?
     //
-    friend inline bool operator<= (const aString& left,
-                                   const char*    right);
+    friend bool operator<= (const aString& left,
+                            const char*    right);
     //
     // Is left not equal to right?
     //
-    friend inline bool operator!= (const aString& left,
-                                   const char*    right);
+    friend bool operator!= (const aString& left,
+                            const char*    right);
     //
     // Is left equal to right?
     //
-    friend inline bool operator== (const aString& left,
-                                   const char*    right);
+    friend bool operator== (const aString& left,
+                            const char*    right);
     //
     // Is left lexically greater than or equal to right?
     //
-    friend inline bool operator>= (const aString& left,
-                                   const char*    right);
+    friend bool operator>= (const aString& left,
+                            const char*    right);
     //
     // Is left lexically greater than right?
     //
-    friend inline bool operator>  (const aString& left,
-                                   const char*    right);
+    friend bool operator>  (const aString& left,
+                            const char*    right);
     //
     // Is left lexically less than right?
     //
-    friend inline bool operator<  (const char*    left,
-                                   const aString& right);
+    friend bool operator<  (const char*    left,
+                            const aString& right);
     //
     // Is left lexically less than or equal to right?
     //
-    friend inline bool operator<= (const char*    left,
-                                   const aString& right);
+    friend bool operator<= (const char*    left,
+                            const aString& right);
     //
     // Is left not equal to right?
     //
-    friend inline bool operator!= (const char*    left,
-                                   const aString& right);
+    friend bool operator!= (const char*    left,
+                            const aString& right);
     //
     // Is left equal to right?
     //
-    friend inline bool operator== (const char*    left,
-                                   const aString& right);
+    friend bool operator== (const char*    left,
+                            const aString& right);
     //
     // Is left lexically greater than or equal to right?
     //
-    friend inline bool operator>= (const char*    left,
-                                   const aString& right);
+    friend bool operator>= (const char*    left,
+                            const aString& right);
     //
     // Is left lexically greater than right?
     //
-    friend inline bool operator>  (const char*    left,
-                                   const aString& right);
+    friend bool operator>  (const char*    left,
+                            const aString& right);
 };
-
-//
-// aString inlines.
-//
-
-inline
-bool
-aString::isNull () const
-{
-    return len == 0;
-}
-
-inline
-int
-aString::length () const
-{
-    return len;
-}
-
-inline
-double
-aString::toDouble () const
-{
-    return len == 0 ? 0 : atof(p->s);
-}
-
-inline
-int
-aString::toInteger () const
-{
-    return len == 0 ? 0 : atoi(p->s);
-}
-
-inline
-long
-aString::toLong () const
-{
-    return len == 0 ? 0 : atol(p->s);
-}
-
-inline
-const char*
-aString::c_str () const
-{
-    return p->s;
-}
-
-inline
-char
-aString::operator[] (int index) const
-{
-    BL_ASSERT(index >=0 && index < len);
-    return p->s[index];
-}
-
-inline
-aString
-operator+ (const aString& left,
-           const aString& right)
-{
-    aString result(left);
-    return result += right;
-}
-
-inline
-bool
-operator< (const aString& left,
-           const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) < 0;
-}
-
-inline
-bool
-operator<= (const aString& left,
-            const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) <= 0;
-}
-
-inline
-bool
-operator!= (const aString& left,
-            const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) != 0;
-}
-
-inline
-bool
-operator== (const aString& left,
-            const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) == 0;
-}
-
-inline
-bool
-operator>= (const aString& left,
-            const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) >= 0;
-}
-
-inline
-bool
-operator>  (const aString& left,
-            const aString& right)
-{
-    return ::strcmp(left.c_str(), right.c_str()) > 0;
-}
-
-inline
-bool
-operator< (const aString& left,
-           const char*    right)
-{
-    return ::strcmp(left.c_str(), right) < 0;
-}
-
-inline
-bool
-operator<= (const aString& left,
-            const char*    right)
-{
-    return ::strcmp(left.c_str(), right) <= 0;
-}
-
-inline
-bool
-operator!= (const aString& left,
-            const char*    right)
-{
-    return ::strcmp(left.c_str(), right) != 0;
-}
-
-inline
-bool
-operator== (const aString& left,
-            const char*    right)
-{
-    return ::strcmp(left.c_str(), right) == 0;
-}
-
-inline
-bool
-operator>= (const aString& left,
-            const char*    right)
-{
-    return ::strcmp(left.c_str(), right) >= 0;
-}
-
-inline
-bool
-operator>  (const aString& left,
-            const char*    right)
-{
-    return ::strcmp(left.c_str(), right) > 0;
-}
-
-inline
-bool
-operator< (const char*    left,
-           const aString& right)
-{
-    return ::strcmp(left, right.c_str()) < 0;
-}
-
-inline
-bool
-operator<= (const char*    left,
-            const aString& right)
-{
-    return ::strcmp(left, right.c_str()) <= 0;
-}
-
-inline
-bool
-operator!= (const char*    left,
-            const aString& right)
-{
-    return ::strcmp(left, right.c_str()) != 0;
-}
-
-inline
-bool
-operator== (const char*    left,
-            const aString& right)
-{
-    return ::strcmp(left, right.c_str()) == 0;
-}
-
-inline
-bool
-operator>= (const char*    left,
-            const aString& right)
-{
-    return ::strcmp(left, right.c_str()) >= 0;
-}
-
-inline
-bool
-operator>  (const char*    left,
-            const aString& right)
-{
-    return ::strcmp(left, right.c_str()) > 0;
-}
 
 #ifdef BL_NAMESPACE
 }

@@ -1,6 +1,5 @@
-
 //
-// $Id: ParallelDescriptor.cpp,v 1.69 2001-04-25 22:54:09 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.70 2001-07-17 23:02:26 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -82,8 +81,8 @@ CommData::operator== (const CommData& rhs) const
     return true;
 }
 
-ostream&
-operator<< (ostream&        os,
+std::ostream&
+operator<< (std::ostream&   os,
             const CommData& cd)
 {
     os << cd.face()       << ' '
@@ -165,7 +164,9 @@ ParallelDescriptor::SetNProcsCFD ()
             m_nProcsCFD = m_nProcs;
 
         if (ParallelDescriptor::IOProcessor())
-            cout << "--> Running job with NProcsCFD = " << m_nProcsCFD << endl;
+            std::cout << "--> Running job with NProcsCFD = "
+                      << m_nProcsCFD
+                      << std::endl;
     }
 }
 

@@ -1,15 +1,196 @@
-
 //
-// $Id: BoxList.cpp,v 1.9 2000-10-02 20:52:34 lijewski Exp $
+// $Id: BoxList.cpp,v 1.10 2001-07-17 23:02:20 lijewski Exp $
 //
 
-#include <Misc.H>
+#include <algorithm>
+
 #include <BoxList.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
 {
 #endif
+
+BoxList::~BoxList()
+{}
+
+IndexType
+BoxList::ixType () const
+{
+    return btype;
+}
+
+void
+BoxList::append (const Box& bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.append(bn);
+}
+
+void
+BoxList::add (const Box& bn)
+{
+    append(bn);
+}
+
+void
+BoxList::prepend (const Box& bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.prepend(bn);
+}
+
+void
+BoxList::join (const BoxList& blist)
+{
+    BL_ASSERT(ixType() == blist.ixType());
+    lbox.join(blist.lbox);
+}
+
+bool
+BoxList::isEmpty () const
+{
+    return lbox.isEmpty();
+}
+
+void
+BoxList::catenate (BoxList& blist)
+{
+    BL_ASSERT(ixType() == blist.ixType());
+    lbox.catenate(blist.lbox);
+    BL_ASSERT(blist.isEmpty());
+}
+
+void
+BoxList::clear ()
+{
+    lbox.clear();
+}
+
+void
+BoxList::addAfter (BoxListIterator& bli,
+                   const Box&       bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.addAfter(bli, bn);
+}
+
+int
+BoxList::length () const
+{
+    return lbox.length();
+}
+
+bool
+BoxList::isNotEmpty () const
+{
+    return lbox.isNotEmpty();
+}
+
+bool
+BoxList::contains (const Box& b) const
+{
+#ifndef BL_NAMESPACE
+    BoxList bnew = ::complementIn(b,*this);
+#else
+    BoxList bnew = BL_NAMESPACE::complementIn(b,*this);
+#endif
+    return bnew.isEmpty();
+}
+
+BoxList&
+BoxList::remove (const Box& bx)
+{
+    BL_ASSERT(ixType() == bx.ixType());
+    lbox.remove(bx);
+    return *this;
+}
+
+void
+BoxList::addBefore (BoxListIterator& bli,
+                    const Box&       bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.addBefore(bli, bn);
+}
+
+const Box&
+BoxList::operator[] (const BoxListIterator& bli) const
+{
+    return lbox[bli];
+}
+
+Box&
+BoxList::operator[] (const BoxListIterator& bli)
+{
+    return lbox[bli];
+}
+
+BoxList&
+BoxList::remove (BoxListIterator& bli)
+{
+    BL_ASSERT(ixType() == bli().ixType());
+    lbox.remove(bli);
+    return *this;
+}
+
+BoxList
+intersect (const BoxList& bl,
+           const Box&     b)
+{
+    BoxList newbl(bl);
+    return newbl.intersect(b);
+}
+
+BoxList
+intersect (const BoxList& bl,
+           const BoxList& br)
+{
+    BoxList newbl(bl);
+    return newbl.intersect(br);
+}
+
+BoxList
+refine (const BoxList& bl,
+        int            ratio)
+{
+    BoxList nbl(bl);
+    return nbl.refine(ratio);
+}
+
+BoxList
+coarsen (const BoxList& bl,
+         int            ratio)
+{
+    BoxList nbl(bl);
+    return nbl.coarsen(ratio);
+}
+
+BoxList
+accrete (const BoxList& bl,
+         int            sz)
+{
+    BoxList nbl(bl);
+    return nbl.accrete(sz);
+}
+
+List<Box>&
+BoxList::listBox()
+{
+    return lbox;
+}
+
+const List<Box>&
+BoxList::listBox() const
+{
+    return lbox;
+}
+
+bool
+BoxList::operator!= (const BoxList& rhs) const
+{
+    return !operator==(rhs);
+}
 
 BoxList::BoxList ()
     : lbox(), btype(IndexType::TheCellType())
@@ -343,13 +524,13 @@ BoxList::simplify ()
                 else if (alo[i]<=blo[i] && blo[i]<=ahi[i]+1)
                 {
                     lo[i] = alo[i];
-                    hi[i] = Max(ahi[i],bhi[i]);
+                    hi[i] = std::max(ahi[i],bhi[i]);
                     joincnt++;
                 }
                 else if (blo[i]<=alo[i] && alo[i]<=bhi[i]+1)
                 {
                     lo[i] = blo[i];
-                    hi[i] = Max(ahi[i],bhi[i]);
+                    hi[i] = std::max(ahi[i],bhi[i]);
                     joincnt++;
                 }
                 else
@@ -513,8 +694,8 @@ BoxList::convert (IndexType typ)
     return *this;
 }
 
-ostream&
-operator<< (ostream&       os,
+std::ostream&
+operator<< (std::ostream&  os,
             const BoxList& blist)
 {
     BoxListIterator bli(blist);

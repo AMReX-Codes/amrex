@@ -1,20 +1,11 @@
-
 //
-// $Id: BoxLib.cpp,v 1.13 2001-03-28 21:08:52 car Exp $
+// $Id: BoxLib.cpp,v 1.14 2001-07-17 23:02:19 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-using std::cerr;
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <iostream.h>
-#endif
 
 #include <BoxLib.H>
 #include <BLVERSION.H>
@@ -110,7 +101,7 @@ BoxLib::Warning (const char* msg)
 {
     if (msg)
     {
-        cerr << msg << '!' << '\n';
+        std::cerr << msg << '!' << '\n';
     }
 }
 
