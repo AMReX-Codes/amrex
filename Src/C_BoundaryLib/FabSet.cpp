@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.22 1998-06-18 23:45:52 lijewski Exp $
+// $Id: FabSet.cpp,v 1.23 1998-06-21 18:02:39 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -185,6 +185,8 @@ FabSet::plusFrom (const MultiFab& src,
                                                     dest_comp,
                                                     num_comp,
                                                     false));
+
+                assert(fillBoxIdList.back().box() == ovlp);
                 //
                 // Also save the index of our FAB needed filling.
                 //
@@ -299,6 +301,8 @@ FabSet::linComb (Real            a,
                                                         0,
                                                         num_comp,
                                                         false));
+
+                assert(fillBoxIDs_mfa.back().box() == ovlp);
                 //
                 // Also save the index of the FAB in the FabSet.
                 //
@@ -312,6 +316,8 @@ FabSet::linComb (Real            a,
                                                         0,
                                                         num_comp,
                                                         false));
+
+                assert(fillBoxIDs_mfb.back().box() == ovlp);
             }
         }
     }
