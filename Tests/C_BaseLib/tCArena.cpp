@@ -1,6 +1,6 @@
 
 //
-// $Id: tCArena.cpp,v 1.7 2001-01-24 22:50:47 lijewski Exp $
+// $Id: tCArena.cpp,v 1.8 2001-07-23 04:31:03 car Exp $
 //
 
 #ifndef WIN32
@@ -53,7 +53,7 @@ CArena FB::m_CArena(100*CHUNKSIZE);
 
 FB::FB ()
 {
-    m_size = CHUNKSIZE*Utility::Random();
+    m_size = size_t(CHUNKSIZE*BoxLib::Random());
     m_data = (double*) m_CArena.alloc(m_size*sizeof(double));
     //
     // Set specific values in the data.
@@ -79,7 +79,7 @@ FB::ok () const
 int
 main ()
 {
-    set_new_handler(Utility::OutOfMemory);
+    set_new_handler(BoxLib::OutOfMemory);
 
     list<FB*> fbl;
 

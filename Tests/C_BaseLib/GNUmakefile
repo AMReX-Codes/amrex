@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 2001-07-22 18:25:48 car Exp $
+# $Id: GNUmakefile,v 1.6 2001-07-23 04:31:03 car Exp $
 #
 
 #
@@ -25,7 +25,7 @@ DEFINES += -DBL_PROFILING
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs += tVisMF tDir t8BIT tFB tFAC
+_progs += tVisMF tDir t8BIT tFB tFAC tCArena
 _progs += tProfiler tThread tWorkQueue
 _progs += tRan
 
@@ -57,5 +57,6 @@ runtests : $(addsuffix $(optionsSuffix).ex, $(_progs))
 
 clean::
 	$(RM) bl3_prof bl3_prof.m
+	$(RM) *.ex *.o
 
 include $(PBOXLIB_HOME)/mk/Make.rules

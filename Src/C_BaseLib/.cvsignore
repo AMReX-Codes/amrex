@@ -1,4 +1,5 @@
 *.for
+html
 Debug
 Debug3D
 Release

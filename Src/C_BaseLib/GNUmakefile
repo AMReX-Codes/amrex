@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.20 2001-07-18 22:21:15 car Exp $
+# $Id: GNUmakefile,v 1.21 2001-07-23 04:32:20 car Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -99,3 +99,6 @@ install_ps: BoxLib.ps
 WRAPPERGEN=$(PBOXLIB_HOME)/util/wrappergen/wrappergen
 BLMpi.cpp: BLMpi.w
 	$(WRAPPERGEN) -c++ -o BLMpi.cpp -w BLMpi.w
+
+clean::
+	$(RM) -r html
