@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.131 2002-04-16 18:06:28 vince Exp $
+// $Id: Amr.cpp,v 1.132 2002-08-21 20:12:40 car Exp $
 //
 #include <winstd.H>
 
@@ -350,7 +350,7 @@ Amr::Amr ()
     //
     for (i = 0; i < nlev; i++)
     {
-        dt_level[i]    = 1.e20; // Something nonzero so old & new will differ
+        dt_level[i]    = 1.e200; // Something nonzero so old & new will differ
         level_steps[i] = 0;
         level_count[i] = 0;
         regrid_int[i]  = 0;

@@ -1,12 +1,12 @@
 //
-// $Id: BndryRegister.cpp,v 1.14 2001-08-09 22:42:00 marc Exp $
+// $Id: BndryRegister.cpp,v 1.15 2002-08-21 20:12:40 car Exp $
 //
 #include <winstd.H>
 
 #include <BndryRegister.H>
 #include <Orientation.H>
 
-const Real BL_SAFE_BOGUS = -666.e30;
+const Real BL_SAFE_BOGUS = -666.e200;
 
 BndryRegister::BndryRegister () {}
 

@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.83 2002-08-06 18:09:06 car Exp $
+// $Id: AmrLevel.cpp,v 1.84 2002-08-21 20:12:40 car Exp $
 //
 #include <winstd.H>
 
@@ -944,7 +944,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             CrseFabs.set(i, new FArrayBox(cbox,m_ncomp));
 
-            CrseFabs[i].setVal(3.e30);
+            CrseFabs[i].setVal(3.e200);
 
             TheState.linInterpFillFab(m_mfcd,
                                       m_mfid[l],
@@ -1020,7 +1020,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // The coarse FAB had better be completely filled with "good" data.
             //
-            BL_ASSERT(CrseFabs[i].norm(0,0,m_ncomp) < 3.e30);
+            BL_ASSERT(CrseFabs[i].norm(0,0,m_ncomp) < 3.e200);
         }
 
         if (m_FixUpCorners)
@@ -1079,7 +1079,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // The coarse FAB had better be completely filled with "good" data.
             //
-            BL_ASSERT(crsefab.norm(0,0,m_ncomp) < 3.e30);
+            BL_ASSERT(crsefab.norm(0,0,m_ncomp) < 3.e200);
             //
             // Interpolate up to fine patch.
             //
