@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.21 2000-08-30 19:19:13 car Exp $
+// $Id: MultiGrid.cpp,v 1.22 2000-09-13 20:09:12 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,7 +41,7 @@ Real MultiGrid::def_atol_b      = -1.0;
 int MultiGrid::def_nu_b         = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
 int MultiGrid::def_smooth_on_cg_unstable = 0;
-CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::CG;
+CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::BiCGStab;
 
 static
 Real

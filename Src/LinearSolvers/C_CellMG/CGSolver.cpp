@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.19 2000-08-30 19:19:13 car Exp $
+// $Id: CGSolver.cpp,v 1.20 2000-09-13 20:09:12 lijewski Exp $
 //
 
 // Conjugate gradient support
@@ -23,7 +23,7 @@ using std::setw;
 int CGSolver::initialized = 0;
 int CGSolver::def_maxiter = 40;
 int CGSolver::def_verbose = 0;
-CGSolver::Solver CGSolver::def_cg_solver = CG;
+CGSolver::Solver CGSolver::def_cg_solver = BiCGStab;
 double CGSolver::def_unstable_criterion = 10.;
 
 static void
