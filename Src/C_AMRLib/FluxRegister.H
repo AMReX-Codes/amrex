@@ -4,7 +4,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.8 1998-05-06 17:50:48 lijewski Exp $
+// $Id: FluxRegister.H,v 1.9 1998-05-08 15:58:50 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -28,9 +28,10 @@ public:
     //@ManDoc: The default constructor.
     //
     FluxRegister();
-    //
-    //@ManDoc: The constructor.
-    //
+
+    /*@ManDoc: The constructor.
+               Note that this takes the fine BoxArray.
+    */
     FluxRegister (const BoxArray& fine_boxes, 
                   const IntVect&  ref_ratio,
                   int             fine_lev,
@@ -39,9 +40,10 @@ public:
     //@ManDoc: The destructor.
     //
     virtual ~FluxRegister ();
-    //
-    //@ManDoc: Initialize after using default constructor.
-    //
+
+    /*@ManDoc: Initialize after using default constructor.
+               Note that this takes the fine BoxArray.
+    */
     virtual void define (const BoxArray& fine_boxes, 
                          const IntVect&  ref_ratio,
                          int             fine_lev,
@@ -49,7 +51,7 @@ public:
     //
     //@ManDoc: Returns the refinement ratio.
     //
-    const IntVect& refRatio() const { return ratio; }
+    const IntVect& refRatio () const { return ratio; }
     //
     //@ManDoc: Returns the level number of the fine level.
     //
@@ -185,7 +187,7 @@ public:
                   Real             mult);
 
     //
-    //@ManDoc: Apply flux correction.
+    //@ManDoc: Apply flux correction.  Note that this takes the coarse Geometry.
     //
     void Reflux (MultiFab&       mf,
                  const MultiFab& volume,
@@ -193,16 +195,16 @@ public:
                  int             srccomp,
                  int             destcomp,
                  int             numcomp,
-                 const Geometry& geom);
+                 const Geometry& crse_geom);
     //
-    //@ManDoc: Constant volume version of Reflux().
+    //@ManDoc: Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     //
     void Reflux (MultiFab&       mf,
                  Real            scale,
                  int             srccomp,
                  int             destcomp,
                  int             numcomp,
-                 const Geometry& geom);
+                 const Geometry& crse_geom);
 
 protected:
     //
