@@ -1,5 +1,5 @@
 #include <mpi.h>
-#include <BoxLib/Profiler.H>
+#include <Profiler.H>
 
 #ifdef __cplusplus
 extern "C"
