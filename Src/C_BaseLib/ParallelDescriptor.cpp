@@ -1,6 +1,6 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.66 2001-03-20 19:40:43 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.67 2001-03-22 22:58:41 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -683,6 +683,24 @@ ParallelDescriptor::second ()
 #endif
 
 #endif
+
+//
+// This function is the same whether or not we're using MPI.
+//
+int
+ParallelDescriptor::SeqNum ()
+{
+    const int BEG = 1000;
+    const int END = 9000;
+
+    static int seqno = BEG;
+
+    int result = seqno++;
+
+    if (seqno > END) seqno = BEG;
+
+    return result;
+}
 
 #if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_BL_PD_BARRIER 	BL_PD_BARRIER
