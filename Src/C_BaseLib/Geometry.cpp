@@ -1,13 +1,12 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.3 1997-12-11 23:27:00 lijewski Exp $
+// $Id: Geometry.cpp,v 1.4 1998-04-22 23:39:32 marc Exp $
 //
 
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <BoxArray.H>
-#include <MultiFab.H>
 
 //
 // Static data members.
@@ -15,6 +14,162 @@
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
+
+std::ostream&
+operator << (std::ostream&          os,
+	     const Geometry::PIRec& pir)
+{
+    os << "  From (Box " << pir.srcId << ") " << pir.srcBox << " to " << pir.dstBox;
+    return os;
+}
+
+std::ostream&
+operator << (std::ostream&            os,
+	     const Geometry::PIRMMap& pirm)
+{
+    if (pirm.size() > 0)
+    {
+	Geometry::PIRMMap::const_iterator it = pirm.begin();
+	Geometry::PIRMMap::key_type key = (*it).first;
+	os << "Key: " << key << '\n';
+	for ( ; it != pirm.end(); ++it )
+	{
+	    Geometry::PIRMMap::key_type key1 = (*it).first;
+	    if (key != key1)
+	    {
+		key = key1;
+		os << "Key: " << key << '\n';
+	    }
+	    os << (*it).second << '\n';
+	}   
+    }
+    return os;
+}
+
+#ifdef __GNUG__
+bool
+Geometry::PIR::operator == (const Geometry::PIR& rhs) const
+{
+    return ( (srcno   == rhs.srcno ) &&
+	     (destno  == rhs.destno )&&
+	     (srcbox  == rhs.srcbox ) &&
+	     (destbox == rhs.destbox ) ); 
+}
+#endif
+
+Geometry::PIRMMap
+Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
+				     int             nGrow) const
+{
+    // Build a MultiMap of <i,PIRec> pairs, where i is the index of
+    // a "local" box in grids, and the PIRec contains srcBox/dstBox pairs
+    // mapping valid data to grow regions over periodic boundaries
+    PIRMMap pirmmap;
+    if( ! isAnyPeriodic() ) return pirmmap;
+
+    const Box& domain = Domain();
+    int len = grids.length();
+
+    // Make a junk multifab to access its iterator, dont allocate any mem for it
+    int nComp = 1;
+    MultiFab mf(grids, nComp, nGrow, Fab_noallocate);
+
+    // Do only those I own
+    for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
+    {
+	Box dest = Box(mfmfi.validbox()).grow(nGrow);
+	if( ! domain.contains(dest) )
+	{
+	    for( int j=0; j<len; j++ )
+	    {
+		Box src = grids[j];
+		Array<IntVect> pshifts;
+		periodicShift( dest, src, pshifts );
+		for( int iiv=0; iiv<pshifts.length(); iiv++ )
+		{
+		    IntVect iv = pshifts[iiv];
+		    Box shbox( src );
+		    D_TERM( shbox.shift(0,iv[0]);,
+			    shbox.shift(1,iv[1]);,
+			    shbox.shift(2,iv[2]); );
+		    
+		    Box intbox = dest & shbox;
+		    assert( intbox.ok() );
+		    // ok, we got an intersection
+		    Box srcBox = intbox;
+		    D_TERM( intbox.shift(0,-iv[0]);,
+			    intbox.shift(1,-iv[1]);,
+			    intbox.shift(2,-iv[2]); );
+		    Box dstBox = intbox;
+		    pirmmap.insert(PIRMMap::value_type(mfmfi.index(),
+						       PIRec(j,dstBox,srcBox)));
+		}
+	    }
+	}
+    }
+
+    return pirmmap;
+}
+
+void
+Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
+				PIRMMap&                  pirm,
+				int                       sComp,
+				int                       nComp) const
+{
+    // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
+    // local fab id, contains srcBox/dstBox pairs to copy valid data from
+    // other fabs in the array).  Assumes box-pairs constructed so that
+    // all data is "fillable" from the valid region of "fa".
+    FabArrayCopyDescriptor<Real,FArrayBox> facd;
+    FabArrayId faid = facd.RegisterFabArray(&fa);
+    
+    typedef PIRMMap::iterator PIRMMapIt;
+    BoxList unfilledBoxes((*pirm.begin()).second.srcBox.ixType());
+
+    // Register boxes in copy decriptor (should be no unfilled boxes when finished)
+    for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
+    {
+	(*p_it).second.fbid = 
+	    facd.AddBox(faid, (*p_it).second.srcBox, unfilledBoxes,
+			(*p_it).second.srcId, sComp, sComp, nComp);
+    }
+    assert(unfilledBoxes.length() == 0);
+
+    // Gather/scatter distributed data to (local) internal buffers
+    facd.CollectData();
+
+    // Loop over my receiving fabs, copy periodic regions from buffered data
+    for (FabArrayIterator<Real,FArrayBox> fai(fa); fai.isValid(false); ++fai)
+    {
+        std::pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(fai.index());
+
+	// For each PIRec on this fab box...
+	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
+	{
+	    const FillBoxId& fbid = (*p_it).second.fbid;
+	    assert(fbid.box() == (*p_it).second.srcBox);
+	    FArrayBox overlapFab(fbid.box(), nComp);
+
+	    // Fill fab with buffered data, copy into destination
+	    facd.FillFab(faid, fbid, overlapFab);
+	    fai().copy(overlapFab, overlapFab.box(), sComp,
+		       (*p_it).second.dstBox, sComp, nComp);
+        }
+    }
+}
+
+void
+Geometry::FillPeriodicBoundary (MultiFab& mf) const
+{
+    // Get list of intersection boxes
+    PIRMMap pirm = computePIRMMapForMultiFab(mf.boxArray(), mf.nGrow());
+    const int sComp = 0;
+    const int nComp = mf.nComp();
+
+    // Fill intersection list
+    FillPeriodicFabArray(mf, pirm, sComp, nComp);
+}
 
 void
 Geometry::define (const Box& dom)
