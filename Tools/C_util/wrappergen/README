@@ -39,4 +39,5 @@ int {{fn_name}}_ncalls_{{fileno}};
 	3. wrappergen doesn't work properly for Ansii C code, because it
 	defines the wrapper routines using K&R style C, which has different
 	variable promotion rules than Ansii C.
+	(Fixed)
 

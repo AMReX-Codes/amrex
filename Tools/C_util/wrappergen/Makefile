@@ -1,5 +1,6 @@
 # Generated automatically from Makefile.in by configure.
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#  (C) 2001 by Lawrence Berkely National Laboratory
 #
 
 CPPFLAGS = $(INCLUDE_DIR)
