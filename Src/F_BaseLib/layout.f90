@@ -669,57 +669,85 @@ contains
     r = bxasc%dim /= 0
   end function boxassoc_built_q
 
-  subroutine boxarray_bndry_periodic(bxai,dmn,b,nodal,pmask,ng,shfts)
-    type(boxarray), intent(out) :: bxai
-    type(box),      intent(in)  :: dmn,b
-    logical,        intent(in)  :: nodal(:),pmask(:)
-    integer,        intent(in)  :: ng
-    integer,        intent(out) :: shfts(:,:)
+  subroutine boxarray_bndry_periodic(bxai, dmn, b, nodal, pmask, ng, shfts, cross)
+    type(boxarray), intent(out)          :: bxai
+    type(box),      intent(in)           :: dmn, b
+    logical,        intent(in)           :: nodal(:), pmask(:)
+    integer,        intent(in)           :: ng
+    integer,        intent(out)          :: shfts(:,:)
+    logical,        intent(in), optional :: cross
 
-    integer                     :: cnt
-    type(box)                   :: bxs(3**b%dim)
-    type(box),allocatable       :: bv(:)
-    integer                     :: shft(3**b%dim,b%dim)
-    type(boxarray)              :: tba
+    integer               :: i, j, cnt, emptylo(3), emptyhi(3)
+    type(box)             :: bxs(3**b%dim), gbx, emptybx
+    type(box),allocatable :: bv(:)
+    integer               :: shft(3**b%dim,b%dim)
+    type(boxarray)        :: tba, cba, dba
+    logical               :: lcross
+
+    lcross = .false.; if ( present(cross) ) lcross = cross
 
     call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)
 
+    if ( lcross ) then
+       call boxarray_box_corners(cba, box_nodalize(b,nodal), ng)
+       call boxarray_diff(tba, cba)
+    end if
+
     shfts = 0
 
-    call box_periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
+    call box_periodic_shift(dmn, b, nodal, pmask, ng, shft, bxs, cnt)
 
-    if (cnt > 0) then
+    if ( cnt > 0 ) then
+       if ( lcross ) then
+          emptylo = 0
+          emptyhi = -1
+          emptybx = make_box(emptylo(1:b%dim), emptyhi(1:b%dim))
+          gbx     = grow(box_nodalize(b,nodal), ng)
+          do i = 1, cnt
+             call boxarray_build_bx(dba, intersection(gbx, shift(bxs(i), -shft(i,:))))
+             call boxarray_diff(dba, cba)
+             if ( nboxes(dba) > 1) call bl_error("BOXARRAY_BNDRY_PERIODIC: nboxes(dba) > 1")
+             if ( empty(dba) ) then
+                bxs(i) = emptybx
+             else
+                bxs(i) = shift(dba%bxs(1), shft(i,:))
+             endif
+             call destroy(dba)
+          end do
+       end if
        allocate(bv(tba%nboxes+cnt))
        bv(1:tba%nboxes) = tba%bxs(1:tba%nboxes)
        bv(tba%nboxes+1:tba%nboxes+cnt) = bxs(1:cnt)
        shfts(tba%nboxes+1:tba%nboxes+cnt,:) = shft(1:cnt,:)
        call destroy(tba)
-       call boxarray_build_v(tba,bv,.false.)
+       call boxarray_build_v(tba, bv, sort = .false.)
     end if
+
+    if ( lcross ) call destroy(cba)
 
     bxai = tba
 
   end subroutine boxarray_bndry_periodic
 
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
-    integer, intent(in) :: ng
-    logical, intent(in), optional :: nodal(:)
-    type(layout_rep), intent(in), target :: lap
-    type(boxassoc), intent(inout) :: bxasc
-    logical, intent(in), optional :: cross
 
-    integer i, j, ii, pv, rpv, spv
-    integer shft(2*3**lap%dim,lap%dim)
-    type(box) :: abx, bx
-    type(boxarray) :: bxa, bxai
-    integer :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, pcnt_r, pcnt_s, pi_r, pi_s
-    type(layout) :: la
-    integer :: sh(MAX_SPACEDIM+1)
+    integer,          intent(in)           :: ng
+    logical,          intent(in), optional :: nodal(:)
+    type(layout_rep), intent(in), target   :: lap
+    type(boxassoc),   intent(inout)        :: bxasc
+    logical,          intent(in), optional :: cross
+
+    integer              :: i, j, ii, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer              :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
+    type(box)            :: abx, bx
+    type(boxarray)       :: bxa, bxai
+    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    type(layout)         :: la
     integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
 
-    la%lap => lap               ! just for convenience
+    la%lap => lap
 
     bxa = get_boxarray(la)
 
@@ -728,23 +756,19 @@ contains
     bxasc%nboxes = bxa%nboxes
 
     allocate(bxasc%nodal(bxasc%dim))
-    if ( present(nodal) ) then
-       bxasc%nodal = nodal
-    else
-       bxasc%nodal = .false.
-    end if
-
     allocate(parr(0:parallel_nprocs()-1,2))
     allocate(pvol(0:parallel_nprocs()-1,2))
     allocate(ppvol(0:parallel_nprocs()-1,2))
 
+    bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
+
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
     !
-    ! We here consider all copies from J -> I.
+    ! We here consider all copies I <- J.
     !
     do i = 1, bxa%nboxes
        lcnt = 0
-       call boxarray_bndry_periodic(bxai,lap%pd,bxa%bxs(i),bxasc%nodal,lap%pmask,ng,shft)
+       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
        do j = 1, bxa%nboxes
           if ( remote(la,i) .and. remote(la,j) ) cycle
           bx = box_nodalize(get_box(bxa, j), nodal)
@@ -780,11 +804,12 @@ contains
     li_r = 1; i_r = 1; i_s = 1
 
     do i = 1, bxa%nboxes
-       call boxarray_bndry_periodic(bxai,lap%pd,bxa%bxs(i),bxasc%nodal,lap%pmask,ng,shft)
+       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
        do j = 1, bxa%nboxes
           if ( remote(la,i) .and. remote(la,j) ) cycle
+          bx = box_nodalize(get_box(bxa, j), nodal)
           do ii = 1, bxai%nboxes
-             abx = intersection(box_nodalize(get_box(bxa, j), nodal), bxai%bxs(ii))
+             abx = intersection(bx, bxai%bxs(ii))
              if ( .not. empty(abx) ) then
                 if ( local(la,i) .and. local(la, j) ) then
                       bxasc%l_con%cpy(li_r)%nd  = i
