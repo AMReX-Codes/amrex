@@ -848,8 +848,10 @@ using std::map;
 using std::list;
 using std::cout;
 using std::endl;
-using std::list<int>;
-#include <cassert>
+#else
+#include <vector.h>
+#include <list.h>
+#include <map.h>
 #endif
 
 #ifdef	WIN32
