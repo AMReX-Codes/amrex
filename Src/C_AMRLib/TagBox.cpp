@@ -1,13 +1,20 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.23 1998-04-15 16:50:26 lijewski Exp $
+// $Id: TagBox.cpp,v 1.24 1998-04-15 23:31:28 lijewski Exp $
 //
 
 #include <TagBox.H>
 #include <Misc.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <vector>
+using std::vector;
+#else
+#include <vector.h>
+#endif
 
 extern void inspectTAGArray (const TagBoxArray& tba);
 extern void inspectTAG (const TagBox& tb, int n);
@@ -509,12 +516,12 @@ TagBoxArray::mergeUnique ()
 {
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
-    FabArrayId            faid     = facd.RegisterFabArray(this);
-    int                   nOverlap = 0;
-    const int             MyProc   = ParallelDescriptor::MyProc();
-    List<TagBoxMergeDesc> tbmdList;
-    BoxList               notUsed;   // Required in call to AddBox().
-    TagBoxMergeDesc       tbmd;
+    FabArrayId              faid     = facd.RegisterFabArray(this);
+    int                     nOverlap = 0;
+    const int               MyProc   = ParallelDescriptor::MyProc();
+    vector<TagBoxMergeDesc> tbmdList;
+    BoxList                 notUsed;   // Required in call to AddBox().
+    TagBoxMergeDesc         tbmd;
 
     for (int idest = 0; idest < fabparray.length(); ++idest)
     {
@@ -533,7 +540,7 @@ TagBoxArray::mergeUnique ()
                 tbmd.destLocal      = destLocal;
                 if (destLocal)
                     tbmd.fillBoxId = facd.AddBox(faid,ovlp,notUsed,isrc,0,0,1);
-                tbmdList.append(tbmd);
+                tbmdList.push_back(tbmd);
                 if (destLocal)
                     tbmd.fillBoxId = FillBoxId(); // Clear out for later reuse.
             }
@@ -541,13 +548,12 @@ TagBoxArray::mergeUnique ()
     }
     facd.CollectData();
 
-    FabComTag       tbmdClear;
-    List<FabComTag> tbmdClearList;
+    FabComTag         tbmdClear;
+    vector<FabComTag> clearList;
 
-    int listIndex = 0;
-    for (ListIterator<TagBoxMergeDesc> tbmdli(tbmdList); tbmdli; ++tbmdli)
+    for (int i = 0; i < tbmdList.size(); i++)
     {
-        const TagBoxMergeDesc& desc = tbmdli();
+        const TagBoxMergeDesc& desc = tbmdList[i];
 
         if (desc.destLocal)
         {
@@ -555,24 +561,21 @@ TagBoxArray::mergeUnique ()
 
             facd.FillFab(faid, desc.fillBoxId, src);
 
-            ListIterator<TagBoxMergeDesc> it(tbmdList);
-
-            for ( ; it && it().nOverlap <= listIndex; ++it)
+            for (int j = 0; j < tbmdList.size(); j++)
             {
-                Box ovlpBox = src.box() & it().overlapBox;
+                Box ovlpBox = src.box() & tbmdList[j].overlapBox;
 
-                if (ovlpBox.ok() && it().mergeIndexSrc == desc.mergeIndexSrc)
+                if (ovlpBox.ok() && tbmdList[j].mergeIndexSrc == desc.mergeIndexSrc)
                 {
-                    if (it().nOverlap < listIndex)
+                    if (tbmdList[j].nOverlap < i)
                         src.setVal(TagBox::CLEAR, ovlpBox, 0);
                     tbmdClear.fabIndex = desc.mergeIndexSrc;
                     tbmdClear.ovlpBox  = desc.overlapBox;
-                    tbmdClearList.append(tbmdClear);
+                    clearList.push_back(tbmdClear);
                 }
             }
             fabparray[desc.mergeIndexDest].merge(src);
         }
-        ++listIndex;
     }
     //
     // Now send the clear list elements to the processor to whom they belong.
@@ -584,9 +587,9 @@ TagBoxArray::mergeUnique ()
     Array<int> msgs(ParallelDescriptor::NProcs(), 0);
     Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
 
-    for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
+    for (int i = 0; i < clearList.size(); i++)
     {
-        msgs[distributionMap[it().fabIndex]]++;
+        msgs[distributionMap[clearList[i].fabIndex]]++;
     }
 
     int rc;
@@ -621,14 +624,14 @@ TagBoxArray::mergeUnique ()
             ParallelDescriptor::Abort(rc);
     }
 
-    for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
+    for (int i = 0; i < clearList.size(); i++)
     {
-        MUData senddata(it().fabIndex, it().ovlpBox);
+        MUData senddata(clearList[i].fabIndex, clearList[i].ovlpBox);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
                            MPI_INT,
-                           distributionMap[it().fabIndex],
+                           distributionMap[clearList[i].fabIndex],
                            531,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -650,9 +653,12 @@ TagBoxArray::mergeUnique ()
 #else
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
-    for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
+    for (int i = 0; i < clearList.size(); i++)
     {
-        ParallelDescriptor::SendData(distributionMap[it().fabIndex],&it(),0,0);
+        ParallelDescriptor::SendData(distributionMap[clearList[i].fabIndex],
+                                     &clearList[i],
+                                     0,
+                                     0);
     }
     ParallelDescriptor::Synchronize();  // To guarantee messages are sent.
     //
@@ -675,11 +681,10 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 {
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
-    FabArrayId      faid   = facd.RegisterFabArray(this);
-    const int       MyProc = ParallelDescriptor::MyProc();
-    List<FillBoxId> fillBoxIdList;
-    FillBoxId       tempFillBoxId;
-    Box             domain(geom.Domain());
+    FabArrayId        faid   = facd.RegisterFabArray(this);
+    const int         MyProc = ParallelDescriptor::MyProc();
+    vector<FillBoxId> fillBoxId;
+    Box               domain(geom.Domain());
 
     for (int i = 0; i < fabparray.length(); i++)
     {
@@ -719,25 +724,18 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                                        intbox.shift(1,-iv[1]);,
                                        intbox.shift(2,-iv[2]);)
                             }
-
-                            tempFillBoxId = facd.AddBox(faid, intbox,
-                                                        unfilledBoxes,
-                                                        0, 0, n_comp);
-                            fillBoxIdList.append(tempFillBoxId);
+                            fillBoxId.push_back(facd.AddBox(faid,
+                                                            intbox,
+                                                            unfilledBoxes,
+                                                            0,
+                                                            0,
+                                                            n_comp));
                         }
                     }
                 }
             }
         }
     }
-
-    Array<FillBoxId> fillBoxId(fillBoxIdList.length());
-    int ifbi = 0;
-    for (ListIterator<FillBoxId> li(fillBoxIdList); li; ++li)
-    {
-        fillBoxId[ifbi++] = li();
-    }
-    fillBoxIdList.clear();
 
     facd.CollectData();
 
