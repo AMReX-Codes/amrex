@@ -1,14 +1,8 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.2 1997-09-18 20:12:57 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.3 1997-09-24 03:01:20 car Exp $
 //
-
-#ifdef	_MSC_VER
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
