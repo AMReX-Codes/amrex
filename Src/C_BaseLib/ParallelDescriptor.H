@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.21 1998-04-01 00:29:46 car Exp $
+// $Id: ParallelDescriptor.H,v 1.22 1998-04-01 17:52:37 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -61,15 +61,18 @@ struct FabComTag
 class ParallelDescriptor
 {
   public:
-    static void StartParallel(int nprocs, int* argc = 0, char*** argv = 0);
-    static void EndParallel();
+    static void StartParallel (int nprocs,
+                               int* argc = 0,
+                               char*** argv = 0);
+    static void EndParallel ();
 
-    static int MyProc ();
-    static int NProcs ();
-    static void Synchronize ();
-    static bool IOProcessor ();
-    static int  IOProcessorNumber ();
-    static void Abort (const char* msg);
+    static int    MyProc ();
+    static int    NProcs ();
+    static void   Barrier ();
+    static void   Synchronize ();
+    static bool   IOProcessor ();
+    static int    IOProcessorNumber ();
+    static void   Abort (const char* msg);
     static double second ();
     //
     // Reduction operations.
@@ -100,30 +103,33 @@ class ParallelDescriptor
     //
     // Data transfer functions.
     //
-    static void ShareVar (const void* var,
-                          int         bytes);
+    static void ShareVar (const void* var, int bytes);
     static void UnshareVar (const void* var);
+
     static void WriteData (int         procnum,
                            const void* src,
                            void*       dest,
                            int         offset,
                            int         bytes);
+
     static void ReadData (int         procnum,
                           const void* src,
                           int         offset,
                           void*       dest,
                           int         bytes);
+
     static void SetMessageHeaderSize (int messageHeaderSize);
-    static bool GetMessageHeader (int& dataSize,
-                                  void* messageHeader);
+    static bool GetMessageHeader (int& dataSize, void* messageHeader);
     static bool MessageQueueEmpty ();
 
     static void SendData (int         toproc,
                           const void* messageHeader,
                           const void* data,
                           int         datasizeinbytes);
+
     static void ReceiveData (void* data,
                              int   datasizeinbytes);
+
     static void Broadcast (int fromproc, void*  src, void*  dest, int nbytes);
 
   private:

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.19 1998-04-01 16:55:04 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.20 1998-04-01 17:52:37 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -144,6 +144,12 @@ void
 ParallelDescriptor::Synchronize ()
 {
     bsp_sync();
+}
+
+void
+ParallelDescriptor::Barrier ()
+{
+    ParallelDescriptor::Synchronize();
 }
 
 void
@@ -329,10 +335,12 @@ ParallelDescriptor::second ()
 }
 
 void
-ParallelDescriptor::Synchronize ()
+ParallelDescriptor::Barrier ()
 {
     MPI_Barrier(MPI_COMM_WORLD);
 }
+
+void ParallelDescriptor::Synchronize () {}
 
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
@@ -397,6 +405,7 @@ void ParallelDescriptor::EndParallel() {}
 void ParallelDescriptor::Abort (const char* str) { BoxLib::Abort(str); }
 int ParallelDescriptor::MyProc () { return 0; }
 int ParallelDescriptor::NProcs () { return 1; }
+void ParallelDescriptor::Barrier () {}
 void ParallelDescriptor::Synchronize () {}
 bool ParallelDescriptor::IOProcessor () { return true; }
 int  ParallelDescriptor::IOProcessorNumber () { return 0; }
