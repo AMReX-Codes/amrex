@@ -24,26 +24,45 @@ int HG::pverbose           = 0;
 bool HG::initialized       = false;
 double HG::cgsolve_tolfact = 1.0e-3;
 
-void HG::MPI_init ()
+#ifdef BL_USE_MPI
+RunStats* irecv_stats;
+RunStats* isend_stats;
+RunStats* test_stats;
+#endif
+
+void
+HG::MPI_init ()
 {
     if (!initialized)
     {
         ParmParse pp("HG");
+
         pp.query("cgsolve_maxiter", cgsolve_maxiter);
         pp.query("multigrid_maxiter", multigrid_maxiter);
         pp.query("cgsolve_tolfact", cgsolve_tolfact);
         pp.query("max_live_tasks", max_live_tasks);
         pp.query("pverbose", pverbose);
+
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "HG.cgsolve_maxiter = " << cgsolve_maxiter << endl;
-            cout << "HG.multigrid_maxiter = " << multigrid_maxiter << endl;
-            cout << "HG.cgsolve_tolfact = " << cgsolve_tolfact << endl;
-            cout << "HG.max_live_tasks = " << max_live_tasks << endl;
-            cout << "HG.pverbose = " << pverbose << endl;
+            cout << "HG.cgsolve_maxiter = "   << cgsolve_maxiter   << '\n';
+            cout << "HG.multigrid_maxiter = " << multigrid_maxiter << '\n';
+            cout << "HG.cgsolve_tolfact = "   << cgsolve_tolfact   << '\n';
+            cout << "HG.max_live_tasks = "    << max_live_tasks    << '\n';
+            cout << "HG.pverbose = "          << pverbose          << '\n';
         }
+
         initialized = true;
+
 #ifdef BL_USE_MPI
+        static RunStats the_irecv_stats("hg_irecv");
+        static RunStats the_isend_stats("hg_isend");
+        static RunStats the_test_stats("hg_test");
+
+        irecv_stats = &the_irecv_stats;
+        isend_stats = &the_isend_stats;
+        test_stats  = &the_test_stats;
+
         int res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
         if (res != 0)
             ParallelDescriptor::Abort(res);
@@ -183,11 +202,11 @@ task::task_proxy task_list::add_task (task* t)
 void
 task_list::print_dependencies (ostream& os) const
 {
-    os << "Task list ( " << endl;
+    os << "Task list ( " << '\n';
     for (list<task::task_proxy>::const_iterator tli = tasks.begin(); tli != tasks.end(); ++tli)
     {
         (*tli)->print_dependencies(os);
-        os << endl;
+        os << '\n';
     }
     os << ")" << endl;
 }
@@ -271,8 +290,6 @@ restart:
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         seq_no[i] = 1;
 }
-
-            // r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
 void
 task_copy::init ()
@@ -466,23 +483,21 @@ task_copy::startup ()
     {
         if (is_local(m_mf,m_dgrid))
         {
-            static RunStats stats("hg_irecv");
             tmp = new FArrayBox(m_sbx, m_smf.nComp());
-            stats.start();
+            irecv_stats->start();
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
-            stats.end();
+            irecv_stats->end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf,m_sgrid)) 
         {
-            static RunStats stats("hg_isend");
             tmp = new FArrayBox(m_sbx,m_smf.nComp());
             tmp->copy(m_smf[m_sgrid],m_sbx);
-            stats.start();
+            isend_stats->start();
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
-            stats.end();
+            isend_stats->end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -510,14 +525,13 @@ task_copy::ready ()
     }
 
 #ifdef BL_USE_MPI
-    static RunStats stats("hg_test");
     int flag, res;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    stats.start();
+    test_stats->start();
     if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
         ParallelDescriptor::Abort(res);
-    stats.end();
+    test_stats->end();
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
@@ -652,23 +666,21 @@ task_copy_local::startup ()
     {
         if (m_fab != 0)
         {
-            static RunStats stats("hg_irecv");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
-            stats.start();
+            irecv_stats->start();
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
-            stats.end();
+            irecv_stats->end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid)) 
         {
-            static RunStats stats("hg_isend");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
             tmp->copy(m_smf[m_sgrid], m_bx);
-            stats.start();
+            isend_stats->start();
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
-            stats.end();
+            isend_stats->end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -696,14 +708,13 @@ task_copy_local::ready ()
     }
         
 #ifdef BL_USE_MPI
-    static RunStats stats("hg_test");
     int flag, res;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    stats.start();
+    test_stats->start();
     if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
         ParallelDescriptor::Abort(res);
-    stats.end();
+    test_stats->end();
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
