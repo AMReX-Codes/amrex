@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.2 1998-03-26 18:55:52 marc Exp $
+c     $Id: CG_3D.F,v 1.3 1998-07-14 20:23:42 car Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -56,10 +56,10 @@ c
 c ::: wyc change -- why was a a vector?
 c                 phi(i,j,k,n) = phi(i,j,k,n) + a(n) * pp(i,j,k,n)
 c                 rr(i,j,k,n) = rr(i,j,k,n) - a(n) * ww(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
       end
       
@@ -101,10 +101,10 @@ c
                do i = lo(1), hi(1)
                   pp(i,j,k,n) = rr(i,j,k,n) + b*pp(i,j,k,n)
 c                 pp(i,j,k,n) = rr(i,j,k,n) + b(n)*pp(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
       end
       
@@ -142,9 +142,9 @@ c
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   pw(n) = pw(n) + pp(i,j,k,n)*ww(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 c
       end
