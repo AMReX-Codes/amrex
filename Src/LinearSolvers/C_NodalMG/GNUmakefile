@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.17 1998-11-02 18:35:55 lijewski Exp $
+# $Id: GNUmakefile,v 1.18 1998-11-09 23:13:14 car Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -51,6 +51,7 @@ ifeq ($(EBASE),proj)
 CPPFLAGS          += -DHG_DEBUG
 LIBRARIES         += -lproj$(optionsSuffix) -lbox$(DIM)d
 LIBRARY_LOCATIONS += . $(TOP)/lib/$(machineSuffix)
+CEXE_sources      += proj.cpp
 all: $(executable)
 endif
 
