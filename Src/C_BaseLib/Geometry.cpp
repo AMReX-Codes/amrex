@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.42 1998-12-11 02:47:14 lijewski Exp $
+// $Id: Geometry.cpp,v 1.43 1999-01-20 04:41:36 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -135,11 +135,11 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                     {
                         if (!isPeriodic(i) &&
                             src.smallEnd(i) == Domain().smallEnd(i))
-                            dest.growLo(i,mf.nGrow());
+                            src.growLo(i,mf.nGrow());
 
                         if (!isPeriodic(i) &&
                             src.bigEnd(i) == Domain().bigEnd(i))
-                            dest.growHi(i,mf.nGrow());
+                            src.growHi(i,mf.nGrow());
                     }
                 }
 
@@ -147,12 +147,9 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
                 for (int i = 0; i < pshifts.length(); i++)
                 {
-                    Box shiftbox = src;
-                    shiftbox.shift(pshifts[i]);
-                    Box src_box = dest & shiftbox;
-                    assert(src_box.ok());
-                    Box dst_box = src_box;
-                    dst_box.shift(-pshifts[i]);
+                    Box shftbox = src + pshifts[i];
+                    Box src_box = dest & shftbox;
+                    Box dst_box = src_box - pshifts[i];
                     pirm.push_back(PIRec(mfi.index(),j,dst_box,src_box));
                 }
             }
@@ -199,7 +196,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                        pirm[i].srcId,
                                        src_comp,
                                        src_comp,
-                                       num_comp);
+                                       num_comp,
+                                       !do_corners);
         }
     }
 
@@ -209,9 +207,9 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     for (int i = 0; i < pirm.size(); i++)
     {
-        assert(mf.DistributionMap()[pirm[i].mfid] == MyProc);
-
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
+        assert(pirm[i].srcBox.sameSize(pirm[i].dstBox));
+        assert(mf.DistributionMap()[pirm[i].mfid] == MyProc);
 
         mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
     }
