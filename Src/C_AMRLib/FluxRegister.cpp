@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.52 1998-10-26 20:51:38 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.53 1998-10-27 17:33:05 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -18,11 +18,6 @@ using std::vector;
 #endif
 
 #include <ccse-mpi.H>
-
-//
-// Used in a couple RunStats calls in reflux.
-//
-static const aString RunstatString("reflux");
 
 FluxRegister::FluxRegister ()
 {
@@ -124,28 +119,53 @@ struct RF
 
     RF (int         fabidx,
         int         fridx,
-        Orientation face)
+        Orientation face,
+        FillBoxId   fbid)
         :
         m_fabidx(fabidx),
         m_fridx(fridx),
         m_face(face),
+        m_fbid(fbid),
         m_shifted(false) {}
 
     RF (const IntVect& iv,
         int            fabidx,
         int            fridx,
-        Orientation    face)
+        Orientation    face,
+        FillBoxId      fbid)
         :
         m_iv(iv),
         m_fabidx(fabidx),
         m_fridx(fridx),
         m_face(face),
+        m_fbid(fbid),
         m_shifted(true) {}
+
+    RF (const RF& rhs)
+        :
+        m_iv(rhs.m_iv),
+        m_fabidx(rhs.m_fabidx),
+        m_fridx(rhs.m_fridx),
+        m_face(rhs.m_face),
+        m_fbid(rhs.m_fbid),
+        m_shifted(rhs.m_shifted) {}
+
+    RF& operator= (const RF& rhs)
+    {
+        m_iv      = rhs.m_iv;
+        m_fabidx  = rhs.m_fabidx;
+        m_fridx   = rhs.m_fridx;
+        m_face    = rhs.m_face;
+        m_fbid    = rhs.m_fbid;
+        m_shifted = rhs.m_shifted;
+        return *this;
+    }
 
     IntVect     m_iv;
     int         m_fabidx;
     int         m_fridx;
     Orientation m_face;
+    FillBoxId   m_fbid;
     bool        m_shifted;
 };
 
@@ -158,7 +178,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    static RunStats stats(RunstatString);
+    static RunStats stats("reflux");
 
     stats.start();
 
@@ -171,9 +191,8 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    vector<FillBoxId> fillBoxId;
-    vector<RF>        RFs;
-    Array<IntVect>    pshifts(27);
+    vector<RF>     RFs;
+    Array<IntVect> pshifts(27);
 
     for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
     {
@@ -204,17 +223,15 @@ FluxRegister::Reflux (MultiFab&       S,
 
                     if (ovlp.ok())
                     {
-                        fillBoxId.push_back(fscd.AddBox(fsid[fi()],
-                                                        bndry[fi()].box(k),
-                                                        0,
-                                                        k,
-                                                        src_comp,
-                                                        0,
-                                                        num_comp));
-                        //
-                        // Push back a parallel RF for later use.
-                        //
-                        RFs.push_back(RF(mfi.index(),k,fi()));
+                        FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                     bndry[fi()].box(k),
+                                                     0,
+                                                     k,
+                                                     src_comp,
+                                                     0,
+                                                     num_comp);
+
+                        RFs.push_back(RF(mfi.index(),k,fi(),fbid));
                     }
                 }
             }
@@ -227,7 +244,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
-                    IntVect iv = pshifts[iiv];
+                    const IntVect& iv = pshifts[iiv];
                     mfi().shift(iv);
                     const int* slo = mfi().loVect();
                     const int* shi = mfi().hiVect();
@@ -257,17 +274,15 @@ FluxRegister::Reflux (MultiFab&       S,
 
                         if (ovlp.ok())
                         {
-                            fillBoxId.push_back(fscd.AddBox(fsid[fi()],
-                                                            bndry[fi()].box(k),
-                                                            0,
-                                                            k,
-                                                            src_comp,
-                                                            0,
-                                                            num_comp));
-                            //
-                            // Push back a parallel RF for later use.
-                            //
-                            RFs.push_back(RF(iv,mfi.index(),k,fi()));
+                            FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                         bndry[fi()].box(k),
+                                                         0,
+                                                         k,
+                                                         src_comp,
+                                                         0,
+                                                         num_comp);
+
+                            RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
                         }
                     }
                     mfi().shift(-iv);
@@ -279,16 +294,14 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
-    assert(fillBoxId.size() == RFs.size());
-
     const int MyProc = ParallelDescriptor::MyProc();
 
     FArrayBox reg;
 
-    for (int i = 0; i < fillBoxId.size(); i++)
+    for (int i = 0; i < RFs.size(); i++)
     {
-        const FillBoxId& fbid = fillBoxId[i];
         const RF& rf          = RFs[i];
+        const FillBoxId& fbid = rf.m_fbid;
 
         assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
         assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
@@ -327,8 +340,7 @@ FluxRegister::Reflux (MultiFab&       S,
         }
         else
         {
-            IntVect iv = rf.m_iv;
-            fab_S.shift(iv);
+            fab_S.shift(rf.m_iv);
             //
             // This is a funny situation.  I don't want to permanently
             // change vol, but I need to do a shift on it.  I'll shift
@@ -338,9 +350,9 @@ FluxRegister::Reflux (MultiFab&       S,
             //
             FArrayBox* cheatvol = const_cast<FArrayBox*>(&fab_volume);
             assert(cheatvol != 0);
-            cheatvol->shift(iv);
+            cheatvol->shift(rf.m_iv);
             Box sftbox = S.box(rf.m_fabidx);
-            sftbox.shift(iv);
+            sftbox.shift(rf.m_iv);
             Box ovlp = sftbox & fine_face;
 
             assert(ovlp.ok());
@@ -358,8 +370,8 @@ FluxRegister::Reflux (MultiFab&       S,
                           vol_dat,ARLIM(vlo),ARLIM(vhi),
                           reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
                           &num_comp,&mult);
-            fab_S.shift(-iv);
-            cheatvol->shift(-iv);
+            fab_S.shift(-rf.m_iv);
+            cheatvol->shift(-rf.m_iv);
         }
     }
 
@@ -374,7 +386,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    static RunStats stats(RunstatString);
+    static RunStats stats("reflux");
 
     stats.start();
 
@@ -389,9 +401,8 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    vector<FillBoxId> fillBoxId;
-    vector<RF>        RFs;
-    Array<IntVect>    pshifts(27);
+    vector<RF>     RFs;
+    Array<IntVect> pshifts(27);
 
     for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
     {
@@ -410,17 +421,15 @@ FluxRegister::Reflux (MultiFab&       S,
 
                     if (ovlp.ok())
                     {
-                        fillBoxId.push_back(fscd.AddBox(fsid[fi()],
-                                                        bndry[fi()].box(k),
-                                                        0,
-                                                        k,
-                                                        src_comp,
-                                                        0,
-                                                        num_comp));
-                        //
-                        // Push back a parallel RF for later use.
-                        //
-                        RFs.push_back(RF(mfi.index(),k,fi()));
+                        FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                     bndry[fi()].box(k),
+                                                     0,
+                                                     k,
+                                                     src_comp,
+                                                     0,
+                                                     num_comp);
+
+                        RFs.push_back(RF(mfi.index(),k,fi(),fbid));
                     }
                 }
             }
@@ -433,7 +442,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
-                    IntVect iv = pshifts[iiv];
+                    const IntVect& iv = pshifts[iiv];
                     mfi().shift(iv);
                     const int* slo = mfi().loVect();
                     const int* shi = mfi().hiVect();
@@ -451,17 +460,15 @@ FluxRegister::Reflux (MultiFab&       S,
 
                         if (ovlp.ok())
                         {
-                            fillBoxId.push_back(fscd.AddBox(fsid[fi()],
-                                                            bndry[fi()].box(k),
-                                                            0,
-                                                            k,
-                                                            src_comp,
-                                                            0,
-                                                            num_comp));
-                            //
-                            // Push back a parallel RF for later use.
-                            //
-                            RFs.push_back(RF(iv,mfi.index(),k,fi()));
+                            FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                         bndry[fi()].box(k),
+                                                         0,
+                                                         k,
+                                                         src_comp,
+                                                         0,
+                                                         num_comp);
+
+                            RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
                         }
                     }
                     mfi().shift(-iv);
@@ -472,16 +479,14 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
-    assert(fillBoxId.size() == RFs.size());
-
     const int MyProc = ParallelDescriptor::MyProc();
 
     FArrayBox reg;
 
-    for (int i = 0; i < fillBoxId.size(); i++)
+    for (int i = 0; i < RFs.size(); i++)
     {
-        const FillBoxId& fbid = fillBoxId[i];
         const RF& rf          = RFs[i];
+        const FillBoxId& fbid = rf.m_fbid;
 
         assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
         assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
@@ -514,10 +519,9 @@ FluxRegister::Reflux (MultiFab&       S,
         }
         else
         {
-            IntVect iv = rf.m_iv;
-            fab_S.shift(iv);
+            fab_S.shift(rf.m_iv);
             Box sftbox = S.box(rf.m_fabidx);
-            sftbox.shift(iv);
+            sftbox.shift(rf.m_iv);
             Box ovlp = sftbox & fine_face;
 
             assert(ovlp.ok());
@@ -533,7 +537,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             reg_dat,ARLIM(rlo),ARLIM(rhi),
                             lo,hi,&num_comp,&mult);
 
-            fab_S.shift(-iv);
+            fab_S.shift(-rf.m_iv);
         }
     }
 
