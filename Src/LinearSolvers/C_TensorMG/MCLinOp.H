@@ -4,7 +4,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.7 1999-05-10 18:54:27 car Exp $
+// $Id: MCLinOp.H,v 1.8 1999-12-01 16:17:23 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -310,6 +310,13 @@ MCLinOp::bndryData (const BndryData& bd)
 }
 
 inline
+int
+MCLinOp::numLevels () const
+{
+    return h.length();
+}
+
+inline
 const BoxArray&
 MCLinOp::boxArray (int level) const
 {
@@ -322,13 +329,6 @@ int
 MCLinOp::numGrids () const
 {
     return gbox[0].length();
-}
-
-inline
-int
-MCLinOp::numLevels () const
-{
-    return h.length();
 }
 
 inline

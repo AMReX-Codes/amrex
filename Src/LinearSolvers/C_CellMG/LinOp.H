@@ -4,7 +4,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.9 1999-05-10 18:54:16 car Exp $
+// $Id: LinOp.H,v 1.10 1999-12-01 16:17:10 lijewski Exp $
 //
 
 #include <Array.H>
@@ -305,6 +305,13 @@ LinOp::bndryData (const BndryData& bd)
 }
 
 inline
+int
+LinOp::numLevels () const
+{
+    return h.size();
+}
+
+inline
 const BoxArray&
 LinOp::boxArray (int level) const
 {
@@ -317,13 +324,6 @@ int
 LinOp::numGrids () const
 {
     return gbox[0].length();
-}
-
-inline
-int
-LinOp::numLevels () const
-{
-    return h.size();
 }
 
 inline
