@@ -2,15 +2,15 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.14 2001-07-23 17:55:33 lijewski Exp $
+// $Id: RunStats.H,v 1.15 2001-07-23 21:32:38 car Exp $
 //
 
 #include <cstdlib>
 #include <fstream>
 #include <cstring>
 #include <cmath>
+#include <list>
 
-#include <List.H>
 #include <Array.H>
 #include <ParallelDescriptor.H>
 
@@ -138,7 +138,7 @@ private:
 
     void resize (int level);
 
-    static void ReduceIt (List<RunStatsData>& stats);
+    static void ReduceIt (std::list<RunStatsData>& stats);
 
     static void Print (std::ostream&, const RunStatsData&, Real, Real);
 
@@ -160,7 +160,7 @@ private:
     static Real               DiskBytes;   // Total bytes written to disk.
     static Array<long>        TheCells;    // Total cells advanced per level.
     static Array<Real>        TheNumPts;   // Total numPts() per CPU.
-    static List<RunStatsData> TheStats;    // List of RunStatsData.
+    static std::list<RunStatsData> TheStats;    // List of RunStatsData.
     static bool               Initialized; // init()'s been called?
 };
 

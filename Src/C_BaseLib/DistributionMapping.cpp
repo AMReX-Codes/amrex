@@ -1,9 +1,8 @@
 //
-// $Id: DistributionMapping.cpp,v 1.50 2001-07-23 17:55:32 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.51 2001-07-23 21:32:38 car Exp $
 //
 
 #include <DistributionMapping.H>
-#include <List.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 
