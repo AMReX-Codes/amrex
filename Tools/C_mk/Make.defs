@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.14 1998-11-18 17:57:45 car Exp $
+# Make.defs $Id: Make.defs,v 1.15 1998-11-18 20:32:40 lijewski Exp $
 #
 
 #
@@ -13,26 +13,26 @@
 #
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
-ifeq    ($(findstring CRAY, $(UNAMEM)), CRAY)
-ifeq    ($(findstring Y-MP, $(UNAMEM)), Y-MP)
+ifeq ($(findstring CRAY, $(UNAMEM)), CRAY)
+ifeq ($(findstring Y-MP, $(UNAMEM)), Y-MP)
     MACHINE := CRAY
 endif
-ifeq    ($(findstring C90, $(UNAMEM)), C90)
+ifeq ($(findstring C90, $(UNAMEM)), C90)
     MACHINE := CRAY
 endif
-ifeq	($(findstring J90, $(UNAMEM)), J90)
+ifeq ($(findstring J90, $(UNAMEM)), J90)
     MACHINE := CRAY
 endif
-ifeq	($(findstring T3E, $(UNAMEM)), T3E)
+ifeq ($(findstring T3E, $(UNAMEM)), T3E)
     MACHINE := T3E
-ifeq	($(findstring mcurie, $(UNAMEN)), mcurie)
+ifeq ($(findstring mcurie, $(UNAMEN)), mcurie)
     WHICHT3E := NERSC
 endif
 # currently both nersc t3es have the same home path names
-ifeq	($(findstring pierre, $(UNAMEN)), pierre)
+ifeq ($(findstring pierre, $(UNAMEN)), pierre)
     WHICHT3E := NERSC
 endif
-ifeq	($(findstring seymour, $(UNAMEN)), seymour)
+ifeq ($(findstring seymour, $(UNAMEN)), seymour)
     WHICHT3E := NAVO
 endif
 endif
@@ -47,10 +47,10 @@ UNAMER := $(shell uname -r)
 # We'd also like to distinguish between OSF1 versions 3 and 4
 #
 ifeq ($(MACHINE), OSF1)
-  ifeq  ($(findstring V3, $(UNAMER)), V3)
+  ifeq ($(findstring V3, $(UNAMER)), V3)
     WHICHOSF1 := V3
   endif
-  ifeq  ($(findstring V4, $(UNAMER)), V4)
+  ifeq ($(findstring V4, $(UNAMER)), V4)
     WHICHOSF1 := V4
   endif
 endif
@@ -205,6 +205,13 @@ else
     ProfSuffix	:=
 endif
 
+ifeq ($(USE_MPI),TRUE)
+    MPISuffix	:= .MPI
+    CPPFLAGS	+= -DBL_USE_MPI
+else
+    MPISuffix	:=
+endif
+
 ifeq ($(PRECISION),FLOAT)
 ifeq ($(MACHINE),CRAY)
     PrecisionSuffix :=
@@ -250,7 +257,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib, \
