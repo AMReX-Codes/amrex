@@ -538,6 +538,59 @@ void interpolate_patch(MultiFab& target, int igrid, const Box& region,
     }
 }
 
+#ifdef BL_USE_NEW_HFILES
+#include <list>
+using std::list;
+#else
+#include <list.h>
+#endif
+
+template <class T>
+class task_list
+{
+public:
+    void add_task(T t);
+    void execute();
+private:
+    list<T> tasks;
+};
+
+template <class T>
+void
+task_list<T>::execute()
+{
+    for ( std::list<T>::iterator li = tasks.begin(); li != tasks.end(); ++li)
+    {
+	li->execute();
+    }
+}
+
+template <class T>
+void
+task_list<T>::add_task(T t)
+{
+    tasks.push_back(t);
+}
+
+struct restric_fill
+{
+public:
+    restric_fill(const amr_restrictor_class& restric, MultiFab& targ, int jgrid, const Box& cbox, const MultiFab& src, int igrid, const IntVect& rat)
+	: m_restric(restric), m_targ(targ), m_jgrid(jgrid), m_cbox(cbox), m_src(src), m_igrid(igrid), m_rat(rat) {}
+    void execute()
+    {
+	m_restric.fill(m_targ[m_jgrid], m_cbox, m_src[m_igrid], m_rat);
+    }
+private:
+    const amr_restrictor_class& m_restric;
+    MultiFab& m_targ;
+    int m_jgrid;
+    const Box m_cbox;
+    const MultiFab& m_src;
+    int m_igrid;
+    const IntVect m_rat;
+};
+
 void restrict_level(MultiFab& dest, 
 		    MultiFab& r, const IntVect& rat,
 		    const amr_restrictor_class& restric,
@@ -546,6 +599,7 @@ void restrict_level(MultiFab& dest,
 {
     assert(type(dest) == type(r));
     // PARALLEL
+    task_list<restric_fill> li;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
         // restrict_patch(dest[jgrid], dest.box(jgrid), r, rat, restric, lev_interface, bdy);
@@ -557,10 +611,12 @@ void restrict_level(MultiFab& dest,
 	    if (region.intersects(cbox)) 
 	    {
 		cbox &= region;
-		restric.fill(dest[jgrid], cbox, r[igrid], rat);
+		//restric.fill(dest[jgrid], cbox, r[igrid], rat);
+		li.add_task(restric_fill(restric, dest, jgrid, cbox, r, igrid, rat));
 	    }
 	}
     }
+    li.execute();
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
