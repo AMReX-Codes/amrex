@@ -3,7 +3,8 @@ CPP = cpp
 
 ifeq ($(COMP),CFRONT)
 CXX	          := OCC
-override XTRADEFS += -DBL_BUG_DEFARG
+override XTRADEFS += -DBL_BUG_DEFARG -DBL_USE_SETBUF 
+override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
 OUTPUT_OPTION	   =  ; mv $*.o $@
 endif
 
@@ -12,13 +13,15 @@ CXX     := CC -h instantiate=local
 CXXOPTF += -O2 -h new_for_init
 CXXDEBF += -g -h new_for_init
 override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-DEFINES += -DBL_USE_SETBUF
+override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),KCC)
 CXX     := KCC
 CXXOPTF += +K2
 CXXDEBF += +K0
+override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(PROFILE), TRUE)
