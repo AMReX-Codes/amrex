@@ -42,7 +42,7 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
-	    BoxLib::Error("Failed MPI_Irecv");
+	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else if ( is_local(m_smf, m_sgrid) ) 
@@ -50,10 +50,11 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_sbx);
 	HG_DEBUG_OUT( "Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	HG_DEBUG_OUT( "Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
 	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
-	    BoxLib::Error("Failed MPI_Isend");
+	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else
@@ -105,7 +106,7 @@ bool task_copy::ready()
     assert( m_request != MPI_REQUEST_NULL );
     int res = MPI_Test(&m_request, &flag, &status);
     if ( res != 0 )
-	BoxLib::Error("Failed MPI_Test");
+	ParallelDescriptor::Abort( res );
     if ( flag )
     {
 	assert ( m_request == MPI_REQUEST_NULL );
@@ -114,9 +115,12 @@ bool task_copy::ready()
 	    int count;
 	    assert( status.MPI_SOURCE == processor_number(m_smf, m_sgrid) );
 	    assert( status.MPI_TAG    == m_sno );
-	    MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    int res = MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort( res );
 	    assert(count == tmp->box().numPts()*tmp->nComp());
 	    HG_DEBUG_OUT( "Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	    HG_DEBUG_OUT( "Box(R) of tmp "   << m_sno << " " << tmp->box() << endl );
 	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
 	}
@@ -151,13 +155,17 @@ bool task_list::def_verbosity = true;
 task_list::task_list(MPI_Comm comm_)
     : seq_no(0), verbosity(def_verbosity)
 {
-    MPI_Comm_dup(comm_, &comm);
+    int res = MPI_Comm_dup(comm_, &comm);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
 }
 
 task_list::~task_list()
 {
     seq_no = 0;
-    MPI_Comm_free(&comm);
+    int res = MPI_Comm_free(&comm);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
 }
 
 void task_list::execute()
