@@ -1,0 +1,177 @@
+SOURCE CODE LICENSE AGREEMENT
+Software: BoxLib
+Version: Oct. 12, 2000 Release
+
+IMPORTANT - READ CAREFULLY: This License Agreement ("Agreement") is a
+legal agreement between you (in your capacity as an individual and as
+an agent for your company, institution or other entity) and The
+Regents of the University of California, Department of Energy
+contract-operators of the Ernest Orlando Lawrence Berkeley National
+Laboratory ("Berkeley Lab").  Downloading, installing, using, or
+copying of the Software (as defined below) by you or by a third party
+on your behalf indicates your agreement to be bound by the terms and
+conditions of this Agreement.  If you do not agree to these terms and
+conditions, do not download, install or use the Software.
+
+1.  LICENSE GRANT. Berkeley Lab grants you, and you hereby accept, a
+    non-exclusive, royalty-free perpetual license to install, use,
+    modify, prepare derivative works, incorporate into other computer
+    software, and distribute the version noted above of the computer
+    software program noted above, in binary and source code format, or
+    any derivative work thereof, together with any associated media,
+    printed materials, and on-line or electronic documentation (if
+    any) provided by Berkeley Lab (collectively, the "Software"),
+    subject to the following terms and conditions: (i) any
+    distribution of the Software shall bind the receiver to the terms
+    and conditions of this Agreement; (ii) any distribution of the
+    Software in modified form shall clearly state that the Software
+    has been modified from the version originally obtained from
+    Berkeley Lab.  This version of the Software constitutes a research
+    prototype and may be changed substantially.  The license grant set
+    forth above is subject to receipt by Berkeley Lab of any required
+    U.S. Department of Energy approvals.
+
+2.  COPYRIGHT; RETENTION OF RIGHTS.  The above license grant is
+    conditioned on the following: (i) you must reproduce all copyright
+    notices and other proprietary notices on any copies of the
+    Software and you must not remove such notices; (ii) in the event
+    you compile the Software, you will include the copyright notice
+    with the binary in such a manner as to allow it to be easily
+    viewable; (iii) if you incorporate the Software into other code,
+    you must provide notice that the code contains the Software and
+    include a copy of the copyright notices and other proprietary
+    notices.  All copies of the Software shall be subject to the terms
+    of this Agreement.  Subject to approval by the U.S. Department of
+    Energy: (a) you hereby acknowledge that the Software is protected
+    by United States copyright law and international treaty
+    provisions; (b) Berkeley Lab, and its licensors (if any), hereby
+    reserve all rights in the Software which are not explicitly
+    granted to you herein; (c) without limiting the generality of the
+    foregoing, Berkeley Lab and its licensors retain all title,
+    copyright, and other proprietary interests in the Software and any
+    copies thereof, and you do not acquire any rights, express or
+    implied, in the Software, other than those specifically set forth
+    in this Agreement.
+
+3.  NO MAINTENANCE OR SUPPORT; TREATMENT OF ENHANCEMENTS YOU CHOOSE TO
+    PROVIDE TO BERKELEY LAB.  Berkeley Lab is under no obligation
+    whatsoever to: (i) provide maintenance or support for the
+    Software; or (ii) to notify you of bug fixes, patches, or upgrades
+    to the features, functionality or performance of the Software
+    ("Enhancements") (if any), whether developed by Berkeley Lab or
+    third parties.  If, in its sole discretion, Berkeley Lab makes an
+    Enhancement available to you and Berkeley Lab does not separately
+    enter into a written license agreement with you relating to such
+    bug fix, patch or upgrade, then it shall be deemed incorporated
+    into the Software and subject to this Agreement.  You are under no
+    obligation whatsoever to provide any Enhancements to Berkeley Lab
+    that you may develop over time; however, if you choose to provide
+    Berkeley Lab with Enhancements in source code form that you have
+    developed without contemporaneously requiring Berkeley Lab to
+    enter into a separate written license agreement, then you hereby
+    grant Berkeley Lab a non-exclusive, royalty-free perpetual license
+    to install, use, modify, prepare derivative works, incorporate
+    into the Software or other computer software, distribute, and
+    sublicense your Enhancements or derivative works thereof, in
+    binary and source code form.
+
+4.  U.S. GOVERNMENT RIGHTS.  The Software was developed under funding
+    from the U.S. Department of Energy and the U.S. Government
+    consequently retains certain rights as follows: the
+    U.S. Government has been granted for itself and others acting on
+    its behalf a paid-up, nonexclusive, irrevocable, worldwide license
+    in the Software to reproduce, prepare derivative works, and
+    perform publicly and display publicly.  Beginning five (5) years
+    after the date permission to assert copyright was granted by the
+    U.S. Dept. of Energy, and subject to any subsequent five (5) year
+    renewals, the U.S. Government is granted for itself and others
+    acting on its behalf a paid-up, nonexclusive, irrevocable,
+    worldwide license in the Software to reproduce, prepare derivative
+    works, distribute copies to the public, perform publicly and
+    display publicly, and to permit others to do so.
+
+5.  WARRANTY DISCLAIMER.  THE SOFTWARE IS SUPPLIED "AS IS" WITHOUT
+    WARRANTY OF ANY KIND.  BERKELEY LAB, ITS LICENSORS, THE UNITED
+    STATES, THE UNITED STATES DEPARTMENT OF ENERGY, AND THEIR
+    EMPLOYEES: (1) DISCLAIM ANY WARRANTIES, EXPRESS OR IMPLIED,
+    INCLUDING BUT NOT LIMITED TO ANY IMPLIED WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE OR
+    NON-INFRINGEMENT, (2) DO NOT ASSUME ANY LEGAL LIABILITY OR
+    RESPONSIBILITY FOR THE ACCURACY, COMPLETENESS, OR USEFULNESS OF
+    THE SOFTWARE, (3) DO NOT REPRESENT THAT USE OF THE SOFTWARE WOULD
+    NOT INFRINGE PRIVATELY OWNED RIGHTS, (4) DO NOT WARRANT THAT THE
+    SOFTWARE WILL FUNCTION UNINTERRUPTED, THAT IT IS ERROR-FREE OR
+    THAT ANY ERRORS WILL BE CORRECTED.
+
+6.  LIMITATION OF LIABILITY. IN NO EVENT WILL BERKELEY LAB OR ITS
+    LICENSORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL,
+    SPECIAL OR PUNITIVE DAMAGES OF ANY KIND OR NATURE, INCLUDING BUT
+    NOT LIMITED TO LOSS OF PROFITS OR LOSS OF DATA, FOR ANY REASON
+    WHATSOEVER, WHETHER SUCH LIABILITY IS ASSERTED ON THE BASIS OF
+    CONTRACT, TORT (INCLUDING NEGLIGENCE OR STRICT LIABILITY), OR
+    OTHERWISE, EVEN IF BERKELEY LAB HAS BEEN WARNED OF THE POSSIBILITY
+    OF SUCH LOSS OR DAMAGES.  IN NO EVENT SHALL BERKELEY LAB'S
+    LIABILITY FOR DAMAGES ARISING FROM OR IN CONNECTION WITH THIS
+    AGREEMENT EXCEED THE AMOUNT PAID BY YOU FOR THE SOFTWARE.
+
+7.  INDEMNITY.  You shall indemnify, defend, and hold harmless
+    Berkeley Lab, the U.S. Government, the Software developers, the
+    Software sponsors, and their agents, officers, and employees,
+    against any and all claims, suits, losses, damage, costs, fees,
+    and expenses arising out of or in connection with this Agreement.
+    You shall pay all costs incurred by Berkeley Lab in enforcing this
+    provision, including reasonable attorney fees.
+
+8.  TERM AND TERMINATION.  The license granted to you under this
+    Agreement will continue perpetually unless terminated by Berkeley
+    Lab in accordance with this Agreement.  If you breach any term of
+    this Agreement, and fail to cure such breach within thirty (30)
+    days of the date of written notice, this Agreement shall
+    immediately terminate. Upon such termination, you shall
+    immediately cease using the Software, return to Berkeley Lab, or
+    destroy, all copies of the Software, and provide Berkeley Lab with
+    written certification of your compliance with the foregoing.
+    Termination shall not relieve you from your obligations arising
+    prior to such termination. Notwithstanding any provision of this
+    Agreement to the contrary, Sections 5 through 10 shall survive
+    termination of this Agreement.
+
+9.  EXPORT CONTROLS. You shall observe all applicable United States
+    and foreign laws and regulations (if any) with respect to the
+    export, re-export, diversion or transfer of the Software, related
+    technical data and direct products thereof, including, without
+    limitation, the International Traffic in Arms Regulations (ITAR)
+    and the Export Administration Regulations.
+
+10. NO ENDORSEMENT.  In accordance with California Education Code
+    Section 92000, you shall not use in advertising, publicity or
+    other promotional activities any name, trade name, trademark, or
+    other designation of the University of California, nor shall you
+    so use "Ernest Orlando Lawrence Berkeley National Laboratory" or
+    "United States Department of Energy" (including any contraction,
+    abbreviation, or simulation of any of the foregoing) without
+    Berkeley Lab's prior written consent.
+
+11. GENERAL.  This Agreement shall be governed by the laws of the
+    State of California, excluding its rules governing conflicts of
+    laws.  No provision in either party's purchase orders, or in any
+    other business forms employed by either party will supersede the
+    terms of this Agreement, and no modification or amendment of this
+    Agreement is binding, unless in writing signed by a duly
+    authorized representative of each party.  This Agreement is
+    binding upon and shall inure to the benefit of Berkeley Lab, its
+    successors and assigns.  This Agreement represents the entire
+    understanding of the parties, and supersedes all previous
+    communications, written or oral, relating to the subject of this
+    Agreement. If you have any questions concerning this license,
+    contact Lawrence Berkeley National Laboratory, Technology Transfer
+    Department, One Cyclotron Road, MS 90-1070, Berkeley, CA 94720,
+    Attn: Software Licensing or via e-mail at TTD@lbl.gov.
+
+If you have any questions or feedback concerning this Software,
+contact the Center for Computational Sciences and Engineering,
+Lawrence Berkeley National Laboratory, One Cyclotron Road, MS
+50A-1148, Berkeley, CA 94720 or via email at webmaster@mothra.lbl.gov.
+
+Form rev000928
+
