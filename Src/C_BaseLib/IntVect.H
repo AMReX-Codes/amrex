@@ -1,10 +1,11 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.20 2001-07-31 22:43:18 lijewski Exp $
+// $Id: IntVect.H,v 1.21 2001-10-10 20:12:44 car Exp $
 //
 #include <iosfwd>
 
+#include <ccse-mpi.H>
 #include <SPACE.H>
 #include <Array.H>
 #include <BLassert.H>
@@ -91,6 +92,7 @@ std::istream& operator>> (std::istream& os, IntVect& iv);
 
 class IntVect
 {
+    friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
     //
     //@ManDoc: Construct an IntVect whose components are all zero.

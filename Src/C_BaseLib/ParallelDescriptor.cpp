@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.91 2001-09-27 21:54:13 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.92 2001-10-10 20:12:44 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -1068,3 +1068,87 @@ FORT_BL_PD_ABORT ()
 {
     ParallelDescriptor::Abort();
 }
+
+#ifdef BL_USE_MPI
+template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type()
+{
+    static MPI_Datatype mine(MPI_DATATYPE_NULL);
+    if ( mine == MPI_DATATYPE_NULL )
+    {
+	IntVect iv[2];	// Used to construct the data types
+	MPI_Datatype types[] = {
+	    MPI_LB,
+	    MPI_INT,
+	    MPI_UB};
+	int blocklens[] = { 1, BL_SPACEDIM, 1};
+	MPI_Aint disp[3];
+	int n = 0;
+	BL_MPI_REQUIRE( MPI_Address(&iv[0],      &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[0].vect, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[1],      &disp[n++]) );
+	for ( int i = n-1; i >= 0; i-- )
+	{
+	    disp[i] -= disp[0];
+	}
+	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+    }
+    return mine;
+}
+
+template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type()
+{
+    static MPI_Datatype mine(MPI_DATATYPE_NULL);
+    if ( mine == MPI_DATATYPE_NULL )
+    {
+	IndexType iv[2];	// Used to construct the data types
+	MPI_Datatype types[] = {
+	    MPI_LB,
+	    MPI_UNSIGNED,
+	    MPI_UB};
+	int blocklens[] = { 1, 1, 1};
+	MPI_Aint disp[3];
+	int n = 0;
+	BL_MPI_REQUIRE( MPI_Address(&iv[0],       &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[0].itype, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[1],       &disp[n++]) );
+	for ( int i = n-1; i >= 0; i-- )
+	{
+	    disp[i] -= disp[0];
+	}
+	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+    }
+    return mine;
+}
+
+template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type()
+{
+    static MPI_Datatype mine(MPI_DATATYPE_NULL);
+    if ( mine == MPI_DATATYPE_NULL )
+    {
+	Box iv[2];	// Used to construct the data types
+	MPI_Datatype types[] = {
+	    MPI_LB,
+	    Mpi_typemap<IntVect>::type(),
+	    Mpi_typemap<IntVect>::type(),
+	    Mpi_typemap<IndexType>::type(),
+	    MPI_UB};
+	int blocklens[] = { 1, 1, 1, 1, 1};
+	MPI_Aint disp[5];
+	int n = 0;
+	BL_MPI_REQUIRE( MPI_Address(&iv[0],          &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[0].smallend, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[0].bigend,   &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[0].btype,    &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&iv[1],          &disp[n++]) );
+	for ( int i = n-1; i >= 0; i-- )
+	{
+	    disp[i] -= disp[0];
+	}
+	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
+    }
+    return mine;
+}
+#endif
