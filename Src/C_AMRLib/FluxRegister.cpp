@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.33 1998-05-26 17:08:54 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.34 1998-05-26 22:58:40 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -261,7 +261,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     {
                         Real mult      = fi().isLow() ? -scale : scale;
                         assert(!(fillBoxIdIter == fillBoxId.end()));
-                        FillBoxId fbid = *fillBoxIdIter++;
+                        const FillBoxId& fbid = *fillBoxIdIter++;
                         reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
                         const Real* reg_dat = reg.dataPtr();
@@ -318,7 +318,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         {
                             Real mult      = (fi().isLow() ? -scale : scale);
                             assert(!(fillBoxIdIter == fillBoxId.end()));
-                            FillBoxId fbid = *fillBoxIdIter++;
+                            const FillBoxId& fbid = *fillBoxIdIter++;
                             assert(bndry[fi()].box(k) == fbid.box());
                             reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
@@ -467,7 +467,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         const int* slo  = mfi().loVect();
                         const int* shi  = mfi().hiVect();
                         assert(!(fillBoxIdIter == fillBoxId.end()));
-                        FillBoxId fbid  = *fillBoxIdIter++;
+                        const FillBoxId& fbid  = *fillBoxIdIter++;
                         reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
 			const Real* reg_dat = reg.dataPtr(0);
@@ -510,7 +510,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             const int* slo  = mfi().loVect();
                             const int* shi  = mfi().hiVect();
                             assert(!(fillBoxIdIter == fillBoxId.end()));
-                            FillBoxId fbid  = *fillBoxIdIter++;
+                            const FillBoxId& fbid  = *fillBoxIdIter++;
                             assert(bndry[fi()].box(k) == fbid.box());
                             reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
@@ -622,12 +622,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             if (lobox.ok())
             {
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
-                FillBoxId fbid_mflx = *fbidli_mflx++;
+                const FillBoxId& fbid_mflx = *fbidli_mflx++;
                 mflx_fab.resize(fbid_mflx.box(), numcomp);
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
                 assert(!(fbidli_area == fillBoxId_area.end()));
-                FillBoxId fbid_area = *fbidli_area++;
+                const FillBoxId& fbid_area = *fbidli_area++;
                 area_fab.resize(fbid_area.box(), 1);
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
@@ -652,12 +652,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             if (hibox.ok())
             {
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
-                FillBoxId fbid_mflx = *fbidli_mflx++;
+                const FillBoxId& fbid_mflx = *fbidli_mflx++;
                 mflx_fab.resize(fbid_mflx.box(), numcomp);
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
                 assert(!(fbidli_area == fillBoxId_area.end()));
-                FillBoxId fbid_area = *fbidli_area++;
+                const FillBoxId& fbid_area = *fbidli_area++;
                 area_fab.resize(fbid_area.box(), 1);
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
