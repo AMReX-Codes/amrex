@@ -19,7 +19,6 @@ public:
     enum
     { 
 	N_FACE_GRIDS = 2,
-	// N_EDGE_GRIDS = 2, 
 	N_CORNER_GRIDS = 4,
 	FACEDIM  = 1
     };
@@ -78,6 +77,7 @@ private:
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
     BoxArray em;			// exterior BoxArray
+    Array<int> processorDist;
     int* grid_ref;                      // one for each exterior box
     Box* pf;                            // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];               // numbers of interface boxes
