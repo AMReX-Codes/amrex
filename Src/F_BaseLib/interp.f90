@@ -3,7 +3,7 @@ module interp_module
   use bl_types
   use bl_error_module
   use bl_constants_module
-!  use bc_module
+  use bc_module
 
   implicit none
 
@@ -94,8 +94,8 @@ contains
     real(kind=dp_t), intent(inout) :: crse(-1:,-1:,:)
     real(kind=dp_t), intent(in) :: fvcx(0:)
     real(kind=dp_t), intent(in) :: fvcy(0:)
-    real(kind=dp_t), intent(in) :: cvcx(0:)
-    real(kind=dp_t), intent(in) :: cvcy(0:)
+    real(kind=dp_t), intent(in) :: cvcx(-1:)
+    real(kind=dp_t), intent(in) :: cvcy(-1:)
 
 
     real(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
