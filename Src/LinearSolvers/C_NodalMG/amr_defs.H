@@ -92,7 +92,7 @@ inline const char* mf_centeredness(const MultiFab& m)
     if ( true ) { \
 	double dz = mfnorm_2(d); \
 	if ( ParallelDescriptor::IOProcessor() ) \
-	    debug_out << s << " : Norm[" << mf_centeredness(d) << "," << d.nComp() << "," << d.nGrow() << "]( " #d " ) = " << dz << std::endl; \
+	    debug_out << s << " : Norm[" << d.length() << "," << mf_centeredness(d) << "," << d.nComp() << "," << d.nGrow() << "]( " #d " ) = " << dz << std::endl; \
     } else
 
 
