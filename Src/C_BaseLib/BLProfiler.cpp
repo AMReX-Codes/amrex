@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.20 2001-08-21 22:16:26 car Exp $
+// $Id: BLProfiler.cpp,v 1.21 2001-09-04 16:59:41 car Exp $
 //
 #include <winstd.H>
 
@@ -524,7 +524,8 @@ Profiler::Tag::Tag(const std::string& tag_)
 	Lock<Mutex> lock(profiling_mutex);
 	if ( tagr.find(tag) != tagr.end() )
 	{
-	    BoxLib::Error("name already registred: ");
+	    std::cerr << "name: " << tag_ << " already registered" << std::endl;
+	    BoxLib::Abort();
 	}
 	itag = next_itag++;
 	tagr[tag] = itag;

@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.4 2001-08-21 22:16:26 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.5 2001-09-04 16:59:41 car Exp $
 //
 
 #include <winstd.H>
@@ -57,7 +57,7 @@ do									\
     if ( verbose > 2 )							\
     {									\
 	Lock<Mutex> lock(print_mutex);					\
-	std::cout << "tid(" << (long)(pthread_self()) << "): "		\
+	std::cout << "tid(" << Thread::getID() << "): "		\
 		  << arg << std::endl;					\
     }									\
 }									\
@@ -219,7 +219,7 @@ WorkQueue::add(task* item)
     else if ( numthreads < maxthreads )
     {
 	DPRINTF("Creating new worker");
-	FunctionThread ft(WorkQueue_server, this, Thread::Detached);
+	FunctionThread ft(WorkQueue_server, this, FunctionThread::Detached);
 	numthreads++;
     }
 }
