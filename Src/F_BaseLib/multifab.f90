@@ -429,12 +429,12 @@ contains
   function multifab_conformant_q(a,b) result(r)
     logical :: r
     type(multifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .AND. a%dim == b%dim .AND. a%ng == b%ng .AND. a%nc == b%nc
+    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
   end function multifab_conformant_q
   function imultifab_conformant_q(a,b) result(r)
     logical :: r
     type(imultifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .AND. a%dim == b%dim .AND. a%ng == b%ng .AND. a%nc == b%nc
+    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
   end function imultifab_conformant_q
 
   function multifab_get_layout(mf) result(r)
@@ -1238,11 +1238,15 @@ contains
     type(multifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
     logical, intent(in), optional :: nocomm
+
     integer :: lng
     logical :: lnocomm 
+
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
+
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
+
     if ( lng < 1 ) return
 
     if ( d_fb_fancy ) then
@@ -1254,43 +1258,45 @@ contains
   contains
 
     subroutine easy()
+      real(kind=dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                               :: bxai
+      type(box)                                    :: abx, dbx
+      integer                                      :: i, j, ii, proc
+      integer                                      :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      logical                                      :: nodal(mf%la%lap%dim)
+      integer, parameter                           :: tag = 1101
 
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-      type(box), dimension(MAX_SPACEDIM,2) :: bndry
-      type(box) :: bx, abx
-      integer i, j, ii, fc, proc
-      integer, parameter :: tag = 1101
-      src: do i = 1, mf%nboxes
-         bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
-         trg: do j = 1, mf%nboxes
-            if ( i == j ) cycle trg
-            if ( remote(mf,i) .AND. remote(mf,j) ) cycle trg
-            bx = get_ibox(mf, j)
-            do ii = 1, mf%dim
-               do fc = 1, 2
-                  if ( intersects(bx, bndry(ii,fc)) ) then
-                     abx = intersection(bx, bndry(ii,fc))
-                     if ( local(mf, i) .AND. local(mf, j) ) then
-                        p1 => dataptr(mf, i, abx)
-                        p2 => dataptr(mf, j, abx)
-                        p1 = p2
-                     else if ( .not. lnocomm ) then
-                        if ( local(mf, j) ) then ! must send
-                           p2 => dataptr(mf, j, abx)
-                           proc = get_proc(mf%la, i)
-                           call parallel_send(p2, proc, tag)
-                        else if ( local(mf, i) ) then  ! must recv
-                           p1 => dataptr(mf, i, abx)
-                           proc = get_proc(mf%la,j)
-                           call parallel_recv(p1, proc, tag)
-                        end if
+      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+
+      do i = 1, mf%nboxes
+         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         do j = 1, mf%nboxes
+            if ( remote(mf,i) .and. remote(mf,j) ) cycle
+            do ii = 1, bxai%nboxes
+               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+               if ( .not. empty(abx) ) then
+                dbx = abx
+                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
+                  if ( local(mf,i) .and. local(mf,j) ) then
+                     psrc => dataptr(mf, j, abx)
+                     pdst => dataptr(mf, i, dbx)
+                     pdst = psrc
+                  else if ( .not. lnocomm ) then
+                     if ( local(mf,j) ) then ! must send
+                        psrc => dataptr(mf, j, abx)
+                        proc = get_proc(mf%la, i)
+                        call parallel_send(psrc, proc, tag)
+                     else if ( local(mf,i) ) then  ! must recv
+                        pdst => dataptr(mf, i, dbx)
+                        proc = get_proc(mf%la,j)
+                        call parallel_recv(pdst, proc, tag)
                      end if
                   end if
-               end do
+               end if
             end do
-         end do trg
-      end do src
-
+         end do
+         call destroy(bxai)
+      end do
     end subroutine easy
 
     subroutine fancy()
@@ -1384,20 +1390,23 @@ contains
               sh)
       end do
       if ( d_fb_async) call parallel_wait(sst)
-
     end subroutine fancy
-
   end subroutine multifab_fill_boundary
+
   subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm)
     type(multifab), intent(inout) :: mf
-    integer, intent(in) :: c, nc
+    integer, intent(in)           :: c, nc
     integer, intent(in), optional :: ng
     logical, intent(in), optional :: nocomm
+
     integer :: lng
     logical :: lnocomm 
+
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
+
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
+
     if ( lng < 1 ) return
 
     if ( d_fb_fancy ) then
@@ -1409,43 +1418,45 @@ contains
   contains
 
     subroutine easy()
+      real(kind=dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                               :: bxai
+      type(box)                                    :: abx, dbx
+      integer                                      :: i, j, ii, proc
+      integer                                      :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      logical                                      :: nodal(mf%la%lap%dim)
+      integer, parameter                           :: tag = 1101
 
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-      type(box), dimension(MAX_SPACEDIM,2) :: bndry
-      type(box) :: bx, abx
-      integer :: i, j, ii, fc, proc
-      integer, parameter :: tag = 1101
-      src: do i = 1, mf%nboxes
-         bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
-         trg: do j = 1, mf%nboxes
-            if ( i == j ) cycle trg
-            if ( remote(mf,i) .AND. remote(mf,j) ) cycle trg
-            bx = get_ibox(mf, j)
-            do ii = 1, mf%dim
-               do fc = 1, 2
-                  if ( intersects(bx, bndry(ii,fc)) ) then
-                     abx = intersection(bx, bndry(ii,fc))
-                     if ( local(mf, i) .AND. local(mf, j) ) then
-                        p1 => dataptr(mf, i, abx, c, nc)
-                        p2 => dataptr(mf, j, abx, c, nc)
-                        p1 = p2
-                     else if ( .not. lnocomm ) then
-                        if ( local(mf, j) ) then ! must send
-                           p2 => dataptr(mf, j, abx, c, nc)
-                           proc = get_proc(mf%la, i)
-                           call parallel_send(p2, proc, tag)
-                        else if ( local(mf, i) ) then  ! must recv
-                           p1 => dataptr(mf, i, abx, c, nc)
-                           proc = get_proc(mf%la,j)
-                           call parallel_recv(p1, proc, tag)
-                        end if
+      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+
+      do i = 1, mf%nboxes
+         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         do j = 1, mf%nboxes
+            if ( remote(mf,i) .and. remote(mf,j) ) cycle
+            do ii = 1, bxai%nboxes
+               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+               if ( .not. empty(abx) ) then
+                dbx = abx
+                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
+                  if ( local(mf,i) .and. local(mf,j) ) then
+                     psrc => dataptr(mf, j, abx, c, nc)
+                     pdst => dataptr(mf, i, dbx, c, nc)
+                     pdst = psrc
+                  else if ( .not. lnocomm ) then
+                     if ( local(mf,j) ) then ! must send
+                        psrc => dataptr(mf, j, abx, c, nc)
+                        proc = get_proc(mf%la, i)
+                        call parallel_send(psrc, proc, tag)
+                     else if ( local(mf,i) ) then  ! must recv
+                        pdst => dataptr(mf, i, dbx, c, nc)
+                        proc = get_proc(mf%la,j)
+                        call parallel_recv(pdst, proc, tag)
                      end if
                   end if
-               end do
+               end if
             end do
-         end do trg
-      end do src
-
+         end do
+         call destroy(bxai)
+      end do
     end subroutine easy
 
     subroutine fancy()
@@ -1544,12 +1555,15 @@ contains
 
   subroutine imultifab_fill_boundary(mf, ng, nocomm)
     type(imultifab), intent(inout) :: mf
-    integer, intent(in), optional :: ng
-    logical, intent(in), optional :: nocomm
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm
+
     integer :: lng
     logical :: lnocomm
+
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
+
     if ( lng > mf%ng ) &
          call bl_error("IMULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
@@ -1563,43 +1577,45 @@ contains
   contains
 
     subroutine easy()
+      integer, dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                       :: bxai
+      type(box)                            :: abx, dbx
+      integer                              :: i, j, ii, proc
+      integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      logical                              :: nodal(mf%la%lap%dim)
+      integer, parameter                   :: tag = 1101
 
-      integer, dimension(:,:,:,:), pointer :: p1, p2
-      type(box), dimension(MAX_SPACEDIM,2) :: bndry
-      type(box) :: bx, abx
-      integer :: i, j, ii, fc, proc
-      integer, parameter :: tag = 1101
-      src: do i = 1, mf%nboxes
-         bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
-         trg: do j = 1, mf%nboxes
-            if ( i == j ) cycle trg
-            if ( remote(mf,i) .AND. remote(mf,j) ) cycle trg
-            bx = get_ibox(mf, j)
-            do ii = 1, mf%dim
-               do fc = 1, 2
-                  if ( intersects(bx, bndry(ii,fc)) ) then
-                     abx = intersection(bx, bndry(ii,fc))
-                     if ( local(mf, i) .AND. local(mf, j) ) then
-                        p1 => dataptr(mf, i, abx)
-                        p2 => dataptr(mf, j, abx)
-                        p1 = p2
-                     else if ( .not. lnocomm ) then
-                        if ( local(mf, j) ) then ! must send
-                           p2 => dataptr(mf, j, abx)
-                           proc = get_proc(mf%la, i)
-                           call parallel_send(p2, proc, tag)
-                        else if ( local(mf, i) ) then  ! must recv
-                           p1 => dataptr(mf, i, abx)
-                           proc = get_proc(mf%la,j)
-                           call parallel_recv(p1, proc, tag)
-                        end if
+      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+
+      do i = 1, mf%nboxes
+         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         do j = 1, mf%nboxes
+            if ( remote(mf,i) .and. remote(mf,j) ) cycle
+            do ii = 1, bxai%nboxes
+               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+               if ( .not. empty(abx) ) then
+                dbx = abx
+                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
+                  if ( local(mf,i) .and. local(mf,j) ) then
+                     psrc => dataptr(mf, j, abx)
+                     pdst => dataptr(mf, i, dbx)
+                     pdst = psrc
+                  else if ( .not. lnocomm ) then
+                     if ( local(mf,j) ) then ! must send
+                        psrc => dataptr(mf, j, abx)
+                        proc = get_proc(mf%la, i)
+                        call parallel_send(psrc, proc, tag)
+                     else if ( local(mf,i) ) then  ! must recv
+                        pdst => dataptr(mf, i, dbx)
+                        proc = get_proc(mf%la,j)
+                        call parallel_recv(pdst, proc, tag)
                      end if
                   end if
-               end do
+               end if
             end do
-         end do trg
-      end do src
-
+         end do
+         call destroy(bxai)
+      end do
     end subroutine easy
 
     subroutine fancy()
@@ -1687,18 +1703,20 @@ contains
               sh)
       end do
       if ( i_fb_async) call parallel_wait(sst)
-
     end subroutine fancy
-
   end subroutine imultifab_fill_boundary
+
   subroutine lmultifab_fill_boundary(mf, ng, nocomm)
     type(lmultifab), intent(inout) :: mf
-    integer, intent(in), optional :: ng
-    logical, intent(in), optional :: nocomm
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm
+
     integer :: lng
     logical :: lnocomm
+
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
+
     if ( lng > mf%ng ) &
          call bl_error("LMULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
@@ -1712,43 +1730,45 @@ contains
   contains
 
     subroutine easy()
+      logical, dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                       :: bxai
+      type(box)                            :: abx, dbx
+      integer                              :: i, j, ii, proc
+      integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      logical                              :: nodal(mf%la%lap%dim)
+      integer, parameter                   :: tag = 1101
 
-      logical, dimension(:,:,:,:), pointer :: p1, p2
-      type(box), dimension(MAX_SPACEDIM,2) :: bndry
-      type(box) :: bx, abx
-      integer :: i, j, ii, fc, proc
-      integer, parameter :: tag = 1101
-      src: do i = 1, mf%nboxes
-         bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
-         trg: do j = 1, mf%nboxes
-            if ( i == j ) cycle trg
-            if ( remote(mf,i) .AND. remote(mf,j) ) cycle trg
-            bx = get_ibox(mf, j)
-            do ii = 1, mf%dim
-               do fc = 1, 2
-                  if ( intersects(bx, bndry(ii,fc)) ) then
-                     abx = intersection(bx, bndry(ii,fc))
-                     if ( local(mf, i) .AND. local(mf, j) ) then
-                        p1 => dataptr(mf, i, abx)
-                        p2 => dataptr(mf, j, abx)
-                        p1 = p2
-                     else if ( .not. lnocomm ) then
-                        if ( local(mf, j) ) then ! must send
-                           p2 => dataptr(mf, j, abx)
-                           proc = get_proc(mf%la, i)
-                           call parallel_send(p2, proc, tag)
-                        else if ( local(mf, i) ) then  ! must recv
-                           p1 => dataptr(mf, i, abx)
-                           proc = get_proc(mf%la,j)
-                           call parallel_recv(p1, proc, tag)
-                        end if
-                     end  if
+      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+
+      do i = 1, mf%nboxes
+         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         do j = 1, mf%nboxes
+            if ( remote(mf,i) .and. remote(mf,j) ) cycle
+            do ii = 1, bxai%nboxes
+               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+               if ( .not. empty(abx) ) then
+                dbx = abx
+                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
+                  if ( local(mf,i) .and. local(mf,j) ) then
+                     psrc => dataptr(mf, j, abx)
+                     pdst => dataptr(mf, i, dbx)
+                     pdst = psrc
+                  else if ( .not. lnocomm ) then
+                     if ( local(mf,j) ) then ! must send
+                        psrc => dataptr(mf, j, abx)
+                        proc = get_proc(mf%la, i)
+                        call parallel_send(psrc, proc, tag)
+                     else if ( local(mf,i) ) then  ! must recv
+                        pdst => dataptr(mf, i, dbx)
+                        proc = get_proc(mf%la,j)
+                        call parallel_recv(pdst, proc, tag)
+                     end if
                   end if
-               end do
+               end if
             end do
-         end do trg
-      end do src
-
+         end do
+         call destroy(bxai)
+      end do
     end subroutine easy
 
     subroutine fancy()
@@ -1880,7 +1900,7 @@ contains
           end if
           abx = intersection(ibx, jbx)
           if ( .not. empty(abx) ) then
-             if ( local(mf, i) .AND. local(mf, j) ) then
+             if ( local(mf, i) .and. local(mf, j) ) then
                 p1 => dataptr(mf, i, abx)
                 p2 => dataptr(mf, j, abx)
                 if ( present(filter) ) then
@@ -1946,7 +1966,7 @@ contains
           end if
           abx = intersection(ibx, jbx)
           if ( .not. empty(abx) ) then
-             if ( local(mf, i) .AND. local(mf, j) ) then
+             if ( local(mf, i) .and. local(mf, j) ) then
                 p1 => dataptr(mf, i, abx)
                 p2 => dataptr(mf, j, abx)
                 if ( present(filter) ) then
