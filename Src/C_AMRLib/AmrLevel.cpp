@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.74 2000-08-02 16:06:32 car Exp $
+// $Id: AmrLevel.cpp,v 1.75 2000-08-23 20:16:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1379,7 +1379,7 @@ AmrLevel::okToRegrid ()
 }
 
 void
-AmrLevel::setPlotVariables()
+AmrLevel::setPlotVariables ()
 {
     ParmParse pp("amr");
 
@@ -1394,21 +1394,18 @@ AmrLevel::setPlotVariables()
             pp.get("plot_vars", nm, i);
 
             if (nm == "ALL") 
-	    {
                 parent->fillStatePlotVarList();
-	    } 
             else if (nm == "NONE")
-	    {
                 parent->clearStatePlotVarList();
-	    }
             else
-	    {
                 parent->addStatePlotVar(nm);
-	    }
         }
     }
     else 
     {
+        //
+        // The default is to add them all.
+        //
         parent->fillStatePlotVarList();
     }
   
@@ -1423,21 +1420,18 @@ AmrLevel::setPlotVariables()
             pp.get("derive_plot_vars", nm, i);
 
             if (nm == "ALL") 
-	    {
                 parent->fillDerivePlotVarList();
-	    } 
             else if (nm == "NONE")
-	    {
                 parent->clearDerivePlotVarList();
-	    }
             else
-	    {
                 parent->addDerivePlotVar(nm);
-	    }
         }
     }
     else 
     {
+        //
+        // The default is to add none of them.
+        //
         parent->clearDerivePlotVarList();
     }
 }

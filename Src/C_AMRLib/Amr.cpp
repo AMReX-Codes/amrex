@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.113 2000-08-17 17:31:00 marc Exp $
+// $Id: Amr.cpp,v 1.114 2000-08-23 20:16:29 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -394,12 +394,11 @@ Amr::isStatePlotVar (const aString& name)
     for (ListIterator<aString> li(state_plot_vars); li; ++li)
         if (li() == name)
             return true;
-  
     return false;
 }
 
 void
-Amr::fillStatePlotVarList()
+Amr::fillStatePlotVarList ()
 {
     state_plot_vars.clear();
     const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
@@ -410,7 +409,7 @@ Amr::fillStatePlotVarList()
 }
 
 void
-Amr::clearStatePlotVarList()
+Amr::clearStatePlotVarList ()
 {
     state_plot_vars.clear();
 }
@@ -418,21 +417,14 @@ Amr::clearStatePlotVarList()
 void
 Amr::addStatePlotVar (const aString& name)
 {
-    if (state_plot_vars.isEmpty())
-    {
+    if (!isStatePlotVar(name))
         state_plot_vars.append(name);
-    }
-    else 
-    {
-        if (isDerivePlotVar(name) == false)
-            state_plot_vars.append(name);
-    }
 }
 
 void
 Amr::deleteStatePlotVar (const aString& name)
 {
-    if (state_plot_vars.isNotEmpty())
+    if (isStatePlotVar(name))
         state_plot_vars.remove(name);
 }
 
@@ -442,12 +434,11 @@ Amr::isDerivePlotVar (const aString& name)
     for (ListIterator<aString> li(derive_plot_vars); li; ++li)
         if (li() == name)
             return true;
-  
     return false;
 }
 
 void 
-Amr::fillDerivePlotVarList()
+Amr::fillDerivePlotVarList ()
 {
     derive_plot_vars.clear();
     DeriveList& derive_lst = AmrLevel::get_derive_lst();
@@ -458,7 +449,7 @@ Amr::fillDerivePlotVarList()
 }
 
 void
-Amr::clearDerivePlotVarList()
+Amr::clearDerivePlotVarList ()
 {
     derive_plot_vars.clear();
 }
@@ -466,21 +457,14 @@ Amr::clearDerivePlotVarList()
 void
 Amr::addDerivePlotVar (const aString& name)
 {
-    if (derive_plot_vars.isEmpty())
-    {
+    if (!isDerivePlotVar(name))
         derive_plot_vars.append(name);
-    }
-    else 
-    {
-        if (isDerivePlotVar(name) == false)
-            derive_plot_vars.append(name);
-    }
 }
 
 void
 Amr::deleteDerivePlotVar (const aString& name)
 {
-    if (derive_plot_vars.isNotEmpty())
+    if (isDerivePlotVar(name))
         derive_plot_vars.remove(name);
 }
 
