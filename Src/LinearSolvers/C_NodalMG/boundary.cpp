@@ -191,7 +191,13 @@ mixed_boundary_class::image (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][0];
 
-            if (t == refWall || t == inflow || t == outflow) 
+	    if (t == inflow && idim == flowdim)
+	    {
+		// FIXME ME MIKE
+		// This was in the pre-optimized code, it seems to make
+		// little sense (see other if block below).
+	    }
+	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(idim, tdomain.smallEnd(idim) + idomain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	    }
@@ -204,6 +210,8 @@ mixed_boundary_class::image (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][1];
 
+	    // FIXME
+	    // There is no correspondence with above???
 	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(idim, tdomain.bigEnd(idim) + idomain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
@@ -299,7 +307,11 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 	    }
 	}
     }
-    
+
+// cout<< "reg = " << region;
+// cout<< " img = " << img;
+// cout<< " src = " << src.box() << endl;
+
     if (idir != 0) 
     {
         //
