@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile.tCArena,v 1.2 1998-03-26 22:24:16 marc Exp $
+# $Id: GNUmakefile.tCArena,v 1.3 1998-08-21 18:06:08 car Exp $
 #
 
 #
@@ -10,37 +10,11 @@ COMP         = KCC
 DIM          = 2
 PRECISION    = DOUBLE
 DEBUG        = TRUE
-USE_BSP      = FALSE
 
 PBOXLIB_HOME = ..
 include $(GUTHAMR_HOME)/mk/Make.defs
 
-#
-# What is the type of the BSP device?
-#
-ifeq ($(USE_BSP),TRUE)
-BSP_DEVICE = SHMEM_SYSV
-endif
-
 #LIBRARIES += -lbox$(optionsSuffix)
-
-#
-# BSP parallel locations
-#
-ifeq ($(USE_BSP),TRUE)
-DEFINES += -DBL_USE_BSP
-BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
-INCLUDE_LOCATIONS += $(BSP_HOME)/include
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
-#LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-#
-# exception library (for newest bsplib)
-#
-LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
-LIBRARIES += -lexc
-endif
 
 #
 # Base name of each of the executables we want to build.

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.41 1998-08-20 23:53:47 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.42 1998-08-21 18:09:26 car Exp $
 //
 
 #include <Utility.H>
@@ -394,6 +394,7 @@ void ParallelDescriptor::StartParallel(int, int*, char***) {}
 void ParallelDescriptor::EndParallel() {}
 
 void ParallelDescriptor::Abort () { ::abort(); }
+void ParallelDescriptor::Abort (int) { ::abort(); }
 void ParallelDescriptor::Barrier () {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
