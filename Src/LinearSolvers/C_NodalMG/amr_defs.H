@@ -1,28 +1,6 @@
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
-#if (defined BL_IRIX || defined BL_OSF1 || \
-     defined BL_Linux || defined BL_ARCH_CRAY)
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif
-
-#ifndef BL_OSF1
-#  include <libc.h>
-#endif
-
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
-#ifndef assert
-#  include <assert.h>
-#endif
-#include <math.h>
-#ifdef SYSV
-#  include <time.h>
-#endif
-
 // includes IntVect.H, IndexType.H, Real.H, FArrayBox.H, BoxArray.H etc.
 #include <MultiFab.H>
 

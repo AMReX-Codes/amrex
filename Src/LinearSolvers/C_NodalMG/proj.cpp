@@ -1,5 +1,7 @@
 #include <new>
+#ifndef WIN32
 using std::set_new_handler;
+#endif
 
 #if	!defined( UNICOS ) && 0
 #  define USE_GRAPHICS
@@ -11,7 +13,22 @@ using std::set_new_handler;
 
 #include "hg_projector.H"
 
-void malloc_info();
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <ctime>
+using std::fstream;
+using std::ios;
+using std::setprecision;
+#else
+#include <iostream.h>
+#include <iomanip.h>
+#include <fstream.h>
+#include <time.h>
+#endif
+
+//void malloc_info();
 
 #if (BL_SPACEDIM == 2)
 /*
@@ -30,7 +47,9 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 main(int argc, char **argv)
 {
+#ifndef WIN32
   set_new_handler(Utility::OutOfMemory);
+#endif
   StartParallel(1);
 #ifdef USE_GRAPHICS
   gopen(5);
@@ -66,6 +85,7 @@ main(int argc, char **argv)
   gclose();
 #endif
   EndParallel();
+  return 0;
 }
 
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,

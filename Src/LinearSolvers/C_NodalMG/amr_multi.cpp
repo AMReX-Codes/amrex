@@ -14,6 +14,10 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
   d.resize(ilev);
   for (ilev = 0; ilev < m.length(); ilev++) {
     is >> b >> igrid;
+    if (is.fail()) {
+	cerr << "failed to read box\n";
+	abort();
+    }
     d.set(ilev, b);
     if (ilev > 0) {
       r.set(ilev-1, d[ilev].length() / d[ilev-1].length());
