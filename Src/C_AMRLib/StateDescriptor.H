@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.16 2000-01-28 01:14:05 sstanley Exp $
+// $Id: StateDescriptor.H,v 1.17 2000-06-01 21:28:57 lijewski Exp $
 //
 
 #include <Array.H>
@@ -112,7 +112,8 @@ public:
                      int           ident,
                      int           nextra,
                      int           num_comp,
-                     Interpolater* interp);
+                     Interpolater* interp,
+                     bool          extrap = false);
     //
     //@ManDoc: The destructor.
     //
@@ -125,7 +126,8 @@ public:
                  int           ident,
                  int           nextra,
                  int           num_comp,
-                 Interpolater* interp);
+                 Interpolater* interp,
+                 bool          extrap = false);
     //
     //@ManDoc: Sets details of `comp' component.
     //
@@ -230,18 +232,23 @@ public:
     //@ManDoc: Returns contiguous ranges of comps with identical interpolaters.
     //
     vector< pair<int,int> > sameInterps (int scomp, int ncomp) const;
+    //
+    //@ManDoc: Can extrapolate in time.
+    //
+    bool extrap () const { return m_extrap; }
 
 protected:
 
-    IndexType         type;    // Cell centered, node centered ...
-    TimeCenter        t_type;  // Temporal centering
-    int               id;      // Unique id
-    int               ncomp;   // Number of components
-    int               ngrow;   // Grow factor
-    Interpolater*     mapper;  // Default interpolator
-    Array<aString>    names;   // Printable names of components
-    Array<BCRec>      bc;      // Array of bndry types for entire level
-    PArray<BndryFunc> bc_func; // PArray of pointers to bndry fill functions
+    IndexType         type;     // Cell centered, node centered ...
+    TimeCenter        t_type;   // Temporal centering
+    int               id;       // Unique id
+    int               ncomp;    // Number of components
+    int               ngrow;    // Grow factor
+    Interpolater*     mapper;   // Default interpolator
+    bool              m_extrap; // Can extrapolate in time?
+    Array<aString>    names;    // Printable names of components
+    Array<BCRec>      bc;       // Array of bndry types for entire level
+    PArray<BndryFunc> bc_func;  // PArray of pointers to bndry fill functions
     //
     // If mapper_comp[icomp] != 0, that map is used instead of mapper
     // when interpolating icomp; otherwise, mapper is used.
@@ -296,7 +303,8 @@ public:
                         StateDescriptor::TimeCenter    ttyp,
                         int                            nextra,
                         int                            num_comp,
-                        Interpolater*                  interp);
+                        Interpolater*                  interp,
+                        bool                           extrap = false);
     //
     //@ManDoc: Calls resetComponentBCs() on StateDescriptor at index `indx'.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.69 2000-05-31 17:44:24 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.70 2000-06-01 21:28:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -421,6 +421,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     const AmrLevel&   topLevel   = amrLevels[m_amrlevel.level];
     const Box&        topPDomain = topLevel.state[m_index].getDomain();
     const IndexType   boxType    = m_leveldata.boxArray()[0].ixType();
+    const bool        extrap     = AmrLevel::desc_lst[m_index].extrap();
     //
     // Check that are the interpolaters are identical.
     //
@@ -586,7 +587,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                          m_time,
                                          m_scomp,
                                          0,
-                                         m_ncomp);
+                                         m_ncomp,
+                                         extrap);
 
                 unfillableThisLevel.catenate(tempUnfillable);
             }
@@ -776,6 +778,7 @@ FillPatchIteratorHelper::isValid ()
     if (!MultiFabIterator::isValid()) return false;
 
     const bool FixUpCorners = NeedToTouchUpPhysCorners(m_amrlevel.geom);
+    const bool extrap       = AmrLevel::desc_lst[m_index].extrap();
 
     PArray<AmrLevel>& amrLevels = m_amrlevel.parent->getAmrLevels();
     //
@@ -817,7 +820,8 @@ FillPatchIteratorHelper::isValid ()
                                       m_time,
                                       0,
                                       0,
-                                      m_ncomp);
+                                      m_ncomp,
+                                      extrap);
         }
     }
     //

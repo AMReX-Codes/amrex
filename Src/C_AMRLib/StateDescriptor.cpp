@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.12 1999-08-18 21:53:02 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.13 2000-06-01 21:28:57 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -21,11 +21,13 @@ DescriptorList::addDescriptor (int                         indx,
                                StateDescriptor::TimeCenter ttyp,
                                int                         nextra,
                                int                         num_comp, 
-                               Interpolater*               interp)
+                               Interpolater*               interp,
+                               bool                        extrap)
 {
     if (indx >= desc.length())
         desc.resize(indx+1);
-    desc.set(indx, new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp));
+    desc.set(indx,
+             new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap));
 }  
 
 StateDescriptor::StateDescriptor ()
@@ -34,6 +36,7 @@ StateDescriptor::StateDescriptor ()
     ncomp(0),
     ngrow(0),
     mapper(0),
+    m_extrap(false),
     bc_func(PArrayManage),
     t_type(Point)
 {}
@@ -43,7 +46,8 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   int                         ident,
                                   int                         nextra, 
                                   int                         num_comp,
-                                  Interpolater*               interp)
+                                  Interpolater*               interp,
+                                  bool                        extrap)
     :
     type(btyp),
     t_type(ttyp),
@@ -51,6 +55,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     ngrow(nextra),
     ncomp(num_comp),
     mapper(interp),
+    m_extrap(extrap),
     bc_func(PArrayManage)
 {
     BL_ASSERT (num_comp > 0);
@@ -74,14 +79,16 @@ StateDescriptor::define (IndexType                   btyp,
                          int                         ident,
                          int                         nextra,
                          int                         num_comp,
-                         Interpolater*               interp) 
+                         Interpolater*               interp,
+                         bool                        extrap) 
 {
-    type   = btyp;
-    t_type = ttyp;
-    id     = ident;
-    ngrow  = nextra;
-    ncomp  = num_comp;
-    mapper = interp;
+    type     = btyp;
+    t_type   = ttyp;
+    id       = ident;
+    ngrow    = nextra;
+    ncomp    = num_comp;
+    mapper   = interp;
+    m_extrap = extrap;
 
     BL_ASSERT (num_comp > 0);
    
@@ -111,8 +118,8 @@ StateDescriptor::setComponent (int                               comp,
     if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
     {
         BL_ASSERT(comp >= max_map_start_comp_ &&
-               comp <= min_map_end_comp_   &&
-               min_map_end_comp_ < ncomp);
+                  comp <= min_map_end_comp_   &&
+                  min_map_end_comp_ < ncomp);
         max_map_start_comp[comp] = max_map_start_comp_;
         min_map_end_comp[comp]   = min_map_end_comp_;
     }
@@ -194,22 +201,28 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     // Now fill the slots.
     //
     int imap             = 0;
+
     if (mapper_comp[start_comp])
-        maps[imap]         = mapper_comp[start_comp];
-    else 
-        maps[imap]         = (Interpolater *) default_map;
+    {
+        maps[imap] = mapper_comp[start_comp];
+    }
+    else
+    {
+        maps[imap] = (Interpolater *) default_map;
+    }
 
     icomp                = start_comp+1;
     map_start_comp[imap] = start_comp;
     map_num_comp[imap]   = 1;
-    
     min_end_comp[imap]   = min_map_end_comp[start_comp];
     max_start_comp[imap] = max_map_start_comp[start_comp];
 
-    while (icomp<start_comp+num_comp)
+    while (icomp < start_comp+num_comp)
     {
         Interpolater* mapper_icomp = mapper_comp[icomp];
-        if (!mapper_icomp) mapper_icomp = (Interpolater *) default_map;
+
+        if (!mapper_icomp)
+            mapper_icomp = (Interpolater *) default_map;
 
         if (maps[imap] != mapper_icomp)
         {
@@ -241,11 +254,11 @@ StateDescriptor::cleanUpMaps (Interpolater**& maps,
                               int*&           max_start_comp,
                               int*&           min_end_comp) const
 {
-    delete maps;
-    delete map_start_comp;
-    delete map_num_comp;
-    delete max_start_comp;
-    delete min_end_comp;
+    delete [] maps;
+    delete [] map_start_comp;
+    delete [] map_num_comp;
+    delete [] max_start_comp;
+    delete [] min_end_comp;
 }
 
 bool
