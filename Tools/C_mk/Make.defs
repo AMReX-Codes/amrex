@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.57 2002-09-13 14:00:47 car Exp $
+# Make.defs $Id: Make.defs,v 1.58 2003-01-02 14:59:30 car Exp $
 #
 
 #
@@ -182,6 +182,7 @@ ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -O
     CXXDEBF    += -g
+    CXXOPTF    += -g
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25

@@ -47,19 +47,25 @@ ifeq ($(FCOMP),PGI)
 else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
+# FDEBF += -u
   FDEBF += -g
+  FDEBF += $(INTEL_EXTRA_DEBUG_FLAGS)
 # FDEBF += -CB
 # FDEBF += -CU
   FOPTF += -g
   FOPTF += -O3
+  FOPTF += $(INTEL_EXTRA_OPT_FLAGS)
   fC   := $(FC)
+# fDEBF += -u
   fDEBF += -g
 # fDEBF += -CB
 # fDEBF += -CU
   fDEBF += -w
+  fDEBF += $(INTEL_EXTRA_DEBUG_FLAGS)
   fOPTF += -g
   fOPTF += -O3
   fOPTF += -w
+  fOPTF += $(INTEL_EXTRA_OPT_FLAGS)
   override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
   ifeq ($(IFC_MAJOR_VERSION),7)
       LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
