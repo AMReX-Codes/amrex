@@ -1,5 +1,9 @@
 #ifndef _FLUXREG_F_H_
-#define _FLUXREG_F_H_  "%W% %G%"
+#define _FLUXREG_F_H_
+
+/*
+** $Id: FLUXREG_F.H,v 1.4 1997-12-14 23:34:28 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_FRCRSEINIT  frcrseinit
@@ -34,7 +38,6 @@
 
 extern "C"
 {
-
     void FORT_FRCRSEINIT (Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
                           const Real* flx, ARLIM_P(flo), ARLIM_P(fhi),
                           const int* lo, const int* hi,
@@ -80,4 +83,4 @@ extern "C"
 };
 #endif
 
-#endif
+#endif /*_FLUXREG_F_H_*/

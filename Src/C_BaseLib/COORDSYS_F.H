@@ -1,5 +1,9 @@
 #ifndef _COORDSYS_F_H_
-#define _COORDSYS_F_H_  
+#define _COORDSYS_F_H_
+
+/*
+** $Id: COORDSYS_F.H,v 1.3 1997-12-14 23:34:14 lijewski Exp $
+*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_SETVOL      setvol
@@ -20,7 +24,8 @@
 
 #include "ArrayLim.H"
 
-  extern "C" {
+extern "C"
+{
      void FORT_SETVOL (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
                        const Real* offset,
                        const Real* dx, const int* coord);
@@ -36,8 +41,8 @@
                         const Real* offset,
                         const Real* dx, const int* dir,
                         const int* coord);
-  };
+};
 
 #endif
 
-#endif
+#endif /*_COORDSYS_F_H_*/
