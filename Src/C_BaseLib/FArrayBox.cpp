@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.16 1998-08-14 16:28:19 car Exp $
+// $Id: FArrayBox.cpp,v 1.17 1998-08-14 16:36:20 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,7 +18,6 @@ using std::cerr;
 using std::setw;
 using std::setprecision;
 using std::ios;
-using std::numeric_limits;
 #else
 #include <stdlib.h>
 #include <iostream.h>
@@ -193,28 +192,27 @@ FArrayBox::FArrayBox (const Box& b,
     setVal(FLT_QNAN);
 #endif
 #elif defined(BL_USE_NEW_HFILES)
-    if ( numeric_limits<Real>::has_quiet_NaN )
-	setVal( numeric_limits<Real>::quiet_NaN() );
+    if ( std::numeric_limits<Real>::has_quiet_NaN )
+	setVal( std::numeric_limits<Real>::quiet_NaN() );
 #endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
 }
 
-#if !defined(NDEBUG) && defined(BL_OSF1)
 void
 FArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<Real>::resize(b,N);
-
+#if !defined(NDEBUG) && defined(BL_OSF1)
 #ifdef BL_USE_DOUBLE
     setVal(DBL_QNAN);
 #else
     setVal(FLT_QNAN);
 #endif
-}
 #elif defined(BL_USE_NEW_HFILES)
-    if ( numeric_limits<Real>::has_quiet_NaN )
-	setVal( numeric_limits<Real>::quiet_NaN() );
+    if ( std::numeric_limits<Real>::has_quiet_NaN )
+	setVal( std::numeric_limits<Real>::quiet_NaN() );
 #endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
+}
 
 void
 FArrayBox::setFormat (FABio::Format fmt)
