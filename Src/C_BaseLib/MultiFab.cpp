@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.60 2001-07-21 17:37:10 car Exp $
+// $Id: MultiFab.cpp,v 1.61 2001-07-22 19:38:17 car Exp $
 //
 #include <winstd.H>
 
@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 #include <list>
+#include <limits>
 
 #include <BLassert.H>
 #include <MultiFab.H>
@@ -154,11 +155,7 @@ MultiFab::min (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef  BL_USE_FLOAT
-    Real mn = FLT_MAX;
-#else
-    Real mn = DBL_MAX;
-#endif
+    Real mn = std::numeric_limits<Real>::max();
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -177,11 +174,7 @@ MultiFab::min (const Box& region,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef  BL_USE_FLOAT
-    Real mn = FLT_MAX;
-#else
-    Real mn = DBL_MAX;
-#endif
+    Real mn = std::numeric_limits<Real>::max();
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -202,11 +195,7 @@ MultiFab::max (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef  BL_USE_FLOAT
-    Real mn = -FLT_MAX;
-#else
-    Real mn = -DBL_MAX;
-#endif
+    Real mn = -std::numeric_limits<Real>::max();
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -225,11 +214,7 @@ MultiFab::max (const Box& region,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef  BL_USE_FLOAT
-    Real mn = -FLT_MAX;
-#else
-    Real mn = -DBL_MAX;
-#endif
+    Real mn = -std::numeric_limits<Real>::max();
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {

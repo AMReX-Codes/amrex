@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.10 2001-07-22 18:52:16 car Exp $
+// $Id: BLProfiler.cpp,v 1.11 2001-07-22 19:38:15 car Exp $
 //
 
 #include <winstd.H>
@@ -583,6 +583,9 @@ Profiler::clean_name(const std::string& str)
 void
 Profiler::Finalize()
 {
+#ifndef BL_PROFILING
+    return;
+#endif
     // Try to measure overhead:
     for ( int i = 0; i < 100; ++i )
     {

@@ -1,8 +1,8 @@
 //
-// $Id: Box.cpp,v 1.16 2001-07-19 20:02:44 lijewski Exp $
+// $Id: Box.cpp,v 1.17 2001-07-22 19:38:16 car Exp $
 //
 
-#include <climits>
+#include <limits>
 
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -495,7 +495,7 @@ Box::numPtsOK (long& N) const
             N = 0;
             return true;
         }
-        else if (N <= LONG_MAX/length(i))
+        else if (N <= std::numeric_limits<long>::max()/length(i))
         {
             N *= length(i);
         }
@@ -536,7 +536,7 @@ Box::volumeOK (long& N) const
             N = 0;
             return true;
         }
-        else if (N <= LONG_MAX/diff)
+        else if (N <= std::numeric_limits<long>::max()/diff)
         {
             N *= diff;
         }
