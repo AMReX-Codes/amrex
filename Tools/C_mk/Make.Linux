@@ -1,0 +1,16 @@
+# Make for Linux
+
+ifeq ($(COMP),KCC)
+CXX      = KCC
+CXXOPTF += -O3 +K3 -g3
+CXXDEBF += +K0
+FULLWARN := --strict_warnings
+override XTRADEFS += -DBL_USE_NEW_HFILES
+endif
+
+FC  = f77 -extend_source -fno-second-underscore
+CPP    = gcc -E -x c++
+FDEBF += -g
+
+
+LIBRARIES +=  -lf2c -lm
