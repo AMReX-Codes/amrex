@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.12 2001-09-04 16:59:41 car Exp $
+// $Id: BLThread.cpp,v 1.13 2001-09-06 22:49:19 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -470,6 +470,15 @@ Thread::exit(void* st)
     pthread_exit(st);
 }
 
+int
+Thread::getID()
+{
+    //
+    // TODO -- fix this !!!
+    //
+    return 0;
+}
+
 void
 Thread::yield()
 {
@@ -506,18 +515,6 @@ Thread::setCancelState(CancelState state)
     return result;
 }
 
-void
-Thread::testcancel()
-{
-    pthread_testcancel();
-}
-
-void
-Thread::cancel()
-{
-    THREAD_ASSERT( m_status == Running );
-    THREAD_REQUIRE( pthread_cancel(m_impl->m_tid) );
-}
 #endif
 
 
