@@ -2,7 +2,7 @@
 #define _FLUXREG_F_H_
 
 /*
-** $Id: FLUXREG_F.H,v 1.4 1997-12-14 23:34:28 lijewski Exp $
+** $Id: FLUXREG_F.H,v 1.5 1998-04-07 15:52:23 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -80,7 +80,7 @@ extern "C"
                          const int * lo, const int * hi,
                          const int * numcomp, const Real * mult);
 
-};
+}
 #endif
 
 #endif /*_FLUXREG_F_H_*/

@@ -2,7 +2,7 @@
 #define _COORDSYS_F_H_
 
 /*
-** $Id: COORDSYS_F.H,v 1.3 1997-12-14 23:34:14 lijewski Exp $
+** $Id: COORDSYS_F.H,v 1.4 1998-04-07 15:52:41 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -41,7 +41,7 @@ extern "C"
                         const Real* offset,
                         const Real* dx, const int* dir,
                         const int* coord);
-};
+}
 
 #endif
 

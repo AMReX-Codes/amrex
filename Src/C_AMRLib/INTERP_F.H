@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.4 1997-12-14 23:34:28 lijewski Exp $
+** $Id: INTERP_F.H,v 1.5 1998-04-07 15:52:24 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -121,7 +121,7 @@ extern "C"
                         const int* longdir, const int* ratio,
                         const int* nvar, Real* strip,
                         const int* strip_lo, const int* strip_hi);
-  };
+  }
 #endif
 
 #endif /*_INTERP_NAMES_H*/
