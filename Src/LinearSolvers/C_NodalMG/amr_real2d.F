@@ -10,17 +10,10 @@ c Works for CELL- or NODE-based data.
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j, k
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 k = 1, ncomp
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j,k) = src(i,j,k)
-      else
          do 20 k = 1, ncomp
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
  20               dest(i,j,k) = src(i,j,k)
-      end if
       end
 c-----------------------------------------------------------------------
 c Unrolled copy---works for CELL- or NODE-based data.
@@ -48,19 +41,11 @@ c Works for NODE-based data.
       double precision da(dal0:dah0,dal1:dah1, ncomp)
       double precision db(dbl0:dbh0,dbl1:dbh1, ncomp)
       integer i, j, k
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 k = 1, ncomp
-            do 10 i = 1, w
-               do 10 j = regl1, regh1
-                  da(regl0+i,j,k) = db(regl0+i,j,k)
- 10               db(regl0-i,j,k) = da(regl0-i,j,k)
-      else
          do 20 k = 1, ncomp
             do 20 j = 1, w
                do 20 i = regl0 - w, regh0 + w
                   da(i,regl1+j,k) = db(i,regl1+j,k)
  20               db(i,regl1-j,k) = da(i,regl1-j,k)
-      end if
       end
 c-----------------------------------------------------------------------
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
@@ -149,15 +134,9 @@ c Works for CELL-based data.
       double precision v1(v1l0:v1h0,v1l1:v1h1)
       double precision sum
       integer i, j
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
- 10            sum = sum + v0(i,j) * v1(i,j)
-      else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            sum = sum + v0(i,j) * v1(i,j)
-      end if
       end
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
@@ -182,15 +161,9 @@ c Works for NODE-based data.
  20      sum0 = sum0 + (v0(regl0,j) * v1(regl0,j) +
      &                  v0(regh0,j) * v1(regh0,j))
       sum = sum + 0.5d0 * sum0
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 30 i = regl0 + 1, regh0 - 1
-            do 30 j = regl1 + 1, regh1 - 1
- 30            sum = sum + v0(i,j) * v1(i,j)
-      else
          do 40 j = regl1 + 1, regh1 - 1
             do 40 i = regl0 + 1, regh0 - 1
  40            sum = sum + v0(i,j) * v1(i,j)
-      end if
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -231,15 +204,9 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
-         else
             do 12 j = regl1, regh1
                do 12 i = regl0, regh0
  12               dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
-         end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
@@ -293,15 +260,9 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
-         else
             do 12 j = regl1, regh1
                do 12 i = regl0, regh0
  12               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
-         end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
@@ -586,19 +547,6 @@ c fine region by at least one coarse cell on all sides.
      & 0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
      &               src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
       if (ir .eq. 2 .and. jr .eq. 2) then
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
-     &                        0.125d0  * (src(i*ir,j*jr-1) +
-     &                                    src(i*ir,j*jr+1) +
-     &                                    src(i*ir-1,j*jr) +
-     &                                    src(i*ir+1,j*jr)) +
-     &                        0.0625d0 * (src(i*ir-1,j*jr-1) +
-     &                                    src(i*ir-1,j*jr+1) +
-     &                                    src(i*ir+1,j*jr-1) +
-     &                                    src(i*ir+1,j*jr+1))
-         else
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
  20               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
@@ -610,37 +558,11 @@ c fine region by at least one coarse cell on all sides.
      &                                    src(i*ir-1,j*jr+1) +
      &                                    src(i*ir+1,j*jr-1) +
      &                                    src(i*ir+1,j*jr+1))
-         end if
       else if (ir .eq. 4 .and. jr .eq. 4) then
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 110 i = regl0, regh0
-               do 110 j = regl1, regh1
- 110              dest(i,j) = RESTR4()
-         else
             do 120 j = regl1, regh1
                do 120 i = regl0, regh0
  120              dest(i,j) = RESTR4()
-         end if
       else
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 210 i = regl0, regh0
-               do 210 j = regl1, regh1
- 210              dest(i,j) = 0.d0
-            fac0 = 1.d0 / (ir*ir * jr*jr)
-            do 220 n = 0, jr-1
-               fac1 = (jr-n) * fac0
-               if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 220 m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5d0 * fac
-                  do 220 i = regl0, regh0
-                     do 220 j = regl1, regh1
- 220                    dest(i,j) = dest(i,j) +
-     &                              fac * (src(i*ir-m,j*jr-n)+
-     &                                     src(i*ir-m,j*jr+n)+
-     &                                     src(i*ir+m,j*jr-n)+
-     &                                     src(i*ir+m,j*jr+n))
-         else
             do 230 j = regl1, regh1
                do 230 i = regl0, regh0
  230              dest(i,j) = 0.d0
@@ -658,19 +580,12 @@ c fine region by at least one coarse cell on all sides.
      &                                     src(i*ir-m,j*jr+n)+
      &                                     src(i*ir+m,j*jr-n)+
      &                                     src(i*ir+m,j*jr+n))
-         end if
       end if
       if (integ .eq. 1) then
          fac = ir * jr
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 310 i = regl0, regh0
-               do 310 j = regl1, regh1
- 310              dest(i,j) = fac * dest(i,j)
-         else
             do 320 j = regl1, regh1
                do 320 i = regl0, regh0
  320              dest(i,j) = fac * dest(i,j)
-         end if
       end if
       end
 c-----------------------------------------------------------------------

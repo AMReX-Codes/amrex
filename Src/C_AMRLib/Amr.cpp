@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.35 1998-04-22 23:56:20 almgren Exp $
+// $Id: Amr.cpp,v 1.36 1998-04-23 04:13:12 car Exp $
 //
 
 #include <TagBox.H>
@@ -125,7 +125,7 @@ Amr::Amr ()
     //
     // Check for command line flags.
     //
-    verbose = pp.contains("v")
+    verbose = pp.contains("v");
     sub_cycle = true;
     if (pp.contains("nosub")) sub_cycle = false;
 
