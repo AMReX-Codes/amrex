@@ -4,7 +4,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.4 1998-07-07 17:25:13 lijewski Exp $
+// $Id: InterpBndryData.H,v 1.5 1999-01-04 18:11:14 marc Exp $
 //
 
 #include <BoxArray.H>
@@ -66,12 +66,13 @@ public:
     // is a wrapper to the IntVect version
     //
     void setBndryConds (const BCRec& phys_bc,
-                        int          ratio);
+			int          ratio);
     //
     //@ManDoc: interpret user BCs to those expected by LinOp: takes IntVect ratio
     //
     virtual void setBndryConds (const BCRec& phys_bc,
-                                IntVect&    ratio) = 0;
+                                IntVect&     ratio,
+				int          comp=0) = 0;
     //
     //@ManDoc: set bndry values at coarse level (non interpolation performed)
     //
