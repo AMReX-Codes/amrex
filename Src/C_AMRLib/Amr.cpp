@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.7 1997-11-22 17:51:31 lijewski Exp $
+// $Id: Amr.cpp,v 1.8 1997-11-23 00:10:55 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -728,9 +728,9 @@ Amr::restart (const aString& filename)
 	amr_level[lev].restart(*this, is);
     }
     //
-    // Initialize local stats.
+    // Initialize local stats indicating this is a restart.
     //
-    RunStats::readStats(is);
+    RunStats::readStats(is,true);
     //
     // Build any additional data structures.
     //
@@ -1695,11 +1695,14 @@ Amr::PrintIOStats (ostream& os)
             int old_prec = os.precision(15);
             for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
             {
-                os << "Bytes written to disk on CPU #"
-                   << i
-                   << ":\t"
-                   << totals[i]
-                   << '\n';
+                if (totals[i])
+                {
+                    os << "Bytes written to disk on CPU #"
+                       << i
+                       << ":\t"
+                       << totals[i]
+                       << '\n';
+                }
             }
             os << "\nTotal bytes written to disk:\t" << total << "\n\n";
             os.precision(old_prec);

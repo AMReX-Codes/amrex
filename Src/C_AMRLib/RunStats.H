@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.3 1997-11-21 03:50:11 lijewski Exp $
+// $Id: RunStats.H,v 1.4 1997-11-23 00:10:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,7 @@ using std::ofstream;
 #include <aString.H>
 #include <List.H>
 #include <Array.H>
+#include <ParallelDescriptor.H>
 
 //
 // Forward declaration.
@@ -112,12 +113,14 @@ public:
     //
     // Unformatted read from input stream.
     //
-    static void readStats (ifstream &is);
+    static void readStats (ifstream &is, bool restart = false);
 
 private:
     static RunStatsData* find (const char* _name, int _level);
 
     void resize (int level);
+
+    static void Print (ostream&, const RunStatsData&, double, double);
     //
     // Local data.
     //
@@ -170,6 +173,33 @@ RunStats::turnOff (const char* s,
     if (!(_level == -1))
     {
 	find(s, _level)->is_on = false;
+    }
+}
+
+inline
+void
+RunStats::start ()
+{
+    if (gentry->is_on && entry->is_on)
+    {
+        time  = -Utility::second();
+        wtime = -ParallelDescriptor::second();
+    }
+}
+
+inline
+void
+RunStats::end ()
+{
+    if (gentry->is_on && entry->is_on)
+    {
+        time  += Utility::second();
+        wtime += ParallelDescriptor::second();
+
+        entry->run_time   += time;
+        entry->run_wtime  += wtime;
+        gentry->run_time  += time;
+        gentry->run_wtime += wtime;
     }
 }
 
