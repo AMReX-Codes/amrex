@@ -2,3 +2,6 @@ boxes = grids/gr.2_19boxes
 geometry.coord_sys = 0
 geometry.prob_lo   =   0.0    0.0
 geometry.prob_hi   = 512.0  256.0
+#geometry.is_periodic =  1 0
+geometry.is_periodic =  0 1
+mg.v = 2
