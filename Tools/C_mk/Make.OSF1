@@ -1,10 +1,13 @@
 #
-# $Id: Make.OSF1,v 1.16 2000-03-22 15:51:45 lijewski Exp $
+# $Id: Make.OSF1,v 1.17 2000-06-01 23:09:28 car Exp $
 #
 
 #
 # Version 5.1 will NOT compile BoxLib.
 #
+
+SHELL := /bin/ksh
+
 ifeq ($(COMP),cxx)
   CXX      := cxx -define_templates
   FULLWARN := +pp -fullwarn
