@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.8 1997-11-20 00:49:44 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.9 1997-11-20 16:13:38 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -221,8 +221,7 @@ class ParallelDescriptor
 
     static void SetMessageHeaderSize (int messageHeaderSize)
     {
-        int dummy = messageHeaderSize;
-        bsp_set_tag_size(&dummy);
+        bsp_set_tag_size(&messageHeaderSize);
     } 
 
     static bool GetMessageHeader (int& dataSize,
