@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.2 1997-09-15 20:46:01 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.3 1997-09-15 21:53:51 lijewski Exp $
 #
 
 #
@@ -84,9 +84,9 @@ CC  = cc
 ARCH		= IEEE
 FORTLINK  	= UNDERSCORE
 
-FORTPREP  	= perl $(GUTHAMR_HOME)/bin/strip72 -c
-MKDEP		= perl $(GUTHAMR_HOME)/bin/mkdep
-INSTALL		= sh   $(GUTHAMR_HOME)/bin/install-sh -c
+FORTPREP  	= perl ../scripts/strip72 -c
+MKDEP		= perl ../scripts/mkdep
+INSTALL		= sh   ../scripts/install-sh -c
 #
 # SunOS ranlib has a problem if the library is installed 444 :-(
 #
