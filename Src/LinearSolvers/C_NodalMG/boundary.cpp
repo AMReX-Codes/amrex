@@ -323,6 +323,7 @@ mixed_boundary_class::fill (FArrayBox&       patch,
         //
 	// All cases other than normal-component inflow.
         //
+      assert( src.box().contains(image));
 	if (negflag == 1) 
 	{
 	    FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(), DIMLIST(src.box()), DIMLIST(image), refarray, patch.nComp());
