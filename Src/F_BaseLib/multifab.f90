@@ -1262,7 +1262,7 @@ contains
       type(boxarray)                          :: bxai
       type(box)                               :: abx
       integer                                 :: i, j, ii, proc
-      integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer                                 :: shft(2*3**mf%dim,mf%dim)
       integer, parameter                      :: tag = 1101
 
       do i = 1, mf%nboxes
@@ -1417,7 +1417,7 @@ contains
       type(boxarray)                          :: bxai
       type(box)                               :: abx
       integer                                 :: i, j, ii, proc
-      integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer                                 :: shft(2*3**mf%dim,mf%dim)
       integer, parameter                      :: tag = 1101
 
       do i = 1, mf%nboxes
@@ -1571,7 +1571,7 @@ contains
       type(boxarray)                       :: bxai
       type(box)                            :: abx
       integer                              :: i, j, ii, proc
-      integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer                              :: shft(2*3**mf%dim,mf%dim)
       integer, parameter                   :: tag = 1101
 
       do i = 1, mf%nboxes
@@ -1719,7 +1719,7 @@ contains
       type(boxarray)                       :: bxai
       type(box)                            :: abx
       integer                              :: i, j, ii, proc
-      integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer                              :: shft(2*3**mf%dim,mf%dim)
       integer, parameter                   :: tag = 1101
 
       do i = 1, mf%nboxes
@@ -1841,66 +1841,61 @@ contains
 
   end subroutine lmultifab_fill_boundary
 
-  subroutine multifab_internal_sync_shift(mf,bx,shft,cnt)
-    type(multifab), intent(in)  :: mf
-    type(box),      intent(in)  :: bx
-    integer,        intent(out) :: shft(:,:),cnt
+  subroutine multifab_internal_sync_shift(dmn,bx,pmask,nodal,shft,cnt)
+    type(box), intent(in)  :: dmn,bx
+    integer,   intent(out) :: shft(:,:),cnt
+    logical,   intent(in)  :: pmask(:),nodal(:)
 
-    type(box) :: domain,src
-    integer   :: nbeg(3),nend(3),ldomain(3),r(3),ri,rj,rk
-    logical   :: pmask(bx%dim)
+    type(box) :: dom,src
+    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
+    !
+    ! First a zero shift to represent the original box.
+    !
+    cnt = 1
+    shft(cnt,:) = 0
 
-    cnt = 0
+    if (all(pmask .eqv. .false.)) return
 
-    if (.not. ((all(mf%la%lap%pmask .eqv. .false.)) .or. (box_contains_strict(mf%la%lap%pd, bx)))) then
-       nbeg           = 0
-       nend           = 0
-       nbeg(1:bx%dim) = -1
-       nend(1:bx%dim) = +1
-       src            = bx
-       pmask          = mf%la%lap%pmask
-       domain         = mf%la%lap%pd
-       ldomain        = (/ extent(domain,1),extent(domain,2),extent(domain,3) /)
+    dom = box_nodalize(dmn,nodal)
 
-       do ri = nbeg(1), nend(1)
-          if (ri /= 0 .and. (.not. is_periodic(1))) cycle
-          if (ri /= 0 .and. is_periodic(1)) src = shift(src,ri*ldomain(1),1)
+    if (box_contains_strict(dom,bx)) return
 
-          do rj = nbeg(2), nend(2)
-             if (rj /= 0 .and. (.not. is_periodic(2))) cycle
-             if (rj /= 0 .and. is_periodic(2)) src = shift(src,rj*ldomain(2),2)
+    l(:) = 0; where(nodal) l = 1
+    
+    nbeg           = 0
+    nend           = 0
+    nbeg(1:bx%dim) = -1
+    nend(1:bx%dim) = +1
+    src            = bx
+    ldom           = (/ extent(dom,1)-l(1),extent(dom,2)-l(2),extent(dom,3)-l(2) /)
 
-             do rk = nbeg(3), nend(3)
-                if (rk /= 0 .and. (.not. is_periodic(3))) cycle
-                if (rk /= 0 .and. is_periodic(3)) src = shift(src,rk*ldomain(3),3)
+    do ri = nbeg(1), nend(1)
+       if (ri /= 0 .and. (.not. is_periodic(1))) cycle
+       if (ri /= 0 .and. is_periodic(1)) src = shift(src,ri*ldom(1),1)
 
-                if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
+       do rj = nbeg(2), nend(2)
+          if (rj /= 0 .and. (.not. is_periodic(2))) cycle
+          if (rj /= 0 .and. is_periodic(2)) src = shift(src,rj*ldom(2),2)
 
-                if (intersects(domain,src)) then
-                   cnt = cnt + 1
-                   r = (/ri,rj,rk/)
-                   r = r*ldomain
-                   shft(cnt,1:src%dim) = r(1:src%dim)
-                end if
+          do rk = nbeg(3), nend(3)
+             if (rk /= 0 .and. (.not. is_periodic(3))) cycle
+             if (rk /= 0 .and. is_periodic(3)) src = shift(src,rk*ldom(3),3)
 
-                if (rk /= 0 .and. is_periodic(3)) src = shift(src,-rk*ldomain(3),3)
-             end do
+             if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
 
-             if (rj /= 0 .and. is_periodic(2)) src = shift(src,-rj*ldomain(2),2)
+             if (intersects(dom,src)) then
+                cnt = cnt + 1
+                r = (/ri*ldom(1),rj*ldom(2),rk*ldom(3)/)
+                shft(cnt,1:bx%dim) = r(1:bx%dim)
+             end if
+
+             if (rk /= 0 .and. is_periodic(3)) src = shift(src,-rk*ldom(3),3)
           end do
 
-          if (ri /= 0 .and. is_periodic(1)) src = shift(src,-ri*ldomain(1),1)
+          if (rj /= 0 .and. is_periodic(2)) src = shift(src,-rj*ldom(2),2)
        end do
-    end if
-    !
-    ! Add a zero shift to represent the original box.
-    !
-    cnt = cnt + 1
-    shft(cnt,1:bx%dim) = 0
 
-    call box_print(bx,'multifab_internal_sync_shift')
-    do ri = 1,cnt
-       print*, 'shft(',ri,'): ', shft(ri,1:bx%dim)
+       if (ri /= 0 .and. is_periodic(1)) src = shift(src,-ri*ldom(1),1)
     end do
 
     contains
@@ -1927,7 +1922,7 @@ contains
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
     integer                                     :: i, j, jj, proc, cnt
-    integer                                     :: shft(3**mf%la%lap%dim,mf%la%lap%dim)
+    integer                                     :: shft(3**mf%dim,mf%dim)
     integer, parameter                          :: tag = 1104
     logical                                     :: lall
 
@@ -1943,15 +1938,19 @@ contains
 
     lall = .false. ; if ( present(all) ) lall = all
 
-    do j = 1, mf%nboxes - 1
+    do j = 1, mf%nboxes
        if ( lall ) then
           jbx = get_pbox(mf,j)
        else
           jbx = get_ibox(mf,j)
        end if
-       call multifab_internal_sync_shift(mf,jbx,shft,cnt)
+       call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
        do jj = 1, cnt
-          do i = j + 1, mf%nboxes
+          do i = j, mf%nboxes
+             !
+             ! Do not overwrite ourselves.
+             !
+             if (i == j .and. .not. any(shft(jj,:) /= 0)) cycle
              if ( lall ) then
                 ibx = get_pbox(mf,i)
              else
@@ -1988,69 +1987,80 @@ contains
        end do
     end do
   end subroutine multifab_internal_sync
-
+  !!
   !! Internal Sync makes sure that any overlapped values are reconciled
   !! by coping values from the lower index number fabs to the higher index
   !! numbered boxes.  Works cell centered and node centered.  Though in a typical
   !! cell-centered multifab, there are no overlaps to reconcile.
+  !!
   subroutine lmultifab_internal_sync(mf, all, filter)
-    type(lmultifab), intent(inout) :: mf
-    logical, intent(in), optional :: all
-    type(box) :: ibx, jbx, abx
-    logical, dimension(:,:,:,:), pointer :: p1, p2
+    type(lmultifab), intent(inout)           :: mf
+    logical, intent(in), optional            :: all
+    type(box)                                :: ibx, jbx, abx, sbx
+    logical, dimension(:,:,:,:), pointer     :: pdst, psrc
     logical, dimension(:,:,:,:), allocatable :: pt
-    integer :: i, j
-    integer :: proc
-    logical :: lall
-    integer, parameter :: tag = 1104
+    integer                                  :: i, j, jj, proc, cnt
+    integer                                  :: shft(3**mf%dim,mf%dim)
+    integer, parameter                       :: tag = 1104
+    logical                                  :: lall
+
     interface
        subroutine filter(out, in)
          logical, intent(inout) :: out(:,:,:,:)
          logical, intent(in   ) ::  in(:,:,:,:)
        end subroutine filter
     end interface
+
     optional filter
 
     lall = .false. ; if ( present(all) ) lall = all
-    do j = 1, mf%nboxes - 1
+
+    do j = 1, mf%nboxes
        if ( lall ) then
           jbx = get_pbox(mf,j)
        else
           jbx = get_ibox(mf,j)
        end if
-       do i = j + 1, mf%nboxes
-          if ( lall ) then
-             ibx = get_pbox(mf,i)
-          else
-             ibx = get_ibox(mf,i)
-          end if
-          abx = intersection(ibx, jbx)
-          if ( .not. empty(abx) ) then
-             if ( local(mf, i) .and. local(mf, j) ) then
-                p1 => dataptr(mf, i, abx)
-                p2 => dataptr(mf, j, abx)
-                if ( present(filter) ) then
-                   call filter(p1,p2)
-                else
-                   p1 = p2
-                end if
-             else if ( local(mf, j) ) then ! must send
-                proc = get_proc(mf%la, i)
-                p2 => dataptr(mf, j, abx)
-                call parallel_send(p2, proc, tag)
-             else if ( local(mf, i) ) then  ! must recv
-                proc = get_proc(mf%la,j)
-                p1 => dataptr(mf, i, abx)
-                if ( present(filter) ) then
-                   allocate(pt(size(p1,1),size(p1,2),size(p1,3),size(p1,4)))
-                   call parallel_recv(pt, proc, tag)
-                   call filter(p1, pt)
-                   deallocate(pt)
-                else
-                   call parallel_recv(p1, proc, tag)
+       call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
+       do jj = 1, cnt
+          do i = j, mf%nboxes
+             !
+             ! Do not overwrite ourselves.
+             !
+             if (i == j .and. .not. any(shft(jj,:) /= 0)) cycle
+             if ( lall ) then
+                ibx = get_pbox(mf,i)
+             else
+                ibx = get_ibox(mf,i)
+             end if
+             abx = intersection(ibx, shift(jbx,shft(jj,:)))
+             if ( .not. empty(abx) ) then
+                if ( local(mf, i) .and. local(mf, j) ) then
+                   pdst => dataptr(mf, i, abx)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   if ( present(filter) ) then
+                      call filter(pdst, psrc)
+                   else
+                      pdst = psrc
+                   end if
+                else if ( local(mf, j) ) then ! must send
+                   proc = get_proc(mf%la, i)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf, i) ) then  ! must recv
+                   proc = get_proc(mf%la,j)
+                   pdst => dataptr(mf, i, abx)
+                   if ( present(filter) ) then
+                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                      call parallel_recv(pt, proc, tag)
+                      call filter(pdst, pt)
+                      deallocate(pt)
+                   else
+                      call parallel_recv(pdst, proc, tag)
+                   end if
                 end if
              end if
-          end if
+          end do
        end do
     end do
   end subroutine lmultifab_internal_sync
