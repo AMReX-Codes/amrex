@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.15 2000-08-24 22:39:02 car Exp $
+// $Id: CGSolver.cpp,v 1.16 2000-08-25 17:50:25 car Exp $
 //
 
 // Conjugate gradient support
@@ -324,7 +324,7 @@ CGSolver::solve_00 (MultiFab&       sol,
         if (ParallelDescriptor::IOProcessor() && verbose > 2)
         {
 	  spacer(cout, lev);
-            cout << "CGSolver:"
+            cout << "CGSolver_00:"
                  << " nit " << nit
                  << " pw "  << pw 
                  << " rho " << rho
@@ -359,7 +359,7 @@ CGSolver::solve_00 (MultiFab&       sol,
                   (eps_abs > 0. && rnorm < eps_abs)) && verbose))
             {
 	      spacer(cout, lev);
-                cout << "CGSolver: Iteration "
+                cout << "CGSolver_00: Iteration "
                      << nit
                      << " error/error0 "
                      << rnorm/rnorm0 << '\n';
@@ -374,18 +374,18 @@ CGSolver::solve_00 (MultiFab&       sol,
 	      (eps_abs > 0. && rnorm < eps_abs)) && verbose))
 	  {
 	    spacer(cout, lev);
-	    cout << "CGSolver: Final: Iteration "
+	    cout << "CGSolver_00: Final: Iteration "
 		 << nit
 		 << " error/error0 "
 		 << rnorm/rnorm0 << '\n';
 	  }
       }
     if( ret != 0 && isExpert == false ){
-      BoxLib::Error("CGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
+      BoxLib::Error("CGSolver_00:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
     if ( ret==0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        BoxLib::Error("CGSolver:: failed to converge!");
+        BoxLib::Error("CGSolver_00:: failed to converge!");
     }
     //
     // Omit ghost update since maybe not initialized in calling routine.
@@ -772,7 +772,7 @@ CGSolver::solve_cg (MultiFab&       sol,
   if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
       spacer(cout, lev);
-      cout << "aCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+      cout << "CGsolver_cg: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
   int ret = 0;			// will return this value if all goes well
