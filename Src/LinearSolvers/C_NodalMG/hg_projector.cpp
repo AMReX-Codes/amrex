@@ -2,41 +2,41 @@
 #include "hg_projector.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#define   FORT_HGDIV      hgdiv_
-#define   FORT_HGDIV_TERRAIN      hgdiv_terrain_
-#define   FORT_HGFDIV     hgfdiv_
-#define   FORT_HGFDIV_TERRAIN     hgfdiv_terrain_
-#define   FORT_HGEDIV     hgediv_
-#define   FORT_HGEDIV_TERRAIN     hgediv_terrain_
-#define   FORT_HGCDIV     hgcdiv_
-#define   FORT_HGCDIV_TERRAIN     hgcdiv_terrain_
-#define   FORT_HGODIV     hgodiv_
-#define   FORT_HGIDIV     hgidiv_
-#define   FORT_HGDDIV     hgddiv_
-#define   FORT_HGGRAD     hggrad_
-#define   FORT_HGGRAD_TERRAIN     hggrad_terrain_
-#define   FORT_HGAVG      hgavg_
-#define   FORT_HGFAVG     hgfavg_
-#define   FORT_HGEAVG     hgeavg_
-#define   FORT_HGCAVG     hgcavg_
+#define   FORT_HGDIV		hgdiv_
+#define   FORT_HGDIV_TERRAIN    hgdiv_terrain_
+#define   FORT_HGFDIV		hgfdiv_
+#define   FORT_HGFDIV_TERRAIN   hgfdiv_terrain_
+#define   FORT_HGEDIV		hgediv_
+#define   FORT_HGEDIV_TERRAIN   hgediv_terrain_
+#define   FORT_HGCDIV		hgcdiv_
+#define   FORT_HGCDIV_TERRAIN   hgcdiv_terrain_
+#define   FORT_HGODIV		hgodiv_
+#define   FORT_HGIDIV		hgidiv_
+#define   FORT_HGDDIV		hgddiv_
+#define   FORT_HGGRAD		hggrad_
+#define   FORT_HGGRAD_TERRAIN   hggrad_terrain_
+#define   FORT_HGAVG		hgavg_
+#define   FORT_HGFAVG		hgfavg_
+#define   FORT_HGEAVG		hgeavg_
+#define   FORT_HGCAVG		hgcavg_
 #else
-#define   FORT_HGDIV      HGDIV
-#define   FORT_HGDIV_TERRAIN      HGDIV_TERRAIN
-#define   FORT_HGFDIV     HGFDIV
-#define   FORT_HGFDIV_TERRAIN     HGFDIV_TERRAIN
-#define   FORT_HGEDIV     HGEDIV
-#define   FORT_HGEDIV_TERRAIN     HGEDIV_TERRAIN
-#define   FORT_HGCDIV     HGCDIV
-#define   FORT_HGCDIV_TERRAIN     HGCDIV_TERRAIN
-#define   FORT_HGODIV     HGODIV
-#define   FORT_HGIDIV     HGIDIV
-#define   FORT_HGDDIV     HGDDIV
-#define   FORT_HGGRAD     HGGRAD
-#define   FORT_HGGRAD_TERRAIN     HGGRAD_TERRAIN
-#define   FORT_HGAVG      HGAVG
-#define   FORT_HGFAVG     HGFAVG
-#define   FORT_HGEAVG     HGEAVG
-#define   FORT_HGCAVG     HGCAVG
+#define   FORT_HGDIV		HGDIV
+#define   FORT_HGDIV_TERRAIN    HGDIV_TERRAIN
+#define   FORT_HGFDIV		HGFDIV
+#define   FORT_HGFDIV_TERRAIN   HGFDIV_TERRAIN
+#define   FORT_HGEDIV		HGEDIV
+#define   FORT_HGEDIV_TERRAIN   HGEDIV_TERRAIN
+#define   FORT_HGCDIV		HGCDIV
+#define   FORT_HGCDIV_TERRAIN   HGCDIV_TERRAIN
+#define   FORT_HGODIV		HGODIV
+#define   FORT_HGIDIV		HGIDIV
+#define   FORT_HGDDIV		HGDDIV
+#define   FORT_HGGRAD		HGGRAD
+#define   FORT_HGGRAD_TERRAIN   HGGRAD_TERRAIN
+#define   FORT_HGAVG		HGAVG
+#define   FORT_HGFAVG		HGFAVG
+#define   FORT_HGEAVG		HGEAVG
+#define   FORT_HGCAVG		HGCAVG
 #endif
 
 extern "C" 
@@ -497,7 +497,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
 	Real* sptr = source[lev][igrid].dataPtr();
 	const Real* Sfptr = S[lev][igrid].dataPtr();
-	// t = new task_avg(S[lev], Scp, rat, idim, idir, &FORT_HGAVG);
 #if (BL_SPACEDIM == 2)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();

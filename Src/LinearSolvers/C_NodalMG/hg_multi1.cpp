@@ -2,45 +2,87 @@
 #include "hg_multi.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#define   FORT_HGSRST     hgsrst_
-#define   FORT_HGSCON     hgscon_
-#define   FORT_HGCEN      hgcen_
-#define   FORT_HGCEN_FULL hgcen_full_
-#define   FORT_HGCEN_NO_SIGMA_NODE      hgcen_no_sigma_node_
-#define   FORT_HGCEN_TERRAIN      hgcen_terrain_
-#define   FORT_HGINTS     hgints_
-#define   FORT_HGINTS_NO_SIGMA_NODE     hgints_no_sigma_node_
-#define   FORT_FACRST1    acrst1_
-#define   FORT_FANRST2    anrst2_
+#define   FORT_HGSRST		hgsrst_
+#define   FORT_HGSCON		hgscon_
+#define   FORT_HGCEN		hgcen_
+#define   FORT_HGCEN_FULL	hgcen_full_
+#define   FORT_HGCEN_NO_SIGMA   hgcen_no_sigma_
+#define   FORT_HGCEN_TERRAIN    hgcen_terrain_
+#define   FORT_HGINTS		hgints_
+#define   FORT_HGINTS_NO_SIGMA  hgints_no_sigma_
+#define   FORT_FACRST1		acrst1_
+#define   FORT_FANRST2		anrst2_
 #else
-#define   FORT_HGSRST     HGSRST
-#define   FORT_HGSCON     HGSCON
-#define   FORT_HGCEN      HGCEN
-#define   FORT_HGCEN_FULL      HGCEN_FULL
-#define   FORT_HGCEN_NO_SIGMA_NODE      HGCEN_NO_SIGMA_NODE
-#define   FORT_HGCEN_TERRAIN     HGCEN_TERRAIN
-#define   FORT_HGINTS     HGINTS
-#define   FORT_HGINTS_NO_SIGMA_NODE     HGINTS_NO_SIGMA_NODE
-#define   FORT_FACRST1    ACRST1
-#define   FORT_FANRST2    ANRST2
+#define   FORT_HGSRST		HGSRST
+#define   FORT_HGSCON		HGSCON
+#define   FORT_HGCEN		HGCEN
+#define   FORT_HGCEN_FULL	HGCEN_FULL
+#define   FORT_HGCEN_NO_SIGMA   HGCEN_NO_SIGMA
+#define   FORT_HGCEN_TERRAIN	HGCEN_TERRAIN
+#define   FORT_HGINTS		HGINTS
+#define   FORT_HGINTS_NO_SIGMA  HGINTS_NO_SIGMA
+#define   FORT_FACRST1		ACRST1
+#define   FORT_FANRST2		ANRST2
 #endif
 
 extern "C" 
 {
-    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
-    void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
+    void FORT_FACRST1        (Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
+    void FORT_FANRST2        (Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
 
-    void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
-    void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
-    void FORT_HGCEN_TERRAIN(Real*, intS, Real*, intS, intS);
+    void FORT_HGSRST         (RealPS, intS, intS, CRealPS, intS, intRS);
+    void FORT_HGINTS         (Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
+    void FORT_HGCEN_TERRAIN  (Real*, intS, Real*, intS, intS);
 #if BL_SPACEDIM == 2
-    void FORT_HGCEN_FULL(Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGCEN_FULL     (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
 #endif
-    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS);
-    void FORT_HGINTS_NO_SIGMA_NODE(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
-    void FORT_HGSCON(Real*, intS, RealPS, intS, intS, CRealPS);
-    void FORT_HGCEN(Real*, intS, Real*, intS, intS);
+    void FORT_HGCEN_NO_SIGMA (Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGINTS_NO_SIGMA(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
+    void FORT_HGSCON         (Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGCEN          (Real*, intS, Real*, intS, intS);
 }
+
+class task_interpolate_patch : public task
+{
+public:
+    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_,
+	const MultiFab& smf_, const IntVect& rat_,
+	const amr_interpolator_class& interp_, const level_interface& lev_interface_)
+	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_),
+	smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
+    {
+	assert(dbx.sameType(dmf[dgrid].box()));
+	const Box cb = interp.box(dbx, rat);
+	const int jgrid = find_patch(cb, smf);
+	if (jgrid == -1) 
+	{
+	    tf = new task_fill_patch( cb, dmf.nComp(), smf, lev_interface, 0, -1, -1);
+	}
+	else 
+	{
+	    tf = new task_fab_get( smf, jgrid );
+	}
+    }
+    virtual bool ready()
+    {
+	tf->ready();
+	interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
+	return true;
+    }
+    virtual ~task_interpolate_patch()
+    {
+	delete tf;
+    }
+private:
+    task_fab* tf;
+    MultiFab& dmf;
+    const int dgrid;
+    const Box dbx;
+    const MultiFab& smf;
+    const IntVect rat;
+    const amr_interpolator_class& interp;
+    const level_interface& lev_interface;
+};
 
 void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 				PArray<MultiFab>& Source,
@@ -476,7 +518,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    DIMLIST(reg),
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
 #else
-		FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
+		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
 		    D_DECL(sn0->dataPtr(), sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
 		    DIMLIST(reg),
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
@@ -496,7 +538,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    sn1(c_mfi, sigma_nd[1][mglev]),
 		    sn2(c_mfi, sigma_nd[2][mglev]));
 		const Box& sigbox = sn0->box();
-		FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
+		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
 		    D_DECL(sn0->dataPtr(),sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
 		    DIMLIST(reg),
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
@@ -644,7 +686,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	int mgc = ml_index[lev-1];
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mgc].length();
 	MultiFab& target = dest[lev];
-	// PARALLEL 
+	task_list tl;
 	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    // find a fine grid touching this face
@@ -656,8 +698,11 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
+	    tl.add_task(
+		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
+		);
 	}
+	tl.execute();
     }
 }
 
@@ -671,7 +716,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	Box idomain = mg_domain[mglev];
 	idomain.convert(type(dest[lev])).grow(-1);
 	MultiFab& target = dest[lev];
-	// PARALLEL
+	task_list tl;
 	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    // find a fine grid touching this face
@@ -684,8 +729,11 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
 	    if ( idomain.intersects(nbox) ) continue;
-	    interpolate_patch(target ,igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
+	    tl.add_task(
+		new task_interpolate_patch(target ,igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
+	    );
 	}
+	tl.execute();
     }
 }
 
@@ -726,7 +774,7 @@ void holy_grail_interpolator_class_not_cross::fill(FArrayBox& patch,
 					 const Box& cb,
 					 const IntVect& rat) const
 {
-    FORT_HGINTS_NO_SIGMA_NODE(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+    FORT_HGINTS_NO_SIGMA(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
 	D_DECL(sigptr[0], sigptr[1], sigptr[2]),
 	DIMLIST(sigbox),
 	cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
@@ -755,7 +803,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	const int ltmp = lfrom + 1;
 	MultiFab& target = work[ltmp];
 	const IntVect rat = mg_domain[ltmp].length() / mg_domain[lfrom].length();
-	// PARALLEL
+	task_list tl;
 	for (int igrid = 0; igrid < target.length(); igrid++) 
 	{
 	    amr_interpolator_class* hgi;
@@ -795,9 +843,12 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom]);
+	    tl.add_task(
+		new task_interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
+		);
 	    delete hgi;
 	}
+	tl.execute();
 	if (lto > ltmp) 
 	{
 	    corr[ltmp].copy(target);
@@ -820,7 +871,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    {
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma[lto]);
 		const Box& sigbox = sn_dmfi->box();
-		FORT_HGINTS_NO_SIGMA_NODE(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 		    D_DECL(sn_dmfi->dataPtr(0), sn_dmfi->dataPtr(1), sn_dmfi->dataPtr(2)), 
 		    DIMLIST(sigbox),
 		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
@@ -833,7 +884,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
 		const Box& sigbox = s0_dmfi->box();
-		FORT_HGINTS_NO_SIGMA_NODE(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 		    D_DECL(s0_dmfi->dataPtr(), s1_dmfi->dataPtr(), s2_dmfi->dataPtr()),
 		    DIMLIST(sigbox),
 		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
@@ -847,7 +898,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
 		const Box& sigbox = s0_dmfi->box();
-		FORT_HGINTS_NO_SIGMA_NODE(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 					  D_DECL(s0_dmfi->dataPtr(),
 						 s1_dmfi->dataPtr(),
 						 s2_dmfi->dataPtr()), DIMLIST(sigbox),

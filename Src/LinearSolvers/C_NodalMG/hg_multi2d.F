@@ -228,7 +228,7 @@ c 9-point stencil versions:
 c 9-point variable density stencils:
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgfres_full_stencil(
+      subroutine hgfres_full(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & fdst,  fdstl0, fdsth0, fdstl1, fdsth1,
@@ -460,7 +460,7 @@ c This should only occur with a corner at the outer boundary:
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgores_full_stencil(
+      subroutine hgores_full(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & fdst,  fdstl0, fdsth0, fdstl1, fdsth1,
@@ -468,7 +468,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      &        regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, idir, jdir, irz)
+     & hx, hy, ir, jr, idir, jdir, irz, idd)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -483,7 +483,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
-      integer ir, jr, idir, jdir, irz
+      integer ir, jr, idir, jdir, irz, idd
       double precision hxm2, hym2, fac0, fac1, r, rfac,
      &		rfac0, rfac1, tmp
       double precision rfac0p, rfac1p
@@ -611,7 +611,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgires_full_stencil(
+      subroutine hgires_full(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & fdst,  fdstl0, fdsth0, fdstl1, fdsth1,
@@ -619,7 +619,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      &        regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, idir, jdir, irz)
+     & hx, hy, ir, jr, idir, jdir, irz, idd)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -634,7 +634,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
-      integer ir, jr, idir, jdir, irz
+      integer ir, jr, idir, jdir, irz, idd
       double precision hxm2, hym2, fac0, fac1, r, rfac,
      &		rfac0, rfac1, tmp
       double precision rfac0m, rfac1m
@@ -762,7 +762,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgdres_full_stencil(
+      subroutine hgdres_full(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & fdst,  fdstl0, fdsth0, fdstl1, fdsth1,
@@ -770,7 +770,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      &        regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, jdir, irz)
+     & hx, hy, ir, jr, jdir, idd, irz, idd1)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -785,7 +785,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
-      integer ir, jr, jdir, irz
+      integer ir, jr, jdir, irz, idd, idd1
       double precision hxm2, hym2, fac0, fac1, r, rfac0, rfac1, tmp
       double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, js, m, n
@@ -1223,7 +1223,7 @@ c weighting
       
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
-      subroutine hgints_no_sigma_node(
+      subroutine hgints_no_sigma(
      & dest, destl0, desth0, destl1, desth1,
      &       regl0, regh0, regl1, regh1,
      & sigx, sigy,
@@ -1683,7 +1683,7 @@ c-----------------------------------------------------------------------
       end
       
 c five-point variable stencils
-      subroutine hgcen_no_sigma_node(
+      subroutine hgcen_no_sigma(
      @ cen, cenl0,cenh0,cenl1,cenh1,
      @ sigx, sigy,
      @       sbl0,sbh0,sbl1,sbh1,
@@ -2086,7 +2086,7 @@ c nine-point variable stencils
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx_full_stencil(
+      subroutine hgrlx_full(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
      & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
@@ -2153,7 +2153,7 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlxl_full_stencil(
+      subroutine hgrlxl_full(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
      & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
@@ -2354,7 +2354,7 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnf_full_stencil(
+      subroutine hgrlnf_full(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
      & wrk,   wrkl0, wrkh0, wrkl1, wrkh1,
@@ -2711,7 +2711,7 @@ c interface to grid at same level:
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgres_full_stencil(
+      subroutine hgres_full(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & dest,  destl0, desth0, destl1, desth1,

@@ -1171,7 +1171,7 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
-      subroutine hgints_no_sigma_node(
+      subroutine hgints_no_sigma(
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & sigx, sigy, sigz,
@@ -1706,61 +1706,6 @@ c CELL-based data only.
             end do
          end do
       end if
-      end
-c-----------------------------------------------------------------------
-c NODE(EDGE)-based data only.
-      subroutine hgsrst_no_sigma_node_all(
-     & destx, desty, destz,
-     &     destl0,desth0,destl1,desth1,destl2,desth2,
-     &     regl0,regh0,regl1,regh1,regl2,regh2,
-     & srcx, srcy, srcz,
-     &     srcl0,srch0,srcl1,srch1,srcl2,srch2)
-      integer destl0,desth0,destl1,desth1,destl2,desth2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-      double precision destx(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision desty(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision destz(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer l, k, j, i, i2, j2, k2
-      print *, "Warning:  Don't use this routine.  Not modified for "
-      print *, "          IntVect refinement ratios"
-      stop
-      do k = regl2, regh2
-         do j = regl1, regh1
-            do i = regl0, regh0
-               i2 = 2 * i
-               j2 = 2 * j
-               k2 = 2 * k
-               destx(i,j,k) = 0.5d0 / (1.d0 / (srcx(i2,j2,k2) +
-     &                                         srcx(i2,j2,k2+1) +
-     &                                         srcx(i2,j2+1,k2) +
-     &                                         srcx(i2,j2+1,k2+1)) +
-     &                                 1.d0 / (srcx(i2+1,j2,k2) +
-     &                                         srcx(i2+1,j2,k2+1) +
-     &                                         srcx(i2+1,j2+1,k2) +
-     &                                         srcx(i2+1,j2+1,k2+1)))
-               desty(i,j,k) = 0.5d0 / (1.d0 / (srcy(i2,j2,k2) +
-     &                                         srcy(i2,j2,k2+1) +
-     &                                         srcy(i2+1,j2,k2) +
-     &                                         srcy(i2+1,j2,k2+1)) +
-     &                                 1.d0 / (srcy(i2,j2+1,k2) +
-     &                                         srcy(i2,j2+1,k2+1) +
-     &                                         srcy(i2+1,j2+1,k2) +
-     &                                         srcy(i2+1,j2+1,k2+1)))
-               destz(i,j,k) = 0.5d0 / (1.d0 / (srcz(i2,j2,k2) +
-     &                                         srcz(i2,j2+1,k2) +
-     &                                         srcz(i2+1,j2,k2) +
-     &                                         srcz(i2+1,j2+1,k2)) +
-     &                                 1.d0 / (srcz(i2,j2,k2+1) +
-     &                                         srcz(i2,j2+1,k2+1) +
-     &                                         srcz(i2+1,j2,k2+1) +
-     &                                         srcz(i2+1,j2+1,k2+1)))
-            end do
-         end do
-      end do
       end
 c seven-point variable stencils
 c-----------------------------------------------------------------------
@@ -2316,7 +2261,7 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcen_no_sigma_node(
+      subroutine hgcen_no_sigma(
      & cen,  cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sigx, sigy, sigz,
      &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
@@ -2356,7 +2301,7 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx_no_sigma_node(
+      subroutine hgrlx_no_sigma(
      & cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & sigx, sigy, sigz,
@@ -2412,7 +2357,7 @@ cdir$ ivdep
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgres_no_sigma_node(
+      subroutine hgres_no_sigma(
      & res,  resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,

@@ -14,11 +14,13 @@ Real inner_product(const MultiFab& r, const MultiFab& s);
 
 int find_patch(const Box& region, const MultiFab& r);
 
+/*
 void fill_patch(FArrayBox& patch, const Box& region,
 		const MultiFab& r,
 		const level_interface& lev_interface,
 		const amr_boundary_class* bdy,
 		int idim = -1, int index = -1);
+*/
 
 // Fills all ghost cells that can be obtained from other grids or
 // from the boundary conditions.  If w is between 0 and border(),

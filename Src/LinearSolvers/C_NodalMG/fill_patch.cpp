@@ -273,19 +273,6 @@ const FArrayBox& task_fill_patch::fab()
     return *target;
 }
 
-void fill_patch(FArrayBox& patch, const Box& region,
-	       const MultiFab& r,
-	       const level_interface& lev_interface,
-	       const amr_boundary_class* bdy,
-	       int idim, int index)
-{
-    task_fill_patch* t = new task_fill_patch(region, r, lev_interface, bdy, idim, index);
-    t->ready();
-    patch.copy(t->fab(), region);
-    delete t;
-    return;
-}
-
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
 {
     assert(type(r) == IntVect::TheNodeVector());
@@ -578,93 +565,6 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 	    if ( igrid < 0  || is_remote(r, igrid) ) continue;
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
-    }
-}
-
-class task_interpolate_patch : public task
-{
-public:
-    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_,
-	const MultiFab& smf_, const IntVect& rat_,
-	const amr_interpolator_class& interp_, const level_interface& lev_interface_)
-	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_),
-	smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
-    {
-	assert(dbx.sameType(dmf[dgrid].box()));
-	const Box cb = interp.box(dbx, rat);
-	const int jgrid = find_patch(cb, smf);
-	if (jgrid == -1) 
-	{
-	    tf = new task_fill_patch( cb, dmf.nComp(), smf, lev_interface, 0, -1, -1);
-	}
-	else 
-	{
-	    tf = new task_fab_get( smf, jgrid );
-	}
-    }
-    virtual bool ready()
-    {
-	tf->ready();
-	interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
-	return true;
-    }
-    virtual ~task_interpolate_patch()
-    {
-	delete tf;
-    }
-private:
-    task_fab* tf;
-    MultiFab& dmf;
-    const int dgrid;
-    const Box dbx;
-    const MultiFab& smf;
-    const IntVect rat;
-    const amr_interpolator_class& interp;
-    const level_interface& lev_interface;
-};
-
-class task_interp_fill : public task
-{
-public:
-    task_interp_fill(const amr_interpolator_class& interp_,
-	MultiFab& dmf_, int dgrid_, const Box& dbx_,
-	task_fab* atask_, const Box& sbx_, const IntVect& rat_)
-	: interp(interp_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), atask(atask_), sbx(sbx_), rat(rat_) {}
-    virtual bool ready()
-    {
-	atask->ready();
-	interp.fill(dmf[dgrid], dbx, atask->fab(), sbx, rat);
-	return true;
-    }
-private:
-    const amr_interpolator_class& interp;
-    MultiFab& dmf;
-    const int dgrid;
-    const Box dbx;
-    task_fab* atask;
-    const Box sbx;
-    const IntVect rat;
-};
-
-void interpolate_patch(MultiFab& dmf, int dgrid, const Box& region,
-		       const MultiFab& r, const IntVect& rat,
-		       const amr_interpolator_class& interp,
-		       const level_interface& lev_interface)
-{
-    FArrayBox& patch = dmf[dgrid];
-    assert(region.sameType(patch.box()));
-    const Box cb = interp.box(region, rat);
-    const int jgrid = find_patch(cb, r);
-    if (jgrid == -1) 
-    {
-	FArrayBox* cgr = new FArrayBox(cb, r.nComp());
-	fill_patch(*cgr, cb, r, lev_interface, 0);
-	interp.fill(patch, region, *cgr, cb, rat);
-	delete cgr;
-    }
-    else 
-    {
-	interp.fill(patch, region, r[jgrid], cb, rat);
     }
 }
 

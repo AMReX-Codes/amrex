@@ -306,27 +306,35 @@ c extended to one cell past the boundary by the boundary::box routine.
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j,nc) = src(bbl0,j,nc) + src(bbl0+1,j,nc) -
+            do i = regl0, regh0
+               do j = regl1, regh1
+                  dest(i,j,nc) = src(bbl0,j,nc) + src(bbl0+1,j,nc) -
      &                        src(bbh0-(i-regl0),j,nc)
+               end do
+            end do
          else
-            do 20 i = regh0, regl0, -1
-               do 20 j = regl1, regh1
- 20               dest(i,j,nc) = src(bbh0-1,j,nc) + src(bbh0,j,nc) -
+            do i = regh0, regl0, -1
+               do j = regl1, regh1
+                  dest(i,j,nc) = src(bbh0-1,j,nc) + src(bbh0,j,nc) -
      &                        src(bbl0+(regh0-i),j,nc)
+               end do
+            end do
          end if
       else
          if (regl1 .lt. bbh1) then
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
- 30               dest(i,j,nc) = src(i,bbl1,nc) + src(i,bbl1+1,nc) -
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,nc) = src(i,bbl1,nc) + src(i,bbl1+1,nc) -
      &                        src(i,bbh1-(j-regl1),nc)
+               end do
+            end do
          else
-            do 40 j = regh1, regl1, -1
-               do 40 i = regl0, regh0
- 40               dest(i,j,nc) = src(i,bbh1-1,nc) + src(i,bbh1,nc) -
+            do j = regh1, regl1, -1
+               do i = regl0, regh0
+                  dest(i,j,nc) = src(i,bbh1-1,nc) + src(i,bbh1,nc) -
      &                        src(i,bbl1+(regh1-j),nc)
+               end do
+            end do
          end if
       end if
       end do
@@ -353,15 +361,17 @@ c CELL-based data only.
       double precision xoff, yoff, sx, sy
       integer i, j, ic, jc, nc
       do nc = 1, ncomp
-      do 10 j = regl1, regh1
+      do j = regl1, regh1
          jc = j/jr
          yoff = (mod(j,jr) + 0.5) / jr - 0.5
-         do 10 i = regl0, regh0
+         do i = regl0, regh0
             ic = i/ir
             xoff = (mod(i,ir) + 0.5) / ir - 0.5
             sy = 0.5 * (src(ic,jc+1,nc) - src(ic,jc-1,nc))
             sx = 0.5 * (src(ic+1,jc,nc) - src(ic-1,jc,nc))
- 10         dest(i,j,nc) = src(ic,jc,nc) + xoff * sx + yoff * sy
+            dest(i,j,nc) = src(ic,jc,nc) + xoff * sx + yoff * sy
+         end do
+      end do
       end do
       end
 c-----------------------------------------------------------------------
