@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.45 2002-06-19 20:49:44 car Exp $
+// $Id: ParmParse.cpp,v 1.46 2002-06-19 22:21:38 car Exp $
 //
 #include <winstd.H>
 
@@ -1630,17 +1630,6 @@ namespace
     std::map<int, ParmParse*> parsers;
     const int EOS = -1;
 
-std::string
-Fint_2_string (const int* iarr, int nlen)
-{
-    std::string res;
-    for ( int i = 0; i < nlen && *iarr != EOS; ++i )
-    {
-	res += *iarr++;
-    }
-    return res;
-}
-
 void
 Fstring_2_int (int istr[], int nlen, const std::string& str)
 {
@@ -1668,6 +1657,17 @@ Trim (const std::string& str)
     return result;
 }
 
+std::string
+Fint_2_string (const int* iarr, int nlen)
+{
+    std::string res;
+    for ( int i = 0; i < nlen && *iarr != EOS; ++i )
+    {
+	res += *iarr++;
+    }
+    return Trim(res);
+}
+
 void
 require_valid_parmparse(const std::string& str, int pp)
 {
@@ -1678,6 +1678,7 @@ require_valid_parmparse(const std::string& str, int pp)
 	BoxLib::Error("require_valid_parser::not a valid parsers");
     }
 }
+
 void
 require_valid_size(const std::string& str, int asize, int nsize)
 {
@@ -1699,6 +1700,7 @@ BL_FORT_PROC_DECL(BL_PP_DELETE, bl_pp_delete)(int* pp)
 {
     require_valid_parmparse("BL_PP_DELETE", *pp);
     delete parsers[*pp];
+    parsers.erase(*pp);
 }
 
 BL_FORT_PROC_DECL(BL_PP_GET_INT_CPP, bl_pp_get_int_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, int* val)
@@ -1778,4 +1780,19 @@ BL_FORT_PROC_DECL(BL_PP_GET_STRING_CPP, bl_pp_get_string_cpp)(int* ierr, const i
     {
 	Fstring_2_int(ostr, *onstr, ss);
     }
+}
+
+BL_FORT_PROC_DECL(BL_PP_RECORD_NEW_CPP,bl_pp_record_new_cpp)(const int* pp, int* ppr, const int istr[], const int* nstr)
+{
+    require_valid_parmparse("BL_PP_RECORD_NEW", *pp);
+    ParmParse::Record record = parsers[*pp]->getRecord(Fint_2_string(istr, *nstr).c_str());
+    *ppr = ++parser_cnt;
+    parsers[*ppr] = new ParmParse(*record);
+}
+
+BL_FORT_PROC_DECL(BL_PP_RECORD_DELETE,bl_pp_record_delete)(int* ppr)
+{
+    require_valid_parmparse("BL_PP_RECORD_DELETE", *ppr);
+    delete parsers[*ppr];
+    parsers.erase(*ppr);
 }

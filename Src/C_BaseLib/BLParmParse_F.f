@@ -1,5 +1,5 @@
 c
-c $Id: BLParmParse_F.f,v 1.5 2002-06-18 16:28:28 car Exp $
+c $Id: BLParmParse_F.f,v 1.6 2002-06-19 22:21:38 car Exp $
 c
 c-----------------------------------------------------------------------
       SUBROUTINE bl_pp_new(ipp, str)
@@ -10,6 +10,16 @@ c-----------------------------------------------------------------------
       INTEGER istr(NSTR)
       CALL blstr2int(istr, NSTR, str)
       CALL bl_pp_new_cpp(ipp, istr, NSTR)
+      END
+c-----------------------------------------------------------------------
+      SUBROUTINE bl_pp_record_new(ipp, ippr, str)
+      INTEGER ipp, ippr
+      CHARACTER*(*) str
+      INTEGER NSTR
+      PARAMETER (NSTR = 128)
+      INTEGER istr(NSTR)
+      CALL blstr2int(istr, NSTR, str)
+      CALL bl_pp_record_new_cpp(ipp, ippr, istr, NSTR)
       END
 c-----------------------------------------------------------------------
       SUBROUTINE bl_pp_get_int(ierr, ipp, str, ival)
