@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.42 1998-05-14 22:08:50 almgren Exp $
+// $Id: Amr.cpp,v 1.43 1998-06-13 15:48:11 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1114,10 +1114,25 @@ Amr::regrid (int  lbase,
     finest_level = new_finest;
 
     if (lbase == 0)
+    {
+        if (verbose && ParallelDescriptor::IOProcessor())
+        {
+            cout << "Flushing processor map cache: "
+                 << DistributionMapping::CacheSize()
+                 << " entries\n";
+            cout << "Flushing fill periodic boundary cache: "
+                 << Geometry::PIRMCacheSize()
+                 << " entries\n";
+        }
         //
         // Flush grid -> processor map cache, but only when at coarsest level.
         //
         DistributionMapping::FlushCache();
+        //
+        // Likewise with PIRM cache.
+        //
+        Geometry::FlushPIRMCache();
+    }
     //
     // Define the new grids from level lbase+1 up to new_finest.
     //
