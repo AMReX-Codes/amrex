@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.25 1998-07-24 01:25:57 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.26 1998-07-24 22:41:15 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -752,9 +752,7 @@ void
 MultiFab::FillBoundary (int src_comp,
                         int num_comp)
 {
-    static const aString RunstatString("fill_boundary");
-
-    RunStats stats(RunstatString);
+    static RunStats stats("fill_boundary");
 
     stats.start();
 

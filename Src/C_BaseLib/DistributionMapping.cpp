@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.27 1998-07-24 01:25:54 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.28 1998-07-24 22:41:14 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -171,9 +171,7 @@ void
 DistributionMapping::define (int             nprocs,
                              const BoxArray& boxes)
 {
-    static const aString RunstatString("processor_map");
-
-    RunStats stats(RunstatString);
+    static RunStats stats("processor_map");
 
     stats.start();
 
