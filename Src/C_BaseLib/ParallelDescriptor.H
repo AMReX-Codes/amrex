@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.35 1998-07-29 20:04:35 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.36 1998-08-20 23:53:47 car Exp $
 //
 
 #include <Assert.H>
@@ -169,9 +169,9 @@ class ParallelDescriptor
     //
     static int IOProcessorNumber ();
     //
-    //@ManDoc: Abort with specified message.
+    //@ManDoc: Issue architecture specific Abort.
     //
-    static void Abort (const char* msg);
+    static void Abort ();
     //
     //@ManDoc: Abort with specified error code.
     //
