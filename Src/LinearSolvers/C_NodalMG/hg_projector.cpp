@@ -652,9 +652,9 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
     BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 
-    PArray<MultiFab>    u_local_crse[BL_SPACEDIM];
-    PArray<MultiFab>    u_local_fine[BL_SPACEDIM];
-    PArray<MultiFab> Sigma_local(Lev_max+1);
+    PArray<MultiFab> u_local_crse[BL_SPACEDIM];
+    PArray<MultiFab> u_local_fine[BL_SPACEDIM];
+    PArray<MultiFab> Sigma_local(Lev_max+1,PArrayManage);
 
     const inviscid_fluid_boundary_class* ifbc =
         dynamic_cast<const inviscid_fluid_boundary_class*>(&boundary);
@@ -665,7 +665,7 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
       int level = Lev_min;
       for (int n = 0; n < BL_SPACEDIM; n++) 
       {
-         u_local_crse[n].resize(Lev_max+1);
+         u_local_crse[n].resize(Lev_max+1,PArrayManage);
          u_local_crse[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
          u_local_crse[n][level].setVal(0.);
          for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); 
@@ -689,7 +689,7 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
       int level = Lev_min;
       for (int n = 0; n < BL_SPACEDIM; n++) 
       {
-        u_local_fine[n].resize(Lev_max+1);
+        u_local_fine[n].resize(Lev_max+1,PArrayManage);
         u_local_fine[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
         u_local_fine[n][level].setVal(0.);
         for (MultiFabIterator u_fine_mfi(u_local_fine[n][level]); 
@@ -734,10 +734,9 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     form_solution_vector(u, Sigma);
     clear();
 
-    Real* h;
+    Real h[BL_SPACEDIM];
     if (Sync_resid_crse != 0 || Sync_resid_fine != 0) 
     {
-       h = new Real[BL_SPACEDIM];
        for (int i = 0; i < BL_SPACEDIM; i++)
        {
            h[i] = H[i];
@@ -752,27 +751,21 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
            }
        }
     }
-
+    //
     // Note: it is important that fine be called before crse, because the
     //       crse routine will zero out part of the arrays
+    //
      if (Sync_resid_fine != 0) 
      {
        fill_sync_reg(u_local_fine,p,null_amr_real,Sigma_local,
                      Sync_resid_fine,crse_geom,is_sync,h,Lev_min,1);
-       for (int n = 0; n < BL_SPACEDIM; n++) 
-          delete u_local_fine[n].remove(Lev_min);
      }
 
      if (Sync_resid_crse != 0) 
      {
        fill_sync_reg(u_local_crse,p,null_amr_real,Sigma_local,
                      Sync_resid_crse,crse_geom,is_sync,h,Lev_min,0);
-       for (int n = 0; n < BL_SPACEDIM; n++) 
-          delete u_local_crse[n].remove(Lev_min);
      }
-
-     if (Sync_resid_fine != 0 || Sync_resid_crse != 0) 
-       delete h;
 
     hg_proj.end();
 }
@@ -968,11 +961,11 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     
     BL_ASSERT(Sigma.length() > 0);
 
-    PArray<MultiFab>    u_local_crse[BL_SPACEDIM];
-    PArray<MultiFab>    u_local_fine[BL_SPACEDIM];
-    PArray<MultiFab>   rhs_local_crse(Lev_max+1);
-    PArray<MultiFab>   rhs_local_fine(Lev_max+1);
-    PArray<MultiFab> Sigma_local(Lev_max+1);
+    PArray<MultiFab> u_local_crse[BL_SPACEDIM];
+    PArray<MultiFab> u_local_fine[BL_SPACEDIM];
+    PArray<MultiFab> rhs_local_crse(Lev_max+1,PArrayManage);
+    PArray<MultiFab> rhs_local_fine(Lev_max+1,PArrayManage);
+    PArray<MultiFab> Sigma_local(Lev_max+1,PArrayManage);
 
     const inviscid_fluid_boundary_class* ifbc =
         dynamic_cast<const inviscid_fluid_boundary_class*>(&boundary);
@@ -981,10 +974,11 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     if (Sync_resid_crse != 0)
     {
       int level = Lev_min;
-      if (use_u) 
+      if (use_u)
+      {
         for (int n = 0; n < BL_SPACEDIM; n++) 
         {
-          u_local_crse[n].resize(Lev_max+1);
+          u_local_crse[n].resize(Lev_max+1,PArrayManage);
           u_local_crse[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
           u_local_crse[n][level].setVal(0.);
           for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); 
@@ -1000,7 +994,8 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                    copybox.growHi(n,1);
               u_crse_mfi().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
           }
-       }
+        }
+      }
     }
 
     if (Sync_resid_fine != 0)
@@ -1009,7 +1004,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
       if (use_u) 
         for (int n = 0; n < BL_SPACEDIM; n++) 
         {
-          u_local_fine[n].resize(Lev_max+1);
+          u_local_fine[n].resize(Lev_max+1,PArrayManage);
           u_local_fine[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
           u_local_fine[n][level].setVal(0.);
           for (MultiFabIterator u_fine_mfi(u_local_fine[n][level]); 
@@ -1139,11 +1134,10 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     form_solution_vector(u, Sigma);
     clear();
 
-    Real* h;
+    Real h[BL_SPACEDIM];
     if (Sync_resid_crse != 0 || Sync_resid_fine != 0) 
     {
        BL_ASSERT(use_u);
-       h = new Real[BL_SPACEDIM];
        for (int i = 0; i < BL_SPACEDIM; i++)
        {
            h[i] = H[i];
@@ -1158,27 +1152,21 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
            }
        }
     }
-
-    // Note: it is important that fine be called before crse, because the
-    //       crse routine will zero out part of the arrays
+    //
+    // It is important that fine be called before crse, because the
+    // crse routine will zero out part of the arrays.
+    //
     if (Sync_resid_fine != 0) 
     {
       fill_sync_reg(u_local_fine,p,rhs_local_fine,Sigma_local,
                     Sync_resid_fine,crse_geom,is_sync,h,Lev_min,1);
-      for (int n = 0; n < BL_SPACEDIM; n++) 
-         delete u_local_fine[n].remove(Lev_min);
     }
 
     if (Sync_resid_crse != 0) 
     {
       fill_sync_reg(u_local_crse,p,rhs_local_crse,Sigma_local,
                     Sync_resid_crse,crse_geom,is_sync,h,Lev_min,0);
-      for (int n = 0; n < BL_SPACEDIM; n++) 
-         delete u_local_crse[n].remove(Lev_min);
     }
-
-    if (Sync_resid_crse != 0 || Sync_resid_fine != 0) 
-      delete h;
 
     hg_man_proj.end();
 }
