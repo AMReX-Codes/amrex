@@ -4,17 +4,20 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.33 1998-04-14 19:38:49 lijewski Exp $
+// $Id: FabArray.H,v 1.34 1998-04-16 18:00:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <climits>
 #include <map>
 #include <utility>
+#include <vector>
 using std::multimap;
 using std::pair;
+using std::vector;
 #else
 #include <limits.h>
+#include <vector.h>
 #ifdef BL_T3E
 #include <pair.h>
 #include <multimap.h>
@@ -703,7 +706,7 @@ class FabArrayCopyDescriptor
     Array<FabArray<T,FAB>*> fabArrays;
     Array<BoxList>          unfilledBoxes;     // for each fabArray
     Array<FCDMap>           fabCopyDescList;   // [fabArrayId]
-    List<FabComTag>         fabComTagList;
+    vector<FabComTag>       fabComTagList;
     long                    totalRemoteBytes;
     int                     totalRemoteBoxes;
     int                     nextFabArrayId;
@@ -1375,13 +1378,9 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 {
     FabArrayCopyDescriptor<T,FAB> facd;
 
-    FabArrayId faid = facd.RegisterFabArray(this);
-
-    List<FillBoxId> fillBoxIdList;
-
-    FillBoxId fbid;
-
-    BoxList notUsed;  // Required in AddBox() call.
+    FabArrayId        faid = facd.RegisterFabArray(this);
+    vector<FillBoxId> fillBoxIdList;
+    BoxList           notUsed;  // Required in AddBox() call.
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
@@ -1397,16 +1396,19 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
             if (destbox.ok())
             {
-                fbid = facd.AddBox(faid, destbox, notUsed,
-                                   start_comp, start_comp, num_comp);
-                fillBoxIdList.append(fbid);
+                fillBoxIdList.push_back(facd.AddBox(faid,
+                                                    destbox,
+                                                    notUsed,
+                                                    start_comp,
+                                                    start_comp,
+                                                    num_comp));
             }
         }
     }
 
     facd.CollectData();
 
-    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+    vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
@@ -1422,9 +1424,8 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
             if (destbox.ok())
             {
-                assert(fbidli);
-                FillBoxId fbid = fbidli();
-                ++fbidli;
+                assert(!(fbidli == fillBoxIdList.end()));
+                FillBoxId fbid = *fbidli++;
 
                 assert(destbox == fbid.box());
                 FArrayBox overlapFab(fbid.box(), fai().nComp());
@@ -1833,7 +1834,6 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
 
     fabArrays.reserve(16);
     fabCopyDescList.reserve(16);
-    fabComTagList.clear();
 }
 
 template <class T, class FAB>
@@ -1930,9 +1930,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                 fabComTag.destComp          = destcomp;
                 fabComTag.nComp             = numcomp;
                 //
-                // Do not SendData yet.
+                // Do not send the data yet.
                 //
-                fabComTagList.append(fabComTag);
+                fabComTagList.push_back(fabComTag);
 
                 totalRemoteBoxes++;
                 totalRemoteBytes += intersectBox.numPts() *
@@ -2014,9 +2014,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
             fabComTag.destComp          = destcomp;
             fabComTag.nComp             = numcomp;
             //
-            // Do not SendData yet.
+            // Do not send the data yet.
             //
-            fabComTagList.append(fabComTag);
+            fabComTagList.push_back(fabComTag);
 
             totalRemoteBoxes++;
             totalRemoteBytes += intersectBox.numPts() * fabArray->nComp() * sizeof(T);
@@ -2064,28 +2064,26 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     // Go through the fabComTagList and send all fab requests.
     //
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        assert(fabComTagList.length() == 0);
-    }
+    if (ParallelDescriptor::NProcs() == 1) assert(fabComTagList.size() == 0);
+
     assert(ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag)==false);
     //
     // There should be no messages waiting.
     //
     int numberOfOutstandingRequestMessages = 0;
     int numberOfOutstandingFabMessages     = 0;
-    for (ListIterator<FabComTag> fctli(fabComTagList); fctli; ++fctli)
+    for (int i = 0; i < fabComTagList.size(); i++)
     {
-        assert(fctli().procThatNeedsData == myproc);
-        assert(fctli().procThatHasData   != myproc);
-        assert(fctli().subBox.ok());
-        ParallelDescriptor::SendData(fctli().procThatHasData,
-                                     &fctli(),
+        assert(fabComTagList[i].procThatNeedsData == myproc);
+        assert(fabComTagList[i].procThatHasData   != myproc);
+        assert(fabComTagList[i].subBox.ok());
+        ParallelDescriptor::SendData(fabComTagList[i].procThatHasData,
+                                     &fabComTagList[i],
                                      NULL,
                                      0);
         ++numberOfOutstandingRequestMessages;
     }
-    fabComTagList.clear();
+    fabComTagList.erase(fabComTagList.begin(), fabComTagList.end());
 
     ParallelDescriptor::Synchronize();
     //
