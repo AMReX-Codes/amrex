@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.10 2001-08-23 21:44:32 car Exp $
+// $Id: Thread.H,v 1.11 2001-08-23 21:58:04 car Exp $
 //
 
 #ifdef BL_THREADS
@@ -76,7 +76,7 @@ template <> class ThreadSpecificData<void>;
 class Mutex
 {
 public:
-    class Attr;
+    // class Attr;
     class Implementation;
     Mutex();
 #if 0
@@ -93,6 +93,7 @@ private:
     Mutex(const Mutex&);
     void operator=(const Mutex&);
     void* operator new(size_t size);
+protected:
     Implementation* m_impl;
     pthread_mutex_t m_mutex;
 };
@@ -236,7 +237,7 @@ class ConditionVariable
     : public Mutex
 {
 public:
-    class Attr;
+    // class Attr;
     class Implementation;
     ConditionVariable();
 #if 0
@@ -759,6 +760,7 @@ public:
     ~Attr();
 
     bool isJoinable() const;
+#if 0
 #ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
     enum SchedPolicy{ Regular, RoundRobin, FiFo };
     SchedPolicy set_schedpolicy(SchedPolicy policy);
@@ -783,6 +785,7 @@ public:
     size_t get_stacksize() const;
     size_t set_stacksize(size_t& size);
 #endif
+#endif
     pthread_attr_t theAttribute() const;
 private:
     bool m_is_joinable;
@@ -800,10 +803,12 @@ Thread::Attr::theAttribute() const
 {
     return m_attr;
 }
+
 //
 // Mutex Attributes
 //
 
+#if 0
 class Mutex::Attr
 {
     friend class Mutex;
@@ -822,7 +827,9 @@ private:
     void operator=(const Attr&);
     pthread_mutexattr_t m_attr;
 };
+#endif
 
+#if 0
 //
 // ConditionVariable Attributes
 //
@@ -858,6 +865,7 @@ private:
     void operator=(const Attr&);
     pthread_condattr_t m_attr;
 };
+#endif
 
 #else
 
@@ -883,7 +891,7 @@ private:
 //
 // Mutex Attributes
 //
-
+#if 0
 class Mutex::Attr
 {
     friend class Mutex;
@@ -894,7 +902,9 @@ private:
     Attr(const Attr&);
     void operator=(const Attr&);
 };
+#endif
 
+#if 0
 //
 // ConditionVariable Attributes
 //
@@ -908,6 +918,7 @@ private:
     Attr(const Attr&);
     void operator=(const Attr&);
 };
+#endif
 
 
 // Thread
