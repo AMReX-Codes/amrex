@@ -61,16 +61,10 @@ HG::MPI_init ()
 #endif
 
 #ifdef HG_DEBUG
-#ifdef __GNUC__
-    char buf[1024];
-    sprintf(buf, "guf%d_%d", ParallelDescriptor::NProcs(), ParallelDescriptor::MyProc());
-    debug_out.open(buf);
-#else
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs()
 	  << "_" << ParallelDescriptor::MyProc() << std::ends;
     debug_out.open(fname.str().c_str(), std::ios::trunc);
-#endif
     if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
     debug_out << std::setprecision(15);
 #endif
