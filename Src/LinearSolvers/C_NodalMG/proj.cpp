@@ -37,6 +37,8 @@ Real fct(const IntVect& it, const IntVect& t, int sig, int)
 
 void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
+void driver(const char* filename);
+
 main(int argc, char **argv)
 {
 #ifndef WIN32
@@ -44,33 +46,24 @@ main(int argc, char **argv)
 #endif
   StartParallel(1);
 
+  for(int i = 1; i < argc; ++i)
+    driver(argv[i]);
+  EndParallel();
+  return 0;
+}
+
+void
+driver(const char *filename)
+{
   Array<BoxArray> m;
   Array<IntVect> ratio;
   Array<Box> domain;
 
   fstream grid;
-  if (argc > 1)
-    grid.open(argv[1], ios::in);
-  else {
-    cout << "usage:  proj <gridfile>" << endl;
-    exit(1);
-  }
+  grid.open(filename, ios::in);
   amr_multigrid::mesh_read(m, ratio, domain, grid);
   grid.close();
-
-  //amr_multigrid::mesh_write(m, domain, cout);
-
-  //malloc_info();
   projtest(m, ratio, domain);
-/*
-  malloc_info();
-  for (int i = 0; i < 20; i++) {
-    projtest(m, ratio, domain);
-    malloc_info();
-  }
-*/
-  EndParallel();
-  return 0;
 }
 
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,

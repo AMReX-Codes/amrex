@@ -183,7 +183,7 @@ int fill_patch(FArrayBox& patch, const Box& region,
     assert(flags == 0);
     // assert(idim == -1);
     // assert(index == -1);
-    assert(bdy.defined() == 0);
+    // assert(bdy.defined() == 0);
     if (!region.ok())
 	return 1;
     
