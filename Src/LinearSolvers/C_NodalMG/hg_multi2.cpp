@@ -70,6 +70,8 @@ public:
     {
 	return false;
     };
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FCERES func;
     MultiFab& r;
@@ -103,6 +105,8 @@ public:
     {
 	return false;
     };
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FCERES func;
     MultiFab& r;

@@ -91,6 +91,8 @@ public:
     {
 	return false;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FECFUNC f;
     MultiFab& s;
@@ -112,6 +114,8 @@ public:
     {
 	return false;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FECFUNC f;
     MultiFab& s;
@@ -142,6 +146,8 @@ public:
     {
 	return false;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FECDIV f;
     MultiFab& s;
@@ -173,6 +179,8 @@ public:
     {
 	return false;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FECDIV f;
     MultiFab& s;

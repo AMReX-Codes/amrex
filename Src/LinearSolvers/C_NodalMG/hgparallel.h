@@ -7,15 +7,19 @@
 #include <mpi.h>
 #endif
 
+inline int processor_number(const MultiFab&r, int igrid)
+{
+    return r.DistributionMap()[igrid];
+}
+
 inline bool is_remote(const MultiFab& r, int igrid)
 {
-    if (ParallelDescriptor::MyProc() == r.DistributionMap()[igrid]) return false;
-    return true;
+    return ParallelDescriptor::MyProc() != processor_number(r, igrid);
 }
 
 inline bool is_local(const MultiFab& r, int igrid)
 {
-    return ! is_remote(r, igrid);
+    return ParallelDescriptor::MyProc() == processor_number(r, igrid);
 }
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,8 +32,11 @@ using namespace std;
 class task
 {
 public:
+    typedef unsigned int sequence_number;
     virtual ~task() {}
     virtual bool ready() = 0;
+    virtual void init(sequence_number sno, MPI_Comm comm) = 0;
+    virtual bool is_off_processor() const = 0;
 };
 
 class task_copy : public task
@@ -39,6 +46,8 @@ public:
     task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb);
     virtual ~task_copy();
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
@@ -60,6 +69,8 @@ public:
     task_copy_local(FArrayBox& fab_, const MultiFab& mf_, int grid_, const Box& bx);
     virtual ~task_copy_local();
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     FArrayBox& m_fab;
     const MultiFab& m_smf;
@@ -73,6 +84,8 @@ class task_fab : public task
 {
 public:
     virtual const FArrayBox& fab() = 0;
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 };
 
 class task_fab_get : public task_fab
@@ -83,6 +96,8 @@ public:
     virtual ~task_fab_get();
     virtual const FArrayBox& fab();
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     const MultiFab& r;
     const int grid;
@@ -92,10 +107,14 @@ private:
 class task_list
 {
 public:
+    task_list(MPI_Comm comm = MPI_COMM_WORLD);
+    ~task_list();
     void add_task(task* t);
     void execute();
 private:
     list<task*> tasks;
+    MPI_Comm comm;
+    task::sequence_number seq_no;
 };
 
 class level_interface;
@@ -109,6 +128,8 @@ public:
     virtual ~task_fill_patch();
     virtual const FArrayBox& fab();
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     bool fill_patch_blindly();
     bool fill_exterior_patch_blindly();
@@ -130,6 +151,8 @@ class task_linked_task : public task
 public:
     task_linked_task(task* t_) : lcpt(t_) {}
     virtual bool ready() { return lcpt->ready(); }
+    virtual void init(sequence_number no, MPI_Comm comm) { lcpt->init(no, comm); }
+    virtual bool is_off_processor() const { return lcpt->is_off_processor(); }
 private:
     LnClassPtr<task> lcpt;
 };
@@ -148,6 +171,8 @@ public:
 	}
 	return false;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 
 private:
     MultiFab& m;
@@ -156,8 +181,6 @@ private:
     const Box freg;
     task_linked_task t;
 };
-
-
 
 #endif
 

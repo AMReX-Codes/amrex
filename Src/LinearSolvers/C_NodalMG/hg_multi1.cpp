@@ -57,13 +57,24 @@ public:
     }
     virtual bool ready()
     {
-	tf->ready();
-	interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
-	return true;
+	if ( tf->ready() )
+	{
+	    interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
+	    return true;
+	}
+	return false;
     }
     virtual ~task_interpolate_patch()
     {
 	delete tf;
+    }
+    virtual bool is_off_processor() const
+    {
+	return is_remote(dmf, dgrid) && tf->is_off_processor();
+    }
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	tf->init(sno, comm);
     }
 private:
     task_fab* tf;

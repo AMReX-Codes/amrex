@@ -111,6 +111,8 @@ class task_bdy_fill : public task
 public:
     task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     const amr_boundary_class* bdy;
     FArrayBox& fab;
@@ -241,10 +243,13 @@ task_fill_patch::task_fill_patch(const Box& region_,
 				 : region(region_),
 				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
 {
+}
+
+void task_fill_patch::init(sequence_number, MPI_Comm comm)
+{
     target = new FArrayBox(region, r.nComp());
     newed = true;
 }
-
 
 task_fill_patch::~task_fill_patch()
 {
@@ -390,6 +395,8 @@ public:
     {
 	return true;
     }
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     MultiFab& m_r1;
     const int m_i1;
@@ -569,6 +576,8 @@ public:
 	m_restric.fill(m_dest[m_dgrid], m_box, m_r[m_rgrid], m_rat);
     }
     virtual bool ready();
+    virtual bool is_off_processor() const;
+    virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     const amr_restrictor_class& m_restric;
     MultiFab& m_dest;
