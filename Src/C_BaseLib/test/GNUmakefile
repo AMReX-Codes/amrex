@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.7 2001-08-21 22:16:26 car Exp $
+# $Id: GNUmakefile,v 1.8 2001-10-11 16:33:38 lijewski Exp $
 #
 
 #
@@ -10,11 +10,13 @@ COMP         = g++
 DIM          = 2
 PRECISION    = DOUBLE
 DEBUG        = TRUE
+DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
-USE_THREADS  = FALSE
 USE_THREADS  = TRUE
+USE_THREADS  = FALSE
 PROFILE      = TRUE
+PROFILE      = FALSE
 
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
@@ -27,7 +29,8 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 #_progs += tVisMF tDir t8BIT tFB tFAC tCArena
 #_progs += tProfiler tThread tWorkQueue
 #_progs += tRan
-_progs  := tProfiler
+#_progs  := tProfiler
+_progs  := tread
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
