@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.24 1998-04-13 19:44:26 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.25 1998-04-16 22:36:16 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -25,6 +25,39 @@ extern "C"
 #endif /*FIXBSPLIBLEVEL1HEADER*/
 
 #include "bsp_level1.h"
+
+//
+// Definition of non-inline members of CommData.
+//
+
+CommData::CommData ()
+{
+    for (int i = 0; i < length(); i++)
+        m_data[i] = 0;
+}
+
+CommData::CommData (int        face,
+                    int        fabindex,
+                    const Box& box)
+{
+    m_data[0] = face;
+    m_data[1] = fabindex;
+
+    const IntVect& sm = box.smallEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[2+i] = sm[i];
+
+    const IntVect& bg = box.bigEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[2+BL_SPACEDIM+i] = bg[i];
+
+    IntVect typ = box.type();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[2+2*BL_SPACEDIM+i] = typ[i];
+}
 
 void
 ParallelDescriptor::StartParallel (int nprocs, int*, char***)
