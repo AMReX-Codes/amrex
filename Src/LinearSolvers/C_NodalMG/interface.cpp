@@ -27,7 +27,6 @@ level_interface::~level_interface()
     if (status & 2) 
     {
 	// owns flag arrays
-	delete [] processorMap;
 	delete [] grid_ref;
 	delete [] fdm;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -56,7 +55,6 @@ void level_interface::copy(const level_interface& src)
     em  = src.em;
     grid_ref = src.grid_ref;
     fdm = src.fdm;
-    processorMap = src.processorMap;
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
 	nbx[i] = src.nbx[i];
@@ -93,7 +91,6 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     
     grid_ref = src.grid_ref;
     fdm = src.fdm;
-    processorMap = src.processorMap;
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
 	nbx[i] = src.nbx[i];
@@ -154,7 +151,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     }
 }
 
-void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* bdy, const Array<int>& pd)
+void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* bdy)
 {
     if (ok())
 	BoxLib::Error("level_interface::alloc---this object already allocated");
@@ -166,11 +163,6 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     assert( bdy != 0 );
     bdy->boundary_mesh(em, grid_ref, im, dom);
 
-    processorMap = new int[im.length()];
-    for (int igrid = 0; igrid < im.length(); igrid++) 
-    {
-	processorMap[igrid] = pd[igrid];
-    }
     
     // Add edges in 2D or faces in 3D:
 

@@ -77,7 +77,7 @@ amr_multigrid::~amr_multigrid()
     delete [] interface_array;
 }
 
-void amr_multigrid::build_mesh(const Box& fdomain, const Array< Array<int> >& Pd)
+void amr_multigrid::build_mesh(const Box& fdomain)
 {
     mg_domain_array.resize(lev_min_max + 1);
     mg_mesh_array.resize(lev_min_max + 1);
@@ -144,7 +144,7 @@ void amr_multigrid::build_mesh(const Box& fdomain, const Array< Array<int> >& Pd
 	    {
 		if (mglev == ml_index[lev]) 
 		{
-		    lev_interface[mglev].alloc(mg_mesh[mglev], mg_domain[mglev], mg_boundary, Pd[lev] );
+		    lev_interface[mglev].alloc(mg_mesh[mglev], mg_domain[mglev], mg_boundary);
 		}
 		else 
 		{

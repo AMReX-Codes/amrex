@@ -63,6 +63,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
     if (t == refWall || t == outflow || (t == inflow && idim != flowdim)) 
     {
 	// all these cases use a reflected box
+	assert(idir != 0);
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
@@ -76,10 +77,6 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	    else
 		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
-	}
-	else 
-	{
-	    BoxLib::Error("mixed_boundary_class::box---undefined boundary direction");
 	}
     }
     else if (t == inflow) 
@@ -105,6 +102,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 	}
 	else if (idir > 0) 
 	{
+	    assert(idir != 0);
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
 		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
@@ -116,19 +114,18 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	}
-	else 
-	{
-	    BoxLib::Error("mixed_boundary_class::box---undefined boundary direction");
-	}
     }
     else if (t == periodic) 
     {
+	assert(idir != 0);
 	if (idir < 0)
+	{
 	    retbox.shift(idim, domain.length(idim));
+	}
 	else if (idir > 0)
+	{
 	    retbox.shift(idim, -domain.length(idim));
-	else
-	    BoxLib::Error("mixed_boundary_class::box---undefined boundary direction");
+	}
     }
     else 
     {
@@ -238,36 +235,30 @@ void mixed_boundary_class::fill(FArrayBox& patch,
     if (idir != 0) 
     {
 	// normal-component inflow section, assume patch.nComp() == 1
-	if (igrid >= 0) 
+	assert(igrid >= 0);
+	Box bb = box(image, domain, idir);
+	if (image == region) 
 	{
-	    Box bb = box(image, domain, idir);
-	    if (image == region) 
-	    {
-		// only bdy involved, can fill directly from interior
-		fill(patch, region, src, bb, domain, idir);
-	    }
-	    else 
-	    {
-		// multiple bdys, fill intermediate patch
-		FArrayBox gb(image);
-		fill(gb, image, src, bb, domain, idir);
-		if (negflag == 1) 
-		{
-		    FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-			gb.dataPtr(), DIMLIST(image),
-			DIMLIST(image), refarray);
-		}
-		else if (negflag == -1) 
-		{
-		    FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-			gb.dataPtr(), DIMLIST(image),
-			DIMLIST(image), refarray);
-		}
-	    }
+	    // only bdy involved, can fill directly from interior
+	    fill(patch, region, src, bb, domain, idir);
 	}
 	else 
 	{
-	    BoxLib::Error("mixed_boundary_class::fill---exterior ref undefined");
+	    // multiple bdys, fill intermediate patch
+	    FArrayBox gb(image);
+	    fill(gb, image, src, bb, domain, idir);
+	    if (negflag == 1) 
+	    {
+		FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+		    gb.dataPtr(), DIMLIST(image),
+		    DIMLIST(image), refarray);
+	    }
+	    else if (negflag == -1) 
+	    {
+		FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+		    gb.dataPtr(), DIMLIST(image),
+		    DIMLIST(image), refarray);
+	    }
 	}
     }
     else if (flowdim == -4) 
@@ -301,34 +292,22 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	// all cases other than normal-component inflow
 	if (negflag == 1) 
 	{
-	    if (igrid >= 0) 
+	    assert(igrid >= 0);
+	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-			src.dataPtr(i), DIMLIST(src.box()),
-			DIMLIST(image), refarray);
-		}
-	    }
-	    else 
-	    {
-		BoxLib::Error("mixed_boundary_class::fill---exterior ref undefined");
+		FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+		    src.dataPtr(i), DIMLIST(src.box()),
+		    DIMLIST(image), refarray);
 	    }
 	}
 	else if (negflag == -1) 
 	{
-	    if (igrid >= 0) 
+	    assert(igrid >= 0);
+	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-			src.dataPtr(i), DIMLIST(src.box()),
-			DIMLIST(image), refarray);
-		}
-	    }
-	    else 
-	    {
-		BoxLib::Error("mixed_boundary_class::fill---exterior ref undefined");
+		FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+		    src.dataPtr(i), DIMLIST(src.box()),
+		    DIMLIST(image), refarray);
 	    }
 	}
     }
