@@ -43,7 +43,8 @@ c Unrolled copy---works for CELL- or NODE-based data.
       real*8 src(*)
       integer ncomp
       integer nvals, i
-      nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
+      nvals = (regh0-regl0+1) * (regh1-regl1+1) 
+     &	    * (regh2-regl2+1) * ncomp
       do 10 i = 1, nvals
  10      dest(i) = src(i)
       end
@@ -189,7 +190,8 @@ c Works for CELL- or NODE-based data.
       real*8 x
       integer ncomp
       integer nvals, i
-      nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
+      nvals = (regh0-regl0+1) * (regh1-regl1+1)
+     &	     * (regh2-regl2+1) * ncomp
       do i = 1, nvals
 	    v(i) = x
 	end do
@@ -721,7 +723,8 @@ cdir$ ivdep
                   dest(ir*ic,jr*jc,4*kc+1) = 0.5d0 *
      @               (dest(ir*ic,jr*jc,4*kc) + dest(ir*ic,jr*jc,4*kc+2))
  120              dest(ir*ic,jr*jc,4*kc+3) = 0.5d0 *
-     @               (dest(ir*ic,jr*jc,4*kc+2) + dest(ir*ic,jr*jc,4*kc+4))
+     @               (dest(ir*ic,jr*jc,4*kc+2) 
+     &		+ dest(ir*ic,jr*jc,4*kc+4))
       else if (kr .ne. 1) then
          do 220 m = 1, kr-1
             q = dble(m)/kr
@@ -947,17 +950,17 @@ c NODE-based data only.
             do 10 j = regl1, regh1
                do 10 i = regl0, regh0
                   do 10 k = regl2, regh2
- 10                  dest(i,j,k) = RESTR2
+ 10                  dest(i,j,k) = RESTR2()
          else if (regh1 - regl1 .gt. regh0 - regl0) then
             do 20 k = regl2, regh2
                do 20 i = regl0, regh0
                   do 20 j = regl1, regh1
- 20                  dest(i,j,k) = RESTR2
+ 20                  dest(i,j,k) = RESTR2()
          else
             do 30 k = regl2, regh2
                do 30 j = regl1, regh1
                   do 30 i = regl0, regh0
- 30                  dest(i,j,k) = RESTR2
+ 30                  dest(i,j,k) = RESTR2()
          end if
       else if (ir .eq. 4 .and. jr .eq. 4 .and. kr .eq. 4) then
          if (regh2 - regl2 .gt. regh1 - regl1 .and.

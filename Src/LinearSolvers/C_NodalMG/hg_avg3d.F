@@ -239,10 +239,10 @@ c each face is two faces and two sides of an edge
                         if (m .eq. 0) fac = 0.5d0 * fac
                         do 60 if = ir*cregl0, ir*cregh0, ir
  60                        src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(if-m,jf+n,krf) + rf(if-m-1,jf+n,krf) +
-     @                        rf(if-m,jf+n-1,krf) + rf(if-m-1,jf+n-1,krf) +
-     @                        rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
-     @                        rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
+     @                    (rf(if-m,jf+n,krf) + rf(if-m-1,jf+n,krf) +
+     @                     rf(if-m,jf+n-1,krf) + rf(if-m-1,jf+n-1,krf) +
+     @                     rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
+     @                     rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   jrf = jf + ji - 1
@@ -254,10 +254,10 @@ c each face is two faces and two sides of an edge
                         if (m .eq. 0) fac = 0.5d0 * fac
                         do 70 if = ir*cregl0, ir*cregh0, ir
  70                        src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(if-m,jrf,kf+l) + rf(if-m-1,jrf,kf+l) +
-     @                        rf(if-m,jrf,kf+l-1) + rf(if-m-1,jrf,kf+l-1) +
-     @                        rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
-     @                        rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
+     @                    (rf(if-m,jrf,kf+l) + rf(if-m-1,jrf,kf+l) +
+     @                     rf(if-m,jrf,kf+l-1) + rf(if-m-1,jrf,kf+l-1) +
+     @                     rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
+     @                     rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
                end if
  80            continue
       else if (ivect(1) .eq. 0) then
@@ -323,10 +323,10 @@ c each face is two faces and two sides of an edge
                         fac = (ir-abs(m)) * fac1
                         do 160 jf = jr*cregl1, jr*cregh1, jr
  160                       src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(if+m,jf-n,krf) + rf(if+m-1,jf-n,krf) +
-     @                        rf(if+m,jf-n-1,krf) + rf(if+m-1,jf-n-1,krf) +
-     @                        rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
-     @                        rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
+     @                   (rf(if+m,jf-n,krf) + rf(if+m-1,jf-n,krf) +
+     @                    rf(if+m,jf-n-1,krf) + rf(if+m-1,jf-n-1,krf) +
+     @                    rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
+     @                    rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   irf = if + ii - 1
@@ -338,10 +338,10 @@ c each face is two faces and two sides of an edge
                         if (n .eq. 0) fac = 0.5d0 * fac
                         do 170 jf = jr*cregl1, jr*cregh1, jr
  170                       src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(irf,jf-n,kf+l) + rf(irf,jf-n-1,kf+l) +
-     @                        rf(irf,jf-n,kf+l-1) + rf(irf,jf-n-1,kf+l-1) +
-     @                        rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
-     @                        rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
+     @                  (rf(irf,jf-n,kf+l) + rf(irf,jf-n-1,kf+l) +
+     @                   rf(irf,jf-n,kf+l-1) + rf(irf,jf-n-1,kf+l-1) +
+     @                   rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
+     @                   rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
                end if
  180           continue
       else
@@ -407,10 +407,10 @@ c each face is two faces and two sides of an edge
                         fac = (ir-abs(m)) * fac1
                         do 260 kf = kr*cregl2, kr*cregh2, kr
  260                       src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(if+m,jrf,kf-l) + rf(if+m-1,jrf,kf-l) +
-     @                        rf(if+m,jrf,kf-l-1) + rf(if+m-1,jrf,kf-l-1) +
-     @                        rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
-     @                        rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
+     @                  (rf(if+m,jrf,kf-l) + rf(if+m-1,jrf,kf-l) +
+     @                   rf(if+m,jrf,kf-l-1) + rf(if+m-1,jrf,kf-l-1) +
+     @                   rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
+     @                   rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   irf = if + ii - 1
@@ -422,10 +422,10 @@ c each face is two faces and two sides of an edge
                         fac = (jr-abs(n)) * fac1
                         do 270 kf = kr*cregl2, kr*cregh2, kr
  270                       src(if,jf,kf) = src(if,jf,kf) + fac *
-     @                       (rf(irf,jf+n,kf-l) + rf(irf,jf+n-1,kf-l) +
-     @                        rf(irf,jf+n,kf-l-1) + rf(irf,jf+n-1,kf-l-1) +
-     @                        rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
-     @                        rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
+     @                  (rf(irf,jf+n,kf-l) + rf(irf,jf+n-1,kf-l) +
+     @                   rf(irf,jf+n,kf-l-1) + rf(irf,jf+n-1,kf-l-1) +
+     @                   rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
+     @                   rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
                end if
  280           continue
       end if
