@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.2 2001-07-21 00:33:15 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.3 2001-07-26 20:27:27 car Exp $
 //
 
 #include <Thread.H>
@@ -16,14 +16,14 @@ namespace
 Mutex print_mutex;
 }
 
-//#define BL3_WORKQUEUE_TRACE
-#ifdef BL3_WORKQUEUE_TRACE
+//#define BL_WORKQUEUE_TRACE
+#ifdef BL_WORKQUEUE_TRACE
 #define DPRINTF(arg)							\
 do									\
 {									\
-    Lock<Mutex> lock(print_mutex);			\
-    std::printf("tid(%ld): ", pthread_self());				\
-    std::printf arg;							\
+    Lock<Mutex> lock(print_mutex);					\
+    std::cout << "tid(" << (long)(pthread_self()) << "): "		\
+	      << arg << std::endl;					\
 }									\
 while (false)
 #else
@@ -65,9 +65,9 @@ WorkQueue_server(void* arg)
 void*
 WorkQueue::server()
 {
-    DPRINTF(("A worker is starting\n"));
+    DPRINTF("A worker is starting");
     Lock<ConditionVariable> lock(cv);
-    DPRINTF(("Worker locked 0\n"));
+    DPRINTF("Worker locked 0");
     for (;;)
     {
 	if ( tasks == 0 && eof )
@@ -75,14 +75,17 @@ WorkQueue::server()
 	    gate.open(); gate.release();
 	    eof = false;
 	}
-	DPRINTF(("Worker waiting for work\n"));
+	DPRINTF("Worker waiting for work");
 	while ( wrkq.empty() && !quit )
 	{
 	    idlethreads++;
 	    cv.wait();
 	    idlethreads--;
 	}
-	DPRINTF(("Work queue: wrkq.empty()(%d), quit(%d), eof(%d), tasks(%d)\n", wrkq.empty(), quit, eof, tasks));
+	DPRINTF("Work queue: wrkq.empty()(" << wrkq.empty()<< "), "
+		<< "quit(" << quit << "), "
+		<< "eof("  << eof << "), "
+		<< "tasks(" << tasks << ")");
 	if ( !wrkq.empty() )
 	{
 	    std::auto_ptr<task> we(wrkq.front());
@@ -90,22 +93,22 @@ WorkQueue::server()
 	    if ( we.get() )
 	    {
 		eof = false;
-		DPRINTF(("Worker calling engine\n"));
+		DPRINTF("Worker calling engine");
 		cv.unlock();
 		we->run();
 		cv.lock();
-		DPRINTF(("Worker returning engine\n"));
+		DPRINTF("Worker returning engine");
 	    }
 	    else
 	    {
-		DPRINTF(("EOF reached\n"));
+		DPRINTF("EOF reached");
 		eof = true;
 	    }
 	    tasks--;
         }
 	if ( wrkq.empty() && quit )
 	{
-	    DPRINTF(("Worker shutting down\n"));
+	    DPRINTF("Worker shutting down");
 	    if ( --numthreads == 0 )
 	    {
 		cv.broadcast();	// FIXME same predicate!
@@ -113,7 +116,7 @@ WorkQueue::server()
 	    break;
         }
     }
-    DPRINTF(("Worker exiting\n"));
+    DPRINTF("Worker exiting");
     return 0;
 }
 
@@ -162,12 +165,12 @@ WorkQueue::add(task* item)
     tasks++;
     if ( idlethreads > 0 )
     {
-	DPRINTF(("Signaling idle worker\n"));
+	DPRINTF("Signaling idle worker");
 	cv.signal();
     }
     else if ( numthreads < maxthreads )
     {
-	DPRINTF(("Creating new worker\n"));
+	DPRINTF("Creating new worker");
 	FunctionThread ft(WorkQueue_server, this, Thread::Detached);
 	numthreads++;
     }
@@ -182,7 +185,7 @@ WorkQueue::wait()
 	gate.wait();
     }
     gate.close();
-    DPRINTF(("wait: finished...\n"));
+    DPRINTF("wait: finished...");
 }
 
 TimedWorkQueue::TimedWorkQueue(int maxthreads_, double timeout_)
@@ -207,9 +210,9 @@ TimedWorkQueue::timeOut() const
 void*
 TimedWorkQueue::server()
 {
-    DPRINTF(("A worker is starting\n"));
+    DPRINTF("A worker is starting");
     Lock<ConditionVariable> lock(cv);
-    DPRINTF(("Worker locked 0\n"));
+    DPRINTF("Worker locked 0");
     for (;;)
     {
 	if ( tasks == 0 && eof )
@@ -217,7 +220,7 @@ TimedWorkQueue::server()
 	    gate.open(); gate.release();
 	    eof = false;
 	}
-	DPRINTF(("Worker waiting for work\n"));
+	DPRINTF("Worker waiting for work");
 	bool timedout = false;
 	BoxLib::Time t = BoxLib::Time::get_time();
 	t += timeout;
@@ -228,12 +231,14 @@ TimedWorkQueue::server()
 	    idlethreads--;
 	    if ( status )
 	    {
-		DPRINTF(("Worker wait timed out\n"));
+		DPRINTF("Worker wait timed out");
 		timedout = true;
 		break;
 	    }
 	}
-	DPRINTF(("Work queue: wrkq.empty()(%d), quit(%d), eof(%d)\n", wrkq.empty(), quit, eof));
+	DPRINTF("Work queue: wrkq.empty()(" << wrkq.empty() << "), "
+		<< "quit(" << quit << "), "
+		<< "eof(" << eof << ")");
 	if ( !wrkq.empty() )
 	{
 	    std::auto_ptr<task> we(wrkq.front());
@@ -241,22 +246,22 @@ TimedWorkQueue::server()
 	    if ( we.get() )
 	    {
 		eof = false;
-		DPRINTF(("Worker calling engine\n"));
+		DPRINTF("Worker calling engine");
 		cv.unlock();
 		we->run();
 		cv.lock();
-		DPRINTF(("Worker returning engine\n"));
+		DPRINTF("Worker returning engine");
 	    }
 	    else
 	    {
-		DPRINTF(("EOF reached\n"));
+		DPRINTF("EOF reached");
 		eof = true;
 	    }
 	    tasks--;
         }
 	if ( wrkq.empty() && quit )
 	{
-	    DPRINTF(("Worker shutting down\n"));
+	    DPRINTF("Worker shutting down");
 	    if ( --numthreads == 0 )
 	    {
 		cv.broadcast();	// FIXME same predicate!
@@ -265,11 +270,11 @@ TimedWorkQueue::server()
         }
 	if ( wrkq.empty() && timedout )
 	{
-	    DPRINTF(("engine terminating due to timeout.\n"));
+	    DPRINTF("engine terminating due to timeout.");
 	    numthreads--;
 	    break;
         }
     }
-    DPRINTF(("Worker exiting\n"));
+    DPRINTF("Worker exiting");
     return 0;
 }
