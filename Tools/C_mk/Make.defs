@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.74 2004-07-28 20:20:24 welcome Exp $
+# Make.defs $Id: Make.defs,v 1.75 2004-07-29 20:32:23 car Exp $
 #
 
 #
@@ -217,7 +217,11 @@ ifeq ($(FCOMP),g77)
     fDEBF += -g
 endif
 ifeq ($(COMP),Intel)
-   CXX := icc
+   ifeq ($(UNAMEM),ia64)
+     CXX := ecc
+   else
+     CXX := icc
+   endif
    CXXOPTF += -g
    CXXOPTF += -O2
    # CXXOPTF += -axK
@@ -258,8 +262,13 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 endif
 ifeq ($(FCOMP),Intel)
-   FC := ifc -cm -mp
-   fC := ifc -cm -mp
+   ifeq ($(UNAMEM),ia64)
+     FC := efc -mp
+     fC := efc -mp
+   else
+     FC := ifc -cm -mp
+     fC := ifc -cm -mp
+   endif
    FDEBF += -g
    fDEBF += -g
    FOPTF += -g
