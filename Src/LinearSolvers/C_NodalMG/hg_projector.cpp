@@ -985,7 +985,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    FArrayBox* ucp[BL_SPACEDIM];
+	    task_fab* ucp[BL_SPACEDIM];
 	    int jgrid = find_patch(cbox, u[0][lev-1]);
 	    if (jgrid < 0) 
 	    {
@@ -1037,7 +1037,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		for(int i = 0; i < BL_SPACEDIM; ++i)
 		{
-    		    ucp[i] = new task_fab_get(&u[i][lev-1, jgrid, cbox);
+    		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 		}
 	    }
 	    Box fbox = lev_interface[mglev].box(0, icor);
