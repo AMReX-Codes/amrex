@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.42 1998-06-21 17:56:23 lijewski Exp $
+// $Id: TagBox.cpp,v 1.43 1998-07-15 22:42:12 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -10,15 +10,19 @@
 #include <ParallelDescriptor.H>
 
 #ifdef BL_USE_NEW_HFILES
+#include <algorithm>
 #include <vector>
+using std::sort;
 using std::vector;
+using std::unique;
 #else
+#if !defined(BL_T3E)
+#include <algorithm.h>
+#else
+#include <algo.h>
+#endif
 #include <vector.h>
 #endif
-
-extern void inspectTAGArray (const TagBoxArray& tba);
-extern void inspectTAG (const TagBox& tb, int n);
-extern void inspectFAB (FArrayBox& unfab, int n);
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
@@ -54,26 +58,6 @@ TagBoxArray::BumpCollateSpace (long numtags)
 
     TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
 }
-
-struct TagBoxMergeDesc
-{
-    FillBoxId fillBoxId;
-    Box       overlapBox;
-    int       mergeIndexSrc;
-    int       mergeIndexDest;
-    int       nOverlap;
-    bool      destLocal;
-    //
-    // Default constructor -- keep 3rd quiet.
-    //
-    TagBoxMergeDesc ()
-    {
-        mergeIndexSrc  = 0;
-        mergeIndexDest = 0;
-        nOverlap       = 0;
-        destLocal      = false;
-    }
-};
 
 TagBox::TagBox () {}
 
@@ -452,186 +436,6 @@ TagBoxArray::buffer (int nbuf)
 }
 
 void
-TagBoxArray::mergeUnique ()
-{
-    FabArrayCopyDescriptor<TagType,TagBox> facd;
-
-    FabArrayId faid     = facd.RegisterFabArray(this);
-    int        nOverlap = 0;
-    const int  MyProc   = ParallelDescriptor::MyProc();
-
-    vector<TagBoxMergeDesc> tbmdList;
-    TagBoxMergeDesc         tbmd;
-
-    for (int idest = 0; idest < boxarray.length(); ++idest)
-    {
-        bool destLocal = (distributionMap[idest] == MyProc);
-
-        for (int isrc = idest + 1; isrc < boxarray.length(); ++isrc)
-        {
-            if (boxarray[idest].intersects(boxarray[isrc]))
-            {
-                tbmd.overlapBox     = boxarray[idest] & boxarray[isrc];
-                tbmd.mergeIndexSrc  = isrc;
-                tbmd.mergeIndexDest = idest;
-                tbmd.nOverlap       = nOverlap++;
-                tbmd.destLocal      = destLocal;
-                if (destLocal)
-                {
-                    tbmd.fillBoxId = facd.AddBox(faid,
-                                                 tbmd.overlapBox,
-                                                 0,
-                                                 isrc,
-                                                 0,
-                                                 0,
-                                                 1);
-
-                    assert(tbmd.fillBoxId.box() == tbmd.overlapBox);
-                }
-                tbmdList.push_back(tbmd);
-            }
-        }
-    }
-
-    facd.CollectData();
-
-    TagBox            src;
-    FabComTag         tbmdClear;
-    vector<FabComTag> clearList;
-
-    for (int i = 0; i < tbmdList.size(); i++)
-    {
-        const TagBoxMergeDesc& desc = tbmdList[i];
-
-        if (desc.destLocal)
-        {
-            src.resize(desc.overlapBox);
-
-            facd.FillFab(faid, desc.fillBoxId, src);
-
-            for (int j = 0; j < tbmdList.size(); j++)
-            {
-                if (src.box().intersects(tbmdList[j].overlapBox) &&
-                    tbmdList[j].mergeIndexSrc == desc.mergeIndexSrc)
-                {
-                    Box ovlpBox = src.box() & tbmdList[j].overlapBox;
-                    if (tbmdList[j].nOverlap < i)
-                    {
-                        src.setVal(TagBox::CLEAR, ovlpBox, 0);
-                    }
-                    tbmdClear.fabIndex = desc.mergeIndexSrc;
-                    tbmdClear.box      = desc.overlapBox;
-                    clearList.push_back(tbmdClear);
-                }
-            }
-            fabparray[desc.mergeIndexDest].merge(src);
-        }
-    }
-    //
-    // Now send the clear list elements to the processor to whom they belong.
-    //
-#ifdef BL_USE_MPI
-    //
-    // First got to figure out # of messages each processor should receive.
-    //
-    Array<int> msgs(ParallelDescriptor::NProcs(), 0);
-    Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
-
-    for (int i = 0; i < clearList.size(); i++)
-    {
-        msgs[distributionMap[clearList[i].fabIndex]]++;
-    }
-
-    int rc;
-
-    for (int i = 0; i < msgs.length(); i++)
-    {
-        if ((rc = MPI_Reduce(&msgs[i],
-                             &nrcv[i],
-                             1,
-                             MPI_INT,
-                             MPI_SUM,
-                             i,
-                             MPI_COMM_WORLD)) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    }
-
-    const int NumRecv = nrcv[MyProc];
-
-    Array<MPI_Request> reqs(NumRecv);
-    Array<MPI_Status>  stat(NumRecv);
-    Array<CommData>    recv(NumRecv);
-
-    for (int i = 0; i < NumRecv; i++)
-    {
-        if ((rc = MPI_Irecv(recv[i].dataPtr(),
-                            recv[i].length(),
-                            MPI_INT,
-                            MPI_ANY_SOURCE,
-                            531,
-                            MPI_COMM_WORLD,
-                            &reqs[i])) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    }
-
-    for (int i = 0; i < clearList.size(); i++)
-    {
-        CommData senddata(0, // Not Used.
-                          clearList[i].fabIndex,
-                          0, // Not Used.
-                          0, // Not Used.
-                          0, // Not Used.
-                          0, // Not Used.
-                          0, // Not Used.
-                          clearList[i].box);
-
-        if ((rc = MPI_Ssend(senddata.dataPtr(),
-                            senddata.length(),
-                            MPI_INT,
-                            distributionMap[clearList[i].fabIndex],
-                            531,
-                            MPI_COMM_WORLD)) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    }
-
-    if ((rc = MPI_Waitall(NumRecv,
-                          reqs.dataPtr(),
-                          stat.dataPtr())) != MPI_SUCCESS)
-        ParallelDescriptor::Abort(rc);
-    //
-    // Now clear the overlaps in the TagBoxArray.
-    //
-    for (int i = 0; i < NumRecv; i++)
-    {
-        assert(distributionMap[recv[i].fabindex()] == MyProc);
-
-        fabparray[recv[i].fabindex()].setVal(TagBox::CLEAR, recv[i].box(), 0);
-    }
-#else
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-
-    for (int i = 0; i < clearList.size(); i++)
-    {
-        ParallelDescriptor::SendData(distributionMap[clearList[i].fabIndex],
-                                     &clearList[i], 0, 0);
-    }
-    ParallelDescriptor::Synchronize();  // To guarantee messages are sent.
-    //
-    // Now clear the overlaps in the TagBoxArray.
-    //
-    int dataWaitingSize;
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
-    {
-       assert(distributionMap[tbmdClear.fabIndex] == MyProc);
-
-       fabparray[tbmdClear.fabIndex].setVal(TagBox::CLEAR,tbmdClear.box,0);
-
-       ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
-    }
-#endif /*BL_USE_MPI*/
-}
-
-void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
     if (!geom.isAnyPeriodic())
@@ -729,6 +533,19 @@ TagBoxArray::numTags () const
    return ntag;
 }
 
+//
+// Used by collate().
+//
+
+struct IntVectComp
+{
+    bool operator () (const IntVect& lhs,
+                      const IntVect& rhs) const
+    {
+        return lhs.lexLT(rhs);
+    }
+};
+
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
@@ -766,7 +583,9 @@ TagBoxArray::collate (long& numtags) const
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)
+    {
         TagBoxArray::BumpCollateSpace(numtags);
+    }
 
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
@@ -808,11 +627,13 @@ TagBoxArray::collate (long& numtags) const
             for (int iProc = 0; iProc < nProcs; ++iProc)
             {
                 if (iProc != MyProc)
+                {
                     ParallelDescriptor::WriteData(iProc,
                                                   &sharedNTags[i],
                                                   sharedNTags.dataPtr(),
                                                   i * sizeof(int),
                                                   sizeof(int));
+                }
             }
         }
     }
@@ -832,7 +653,9 @@ TagBoxArray::collate (long& numtags) const
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)
+    {
         TagBoxArray::BumpCollateSpace(numtags);
+    }
 
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
@@ -870,8 +693,20 @@ TagBoxArray::collate (long& numtags) const
     ParallelDescriptor::Synchronize();  // Need this sync after the put.
     ParallelDescriptor::UnshareVar(TagBoxArray::m_CollateSpace);
 #endif /*BL_USE_MPI*/
+    //
+    // Remove duplicate IntVects.
+    //
+    sort(m_CollateSpace, m_CollateSpace+numtags, IntVectComp());
 
-    return TagBoxArray::m_CollateSpace;
+    IntVect* end = unique(m_CollateSpace,m_CollateSpace+numtags);
+
+    ptrdiff_t duplicates = (m_CollateSpace+numtags) - end;
+
+    assert(duplicates >= 0);
+
+    numtags -= duplicates;
+
+    return m_CollateSpace;
 }
 
 void

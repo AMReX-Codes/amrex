@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.11 1998-05-22 21:46:01 lijewski Exp $
+// $Id: TagBox.H,v 1.12 1998-07-15 22:42:09 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -150,13 +150,6 @@ public:
     //@ManDoc: Calls buffer() on all contained TagBoxes.
     //
     void buffer (int nbuf);
-
-    /*@ManDoc: Massages the contained TagBoxes so that any tagged cells in a
-               region where one or more TagBoxes overlap are only set in one
-               of the TagBoxes; i.e. enforces the uniqueness of tagged points
-               in the underlying BoxArray defined by the contained TagBoxes.
-    */
-    void mergeUnique ();
 
     /*@ManDoc: Map tagged cells through a periodic boundary to other grids in
                TagBoxArray cells which were outside domain are set to TagBox::CLEAR.

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.48 1998-07-08 19:17:16 lijewski Exp $
+// $Id: Amr.cpp,v 1.49 1998-07-15 22:42:09 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -536,8 +536,6 @@ Amr::checkInput ()
 void
 Amr::init (Real strt_time, Real stop_time)
 {
-    TRACER("Amr::init()");
-
     if (!restart_file.isNull())
     {
         restart(restart_file);
@@ -554,8 +552,6 @@ Amr::init (Real strt_time, Real stop_time)
 void
 Amr::initialInit (Real strt_time, Real stop_time)
 {
-    TRACER("Amr::initialInit()");
-
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1071,8 +1067,6 @@ void
 Amr::regrid (int  lbase,
              Real time)
 {
-    TRACER("Amr::regrid()");
-
     int new_finest;
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -1166,50 +1160,46 @@ Amr::regrid (int  lbase,
     // Build any additional data structures after grid generation.
     //
     for (lev = 0; lev <= new_finest; lev++)
+    {
         amr_level[lev].post_regrid(lbase,new_finest);
+    }
     //
     // Report creation of new grids.
     //
     if (verbose || record_run_info)
     {
-        int lev;
-        for (lev = lbase+1; lev <= finest_level; lev++)
+        for (int lev = lbase+1; lev <= finest_level; lev++)
         {
             int numgrids= amr_level[lev].numGrids();
             long ncells = amr_level[lev].countCells();
             long ntot = geom[lev].Domain().numPts();
             Real frac = 100.0*(Real(ncells) / Real(ntot));
-            if (verbose)
+
+            if (verbose && ParallelDescriptor::IOProcessor())
             {
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    cout << "   level "
-                         << lev
-                         << ": "
-                         << numgrids
-                         << " grids, "
-                         << ncells
-                         << " cells  = "
-                         << frac
-                         << " % of domain"
-                         << endl;
-                }
+                cout << "   level "
+                     << lev
+                     << ": "
+                     << numgrids
+                     << " grids, "
+                     << ncells
+                     << " cells  = "
+                     << frac
+                     << " % of domain"
+                     << endl;
             }
-            if (record_run_info)
+            if (record_run_info && ParallelDescriptor::IOProcessor())
             {
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    runlog << "   level "
-                           << lev
-                           << ": "
-                           << numgrids
-                           << " grids, "
-                           << ncells
-                           << " cells  = "
-                           << frac
-                           << " % of domain"
-                           << '\n';
-                }
+                runlog << "   level "
+                       << lev
+                       << ": "
+                       << numgrids
+                       << " grids, "
+                       << ncells
+                       << " cells  = "
+                       << frac
+                       << " % of domain"
+                       << '\n';
             }
         }
     }
@@ -1240,7 +1230,8 @@ Amr::regrid (int  lbase,
 void
 Amr::printGridInfo (ostream& os,
                     int      min_lev,
-                    int      max_lev) {
+                    int      max_lev)
+{
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
         const BoxArray& bs = amr_level[lev].boxArray();
@@ -1251,7 +1242,7 @@ Amr::printGridInfo (ostream& os,
 
         os << "  Level "
            << lev
-           << ' '
+           << "   "
            << numgrid
            << " grids  "
            << ncells
@@ -1263,9 +1254,11 @@ Amr::printGridInfo (ostream& os,
         for (int k = 0; k < numgrid; k++)
         {
             const Box& b = bs[k];
-            os << ' ' << lev << ": " << b << ' ';
+            os << ' ' << lev << ": " << b << "   ";
             for (int i = 0; i < BL_SPACEDIM; i++)
+            {
                 os << b.length(i) << ' ';
+            }
             os << '\n';
         }
     }
@@ -1339,8 +1332,6 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
-    TRACER("Amr::grid_places()");
-
     int i;
     int  max_crse = Min(finest_level,max_level-1);
 
@@ -1499,10 +1490,6 @@ Amr::grid_places (int              lbase,
         Geometry tmpgeom(pc_domain[levc]);
         tags.mapPeriodic(tmpgeom);
         //
-        // Merge tagged points on overlap, remove redundant tags.
-        //
-        tags.mergeUnique();
-        //
         // Remove cells outside proper nesting domain for this level.
         //
         tags.setVal(p_n_comp[levc],TagBox::CLEAR);
@@ -1566,8 +1553,6 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
-    TRACER("Amr::bldFineLevels");
-
     finest_level = 0;
     int more_levels = true;
 
