@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.11 1998-05-28 02:50:44 lijewski Exp $
+// $Id: FabSet.H,v 1.12 1998-05-28 18:18:55 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -442,24 +442,6 @@ FabSet::copyTo (FArrayBox& dest,
 {
     this->copy(dest, subbox, src_comp, dest_comp, num_comp);
     return *this;
-}
-
-inline
-void
-FabSet::copyTo (MultiFab& dest) const
-{
-    dest.copy(*this);
-}
-
-inline
-void
-FabSet::copyTo (MultiFab& dest,
-                int       nghost,
-                int       src_comp,
-                int       dest_comp,
-                int       num_comp) const
-{
-    dest.copy(*this, src_comp, dest_comp, num_comp, nghost);
 }
 
 //

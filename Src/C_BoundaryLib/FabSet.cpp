@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.15 1998-05-26 22:58:17 lijewski Exp $
+// $Id: FabSet.cpp,v 1.16 1998-05-28 18:18:56 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -21,17 +21,14 @@ FabSet::setFab (int        boxno,
                 FArrayBox* fab)
 {
     if (n_comp == 0)
-    {
         n_comp = fab->nComp();
-    }
+
     assert(n_comp == fab->nComp());
     assert(boxarray.ready());
     assert(!fabparray.defined(boxno));
     assert(distributionMap.ProcessorMap()[boxno] == ParallelDescriptor::MyProc());
 
     fabparray.set(boxno, fab);
-
-    fabboxarray.convert(fab->box().ixType());
     fabboxarray.set(boxno, fab->box());
 }
 
@@ -79,6 +76,28 @@ FabSet::copyFrom (const FArrayBox& src,
     return *this;
 }
 
+void
+FabSet::copyTo (MultiFab& dest) const
+{
+    BoxArray tmp = boxarray;
+    boxarray = fabboxarray;
+    dest.copy(*this);
+    boxarray = tmp;
+}
+
+void
+FabSet::copyTo (MultiFab& dest,
+                int       nghost,
+                int       src_comp,
+                int       dest_comp,
+                int       num_comp) const
+{
+    BoxArray tmp = boxarray;
+    boxarray = fabboxarray;
+    dest.copy(*this, src_comp, dest_comp, num_comp, nghost);
+    boxarray = tmp;
+}
+
 FabSet&
 FabSet::copyFrom (const MultiFab& src,
                   int             nghost,
@@ -86,7 +105,13 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
+#if 0
     assert(nghost <= src.nGrow());
+    BoxArray tmp = boxarray;
+    boxarray = fabboxarray;
+    this->copy(src,src_comp,dest_comp,num_comp,nghost);
+    boxarray = tmp;
+#endif
 
     FabSetCopyDescriptor fscd;
 
@@ -152,6 +177,7 @@ FabSet::plusFrom (const MultiFab& src,
     MultiFabCopyDescriptor mfcd;
     MultiFabId             mfidsrc = mfcd.RegisterFabArray((MultiFab*) &src);
     vector<FillBoxId>      fillBoxIdList;
+    FArrayBox              tmpfab;
 
     for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
     {
@@ -188,10 +214,9 @@ FabSet::plusFrom (const MultiFab& src,
                 assert(!(fbidli == fillBoxIdList.end()));
                 const FillBoxId& fbidsrc = *fbidli++;
                 assert(fbidsrc.box() == ovlp);
-                //
-                // Directly fill the FAB.
-                //
-                mfcd.FillFab(mfidsrc, fbidsrc, thismfi());
+                tmpfab.resize(fbidsrc.box(), num_comp);
+                mfcd.FillFab(mfidsrc, fbidsrc, tmpfab);
+                thismfi().plus(tmpfab,ovlp,src_comp,dest_comp,num_comp);
             }
         }
     }
