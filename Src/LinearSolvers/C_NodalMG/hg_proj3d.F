@@ -1,6 +1,3 @@
-#include <REAL.H>
-#include <CONSTANTS.H>
-
 c-----------------------------------------------------------------------
       subroutine hggrad_terrain(
      & gpx, gpy, gpz,
@@ -11,26 +8,26 @@ c-----------------------------------------------------------------------
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      REAL_T hx, hy, hz
-      REAL_T gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision hx, hy, hz
+      double precision gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
       integer i, j, k
       do k = fregl2, fregh2
           do j = fregl1, fregh1
               do i = fregl0, fregh0
-               gpx(i,j,k) = fourth * 
+               gpx(i,j,k) = 0.25d0 * 
      &            (dest(i+1,j,k  ) + dest(i+1,j+1,k  ) +
      &             dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i  ,j,k  ) - dest(i  ,j+1,k  ) -
      &             dest(i  ,j,k+1) - dest(i  ,j+1,k+1))
-               gpy(i,j,k) = fourth * 
+               gpy(i,j,k) = 0.25d0 * 
      &            (dest(i,j+1,k  ) + dest(i+1,j+1,k  ) +
      &             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
      &             dest(i,j  ,k+1) - dest(i+1,j  ,k+1))
-               gpz(i,j,k) = fourth * 
+               gpz(i,j,k) = 0.25d0 * 
      &            (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
      &             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
@@ -49,14 +46,14 @@ c-----------------------------------------------------------------------
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      REAL_T hx, hy, hz
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T fac
+      double precision hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision fac
       integer i, j, k
-      fac = fourth
+      fac = 0.25d0
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -91,16 +88,16 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T hx, hy, hz
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
-      REAL_T fac0, fac1, fac, tmp
+      double precision fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -111,7 +108,7 @@ c Note---only generates values at coarse points along edge of fine grid
             iuc = i
             iuf = i * ir - 1
          end if
-         fac0 = fourth
+         fac0 = 0.25d0
          do  k = cregl2, cregh2
             do  j = cregl1, cregh1
              src(i*ir,j*jr,k*kr) = fac0 *
@@ -127,10 +124,10 @@ c Note---only generates values at coarse points along edge of fine grid
          i = i * ir
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = half * fac1
+            if (l .eq. 0) fac1 = 0.5D0 * fac1
             do n = 0, jr-1
                fac = (jr-n) * fac1
-               if (n .eq. 0) fac = half * fac
+               if (n .eq. 0) fac = 0.5D0 * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do j = jr*cregl1, jr*cregh1, jr
                      tmp = idir *
@@ -173,7 +170,7 @@ c Note---only generates values at coarse points along edge of fine grid
             juc = j
             juf = j * jr - 1
          end if
-         fac0 = fourth
+         fac0 = 0.25d0
          do k = cregl2, cregh2
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -189,10 +186,10 @@ c Note---only generates values at coarse points along edge of fine grid
          j = j * jr
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = half * fac1
+            if (l .eq. 0) fac1 = 0.5D0 * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = half * fac
+               if (m .eq. 0) fac = 0.5D0 * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = 
@@ -235,7 +232,7 @@ c Note---only generates values at coarse points along edge of fine grid
             kuc = k
             kuf = k * kr - 1
          end if
-         fac0 = fourth
+         fac0 = 0.25d0
          do j = cregl1, cregh1
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -251,10 +248,10 @@ c Note---only generates values at coarse points along edge of fine grid
          k = k * kr
          do n = 0, jr-1
             fac1 = (jr-n) * fac0
-            if (n .eq. 0) fac1 = half * fac1
+            if (n .eq. 0) fac1 = 0.5D0 * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = half * fac
+               if (m .eq. 0) fac = 0.5D0 * fac
                do j = jr*cregl1, jr*cregh1, jr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = 
@@ -304,16 +301,16 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T hx, hy, hz
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      REAL_T fac0, fac1, fac
+      double precision fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       ic = cregl0
@@ -324,11 +321,11 @@ c Note---only generates values at coarse points along edge of fine grid
       kf = kc * kr
       if (ivect(0) .eq. 0) then
          do if = ir*cregl0, ir*cregh0, ir
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / ir
+         fac1 = 1.0D0 / ir
          do ki = 0, 1
             kdir = 2 * ki - 1
             do ji = 0, 1
@@ -338,7 +335,7 @@ c each quadrant is two octants and their share of the two central edges
                   juf = jf + ji - 1
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = half * fac
+                     if (m .eq. 0) fac = 0.5D0 * fac
                      do if = ir*cregl0, ir*cregh0, ir
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (
@@ -373,12 +370,12 @@ c each face is two faces and two sides of an edge
                jdir = 2 * ji - 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
                   kuf = kf + ki - 1
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (
@@ -402,12 +399,12 @@ c
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (
@@ -433,16 +430,16 @@ c
          end do
 c weighting
          do if = ir*cregl0, ir*cregh0, ir
-            src(if,jf,kf) = fourth * src(if,jf,kf)
+            src(if,jf,kf) = 0.25d0 * src(if,jf,kf)
          end do
 
       else if (ivect(1) .eq. 0) then
          do jf = jr*cregl1, jr*cregh1, jr
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / jr
+         fac1 = 1.0D0 / jr
          do ki = 0, 1
             kdir = 2 * ki - 1
             do ii = 0, 1
@@ -452,7 +449,7 @@ c each quadrant is two octants and their share of the two central edges
                   iuf = if + ii - 1
                   do  n = 0, jr-1
                      fac = (jr-n) * fac1
-                     if (n .eq. 0) fac = half * fac
+                     if (n .eq. 0) fac = 0.5D0 * fac
                      do jf = jr*cregl1, jr*cregh1, jr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (idir *
@@ -487,10 +484,10 @@ c each face is two faces and two sides of an edge
                idir = 2 * ii - 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
                   kuf = kf + ki - 1
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   do n = 0, jr-1
                      fac1 = (jr-n) * fac0
-                     if (n .eq. 0) fac1 = half * fac1
+                     if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do jf = jr*cregl1, jr*cregh1, jr
@@ -515,12 +512,12 @@ c each face is two faces and two sides of an edge
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
-                        if (n .eq. 0) fac = half * fac
+                        if (n .eq. 0) fac = 0.5D0 * fac
                         do jf = jr*cregl1, jr*cregh1, jr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (idir *
@@ -544,16 +541,16 @@ c each face is two faces and two sides of an edge
          end do
 c weighting
          do jf = jr*cregl1, jr*cregh1, jr
-            src(if,jf,kf) = fourth * src(if,jf,kf)
+            src(if,jf,kf) = 0.25d0 * src(if,jf,kf)
          end do
 
       else
          do kf = kr*cregl2, kr*cregh2, kr
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / kr
+         fac1 = 1.0D0 / kr
          do ji = 0, 1
             jdir = 2 * ji - 1
             do ii = 0, 1
@@ -563,7 +560,7 @@ c each quadrant is two octants and their share of the two central edges
                   iuf = if + ii - 1
                   do l = 0, kr-1
                      fac = (kr-l) * fac1
-                     if (l .eq. 0) fac = half * fac
+                     if (l .eq. 0) fac = 0.5D0 * fac
                      do kf = kr*cregl2, kr*cregh2, kr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (idir *
@@ -598,10 +595,10 @@ c each face is two faces and two sides of an edge
                idir = 2 * ii - 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
                   juf = jf + ji - 1
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -627,10 +624,10 @@ c
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -658,7 +655,7 @@ c
          end do
 c weighting
          do kf = kr*cregl2, kr*cregh2, kr
-            src(if,jf,kf) = fourth * src(if,jf,kf)
+            src(if,jf,kf) = 0.25d0 * src(if,jf,kf)
          end do
       end if
       end
@@ -676,16 +673,16 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T hx, hy, hz
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1), ijnk(0:2)
-      REAL_T sum, fac0, fac1, fac
+      double precision sum, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       ic = cregl0
@@ -694,7 +691,7 @@ c Note---only generates values at coarse points along edge of fine grid
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      sum = zero
+      sum = 0.0D0
 c octants
       do ki = 0, 1
          kdir = 2 * ki - 1
@@ -733,7 +730,7 @@ c faces
                idir = 2 * ii - 1
                iuf = if + ii - 1
                if (ga(ii,ji,ki) - ga(ii,ji,1-ki) .eq. 1) then
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac0
                      do m = idir, idir*(ir-1), idir
@@ -751,7 +748,7 @@ c
                   end do
                end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do m = idir, idir*(ir-1), idir
@@ -769,7 +766,7 @@ c
                   end do
                end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do n = jdir, jdir*(jr-1), jdir
@@ -802,7 +799,7 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / ir
+                  fac1 = 1.0D0 / ir
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
                      sum = sum + fac * (
@@ -816,7 +813,7 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / jr
+                  fac1 = 1.0D0 / jr
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
                      sum = sum + fac * (idir *
@@ -830,7 +827,7 @@ c
                if (ga(ii,ji,ki) -
      &             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      &             .eq. 1) then
-                  fac1 = one / kr
+                  fac1 = 1.0D0 / kr
                   do l = kdir, kdir*(kr-1), kdir
                      fac = (kr-abs(l)) * fac1
                      sum = sum + fac * (idir *
@@ -845,7 +842,7 @@ c
          end do
       end do
 c weighting
-      src(if,jf,kf) = fourth * sum 
+      src(if,jf,kf) = 0.25d0 * sum 
       end
 c-----------------------------------------------------------------------
       subroutine hggrad(
@@ -857,16 +854,16 @@ c-----------------------------------------------------------------------
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      REAL_T gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T hx, hy, hz
-      REAL_T hxm1h, hym1h, hzm1h
+      double precision gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision hx, hy, hz
+      double precision hxm1h, hym1h, hzm1h
       integer i, j, k
-      hxm1h = fourth / hx
-      hym1h = fourth / hy
-      hzm1h = fourth / hz
+      hxm1h = 0.25d0 / hx
+      hym1h = 0.25d0 / hy
+      hzm1h = 0.25d0 / hz
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -896,17 +893,17 @@ c-----------------------------------------------------------------------
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T hx, hy, hz
-      REAL_T hxm1, hym1, hzm1, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
+      double precision hxm1, hym1, hzm1, fac
       integer i, j, k
-      hxm1 = one / hx
-      hym1 = one / hy
-      hzm1 = one / hz
-      fac = fourth
+      hxm1 = 1.0D0 / hx
+      hym1 = 1.0D0 / hy
+      hzm1 = 1.0D0 / hz
+      fac = 0.25d0
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -941,16 +938,16 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, idim, idir, i1, i2
-      REAL_T hxm1, hym1, hzm1, fac0, fac1, fac, tmp
+      double precision hxm1, hym1, hzm1, fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -961,10 +958,10 @@ c Note---only generates values at coarse points along edge of fine grid
             iuc = i
             iuf = i * ir - 1
          end if
-         fac0 = half * ir / (ir + one)
-         hxm1 = one / (ir * hx)
-         hym1 = one / (jr * hy)
-         hzm1 = one / (kr * hz)
+         fac0 = 0.5D0 * ir / (ir + 1.0D0)
+         hxm1 = 1.0D0 / (ir * hx)
+         hym1 = 1.0D0 / (jr * hy)
+         hzm1 = 1.0D0 / (kr * hz)
          do k = cregl2, cregh2
             do j = cregl1, cregh1
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -983,10 +980,10 @@ c Note---only generates values at coarse points along edge of fine grid
          i = i * ir
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = half * fac1
+            if (l .eq. 0) fac1 = 0.5D0 * fac1
             do n = 0, jr-1
                fac = (jr-n) * fac1
-               if (n .eq. 0) fac = half * fac
+               if (n .eq. 0) fac = 0.5D0 * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do j = jr*cregl1, jr*cregh1, jr
                      tmp = hxm1 * idir *
@@ -1029,10 +1026,10 @@ c Note---only generates values at coarse points along edge of fine grid
             juc = j
             juf = j * jr - 1
          end if
-         fac0 = half * jr / (jr + one)
-         hxm1 = one / (ir * hx)
-         hym1 = one / (jr * hy)
-         hzm1 = one / (kr * hz)
+         fac0 = 0.5D0 * jr / (jr + 1.0D0)
+         hxm1 = 1.0D0 / (ir * hx)
+         hym1 = 1.0D0 / (jr * hy)
+         hzm1 = 1.0D0 / (kr * hz)
          do k = cregl2, cregh2
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -1051,10 +1048,10 @@ c Note---only generates values at coarse points along edge of fine grid
          j = j * jr
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = half * fac1
+            if (l .eq. 0) fac1 = 0.5D0 * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = half * fac
+               if (m .eq. 0) fac = 0.5D0 * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = hxm1 *
@@ -1097,10 +1094,10 @@ c Note---only generates values at coarse points along edge of fine grid
             kuc = k
             kuf = k * kr - 1
          end if
-         fac0 = half * kr / (kr + one)
-         hxm1 = one / (ir * hx)
-         hym1 = one / (jr * hy)
-         hzm1 = one / (kr * hz)
+         fac0 = 0.5D0 * kr / (kr + 1.0D0)
+         hxm1 = 1.0D0 / (ir * hx)
+         hym1 = 1.0D0 / (jr * hy)
+         hzm1 = 1.0D0 / (kr * hz)
          do j = cregl1, cregh1
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -1119,10 +1116,10 @@ c Note---only generates values at coarse points along edge of fine grid
          k = k * kr
          do n = 0, jr-1
             fac1 = (jr-n) * fac0
-            if (n .eq. 0) fac1 = half * fac1
+            if (n .eq. 0) fac1 = 0.5D0 * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = half * fac
+               if (m .eq. 0) fac = 0.5D0 * fac
                do j = jr*cregl1, jr*cregh1, jr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = hxm1 *
@@ -1172,23 +1169,23 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      REAL_T r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
-      REAL_T center, cfac, ffac, fac0, fac1, fac
+      double precision r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
+      double precision center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       r3 = ir * jr * kr
-      hxm1c = one / (ir * hx)
-      hym1c = one / (jr * hy)
-      hzm1c = one / (kr * hz)
+      hxm1c = 1.0D0 / (ir * hx)
+      hym1c = 1.0D0 / (jr * hy)
+      hzm1c = 1.0D0 / (kr * hz)
       hxm1 = ir * hxm1c
       hym1 = jr * hym1c
       hzm1 = kr * hzm1c
@@ -1198,14 +1195,14 @@ c Note---only generates values at coarse points along edge of fine grid
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      center = zero
+      center = 0.0D0
       if (ivect(0) .eq. 0) then
          do if = ir*cregl0, ir*cregh0, ir
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / ir
+         fac1 = 1.0D0 / ir
          ffac = ir
          cfac = r3
          do ki = 0, 1
@@ -1218,7 +1215,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = half * fac
+                     if (m .eq. 0) fac = 0.5D0 * fac
                      do if = ir*cregl0, ir*cregh0, ir
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 *
@@ -1254,14 +1251,14 @@ c each face is two faces and two sides of an edge
                jdir = 2 * ji - 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
                   kuf = kf + ki - 1
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   ffac = ir * (jr - 1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1285,14 +1282,14 @@ c each face is two faces and two sides of an edge
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   ffac = ir * (kr - 1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1322,11 +1319,11 @@ c weighting
          end do
       else if (ivect(1) .eq. 0) then
          do jf = jr*cregl1, jr*cregh1, jr
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / jr
+         fac1 = 1.0D0 / jr
          ffac = jr
          cfac = r3
          do ki = 0, 1
@@ -1339,7 +1336,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do n = 0, jr-1
                      fac = (jr-n) * fac1
-                     if (n .eq. 0) fac = half * fac
+                     if (n .eq. 0) fac = 0.5D0 * fac
                      do jf = jr*cregl1, jr*cregh1, jr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 * idir *
@@ -1375,12 +1372,12 @@ c each face is two faces and two sides of an edge
                idir = 2 * ii - 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
                   kuf = kf + ki - 1
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   ffac = jr * (ir - 1)
                   center = center + ffac
                   do n = 0, jr-1
                      fac1 = (jr-n) * fac0
-                     if (n .eq. 0) fac1 = half * fac1
+                     if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do jf = jr*cregl1, jr*cregh1, jr
@@ -1406,14 +1403,14 @@ c each face is two faces and two sides of an edge
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   ffac = jr * (kr - 1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
-                        if (n .eq. 0) fac = half * fac
+                        if (n .eq. 0) fac = 0.5D0 * fac
                         do jf = jr*cregl1, jr*cregh1, jr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 * idir *
@@ -1443,11 +1440,11 @@ c weighting
          end do
       else
          do kf = kr*cregl2, kr*cregh2, kr
-            src(if,jf,kf) = zero
+            src(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac1 = one / kr
+         fac1 = 1.0D0 / kr
          ffac = kr
          cfac = r3
          do ji = 0, 1
@@ -1460,7 +1457,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do l = 0, kr-1
                      fac = (kr-l) * fac1
-                     if (l .eq. 0) fac = half * fac
+                     if (l .eq. 0) fac = 0.5D0 * fac
                      do kf = kr*cregl2, kr*cregh2, kr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 * idir *
@@ -1496,12 +1493,12 @@ c each face is two faces and two sides of an edge
                idir = 2 * ii - 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
                   juf = jf + ji - 1
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   ffac = kr * (ir - 1)
                   center = center + ffac
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -1527,12 +1524,12 @@ c each face is two faces and two sides of an edge
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   ffac = kr * (jr - 1)
                   center = center + ffac
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -1578,23 +1575,23 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      REAL_T uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      REAL_T hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1),ijnk(3)
-      REAL_T r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
-      REAL_T sum, center, cfac, ffac, fac0, fac1, fac
+      double precision r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
+      double precision sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       r3 = ir * jr * kr
-      hxm1c = one / (ir * hx)
-      hym1c = one / (jr * hy)
-      hzm1c = one / (kr * hz)
+      hxm1c = 1.0D0 / (ir * hx)
+      hym1c = 1.0D0 / (jr * hy)
+      hzm1c = 1.0D0 / (kr * hz)
       hxm1 = ir * hxm1c
       hym1 = jr * hym1c
       hzm1 = kr * hzm1c
@@ -1604,12 +1601,12 @@ c Note---only generates values at coarse points along edge of fine grid
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      sum = zero
-      center = zero
+      sum = 0.0D0
+      center = 0.0D0
 c octants
-      fac = one
-      ffac = half
-      cfac = half * r3
+      fac = 1.0D0
+      ffac = 0.5D0
+      cfac = 0.5D0 * r3
       do ki = 0, 1
          kdir = 2 * ki - 1
          kuf = kf + ki - 1
@@ -1649,8 +1646,8 @@ c faces
                idir = 2 * ii - 1
                iuf = if + ii - 1
                if (ga(ii,ji,ki) - ga(ii,ji,1-ki) .eq. 1) then
-                  fac0 = one / (ir * jr)
-                  ffac = half * (ir-1) * (jr-1)
+                  fac0 = 1.0D0 / (ir * jr)
+                  ffac = 0.5D0 * (ir-1) * (jr-1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac0
@@ -1669,8 +1666,8 @@ c faces
                   end do
                end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
-                  fac0 = one / (ir * kr)
-                  ffac = half * (ir-1) * (kr-1)
+                  fac0 = 1.0D0 / (ir * kr)
+                  ffac = 0.5D0 * (ir-1) * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
@@ -1689,8 +1686,8 @@ c faces
                   end do
                end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
-                  fac0 = one / (jr * kr)
-                  ffac = half * (jr-1) * (kr-1)
+                  fac0 = 1.0D0 / (jr * kr)
+                  ffac = 0.5D0 * (jr-1) * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
@@ -1724,8 +1721,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / ir
-                  ffac = half * (ir-1)
+                  fac1 = 1.0D0 / ir
+                  ffac = 0.5D0 * (ir-1)
                   center = center + ffac
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
@@ -1740,8 +1737,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / jr
-                  ffac = half * (jr-1)
+                  fac1 = 1.0D0 / jr
+                  ffac = 0.5D0 * (jr-1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
@@ -1756,8 +1753,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      &             .eq. 1) then
-                  fac1 = one / kr
-                  ffac = half * (kr-1)
+                  fac1 = 1.0D0 / kr
+                  ffac = 0.5D0 * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac = (kr-abs(l)) * fac1
