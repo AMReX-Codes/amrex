@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.29 2001-07-24 22:42:12 car Exp $
+# $Id: Make.package,v 1.30 2001-07-31 19:24:10 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -24,8 +24,8 @@ C$(BOXLIB_BASE)_headers += UseCount.H
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 
-C$(BOXLIB_BASE)_sources += VisMF.cpp RunStats.cpp Arena.cpp BArena.cpp CArena.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H RunStats.H Arena.H BArena.H CArena.H
+C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
+C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
 C$(BOXLIB_BASE)_headers += Profiler.H
