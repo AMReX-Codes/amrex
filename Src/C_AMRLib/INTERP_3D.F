@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.17 2002-10-19 18:33:28 car Exp $
+c $Id: INTERP_3D.F,v 1.18 2002-11-04 18:39:50 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -471,18 +471,19 @@ c     :::::: helpful statement functions
       do 100 n = 1, nvar 
 
           do i = 1,clen
-            cmax(i) = crse(i,n)
-            cmin(i) = crse(i,n)
+
             alpha(i) = 1.d0
-            do koff = -kst,kst,kst
-            do joff = -jst,jst,jst
-            do ioff = -ist,ist,ist
-              cmax(i) = max(cmax(i),crse(i+ioff+joff+koff,n))
-              cmin(i) = min(cmin(i),crse(i+ioff+joff+koff,n))
-              alpha(i) = 1.d0
-            end do
-            end do
-            end do
+
+            cmax(i) = crse(i,n)
+            cmax(i) = max(max(cmax(i),crse(i+ist,n)),crse(i-ist,n))
+            cmax(i) = max(max(cmax(i),crse(i+jst,n)),crse(i-jst,n))
+            cmax(i) = max(max(cmax(i),crse(i+kst,n)),crse(i-kst,n))
+
+            cmin(i) = crse(i,n)
+            cmin(i) = min(min(cmin(i),crse(i+ist,n)),crse(i-ist,n))
+            cmin(i) = min(min(cmin(i),crse(i+jst,n)),crse(i-jst,n))
+            cmin(i) = min(min(cmin(i),crse(i+kst,n)),crse(i-kst,n))
+
           end do
 
 c ::: ::::: compute slopes in x direction
@@ -726,6 +727,12 @@ c               Limit slopes so as to not introduce new maxs or mins.
                            print *,'ICC = ',icc
                            stop
                          endif
+                         if (alpha(icc) .gt. 1.d0) then
+                           print *,'OOPS - ALPHA SHOULD BE <= 1. IN CCINTERP '
+                           print *,'ICC = ',icc
+                           stop
+                         endif
+                       end do
                        end do
                    end do
                 end do
