@@ -1,6 +1,17 @@
 #include "amr_defs.H"
 #include "hgparallel.h"
 
+bool task::depend_ready() const;
+{
+    list<task*>::iterator lit = dependencies.begin();
+    while ( lit != dependencies.end() )
+    {
+	if ( ! (*lit)->ready() )
+	    return false;
+    }
+    return true;
+}
+
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
 : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false)
@@ -8,6 +19,15 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, co
 , tmp(0), m_request(MPI_REQUEST_NULL)
 #endif
 {
+}
+
+bool task_copy::depends_on_q(const task* t1) const
+{
+    task_copy* t1tc = dynamic_cast<const task_copy*>(t1);
+    if ( t1tc )
+    {
+    }
+    return false;
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
@@ -95,6 +115,7 @@ void task_copy::hint() const
 
 bool task_copy::ready()
 {
+    if ( !depend_ready() ) return false;
     if ( m_local )
     {
 	HG_DEBUG_OUT( "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl );
@@ -152,10 +173,10 @@ bool task_copy_local::ready()
 
 // TASK_LIST
 
-bool task_list::def_verbosity = true;
+bool task_list::def_verbose = true;
 
 task_list::task_list(MPI_Comm comm_)
-    : seq_no(0), verbosity(def_verbosity)
+    : seq_no(0), verbose(def_verbose)
 {
     int res = MPI_Comm_dup(comm_, &comm);
     if ( res != 0 )
@@ -176,7 +197,7 @@ void task_list::execute()
     {
 	task* t = tasks.front();
 	tasks.pop_front();
-	if ( verbosity )
+	if ( verbose )
 	    t->hint();
 	if ( t->ready() )
 	{
