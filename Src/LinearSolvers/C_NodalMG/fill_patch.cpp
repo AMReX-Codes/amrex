@@ -27,8 +27,8 @@ extern "C" {
 Real inner_product(MultiFab& r, MultiFab& s)
 {
   assert(r.ok() && s.ok());
-  assert(r.nGrow() == 1);
-  assert(s.nGrow() == 1);
+  assert(r.nVar() == 1);
+  assert(s.nVar() == 1);
   assert(type(r) == type(s));
 
   int igrid;

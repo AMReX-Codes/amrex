@@ -18,6 +18,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid {
   void cell_based_source(PArray<MultiFab>& S);
   void interface_average(PArray<MultiFab>& S, int lev);
 
+  void sparse_node_source_adjustment(PArray<MultiFab>& sparse_source);
+
  public:
 
   // No, I'm not pulling your leg.  Lev_min and Lev_max, supplied with
@@ -32,7 +34,8 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid {
 			   amr_fluid_boundary Boundary, int Pcode = 2)
     : holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain,
 			       Lev_min_min, Lev_min_max, Lev_max_max,
-			       Boundary, Pcode) { }
+			       Boundary, Pcode),
+      make_sparse_node_source_solvable(0) { }
 
   Array<BoxArray>& mesh() {
     return ml_mesh;
@@ -127,6 +130,11 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid {
 		      PArray<MultiFab>& rhs, PArray<MultiFab>& Sigma,
 		      int use_u, Real H[], Real tol,
 		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+
+  int make_sparse_node_source_solvable;
+  void make_it_so() {
+    make_sparse_node_source_solvable = 1;
+  }
 };
 
 #endif

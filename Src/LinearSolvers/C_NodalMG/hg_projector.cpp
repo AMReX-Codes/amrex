@@ -101,6 +101,9 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
 
   alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
   divergence_source(u);
+  if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) {
+    sparse_node_source_adjustment(coarse_source);
+  }
 
   solve(tol, scale, 2, 2);
   form_solution_vector(u, Sigma);
@@ -130,6 +133,10 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
 
   alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
   sync_right_hand_side(u);
+  if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) {
+    sparse_node_source_adjustment(coarse_source);
+  }
+
   solve(tol, scale, 2, 2);
   form_solution_vector(u, Sigma);
   clear();
@@ -177,15 +184,64 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 
     if (type(rhs) == nodevect)
       alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
+    if (singular && make_sparse_node_source_solvable) {
+      sparse_node_source_adjustment(rhs);
+    }
     else {
       alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
       // source is set to 0 at this point
       cell_based_source(rhs);
     }
   }
+  if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) {
+    sparse_node_source_adjustment(coarse_source);
+  }
+
   solve(tol, scale, 2, 2);
   form_solution_vector(u, Sigma);
   clear();
+}
+
+void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>&
+							     sparse_source)
+{
+  // This routine takes advantage of the sparse structure of
+  // the sync source to avoid costly restriction operations.  It
+  // is necessary to use the inner_product routine, which weights
+  // boundary nodes, since the coarse-fine interface can touch
+  // the boundary.  Otherwise a call to sum would suffice.
+
+  // Note that the correction is applied to source, not to
+  // sparse_source, since the sparse structure of the latter
+  // may need to be preserved.
+
+  assert(singular);
+  assert(make_sparse_node_source_solvable);
+
+  int lev, i;
+  Real adjust = 0.0;
+  for (lev = lev_max; lev >= lev_min; lev--) {
+    if (sparse_source.defined(lev)) {
+      int mglev = ml_index[lev];
+      corr[mglev].setVal(1.0);
+      adjust += inner_product(sparse_source[lev], corr[mglev]);
+    }
+    if (lev > lev_min && adjust != 0.0) {
+      for (i = 0; i < BL_SPACEDIM; i++) {
+	adjust /= gen_ratio[lev-1][i];
+      }
+    }
+  }
+  if (adjust != 0.0) {
+    adjust /= mg_domain[ml_index[lev_min]].numPts();
+
+    if (pcode >= 2)
+      cout << "Sparse-source solvability adjustment: " << adjust << endl;
+
+    for (lev = lev_min; lev <= lev_max; lev++) {
+      source[lev].plus(-adjust, 0);
+    }
+  }
 }
 
 // Averages cell-based S onto node-based source conservatively
@@ -204,8 +260,8 @@ void holy_grail_amr_projector::cell_based_source(PArray<MultiFab>& S)
   assert(S[lev_min].nGrow() == 1);
 
   int lev, igrid;
-  Real adjust = 0.0;
   if (singular) {
+    Real adjust = 0.0;
     for (lev = lev_max; lev > lev_min; lev--) {
       int rat = gen_ratio[lev-1][0];
       restrict_level(S[lev-1], 0, S[lev], rat);
@@ -495,7 +551,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     Real adjustment = inner_product(source[lev_min], work[mglev0]) /
       mg_domain[ml_index[lev_min]].volume();
     if (pcode >= 2)
-      cout << "Adjustment is " << adjustment << endl;
+      cout << "Solvability adjustment is " << adjustment << endl;
     for (lev = lev_min; lev <= lev_max; lev++) {
       source[lev].plus(-adjustment, 0);
     }
