@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.36 1998-05-25 05:01:10 lijewski Exp $
+// $Id: TagBox.cpp,v 1.37 1998-05-26 22:58:40 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -703,7 +703,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
                         if (intbox.ok())
                         {
-                            FillBoxId fillboxid = fillBoxId[iFillBox++];
+                            const FillBoxId& fillboxid = fillBoxId[iFillBox++];
                             src.resize(fillboxid.box(), n_comp);
                             facd.FillFab(faid, fillboxid, src);
                             src.shift(iv);
