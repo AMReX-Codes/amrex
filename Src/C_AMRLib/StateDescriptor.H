@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.14 1999-06-28 20:37:00 car Exp $
+// $Id: StateDescriptor.H,v 1.15 1999-08-18 21:53:02 lijewski Exp $
 //
 
 #include <Array.H>
@@ -14,6 +14,18 @@
 #include <Box.H>
 #include <BCRec.H>
 #include <ArrayLim.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <utility>
+#include <vector>
+using std::pair;
+using std::vector;
+#else
+#include <vector.h>
+#ifndef BL_OLD_STL
+#include <utility.h>
+#endif
+#endif
 
 class Interpolater;
 
@@ -186,7 +198,10 @@ public:
     //
     //@ManDoc: Returns the interpolater of specified component.
     //
-    Interpolater* interp (int i) const { return mapper_comp[i]; }
+    Interpolater* interp (int i) const
+    {
+        return mapper_comp[i] == 0 ? mapper : mapper_comp[i];
+    }
     //
     //@ManDoc: Returns the name of specified component.
     //
@@ -207,6 +222,14 @@ public:
     //@ManDoc: Is sc>=0 \&\& sc+nc<=ncomp ?
     //
     int inRange (int sc, int nc) const { return sc>=0 && sc+nc<=ncomp; }
+    //
+    //@ManDoc: Are the interpolaters in the specified range identical?
+    //
+    bool identicalInterps (int scomp, int ncomp) const;
+    //
+    //@ManDoc: Returns contiguous ranges of comps with identical interpolaters.
+    //
+    vector< pair<int,int> > sameInterps (int scomp, int ncomp) const;
 
 protected:
 

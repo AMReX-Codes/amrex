@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.11 1999-05-10 18:54:08 car Exp $
+// $Id: StateDescriptor.cpp,v 1.12 1999-08-18 21:53:02 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -246,4 +246,61 @@ StateDescriptor::cleanUpMaps (Interpolater**& maps,
     delete map_num_comp;
     delete max_start_comp;
     delete min_end_comp;
+}
+
+bool
+StateDescriptor::identicalInterps (int scomp,
+                                   int ncomp) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+
+    Interpolater* map = interp(scomp);
+
+    for (int i = scomp+1; i < scomp+ncomp; i++)
+        if (!(map == interp(i)))
+            return false;
+
+    return true;
+}
+
+vector< pair<int,int> >
+StateDescriptor::sameInterps (int scomp,
+                              int ncomp) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+
+    vector< pair<int,int> > range;
+
+    Interpolater* map = interp(scomp);
+
+    int SComp = scomp, NComp = 1;
+
+    for (int i = scomp+1; i < scomp+ncomp; i++)
+    {
+        if (map == interp(i))
+        {
+            NComp++;
+        }
+        else
+        {
+            range.push_back(pair<int,int>(SComp,NComp));
+
+            map   = interp(i);
+            SComp = i;
+            NComp = 1;
+        }
+    }
+
+    range.push_back(pair<int,int>(SComp,NComp));
+
+#ifndef NDEBUG
+    int sum = 0;
+    for (int i = 0; i < range.size(); i++)
+        sum += range[i].second;
+    BL_ASSERT(sum == ncomp);
+#endif
+
+    return range;
 }

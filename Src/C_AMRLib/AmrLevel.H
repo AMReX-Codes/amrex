@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.34 1999-08-13 16:28:57 propp Exp $
+// $Id: AmrLevel.H,v 1.35 1999-08-18 21:53:01 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -38,6 +38,7 @@
 class AmrLevel
 {
   friend class FillPatchIterator;
+  friend class FillPatchIteratorHelper;
 
 public:
     //
@@ -227,22 +228,15 @@ public:
                            Real         time,
 			   int          n_error_buf = 0,
                            int          ngrow = 0) = 0;
-    /*
-      @ManDoc: Interpolate from coarse level to the valid area in dest.
-               If do\_ghost\_cells is true we also set the ghost cells
-               properly via calls to MultiFab::FillBoundary(),
-               Geometry::FillPeriodicBoundary() and StateData::FillBoundary().
-               If do\_ghost\_cells is false this function does not touch any of
-               the ghost cells in the MultiFab.
-    */
-    void FillCoarsePatch (MultiFab&     dest,
-                          int           dst_comp,
-                          Real          time,
-                          int           state_indx,
-                          int           src_comp,
-                          int           ncomp,
-                          bool          do_ghost_cells = false,
-                          Interpolater* mapper = 0);
+    //
+    //@ManDoc: Interpolate from coarse level to the valid area in dest.
+    //
+    void FillCoarsePatch (MultiFab& dest,
+                          int       dcomp,
+                          Real      time,
+                          int       state_idx,
+                          int       scomp,
+                          int       ncomp);
     //
     //@ManDoc: Function to set physical boundary conditions.
     //
@@ -251,8 +245,11 @@ public:
                                 int ncomp,
                                 int do_new = 1)
     {
-        state[state_indx].FillBoundary(geom.CellSize(),geom.ProbDomain(),
-                                       comp,ncomp,do_new);
+        state[state_indx].FillBoundary(geom.CellSize(),
+                                       geom.ProbDomain(),
+                                       comp,
+                                       ncomp,
+                                       do_new);
     }
     //
     //@ManDoc: Another function to set physical boundary conditions.
@@ -390,34 +387,35 @@ private:
     AmrLevel& operator = (const AmrLevel&);
 };
 
+//
+// Forward declaration.
+//
+class FillPatchIteratorHelper;
+
 class FillPatchIterator
     :
     public MultiFabIterator
 {
   public:
-
-    enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
     //
     // Constructors.
     //
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata);
 
-    FillPatchIterator (AmrLevel&     amrlevel,
-                       MultiFab&     leveldata,
-                       int           boxGrow,
-                       Real          time,
-                       int           state_indx,
-                       int           src_comp,
-                       int           ncomp,
-                       Interpolater* mapper = 0);
+    FillPatchIterator (AmrLevel& amrlevel,
+                       MultiFab& leveldata,
+                       int       boxGrow,
+                       Real      time,
+                       int       state_indx,
+                       int       src_comp,
+                       int       ncomp);
 
-    void Initialize (int           boxGrow,
-                     Real          time,
-                     int           state_indx,
-                     int           src_comp,
-                     int           ncomp,
-                     Interpolater* mapper = 0);
+    void Initialize (int  boxGrow,
+                     Real time,
+                     int  state_indx,
+                     int  src_comp,
+                     int  ncomp);
 
     ~FillPatchIterator ();
 
@@ -441,11 +439,68 @@ class FillPatchIterator
     //
     // The data.
     //
+    AmrLevel&                       m_amrlevel;
+    MultiFab&                       m_leveldata;
+    vector< pair<int,int> >         m_range;
+    PArray<FillPatchIteratorHelper> m_fph;
+    FArrayBox                       m_fab;
+    int                             m_ncomp;
+};
+
+class FillPatchIteratorHelper
+    :
+    public MultiFabIterator
+{
+public:
+
+    enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
+    //
+    // Constructors.
+    //
+    FillPatchIteratorHelper (AmrLevel& amrlevel,
+                             MultiFab& leveldata);
+
+    FillPatchIteratorHelper (AmrLevel&     amrlevel,
+                             MultiFab&     leveldata,
+                             int           boxGrow,
+                             Real          time,
+                             int           state_indx,
+                             int           src_comp,
+                             int           ncomp,
+                             Interpolater* mapper);
+
+    void Initialize (int           boxGrow,
+                     Real          time,
+                     int           state_indx,
+                     int           src_comp,
+                     int           ncomp,
+                     Interpolater* mapper);
+
+    ~FillPatchIteratorHelper ();
+
+    const FArrayBox& operator() () const { return m_fab; }
+
+    FArrayBox& operator() ()  { return m_fab; }
+
+    bool isValid ();
+
+    const Box& UngrownBox () const { return validbox(); }
+
+private:
+    //
+    // Disallowed.
+    //
+    FillPatchIteratorHelper ();
+    FillPatchIteratorHelper (const FillPatchIteratorHelper& rhs);
+    FillPatchIteratorHelper& operator= (const FillPatchIteratorHelper& rhs);
+    //
+    // The data.
+    //
     AmrLevel&                    m_amrlevel;
     MultiFab&                    m_leveldata;
     MultiFabCopyDescriptor       m_mfcd;
     Array<Array<MultiFabId> >    m_mfid;     // [level][oldnew]
-    Array<Interpolater*>         m_map;      // [level]
+    Interpolater*                m_map;
     Array<PArray<FArrayBox> >    m_cfab;     // tmp space used in filling m_fab
     Array<Array<Array<Box> > >   m_finebox;  // [grid][level][validregion]
     Array<Array<Array<Box> > >   m_crsebox;  // [grid][level][fillablesubbox]
@@ -458,7 +513,7 @@ class FillPatchIterator
     FArrayBox                    m_crsefab;  // a temporary
     Real                         m_time;
     int                          m_growsize;
-    int                          m_stateindex;
+    int                          m_index;
     int                          m_scomp;
     int                          m_ncomp;
     bool                         m_init;
