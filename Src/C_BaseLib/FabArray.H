@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.165 2002-12-03 00:02:42 lijewski Exp $
+// $Id: FabArray.H,v 1.166 2002-12-18 18:44:23 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -334,9 +334,7 @@ public:
                is performed on the region of intersection.  The intersection
                is restricted to the num\_comp components starting at src\_comp
                in the FabArray src, with the destination components in this
-               FabArray starting at dest\_comp. This assumes that
-               the source and destination FabArray have identical valid
-               regions.
+               FabArray starting at dest\_comp.
     */
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
