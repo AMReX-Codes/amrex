@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.18 1997-11-12 04:12:24 lijewski Exp $
+// $Id: VisMF.H,v 1.19 1997-11-13 21:47:46 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -148,7 +148,12 @@ private:
     //
     // Only one [io]fstream can use this as a buffer (per cpu) at a time.
     //
-    static signed char* Large_IO_Buffer ();
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+    static Setbuf_Char_Type* Large_IO_Buffer ();
     //
     // The suffix appended to files containing FAB data.
     //

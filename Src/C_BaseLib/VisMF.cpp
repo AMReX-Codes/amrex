@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.23 1997-11-13 18:45:16 lijewski Exp $
+// $Id: VisMF.cpp,v 1.24 1997-11-13 21:47:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -251,7 +251,7 @@ operator>> (istream&       is,
     return is;
 }
 
-signed char*
+VisMF::Setbuf_Char_Type*
 VisMF::Large_IO_Buffer ()
 {
     //
@@ -265,7 +265,7 @@ VisMF::Large_IO_Buffer ()
         XXX (int size)
         {
             assert(size >= 0);
-            if ((m_buffer = new signed char[size]) == 0)
+            if ((m_buffer = new VisMF::Setbuf_Char_Type[size]) == 0)
                 BoxLib::OutOfMemory(__FILE__, __LINE__);
         }
         //
@@ -275,7 +275,7 @@ VisMF::Large_IO_Buffer ()
         //
         // The data we manage -- a buffer for I/O.
         //
-        signed char* m_buffer;
+        Setbuf_Char_Type* m_buffer;
     };
 
     static XXX IO_Buffer_Manager(VisMF::IO_Buffer_Size);
@@ -427,12 +427,19 @@ VisMF::WriteHeader (const aString& mf_name,
 
         ofstream MFHdrFile;
 
-#ifdef BL_T3E
+#ifdef BL_USE_SETBUF
         MFHdrFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-        MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
-#else
-        MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc|ios::binary);
 #endif
+
+        MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
+
+        if (!MFHdrFile.good())
+        {
+            aString msg("Couldn't open file: ");
+            msg += MFHdrFileName;
+            BoxLib::Error(msg.c_str());
+        }
+
         MFHdrFile << hdr;
     }
 }
@@ -483,12 +490,12 @@ VisMF::Write (const MultiFab& mf,
 
         ofstream FabFile;
 
-#ifdef BL_T3E
+#ifdef BL_USE_SETBUF
         FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-        FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
-#else
-        FabFile.open(FabFileName.c_str(), ios::out|ios::trunc|ios::binary);
 #endif
+
+        FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+
         if (!FabFile.good())
         {
             aString msg("Couldn't open file: ");
@@ -524,12 +531,12 @@ VisMF::Write (const MultiFab& mf,
 
             ofstream FabFile;
 
-#ifdef BL_T3E
+#ifdef BL_USE_SETBUF
             FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-            FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
-#else
-            FabFile.open(FabFileName.c_str(), ios::out|ios::trunc|ios::binary);
 #endif
+
+            FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+
             if (!FabFile.good())
             {
                 aString msg("Couldn't open file: ");
@@ -587,12 +594,11 @@ VisMF::VisMF (const aString& mf_name)
 
     ifstream ifs;
 
-#ifdef BL_T3E
+#ifdef BL_USE_SETBUF
     ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-    ifs.open(file.c_str(), ios::in);
-#else
-    ifs.open(file.c_str(), ios::in|ios::binary);
 #endif
+
+    ifs.open(file.c_str(), ios::in);
 
     if (!ifs.good())
     {
@@ -626,12 +632,11 @@ VisMF::readFAB (int i) const
 
     ifstream ifs;
 
-#ifdef BL_T3E
+#ifdef BL_USE_SETBUF
     ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-    ifs.open(file.c_str(), ios::in);
-#else
-    ifs.open(file.c_str(), ios::in|ios::binary);
 #endif
+
+    ifs.open(file.c_str(), ios::in);
 
     if (!ifs.good())
     {
