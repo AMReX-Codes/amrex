@@ -62,7 +62,7 @@ c ::: local var
       integer lys,lye
       REAL_T invratio
 
-      invratio = one/dfloat(lratio)
+      invratio = one/dble(lratio)
       ibeg = max( ARG_L1(cb)*lratio, ARG_L1(fine) )
       iend = min( ARG_H1(cb)*lratio, ARG_H1(fine) )
 
@@ -77,7 +77,7 @@ c         ::: first fill a strip that will fit
               do i = ARG_L1(cb), ARG_H1(cb)-1 
                 ii = i*lratio + lx
                 strip(ii,0) = crse(i,n)
-     $		             + dfloat(lx)*sl(i,SLX) 
+     $		             + dble(lx)*sl(i,SLX) 
 	      enddo
 	    enddo
             i = ARG_H1(cb)
@@ -146,7 +146,7 @@ c ::: local var
       REAL_T x, y
       REAL_T denom
 
-      denom = one/dfloat(2*lratio)
+      denom = one/dble(2*lratio)
       hrat = lratio/2
       do 200 n = 1, nvar 
 c ::: first fill a strip that will fit
@@ -336,8 +336,8 @@ c ::: local var
       integer lenx, leny, maxlen
       logical xok, yok
 
-      hafrat = half*dfloat(lratio-1)
-      volratio = one/dfloat(lratio)
+      hafrat = half*dble(lratio-1)
+      volratio = one/dble(lratio)
 
       ncbx = cb_h1-cb_l1+1
       ncsx = ncbx+2
@@ -431,8 +431,8 @@ c ::: local var
       integer lenx, leny, maxlen
       logical xok, yok
 
-      hafrat = half*dfloat(lratio-1)
-      volratio = one/dfloat(lratio)
+      hafrat = half*dble(lratio-1)
+      volratio = one/dble(lratio)
 
       ncbx = cb_h1-cb_l1+1
       xok = (ncbx .ge. 2)

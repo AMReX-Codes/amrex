@@ -1,5 +1,5 @@
 c
-c $Id: LO_UTIL.F,v 1.2 2002-08-29 22:14:39 car Exp $
+c $Id: LO_UTIL.F,v 1.3 2002-10-19 18:33:57 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -47,7 +47,7 @@ c
             den = den*(x(j) - x(i))
          end do
 #ifndef NDEBUG
-         if (den .eq. zero) pause 'polyInterpCoeff::invalid data'
+         if (den .eq. zero) STOP 'polyInterpCoeff::invalid data'
 #endif         
          c(j) = num/den
       end do

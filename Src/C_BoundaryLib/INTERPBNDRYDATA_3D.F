@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.1 1998-03-24 07:07:08 almgren Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.2 2002-10-19 18:33:57 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -123,11 +123,11 @@ c        ::::: define interp coefs
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
-            yy = (dfloat(koff - ratioz/2) + half)/ratioz
+            yy = (dble(koff - ratioz/2) + half)/ratioz
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
-                  xx = (dfloat(joff - ratioy/2) + half)/ratioy
+                  xx = (dble(joff - ratioy/2) + half)/ratioy
                   do jc = jclo, jchi
                      j = ratioy*jc + joff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
@@ -245,11 +245,11 @@ c        ::::: define interp coefs
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
-            yy = (dfloat(koff - ratioz/2) + half)/ratioz
+            yy = (dble(koff - ratioz/2) + half)/ratioz
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
-                  xx = (dfloat(joff - ratioy/2) + half)/ratioy
+                  xx = (dble(joff - ratioy/2) + half)/ratioy
                   do jc = jclo, jchi
                      j = ratioy*jc + joff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
@@ -367,11 +367,11 @@ c        ::::: define interp coefs
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
-            yy = (dfloat(koff - ratioz/2) + half)/ratioz
+            yy = (dble(koff - ratioz/2) + half)/ratioz
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
-                  xx = (dfloat(ioff - ratiox/2) + half)/ratiox
+                  xx = (dble(ioff - ratiox/2) + half)/ratiox
                   do ic = iclo, ichi
                      i = ratiox*ic + ioff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
@@ -490,11 +490,11 @@ c        ::::: define interp coefs
 
 c        ::::: interpolate to fine grid
          do koff = 0, ratioz - 1
-            yy = (dfloat(koff - ratioz/2) + half)/ratioz
+            yy = (dble(koff - ratioz/2) + half)/ratioz
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
-                  xx = (dfloat(ioff - ratiox/2) + half)/ratiox
+                  xx = (dble(ioff - ratiox/2) + half)/ratiox
                   do ic = iclo, ichi
                      i = ratiox*ic + ioff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
@@ -612,11 +612,11 @@ c     ::::: define interp coefs
          
 c     ::::: interpolate to fine grid
          do joff = 0, ratioy - 1
-            yy = (dfloat(joff - ratioy/2) + half)/ratioy
+            yy = (dble(joff - ratioy/2) + half)/ratioy
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
-                  xx = (dfloat(ioff - ratiox/2) + half)/ratiox
+                  xx = (dble(ioff - ratiox/2) + half)/ratiox
                   do ic = iclo, ichi
                      i = ratiox*ic + ioff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
@@ -734,11 +734,11 @@ c        ::::: define interp coefs
 
 c        ::::: interpolate to fine grid
          do joff = 0, ratioy - 1
-            yy = (dfloat(joff - ratioy/2) + half)/ratioy
+            yy = (dble(joff - ratioy/2) + half)/ratioy
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
-                  xx = (dfloat(ioff - ratiox/2) + half)/ratiox
+                  xx = (dble(ioff - ratiox/2) + half)/ratiox
                   do ic = iclo, ichi
                      i = ratiox*ic + ioff
                      bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
