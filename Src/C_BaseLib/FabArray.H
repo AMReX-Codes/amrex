@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.149 2001-07-31 22:43:18 lijewski Exp $
+// $Id: FabArray.H,v 1.150 2001-08-02 01:11:36 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -865,7 +865,7 @@ FabArray<FAB>::ok () const
 
     ParallelDescriptor::ReduceLongAnd(isok);
 
-    return isok;
+    return isok != 0;
 }
 
 template <class FAB>

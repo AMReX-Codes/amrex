@@ -1,7 +1,7 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 //
-// $Id: Array.H,v 1.29 2001-07-31 22:43:16 lijewski Exp $
+// $Id: Array.H,v 1.30 2001-08-02 01:11:36 car Exp $
 //
 #include <cstddef>
 #include <vector>
@@ -129,7 +129,8 @@ inline
 int
 Array<T>::size () const
 {
-    return std::vector<T>::size();
+    const std::vector<T>& a = *this;
+    return a.size();
 }
 
 template <class T>
