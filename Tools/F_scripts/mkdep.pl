@@ -20,51 +20,47 @@
 #          Lawrence Livermore National Laboratory
 # ------------------------------------------------------------------
 
+use 5.6.0;
+use strict;
+use warnings;
+use Getopt::Long;
+
 my $debug = 0;
-my @incldir = ("");
+my @incdirs;
 
 my $odir = ".";
 my $obj_ext = 'o';
 my $pathsep = "/";
+my $opt_help;
+my $dirsep = ":";
 
 if ( "$^O" eq "MSWin32" )
   {
     $obj_ext = 'obj';
     $pathsep = "\\";
+    $dirsep = ";";
   }
 
 # search command line for -I and -X options
-while ($ARGV[0] =~ /^-/)
-  {
-    $_ = shift;
-    if (/^-I(.+)/)
-      {
-	die "$1 does not exist\n" if (!-e $1);
-	die "$1 not a directory\n" if (!-d $1);
-	die "cannot read $1\n" if (!-r $1);
-	push(@incldir,("$1/"));
-      }
-    elsif (/^--odir(.*)/)
-      {
-	$odir = $1;
-      }
-    elsif (/^-DBG/)
-      {
-	$debug = 1;
-      }
-    else
-      {
-	die "invalid argument: $_\n";
-      }
-  }
+
+my $usage = "usage: $0 [--odir dir] [--I ldir]\n";
+
+GetOptions(
+    "help"	=> \$opt_help,
+    "debug"	=> \$debug,
+    "odir=s"	=> \$odir,
+    "I=s@"	=> \@incdirs) or die $usage;
+
+@incdirs = (".", split(/$dirsep/, join($dirsep,@incdirs)));
+#print "incdirs = @incdirs\n";
 
 $odir = $odir . $pathsep;
 
 use File::Basename;
 
-foreach $ifile (@ARGV)
+foreach my $ifile (@ARGV)
   {
-    print "# PARSING FILE: @ARGV\n" if $debug;
+    print "# PARSING FILE: $ifile\n" if $debug;
     die "cannot read $ifile\n" if (!(-e $ifile && -r _));
 
     my $base = basename($ifile, ".c");
@@ -73,28 +69,28 @@ foreach $ifile (@ARGV)
     #($ofile = $ARGV[0]) =~ s#.*/##;
     # change suffix to $obj_ext
     my $ofile = $odir . $base . "." . $obj_ext;
-    @searchlist = ("$ifile\"");
-    %usedfiles = ();
-    %deptable = ();
+    my @searchlist = ("$ifile\"");
+    my %usedfiles = ();
+    my %deptable = ();
     $usedfiles{ $ifile } = 1;
 
     while (@searchlist)
       {
         # get next file off search list
-	$file = shift(@searchlist);
+	my $file = shift(@searchlist);
 
         # NOTE: the last char in $file is either a double quote (") or
         #       a right angle bracket (>).  Strip off this character and
 	#       save it.  If it is a quote, search current directory first.
 	#       If its a right angle bracket, only search directories
 	#       specified with -I options.
-	$incltype = chop $file;
+	my $incltype = chop $file;
 
 	# NOTE: if the first char in $file is a "/" indicating an absolute
 	#       path, do not search directory list
-	$abspath = ($file =~ /^\// ? 1 : 0);
+	my $abspath = ($file =~ /^\// ? 1 : 0);
 
-	foreach $d (@incldir)
+	foreach my $d (@incdirs)
 	  {
 	    if ($d ne "" && $abspath) {
 		# this is an absolute path, dont search current directory
@@ -105,8 +101,8 @@ foreach $ifile (@ARGV)
 		# dont search current directory
 		next;
 	      }
-	    $dep = "$d$file";
-	    print "# Will search $d for $file:: $dep\n" if $debug;
+	    my $dep = "$d" . $pathsep . "$file";
+	    print "# Will search $d for $file : $dep\n" if $debug;
 	    if (-e $dep)
 	      {
 
@@ -123,7 +119,7 @@ foreach $ifile (@ARGV)
 		      {
 			if ($usedfiles{ $1 }++ == 0) 
 			  {
-			    print "# ::: including ::$1::\n" if $debug;
+			    print "# including  $1\n" if $debug;
 			    # this file not searched yet, add to list
 			    # NOTE: last char is either double quote
 			    #       or right angle bracket.
@@ -138,7 +134,7 @@ foreach $ifile (@ARGV)
 		# Assume the .C file is in the same directory as the .H
 		if ($file =~ /\S*\.[Hh]$/) 
 		  {
-		    $Cfile = $file;
+		    my $Cfile = $file;
 		    $Cfile =~ s/\.H$/\.C/;
 		    $Cfile =~ s/\.h$/\.c/;
 		    print "# Found Header file $dep\n" if $debug;
@@ -154,10 +150,10 @@ foreach $ifile (@ARGV)
 			  {
 			    print "# $dep contains template\n" if $debug;
 			    print "# $_" if $debug;
-			    $inclCfile = $Cfile . $incltype;
+			    my $inclCfile = $Cfile . $incltype;
 			    if ($usedfiles{ $inclCfile } == 0)
 			      {
-				# print " ::: including ::$inclCfile::\n";
+				# print " including $inclCfile\n";
 				# this file not searched yet, add to list
 				# NOTE: last char is either double quote
 				#       or right angle bracket.
@@ -179,7 +175,7 @@ foreach $ifile (@ARGV)
     }
 
     # now generate dependency list
-    for $dep (keys %deptable)
+    for my $dep (keys %deptable)
       {
 	print "$ofile: $dep\n";
     }

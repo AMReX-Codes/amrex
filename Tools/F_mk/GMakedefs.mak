@@ -368,7 +368,7 @@ ifeq ($(ARCH),OSF1)
   endif
 endif
 
-c_includes = $(addprefix -I, $(INCLUDE_LOCATIONS))
+c_includes = $(addprefix --I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(FPARALLEL)/scripts/tcsort.pl
 MODDEP  :=  $(FPARALLEL)/scripts/moddep.pl
@@ -379,7 +379,7 @@ FPPFLAGS += $(fpp_flags)
 LDFLAGS  += $(fld_flags)
 libraries += $(mpi_libraries)
 
-CPPFLAGS += $(c_includes)
+CPPFLAGS += c_includes = $(addprefix -I, $(INCLUDE_LOCATIONS))
 
 objects = $(addprefix $(odir)/, $(sort $(f90sources:.f90=.o)) $(sort $(fsources:.f=.o)) $(sort $(csources:.c=.o)))
 sources =                       $(sort $(f90sources)        ) $(sort $(fsources)      ) $(sort $(csources)       )
