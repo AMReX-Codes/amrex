@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.63 2001-08-09 22:42:00 marc Exp $
+// $Id: FluxRegister.cpp,v 1.64 2001-08-23 20:07:43 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -795,8 +795,6 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 void
 FluxRegister::CrseInitFinish ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInitFinish()");
-
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
