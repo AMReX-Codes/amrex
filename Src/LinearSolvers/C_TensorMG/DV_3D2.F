@@ -190,17 +190,17 @@ c     ::: get expressions for tangential derivatives
      &  i,j,-1+k,2)+U(i,j,1+k,2))/hz
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
             enddo
          enddo
@@ -258,17 +258,17 @@ c     ::: get expressions for tangential derivatives
      &  i,j,-1+k,2)+U(i,j,1+k,2))/hz
       endif
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
             enddo
          enddo
@@ -326,17 +326,17 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
             enddo
          enddo
@@ -394,17 +394,17 @@ c     ::: get expressions for tangential derivatives
      &  i,j,-1+k,2)+U(i,j,1+k,2))/hz
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
          enddo
       enddo
@@ -462,17 +462,17 @@ c     ::: get expressions for tangential derivatives
      &  i,j,-1+k,2)+U(i,j,1+k,2))/hz
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
          enddo
       enddo
@@ -530,17 +530,17 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
             enddo
       enddo
 
@@ -597,17 +597,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
             enddo
       enddo
 
@@ -661,17 +661,17 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
             enddo
 
@@ -723,17 +723,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
             enddo
 
 
@@ -785,17 +785,17 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
          enddo
 
@@ -847,17 +847,17 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
          enddo
 c ::: case 11, bottom-north edge 
@@ -908,17 +908,17 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
             enddo
 
@@ -970,17 +970,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
             enddo
 
@@ -1033,17 +1033,17 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
          enddo
 
@@ -1097,17 +1097,17 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
          enddo
 
@@ -1161,17 +1161,17 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
       enddo
 
@@ -1224,17 +1224,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
       enddo
 
@@ -1286,17 +1286,17 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
       enddo
 
 
@@ -1348,17 +1348,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
       enddo
 
 
@@ -1453,29 +1453,29 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
 
 
@@ -1551,25 +1551,25 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
 
 c ::: case 21, top-south-east corner
@@ -1644,25 +1644,25 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
 
 c ::: case 22, top-south-west corner
@@ -1718,21 +1718,21 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
-              zflux(i,j,k+1,1)=(dudzt+dwdxt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*hx*hy*muZ(i,j,1+k)
-              zflux(i,j,k+1,3)=2.d0*dwdzt*hx*hy*muZ(i,j,1+k)
+              zflux(i,j,k+1,1)=(dudzt+dwdxt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,2)=(dvdzt+dwdyt)*muZ(i,j,1+k)
+              zflux(i,j,k+1,3)=2.d0*dwdzt*muZ(i,j,1+k)
 
 c ::: case 23, bottom-north-east corner
 c ::: Null
@@ -1806,25 +1806,25 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
 c ::: case 24, bottom-north-west corner
 c ::: Null
@@ -1879,21 +1879,21 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              yflux(i,j+1,k,1)=(dudyn+dvdxn)*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,2)=2.d0*dvdyn*hx*hz*muY(i,1+j,k)
-              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*hx*hz*muY(i,1+j,k)
+              yflux(i,j+1,k,1)=(dudyn+dvdxn)*muY(i,1+j,k)
+              yflux(i,j+1,k,2)=2.d0*dvdyn*muY(i,1+j,k)
+              yflux(i,j+1,k,3)=(dvdzn+dwdyn)*muY(i,1+j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
 
 c ::: case 25, bottom-south-east corner
@@ -1949,21 +1949,21 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              xflux(i+1,j,k,1)=2.d0*dudxe*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,2)=(dudye+dvdxe)*hy*hz*muX(1+i,j,k)
-              xflux(i+1,j,k,3)=(dudze+dwdxe)*hy*hz*muX(1+i,j,k)
+              xflux(i+1,j,k,1)=2.d0*dudxe*muX(1+i,j,k)
+              xflux(i+1,j,k,2)=(dudye+dvdxe)*muX(1+i,j,k)
+              xflux(i+1,j,k,3)=(dudze+dwdxe)*muX(1+i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
 c ::: case 26, bottom-south-west corner
 c ::: Null
@@ -1998,17 +1998,17 @@ c     ::: get expressions for tangential derivatives
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=2.d0*dudxw*hy*hz*muX(i,j,k)
-              xflux(i,j,k,2)=(dudyw+dvdxw)*hy*hz*muX(i,j,k)
-              xflux(i,j,k,3)=(dudzw+dwdxw)*hy*hz*muX(i,j,k)
+              xflux(i,j,k,1)=2.d0*dudxw*muX(i,j,k)
+              xflux(i,j,k,2)=(dudyw+dvdxw)*muX(i,j,k)
+              xflux(i,j,k,3)=(dudzw+dwdxw)*muX(i,j,k)
               
-              yflux(i,j,k,1)=(dudys+dvdxs)*hx*hz*muY(i,j,k)
-              yflux(i,j,k,2)=2.d0*dvdys*hx*hz*muY(i,j,k)
-              yflux(i,j,k,3)=(dvdzs+dwdys)*hx*hz*muY(i,j,k)
+              yflux(i,j,k,1)=(dudys+dvdxs)*muY(i,j,k)
+              yflux(i,j,k,2)=2.d0*dvdys*muY(i,j,k)
+              yflux(i,j,k,3)=(dvdzs+dwdys)*muY(i,j,k)
 
-              zflux(i,j,k,1)=(dudzb+dwdxb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,2)=(dvdzb+dwdyb)*hx*hy*muZ(i,j,k)
-              zflux(i,j,k,3)=2.d0*dwdzb*hx*hy*muZ(i,j,k)
+              zflux(i,j,k,1)=(dudzb+dwdxb)*muZ(i,j,k)
+              zflux(i,j,k,2)=(dvdzb+dwdyb)*muZ(i,j,k)
+              zflux(i,j,k,3)=2.d0*dwdzb*muZ(i,j,k)
 
 
 #endif
