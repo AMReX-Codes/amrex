@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.46 2001-07-20 17:01:45 car Exp $
+// $Id: Utility.cpp,v 1.47 2001-07-21 00:32:37 car Exp $
 //
 
 #include <cstdlib>
@@ -620,3 +620,140 @@ BoxLib::Time::get_time()
 {
     return Time(BoxLib::wsecond());
 }
+
+// A C-program for MT19937: Real number version
+//   genrand() generates one pseudorandom real number (double)
+// which is uniformly distributed on [0,1]-interval, for each
+// call. sgenrand(seed) set initial values to the working area
+// of 624 words. Before genrand(), sgenrand(seed) must be
+// called once. (seed is any 32-bit integer except for 0).
+// Integer generator is obtained by modifying two lines.
+//   Coded by Takuji Nishimura, considering the suggestions by
+// Topher Cooper and Marc Rieffel in July-Aug. 1997.
+
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Library General Public
+// License as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later
+// version.
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Library General Public License for more details.
+// You should have received a copy of the GNU Library General
+// Public License along with this library; if not, write to the
+// Free Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+// 02111-1307  USA
+
+// Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.
+// When you use this, send an email to: matumoto@math.keio.ac.jp
+// with an appropriate reference to your work.
+
+namespace
+{
+// Period parameters
+// const int N = 624;
+const int M = 397;
+const unsigned long MATRIX_A   = 0x9908B0DFUL; // constant vector a
+const unsigned long UPPER_MASK = 0x80000000UL; // most significant w-r bits
+const unsigned long LOWER_MASK = 0x7FFFFFFFUL; // least significant r bits
+
+// Tempering parameters
+const unsigned long TEMPERING_MASK_B = 0x9D2C5680UL;
+const unsigned long TEMPERING_MASK_C = 0xEFC60000UL;
+
+inline unsigned long TEMPERING_SHIFT_U(unsigned long y) { return y >> 11L; }
+inline unsigned long TEMPERING_SHIFT_S(unsigned long y) { return y << 7L ; }
+inline unsigned long TEMPERING_SHIFT_T(unsigned long y) { return y << 15L; }
+inline unsigned long TEMPERING_SHIFT_L(unsigned long y) { return y >> 18L; }
+}
+
+// initializing the array with a NONZERO seed
+void
+BoxLib::mt19937::sgenrand(unsigned long seed)
+{
+    for ( int i = 0; i < N; ++i )
+    {
+	mt[i] = seed & 0xFFFF0000UL;
+	seed  = 69069U * seed + 1;
+	mt[i] |= (seed& 0xFFFF0000UL) >> 16;
+	seed = 69069U*seed + 1;
+    }
+    mti = N;
+}
+
+void
+BoxLib::mt19937::reload()
+{
+    unsigned long y;
+    int kk;
+    // mag01[x] = x * MATRIX_A  for x=0,1
+    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    for ( kk=0; kk<N-M; kk++ )
+    {
+	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+	mt[kk] = mt[kk+M] ^ (y >> 1L) ^ mag01[y & 0x1];
+    }
+    for ( ; kk<N-1; kk++ )
+    {
+	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+	mt[kk] = mt[kk+(M-N)] ^ (y >> 1L) ^ mag01[y & 0x1];
+    }
+    y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
+    mt[N-1] = mt[M-1] ^ (y >> 1L) ^ mag01[y & 0x1];
+
+    mti = 0;
+}
+
+unsigned long
+BoxLib::mt19937::igenrand()
+{
+    // generate N words at one time
+    if ( mti >= N ) reload();
+
+    unsigned long y = mt[mti++];
+    y ^= TEMPERING_SHIFT_U(y);
+    y ^= TEMPERING_SHIFT_S(y) & TEMPERING_MASK_B;
+    y ^= TEMPERING_SHIFT_T(y) & TEMPERING_MASK_C;
+    y ^= TEMPERING_SHIFT_L(y);
+
+    return y;
+}
+
+BoxLib::mt19937::mt19937(unsigned long seed)
+    : init_seed(seed), mti(N+1)
+{
+    sgenrand(seed);
+}
+
+void
+BoxLib::mt19937::rewind()
+{
+    sgenrand(init_seed);
+}
+
+double
+BoxLib::mt19937::d1_value()
+{
+    return double(igenrand())/0xFFFFFFFFUL;
+}
+
+double
+BoxLib::mt19937::d_value()
+{
+    const double zzz = double(0x80000000UL)*2;
+    return double(igenrand())/zzz;
+}
+
+long
+BoxLib::mt19937::l_value()
+{
+    return igenrand()&0x7FFFFFFFUL;
+}
+
+unsigned long
+BoxLib::mt19937::u_value()
+{
+    return igenrand();
+}
+

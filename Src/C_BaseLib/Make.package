@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.25 2001-07-20 17:01:44 car Exp $
+# $Id: Make.package,v 1.26 2001-07-21 00:32:37 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -32,6 +32,9 @@ C$(BOXLIB_BASE)_headers += Profiler.H
 
 C$(BOXLIB_BASE)_sources += BLThread.cpp
 C$(BOXLIB_BASE)_headers += Thread.H
+
+C$(BOXLIB_BASE)_sources += BLWorkQueue.cpp
+C$(BOXLIB_BASE)_headers += WorkQueue.H
 
 #
 # Container classes.
