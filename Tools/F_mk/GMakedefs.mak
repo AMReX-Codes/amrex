@@ -1,5 +1,9 @@
 ARCH := $(shell uname)
 
+ifeq ($(ARCH),UNICOS/mp)
+  ARCH := CRAYX1
+endif
+
 FC       :=
 F90      :=
 F90FLAGS :=
@@ -260,6 +264,14 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
+ifeq ($(ARCH),CRAYX1)
+  F90 := ftn
+  FC  := ftn
+  CC   := cc
+  F90FLAGS =
+  F90FLAGS += -p $(mdir)  -J $(mdir) -e m
+  f2kcli_suf := _crayx1
+endif
 ifeq ($(ARCH),AIX)
   COMP = xlf
   ifdef OMP
