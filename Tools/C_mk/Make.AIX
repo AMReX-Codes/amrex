@@ -8,14 +8,12 @@ ifeq ($(COMP),CC)
   CXXOPTF += -O2 -h new_for_init
   CXXDEBF += -g -h new_for_init
   override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-  override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),KCC)
   CXX     := KCC
   CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
-  override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),newKCC)
@@ -28,7 +26,6 @@ ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
   CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
-  override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
 endif
 
 ifeq ($(PROFILE), TRUE)
@@ -63,7 +60,7 @@ COPTF += -O2
 CDEBF += -g
 CPRFF +=
 
-XTRALIBS += -lm -lxlf90
+XTRALIBS += libmiranda.a -lm -lxlf90
 
 DEFINES += -D_POSIX_SOURCE
 
