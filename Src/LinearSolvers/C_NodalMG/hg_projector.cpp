@@ -61,8 +61,7 @@ extern "C"
     void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
     void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, const int*);
     void FORT_HGAVG(Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
-    void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, int*, int*,
-	const Real*, const int*, const int*);
+    void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, int*, int*, const Real*, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real*, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
@@ -469,8 +468,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 	    continue;
 	// fine grid on just one side
-	int idim = lev_interface[mglev].fdim(iface);
-	int idir = (geo & level_interface::LOW) ? -1 : 1;
+	const int idim = lev_interface[mglev].fdim(iface);
+	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = S[lev][igrid].box();
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
@@ -945,8 +944,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 	{
 	    // fine grid on two adjacent sides
-	    int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
-	    int idir = (geo & level_interface::LL) ? -1 : 1;
+	    const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+	    const int idir = (geo & level_interface::LL) ? -1 : 1;
 	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    Box fbox = lev_interface[mglev].box(0, icor);
@@ -1012,8 +1011,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
 	{
 	    // outside corner
-	    int idir0 = (geo & level_interface::XL) ? -1 : 1;
-	    int idir1 = (geo & level_interface::YL) ? -1 : 1;
+	    const int idir0 = (geo & level_interface::XL) ? -1 : 1;
+	    const int idir1 = (geo & level_interface::YL) ? -1 : 1;
 	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
@@ -1122,7 +1121,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FArrayBox vf(fbox);
 	    fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
 	    fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 0, icor);
-	    int idir0, idir1;
+	    int idir0;
+	    int idir1;
 	    if ((geo & level_interface::XL) == level_interface::XL) 
 	    {
 		idir0 = -1;
@@ -1183,7 +1183,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		    internal_copy(source[lev], jgrid, igrid, freg);
 	    }
 	}
-  }
+    }
 #endif
 }
 

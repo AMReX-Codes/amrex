@@ -363,8 +363,8 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		}
 		else 
 		{ // fine grid on just one side
-		    int idir = (geo & level_interface::LOW) ? -1 : 1;
-		    int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
+		    const int idir = (geo & level_interface::LOW) ? -1 : 1;
+		    const int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
 		    lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
 		    if (igrid >= 0) 
 		    {
@@ -424,8 +424,8 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 		{
 		    // fine grid on two adjacent sides
-		    int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
-		    int idir = (geo & level_interface::LL) ? -1 : 1;
+		    const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+		    const int idir = (geo & level_interface::LL) ? -1 : 1;
 		    Box fbox = refine(cbox, rat).grow(1 - idim, rat[1-idim]);
 		    if (geo & level_interface::LL)
 			fbox.growLo(idim, rat[idim]);
@@ -472,7 +472,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    // diagonal corner
 		    Box fbox = refine(cbox, rat).grow(rat);
 		    FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
+		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    FORT_FANDR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			D_DECL(rat[0], rat[1], rat[2]), idir1, dest.nComp(), &integrate);
@@ -482,8 +482,8 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    // inside corner
 		    Box fbox = refine(cbox, rat).grow(rat);
 		    FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
-		    int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
+		    const int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
+		    const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, dest.nComp(), &integrate);

@@ -645,12 +645,30 @@ public:
 	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_),
 	smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
     {
+	assert(dbx.sameType(dmf[dgrid].box()));
+	const Box cb = interp.box(dbx, rat);
+	const int jgrid = find_patch(cb, smf);
+	if (jgrid == -1) 
+	{
+	    tf = new task_fill_patch( cb, dmf.nComp(), smf, lev_interface, 0, -1, -1);
+	}
+	else 
+	{
+	    tf = new task_fab_get( smf, jgrid );
+	}
     }
     virtual bool ready()
     {
+	tf->ready();
+	interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
 	return true;
     }
+    virtual ~task_interpolate_patch()
+    {
+	delete tf;
+    }
 private:
+    task_fab* tf;
     MultiFab& dmf;
     const int dgrid;
     const Box dbx;

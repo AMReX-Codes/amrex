@@ -9,6 +9,11 @@ inline bool is_remote(const MultiFab& r, int igrid)
     return true;
 }
 
+inline bool is_local(const MultiFab& r, int igrid)
+{
+    return ! is_remote(r, igrid);
+}
+
 #ifdef BL_USE_NEW_HFILES
 #include <list>
 using namespace std;
