@@ -37,8 +37,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          fac0 = ir / (ir + 1.d0)
          hxm2 = 1.d0 / (ir * ir * hx * hx)
          hym2 = 1.d0 / (jr * jr * hy * hy)
-         do 10 j = regl1, regh1
- 10         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
+         do j = regl1, regh1
+            res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
      &        (hxm2 *
      &          ((sigmac(is,j-1) + sigmac(is,j)) *
      &            (cdst(i-idir,j) - cdst(i,j))) +
@@ -47,6 +47,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &            (cdst(i,j-1) - cdst(i,j)) +
      &           sigmac(is,j) *
      &            (cdst(i,j+1) - cdst(i,j))))
+         end do
          fac0 = fac0 / (ir * jr * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -56,16 +57,16 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          else
             is = i - 1
          end if
-         do 20 n = 0, jr-1
+         do n = 0, jr-1
             fac1 = (jr-n) * fac0
             if (n .eq. 0) fac1 = 0.5d0 * fac1
-            do 20 j = jr*regl1, jr*regh1, jr
+            do j = jr*regl1, jr*regh1, jr
                tmp = hxm2 *
      &           ((sigmaf(is,j-n-1) + sigmaf(is,j-n)) *
      &             (fdst(i+idir,j-n) - fdst(i,j-n)) +
      &		  (sigmaf(is,j+n-1) + sigmaf(is,j+n)) *
      &             (fdst(i+idir,j+n) - fdst(i,j+n)))
- 20            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
+               res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &		 (sigmaf(is,j-n-1) *
      &             (fdst(i,j-n-1) - fdst(i,j-n)) +
      &		  sigmaf(is,j-n) *
@@ -74,6 +75,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &             (fdst(i,j+n-1) - fdst(i,j+n)) +
      &		  sigmaf(is,j+n) *
      &             (fdst(i,j+n+1) - fdst(i,j+n))))
+            end do
+         end do
       else
          j = regl1
          if (idir .eq. 1) then
@@ -84,8 +87,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          fac0 = jr / (jr + 1.d0)
          hxm2 = 1.d0 / (ir * ir * hx * hx)
          hym2 = 1.d0 / (jr * jr * hy * hy)
-         do 30 i = regl0, regh0
- 30         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
+         do i = regl0, regh0
+            res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
      &        (hxm2 *
      &          (sigmac(i-1,js) *
      &            (cdst(i-1,j) - cdst(i,j)) +
@@ -94,6 +97,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &         hym2 *
      &          ((sigmac(i-1,js) + sigmac(i,js)) *
      &            (cdst(i,j-idir) - cdst(i,j))))
+         end do
          fac0 = fac0 / (ir * ir * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -103,10 +107,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          else
             js = j - 1
          end if
-         do 40 m = 0, ir-1
+         do m = 0, ir-1
             fac1 = (ir-m) * fac0
             if (m .eq. 0) fac1 = 0.5d0 * fac1
-            do 40 i = ir*regl0, ir*regh0, ir
+            do i = ir*regl0, ir*regh0, ir
                tmp = hxm2 *
      &		 (sigmaf(i-m-1,js) *
      &             (fdst(i-m-1,j) - fdst(i-m,j)) +
@@ -116,11 +120,13 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &             (fdst(i+m-1,j) - fdst(i+m,j)) +
      &		  sigmaf(i+m,js) *
      &             (fdst(i+m+1,j) - fdst(i+m,j)))
- 40            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
+               res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
      &             (fdst(i-m,j+idir) - fdst(i-m,j)) +
      &		  (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
      &             (fdst(i+m,j+idir) - fdst(i+m,j))))
+            end do
+         end do
       end if
       end
 
@@ -165,9 +171,9 @@ c Note---assumes fdst linearly interpolated from cdst along edges
 c quadrants
       ffac = 0.5d0
       cfac = 0.5d0 * ir * jr
-      do 10 ji = 0, 1
+      do ji = 0, 1
          jdir = 2 * ji - 1
-         do 10 ii = 0, 1
+         do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,ji) .eq. 1) then
                center = center + ffac
@@ -180,19 +186,20 @@ c quadrants
      &           (hxm2c * (cdst(ic+idir,jc) - cdst(ic,jc)) +
      &            hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
             end if
- 10         continue
+         end do
+      end do
 c edges
-      do 40 ji = 0, 1
+      do ji = 0, 1
          jdir = 2 * ji - 1
-         do 40 ii = 0, 1
+         do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,ji) - ga(ii,1-ji) .eq. 1) then
                fac1 = 1.d0 / ir
                ffac = 0.5d0 * (ir-1)
                center = center + ffac
-               do 20 m = idir, idir*(ir-1), idir
+               do m = idir, idir*(ir-1), idir
                   fac = (ir-abs(m)) * fac1
- 20               sum = sum + fac *
+                  sum = sum + fac *
      &              (hxm2 * (sigmaf(if+m-1,jf+ji-1) *
      &                        (fdst(if+m-1,jf) - fdst(if+m,jf)) +
      &                       sigmaf(if+m,jf+ji-1) *
@@ -200,14 +207,15 @@ c edges
      &               hym2 *
      &                 (sigmaf(if+m-1,jf+ji-1) + sigmaf(if+m,jf+ji-1)) *
      &                 (fdst(if+m,jf+jdir) - fdst(if+m,jf)))
+               end do
             end if
             if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
                fac1 = 1.d0 / jr
                ffac = 0.5d0 * (jr-1)
                center = center + ffac
-               do 30 n = jdir, jdir*(jr-1), jdir
+               do n = jdir, jdir*(jr-1), jdir
                   fac = (jr-abs(n)) * fac1
- 30               sum = sum + fac *
+                  sum = sum + fac *
      &              (hxm2 *
      &                 (sigmaf(if+ii-1,jf+n-1) + sigmaf(if+ii-1,jf+n)) *
      &                 (fdst(if+idir,jf+n) - fdst(if,jf+n)) +
@@ -215,8 +223,10 @@ c edges
      &                        (fdst(if,jf+n-1) - fdst(if,jf+n)) +
      &                       sigmaf(if+ii-1,jf+n) *
      &                        (fdst(if,jf+n+1) - fdst(if,jf+n))))
+               end do
             end if
- 40         continue
+         end do
+      end do
 c weighting
       res(if,jf) = src(if,jf) - sum / center
       end

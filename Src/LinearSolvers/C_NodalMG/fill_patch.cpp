@@ -68,6 +68,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 }
 
 
+/*
 int find_patch(const Box& region, const MultiFab& r)
 {
     for (int igrid = 0; igrid < r.length(); igrid++) 
@@ -77,6 +78,7 @@ int find_patch(const Box& region, const MultiFab& r)
     }
     return -1;
 }
+*/
 
 bool
 task_fill_patch::fill_patch_blindly()
