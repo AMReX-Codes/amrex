@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.12 2000-06-22 18:33:46 car Exp $
+// $Id: main.cpp,v 1.13 2000-08-02 16:11:53 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -27,6 +27,10 @@
 #ifdef BL3_PTHREADS
 #include <BoxLib3/WorkQueue.H>
 BoxLib3::WorkQueue wrkq;
+#endif
+#ifdef BL3_PROFILING
+#include <BoxLib3/Parallel.H>
+#include <BoxLib3/Timer.H>
 #endif
 
 
@@ -84,7 +88,14 @@ main (int   argc, char* argv[])
 #ifndef WIN32
   set_new_handler(Utility::OutOfMemory);
 #endif
-
+#ifdef BL3_PROFILING
+  BoxLib3::Profiler::Initialize(argc, argv);
+  BL3_PROFILE_TIMER(mg_main, "main()");
+  BL3_PROFILE_START(mg_main);
+#endif
+#ifdef BL3_USE_MPI
+  BoxLib3::Parallel::Initialize(argc, argv);
+#endif
   ParallelDescriptor::StartParallel(&argc, &argv);
 
   cout << setprecision(10);
@@ -109,7 +120,7 @@ main (int   argc, char* argv[])
 #endif
 #ifdef BL3_PTHREADS
   int maxthreads = 1; pp.query("maxthreads", maxthreads);
-  wrkq.maxThreads(maxthreads);
+  wrkq.max_threads(maxthreads);
 #endif
     
   TRACER("mg");
@@ -360,8 +371,11 @@ main (int   argc, char* argv[])
 	} // -->> over boxes in domain
     }
 
+#ifdef BL3_PROFILING
+  BL3_PROFILE_STOP(mg_main);
+  BoxLib3::Profiler::Finalize();
+#endif
   ParallelDescriptor::EndParallel();
-    
 } // -->> main fnc
 
 BoxList
