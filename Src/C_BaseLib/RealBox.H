@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _RealBox_H_
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.9 1999-05-10 18:54:09 car Exp $
+// $Id: RealBox.H,v 1.10 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <Array.H>

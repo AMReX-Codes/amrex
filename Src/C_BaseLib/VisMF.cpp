@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.67 2000-06-01 21:07:52 car Exp $
+// $Id: VisMF.cpp,v 1.68 2000-10-02 20:52:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_CCSE_MPP
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.5 2000-06-01 21:07:52 car Exp $
+// $Id: ccse-mpi.H,v 1.6 2000-10-02 20:52:40 lijewski Exp $
 //
 
 //

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_FABCONV_H
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.8 2000-05-25 15:39:28 car Exp $
+// $Id: FabConv.H,v 1.9 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

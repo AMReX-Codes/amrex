@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.7 2000-04-24 17:52:38 car Exp $
+// $Id: UseCount.H,v 1.8 2000-10-02 20:52:38 lijewski Exp $
 //
 
 #include <BLassert.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.42 2000-08-15 19:24:29 car Exp $
+// $Id: DistributionMapping.cpp,v 1.43 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #include <DistributionMapping.H>

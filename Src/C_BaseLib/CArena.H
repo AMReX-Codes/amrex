@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_CARENA
 #define BL_CARENA

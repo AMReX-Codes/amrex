@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.31 2000-04-24 17:52:36 car Exp $
+// $Id: MultiFab.H,v 1.32 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #include <BLassert.H>

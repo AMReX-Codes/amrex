@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.15 2000-06-05 22:38:53 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.16 2000-10-02 20:53:40 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ErrorList.cpp,v 1.8 1999-05-10 18:54:08 car Exp $
+// $Id: ErrorList.cpp,v 1.9 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #include <ErrorList.H>

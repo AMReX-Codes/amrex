@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.15 2000-06-02 22:37:40 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.16 2000-10-02 20:52:33 lijewski Exp $
 //
 
 #include <BLassert.H>

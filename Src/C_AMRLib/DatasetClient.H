@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _DATASETCLIENT_H_
 #define _DATASETCLIENT_H_
 
 //
-// $Id: DatasetClient.H,v 1.1 1999-01-06 21:27:58 lijewski Exp $
+// $Id: DatasetClient.H,v 1.2 2000-10-02 20:48:41 lijewski Exp $
 //
 
 extern "C"

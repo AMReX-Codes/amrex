@@ -1,10 +1,9 @@
-/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.32 2000-05-31 20:33:14 car Exp $
+// $Id: Utility.H,v 1.33 2000-10-02 20:52:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

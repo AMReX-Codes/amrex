@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tFB.cpp,v 1.5 1999-05-10 18:54:24 car Exp $
+// $Id: tFB.cpp,v 1.6 2000-10-02 20:52:40 lijewski Exp $
 //
 // A test program for FillBoundary().
 //

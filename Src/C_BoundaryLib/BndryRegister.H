@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _BNDRYREGISTER_H_
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.8 1999-03-17 21:58:13 lijewski Exp $
+// $Id: BndryRegister.H,v 1.9 2000-10-02 20:49:02 lijewski Exp $
 //
 
 #include <BoxArray.H>

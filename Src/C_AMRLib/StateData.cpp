@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.28 2000-05-30 21:10:47 almgren Exp $
+// $Id: StateData.cpp,v 1.29 2000-10-02 20:48:43 lijewski Exp $
 //
 
 #include <RunStats.H>

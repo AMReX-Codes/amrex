@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DatasetClient.cpp,v 1.16 1999-05-10 18:54:08 car Exp $
+// $Id: DatasetClient.cpp,v 1.17 2000-10-02 20:48:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

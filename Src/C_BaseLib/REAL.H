@@ -1,10 +1,9 @@
-/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_REAL_H
 #define BL_REAL_H
 
 /*
-** $Id: REAL.H,v 1.4 2000-04-24 17:52:37 car Exp $
+** $Id: REAL.H,v 1.5 2000-10-02 20:52:37 lijewski Exp $
 */
 
 #if defined(BL_ARCH_CRAY)

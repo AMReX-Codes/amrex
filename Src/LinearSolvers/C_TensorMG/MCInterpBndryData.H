@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MCINTERPBNDRYDATA_H_
 #define _MCINTERPBNDRYDATA_H_
 
 //
-// $Id: MCInterpBndryData.H,v 1.7 1999-06-28 20:37:05 car Exp $
+// $Id: MCInterpBndryData.H,v 1.8 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #include <BLassert.H>

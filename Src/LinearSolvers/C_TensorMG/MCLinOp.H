@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MCLINOP_H_
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.8 1999-12-01 16:17:23 lijewski Exp $
+// $Id: MCLinOp.H,v 1.9 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #include <BLassert.H>

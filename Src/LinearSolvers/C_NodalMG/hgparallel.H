@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _HGPARALLEL_H_
 #define _HGPARALLEL_H_

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.11 2000-04-24 17:52:35 car Exp $
+// $Id: IntVect.H,v 1.12 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

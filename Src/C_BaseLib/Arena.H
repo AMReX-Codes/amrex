@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_ARENA
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.7 2000-04-24 17:52:32 car Exp $
+// $Id: Arena.H,v 1.8 2000-10-02 20:52:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

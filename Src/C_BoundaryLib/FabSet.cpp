@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.35 1999-05-10 18:54:09 car Exp $
+// $Id: FabSet.cpp,v 1.36 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

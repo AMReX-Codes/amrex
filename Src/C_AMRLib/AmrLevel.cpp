@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.75 2000-08-23 20:16:30 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.76 2000-10-02 20:48:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

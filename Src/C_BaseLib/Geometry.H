@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.35 2000-06-05 22:37:37 lijewski Exp $
+// $Id: Geometry.H,v 1.36 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <CoordSys.H>

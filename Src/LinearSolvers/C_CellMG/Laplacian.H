@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _LAPLACIAN_H_
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.5 2000-08-24 20:28:29 car Exp $
+// $Id: Laplacian.H,v 1.6 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #include <LinOp.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.10 2000-07-03 22:02:50 lijewski Exp $
+// $Id: FluxRegister.H,v 1.11 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #include <BndryRegister.H>

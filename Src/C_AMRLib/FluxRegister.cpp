@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.58 2000-08-02 16:06:33 car Exp $
+// $Id: FluxRegister.cpp,v 1.59 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #include <FluxRegister.H>

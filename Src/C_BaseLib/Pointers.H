@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.10 2000-04-24 17:52:37 car Exp $
+// $Id: Pointers.H,v 1.11 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #include <BLassert.H>

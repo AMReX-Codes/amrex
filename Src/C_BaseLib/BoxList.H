@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.16 2000-06-02 22:37:40 lijewski Exp $
+// $Id: BoxList.H,v 1.17 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

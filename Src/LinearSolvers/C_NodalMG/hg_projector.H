@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _HG_PROJECTOR_H_
 #define _HG_PROJECTOR_H_

@@ -1,10 +1,9 @@
-/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_SPACE_F_H
 #define BL_SPACE_F_H
 
 /*
-** $Id: SPACE_F.H,v 1.4 1997-09-18 20:12:58 lijewski Exp $
+** $Id: SPACE_F.H,v 1.5 2000-10-02 20:52:38 lijewski Exp $
 */
 
 #include <SPACE.H>

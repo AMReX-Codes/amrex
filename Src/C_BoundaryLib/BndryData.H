@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _BNDRYDATA_H_
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.9 2000-07-15 00:11:01 sstanley Exp $
+// $Id: BndryData.H,v 1.10 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #include <BLassert.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.7 1998-11-30 18:52:05 lijewski Exp $
+// $Id: StationData.H,v 1.8 2000-10-02 20:48:43 lijewski Exp $
 //
 
 #ifndef _StationData_H_

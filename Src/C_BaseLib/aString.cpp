@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.8 2000-04-24 17:52:38 car Exp $
+// $Id: aString.cpp,v 1.9 2000-10-02 20:52:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

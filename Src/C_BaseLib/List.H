@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_LIST_H
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.10 2000-04-24 17:52:36 car Exp $
+// $Id: List.H,v 1.11 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #include <BLassert.H>

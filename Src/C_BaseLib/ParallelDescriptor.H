@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.49 2000-06-01 21:07:52 car Exp $
+// $Id: ParallelDescriptor.H,v 1.50 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #include <BLassert.H>

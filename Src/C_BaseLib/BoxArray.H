@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.16 2000-06-02 22:37:40 lijewski Exp $
+// $Id: BoxArray.H,v 1.17 2000-10-02 20:52:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FPC.cpp,v 1.3 2000-04-24 17:52:34 car Exp $
+// $Id: FPC.cpp,v 1.4 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #include <FPC.H>

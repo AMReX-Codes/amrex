@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BARENA_H
 #define BL_BARENA_H
 
 //
-// $Id: BArena.H,v 1.6 2000-04-24 17:52:32 car Exp $
+// $Id: BArena.H,v 1.7 2000-10-02 20:52:32 lijewski Exp $
 //
 
 #include <Arena.H>

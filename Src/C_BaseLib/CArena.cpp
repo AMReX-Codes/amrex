@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.20 2000-04-24 17:52:34 car Exp $
+// $Id: CArena.cpp,v 1.21 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

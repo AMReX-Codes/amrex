@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _FILL_PATCH_H_
 #define _FILL_PATCH_H_

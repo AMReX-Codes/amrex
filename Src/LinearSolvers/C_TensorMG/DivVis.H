@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _DivVis_H_
 #define _DivVis_H_
 
 //
-// $Id: DivVis.H,v 1.4 1999-02-10 21:10:00 lijewski Exp $
+// $Id: DivVis.H,v 1.5 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #include <Tuple.H>

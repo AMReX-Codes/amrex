@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _LEVELBLD_H_
 #define _LEVELBLD_H_
 
 //
-// $Id: LevelBld.H,v 1.5 1998-05-06 17:50:49 lijewski Exp $
+// $Id: LevelBld.H,v 1.6 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #include <REAL.H>

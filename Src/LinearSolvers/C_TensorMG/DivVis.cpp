@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DivVis.cpp,v 1.7 1999-05-10 18:54:26 car Exp $
+// $Id: DivVis.cpp,v 1.8 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #include <DivVis.H>

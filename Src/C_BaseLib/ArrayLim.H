@@ -1,10 +1,9 @@
-/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_ARRAYLIM_H
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.5 2000-09-26 18:19:25 car Exp $
+** $Id: ArrayLim.H,v 1.6 2000-10-02 20:52:32 lijewski Exp $
 */
 
 #if !defined(BL_LANG_FORT)

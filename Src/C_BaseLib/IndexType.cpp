@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.7 2000-04-24 17:52:35 car Exp $
+// $Id: IndexType.cpp,v 1.8 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

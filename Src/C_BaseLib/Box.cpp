@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.10 2000-04-24 17:52:33 car Exp $
+// $Id: Box.cpp,v 1.11 2000-10-02 20:52:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

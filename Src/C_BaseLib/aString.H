@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_ASTRING_H
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.10 2000-04-24 17:52:38 car Exp $
+// $Id: aString.H,v 1.11 2000-10-02 20:52:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

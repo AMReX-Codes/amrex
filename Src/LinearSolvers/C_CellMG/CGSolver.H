@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _CGSOLVER_H_
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.8 2000-08-30 19:19:13 car Exp $
+// $Id: CGSolver.H,v 1.9 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

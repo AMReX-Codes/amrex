@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.12 2000-07-06 17:03:57 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.13 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

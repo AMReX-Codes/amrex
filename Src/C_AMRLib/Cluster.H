@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _Cluster_H_
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.11 1999-05-10 18:54:07 car Exp $
+// $Id: Cluster.H,v 1.12 2000-10-02 20:48:41 lijewski Exp $
 //
 
 #include <IntVect.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.17 2000-04-05 18:22:03 sstanley Exp $
+// $Id: Interpolater.cpp,v 1.18 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

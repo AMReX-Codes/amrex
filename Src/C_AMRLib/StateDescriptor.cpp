@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.13 2000-06-01 21:28:57 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.14 2000-10-02 20:48:43 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
