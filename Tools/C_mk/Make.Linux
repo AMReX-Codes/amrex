@@ -6,10 +6,16 @@ ifeq ($(COMP),KCC)
   CXXDEBF += +K0
   FULLWARN := --strict_warnings
 else
+ifeq ($(COMP),PGI)
+  CXX = pgCC
+  CXXOPTF +=
+  CXXDEBF += -g
+else
 ifeq ($(COMP),Intel)
   CXX      = icc
   CXXOPTF += -O
   CXXDEBF += -g
+endif
 endif
 endif
 
