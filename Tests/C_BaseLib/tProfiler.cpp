@@ -1,5 +1,6 @@
 #include <Thread.H>
 #include <Profiler.H>
+#include <ParallelDescriptor.H>
 
 namespace BoxLib3
 {
@@ -31,13 +32,21 @@ thread_timing()
 }
 }
 
-void
-BoxLib3::testing::profiler_main(int&, char**& argv)
+int
+main(int argc, char** argv)
 {
+    BL_PROFILE_TIMER(pmain, "main()");
+    BL_PROFILE_START(pmain);
+    Profiler::Initialize(argc, argv);
+    ParallelDescriptor::StartParallel(&argc, &argv);
+
     BL_PROFILE("BoxLib3::testing::profiler_main()");
     BoxLib::WallTimer wt;
     wt.start();
     wt.stop();
     //  std::cout << "Wall timer reports = " << wt << std::endl;
     thread_timing();
+    BL_PROFILE_STOP(pmain);
+    Profiler::Finalize();
+    ParallelDescriptor::EndParallel();
 }

@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.37 2001-07-20 17:01:45 car Exp $
+// $Id: Utility.H,v 1.38 2001-07-20 19:45:43 car Exp $
 //
 
 #include <iostream>
@@ -282,7 +282,7 @@ BoxLib::base_Timer<FCN>::base_Timer()
 template <double (*FCN)(double*)>
 BoxLib::base_Timer<FCN>::~base_Timer()
 {
-    BLassert( !running );
+    BL_ASSERT( !running );
 }
 
 template <double (*FCN)(double*)>

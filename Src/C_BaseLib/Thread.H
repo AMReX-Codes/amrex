@@ -1,6 +1,10 @@
 #ifndef _BL_THREAD_H_
 #define _BL_THREAD_H_
 
+//
+// $Id: Thread.H,v 1.5 2001-07-20 19:45:43 car Exp $
+//
+
 #ifdef BL_PTHREADS
 #include <pthread.h>
 #include <unistd.h>
