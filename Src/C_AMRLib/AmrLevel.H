@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.50 2001-08-01 21:50:44 lijewski Exp $
+// $Id: AmrLevel.H,v 1.51 2001-10-30 22:03:42 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -407,13 +407,13 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    FArrayBox& operator() ()             { return m_fab;  }
-
-    const FArrayBox& operator() () const { return m_fab;  }
+    FArrayBox& operator() () { return fill(index()); }
 
     bool isValid ();
 
     void operator++ ();
+
+    FArrayBox& fill (int idx);
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
@@ -431,7 +431,8 @@ class FillPatchIterator
     MultiFab&                         m_leveldata;
     std::vector< std::pair<int,int> > m_range;
     PArray<FillPatchIteratorHelper>   m_fph;
-    FArrayBox                         m_fab;
+    PArray<FArrayBox>                 m_fabs;
+    std::vector<bool>                 m_filled;
     int                               m_ncomp;
 };
 
@@ -440,6 +441,8 @@ class FillPatchIteratorHelper
     public MFIter
 {
 public:
+
+    friend FillPatchIterator;
 
     FillPatchIteratorHelper (AmrLevel& amrlevel,
                              MultiFab& leveldata);
@@ -462,9 +465,7 @@ public:
 
     ~FillPatchIteratorHelper ();
 
-    FArrayBox& operator() ()             { return m_fab;  }
-
-    const FArrayBox& operator() () const { return m_fab;  }
+    void fill (FArrayBox& fab, int dcomp, int idx);
 
     bool isValid ();
 
@@ -483,22 +484,17 @@ private:
     MultiFabCopyDescriptor       m_mfcd;
     Array<Array<MultiFabId> >    m_mfid;     // [level][oldnew]
     Interpolater*                m_map;
-    Array<PArray<FArrayBox> >    m_cfab;     // tmp space used in filling m_fab
     Array<Array<Array<Box> > >   m_finebox;  // [grid][level][validregion]
     Array<Array<Array<Box> > >   m_crsebox;  // [grid][level][fillablesubbox]
     Array<Array<Array<Array<FillBoxId> > > > m_fbid;// [grid][level][fillablesubbox][oldnew]
     BoxArray                     m_ba;
-    Array<IntVect>               m_pshifts;
-    Array<BCRec>                 m_bcr;
-    FArrayBox                    m_fab;
-    FArrayBox                    m_finefab;  // a temporary
-    FArrayBox                    m_crsefab;  // a temporary
     Real                         m_time;
     int                          m_growsize;
     int                          m_index;
     int                          m_scomp;
     int                          m_ncomp;
     bool                         m_init;
+    bool                         m_FixUpCorners;
 };
 
 #endif /*_AmrLevel_H_*/
