@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.8 1998-05-04 21:24:53 lijewski Exp $
+// $Id: Array.H,v 1.9 1998-06-15 23:52:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -508,16 +508,14 @@ template <class T>
 bool
 Array<T>::operator== (const Array<T>& rhs) const
 {
-    bool rc = true;
     if (length() != rhs.length())
-        rc = false;
-    else
-    {
-        for (long i = 0; i < length() && rc; ++i)
-            if (!((*this)[i] == rhs[i]))
-                rc = false;
-    }
-    return rc;
+        return false;
+
+    for (long i = 0; i < length(); ++i)
+        if (!((*this)[i] == rhs[i]))
+            return false;
+
+    return true;
 }
 
 #endif /*BL_ARRAY_H*/
