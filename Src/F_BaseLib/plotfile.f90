@@ -451,7 +451,7 @@ contains
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), nc))
-    call fabio_read(fd,                &
+    call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
          pf%grids(i)%fabs(j)%p(:,:,:,:), &
          pf%grids(i)%fabs(j)%size*pf%nvars)
@@ -484,10 +484,10 @@ contains
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), size(c)))
     do n = 1, size(c)
-       call fabio_read_skip(fd,                &
+       call fabio_read_skip_d(fd,              &
             pf%grids(i)%fabs(j)%offset,        &
             pf%grids(i)%fabs(j)%size*(c(n)-1), &
-            pf%grids(i)%fabs(j)%p(:,:,:,n),      &
+            pf%grids(i)%fabs(j)%p(:,:,:,n),    &
             pf%grids(i)%fabs(j)%size)
     end do
     call fabio_close(fd)
