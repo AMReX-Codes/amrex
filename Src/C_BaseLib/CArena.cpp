@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.5 1998-02-08 18:19:28 lijewski Exp $
+// $Id: CArena.cpp,v 1.6 1998-02-08 20:03:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -53,15 +53,15 @@ CArena::alloc (size_t nbytes,
 
     nbytes = Arena::align(nbytes);
 
-    NL::iterator it = m_freelist.begin();
+    NL::iterator free_it = m_freelist.begin();
 
-    for ( ; it != m_freelist.end(); ++it)
+    for ( ; free_it != m_freelist.end(); ++free_it)
     {
-        if ((*it).size() >= nbytes)
+        if ((*free_it).size() >= nbytes)
             break;
     }
 
-    if (it == m_freelist.end())
+    if (free_it == m_freelist.end())
     {
         void* vp = ::operator new(nbytes < m_hunk ? m_hunk : nbytes);
 
@@ -83,24 +83,24 @@ CArena::alloc (size_t nbytes,
     }
     else
     {
-        assert((*it).client() == 0);
+        assert((*free_it).client() == 0);
 
-        *client = (*it).block();
+        *client = (*free_it).block();
 
         m_busylist.push_back(Node(*client, client, nbytes));
 
-        if ((*it).size() == nbytes)
+        if ((*free_it).size() == nbytes)
         {
-            m_freelist.erase(it);
+            m_freelist.erase(free_it);
         }
         else
         {
             //
             // Update freelist block to reflect space unused by busyblock.
             //
-            (*it).size((*it).size() - nbytes);
+            (*free_it).size((*free_it).size() - nbytes);
 
-            (*it).block(static_cast<char*>(*client) + nbytes);
+            (*free_it).block(static_cast<char*>(*client) + nbytes);
         }
     }
 
@@ -117,26 +117,65 @@ CArena::free (void* vp)
         // Allow calls with NULL as allowed by C++ delete.
         //
         return;
-    //
-    // Block had better be in busylist.
-    //
-    NL::iterator it = m_busylist.begin();
 
-    for ( ; it != m_busylist.end(); ++it)
+    NL::iterator busy_it = m_busylist.begin();
+
+    for ( ; busy_it != m_busylist.end(); ++busy_it)
     {
-        if ((*it).block() == vp)
+        if ((*busy_it).block() == vp)
             break;
     }
+    assert(!(busy_it == m_busylist.end()));
 
-    assert(!(it == m_busylist.end()));
+    void* free_block = static_cast<char*>((*busy_it).block());
 
-    m_freelist.push_front(Node((*it).block(), 0, (*it).size()));
+    m_freelist.push_front(Node(free_block, 0, (*busy_it).size()));
+
+    m_busylist.erase(busy_it);
     //
-    // Set client pointer to NULL -- try to catch client pointer caching :-)
+    // Coalesce freeblock(s) on lo and hi side of this block.
     //
-    //*(*it).client() = 0;
+    // Sort from lo to hi memory addresses.
+    //
+    m_freelist.sort();
 
-    m_busylist.erase(it);
+    NL::iterator free_it = m_freelist.begin();
+
+    for ( ; free_it != m_freelist.end(); ++free_it)
+    {
+        if ((*free_it).block() == free_block)
+            break;
+    }
+    assert(!(free_it == m_freelist.end()));
+
+    if (free_it != m_freelist.begin())
+    {
+        NL::iterator lo_it = free_it;
+
+        --lo_it;
+
+        void* addr = static_cast<char*>((*lo_it).block()) + (*lo_it).size();
+
+        if (addr == (*free_it).block())
+        {
+            (*lo_it).size((*lo_it).size() + (*free_it).size());
+
+            m_freelist.erase(free_it);
+
+            free_it = lo_it;
+        }
+    }
+
+    NL::iterator hi_it = free_it;
+
+    void* addr = static_cast<char*>((*free_it).block()) + (*free_it).size();
+
+    if (++hi_it != m_freelist.end() && addr == (*hi_it).block())
+    {
+        (*free_it).size((*free_it).size() + (*hi_it).size());
+
+        m_freelist.erase(hi_it);
+    }
 }
 
 void
