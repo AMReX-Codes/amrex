@@ -1,4 +1,3 @@
-#include <new.h>
 #include "hg_projector.H"
 
 #include <Utility.H>
@@ -15,6 +14,7 @@ using namespace std;
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+#include <new.h>
 #endif
 
 #ifdef HG_DEBUG
@@ -510,14 +510,10 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	    cout << "Proj time was " << t2 - t1 << endl;
 	    cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
 	    cout << setprecision(16);
-	    cout << "umin = " << u[0][0].min(0)
-		<< ", umax = " << u[0][0].max(0) << endl;
-	    cout << "vmin = " << u[1][0].min(0)
-		<< ", vmax = " << u[1][0].max(0) << endl;
-#if (BL_SPACEDIM == 3)
-	    cout << "wmin = " << u[2][0].min(0)
-		<< ", wmax = " << u[2][0].max(0) << endl;
-#endif
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    {
+		cout << "uvm"[i] << "min = " << u[i][0].min(0) << ", " << "uvw"[i] << "max = " << u[i][0].max(0) << endl;
+	    }
 	    cout << setprecision(6);
 	}
     }
