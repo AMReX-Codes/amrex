@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.66 1998-12-05 00:39:44 almgren Exp $
+// $Id: Amr.cpp,v 1.67 1998-12-22 22:42:56 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -1653,12 +1653,13 @@ Amr::grid_places (int              lbase,
             // domain
             for (BoxListIterator blt(bl_tagged); blt; ++blt) {
               for (int idir = 0; idir < BL_SPACEDIM; idir++) {
-                if (blt().smallEnd(idir) == pc_domain[levf].smallEnd(idir))
+                if (blt().smallEnd(idir) == geom[levf].Domain().smallEnd(idir))
                    bl_tagged[blt].growLo(idir,nerr);
-                if (blt().bigEnd(idir) == pc_domain[levf].bigEnd(idir))
+                if (blt().bigEnd(idir) == geom[levf].Domain().bigEnd(idir))
                    bl_tagged[blt].growHi(idir,nerr);
               }
             }
+
 
             Box mboxF = Box(bl_tagged.minimalBox()).grow(1);
             BoxList blFcomp = complementIn(mboxF,bl_tagged);
