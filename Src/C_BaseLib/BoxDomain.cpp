@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.13 2001-07-23 23:07:36 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.14 2001-07-24 05:12:48 car Exp $
 //
 
 #include <BoxDomain.H>
@@ -72,29 +72,6 @@ BoxLib::complementIn (const Box&       b,
     BoxDomain result;
     result.complementIn(b,bl);
     return result;
-}
-
-BoxDomain&
-BoxDomain::shift (int dir,
-                  int nzones)
-{
-    BoxList::shift(dir, nzones);
-    return *this;
-}
-
-BoxDomain&
-BoxDomain::shiftHalf (int dir,
-                      int num_halfs)
-{
-    BoxList::shiftHalf(dir, num_halfs);
-    return *this;
-}
-
-BoxDomain&
-BoxDomain::shiftHalf (const IntVect& iv)
-{
-    BoxList::shiftHalf(iv);
-    return *this;
 }
 
 BoxList
