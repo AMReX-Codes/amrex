@@ -15,6 +15,7 @@ endif
 endif
 
 FORT_CPP := gcc -E -traditional
+FORT_CPP := cpp -E -traditional
 
 ifeq ($(FCOMP),Lahey)
   FC    := lf95 --ml cdecl
