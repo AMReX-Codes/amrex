@@ -98,6 +98,7 @@ public:
 	// executes once through the task list, return true if any elements left
     const MPI_Comm& mpi_comm() const { return comm; }
     bool empty() const { return tasks.empty(); }
+    int size() const { return tasks.size(); }
 protected:
     void add_task(task* t, task::sequence_number sno_);
 private:

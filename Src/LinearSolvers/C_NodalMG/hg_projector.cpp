@@ -185,7 +185,7 @@ public:
 		const Box& uc_box = task_fab_result(0).box();
 		HG_DEBUG_OUT( "<< task_fecdiv s "  << m_sno << " " << s.norm(s_box, 2) << endl );
 		HG_DEBUG_OUT( "<< task_fecdiv up[0] " << m_sno << " " << upt[0]->operator[](igrid).norm(up_box, 2) << endl );
-		HG_DEBUG_OUT( "<< task_fecdiv uc[1] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv uc[0] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	    }
 	    return true;
@@ -231,7 +231,7 @@ public:
 		const Box& uc_box = task_fab_result(0).box();
 		HG_DEBUG_OUT( "<< task_fecdiv_2 s "  << m_sno << " " << s.norm(s_box, 2) << endl );
 		HG_DEBUG_OUT( "<< task_fecdiv_2 up[0] " << m_sno << " " << task_fab_result(1).norm(up_box, 2) << endl );
-		HG_DEBUG_OUT( "<< task_fecdiv_2 uc[1] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv_2 uc[0] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
 	    }
 	    return true;
@@ -736,6 +736,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     
     const IntVect& rat = gen_ratio[lev-1];
     task_list tl;
+    HG_TEST_NORM(source[lev], "interface_divergence,b");
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
 	// find a fine grid touching this face
@@ -781,7 +782,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
     }
     tl.execute();
-    HG_TEST_NORM(source[lev], "IN interface_divergence");
+    HG_TEST_NORM(source[lev], "interface_divergence,a");
 #if (BL_SPACEDIM == 3) || (defined HG_TERRAIN)
     
 #if (BL_SPACEDIM == 3)
@@ -837,6 +838,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
     }
     tl.execute();    
+    HG_TEST_NORM(source[lev], "interface_divergence,a1");
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
@@ -888,6 +890,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
     }
     tl.execute();
+    HG_TEST_NORM(source[lev], "interface_divergence,a2");
 #else
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
