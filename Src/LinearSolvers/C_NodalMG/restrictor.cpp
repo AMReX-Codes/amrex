@@ -451,7 +451,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	    {
 		// fine grid on all sides
 		FArrayBox fgr(refine(grow(cbox, 1), rat), patch.nComp());
-		fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
+		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, 0, icor);
 		const Box& fb = fgr.box();
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
@@ -471,7 +471,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		else
 		    fbox.growHi(idim, rat[idim]);
 		FArrayBox fgr(fbox, patch.nComp());
-		fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
+		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, 0, icor);
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
@@ -505,7 +505,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		    idir1 = 1;
 		}
 		FArrayBox fgr(fbox, patch.nComp());
-		fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
+		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, 0, icor);
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FANOR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
@@ -519,7 +519,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		Box fbox = refine(cbox, rat).grow(rat);
 		FArrayBox fgr(fbox, patch.nComp());
 		int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
-		fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
+		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, 0, icor);
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FANDR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
@@ -534,7 +534,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		FArrayBox fgr(fbox, patch.nComp());
 		int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
 		int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
-		fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
+		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, 0, icor);
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FANIR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),

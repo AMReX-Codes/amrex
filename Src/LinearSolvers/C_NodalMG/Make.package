@@ -8,8 +8,10 @@ CLIB_headers += interface.H boundary.H interpolator.H restrictor.H \
                 fill_patch.H amr_multi.H hg_multi.H hg_projector.H
 
 FLIB_sources += amr_real$(DIM)d.F \
-                hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F \
-		hg_multi$(DIM)d_terrain.F
+                hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+ifeq ($(DIM),3)
+FLIB_sources +=	hg_multi$(DIM)d_terrain.F
+endif
 FLIB_headers +=
 
 endif

@@ -803,7 +803,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		DependentMultiFabIterator s0_dmfi(w_mfi, sigma_nd[0][lto]);
 		DependentMultiFabIterator s1_dmfi(w_mfi, sigma_nd[1][lto]);
 		DependentMultiFabIterator s2_dmfi(w_mfi, sigma_nd[2][lto]);
-		FORT_HGINTS(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		FORT_HGINTS_NO_SIGMA_NODE(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 		    s0_dmfi->dataPtr(),
 		    s1_dmfi->dataPtr(),
 #  if (BL_SPACEDIM == 3)
