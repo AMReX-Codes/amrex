@@ -333,7 +333,7 @@ contains
        end do
        write(unit=un, fmt='()')
        do i = 1, nl
-          call box_print(lbbox, unit=un, legacy = .True., advance = 'no', nodal = mfs(i)%nodal)
+          call box_print(lbbox, unit=un, legacy = .True., advance = 'no')
           write(unit=un, fmt='()')
           if ( i < nl ) lbbox = refine(lbbox, rrs(i))
        end do
