@@ -1,11 +1,9 @@
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
-
 //
-// $Id: IndexType.H,v 1.11 2001-07-19 20:02:45 lijewski Exp $
+// $Id: IndexType.H,v 1.12 2001-07-26 20:08:45 lijewski Exp $
 //
-
-#include <iostream>
+#include <iosfwd>
 
 #include <IntVect.H>
 #include <SPACE.H>

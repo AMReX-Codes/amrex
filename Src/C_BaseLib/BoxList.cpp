@@ -1,12 +1,12 @@
 //
-// $Id: BoxList.cpp,v 1.21 2001-07-25 23:36:16 lijewski Exp $
+// $Id: BoxList.cpp,v 1.22 2001-07-26 20:08:44 lijewski Exp $
 //
-#include <winstd.H>
-
 #include <algorithm>
+#include <iostream>
 
 #include <BoxArray.H>
 #include <BoxList.H>
+#include <winstd.H>
 
 BoxList::iterator
 BoxList::begin()

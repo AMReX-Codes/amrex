@@ -1,11 +1,9 @@
 #ifndef BL_FABCONV_H
 #define BL_FABCONV_H
-
 //
-// $Id: FabConv.H,v 1.12 2001-07-19 20:02:45 lijewski Exp $
+// $Id: FabConv.H,v 1.13 2001-07-26 20:08:45 lijewski Exp $
 //
-
-#include <iostream>
+#include <iosfwd>
 
 #include <Array.H>
 #include <BLassert.H>

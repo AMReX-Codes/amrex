@@ -1,11 +1,9 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
-
 //
-// $Id: BoxList.H,v 1.26 2001-07-25 23:36:16 lijewski Exp $
+// $Id: BoxList.H,v 1.27 2001-07-26 20:08:44 lijewski Exp $
 //
-
-#include <iostream>
+#include <iosfwd>
 #include <list>
 
 #include <IntVect.H>

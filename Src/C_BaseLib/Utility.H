@@ -1,14 +1,12 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
-
 //
-// $Id: Utility.H,v 1.46 2001-07-25 23:36:17 lijewski Exp $
+// $Id: Utility.H,v 1.47 2001-07-26 20:08:46 lijewski Exp $
 //
-#include <winstd.H>
-
-#include <ctime>
-#include <iostream>
+#include <iosfwd>
 #include <string>
+
+#include <winstd.H>
 
 #ifndef WIN32
 #include <sys/types.h>

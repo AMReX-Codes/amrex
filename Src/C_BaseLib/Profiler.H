@@ -1,10 +1,8 @@
 #ifndef _BL_PROFILER_H_
 #define _BL_PROFILER_H_
-
 //
-// $Id: Profiler.H,v 1.6 2001-07-22 23:25:25 car Exp $
+// $Id: Profiler.H,v 1.7 2001-07-26 20:08:46 lijewski Exp $
 //
-
 #include <iostream>
 #include <string>
 #include <typeinfo>

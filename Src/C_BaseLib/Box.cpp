@@ -1,7 +1,8 @@
 //
-// $Id: Box.cpp,v 1.18 2001-07-24 18:12:34 car Exp $
+// $Id: Box.cpp,v 1.19 2001-07-26 20:08:43 lijewski Exp $
 //
 
+#include <iostream>
 #include <limits>
 
 #include <BLassert.H>
