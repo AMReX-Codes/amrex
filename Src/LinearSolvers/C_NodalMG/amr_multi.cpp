@@ -254,9 +254,11 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   work.resize(mglev_max + 1);
   save.resize(lev_max + 1);
 
+#ifdef HG_USE_CACHE
   dest_bcache.resize(lev_max + 1, (copy_cache*)0);
   corr_bcache.resize(mglev_max + 1, (copy_cache*)0);
   work_bcache.resize(mglev_max + 1, (copy_cache*)0);
+#endif
 
   for (i = 0; i <= mglev_max; i++) {
     BoxArray mesh = mg_mesh[i];
@@ -273,19 +275,23 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
     if (work[i].nGrow() > 0)
       work[i].setVal(0.0);
 
+#ifdef HG_USE_CACHE
     // if a cache is desired, it should be created by the derived class:
     corr_bcache.set(i, 0);
     work_bcache.set(i, 0);
+#endif
   }
 
   for (i = lev_min + 1; i <= lev_max - 1; i++) {
     save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
   }
 
+#ifdef HG_USE_CACHE
   for (i = lev_min; i <= lev_max; i++) {
     // if a cache is desired, it should be created by the derived class:
     dest_bcache.set(i, 0);
   }
+#endif
 }
 
 void amr_multigrid::clear()
@@ -389,11 +395,19 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
     MultiFab& wtmp = work[mglev];
     if (lev < lev_max) {
       save[lev].copy(ctmp);
-      level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, 0);
+      level_residual(wtmp, rtmp, ctmp, 
+#ifdef HG_USE_CACHE
+	  corr_bcache[mglev], 
+#endif
+	  mglev, 0);
       rtmp.copy(wtmp);
     }
     else {
-      level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, 0);
+      level_residual(rtmp, stmp, dtmp, 
+#ifdef HG_USE_CACHE
+	  dest_bcache[lev], 
+#endif
+	  mglev, 0);
     }
     interface_residual(mglev, lev);
     int mgc = ml_index[lev-1];
@@ -409,11 +423,19 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
     dtmp.plus(ctmp, 0, 1, 0);
     if (lev < lev_max) {
       save[lev].plus(ctmp, 0, 1, 0);
-      level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, 0);
+      level_residual(wtmp, rtmp, ctmp, 
+#ifdef HG_USE_CACHE
+	  corr_bcache[mglev], 
+#endif
+	  mglev, 0);
       rtmp.copy(wtmp);
     }
     else {
-      level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, 0);
+      level_residual(rtmp, stmp, dtmp, 
+#ifdef HG_USE_CACHE
+	  dest_bcache[lev], 
+#endif
+	  mglev, 0);
     }
     ctmp.setVal(0.0);
     //mg_cycle(mglev, i1, i2, 1);
@@ -442,7 +464,10 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
   // Clear flag set here because we want to compute a norm, and to
   // kill a feedback loop by which garbage in the border of dest
   // could grow exponentially.
-  level_residual(resid[mglev], source[lev], dest[lev], dest_bcache[lev],
+  level_residual(resid[mglev], source[lev], dest[lev], 
+#ifdef HG_USE_CACHE
+      dest_bcache[lev],
+#endif
 		 mglev);
   if (lev < lev_max) {
     int mgf = ml_index[lev+1];
@@ -474,12 +499,20 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 
     if (pcode >= 4) {
       wtmp.setVal(0.0);
-      level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, 1);
+      level_residual(wtmp, resid[mglev], ctmp, 
+#ifdef HG_USE_CACHE
+	  corr_bcache[mglev], 
+#endif
+	  mglev, 1);
       cout << "  Residual at multigrid level " << mglev << " is "
         << mfnorm(wtmp) << endl;
     }
     else {
-      level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, 0);
+      level_residual(wtmp, resid[mglev], ctmp, 
+#ifdef HG_USE_CACHE
+	  corr_bcache[mglev], 
+#endif
+	  mglev, 0);
     }
 
     mg_restrict_level(mglev-1, mglev);
@@ -519,29 +552,49 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (type(resid[lto]) == IntVect::TheCellVector()) {
-    restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+    restrict_level(resid[lto], 0, 
+	work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	work_bcache[lfrom],
+#endif
 		   cell_average_restrictor);
   }
   else if (integrate == 0) {
     if (get_amr_level(lto) >= 0) {
-      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+      restrict_level(resid[lto], 0,
+	  work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	  work_bcache[lfrom],
+#endif
 		     bilinear_restrictor_coarse,
 		     interface[lfrom], mg_boundary);
     }
     else {
-      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+      restrict_level(resid[lto], 0,
+	  work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	  work_bcache[lfrom],
+#endif
 		     bilinear_restrictor,
 		     interface[lfrom], mg_boundary);
     }
   }
   else {
     if (get_amr_level(lto) >= 0) {
-      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+      restrict_level(resid[lto], 0,
+	  work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	  work_bcache[lfrom],
+#endif
 		     bilinear_integrator_coarse,
 		     interface[lfrom], mg_boundary);
     }
     else {
-      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+      restrict_level(resid[lto], 0,
+	  work[lfrom], rat, 
+#ifdef HG_USE_CACHE
+	  work_bcache[lfrom],
+#endif
 		     bilinear_integrator,
 		     interface[lfrom], mg_boundary);
     }

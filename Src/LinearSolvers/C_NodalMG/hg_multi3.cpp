@@ -106,7 +106,9 @@ extern "C" {
 void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 					      MultiFab& s,
 					      MultiFab& d,
+#ifdef HG_USE_CACHE
 					      copy_cache* dbc,
+#endif
 					      int mglev,
 					      int iclear)
 {
@@ -115,7 +117,11 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
   int igrid;
 
-  fill_borders(d, dbc, interface[mglev], mg_boundary);
+  fill_borders(d,
+#ifdef HG_USE_CACHE
+      dbc, 
+#endif
+      interface[mglev], mg_boundary);
 
 #ifdef HG_TERRAIN
 
@@ -240,7 +246,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
     if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) {
 
       if (is_zero == 0)
-	fill_borders(corr[mglev], corr_bcache[mglev],
+	fill_borders(corr[mglev], 
+#ifdef HG_USE_CACHE
+	corr_bcache[mglev],
+#endif
 		     interface[mglev], mg_boundary);
       else
 	is_zero = 0;
@@ -347,7 +356,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #endif
 	}
       }
-      sync_borders(corr[mglev], corr_scache[mglev],
+      sync_borders(corr[mglev], 
+#ifdef HG_USE_CACHE
+	  corr_scache[mglev],
+#endif
 		   interface[mglev], mg_boundary);
     }
     else {
@@ -361,7 +373,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 
       for (int ipass = 0; ipass <= 1; ipass++) {
 	if (is_zero == 0)
-	  fill_borders(corr[mglev], corr_bcache[mglev],
+	  fill_borders(corr[mglev], 
+#ifdef HG_USE_CACHE
+	  corr_bcache[mglev],
+#endif
 		       interface[mglev], mg_boundary);
 	else
 	  is_zero = 0;
@@ -511,15 +526,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
   MultiFab& zero_array = cgwork[6];
   MultiFab& ipmask = cgwork[7];
 
-  unroll_cache& ruc = *cgw_ucache[0];
-  unroll_cache& puc = *cgw_ucache[1];
-  unroll_cache& zuc = *cgw_ucache[2];
-  unroll_cache& xuc = *cgw_ucache[3];
-  unroll_cache& wuc = *cgw_ucache[4];
-  unroll_cache& cuc = *cgw_ucache[5];
-  unroll_cache& muc = *cgw_ucache[7];
-
-  copy_cache& pbc = *cgw1_bcache;
 
   Real alpha, rho;
   int i = 0, igrid;
@@ -538,8 +544,19 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     alpha = inner_product(r, w) / mg_domain[mglev].volume();
     r.plus(-alpha, 0);
   }
+#ifdef HG_USE_CACHE
+  copy_cache& pbc = *cgw1_bcache;
+#endif
 
 #if (CGOPT == 2)
+  unroll_cache& ruc = *cgw_ucache[0];
+  unroll_cache& puc = *cgw_ucache[1];
+  unroll_cache& zuc = *cgw_ucache[2];
+  unroll_cache& xuc = *cgw_ucache[3];
+  unroll_cache& wuc = *cgw_ucache[4];
+  unroll_cache& cuc = *cgw_ucache[5];
+  unroll_cache& muc = *cgw_ucache[7];
+
   FORT_HGCG(ruc.ptr, puc.ptr,
 	    zuc.ptr, xuc.ptr,
 	    wuc.ptr, cuc.ptr,
@@ -586,7 +603,11 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
-    level_residual(w, zero_array, p, &pbc, 0, 0);
+    level_residual(w, zero_array, p, 
+#ifdef HG_USE_CACHE
+	&pbc, 
+#endif
+	0, 0);
     alpha = 0.0;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& reg = p[igrid].box();

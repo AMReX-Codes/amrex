@@ -850,7 +850,9 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 
 void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
+#ifdef HG_USE_CACHE
 		    const copy_cache* border_cache,
+#endif
 		    amr_restrictor restric,
 		    const level_interface& interface,
 		    amr_boundary bdy)
@@ -873,24 +875,36 @@ void restrict_patch(FArrayBox& patch, const Box& region,
   if (!interface.null()) {
     // This assertion difficult in BoxLib since r.mesh() is not cc:
     //assert(r.mesh() == interface.interior_mesh());
-    restric.interface(patch, region, r, border_cache, interface, bdy, rat);
+    restric.interface(patch, region, r,
+#ifdef HG_USE_CACHE
+	border_cache, 
+#endif
+	interface, bdy, rat);
   }
 }
 
 void restrict_level(MultiFab& dest, int bflag,
 		    MultiFab& r, const IntVect& rat,
+#ifdef HG_USE_CACHE
 		    const copy_cache* border_cache,
+#endif
 		    amr_restrictor restric,
 		    const level_interface& interface,
 		    amr_boundary bdy)
 {
   for (int igrid = 0; igrid < dest.length(); igrid++) {
     if (bflag) {
-      restrict_patch(dest[igrid], r, rat, border_cache,
+      restrict_patch(dest[igrid], r, rat,
+#ifdef HG_USE_CACHE
+	  border_cache,
+#endif
 		     restric, interface, bdy);
     }
     else {
-      restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache,
+      restrict_patch(dest[igrid], dest.box(igrid), r, rat, 
+#ifdef HG_USE_CACHE
+	  border_cache,
+#endif
 		     restric, interface, bdy);
     }
   }

@@ -139,7 +139,9 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 void bilinear_restrictor_class::interface(FArrayBox& patch,
 					  const Box& region,
 					  MultiFab& fine,
+#ifdef HG_USE_CACHE
 					  const copy_cache* border_cache,
+#endif
 					  const level_interface& interface,
 					  amr_boundary bdy,
 					  const IntVect& rat) const
@@ -222,7 +224,11 @@ void bilinear_restrictor_class::interface(FArrayBox& patch,
     }
   }
   else {
-    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
+    fill_borders(fine, 
+#ifdef HG_USE_CACHE
+	border_cache, 
+#endif
+	interface, bdy, ratmax - 1);
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       if (interface.fgeo(iface) == level_interface::ALL && interface.fflag(iface) == 0) {
 	// fine grid on both sides
@@ -298,8 +304,9 @@ void bilinear_restrictor_class::interface(FArrayBox& patch,
 void bilinear_restrictor_coarse_class::interface(FArrayBox& patch,
 						 const Box& region,
 						 MultiFab& fine,
-						 const copy_cache*
-						   border_cache,
+#ifdef HG_USE_CACHE
+						 const copy_cache* border_cache,
+#endif
 						 const level_interface&
 						   interface,
 						 amr_boundary bdy,
@@ -318,7 +325,11 @@ void bilinear_restrictor_coarse_class::interface(FArrayBox& patch,
 #endif
 
   if (fine.nGrow() >= ratmax - 1)
-    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
+    fill_borders(fine, 
+#ifdef HG_USE_CACHE
+    border_cache, 
+#endif
+    interface, bdy, ratmax - 1);
 
   for (int iface = 0; iface < interface.nfaces(); iface++) {
     if (interface.fflag(iface) == 1)
