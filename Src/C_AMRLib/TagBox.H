@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.5 1997-12-11 23:27:54 lijewski Exp $
+// $Id: TagBox.H,v 1.6 1998-01-26 21:57:18 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -31,13 +31,13 @@
 
 class TagBox
     :
-    public BaseFab<int>
+    public BaseFab<char>
 {
 public:
     //
     // The type of each tag.
     //
-    typedef int TagType;
+    typedef char TagType;
     //
     // Possible values for each cell.
     //
@@ -52,15 +52,6 @@ public:
     virtual ~TagBox();
     
     void resize (const Box& b) { BaseFab<TagType>::resize(b,1); }
-
-    TagType& operator() (const IntVect& p)
-    {
-        return dptr[domain.index(p)];
-    }
-    const TagType& operator() (const IntVect& p) const
-    {
-        return dptr[domain.index(p)];
-    }
     //
     // Construct and return a new tagbox in which the coarsened cell is
     // tagged of any of the corresponding fine cells are tagged.
@@ -84,6 +75,16 @@ public:
 
     int numTags (const Box& bx) const;
     int numTags () const;
+    //
+    // Returns Array<int> of size domain.numPts() suitable for calling
+    // Fortran, with positions set to same value as in the TagBox dataPtr().
+    //
+    Array<int> tags () const;
+    //
+    // Set values as specified by the array.
+    // It's an error if ar.length() != domain.numPts().
+    //
+    void tags (const Array<int>& ar);
 
 private:
     //

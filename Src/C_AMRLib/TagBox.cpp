@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.10 1998-01-23 17:51:31 lijewski Exp $
+// $Id: TagBox.cpp,v 1.11 1998-01-26 21:57:18 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -339,6 +339,38 @@ TagBox::colate (Array<IntVect>& ar,
         }
     }
     return count;
+}
+
+Array<int>
+TagBox::tags () const
+{
+    Array<int> ar(domain.numPts(), TagBox::CLEAR);
+
+    const TagType* cptr = dataPtr();
+    int*           iptr = ar.dataPtr();
+
+    for (int i = 0; i < ar.length(); i++, cptr++, iptr++)
+    {
+        if (*cptr)
+            *iptr = *cptr;
+    }
+
+    return ar;
+}
+
+void
+TagBox::tags (const Array<int>& ar)
+{
+    assert(ar.length() == domain.numPts());
+
+    TagType*   cptr = dataPtr();
+    const int* iptr = ar.dataPtr();
+
+    for (int i = 0; i < ar.length(); i++, cptr++, iptr++)
+    {
+        if (*iptr)
+            *cptr = *iptr;
+    }
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
