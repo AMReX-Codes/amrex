@@ -11,7 +11,7 @@ clean::
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
-	$(RM) TAGS deppairs
+	$(RM) TAGS deppairs tags
 
 realclean:: clean
 	$(RM) -fr t

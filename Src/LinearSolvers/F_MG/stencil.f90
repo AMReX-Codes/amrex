@@ -276,9 +276,11 @@ contains
 
     call multifab_fill_boundary(uu)
     if ( st%extrap_bc) then
-       !      call multifab_print(uu, unit=nn); nn = nn + 1
+       ! call multifab_print(uu, unit=nn); nn = nn + 1
+       ! call multifab_print(uu, 'before')
        call stencil_extrap_bc(st, uu)
-       !      call multifab_print(uu, unit=nn); nn = nn + 1
+       ! call multifab_print(uu, 'after')
+       ! call multifab_print(uu, unit=nn); nn = nn + 1
     end if
 
     do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
