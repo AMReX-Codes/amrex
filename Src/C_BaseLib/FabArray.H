@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.93 1999-03-27 01:00:58 lijewski Exp $
+// $Id: FabArray.H,v 1.94 1999-03-31 17:03:47 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,7 +49,11 @@ class FillBoxId
 {
   public:
 
-    FillBoxId () : fillBoxId(-1), fabIndex(-1) {}
+    FillBoxId ()
+        :
+        fillBoxId(-1),
+        fabIndex(-1)
+    {}
 
     FillBoxId (int            newid,
                const Box&     fillbox,
@@ -59,22 +63,24 @@ class FillBoxId
         filledBoxes(filledboxes),
         fillBox(fillbox),
         fillBoxId(newid),
-        fabIndex(fabindex) {}
+        fabIndex(fabindex)
+    {}
 
     FillBoxId (const FillBoxId& rhs)
         :
         filledBoxes(rhs.filledBoxes),
         fillBox(rhs.fillBox),
         fillBoxId(rhs.fillBoxId),
-        fabIndex(rhs.fabIndex) {}
+        fabIndex(rhs.fabIndex)
+    {}
 
     ~FillBoxId() {}
 
-    int Id () const                       { return fillBoxId;    }
-    int FabIndex () const                 { return fabIndex;     }
-    void FabIndex (int fabindex)          { fabIndex = fabindex; }
-    const Box& box () const               { return fillBox;      }
-    const BoxArray& FilledBoxes () const  { return filledBoxes;  }
+    int             Id () const             { return fillBoxId;    }
+    int             FabIndex () const       { return fabIndex;     }
+    void            FabIndex (int fabindex) { fabIndex = fabindex; }
+    const Box&      box () const            { return fillBox;      }
+    const BoxArray& FilledBoxes () const    { return filledBoxes;  }
 
   protected:
 
@@ -86,6 +92,50 @@ class FillBoxId
     Box      fillBox;
     int      fillBoxId;
     int      fabIndex;
+};
+
+//
+// Used to cache some CommData stuff in CollectData().
+//
+
+class CommDataCache
+{
+public:
+
+    CommDataCache ()
+        :
+        m_valid(false)
+    {}
+
+    CommDataCache (const CommDataCache& rhs)
+        :
+        m_commdata(rhs.m_commdata),
+        m_valid(rhs.m_valid)
+    {}
+
+    void operator= (const CommDataCache& rhs)
+    {
+        if (this != &rhs)
+        {
+            m_commdata = rhs.m_commdata;
+            m_valid    = rhs.m_valid;
+        }
+    }
+
+    void operator= (const Array<CommData>& rhs)
+    {
+        m_commdata = rhs;
+        m_valid    = true;
+    }
+
+    bool isValid () const { return m_valid; }
+
+    const Array<CommData>& theCommData () const { return m_commdata; }
+
+private:
+
+    Array<CommData> m_commdata;
+    bool            m_valid;
 };
 
 //
@@ -822,8 +872,8 @@ class FabArrayCopyDescriptor
                       int        numcomp,
                       bool       bUseValidBox = true);
 
-    void CollectData (Array<int>*      snd_cache = 0,
-                      Array<CommData>* cd_cache  = 0);
+    void CollectData (Array<int>*    snd_cache = 0,
+                      CommDataCache* cd_cache  = 0);
 
     void FillFab (FabArrayId       fabarrayid,
                   const FillBoxId& fillboxid,
@@ -2344,8 +2394,8 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*      snd_cache,
-                                            Array<CommData>* cd_cache)
+FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
+                                            CommDataCache* cd_cache)
 {
     dataAvailable = true;
 
@@ -2438,7 +2488,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*      snd_cache,
     //
     int idx = 0;
 
-    if (cd_cache == 0 || cd_cache->length() == 0 || debugging)
+    if (cd_cache == 0 || !cd_cache->isValid() || debugging)
     {
         //
         // Make sure we can treat CommData as a stream of integers.
@@ -2527,15 +2577,18 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*      snd_cache,
 
     if (cd_cache)
     {
-        if (cd_cache->length() > 0)
+        if (cd_cache->isValid())
         {
             if (debugging)
-                assert(recv_cd == *cd_cache);
+                assert(recv_cd == cd_cache->theCommData());
             else
-                recv_cd = *cd_cache;
+                recv_cd = cd_cache->theCommData();
         }
         else
         {
+            //
+            // Set and validate the cache.
+            //
             *cd_cache = recv_cd;
         }
     }

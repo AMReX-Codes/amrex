@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.35 1999-03-27 01:00:58 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.36 1999-03-31 17:03:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -579,13 +579,13 @@ struct SI
     bool operator== (const SI& rhs) const;
     bool operator!= (const SI& rhs) const { return !operator==(rhs); }
 
-    Array<int>      m_cache;    // Snds cached for CollectData().
-    Array<CommData> m_commdata; // Yet another cache for CollectData().
-    vector<SIRec>   m_sirec;
-    BoxArray        m_ba;
-    int             m_scomp;
-    int             m_ncomp;
-    int             m_ngrow;
+    Array<int>    m_cache;    // Snds cached for CollectData().
+    CommDataCache m_commdata; // Yet another cache for CollectData().
+    vector<SIRec> m_sirec;
+    BoxArray      m_ba;
+    int           m_scomp;
+    int           m_ncomp;
+    int           m_ngrow;
 };
 
 SI::SI ()
