@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.18 2002-04-08 20:46:46 car Exp $
+// $Id: Thread.H,v 1.19 2002-04-08 20:51:36 car Exp $
 //
 
 //#include <cstdio>
@@ -540,7 +540,7 @@ namespace BoxLib
 // Thread
 namespace Thread
 {
-inline int max_threads() { return 1;}
+inline unsigned long max_threads() { return 1UL;}
 inline int getID () { return 0; }
 inline bool baseThread () { return true; }
 }
