@@ -55,8 +55,8 @@ ifeq ($(COMP),g95)
   CC := gcc
   F90FLAGS += -std=f95
   FFLAGS   += -std=f95
-  F90FLAGS += -fmod=$(mdir) -I $(mdir)
-  FFLAGS   += -fmod=$(mdir) -I $(mdir)
+  F90FLAGS += -fmod=$(mdir)
+  FFLAGS   += -fmod=$(mdir)
   F90FLAGS += -Wall 
   FFLAGS += -Wall 
   CFLAGS += -Wall
@@ -76,6 +76,27 @@ ifeq ($(COMP),g95)
   endif
   ifdef mpi_lib
     fld_flags += -L $(mpi_lib)
+  endif
+endif
+
+# ALL GFORTRANS, which probably don't work, are the same
+ifeq ($(COMP),gfortran)
+  FC := gfortran
+  F90 := gfortran
+  CC := gcc
+  F90FLAGS += -J$(mdir) -I $(mdir)
+  FFLAGS   += -J$(mdir) -I $(mdir)
+  CFLAGS += -Wall
+  ifdef NDEBUG
+    F90FLAGS += -O
+    FFLAGS += -O
+    CFLAGS += -O
+  else
+    F90FLAGS += -g 
+    F90FLAGS += -fbounds-check
+    FFLAGS += -g 
+    FFLAGS += -fbounds-check
+    CFLAGS += -g
   endif
 endif
 
@@ -103,25 +124,6 @@ ifeq ($(ARCH),Linux)
     mpi_include = $(mpi_home)/include
     mpi_lib = $(mpi_home)/lib
     mpi_libraries = -lmpich -lfmpich
-  endif
-  ifeq ($(COMP),gfortran)
-    FC := gfortran
-    F90 := gfortran
-    CC := gcc
-    F90FLAGS += -J$(mdir) -I $(mdir)
-    FFLAGS   += -J$(mdir) -I $(mdir)
-    CFLAGS += -Wall
-    ifdef NDEBUG
-      F90FLAGS += -O
-      FFLAGS += -O
-      CFLAGS += -O
-    else
-      F90FLAGS += -g 
-      F90FLAGS += -fbounds-check
-      FFLAGS += -g 
-      FFLAGS += -fbounds-check
-      CFLAGS += -g
-    endif
   endif
   ifeq ($(COMP),PathScale)
     FC = pathf90
