@@ -1,6 +1,8 @@
 
 #include "hg_multi.H"
 
+#include <Profiler.H>
+
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGRES		hgres_
 #define   FORT_HGRES_TERRAIN	hgres_terrain_
@@ -251,6 +253,8 @@ holy_grail_amr_multigrid::relax (int  mglev,
                                  int  i1,
                                  bool is_zero)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::relax()");
+
     Box tdom = mg_domain[mglev];
     tdom.convert(IntVect::TheNodeVector());
 

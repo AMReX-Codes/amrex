@@ -1,6 +1,8 @@
 
 #include "hg_multi.H"
 
+#include <Profiler.H>
+
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGSRST		hgsrst_
 #define   FORT_HGSCON		hgscon_
@@ -953,6 +955,8 @@ holy_grail_amr_multigrid::can_coarsen (const BoxArray& mesh,
 void
 holy_grail_amr_multigrid::sync_interfaces ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::sync_interfaces()");
+
     for (int lev = lev_min+1; lev <= lev_max; lev++)
     {
 	int mglev = ml_index[lev];
@@ -996,6 +1000,8 @@ holy_grail_amr_multigrid::sync_interfaces ()
 void
 holy_grail_amr_multigrid::sync_periodic_interfaces ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::sync_periodic_interfaces()");
+
     for (int lev = lev_min+1; lev <= lev_max; lev++)
     {
 	int mglev = ml_index[lev];
@@ -1119,6 +1125,8 @@ void
 holy_grail_amr_multigrid::mg_interpolate_level (int lto,
                                                 int lfrom)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mg_interpolate_level()");
+
     if (get_amr_level(lfrom) >= 0)
     {
         //

@@ -1,6 +1,8 @@
 
 #include "hg_multi.H"
 
+#include <Profiler.H>
+
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGFRES		hgfres_
 #define   FORT_HGFRES_TERRAIN   hgfres_terrain_
@@ -695,6 +697,8 @@ void
 holy_grail_amr_multigrid::interface_residual (int mglev,
                                               int lev)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interface_residual()");
+
     // FIXME boundary not terrain sigma?
     const amr_boundary* bndry =
 	(m_stencil==terrain) ? boundary.terrain_sigma() : boundary.scalar();

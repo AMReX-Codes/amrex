@@ -1,5 +1,6 @@
 
 #include "fill_patch.H"
+#include <Profiler.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FIPRODC   iprodc_
@@ -268,6 +269,8 @@ void
 sync_internal_borders (MultiFab&              r,
                        const level_interface& lev_interface)
 {
+    BL_PROFILE("sync_internal_borders()");
+
     BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     task_list tl;
@@ -452,6 +455,8 @@ fill_internal_borders (MultiFab&              r,
                        int                    w,
                        bool                   hg_dense)
 {
+    BL_PROFILE("fill_internal_borders()");
+
     BL_ASSERT(type(r) == IntVect::TheCellVector()
 	      || type(r) == IntVect::TheNodeVector() );
 
@@ -900,6 +905,8 @@ restrict_level (MultiFab&                   dest,
                 const level_interface&      lev_interface,
                 const amr_boundary*   bdy)
 {
+    BL_PROFILE("restrict_level()");
+
     BL_ASSERT(type(dest) == type(r));
 
     HG_TEST_NORM( dest, "restrict_level a");
