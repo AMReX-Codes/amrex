@@ -1069,4 +1069,98 @@ contains
 
   end subroutine box_read
 
+  subroutine periodic_shift(dmn,b,nodal,pmask,shft,bxs,cnt)
+
+    implicit none
+
+    type(box), intent(in)  :: dmn,b
+    logical,   intent(in)  :: nodal(b%dim),pmask(b%dim)
+    integer,   intent(out) :: shft(27,b%dim),cnt
+    type(box), intent(out) :: bxs(27)
+
+    type(box) :: domain, bx, src
+    integer   :: nist,njst,nkst,niend,njend,nkend,ri,rj,rk,idx(3)
+
+    cnt = 0
+
+    if (all(pmask .eqv. .false.)) return
+
+    bx     = box_nodalize(b,nodal)
+    domain = box_nodalize(dmn,nodal)
+
+    if (contains(domain,bx)) return
+
+    nist  = 0; njst  = 0; nkst  = 0
+    niend = 0; njend = 0; nkend = 0
+
+    nist = -1; niend = 1
+    if (bx%dim > 1) then
+       njst = -1; njend = 1
+       if (bx%dim > 2) then
+          nkst = -1; nkend = 1
+       end if
+    end if
+
+    do ri = nist, niend
+       if (ri /= 0 .and. (.not. is_periodic(1))) cycle
+
+       if (ri /= 0 .and. is_periodic(1)) then
+          bx = shift(bx,ri*extent(domain,1),1)
+       end if
+
+       do rj = njst, njend
+          if (rj /= 0 .and. (.not. is_periodic(2))) cycle
+
+          if (rj /= 0 .and. is_periodic(2)) then
+             bx = shift(bx,rj*extent(domain,2),2)
+          end if
+
+          do rk = nkst, nkend
+             if (rk /= 0 .and. (.not. is_periodic(3))) cycle
+
+             if (rk /= 0 .and. is_periodic(3)) then
+                bx = shift(bx,rk*extent(domain,3),3)
+             end if
+
+             if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
+
+             src = intersection(domain,bx)
+
+             if (.not. empty(src)) then
+                cnt = cnt + 1
+                bxs(cnt) = src
+                idx(1) = ri*extent(domain,1)
+                if (bx%dim > 1) then
+                   idx(2) = rj*extent(domain,2)
+                   if (bx%dim > 2) idx(3) = rk*extent(domain,3)
+                end if
+                shft(cnt,1:bx%dim) = idx(1:bx%dim)
+             end if
+
+             if (rk /= 0 .and. is_periodic(3)) then
+                bx = shift(bx,-rk*extent(domain,3),3)
+             end if
+          end do
+
+          if (rj /= 0 .and. is_periodic(2)) then
+             bx = shift(bx,-rj*extent(domain,2),2)
+          end if
+       end do
+
+       if (ri /= 0 .and. is_periodic(1)) then
+          bx = shift(bx,-ri*extent(domain,1),1)
+       end if
+    end do
+
+    contains
+
+      function is_periodic(i) result(r)
+        integer, intent(in) :: i
+        logical             :: r
+        r = .false.
+        if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
+      end function is_periodic
+
+  end subroutine periodic_shift
+
 end module box_module
