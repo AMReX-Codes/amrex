@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.44 1998-10-07 21:18:19 vince Exp $
+// $Id: AmrLevel.cpp,v 1.45 1998-12-02 17:52:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -496,9 +496,7 @@ FillPatchIterator::Initialize (int           boxGrow,
                     }
                 }
                 for (int i = 0; i < tempUnfilledBoxes.size(); i++)
-                {
                     unfilledThisLevel.push_back(tempUnfilledBoxes[i]);
-                }
             }
             m_fbid[ibox][level].resize(unfilledThisLevel.size());
             m_finebox[ibox][level].resize(unfilledThisLevel.size());
@@ -515,14 +513,8 @@ FillPatchIterator::Initialize (int           boxGrow,
 
                     fineDestBox.refine(m_ratio[level]);
 
-                    if (fineDestBox.intersects(m_ba[ibox]))
-                    {
-                        fineDestBox &= m_ba[ibox];
-                    }
-                    else
-                    {
-                        assert(is_periodic);
-                    }
+                    assert(m_ba[ibox].contains(fineDestBox) || is_periodic);
+
                     Box crse_box = fineDestBox;
 
                     if (level != m_amrlevel.level)
@@ -616,7 +608,7 @@ FillPatchIterator::isValid ()
     const Box&             fDomain   = fState.getDomain();
 
     m_fab.resize(destBox, m_ncomp);
-    m_fab.setVal(1.e30);
+    m_fab.setVal(2.e30);
 
     FArrayBox tempCoarseDestFab, tempCurrentFillPatchedFab;
 
@@ -630,7 +622,7 @@ FillPatchIterator::isValid ()
             const Box& tmpCrseBox = m_fbid[currentIndex][level][iBox][0].box();
 
             tempCoarseDestFab.resize(tmpCrseBox, m_ncomp);
-            tempCoarseDestFab.setVal(1.e30);
+            tempCoarseDestFab.setVal(3.e30);
 
             currentState.linInterpFillFab(m_mfcd,
                                           m_mfid[level],
