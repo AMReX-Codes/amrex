@@ -12,7 +12,7 @@ class level_interface
 public:
     
 #if (BL_SPACEDIM == 2)
-#if 0
+#if defined(HG_OLD)
     enum 
     { 
 	LL = 0x1, HL = 0x2, LH = 0x4, HH = 0x8,
