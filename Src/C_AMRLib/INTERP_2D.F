@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.21 2002-12-07 05:59:35 almgren Exp $
+c $Id: INTERP_2D.F,v 1.22 2002-12-11 18:33:45 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1569,7 +1569,7 @@ c                the remaining positive proportionally.
 
                    else
 
-                     posVal = (crseTot - abs(sumN)) / float(lratiox*lratioy)
+                     posVal = (crseTot - abs(sumN)) / cvol
 
                      do joff = 0, lratioy-1
                      do ioff = 0, lratiox-1
