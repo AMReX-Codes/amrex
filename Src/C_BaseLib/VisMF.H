@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.33 1998-07-07 19:43:28 lijewski Exp $
+// $Id: VisMF.H,v 1.34 1998-09-14 23:28:56 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -133,10 +133,14 @@ public:
 
     /*@ManDoc: Write a MultiFab to disk in a "smart" way.
                Returns the total number of bytes written on this processor.
+               If set_ghost is true, sets the ghost cells in the MultiFab to
+               one-half the average of the min and max over the valid region
+               of each contained FAB.
      */
     static long Write (const MultiFab& mf,
                        const aString&  name,
-                       VisMF::How      how);
+                       VisMF::How      how,
+                       bool            set_ghost = false);
 
     /*@ManDoc: Read a MultiFab from disk written using VisMF::Write().
                The MultiFab `mf' must have been defined using the default
