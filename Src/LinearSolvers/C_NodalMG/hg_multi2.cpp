@@ -382,9 +382,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	const Box& cbox = fres_cbox[lev][iface];
 	const Box& sigmacbox = fres_scbox[lev][iface];
-	task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglev], lev_interface[mglevc], bndry);
+	task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglev], lev_interface[mglevc], bndry, -1, -1);
 	const Box& creg = fres_creg[lev][iface];
-	task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+	task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 	if (m_hg_terrain)
 	{
 	    tl.add_task(
@@ -435,11 +435,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = eres_sfbox[lev][iedge];
 		const Box& sigmacbox = eres_scbox[lev][iedge];
 		task_fab* sigmaf = new task_fill_patch(resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 1, iedge);
-		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = eres_creg[lev][iedge];
 		const IntVect t = lev_interface[mglev].box(1, iedge).type();
 		task_fab* fdst = new task_fill_patch(resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 1, iedge);
-		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 		// fill in the grids on the other sides, if any
 		list<int> tll;
@@ -487,10 +487,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
 		task_fab* sigmaf = new task_fill_patch(resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
-		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 		// fill in the grids on the other sides, if any
 		list<int> tll;
@@ -547,7 +547,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
 		task_fab* sigmaf = new task_fill_patch(sigmafbox, sigma[mglev],   lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(sigmacbox, sigmac[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(sigmacbox, sigmac[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);
@@ -577,9 +577,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
 		task_fab* sigmaf = new task_fill_patch(sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
-		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		const Box& fbox = dest[lev][igrid].box();
 		const int isRZ = IsRZ();
 		//FIXME!!! might be a broken calling sequence.
@@ -596,7 +596,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
 		task_fab* sigmaf = new task_fill_patch(sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);
@@ -626,7 +626,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
 		task_fab* sigmaf = new task_fill_patch(sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
+		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);

@@ -182,7 +182,7 @@ class amr_boundary_class;
 class task_fill_patch : public task_fab
 {
 public:
-    task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = -1, int index_ = -1);
+    task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ /* = -1*/, int index_ /*= -1*/);
     virtual ~task_fill_patch();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
