@@ -330,7 +330,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     const IntVect& rat = gen_ratio[lev-1];
     const int mglevc = ml_index[lev-1];
     
-    // PARALLEL
     task_list tl;
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
@@ -481,7 +480,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     else if (m_hg_full_stencil)
     {
 #if BL_SPACEDIM == 2
-	// PARALLEL
 	task_list tl;
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
 	{
