@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.7 1998-05-06 22:36:16 lijewski Exp $
+// $Id: Geometry.H,v 1.8 1998-05-07 18:28:59 car Exp $
 //
 
 #include <CoordSys.H>
@@ -187,7 +187,7 @@ public:
 	bool operator== (const PIRec& rhs) const { return true; }
 #endif
 	friend ostream& operator << (ostream&                os,
-                                     const Geometry::PIRec&  pir);
+                                     const PIRec&  pir);
     };
     //
     // Handy typedef and output function
@@ -195,7 +195,7 @@ public:
     typedef multimap<int,PIRec> PIRMMap;
 
     friend ostream& operator << (ostream&                 os,
-                                 const Geometry::PIRMMap& pirm);
+                                 const PIRMMap& pirm);
     //
     // Compute periodic intersection records for data into each fab on this proc
     //
