@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.13 1999-06-28 20:37:04 car Exp $
+// $Id: Box.H,v 1.14 1999-07-15 17:07:04 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -628,16 +628,10 @@ protected:
     //
     bool volumeOK (long& N) const;
 
-    IntVect   smallend;
-    IntVect   bigend;
-    IntVect   len;
-    IndexType btype;
-
-private:
-    //
-    // Sets the 'len' element of the Box.  Aborts on integer overflow.
-    //
-    void computeBoxLen ();
+    IntVect         smallend;
+    IntVect         bigend;
+    mutable IntVect len;
+    IndexType       btype;
 };
 
 //
@@ -652,13 +646,58 @@ typedef Box BOX;
 
 inline
 Box::Box (const Box& b)
-    : smallend(b.smallend),
-      bigend(b.bigend),
-      btype(b.btype)
+    :
+    smallend(b.smallend),
+    bigend(b.bigend),
+    btype(b.btype)
+{ }
+
+inline
+Box::Box ()
+    :
+    smallend(IntVect::TheUnitVector()),
+    bigend(IntVect::TheZeroVector()),
+    btype()
+{ }
+
+inline
+Box::Box (const IntVect& small,
+          const int*     vec_len)
+    :
+    smallend(small),
+    bigend(D_DECL(small[0]+vec_len[0]-1,
+                  small[1]+vec_len[1]-1,
+                  small[2]+vec_len[2]-1))
+{ }
+
+inline
+Box::Box (const IntVect&   small,
+          const IntVect&   big,
+          const IndexType& t)
+    :
+    smallend(small),
+    bigend(big),
+    btype(t)
+{ }
+
+inline
+Box::Box (const IntVect& small,
+          const IntVect& big)
+    :
+    smallend(small),
+    bigend(big)
+{ }
+
+inline
+Box::Box (const IntVect& small,
+          const IntVect& big,
+          const IntVect& typ)
+    :
+    smallend(small),
+    bigend(big),
+    btype(typ)
 {
-    D_EXPR(len[0] = b.len[0],
-           len[1] = b.len[1],
-           len[2] = b.len[2]);
+    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
 }
 
 inline
@@ -666,12 +705,16 @@ Box&
 Box::operator= (const Box& b)
 {
     smallend = b.smallend;
-    bigend = b.bigend;
-    btype = b.btype;
-    D_EXPR(len[0] = b.len[0],
-           len[1] = b.len[1],
-           len[2] = b.len[2]);
+    bigend   = b.bigend;
+    btype    = b.btype;
     return *this;
+}
+
+inline
+bool
+Box::ok () const
+{
+    return (bigend >= smallend) && btype.ok();
 }
 
 inline
@@ -724,17 +767,10 @@ Box::type (int dir) const
 }
 
 inline
-const IntVect&
-Box::length () const
-{
-    return len;
-}
-
-inline
 int
 Box::length (int dir) const
 {
-    return len[dir];
+    return bigend[dir] - smallend[dir] + 1;
 }
 
 inline
@@ -762,7 +798,7 @@ inline
 int
 Box::operator[] (const Orientation& face) const
 {
-    int dir = face.coordDir();
+    const int dir = face.coordDir();
     return face.isLow() ? smallend[dir] : bigend[dir];
 }
 
@@ -779,17 +815,6 @@ bool
 Box::isEmpty () const
 {
     return numPts() == 0;
-}
-
-inline
-bool
-Box::ok () const
-{
-    bool typ_ok = btype.ok();
-    bool len_ok = D_TERM((len[0] == (bigend[0]-smallend[0]+1)),
-                          && (len[1] == (bigend[1]-smallend[1]+1)),
-                          && (len[2] == (bigend[2]-smallend[2]+1)));
-    return (bigend >= smallend) && len_ok && typ_ok;
 }
 
 inline
@@ -819,9 +844,9 @@ bool
 Box::sameSize (const Box& b) const
 {
     BL_ASSERT(sameType(b));
-    return D_TERM(len[0] == b.len[0],
-                  && len[1]==b.len[1],
-                  && len[2]==b.len[2]);
+    return D_TERM(length(0) == b.length(0),
+                  && length(1)==b.length(1),
+                  && length(2)==b.length(2));
 }
 
 inline
@@ -859,21 +884,23 @@ Box::index (const IntVect& v) const
 {
     long result = v.vect[0]-smallend.vect[0];
 #if   BL_SPACEDIM==2
-    result += len[0]*(v.vect[1]-smallend.vect[1]);
+    result += length(0)*(v.vect[1]-smallend.vect[1]);
 #elif BL_SPACEDIM==3
-    result += len[0]*(v.vect[1]-smallend.vect[1]
-                      +(v.vect[2]-smallend.vect[2])*len[1]);
+    result += length(0)*(v.vect[1]-smallend.vect[1]
+                      +(v.vect[2]-smallend.vect[2])*length(1));
 #endif
     return result;
 }
 
 inline
-void
-Box::computeBoxLen ()
+const IntVect&
+Box::length () const
 {
     D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
            len[1] = bigend[1]-smallend[1] + 1,
            len[2] = bigend[2]-smallend[2] + 1);
+
+    return len;
 }
 
 inline
@@ -881,7 +908,6 @@ Box&
 Box::setSmall (const IntVect& sm)
 {
     smallend = sm;
-    computeBoxLen();
     return *this;
 }
 
@@ -891,7 +917,6 @@ Box::setSmall (int dir,
                int sm_index)
 {
     smallend.setVal(dir,sm_index);
-    computeBoxLen();
     return *this;
 }
 
@@ -900,7 +925,6 @@ Box&
 Box::setBig (const IntVect& bg)
 {
     bigend = bg;
-    computeBoxLen();
     return *this;
 }
 
@@ -910,7 +934,6 @@ Box::setBig (int dir,
              int bg_index)
 {
     bigend.setVal(dir,bg_index);
-    computeBoxLen();
     return *this;
 }
 
@@ -922,7 +945,6 @@ Box::setRange (int dir,
 {
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
-    computeBoxLen();
     return *this;
 }
 
@@ -953,7 +975,6 @@ Box::convert (const IntVect& typ)
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
-    computeBoxLen();
     return *this;
 }
 
@@ -968,7 +989,6 @@ Box::surroundingNodes (int dir)
         // Set dir'th bit to 1 = IndexType::NODE.
         //
         btype.set(dir);
-        computeBoxLen();
     }
     return *this;
 }
@@ -984,7 +1004,6 @@ Box::enclosedCells (int dir)
         // Set dir'th bit to 0 = IndexType::CELL.
         //
         btype.unset(dir);
-        computeBoxLen();
     }
     return *this;
 }
@@ -1028,7 +1047,7 @@ Box&
 Box::operator+= (const IntVect& v)
 {
     smallend += v;
-    bigend += v;
+    bigend   += v;
     return *this;
 }
 
@@ -1037,9 +1056,9 @@ Box
 Box::operator+  (const IntVect& v) const
 {
     IntVect small(smallend);
-    small += v;
     IntVect big(bigend);
-    big += v;
+    small += v;
+    big   += v;
     return Box(small,big,btype);
 }
 
@@ -1048,7 +1067,7 @@ Box&
 Box::operator-= (const IntVect& v)
 {
     smallend -= v;
-    bigend -= v;
+    bigend   -= v;
     return *this;
 }
 
@@ -1057,9 +1076,9 @@ Box
 Box::operator-  (const IntVect& v) const
 {
     IntVect small = smallend;
-    small -= v;
     IntVect big = bigend;
-    big -= v;
+    small -= v;
+    big   -= v;
     return Box(small,big,btype);
 }
 
@@ -1069,7 +1088,6 @@ Box::grow (int i)
 {
     smallend.diagShift(-i);
     bigend.diagShift(i);
-    computeBoxLen();
     return *this;
 }
 
@@ -1089,7 +1107,6 @@ Box::grow (const IntVect& v)
 {
     smallend -= v;
     bigend   += v;
-    computeBoxLen();
     return *this;
 }
 
@@ -1110,7 +1127,6 @@ Box::grow (int idir,
 {
     smallend.shift(idir, -n_cell);
     bigend.shift(idir, n_cell);
-    computeBoxLen();
     return *this;
 }
 
@@ -1120,7 +1136,6 @@ Box::growLo (int idir,
              int n_cell)
 {
     smallend.shift(idir, -n_cell);
-    computeBoxLen();
     return *this;
 }
 
@@ -1130,7 +1145,6 @@ Box::growHi (int idir,
              int n_cell)
 {
     bigend.shift(idir,n_cell);
-    computeBoxLen();
     return *this;
 }
 
@@ -1144,7 +1158,6 @@ Box::grow (const Orientation& face,
         smallend.shift(idir, -n_cell);
     else
         bigend.shift(idir,n_cell);
-    computeBoxLen();
     return *this;
 }
 
