@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.6 1999-01-06 00:31:43 marc Exp $
+// $Id: MCInterpBndryData.cpp,v 1.7 1999-02-24 01:56:04 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,6 +13,7 @@
 #include <LO_BCTYPES.H>
 #include <MCInterpBndryData.H>
 #include <MCINTERPBNDRYDATA_F.H>
+#include <MCLinOp.H>
 
 static BDInterpFunc* bdfunc[2*BL_SPACEDIM];
 static BDPhysDerivative* bdider[2*BL_SPACEDIM];
@@ -86,8 +87,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 
     assert(grids.ready());
     assert(grids == mf.boxArray());
-    float d = BL_SPACEDIM;
-    int nDer = pow(d,d-1) + d;
+    int nDer = MCLinOp::bcComponentsNeeded();
     assert(bc.length()==nDer);
 
     int ratio = 1;
@@ -172,8 +172,7 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
 
     assert(grids.ready());
     assert(grids == fine.boxArray());
-    float d = BL_SPACEDIM;
-    int nDer = pow(d,d-1) + d;
+    int nDer = MCLinOp::bcComponentsNeeded();
     assert(bc.length()==nDer);
 
     for (int n=bnd_start; n<bnd_start+nDer; ++n)
