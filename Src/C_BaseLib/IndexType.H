@@ -4,7 +4,7 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.5 1999-02-10 21:09:56 lijewski Exp $
+// $Id: IndexType.H,v 1.6 1999-04-26 20:09:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -223,7 +223,7 @@ inline
 void
 IndexType::setall ()
 {
-    itype = (1 << SpaceDim) - 1;
+    itype = (1 << BL_SPACEDIM) - 1;
 }
 
 inline
@@ -244,7 +244,7 @@ inline
 bool
 IndexType::ok () const
 {
-    return itype < (1 << SpaceDim);
+    return itype < (1 << BL_SPACEDIM);
 }
 
 inline
@@ -279,7 +279,7 @@ inline
 bool
 IndexType::nodeCentered () const
 {
-    return itype == (1<<SpaceDim)-1;
+    return itype == (1<<BL_SPACEDIM)-1;
 }
 
 inline
