@@ -57,11 +57,11 @@ extern "C"
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS, const int*);
     void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
     void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
-    void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
+    void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, const int*, const int*, const int*);
     void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
     void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, const int*);
     void FORT_HGAVG(Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
-    void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, int*, int*, const Real*, const int*, const int*);
+    void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real*, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
