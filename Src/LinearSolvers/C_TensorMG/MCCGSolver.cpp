@@ -127,7 +127,7 @@ MCCGSolver::solve (MultiFab&       sol,
     // Copy the initial guess into a temp multifab guaranteed to have
     // ghost cells.
     int srccomp=0;  int destcomp=0;  nghost=0;
-    s->copy(sol,srccomp,destcomp,ncomp,nghost);
+    s->copy(sol,srccomp,destcomp,ncomp);
 
     /* Note:
 	 This routine assumes the MCLinOp is linear, and that when bc_mode =
@@ -170,7 +170,7 @@ MCCGSolver::solve (MultiFab&       sol,
     
 
     Real beta, rho, rhoold=0.0;
-    int nghost_hack=0;
+
     /* WARNING:
 	 The MultiFab copies used below to update z and p require nghost=0
 	 to avoid the possibility of filling valid regions with uninitialized
@@ -190,7 +190,7 @@ MCCGSolver::solve (MultiFab&       sol,
 	} else {
 	    // no preconditioner, z_k-1 = r_k-1  and  rho_k-1 = r_k-1^T r_k-1
 	    srccomp=0;  destcomp=0;  
-	    z->copy((*r), srccomp, destcomp, ncomp, nghost_hack);
+	    z->copy(*r, srccomp, destcomp, ncomp);
 	}
 
 	rho = 0.0;
@@ -216,7 +216,7 @@ MCCGSolver::solve (MultiFab&       sol,
 	{
 	    // k=1, p_1 = z_0
 	    srccomp=0;  destcomp=0;  nghost=0;
-	    p->copy((*z), srccomp, destcomp, ncomp, nghost_hack);
+	    p->copy(*z, srccomp, destcomp, ncomp);
 	    
 	} else {
 	    

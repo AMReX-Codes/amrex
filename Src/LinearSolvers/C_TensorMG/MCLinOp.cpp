@@ -1,4 +1,4 @@
-// $Id: MCLinOp.cpp,v 1.4 1998-07-29 20:25:58 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.5 1998-11-17 19:11:10 lijewski Exp $
 
 // differences from LinOp: den has nc components, bct has nc components
 
@@ -24,13 +24,6 @@ int MCLinOp::def_maxorder = 2;
   //  therefore, the incoming MultiFab to MCLinOp::applyBC better have this many ghost
   //  allocated
 const int MCLinOp_grow = 1;
-
-  // MCLinOp::computePeriodicIntersections precomputes some intersection information
-  // assuming that Periodic_BC_grow cells are important enough to be included in
-  // the fix-up after the MultiFab::filBndry() call in MCLinOp::applyBC.  Since
-  // MCLinOp::applyBC is presently the only member requiring ghostcells, Periodic_BC_grow
-  // is set to its maximum requirement.
-const int Periodic_BC_grow = 1;
 
 void
 MCLinOp::initialize ()
@@ -88,8 +81,6 @@ MCLinOp::MCLinOp (const MCLinOp& _lp,
     gbox[0] = _lp.boxArray(level);
     geomarray.resize(1);
     geomarray[0] = bgb.getGeom();
-    pirmmapArray.resize(1);
-    pirmmapArray[0] = _lp.pirmmapArray[level];
     h.resize(1);
     h[0] = _lp.h[level];	// level should be prepared here.
     undrrelxr.resize(1);
@@ -110,7 +101,6 @@ MCLinOp::initConstruct (const Real* _h)
     gbox[level] = bgb.boxes();
     geomarray.resize(1);
     geomarray[level] = bgb.getGeom();
-    preComputePeriodicInfo(level);
     h.resize(1);
     maxorder = def_maxorder;
     int i;
@@ -177,9 +167,7 @@ MCLinOp::applyBC (MultiFab& inout,
     inout.FillBoundary();
     prepareForLevel(level);
 
-    
-    // do periodic fixup
-    geomarray[level].FillPeriodicFabArray(inout, pirmmapArray[level], 0, nc);
+    geomarray[level].FillPeriodicBoundary(inout, 0, nc, false, false);
 
     // Fill boundary cells
     OrientationIter oitr;
@@ -319,18 +307,6 @@ MCLinOp::norm (const MultiFab& in,
 }
 
 void
-MCLinOp::preComputePeriodicInfo (int level)
-{
-    assert(geomarray.length() > level);
-    assert(gbox.length() > level);
-    
-    pirmmapArray.resize(level+1);
-    pirmmapArray[level] =
-        geomarray[level].computePIRMMapForMultiFab(gbox[level],
-                                                   Periodic_BC_grow);
-}
-
-void
 MCLinOp::clearToLevel (int level)
 {
     int i;
@@ -368,11 +344,6 @@ MCLinOp::prepareForLevel (int level)
     // Add a box to the new coarser level (assign removes old BoxArray)
     gbox.resize(level+1);
     gbox[level] = BoxArray(gbox[level-1]).coarsen(2);
-
-    // Add a set of periodic intersections to the new coarser level
-    assert(pirmmapArray.length() == level);
-    pirmmapArray.resize(level+1);
-    preComputePeriodicInfo(level);
 
     // Add the BndryRegister of relax values to the new coarser level
     assert(undrrelxr.length() == level);
@@ -560,32 +531,6 @@ operator << (std::ostream&   os,
 	os << "Harmonic average? " << (lp.harmavg == 1 ? "yes" : "no") << endl;
 	os << "Verbosity: " << lp.verbose << endl;
 	os << "Max Order: " << lp.maxorder << endl;
-    }
-
-    bool PIRMs = lp.pirmmapArray[0].size() != 0;
-    if (ParallelDescriptor::IOProcessor())
-    {
-	os << "Periodic Intersection Boxes:";
-	if (! PIRMs)
-	    os << " (empty)";
-	os << endl;
-    }
-    if (PIRMs)
-    {
-	for (int level = 0; level < lp.h.length(); ++level)
-	{
-	    if (ParallelDescriptor::IOProcessor())
-		os << "level = " << level << endl;
-
-	    for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
-	    {
-		if (nproc == ParallelDescriptor::MyProc())
-		{
-		    os << "Processor " << nproc << endl;
-		    os << lp.pirmmapArray[level] << endl;
-		}
-	    }
-	}
     }
 
     if (ParallelDescriptor::IOProcessor())

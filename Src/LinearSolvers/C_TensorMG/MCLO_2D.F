@@ -1,9 +1,10 @@
-c     $Id: MCLO_2D.F,v 1.1 1998-03-26 19:15:35 marc Exp $
-
+c
+c     $Id: MCLO_2D.F,v 1.2 1998-11-17 19:11:09 lijewski Exp $
+c
 #include <REAL.H>
-#include "LO_BCTYPES.H"
-#include "MCLO_F.H"
-#include "ArrayLim.H"
+#include <LO_BCTYPES.H>
+#include <MCLO_F.H>
+#include <ArrayLim.H>
 
 c-----------------------------------------------------------------------
       subroutine FORT_RESIDL (

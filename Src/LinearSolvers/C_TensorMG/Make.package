@@ -1,0 +1,18 @@
+#
+# $Id: Make.package,v 1.1 1998-11-17 19:11:10 lijewski Exp $
+#
+CLIB_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H
+CLIB_headers += MCMultiGrid.H
+
+CLIB_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp
+CLIB_sources += MCMultiGrid.cpp
+
+FLIB_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H MCLO_F.H
+FLIB_sources += MCLO_$(DIM)D.F MCINTERPBNDRYDATA_$(DIM)D.F
+
+ifeq ($(DIM),2)
+FLIB_sources += DV_2D.F
+else
+FLIB_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
+endif
+
