@@ -75,6 +75,7 @@ public:
                   int               Lev_min = -1,
                   int               Lev_max = -1,
                   Real              scale = 0.0) ;
+
     void project (PArray<MultiFab>* u,
                   PArray<MultiFab>& p,
                   PArray<MultiFab>& Coarse_source,
@@ -87,6 +88,15 @@ public:
                   int               Lev_min = -1,
                   int               Lev_max = -1,
                   Real              scale = 0.0);
+
+    void pressure_project (PArray<MultiFab>& p,
+                           PArray<MultiFab>& Sigma,
+                           const Geometry&   crse_geom,
+                           Real              H[],
+                           Real              tol,
+                           int               Lev_min = -1,
+                           int               Lev_max = -1,
+                           Real              scale = 0.0);
 
 #ifdef HG_USE_SYNC_PROJECT
     void sync_project (PArray<MultiFab>* u,
