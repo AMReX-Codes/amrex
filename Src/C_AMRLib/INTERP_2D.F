@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.25 2003-09-16 18:39:45 almgren Exp $
+c $Id: INTERP_2D.F,v 1.26 2004-08-16 22:40:50 marc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -919,14 +919,21 @@ c :::
       REAL_T cvcx(cb_l1:cb_h1)
       REAL_T cvcy(cb_l2:cb_h2)
 
+      integer rMAX
+      parameter (rMAX = 32)
       REAL_T alpha, sumN, sumP, negVal, posVal
       REAL_T crseTot, crseTotnew
-      REAL_T orig_fine(0:15,0:15)
+      REAL_T orig_fine(0:rMAX-1,0:rMAX-1)
       REAL_T fvol,cvol
       integer redo_me
       integer ilo,ihi,jlo,jhi
       integer i,j,ic,jc,n,nn
       integer icase
+
+      if (MAX(lratiox,lratioy).gt.rMAX) then
+         print *,'rMAX in INTERP_2D::FORT_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
+         call bl_abort(" ")
+      endif
 
       do jc = cblo(2), cbhi(2)
       do ic = cblo(1), cbhi(1)
