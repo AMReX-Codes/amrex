@@ -103,6 +103,37 @@ private:
 };
 
 
+class task_linked_task : public task
+{
+public:
+    task_linked_task(task* t_) : lcpt(t_) {}
+    virtual bool ready() { return lcpt->ready(); }
+private:
+    LnClassPtr<task> lcpt;
+};
+
+class task_copy_link : public task
+{
+public:
+    task_copy_link(MultiFab& m_, int jgrid_, int igrid_, const Box& freg_, const task_linked_task& t_)
+	: m(m_), jgrid(jgrid_), igrid(igrid_), freg(freg_), t(t_) {}
+    virtual bool ready()
+    {
+	if ( t.ready() )
+	{
+	    m[jgrid].copy(m[igrid], freg);
+	    return true;
+	}
+	return false;
+    }
+
+private:
+    MultiFab& m;
+    const int igrid;
+    const int jgrid;
+    const Box freg;
+    task_linked_task t;
+};
 
 
 
