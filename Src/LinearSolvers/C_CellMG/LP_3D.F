@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.2 1998-12-14 20:23:47 lijewski Exp $
+c $Id: LP_3D.F,v 1.3 1999-01-04 18:11:46 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -201,3 +201,66 @@ c
       end do
 c     
       end
+
+c-----------------------------------------------------------------------
+c
+c     Fill in fluxes
+c
+      subroutine FORT_FLUX(
+     $     x,DIMS(x),
+     $     lo,hi,nc,
+     $     h,
+     $     xflux,DIMS(xflux),
+     $     yflux,DIMS(yflux),
+     $     zflux,DIMS(zflux)
+     $     )
+      implicit none
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer DIMDEC(x)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
+      integer DIMDEC(zflux)
+      REAL_T  x(DIMV(x),nc)
+      REAL_T xflux(DIMV(xflux),nc)
+      REAL_T yflux(DIMV(yflux),nc)
+      REAL_T zflux(DIMV(zflux),nc)
+      REAL_T h(BL_SPACEDIM)
+c
+      REAL_T dhx, dhy, dhz
+      integer i,j,k,n
+c
+      dhx = one/h(1)
+      dhy = one/h(2)
+      dhz = one/h(3)
+c
+      do n = 1, nc
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)+1
+                  xflux(i,j,k,n) = - dhx*( x(i,j,k,n) - x(i-1,j,k,n) )
+               end do
+            end do
+         end do
+      end do
+      do n = 1, nc
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)+1
+               do i = lo(1), hi(1)
+                  yflux(i,j,k,n) = - dhy*( x(i,j,k,n) - x(i,j-1,k,n) )
+               end do
+            end do
+         end do
+      end do
+      do n = 1, nc
+         do k = lo(3), hi(3)+1
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  zflux(i,j,k,n) = - dhz*( x(i,j,k,n) - x(i,j,k-1,n) )
+               end do
+            end do
+         end do
+      end do
+      end
+
+      
+      

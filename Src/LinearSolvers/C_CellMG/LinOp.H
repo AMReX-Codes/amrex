@@ -4,7 +4,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.6 1998-07-07 17:25:14 lijewski Exp $
+// $Id: LinOp.H,v 1.7 1999-01-04 18:11:46 marc Exp $
 //
 
 #include <Array.H>
@@ -143,6 +143,11 @@ public:
     Real norm (const MultiFab& in,
                int             level = 0) const;
     //
+    //@ManDoc: Compute flux associated with the op
+    //
+    virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC) = 0;
+    //
     //@ManDoc: return the boundary data object
     //
     const BndryData& bndryData () const;
@@ -179,7 +184,7 @@ public:
     //
     friend ostream& operator<< (ostream&     os,
                                 const LinOp& lp);
-
+    
 protected:
     //
     //@ManDoc: Remove internal data necessary for a level and all higher.

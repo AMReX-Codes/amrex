@@ -4,7 +4,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.3 1998-07-07 17:25:14 lijewski Exp $
+// $Id: Laplacian.H,v 1.4 1999-01-04 18:11:46 marc Exp $
 //
 
 #include <LinOp.H>
@@ -55,6 +55,12 @@ public:
     //@ManDoc: destructor
     //
     ~Laplacian() {}
+    //
+    //@ManDoc: Compute flux associated with the op
+    //
+    virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+			   MultiFab& in, const BC_Mode& bc_mode);
+    
     
 protected:
     //
