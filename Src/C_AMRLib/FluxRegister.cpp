@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.15 1998-04-15 18:04:11 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.16 1998-04-15 21:18:31 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -16,24 +16,20 @@
 //
 // Data structure used by CrseInit().
 //
-// CrseInit() needs to communicate four integers and a box.
+// CrseInit() needs to communicate two integers and a box.
 // We'll store all the info in a single array of integers.
 //
 struct CIData
 {
     //
-    // We encapsulate four `int's and a `Box' as an `int[3*BL_SPACEDIM+4]'.
+    // We encapsulate two `int's and a `Box' as an `int[3*BL_SPACEDIM+2]'.
     //
-    enum { DIM = 3*BL_SPACEDIM+4 };
+    enum { DIM = 3*BL_SPACEDIM+2 };
 
     int m_data[DIM];
 
     CIData ();
-    CIData (int        ncomp,
-            int        destcomp,
-            int        face,
-            int        fabindex,
-            const Box& box);
+    CIData (int face, int fabindex, const Box& box);
     //
     // The number of integers.
     //
@@ -43,29 +39,21 @@ struct CIData
     //
     int* dataPtr() { return &m_data[0]; }
     //
-    // The number of components
-    //
-    int ncomp () const { return m_data[0]; }
-    //
-    // The number of destination components.
-    //
-    int destcomp () const { return m_data[1]; }
-    //
     // The face.
     //
-    int face () const { return m_data[2]; }
+    int face () const { return m_data[0]; }
     //
     // The fabindex.
     //
-    int fabindex () const { return m_data[3]; }
+    int fabindex () const { return m_data[1]; }
     //
     // The contained box.
     //
     Box box () const
     {
-        return Box(IntVect(&m_data[4]),
-                   IntVect(&m_data[4+BL_SPACEDIM]),
-                   IntVect(&m_data[4+2*BL_SPACEDIM]));
+        return Box(IntVect(&m_data[2]),
+                   IntVect(&m_data[2+BL_SPACEDIM]),
+                   IntVect(&m_data[2+2*BL_SPACEDIM]));
     }
 };
 
@@ -75,31 +63,27 @@ CIData::CIData ()
         m_data[i] = 0;
 }
 
-CIData::CIData (int        ncomp,
-                int        destcomp,
-                int        face,
+CIData::CIData (int        face,
                 int        fabindex,
-                const Box& box);
+                const Box& box)
 {
-    m_data[0] = ncomp;
-    m_data[1] = destcomp;
-    m_data[2] = face;
-    m_data[3] = fabindex;
+    m_data[0] = face;
+    m_data[1] = fabindex;
 
     const IntVect& sm = box.smallEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+i] = sm[i];
+        m_data[2+i] = sm[i];
 
     const IntVect& bg = box.bigEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+BL_SPACEDIM+i] = bg[i];
+        m_data[2+BL_SPACEDIM+i] = bg[i];
 
     IntVect typ = box.type();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+2*BL_SPACEDIM+i] = typ[i];
+        m_data[2+2*BL_SPACEDIM+i] = typ[i];
 }
 #endif /*BL_USE_MPI*/
 
@@ -823,6 +807,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 //
 // Helper function for CrseInit().
 //
+
 static
 void
 DoIt (Orientation      face,
@@ -833,13 +818,9 @@ DoIt (Orientation      face,
       int              srccomp,
       int              destcomp,
       int              numcomp,
-      Real             mult
-#ifdef BL_USE_MPI
-      ,
-      List<FabComTag>& sendList,
-      Array<int>&      msgs
-#endif
-    )
+      Real             mult,
+      List<FabComTag>& sTags,
+      Array<int>&      msgs)
 {
     FabComTag fabComTag;
 
@@ -848,30 +829,30 @@ DoIt (Orientation      face,
 
     if (MyProc == dMap[k])
     {
-        FArrayBox& loreg = bndry[face][k];
-
-        loreg.copy(flux, bx, srccomp, bx, destcomp, numcomp);
-        loreg.mult(mult, bx, destcomp, numcomp);
+        //
+        // Local data.
+        //
+        bndry[face][k].copy(flux, bx, srccomp, bx, destcomp, numcomp);
+        bndry[face][k].mult(mult, bx, destcomp, numcomp);
     }
     else
     {
-#ifndef BL_USE_MPI
+        fabComTag.toProc   = dMap[k];
+        fabComTag.fabIndex = k;
+        fabComTag.box      = bx;
+        fabComTag.face     = face;
+#ifdef BL_USE_MPI
+        sTags.append(fabComTag);
+        msgs[dMap[k]]++;
+#else
+        fabComTag.destComp = destcomp;
+        fabComTag.nComp    = numcomp;
+
         FArrayBox fabCom(bx, numcomp);
 
         fabCom.copy(flux, bx, srccomp, bx, 0, numcomp);
         fabCom.mult(mult, bx, 0, numcomp);
-#endif /*BL_USE_MPI*/
-        fabComTag.fromProc = MyProc;
-        fabComTag.toProc   = dMap[k];
-        fabComTag.fabIndex = k;
-        fabComTag.destComp = destcomp;
-        fabComTag.nComp    = numcomp;
-        fabComTag.box      = bx;
-        fabComTag.face     = face;
-#ifdef BL_USE_MPI
-        sendList.append(fabComTag);
-        msgs[dMap[k]]++;
-#else
+
         ParallelDescriptor::SendData(dMap[k],
                                      &fabComTag,
                                      fabCom.dataPtr(),
@@ -893,11 +874,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-#ifdef BL_USE_MPI
-    List<FabComTag> sendList;
+    List<FabComTag> sTags;
     Array<int>      msgs(ParallelDescriptor::NProcs(), 0);
     Array<int>      nrcv(ParallelDescriptor::NProcs(), 0);
-#endif
 
     for (int k = 0; k < grids.length(); k++)
     {
@@ -907,11 +886,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
         if (lobox.ok())
         {
-            DoIt(lo, k, bndry, lobox, flux, srccomp, destcomp, numcomp, mult
-#ifdef BL_USE_MPI
-                 , sendList, msgs
-#endif
-                );
+            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,sTags,msgs);
         }
         Orientation hi(dir,Orientation::high);
 
@@ -919,14 +894,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
         if (hibox.ok())
         {
-            DoIt(hi, k, bndry, hibox, flux, srccomp, destcomp, numcomp, mult
-#ifdef BL_USE_MPI
-                 , sendList, msgs
-#endif
-                );
+            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult,sTags,msgs);
         }
     }
-
 #ifdef BL_USE_MPI
     //
     // Pass each processor # of IRecv()s it'll need to post.
@@ -965,13 +935,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (ListIterator<FabComTag> it(sendList); it; ++it)
+    for (ListIterator<FabComTag> it(sTags); it; ++it)
     {
-        CIData senddata(it().nComp,
-                        it().destComp,
-                        it().face,
-                        it().fabIndex,
-                        it().box);
+        CIData senddata(it().face, it().fabIndex, it().box);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
@@ -991,7 +957,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     //
     for (int i = 0; i < NumRecv; i++)
     {
-        fabs.set(i, new FArrayBox(CIData[i].box(), numcomp));
+        fabs.set(i, new FArrayBox(recv[i].box(), numcomp));
     }
 
     for (int i = 0; i < NumRecv; i++)
@@ -1006,15 +972,19 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (ListIterator<FabComTag> it(sendList); it; ++it)
+    for (ListIterator<FabComTag> it(sTags); it; ++it)
     {
         FArrayBox fab(it().box, numcomp);
 
         fab.copy(flux, it().box, srccomp, it().box, 0, numcomp);
         fab.mult(mult, it().box, 0, numcomp);
 
+        long count = it().box.numPts() * numcomp;
+
+        assert(count < INT_MAX);
+
         if ((rc = MPI_Send(fab.dataPtr(),
-                           it().box.numPts() * numcomp,
+                           int(count),
                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
                            it().toProc,
                            803,
@@ -1026,14 +996,26 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
-    
 
+    for (int i = 0; i < NumRecv; i++)
+    {
+        bndry[recv[i].face()][recv[i].fabindex()].copy(fabs[i],
+                                                       fabs[i].box(),
+                                                       0,
+                                                       fabs[i].box(),
+                                                       destcomp,
+                                                       numcomp);
+    }
 #endif /*BL_USE_MPI*/
 }
 
+//
+// TODO -- remove this if/when BSP goes away.
+//
 void
 FluxRegister::CrseInitFinish ()
 {
+#ifndef BL_USE_MPI
     FabComTag fabComTag;
 
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
@@ -1058,6 +1040,7 @@ FluxRegister::CrseInitFinish ()
                                                        fabComTag.destComp,
                                                        fabComTag.nComp);
     }
+#endif /*!BL_USE_MPI*/
 }
 
 void
