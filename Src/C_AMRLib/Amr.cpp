@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.27 1998-01-28 04:55:10 lijewski Exp $
+// $Id: Amr.cpp,v 1.28 1998-02-03 19:33:12 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1171,10 +1171,12 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-    //
-    // Flush the grid -> processor map cache. 
-    //
-    DistributionMapping::FlushCache();
+
+    if (lbase)
+        //
+        // Flush grid -> processor map cache, but only when at coarsest level.
+        //
+        DistributionMapping::FlushCache();
     //
     // Define the new grids from level lbase+1 up to new_finest.
     //
