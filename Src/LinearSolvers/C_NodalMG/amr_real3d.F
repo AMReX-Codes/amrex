@@ -465,54 +465,78 @@ c Works for CELL- or NODE-based data.
                end do
             end do
          else
-            do 14 k = regl2, regh2
-               do 14 j = regl1, regh1
-                  do 14 i = regl0, regh0
- 14                  dest(i,j,k) = src(bbl0+(i-regl0),
+            do k = regl2, regh2
+               do j = regl1, regh1
+                  do i = regl0, regh0
+                     dest(i,j,k) = src(bbl0+(i-regl0),
      &                                 bbl1+(j-regl1), bbl2+(k-regl2))
+                  end do
+               end do
+            end do
          end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 1) then
-         do 20 k = regl2, regh2
-            do 20 j = regl1, regh1
-               do 20 i = regl0, regh0
- 20               dest(i,j,k) = src(bbl0+(i-regl0),
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k) = src(bbl0+(i-regl0),
      &                              bbl1+(j-regl1), bbh2-(k-regl2))
+               end do
+            end do
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1 .and. ra(2) .eq. 0) then
-         do 30 j = regl1, regh1
-            do 30 k = regl2, regh2
-               do 30 i = regl0, regh0
- 30               dest(i,j,k) = src(bbl0+(i-regl0),
+         do j = regl1, regh1
+            do k = regl2, regh2
+               do i = regl0, regh0
+                  dest(i,j,k) = src(bbl0+(i-regl0),
      &                              bbh1-(j-regl1), bbl2+(k-regl2))
+               end do
+            end do
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1 .and. ra(2) .eq. 1) then
-         do 40 k = regl2, regh2
-            do 40 j = regl1, regh1
-               do 40 i = regl0, regh0
- 40               dest(i,j,k) = src(bbl0+(i-regl0),
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k) = src(bbl0+(i-regl0),
      &                              bbh1-(j-regl1), bbh2-(k-regl2))
+               end do
+            end do
+         end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
-         do 50 i = regl0, regh0
-            do 50 k = regl2, regh2
-               do 50 j = regl1, regh1
- 50               dest(i,j,k) = src(bbh0-(i-regl0),
+         do i = regl0, regh0
+            do k = regl2, regh2
+               do j = regl1, regh1
+                  dest(i,j,k) = src(bbh0-(i-regl0),
      &                              bbl1+(j-regl1), bbl2+(k-regl2))
+               end do
+            end do
+         end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0 .and. ra(2) .eq. 1) then
-         do 60 k = regl2, regh2
-            do 60 i = regl0, regh0
-               do 60 j = regl1, regh1
- 60               dest(i,j,k) = src(bbh0-(i-regl0),
+         do k = regl2, regh2
+            do i = regl0, regh0
+               do j = regl1, regh1
+                  dest(i,j,k) = src(bbh0-(i-regl0),
      &                              bbl1+(j-regl1), bbh2-(k-regl2))
+               end do
+            end do
+         end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 1 .and. ra(2) .eq. 0) then
-         do 70 j = regl1, regh1
-            do 70 i = regl0, regh0
-               do 70 k = regl2, regh2
- 70               dest(i,j,k) = src(bbh0-(i-regl0),
+         do j = regl1, regh1
+            do i = regl0, regh0
+               do k = regl2, regh2
+                  dest(i,j,k) = src(bbh0-(i-regl0),
      &                              bbh1-(j-regl1), bbl2+(k-regl2))
+               end do
+            end do
+         end do
       else
-         do 80 k = regl2, regh2
-            do 80 j = regl1, regh1
-               do 80 i = regl0, regh0
- 80               dest(i,j,k) = src(bbh0-(i-regl0),
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k) = src(bbh0-(i-regl0),
      &                              bbh1-(j-regl1), bbh2-(k-regl2))
+               end do
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -531,20 +555,29 @@ c Works for CELL- or NODE-based data.
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k
       if (idir .eq. 0) then
-         do 10 i = regl0, regh0
-            do 10 k = regl2, regh2
-               do 10 j = regl1, regh1
- 10               dest(i,j,k) = -src(bbh0-(i-regl0),j,k)
+         do i = regl0, regh0
+            do k = regl2, regh2
+               do j = regl1, regh1
+                  dest(i,j,k) = -src(bbh0-(i-regl0),j,k)
+               end do
+            end do
+         end do
       else if (idir .eq. 1) then
-         do 20 j = regl1, regh1
-            do 20 k = regl2, regh2
-               do 20 i = regl0, regh0
- 20               dest(i,j,k) = -src(i,bbh1-(j-regl1),k)
+         do j = regl1, regh1
+            do k = regl2, regh2
+               do i = regl0, regh0
+                  dest(i,j,k) = -src(i,bbh1-(j-regl1),k)
+               end do
+            end do
+         end do
       else
-         do 30 k = regl2, regh2
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
- 30               dest(i,j,k) = -src(i,j,bbh2-(k-regl2))
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k) = -src(i,j,bbh2-(k-regl2))
+               end do
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
