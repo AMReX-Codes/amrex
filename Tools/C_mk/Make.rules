@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.16 2000-06-20 23:29:00 marc Exp $
+# $Id: Make.rules,v 1.17 2001-03-21 14:59:00 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -103,14 +103,14 @@ $(optionsLib)(%.o): %.c
 $(optionsLib)(%.o): %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
@@ -132,13 +132,13 @@ $(objEXETempDir)/%.o: %.c
 $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f

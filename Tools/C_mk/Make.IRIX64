@@ -1,4 +1,4 @@
-CPP = /usr/lib/acpp
+FORT_CPP = /usr/lib/acpp
 
 ifeq ($(WHICHIRIX64), ESCHER)
   XTRALIBS +=  /usr/lib64/libfortran.so
@@ -29,7 +29,7 @@ ifeq ($(COMP),KCC)
 CXX     := KCC
 CXXOPTF += +K2
 CXXDEBF += +K0
-CPP = KCC -E
+FORT_CPP = KCC -E
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #

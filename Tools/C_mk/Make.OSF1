@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.18 2000-06-20 23:29:00 marc Exp $
+# $Id: Make.OSF1,v 1.19 2001-03-21 14:59:00 car Exp $
 #
 
 #
@@ -77,5 +77,5 @@ endif
 
 FPRFF +=
 
-CPP    = /usr/bin/cpp
+FORT_CPP    = /usr/bin/cpp
 PURIFY =

@@ -1,5 +1,5 @@
 
-CPP = cpp
+FORT_CPP = cpp
 
 ifeq ($(COMP),CC)
 CXX     := CC -h instantiate=local -h new_for_init
