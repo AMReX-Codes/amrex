@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.63 1999-05-10 18:54:23 car Exp $
+// $Id: VisMF.cpp,v 1.64 1999-07-01 19:44:04 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -330,8 +330,6 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
-    static RunStats mpi_recv("mpi_recv");
-    static RunStats mpi_send("mpi_send");
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
@@ -363,7 +361,6 @@ VisMF::Header::Header (const MultiFab& mf,
                 min_n_max[m_ncomp+i] = m_max[idx][i];
             }
 #ifdef BL_USE_MPI
-            mpi_send.start();
             int rc = MPI_Ssend(min_n_max.dataPtr(),
                                2 * m_ncomp,
                                mpi_data_type(min_n_max.dataPtr()),
@@ -373,7 +370,6 @@ VisMF::Header::Header (const MultiFab& mf,
                                //
                                idx,
                                MPI_COMM_WORLD);
-            mpi_send.end();
 
             if (!(rc == MPI_SUCCESS))
                 ParallelDescriptor::Abort(rc);
@@ -391,7 +387,6 @@ VisMF::Header::Header (const MultiFab& mf,
         {
             if (!(procmap[idx] == IoProc))
             {
-                mpi_recv.start();
                 if ((rc = MPI_Recv(min_n_max.dataPtr(),
                                    2 * m_ncomp,
                                    mpi_data_type(min_n_max.dataPtr()),
@@ -404,7 +399,6 @@ VisMF::Header::Header (const MultiFab& mf,
                                    MPI_COMM_WORLD,
                                    &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-                mpi_recv.end();
 
                 m_min[idx].resize(m_ncomp);
                 m_max[idx].resize(m_ncomp);
@@ -506,9 +500,6 @@ VisMF::Write (const MultiFab& mf,
     const int   NPBUF = 512;
     Array<char> packedbuffer(NPBUF);
     char*       pbuf = packedbuffer.dataPtr();
-
-    static RunStats mpi_recv("mpi_recv");
-    static RunStats mpi_send("mpi_send");
 #endif
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -551,7 +542,6 @@ VisMF::Write (const MultiFab& mf,
                 //
                 int rc = 0, pos = 0;
 
-                mpi_send.start();
                 if ((rc = MPI_Pack(&msg_hdr.m_head,
                                    1,
                                    MPI_LONG,
@@ -572,7 +562,7 @@ VisMF::Write (const MultiFab& mf,
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                if ((rc = MPI_Pack((void*)TheBaseName.c_str(),
+                if ((rc = MPI_Pack(const_cast<char*>(TheBaseName.c_str()),
                                    len,
                                    MPI_CHAR,
                                    pbuf,
@@ -591,7 +581,6 @@ VisMF::Write (const MultiFab& mf,
                                     mfi.index(),
                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-                mpi_send.end();
 #endif /*BL_USE_MPI*/
             }
         }
@@ -615,7 +604,6 @@ VisMF::Write (const MultiFab& mf,
             {
                 int rc, len, pos = 0;
 
-                mpi_recv.start();
                 if ((rc = MPI_Recv(pbuf,
                                    NPBUF,
                                    MPI_PACKED,
@@ -659,7 +647,6 @@ VisMF::Write (const MultiFab& mf,
                                      MPI_CHAR,
                                      MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-                mpi_recv.end();
                 
                 hdr.m_fod[idx].m_head = msg_hdr.m_head;
                 hdr.m_fod[idx].m_name = fab_name;
