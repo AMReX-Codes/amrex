@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.60 2001-07-20 19:31:06 car Exp $
+// $Id: ParallelDescriptor.H,v 1.61 2001-07-21 17:37:10 car Exp $
 //
 
 #include <BLassert.H>
@@ -356,11 +356,11 @@ namespace ParallelDescriptor
     template <class Op, class T> T Reduce(const T& t);
     template <class Op, class T> std::vector<T> Reduce(const std::vector<T>& t);
 
-    template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root = 0);
-    template <class T> T Scatter(const std::vector<T>& t, int root = 0);
+    template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root);
+    template <class T> T Scatter(const std::vector<T>& t, int root);
 
-    template <class T, class T1> void Gather(T*, size_t n, const T1*, size_t n1, int root = 0);
-    template <class T> std::vector<T> Gather(const T&, int root = 0);
+    template <class T, class T1> void Gather(T*, size_t n, const T1*, size_t n1, int root);
+    template <class T> std::vector<T> Gather(const T&, int root);
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 }
