@@ -4,7 +4,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.6 2000-04-24 17:52:33 car Exp $
+// $Id: BoxLib.H,v 1.7 2000-05-02 17:17:41 car Exp $
 //
 
 //
@@ -69,6 +69,8 @@ public:
          boxlib version 2.0 built Jun 25 1996 at 14:52:36
    */
     static const char * const version;
+
+    static void initialize_floating_point_hardware();
 };
 
 #ifdef BL_NAMESPACE
