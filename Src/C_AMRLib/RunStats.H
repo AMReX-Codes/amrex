@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.2 1997-11-19 16:25:55 lijewski Exp $
+// $Id: RunStats.H,v 1.3 1997-11-21 03:50:11 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,34 +23,44 @@ using std::ofstream;
 #include <List.H>
 #include <Array.H>
 
+//
+// Forward declaration.
+//
+
 class RunStatsData
 {
     friend class RunStats;
-    friend ostream & operator << (ostream &, const RunStatsData&);
-    friend istream & operator >> (istream &, RunStatsData&);
+    friend ostream& operator<< (ostream &, const RunStatsData&);
+    friend istream& operator>> (istream &, RunStatsData&);
 private:
     aString name;
-    int level;
-    int is_on;
-    double run_time;
-    double run_wtime;
-    double max_time;
-    double max_wtime;
-public:
-    RunStatsData()
-	: run_time(0.0), run_wtime(0.0),
-	  max_time(0.0), max_wtime(0.0)
+    double  run_time;
+    double  run_wtime;
+    int     level;
+    int     is_on;
+
+    RunStatsData ()
+	:
+        run_time(0.0),
+        run_wtime(0.0),
+        level(0),
+        is_on(0)
     {}
-    int operator == (const RunStatsData &s1) const {
+    int operator== (const RunStatsData &s1) const
+    {
 	return (name == s1.name) && (level == s1.level);
     }
-    int operator != (const RunStatsData &s1) const {
+    int operator!= (const RunStatsData &s1) const
+    {
 	return (name != s1.name) || (level != s1.level);
     }
-    RunStatsData(aString _name, int _level) 
-	: run_time(0.0), run_wtime(0.0),
-	  max_time(0.0), max_wtime(0.0),
-	  name(_name), level(_level)
+    RunStatsData (const char* _name, int _level) 
+	:
+        name(_name),
+        run_time(0.0),
+        run_wtime(0.0),
+        level(_level),
+        is_on(0)
     {}
 };
 
@@ -58,50 +68,72 @@ class RunStats
 {
 public:
     RunStats (const char *name, int level = 0);
-    ~RunStats () {}
+
+    ~RunStats ();
     
-    friend ostream& operator << (ostream &os, const RunStats &r);
-
-    void start ();		// start timeing given variable
-    void pause ();		// pause timing
-    void resume ();		// resume after a pause
-    void end ();		// stop timeing given variable and record
-
+    friend ostream& operator<< (ostream &os, const RunStats &r);
+    //
+    // Start timeing given variable.
+    //
+    void start ();
+    //
+    // Stop timing given variable and record.
+    //
+    void end ();
+    //
+    // Is the variable active?
+    //
     int isOn () const;
-
-      // record cells advanced
+    //
+    // Record cells advanced.
+    //
     static void addCells (int level, long count);
-
-      // return number of cells advanced at given level 
+    //
+    // Return number of cells advanced at given level.
+    //
     static long getCells (int level);
-
-      // turn on recording of this stat
+    //
+    // Turn on/off recording of this stat.
+    //
     static void turnOn (const char * s, int level = -1);
     static void turnOff (const char * s, int level = -1);
-
+    //
+    // Init from ParmParse with "RunStats" prefix.
+    //
     static void init ();
-      // report stats in formatted form to output stream
+    //
+    // Report stats in formatted form to output stream.
+    //
     static void report (ostream &os);
-      // unformatted write to output stream
+    //
+    // Unformatted write to output stream.
+    //
     static void dumpStats (ofstream &os);
-      // unformatted read from input stream
+    //
+    // Unformatted read from input stream.
+    //
     static void readStats (ifstream &is);
 
 private:
     static RunStatsData* find (const char* _name, int _level);
+
     void resize (int level);
-
-    RunStatsData *entry;
-    RunStatsData *gentry;
-    aString name;
-    int level;
-    double time;
-    double wtime;
-
-    static double total_run_time;
-    static double total_run_wtime;
-    static Array<long> cells;
-    static List<RunStatsData> ld;
+    //
+    // Local data.
+    //
+    RunStatsData* entry;
+    RunStatsData* gentry;
+    aString       name;
+    int           level;
+    double        time;
+    double        wtime;
+    //
+    // Static data.
+    //
+    static double             TotalCPU; // Total CPU time
+    static double             TotalWCT; // Total Wall Clock time
+    static Array<long>        TheCells; // Cells advanced per level
+    static List<RunStatsData> TheStats; // List of RunStatsData
 };
 
 //
@@ -119,7 +151,7 @@ inline
 long
 RunStats::getCells (int lev)
 {
-    return cells[lev];
+    return TheCells[lev];
 }
 
 inline

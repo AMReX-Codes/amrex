@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.3 1997-11-20 17:04:57 lijewski Exp $
+// $Id: Amr.cpp,v 1.4 1997-11-21 03:50:10 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -501,7 +501,7 @@ Amr::writePlotFile (const aString& root,
 
     for (int k = 0; k <= finest_level; k++)
     {
-        RunStats write_pltfile_stats("plot_file", k);
+        RunStats write_pltfile_stats("write_pltfile", k);
         write_pltfile_stats.start();
         amr_level[k].writePlotFile(os);
         write_pltfile_stats.end();
