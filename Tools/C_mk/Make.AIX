@@ -60,7 +60,8 @@ COPTF += -O2
 CDEBF += -g
 CPRFF +=
 
-XTRALIBS += libmiranda.a -lm -lxlf90
+#XTRALIBS += libmiranda.a -lm -lxlf90
+XTRALIBS += -lm -lxlf90
 
 DEFINES += -D_POSIX_SOURCE
 
