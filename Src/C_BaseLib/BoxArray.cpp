@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.29 2001-08-01 20:24:21 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.30 2001-08-02 16:01:43 car Exp $
 //
 #include <iostream>
 
@@ -473,7 +473,7 @@ BoxArray::boxList () const
     BL_ASSERT(size() > 0);
     BoxList newb(get(0).ixType());
     for (int i = 0; i < size(); ++i)
-        newb.append(get(i));
+        newb.push_back(get(i));
     return newb;
 }
 

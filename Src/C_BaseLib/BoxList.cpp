@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.24 2001-08-01 18:14:13 lijewski Exp $
+// $Id: BoxList.cpp,v 1.25 2001-08-02 16:01:43 car Exp $
 //
 #include <winstd.H>
 
@@ -115,7 +115,7 @@ BoxList::BoxList (const BoxArray &ba)
     if (ba.size() > 0)
         btype = ba[0].ixType();
     for (int i = 0; i < ba.size(); ++i)
-        append(ba[i]);
+        push_back(ba[i]);
 }
 
 bool
@@ -220,7 +220,7 @@ BoxList::intersect (const BoxList& b)
         {
             if ( lhs->intersects(*rhs) )
             {
-                bl.append(*lhs & *rhs);
+                bl.push_back(*lhs & *rhs);
             }
         }
     }
@@ -235,7 +235,7 @@ BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
     BoxList newb(b.ixType());
-    newb.append(b);
+    newb.push_back(b);
     for (BoxList::const_iterator bli = bl.begin(); bli != bl.end() && newb.isNotEmpty(); ++bli)
     {
         for (BoxList::iterator newbli = newb.begin(); newbli != newb.end(); )
@@ -260,7 +260,7 @@ BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
     clear();
-    append(b);
+    push_back(b);
     for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
@@ -377,7 +377,7 @@ BoxLib::boxDiff (const Box& b1in,
    {
        if ( !b1.intersects(b2) )
        {
-           b_list.append(b1);
+           b_list.push_back(b1);
        }
        else
        {
@@ -394,7 +394,7 @@ BoxLib::boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b1lo[i]);
                    bn.setBig(i,b2lo[i]-1);
-                   b_list.append(bn);
+                   b_list.push_back(bn);
                    b1.setSmall(i,b2lo[i]);
                }
                if ((b1lo[i] <= b2hi[i]) && (b2hi[i] < b1hi[i]))
@@ -402,7 +402,7 @@ BoxLib::boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b2hi[i]+1);
                    bn.setBig(i,b1hi[i]);
-                   b_list.append(bn);
+                   b_list.push_back(bn);
                    b1.setBig(i,b2hi[i]);
                }
            }
@@ -561,7 +561,7 @@ BoxList::maxSize (const IntVect& chunk)
                     //
                     const int pos = bli->bigEnd(i) - ksize + 1;
 
-                    append(bli->chop(i,pos));
+                    push_back(bli->chop(i,pos));
                 }
             }
         }

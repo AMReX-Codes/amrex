@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.28 2001-08-01 20:24:22 lijewski Exp $
+// $Id: FArrayBox.H,v 1.29 2001-08-02 16:01:43 car Exp $
 //
 
 #include <Pointers.H>
@@ -224,6 +224,7 @@ public:
     FArrayBox (const FArrayBox&);
     //
     FArrayBox& operator= (const FArrayBox&);
+    FArrayBox& operator= (const Real& r);
     //
     //@ManDoc:  The destructor.
     //

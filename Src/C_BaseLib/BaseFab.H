@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.42 2001-08-01 18:14:13 lijewski Exp $
+// $Id: BaseFab.H,v 1.43 2001-08-02 16:01:43 car Exp $
 //
 #include <winstd.H>
 
@@ -68,9 +68,34 @@ template <class T>
 class BaseFab
 {
 public:
-    
     typedef T value_type;
-    
+    class BFProxy
+    {
+	friend class BaseFab;
+    public:
+	BFProxy operator[] (const Box& bx) const;
+	BFProxy operator[] (int n) const;
+	BFProxy& operator= (const T& t);
+    private:
+	enum {ALL = -1};
+	BFProxy (BaseFab& bf, const Box& bx, int n);
+	BaseFab& m_fab;
+	const Box m_bx;
+	int slice;
+    };
+    class CBFProxy
+    {
+	friend class BaseFab;
+    public:
+	CBFProxy operator[] (const Box& bx) const;
+	CBFProxy operator[] (int n) const;
+    private:
+	enum {ALL = -1};
+	CBFProxy (BaseFab& bf, const Box& bx, int n);
+	const BaseFab& m_fab;
+	const Box m_bx;
+	int slice;
+    };
     /*@ManDoc: Construct an invalid `BaseFab'.  The domain is invalid, the
                number of components is zero, and no actually array memory is
                allocated. An invalid `BaseFab' must be resized
@@ -78,8 +103,16 @@ public:
     */
     BaseFab ();
 
-    BaseFab(const BaseFab&);
-    BaseFab& operator=(const BaseFab&);
+    BaseFab (const BaseFab&);
+    BaseFab& operator= (const BaseFab&);
+    BaseFab& operator= (const T&);
+    //
+    // Proxy Interface
+    //
+    BFProxy operator[] (const Box& bx);
+    BFProxy operator[] (int n);
+    CBFProxy operator[] (const Box& bx) const;
+    CBFProxy operator[] (int n) const;
     //
     //@ManDoc: Make BaseFab with desired domain and number of components.
     //
@@ -1158,6 +1191,14 @@ BaseFab<T>::operator= (const BaseFab& fab)
     {
 	dptr[i] = fab.dptr[i];
     }
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator= (const T& t)
+{
+    setVal(t);
     return *this;
 }
 
@@ -2565,6 +2606,20 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
     return *this;
+}
+
+template <class T>
+BaseFab<T>::BFProxy
+BaseFab<T>::operator[] (const Box& bx)
+{
+    return BFProxy(*this, bx&box(), BFProxy::All);
+}
+
+template <class T>
+BaseFab<T>::CBFProxy
+BaseFab<T>::operator[] (const Box& bx) const
+{
+    return CBFProxy(*this, bx&box(), CBFProxy::All);
 }
 
 #endif /*BL_BASEFAB_H*/
