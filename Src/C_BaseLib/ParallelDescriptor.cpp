@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.14 1998-03-25 19:17:47 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.15 1998-03-25 19:20:50 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -300,10 +300,31 @@ double ParallelDescriptor::second()
     return MPI_Wtime();
 }
 
+void ParallelDescriptor::ReduceRealMax(Real& r)
+{
+    Real recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    r = recv;
+}
+
 void ParallelDescriptor::ReduceRealMin(Real& r)
 {
     Real recv;
     MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    r = recv;
+}
+
+void ParallelDescriptor::ReduceRealSum(Real& r)
+{
+    Real recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    r = recv;
+}
+
+void ParallelDescriptor::ReduceLongSum(long& r)
+{
+    long recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     r = recv;
 }
 
