@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.27 2000-02-28 23:26:37 lijewski Exp $
+// $Id: StateData.cpp,v 1.28 2000-05-30 21:10:47 almgren Exp $
 //
 
 #include <RunStats.H>
@@ -155,6 +155,32 @@ StateData::~StateData()
    desc = 0;
    delete new_data;
    delete old_data;
+}
+
+void
+StateData::setOldTimeLevel (Real time)
+{
+    if (desc->timeType() == StateDescriptor::Point)
+    {
+        old_time.start = old_time.stop = time;
+    }
+    else
+    {
+        BoxLib::Error("StateData::setOldTimeLevel called with Interval");
+    }
+}
+
+void
+StateData::setNewTimeLevel (Real time)
+{
+    if (desc->timeType() == StateDescriptor::Point)
+    {
+        new_time.start = new_time.stop = time;
+    }
+    else
+    {
+        BoxLib::Error("StateData::setNewTimeLevel called with Interval");
+    }
 }
 
 void
