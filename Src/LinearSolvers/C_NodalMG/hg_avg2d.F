@@ -1,0 +1,282 @@
+
+#include "hg_version.H"
+
+#define dims(a) a l0,a h0,a l1,a h1
+#define dimdec(a) a l0:a h0,a l1:a h1
+c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
+#define dimdecu(a) *
+
+      subroutine hgavg(src,
+     @ dims(src),
+     @ rf,
+     @ dims(f),
+     @ dims(freg), hx,irz, imax)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(f)
+      integer dims(freg)
+      real*8 src(dimdec(src))
+      real*8 rf(dimdec(f))
+      real*8 hx
+      integer irz, imax
+      fac = 0.25d0
+      do 10 j = fregl1, fregh1
+         do 10 i = fregl0, fregh0
+ 10         src(i,j) = src(i,j) + fac * (rf(i-1,j-1) + rf(i-1,j) +
+     @                                   rf(i,j-1)   + rf(i,j))
+      if (irz .eq. 1) then
+         fac = hx / 24.d0
+         r1  = (fregl0 - 0.5d0) * hx
+         r1m = 1.d0 / r1
+         do 20 i = fregl0, fregh0
+            r0m = r1m
+            r1  = r1 + hx
+            if (i .lt. imax) then
+               r1m = 1.d0 / r1
+            else
+               r1m = -r0m
+            endif
+            do 20 j = fregl1, fregh1
+ 20            src(i,j) = src(i,j) + fac *
+     @            (r0m * (rf(i-1,j) + rf(i-1,j-1)) -
+     @             r1m * (rf(i,j-1) + rf(i,j)))
+      endif
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgfavg(src,
+     @ dims(src),
+     @ rc,
+     @ dims(c),
+     @ rf,
+     @ dims(f),
+     @ dims(creg),
+     @ irat, idim, idir, hx, irz, imax)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 rc(dimdec(c))
+      real*8 rf(dimdec(f))
+      real*8 hx
+      integer irat, idim, idir, irz, imax
+      fac0 = 0.5d0 * irat / (irat+1)
+      if (idim .eq. 0) then
+         i = cregl0
+         if (idir .eq. 1) then
+            irc = i - 1
+            irf = i * irat
+         else
+            irc = i
+            irf = i * irat - 1
+         endif
+         do 10 j = cregl1, cregh1
+ 10         src(i*irat,j*irat) = src(i*irat,j*irat) + fac0 *
+     @         (rc(irc,j) + rc(irc,j-1))
+         if (irz .eq. 1) then
+            r = (irc + 0.5d0) * (hx * irat)
+            rfac = (hx * irat) / (6.d0 * r)
+            do 20 j = cregl1, cregh1
+ 20            src(i*irat,j*irat) = src(i*irat,j*irat) + fac0 *
+     @           (rfac * idir * (rc(irc,j) + rc(irc,j-1)))
+            r = (irf + 0.5d0) * hx
+            rfac = hx / (6.d0 * r)
+         endif
+         fac0 = fac0 / (irat**3)
+         i = i * irat
+         do 50 n = 0, irat-1
+            fac = (irat-n) * fac0
+            if (n .eq. 0) fac = 0.5d0 * fac
+            do 30 j = irat*cregl1, irat*cregh1, irat
+ 30            src(i,j) = src(i,j) + fac *
+     @           (rf(irf,j-n) + rf(irf,j-n-1) +
+     @            rf(irf,j+n) + rf(irf,j+n-1))
+            if (irz .eq. 1) then
+               do 40 j = irat*cregl1, irat*cregh1, irat
+ 40               src(i,j) = src(i,j) - fac *
+     @              (rfac * idir * (rf(irf,j-n) + rf(irf,j-n-1) +
+     @                              rf(irf,j+n) + rf(irf,j+n-1)))
+            endif
+ 50         continue
+      else if (idim .eq. 1) then
+         j = cregl1
+         if (idir .eq. 1) then
+            jrc = j - 1
+            jrf = j * irat
+         else
+            jrc = j
+            jrf = j * irat - 1
+         endif
+         do 60 i = cregl0, cregh0
+ 60         src(i*irat,j*irat) = src(i*irat,j*irat) + fac0 *
+     @        (rc(i,jrc) + rc(i-1,jrc))
+         if (irz .eq. 1 .and. cregh0 .lt. imax) then
+            do 70 i = cregl0, cregh0
+               r = (i + 0.5d0) * (hx * irat)
+               rfac0 = (hx * irat) / (6.d0 * (r - hx * irat))
+               rfac1 = (hx * irat) / (6.d0 * r)
+ 70            src(i*irat,j*irat) = src(i*irat,j*irat) + fac0 *
+     @           (rfac0 * rc(i-1,jrc) - rfac1 * rc(i,jrc))
+         else if (irz .eq. 1) then
+c This should only occur with a corner at the outer boundary, which
+c should be handled by the cavg routine instead:
+            i = cregh0
+            r = (i - 0.5d0) * (hx * irat)
+            rfac0 = (hx * irat) / (6.d0 * r)
+            rfac1 = -rfac0
+            src(i*irat,j*irat) = src(i*irat,j*irat) + fac0 *
+     @           (rfac0 * rc(i-1,jrc) - rfac1 * rc(i,jrc))
+         endif
+         fac0 = fac0 / (irat**3)
+         j = j * irat
+         do 100 m = 0, irat-1
+            fac = (irat-m) * fac0
+            if (m .eq. 0) fac = 0.5d0 * fac
+            do 80 i = irat*cregl0, irat*cregh0, irat
+ 80            src(i,j) = src(i,j) + fac *
+     @           (rf(i-m,jrf) + rf(i-m-1,jrf) +
+     @            rf(i+m,jrf) + rf(i+m-1,jrf))
+            if (irz .eq. 1 .and. cregh0 .lt. imax) then
+               do 90 i = irat*cregl0, irat*cregh0, irat
+                  r = (i + 0.5d0) * hx
+                  rfac0m = hx / (6.d0 * (r - (m + 1) * hx))
+                  rfac1m = hx / (6.d0 * (r - m * hx))
+                  rfac0p = hx / (6.d0 * (r + (m - 1) * hx))
+                  rfac1p = hx / (6.d0 * (r + m * hx))
+ 90               src(i,j) = src(i,j) + fac *
+     @              (rfac0m * rf(i-m-1,jrf) - rfac1m * rf(i-m,jrf) +
+     @               rfac0p * rf(i+m-1,jrf) - rfac1p * rf(i+m,jrf))
+            else if (irz .eq. 1) then
+c This should only occur with a corner at the outer boundary, which
+c should be handled by the cavg routine instead:
+               i = irat*cregh0
+               r = (i + 0.5d0) * hx
+               rfac0m = hx / (6.d0 * (r - (m + 1) * hx))
+               if (m .eq. 0) then
+                  rfac1m = -rfac0m
+               else
+                  rfac1m = hx / (6.d0 * (r - m * hx))
+               endif
+               rfac0p = -rfac1m
+               rfac1p = -rfac0m
+               src(i,j) = src(i,j) + fac *
+     @              (rfac0m * rf(i-m-1,jrf) - rfac1m * rf(i-m,jrf) +
+     @               rfac0p * rf(i+m-1,jrf) - rfac1p * rf(i+m,jrf))
+            endif
+ 100        continue
+      endif
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgcavg(src,
+     @ dims(src),
+     @ rc,
+     @ dims(c),
+     @ rf,
+     @ dims(f),
+     @ dims(creg),
+     @ irat, ga, hx, irz, imax)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 rc(dimdec(c))
+      real*8 rf(dimdec(f))
+      real*8 hx
+      integer irat, ga(0:1,0:1), irz, imax
+      rm1 = 1.d0 / irat
+      rm2 = rm1 * rm1
+      rm3 = rm1 * rm2
+      ic = cregl0
+      jc = cregl1
+      if = ic * irat
+      jf = jc * irat
+      sum = 0.d0
+      center = 0.d0
+c quadrants
+      fac = rm2
+      ffac = rm2
+      cfac = 1.d0
+      do 10 ji = 0, 1
+         jrf = jf + ji - 1
+         jrc = jc + ji - 1
+         do 10 ii = 0, 1
+            if (ga(ii,ji) .eq. 1) then
+               irf = if + ii - 1
+               center = center + ffac
+               sum = sum + fac * rf(irf,jrf)
+               if (irz .eq. 1) then
+                  idir = 2 * ii - 1
+                  r = (irf + 0.5d0) * hx
+                  if (irf .lt. (irat * imax)) then
+                     rfac =  hx / (6.d0 * r)
+                  else
+                     rfac = -hx / (6.d0 * (r - hx))
+                  endif
+                  sum = sum - fac * rfac * idir * rf(irf,jrf)
+               endif
+            else
+               irc = ic + ii - 1
+               center = center + cfac
+               sum = sum + rc(irc,jrc)
+               if (irz .eq. 1) then
+                  idir = 2 * ii - 1
+                  r = (irc + 0.5d0) * (hx * irat)
+                  if (irc .lt. imax) then
+                     rfac =  (hx * irat) / (6.d0 * r)
+                  else
+                     rfac = -(hx * irat) / (6.d0 * (r - (hx * irat)))
+                  endif
+                  sum = sum - rfac * idir * rc(irc,jrc)
+               endif
+            endif
+ 10         continue
+c edges
+      fac1 = rm3
+      ffac = (irat-1) * rm2
+      do 40 ji = 0, 1
+         jdir = 2 * ji - 1
+         jrf = jf + ji - 1
+         do 40 ii = 0, 1
+            idir = 2 * ii - 1
+            irf = if + ii - 1
+            if (ga(ii,ji) - ga(ii,1-ji) .eq. 1) then
+               center = center + ffac
+               do 20 m = idir, idir*(irat-1), idir
+                  fac = (irat-abs(m)) * fac1
+                  sum = sum + fac * (rf(if+m,jrf) + rf(if+m-1,jrf))
+                  if (irz .eq. 1) then
+                     r = (if + 0.5d0) * hx
+                     if (irf .lt. (irat * imax)) then
+                        rfac0 =  hx / (6.d0 * (r + (m - 1) * hx))
+                        rfac1 =  hx / (6.d0 * (r + m * hx))
+                     else
+                        rfac0 = -hx / (6.d0 * (r - m * hx))
+                        rfac1 = -hx / (6.d0 * (r - (m + 1) * hx))
+                     endif
+                     sum = sum + fac *
+     @                 (rfac0 * rf(if+m-1,jrf) - rfac1 * rf(if+m,jrf))
+                  endif
+ 20               continue
+            endif
+            if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
+               center = center + ffac
+               do 30 n = jdir, jdir*(irat-1), jdir
+                  fac = (irat-abs(n)) * fac1
+                  sum = sum + fac * (rf(irf,jf+n) + rf(irf,jf+n-1))
+                  if (irz .eq. 1) then
+                     r = (irf + 0.5d0) * hx
+                     rfac = hx / (6.d0 * r)
+                     sum = sum - fac *
+     @                 (rfac * idir * (rf(irf,jf+n) + rf(irf,jf+n-1)))
+                  endif
+ 30               continue
+            endif
+ 40         continue
+c weighting
+      src(if,jf) = src(if,jf) + sum / center
+      end
