@@ -758,11 +758,10 @@ contains
   subroutine lin_cc_interp_3d (fine,  &
        crse, &
        lratio, &
-       bc, lim_slope, lin_limit,fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
+       bc,fvcx, fvcy, fvcz, cvcx, cvcy, cvcz, lim_slope, lin_limit)
 
     integer, intent(in) :: bc(:,:,:)
     integer, intent(in) :: lratio(:)
-    logical, intent(in) ::  lim_slope, lin_limit
     REAL(kind=dp_t), intent(out) :: fine(0:,0:,0:,:)
     REAL(kind=dp_t), intent(inout) :: crse(-1:,-1:,-1:,:)
     REAL(kind=dp_t), intent(in) :: fvcx(0:)
@@ -771,6 +770,7 @@ contains
     REAL(kind=dp_t), intent(in) :: cvcx(0:)
     REAL(kind=dp_t), intent(in) :: cvcy(0:)
     REAL(kind=dp_t), intent(in) :: cvcz(0:)
+    logical, intent(in) ::  lim_slope, lin_limit
 
     REAL(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
     REAL(kind=dp_t) ::     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
