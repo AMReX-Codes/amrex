@@ -235,7 +235,6 @@
       CALL PXFGETENV(NAME(1:LL), LL, TMPVAL, IL, IERR)
       IF ( IERR /= 0 ) THEN
          IF ( PRESENT(STATUS) ) STATUS = 1
-         IF ( PRESENT(STATUS) ) STATUS = 1
          IF ( PRESENT(LENGTH) ) LENGTH = 0
          IF ( PRESENT(VALUE)  ) VALUE  = ' '
       ELSE
