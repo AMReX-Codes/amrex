@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.6 1998-04-27 19:43:20 lijewski Exp $
+// $Id: Geometry.cpp,v 1.7 1998-04-29 20:06:11 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -50,17 +50,6 @@ operator << (ostream&                 os,
     }
     return os;
 }
-
-#ifdef __GNUG__
-bool
-Geometry::PIR::operator == (const Geometry::PIR& rhs) const
-{
-    return ( (srcno   == rhs.srcno ) &&
-	     (destno  == rhs.destno )&&
-	     (srcbox  == rhs.srcbox ) &&
-	     (destbox == rhs.destbox ) ); 
-}
-#endif
 
 Geometry::PIRMMap
 Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,

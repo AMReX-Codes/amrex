@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.4 1998-04-27 16:31:42 lijewski Exp $
+// $Id: Geometry.H,v 1.5 1998-04-29 20:06:10 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -124,7 +124,7 @@ public:
 	Box dstBox;
 	FillBoxId fbid;
 #ifdef __GNUG__
-	operator == (const Geometry::PIR& rhs) const;
+	bool operator== (const PIR& rhs) const { return true; }
 #endif
 	friend ostream& operator << (ostream&                os,
                                      const Geometry::PIRec&  pir);
