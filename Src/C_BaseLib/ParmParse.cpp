@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.4 1997-09-24 22:06:45 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.5 1997-12-04 22:33:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,50 +26,36 @@ using std::cerr;
 #include <BoxLib.H>
 #include <ParmParse.H>
 
-int             ParmParse::xargc   = -1;
+int             ParmParse::xargc   = 0;
 int             ParmParse::num_obj = 0;
 char**          ParmParse::xargv   = 0;
 List<PP_entry*> ParmParse::table;
 
-static const char* tok_name[] =
+static
+const char* const
+tok_name[] =
 {
-   "NAME", "OPTION", "INTEGER", "FLOAT", "DOUBLE", "STRING", "EQ_SIGN", "EOF"
+   "NAME",
+   "OPTION",
+   "INTEGER",
+   "FLOAT",
+   "DOUBLE",
+   "STRING",
+   "EQ_SIGN",
+   "EOF"
 };
 
 PP_entry::PP_entry (aString&          name,
                     ParmParse::PPType typ,
                     List<aString>&    vals)
-          : defname(name),
-            deftype(typ),
-            val(vals.length())
+    :
+    defname(name),
+    deftype(typ),
+    val(vals.length())
 {
    ListIterator<aString> li(vals);
    for (int i = 0; li; i++, ++li)
       val[i] = vals[li];
-}
-
-void
-PP_entry::dump (ostream& os) const
-{
-    static const char TokenInitial[] =
-    {
-        'N', 'O', 'I', 'F', 'D', 'S', '=', 'E'
-    };
-
-    char tmp[200];
-    long nval = val.length();
-    sprintf(tmp,
-            "(%c,%1d) %15s :: ",
-            TokenInitial[deftype],
-            int(nval),
-            defname.c_str());
-    os << tmp;
-    for (int i = 0; i < nval; i++)
-       os << " (" << TokenInitial[ParmParse::ppString] << ',' << val[i] << ')';
-    os << '\n';
-
-    if (os.fail())
-        BoxLib::Error("PP_entry::dump(ostream&) failed");
 }
 
 ParmParse::ParmParse (int         argc,
@@ -78,7 +64,7 @@ ParmParse::ParmParse (int         argc,
                       const char* parfile)
 {
     if (table.length() > 0)
-       BoxLib::Abort("ParmParse::ParmParse(): table already built");
+       BoxLib::Error("ParmParse::ParmParse(): table already built");
     num_obj++;
     xargc = argc;
     xargv = argv;
@@ -90,8 +76,6 @@ ParmParse::ParmParse (int         argc,
 ParmParse::ParmParse (const char* prefix)
 {
     num_obj++;
-    if (xargc < 0)
-        BoxLib::Error("ParmParse::ParmParse(): class not properly initialized");
     if (prefix != 0)
        thePrefix = prefix;
 }
@@ -109,14 +93,6 @@ void ParmParse::dumpTable (ostream& os)
 void
 ParmParse::ppinit (const char* parfile)
 {
-    if (xargc < 0)
-    {
-        cerr << "ParmParse::ppinit(): xargc="
-             << xargc
-             << " not initiated in main";
-        BoxLib::Abort();
-    }
-
     if (parfile != 0)
        read_file(parfile,table);
 
@@ -251,16 +227,21 @@ ParmParse::getval (const char*  name,
                    int          ival,
                    int          occurence)
 {
-
     if (queryval(name,type,ptr,ival,occurence) == 0)
     {
         cerr << "ParmParse::getval ";
         if (occurence >= 0)
-            cerr << "occurence number " << occurence << " of ";
+            cerr << "occurence number "
+                 << occurence
+                 << " of ";
+
         if (!thePrefix.isNull())
             cerr << thePrefix << '.';
-        cerr << "ParmParse::getval(): " << name
-             << " not found in table"   << '\n';
+
+        cerr << "ParmParse::getval(): "
+             << name
+             << " not found in table"
+             << '\n';
         dumpTable(cerr);
         BoxLib::Abort();
     }
@@ -292,7 +273,7 @@ ParmParse::queryval (const char*  name,
             cerr << " occurence " << occurence << " of ";
         cerr << def->defname << '\n';
         def->dump(cerr);
-        abort();
+        BoxLib::Abort();
     }
 
     const aString& valname = def->val[ival];
@@ -332,10 +313,12 @@ ParmParse::queryval (const char*  name,
         else
             cerr << " occurence number " << occurence << " of ";
         cerr << def->defname << '\n';
-        cerr << " Expected " << tok_name[type]
-             << " value = " << valname << '\n';
+        cerr << " Expected "
+             << tok_name[type]
+             << " value = "
+             << valname << '\n';
         def->dump(cerr);
-        abort();
+        BoxLib::Abort();
     }
     return 1;
 }
@@ -355,8 +338,10 @@ ParmParse::getarr (const char*  name,
             cerr << "occurence number " << occurence << " of ";
         if (!thePrefix.isNull())
             cerr << thePrefix << '.';
-        cerr << "ParmParse::getarr(): " << name
-             << " not found in table"   << '\n';
+        cerr << "ParmParse::getarr(): "
+             << name
+             << " not found in table"
+             << '\n';
         dumpTable(cerr);
         BoxLib::Abort();
     }
@@ -390,7 +375,7 @@ ParmParse::queryarr (const char*  name,
             cerr << " occurence " << occurence << " of ";
         cerr << def->defname << '\n';
         def->dump(cerr);
-        abort();
+        BoxLib::Abort();
     }
 
     for (int n = start_ix; n <= stop_ix; n++)
@@ -423,8 +408,7 @@ ParmParse::queryarr (const char*  name,
            ptr = (aString*)ptr+1;
            break;
        default:
-           cerr << "ParmParse::get invalid type" << '\n';
-           abort();
+           BoxLib::Error("ParmParse::get invalid type");
        }
        if (!ok)
        {
@@ -435,10 +419,12 @@ ParmParse::queryarr (const char*  name,
            else
                cerr << " occurence number " << occurence << " of ";
            cerr << def->defname << '\n';
-           cerr << " Expected " << tok_name[type]
-                << " value = " << valname << '\n';
+           cerr << " Expected "
+                << tok_name[type]
+                << " value = "
+                << valname << '\n';
            def->dump(cerr);
-           abort();
+           BoxLib::Abort();
        }
     }
 
@@ -533,7 +519,9 @@ enum lexState
     STAR
 };
 
-static const char* state_name[] =
+static
+const char* const
+state_name[] =
 {
    "START",
    "MINUS",
@@ -565,7 +553,6 @@ ParmParse::getToken (const char* str,
         << ", next char = " << ch << '\n'; \
    cerr << ", rest of input = \n" << (str+i) << '\n'; \
    BoxLib::Abort()
-
    //
    // Eat white space and comments.
    //
@@ -618,7 +605,6 @@ ParmParse::getToken (const char* str,
                state = STRING;
            }
            break;
-
        case MINUS:
            if (isalpha(ch) || ch == '_')
            {
@@ -632,7 +618,6 @@ ParmParse::getToken (const char* str,
                state = STRING;
            }
            break;
-
        case OPTION:
            if (isalnum(ch) || ch=='_' || ch=='.')
            {
@@ -648,7 +633,6 @@ ParmParse::getToken (const char* str,
                ERROR_MESS;
            }
            break;
-
        case STAR:
            if (ch == '.')
            {
@@ -661,7 +645,6 @@ ParmParse::getToken (const char* str,
                state = STRING;
            }
            break;
-
        case PREFIX:
            if (isalnum(ch) || ch == '_')
            {
@@ -683,7 +666,6 @@ ParmParse::getToken (const char* str,
                state = STRING;
            }
            break;
-
        case SUFFIX:
            if (isalnum(ch) || ch == '_')
            {
@@ -700,7 +682,6 @@ ParmParse::getToken (const char* str,
                state = STRING;
            }
            break;
-
        case QUOTED_STRING:
            if (ch == '"')
            {
@@ -713,7 +694,6 @@ ParmParse::getToken (const char* str,
                ostr[k++] = ch; i++;
            }
            break;
-
        case STRING:
            if (isspace(ch) || ch == '=')
            {
@@ -725,7 +705,6 @@ ParmParse::getToken (const char* str,
                ostr[k++] = ch; i++;
            }
            break;
-
        default:
            ERROR_MESS;
        }
@@ -844,4 +823,31 @@ ParmParse::addDefn (aString&         def,
     }
     val.clear();
     def = aString();
+}
+
+void
+PP_entry::dump (ostream& os) const
+{
+    static const char TokenInitial[] = { 'N','O','I','F','D','S','=','E' };
+
+    char tmp[200];
+    long nval = val.length();
+    sprintf(tmp,
+            "(%c,%1d) %15s :: ",
+            TokenInitial[deftype],
+            int(nval),
+            defname.c_str());
+    os << tmp;
+    for (int i = 0; i < nval; i++)
+    {
+       os << " ("
+          << TokenInitial[ParmParse::ppString]
+          << ','
+          << val[i]
+          << ')';
+    }
+    os << '\n';
+
+    if (os.fail())
+        BoxLib::Error("PP_entry::dump(ostream&) failed");
 }
