@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.21 1997-11-14 00:59:55 lijewski Exp $
+// $Id: VisMF.H,v 1.22 1997-11-15 00:52:38 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -121,6 +121,12 @@ public:
                        const aString&  name,
                        VisMF::How      how);
     //
+    // Read a MultiFab from disk written using VisMF::Write().
+    // The MultiFab `mf' must have been defined using the default constructor.
+    //
+    static void Read (MultiFab&      mf,
+                      const aString& name);
+    //
     // We try to do I/O with buffers of this size.
     //
     enum { IO_Buffer_Size = 40960 * 32 };
@@ -155,7 +161,7 @@ private:
 
     static aString ToString (long l);
 
-    void readFAB (int i) const;
+    static FArrayBox* readFAB (int i, const Header& hdr);
     //
     // The suffix appended to files containing FAB data.
     //
@@ -260,7 +266,7 @@ VisMF::operator[] (int i) const
 {
     if (!m_pa.defined(i))
     {
-        readFAB(i);
+        m_pa.set(i, VisMF::readFAB(i, m_hdr));
     }
     return m_pa[i];
 }

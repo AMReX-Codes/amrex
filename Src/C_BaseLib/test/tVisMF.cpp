@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.10 1997-11-12 17:40:34 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.11 1997-11-15 00:52:39 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -273,6 +273,17 @@ Write_N_Read (const MultiFab& mf,
                   << mfi.index()
                   << '\n';
     }
+
+    ParallelDescriptor::Synchronize();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Building new MultiFab from disk version ....\n\n";
+    }
+
+    MultiFab new_mf;
+    
+    VisMF::Read(new_mf, mf_name);
 }
 
 int

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.27 1997-11-14 20:22:40 lijewski Exp $
+// $Id: VisMF.cpp,v 1.28 1997-11-15 00:52:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -586,23 +586,22 @@ VisMF::VisMF (const aString& mf_name)
     m_pa.resize(m_hdr.m_ba.length());
 }
 
-void
-VisMF::readFAB (int i) const
+FArrayBox*
+VisMF::readFAB (int                  i,
+                const VisMF::Header& hdr)
 {
-    Box fab_box = m_hdr.m_ba[i];
+    Box fab_box = hdr.m_ba[i];
 
-    if (m_hdr.m_ngrow)
+    if (hdr.m_ngrow)
     {
-        fab_box.grow(m_hdr.m_ngrow);
+        fab_box.grow(hdr.m_ngrow);
     }
 
-    FArrayBox* fab = new FArrayBox(fab_box, m_hdr.m_ncomp);
+    FArrayBox* fab = new FArrayBox(fab_box, hdr.m_ncomp);
     if (fab == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
 
-    m_pa.set(i, fab);
-
-    const aString& file = m_hdr.m_fod[i].m_name;
+    const aString& file = hdr.m_fod[i].m_name;
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -621,10 +620,53 @@ VisMF::readFAB (int i) const
         BoxLib::Error(msg.c_str());
     }
 
-    if (m_hdr.m_fod[i].m_head)
+    if (hdr.m_fod[i].m_head)
     {
-        ifs.seekg(m_hdr.m_fod[i].m_head, ios::beg);
+        ifs.seekg(hdr.m_fod[i].m_head, ios::beg);
     }
 
     fab->readFrom(ifs);
+
+    return fab;
+}
+
+void
+VisMF::Read (MultiFab&      mf,
+             const aString& mf_name)
+{
+    VisMF::Header hdr;
+
+    aString file = mf_name;
+
+    file += VisMF::MultiFabHdrFileSuffix;
+
+    {
+#ifdef BL_USE_SETBUF
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
+        ifstream ifs;
+
+#ifdef BL_USE_SETBUF
+        ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
+        ifs.open(file.c_str(), ios::in);
+
+        if (!ifs.good())
+        {
+            aString msg("VisMF::Read(): couldn't open file: ");
+            msg += file;
+            BoxLib::Error(msg.c_str());
+        }
+
+        ifs >> hdr;
+    }
+
+    mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
+
+    for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    {
+        mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), hdr));
+    }
+
+    assert(mf.ok());
 }
