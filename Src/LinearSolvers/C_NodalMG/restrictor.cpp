@@ -114,6 +114,11 @@ void default_restrictor::fill(FArrayBox& patch,
 	BoxLib::Error("default_restrictor::fill---No default restriction defined for mixed data");
 }
 
+bilinear_restrictor_class::bilinear_restrictor_class(int i, bool hg_terrain) : integrate(i), m_hg_terrain(hg_terrain)
+{
+    assert(i == 0 || i == 1);
+}
+
 Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
@@ -547,7 +552,6 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
   
 #elif (BL_SPACEDIM == 3)
   
-  int ga[level_interface::N_CORNER_GRIDS];
   
   for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
   {
@@ -593,6 +597,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      }
 	      else 
 	      {
+		  int ga[level_interface::N_CORNER_GRIDS];
 		  lev_interface.geo_array(1, ga, iedge);
 		  for (int i = 0; i < patch.nComp(); i++) 
 		  {
@@ -645,6 +650,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      }
 	      else 
 	      {
+		  int ga[level_interface::N_CORNER_GRIDS];
 		  lev_interface.geo_array(0, ga, icor);
 		  for (int i = 0; i < patch.nComp(); i++) 
 		  {

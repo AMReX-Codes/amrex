@@ -141,10 +141,6 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 // On velocity inflow, uses box function which extends interior
 // box just past edge of domain.
 
-//void mixed_boundary_class::fill(FArrayBox& patch,
-//				const Box& region,
-//				const MultiFab& src,
-//				int igrid, const Box& domain) const
 void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
 				const FArrayBox& src, int igrid,
