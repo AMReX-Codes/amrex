@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.3 1998-02-22 19:07:00 car Exp $
+c $Id: COORDSYS_2D.F,v 1.4 1998-03-31 00:26:27 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -38,7 +38,9 @@ c ::
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
+c
 c         ::::: cartesian
+c
           v = dx(1)*dx(2)
           do j = ARG_L2(vol), ARG_H2(vol)
              do i = ARG_L1(vol), ARG_H1(vol)
@@ -46,7 +48,9 @@ c         ::::: cartesian
              end do
           end do
        else
+c
 c         ::::: R-Z
+c
           do i = ARG_L1(vol), ARG_H1(vol)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
@@ -57,7 +61,6 @@ c         ::::: R-Z
           end do
        end if
        
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -84,8 +87,9 @@ c ::
        REAL_T     ri, ro, dlga
        
        if (coord .eq. 0) then
-
+c
 c         ::::: cartesian
+c
           do j = ARG_L2(dloga), ARG_H2(dloga)
              do i = ARG_L1(dloga), ARG_H1(dloga)
                 dloga(i,j) = zero
@@ -93,7 +97,9 @@ c         ::::: cartesian
           end do
 
        else if( coord .eq. 1 ) then
+c
 c         ::::: R-Z
+c
           if( dir .eq. 0 ) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
                 dloga(i,j) = zero
@@ -122,7 +128,6 @@ c         ::::: R-Z
           stop
        end if
        
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -150,7 +155,9 @@ c ::
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
+c
 c         ::::: cartesian
+c
           if (dir .eq. 0) then
              do j = ARG_L2(area), ARG_H2(area)
                 do i = ARG_L1(area), ARG_H1(area)
@@ -165,7 +172,9 @@ c         ::::: cartesian
              end do
           end if
        else
+c
 c         ::::: R-Z
+c
           if (dir .eq. 0) then
              do i = ARG_L1(area), ARG_H1(area)
                 ri = offset(1) + dx(1)*i
@@ -186,5 +195,4 @@ c         ::::: R-Z
           end if
        end if
        
-       return
        end

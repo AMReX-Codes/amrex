@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.5 1998-02-22 19:07:00 car Exp $
+c $Id: COORDSYS_3D.F,v 1.6 1998-03-31 00:26:27 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -36,21 +36,22 @@ c ::
        REAL_T     ri, ro, v
        
        if (coord .eq. 0) then
+c
 c         ::::: cartesian
+c
           v = dx(1)*dx(2)*dx(3)
           do k = ARG_L3(vol), ARG_H3(vol)
-          do j = ARG_L2(vol), ARG_H2(vol)
-             do i = ARG_L1(vol), ARG_H1(vol)
-                vol(i,j,k) = v
+             do j = ARG_L2(vol), ARG_H2(vol)
+                do i = ARG_L1(vol), ARG_H1(vol)
+                   vol(i,j,k) = v
+                end do
              end do
-          end do
           end do
        else
           write(6,*) "FORT_SETVOLUME not define for coord = ",coord
           stop
        end if
        
-       return
        end
 
 c :: ----------------------------------------------------------
@@ -97,5 +98,4 @@ c ::
           stop
        end if
        
-       return
        end

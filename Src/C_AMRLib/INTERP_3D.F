@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.6 1998-02-22 19:06:59 car Exp $
+c $Id: INTERP_3D.F,v 1.7 1998-03-31 00:24:00 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -262,7 +262,6 @@ c     ::::: end of do n
 #undef  SLYZ 
 #undef  SLXYZ 
 
-      return
       end
 
 #if 0
@@ -377,7 +376,6 @@ c        ::::: interpolate to fine grid
       end do
       end do
 
-      return
       end
 #endif
 
@@ -432,7 +430,6 @@ c ::: local var
       write(6,*) "FORT_CBINTERP not implemented"
       stop
 
-      return
       end
 
 c ::: --------------------------------------------------------------
@@ -987,7 +984,6 @@ c :::                 ::::: interpolate to fine grid
           end if
 100   continue
 
-      return
       end
 
 c ::: 
@@ -1924,7 +1920,6 @@ c ... do the interpolation
         end do
       end if
 
-      return
       end
 c ::: 
 c ::: --------------------------------------------------------------
@@ -2186,7 +2181,6 @@ c	 ::::: now interpolate to fine grid
       end do
       end do
 
-      return
       end
 #endif
 
@@ -2332,7 +2326,6 @@ c	       ::::: stuff into fine array
 	 end do
       end if
 
-      return
       end
 
 

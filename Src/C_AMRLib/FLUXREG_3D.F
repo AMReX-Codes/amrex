@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.5 1998-02-22 19:06:58 car Exp $
+c $Id: FLUXREG_3D.F,v 1.6 1998-03-31 00:23:59 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -49,16 +49,15 @@ c ::: -----------------------------------------------------------
       integer    n, i, j, k
 
       do n = 1, numcomp
-      do k = lo(3), hi(3)
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            reg(i,j,k,n) =  mult*flx(i,j,k,n)
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  reg(i,j,k,n) =  mult*flx(i,j,k,n)
+               end do
+            end do
          end do
       end do
-      end do
-      end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -91,16 +90,15 @@ c ::: -----------------------------------------------------------
       integer    n, i, j, k
 
       do n = 1, numcomp
-      do k = lo(3), hi(3)
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            reg(i,j,k,n) = mult*area(i,j,k)*flx(i,j,k,n)
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  reg(i,j,k,n) = mult*area(i,j,k)*flx(i,j,k,n)
+               end do
+            end do
          end do
       end do
-      end do
-      end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -137,7 +135,9 @@ c ::: -----------------------------------------------------------
       ratioz = ratio(3)
       
       if (dir .eq. 0) then
+c
 c        ::::: flux normal to X direction
+c
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
@@ -149,17 +149,17 @@ c        ::::: flux normal to X direction
             stop
          end if
          do n = 1, numcomp
-         do koff = 0, ratioz-1
-         do kc = ARG_L3(reg), ARG_H3(reg)
-            k = ratioz*kc + koff
-            do joff = 0, ratioy-1            
-            do jc = ARG_L2(reg), ARG_H2(reg)
-               j = ratioy*jc + joff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+            do koff = 0, ratioz-1
+               do kc = ARG_L3(reg), ARG_H3(reg)
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy-1            
+                     do jc = ARG_L2(reg), ARG_H2(reg)
+                        j = ratioy*jc + joff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       else if (dir .eq. 1) then
 c        ::::: flux normal to Y direction
@@ -174,20 +174,22 @@ c        ::::: flux normal to Y direction
             stop
          end if
          do n = 1, numcomp
-         do koff = 0, ratioz-1
-         do kc = ARG_L3(reg), ARG_H3(reg)
-            k = ratioz*kc + koff
-            do ioff = 0, ratiox-1            
-            do ic = ARG_L1(reg), ARG_H1(reg)
-               i = ratiox*ic + ioff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+            do koff = 0, ratioz-1
+               do kc = ARG_L3(reg), ARG_H3(reg)
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox-1            
+                     do ic = ARG_L1(reg), ARG_H1(reg)
+                        i = ratiox*ic + ioff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       else
+c
 c        ::::: flux normal to Z direction
+c
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
@@ -199,21 +201,20 @@ c        ::::: flux normal to Z direction
             stop
          end if
          do n = 1, numcomp
-         do joff = 0, ratioy-1
-         do jc = ARG_L2(reg), ARG_H2(reg)
-            j = ratioy*jc + joff
-            do ioff = 0, ratiox-1            
-            do ic = ARG_L1(reg), ARG_H1(reg)
-               i = ratiox*ic + ioff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+            do joff = 0, ratioy-1
+               do jc = ARG_L2(reg), ARG_H2(reg)
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox-1            
+                     do ic = ARG_L1(reg), ARG_H1(reg)
+                        i = ratiox*ic + ioff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       end if
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -255,7 +256,9 @@ c ::: -----------------------------------------------------------
       ratioz = ratio(3)
       
       if (dir .eq. 0) then
+c
 c        ::::: flux normal to X direction
+c
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
@@ -267,21 +270,23 @@ c        ::::: flux normal to X direction
             stop
          end if
          do n = 1, numcomp
-         do koff = 0, ratioz-1
-         do kc = ARG_L3(reg), ARG_H3(reg)
-            k = ratioz*kc + koff
-            do joff = 0, ratioy-1            
-            do jc = ARG_L2(reg), ARG_H2(reg)
-               j = ratioy*jc + joff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                           mult*area(i,j,k)*flx(i,j,k,n)
+            do koff = 0, ratioz-1
+               do kc = ARG_L3(reg), ARG_H3(reg)
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy-1            
+                     do jc = ARG_L2(reg), ARG_H2(reg)
+                        j = ratioy*jc + joff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
+     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       else if (dir .eq. 1) then
+c
 c        ::::: flux normal to Y direction
+c
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
@@ -293,21 +298,23 @@ c        ::::: flux normal to Y direction
             stop
          end if
          do n = 1, numcomp
-         do koff = 0, ratioz-1
-         do kc = ARG_L3(reg), ARG_H3(reg)
-            k = ratioz*kc + koff
-            do ioff = 0, ratiox-1            
-            do ic = ARG_L1(reg), ARG_H1(reg)
-               i = ratiox*ic + ioff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                           mult*area(i,j,k)*flx(i,j,k,n)
+            do koff = 0, ratioz-1
+               do kc = ARG_L3(reg), ARG_H3(reg)
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox-1            
+                     do ic = ARG_L1(reg), ARG_H1(reg)
+                        i = ratiox*ic + ioff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
+     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       else
+c
 c        ::::: flux normal to Z direction
+c
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
@@ -319,22 +326,21 @@ c        ::::: flux normal to Z direction
             stop
          end if
          do n = 1, numcomp
-         do joff = 0, ratioy-1
-         do jc = ARG_L2(reg), ARG_H2(reg)
-            j = ratioy*jc + joff
-            do ioff = 0, ratiox-1            
-            do ic = ARG_L1(reg), ARG_H1(reg)
-               i = ratiox*ic + ioff
-               reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                           mult*area(i,j,k)*flx(i,j,k,n)
+            do joff = 0, ratioy-1
+               do jc = ARG_L2(reg), ARG_H2(reg)
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox-1            
+                     do ic = ARG_L1(reg), ARG_H1(reg)
+                        i = ratiox*ic + ioff
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
+     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                     end do
+                  end do
+               end do
             end do
-            end do
-         end do
-         end do
          end do
       end if
       
-      return
       end
 
 c :: 
@@ -405,7 +411,6 @@ c ::
          end do
       end if
       
-      return
       end
 
 c :: 
@@ -475,7 +480,6 @@ c ::
          end do
       end if
       
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -506,28 +510,27 @@ c ::: -----------------------------------------------------------
       integer    n, i, j, k, istart
 
       if (area(lo(1),lo(2),lo(3)) .lt. onetominuseight) then
-        do n = 1, numcomp
-        do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-          flx(lo(1),j,k,n) = flx(lo(1),j,k,n)
-        end do
-        end do
-        end do
-        istart = lo(1)+1
+         do n = 1, numcomp
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  flx(lo(1),j,k,n) = flx(lo(1),j,k,n)
+               end do
+            end do
+         end do
+         istart = lo(1)+1
       else
-        istart = lo(1)
+         istart = lo(1)
       end if
 
       do n = 1, numcomp
-       do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-        do i = istart, hi(1)
-          flx(i,j,k,n) = flx(i,j,k,n) + mult*reg(i,j,k,numcomp)/area(i,j,k)
-        end do
-       end do
-       end do
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = istart, hi(1)
+                  flx(i,j,k,n) = flx(i,j,k,n) + mult*reg(i,j,k,numcomp)/area(i,j,k)
+               end do
+            end do
+         end do
       end do
 
-      return
       end
 
