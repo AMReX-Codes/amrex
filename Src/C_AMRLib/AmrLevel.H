@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.47 2000-07-21 20:45:21 lijewski Exp $
+// $Id: AmrLevel.H,v 1.48 2000-07-25 19:10:38 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -366,7 +366,10 @@ public:
     //@ManDoc: Modify list of variables to be plotted
     // 
     virtual void setPlotVariables ();
-
+    //
+    //@ManDoc: Returns one the TimeLevel enums.
+    //         Asserts that time is between AmrOldTime and AmrNewTime.
+    // 
     TimeLevel which_time (int  state_indx,
                           Real time) const;
 protected:
