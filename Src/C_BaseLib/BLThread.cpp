@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.31 2002-02-26 23:41:31 car Exp $
+// $Id: BLThread.cpp,v 1.32 2002-03-26 22:14:33 car Exp $
 //
 
 #include <winstd.H>
@@ -27,9 +27,9 @@
 #include <cerrno>
 #include <cstdlib>
 
-#if defined(BL_OSF1)
-extern "C" int usleep (useconds_t);
-#endif
+//#if defined(BL_OSF1)
+//extern "C" int usleep (useconds_t);
+//#endif
 
 namespace
 {
@@ -161,27 +161,8 @@ void
 Thread::sleep(const BoxLib::Time& spec_)
 {
 #ifdef WIN32
-#elif !defined( BL_USE_NANOSLEEP )
-    unsigned long tosleep = spec_.as_long();
-    if ( tosleep > std::numeric_limits<unsigned long>::max()/1000000 )
-    {
-	::sleep(tosleep);
-    }
-    else
-    {
-	::usleep(tosleep*1000000);
-    }
 #else
-    BoxLib::Time spec = spec_;
-    BoxLib::Time rem;
-    while ( int status = ::nanosleep(&spec, &rem) )
-    {
-	if ( errno != EINVAL )
-	{
-	    BoxLib::Thread_Error(__FILE__, __LINE__, "nanosleep", errno);
-	}
-	spec = rem;
-    }
+   ::sleep(spec_.as_long());
 #endif
 }
 
