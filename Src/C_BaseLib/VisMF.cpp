@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.56 1998-08-12 18:01:12 lijewski Exp $
+// $Id: VisMF.cpp,v 1.57 1998-09-14 23:28:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -462,7 +462,8 @@ VisMF::WriteHeader (const aString& mf_name,
 long
 VisMF::Write (const MultiFab& mf,
               const aString&  mf_name,
-              VisMF::How      how)
+              VisMF::How      how,
+              bool            set_ghost)
 {
     assert(mf_name[mf_name.length() - 1] != '/');
 
@@ -470,7 +471,28 @@ VisMF::Write (const MultiFab& mf,
 
     long bytes  = 0;
 
-    VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
+    VisMF::Header hdr(mf, how);
+
+    if (set_ghost)
+    {
+        MultiFab* the_mf = const_cast<MultiFab*>(&mf);
+
+        assert(!(the_mf == 0));
+        assert(hdr.m_ba == mf.boxArray());
+        assert(hdr.m_ncomp == mf.nComp());
+
+        for (MultiFabIterator mfi(*the_mf); mfi.isValid(); ++mfi)
+        {
+            int idx = mfi.index();
+
+            for (int j = 0; j < hdr.m_ncomp; j++)
+            {
+                const Real val = (hdr.m_min[idx][j] + hdr.m_max[idx][j]) / 2;
+
+                mfi().setComplement(val, hdr.m_ba[idx], j, 1);
+            }
+        }
+    }
 
     char buf[sizeof(int) + 1];
 
