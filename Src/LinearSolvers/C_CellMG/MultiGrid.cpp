@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.13 2000-06-07 00:33:23 sstanley Exp $
+// $Id: MultiGrid.cpp,v 1.14 2000-06-09 21:25:51 sstanley Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -135,7 +135,7 @@ MultiGrid::errorEstimate (int            level,
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     Real restot = 0.0;
     Real resk   = 0.0;
-    const BoxArray& gbox = Lp.boxArray(0);
+    const BoxArray& gbox = Lp.boxArray(level);
     for (MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
         BL_ASSERT(gbox[resmfi.index()] == resmfi.validbox());
@@ -383,10 +383,14 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     prepareForLevel(level);
     if (usecg == 0)
     {
-        Real error0 = errorEstimate(level, bc_mode);
-        if (ParallelDescriptor::IOProcessor() && verbose)
-            cout << "   Bottom Smoother: Initial error (error0) = " 
-                 << error0 << '\n';
+        Real error0;
+        if (verbose)
+        {
+            error0 = errorEstimate(level, bc_mode);
+            if (ParallelDescriptor::IOProcessor())
+                cout << "   Bottom Smoother: Initial error (error0) = " 
+                     << error0 << '\n';
+        }
 
         for (int i = finalSmooth(); i > 0; i--)
         {
