@@ -59,6 +59,7 @@ public:
     }
     void set_line_solve_dimension(int dim)
     {
+	if (dim != -1) BoxLib::Error("LineSolves not supported in parallel");
 	line_solve_dim = dim;
     }
     void set_smoother_mode(int mode)
