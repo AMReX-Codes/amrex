@@ -463,7 +463,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	int igrid = lev_interface[mglev].fgrid(iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
-	unsigned geo = lev_interface[mglev].fgeo(iface);
+	const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
 	    continue;
@@ -528,7 +528,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(1, iedge);
+	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
@@ -588,7 +588,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(0, icor);
+	const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
@@ -662,7 +662,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	int igrid = lev_interface[mglev].fgrid(iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
-	unsigned geo = lev_interface[mglev].fgeo(iface);
+	const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
 	    continue;
@@ -764,7 +764,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(1, iedge);
+	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
@@ -851,7 +851,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(0, icor);
+	const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
@@ -947,7 +947,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(0, icor);
+	const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;

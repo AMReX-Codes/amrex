@@ -566,7 +566,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 {
     nbx[idim] = bl.length();
     bx[idim]  = new Box[nbx[idim]];
-    ge[idim]  = new unsigned[nbx[idim]];
+    ge[idim]  = new unsigned int[nbx[idim]];
     flg[idim] = new bool[nbx[idim]];
     
     //Boxnode *bn;
@@ -815,7 +815,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 
 void level_interface::geo_array(int ga[], int idim, int i) const
 {
-    unsigned gtmp = geo(idim, i);
+    unsigned int gtmp = geo(idim, i);
     for (int k = 0; k < N_CORNER_GRIDS; k++) 
     {
 	ga[k] = (gtmp & 1);

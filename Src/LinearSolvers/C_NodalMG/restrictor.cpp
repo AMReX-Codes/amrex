@@ -256,7 +256,7 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
-			Real *const fptr = fine[igrid].dataPtr(i);
+			Real* fptr = fine[igrid].dataPtr(i);
 			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 			    fptr, DIMLIST(fb),
 			    D_DECL(rat[0], rat[1], rat[2]), integrate);
@@ -285,7 +285,7 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
-			Real *const fptr = fine[igrid].dataPtr(i);
+			const Real* fptr = fine[igrid].dataPtr(i);
 			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 			    fptr, DIMLIST(fb),
 			    D_DECL(rat[0], rat[1], rat[2]), integrate);
@@ -309,7 +309,7 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
-			Real *const fptr = fine[igrid].dataPtr(i);
+			const Real* fptr = fine[igrid].dataPtr(i);
 			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 			    fptr, DIMLIST(fb),
 			    D_DECL(rat[0], rat[1], rat[2]), integrate);
@@ -346,7 +346,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	    continue;
 	Box cbox = lev_interface.node_face(iface);
 	IntVect t = lev_interface.face(iface).type();
-	unsigned geo = lev_interface.fgeo(iface);
+	const unsigned int geo = lev_interface.fgeo(iface);
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) 
 	{
@@ -431,7 +431,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) 
 	{
-	    unsigned geo = lev_interface.geo(0, icor);
+	    const unsigned int geo = lev_interface.geo(0, icor);
 	    if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	    { 
 		// fine grid on all sides
@@ -441,7 +441,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		const Box& fb = fine[igrid].box();
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
-		    Real *const fptr = fine[igrid].dataPtr(i);
+		    const Real* fptr = fine[igrid].dataPtr(i);
 		    FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 			fptr, DIMLIST(fb),
 			D_DECL(rat[0], rat[1], rat[2]), integrate);
@@ -561,7 +561,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	  // This extends fine edge by one coarse cell past coarse face:
 	  cbox &= regplus;
 	  cbox.grow(t - IntVect::TheUnitVector());
-	  unsigned geo = lev_interface.geo(1, iedge);
+	  const unsigned int geo = lev_interface.geo(1, iedge);
 	  if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	  {
 	      int igrid = lev_interface.egrid(iedge, 0);
@@ -570,7 +570,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      const Box& fb = fine[igrid].box();
 	      for (int i = 0; i < patch.nComp(); i++) 
 	      {
-		  Real *const fptr = fine[igrid].dataPtr(i);
+		  const Real* fptr = fine[igrid].dataPtr(i);
 		  FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 		      fptr, DIMLIST(fb),
 		      D_DECL(rat[0], rat[1], rat[2]), integrate);
@@ -613,7 +613,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
       cbox.coarsen(rat);
       if (region.intersects(cbox)) 
       {
-	  unsigned geo = lev_interface.geo(0, icor);
+	  const unsigned int geo = lev_interface.geo(0, icor);
 	  if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	  {
 	      int igrid = lev_interface.cgrid(icor, 0);
@@ -622,7 +622,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      const Box& fb = fine[igrid].box();
 	      for (int i = 0; i < patch.nComp(); i++) 
 	      {
-		  Real *const fptr = fine[igrid].dataPtr(i);
+		  const Real* fptr = fine[igrid].dataPtr(i);
 		  FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
 		      fptr, DIMLIST(fb),
 		      D_DECL(rat[0], rat[1], rat[2]), integrate);

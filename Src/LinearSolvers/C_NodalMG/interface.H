@@ -61,8 +61,8 @@ public:
     int nboxes(int idim)              const { return nbx[idim]; }
     const Box& box(int idim, int i)   const { return bx[idim][i]; }
     const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
-    unsigned geo(int idim, int i)     const { return ge[idim][i]; }
-    unsigned aux(int idim, int i)     const { return ax[idim][i]; }
+    unsigned int geo(int idim, int i) const { return ge[idim][i]; }
+    unsigned int aux(int idim, int i) const { return ax[idim][i]; }
     bool flag(int idim, int i)        const { return flg[idim][i]; }
 
     int ncorners()                    const { return nbx[0]; }
@@ -75,7 +75,7 @@ public:
     int nfaces()                      const { return nbx[FACEDIM]; }
     const Box& face(int i)            const { return bx[FACEDIM][i]; }
     const Box& node_face(int i)       const { return nodebx[FACEDIM][i]; }
-    unsigned fgeo(int i)              const { return ge[FACEDIM][i]; }
+    unsigned int fgeo(int i)          const { return ge[FACEDIM][i]; }
     bool fflag(int i)                 const { return flg[FACEDIM][i]; }
 
     
@@ -88,7 +88,7 @@ private:
     Box* pf;                          // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];             // numbers of interface boxes
     Box* bx[BL_SPACEDIM];             // array of interface boxes
-    unsigned *ge[BL_SPACEDIM];        // geometries of interface boxes
+    unsigned int* ge[BL_SPACEDIM];        // geometries of interface boxes
     int* ax[BL_SPACEDIM];             // if >= 0, gives the number of the
     // grid which must be cleared of bogus data along this edge, corner,
     // or face after computing on the part_fine section of that grid
