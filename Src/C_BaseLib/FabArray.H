@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.163 2002-10-31 21:56:33 lijewski Exp $
+// $Id: FabArray.H,v 1.164 2002-11-14 21:13:08 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -932,11 +932,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    static Array<value_type*> fab_data(NProcs);
-    static Array<int>         indx(NProcs);
-    static Array<MPI_Status>  status(NProcs);
-    static Array<MPI_Request> reqs(NProcs);
-
+    Array<value_type*>              fab_data(NProcs);
+    Array<int>                      indx(NProcs);
+    Array<MPI_Status>               status(NProcs);
+    Array<MPI_Request>              reqs(NProcs);
     Array< std::vector<FabComTag> > SndTags(NProcs);
     Array< std::vector<FabComTag> > RcvTags(NProcs);
 
@@ -1482,26 +1481,18 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
     const int MyProc = ParallelDescriptor::MyProc();
-
-    static Array<int>         Snds(NProcs);
-    static Array<int>         Rcvs(NProcs);
-    static Array<int>         indx(NProcs);
-    static Array<value_type*> fab_data(NProcs);
-    static Array<MPI_Request> req_data(NProcs);
-    static Array<MPI_Request> req_cd(NProcs);
-    static Array<MPI_Status>  status(NProcs);
-
-    Array<CommData> senddata;
-    Array<CommData> recv_cd;
-
-    for (int i = 0; i < NProcs; i++)
-        Snds[i] = Rcvs[i] = 0;
-
-    for (int i = 0; i < NProcs; i++)
-        req_data[i] = req_cd[i] = MPI_REQUEST_NULL;
-
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
+
+    Array<CommData>    recv_cd;
+    Array<CommData>    senddata;
+    Array<int>         Snds(NProcs,0);
+    Array<int>         Rcvs(NProcs,0);
+    Array<int>         indx(NProcs);
+    Array<value_type*> fab_data(NProcs);
+    Array<MPI_Request> req_data(NProcs,MPI_REQUEST_NULL);
+    Array<MPI_Request> req_cd(NProcs,MPI_REQUEST_NULL);
+    Array<MPI_Status>  status(NProcs);
 
     int idx = 0, NumReqs = 0, NWaits;
     //
@@ -1781,8 +1772,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             BL_ASSERT(Processed == Rcvs[indx[k]]);
 
             BoxLib::The_Arena()->free(fab_data[indx[k]]);
-
-            fab_data[indx[k]] = 0;
         }
     }
 }
