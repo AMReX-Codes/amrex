@@ -155,6 +155,7 @@ ifeq ($(ARCH),Linux)
     endif
     endif
     endif
+#   _ifc += -auto
     F90 := $(_ifc)
     FC  := $(_ifc)
     CC  := $(_icc)
@@ -172,16 +173,21 @@ ifeq ($(ARCH),Linux)
     ifeq ($(_comp),Intel8)
       ifndef NDEBUG
                                 # Someday, can eliminate these	
-        F90FLAGS += -g -check all -check noshape -check nopointer
-        FFLAGS   += -g -check all -check noshape -check nopointer
+        F90FLAGS += -g 
+        FFLAGS   += -g 
+ 	F90FLAGS += -check all
+ 	FFLAGS   += -check all
+        F90FLAGS += -check noshape -check nopointer
+        FFLAGS   += -check noshape -check nopointer
         CFLAGS   += -g
       else
-#       F90FLAGS += -O3
-#       FFLAGS += -O3
-#       CFLAGS += -O3
-       F90FLAGS += -fast
-       FFLAGS += -fast
-       CFLAGS += -fast
+        F90FLAGS += -O3
+        FFLAGS += -O3
+        CFLAGS += -O3
+        F90FLAGS += -ipo
+       FFLAGS += -ipo
+       CFLAGS += -ipo
+#       LDFLAGS += -static
       endif
     endif
     ifeq ($(_comp),Intel7)

@@ -332,13 +332,17 @@ contains
     integer :: loc(fine%dim), hic(fine%dim)
     integer :: lof(fine%dim)
     integer :: dm, side
-    integer :: i, n
+    integer :: i, n, nc
     integer :: dir,face
 
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
 
     dm = fine%dim
+    nc = fine%nc
+    if ( fine%nc /= crse%nc ) then
+       call bl_error("ML_INTERP_BCS: fine%nc /= crse%nc")
+    end if
 
     if (side == 1) then
        dir = 1
@@ -383,11 +387,12 @@ contains
           hi = upb(box_intersection(cbox_refined,fbox_grown))
           fp => dataptr(fine, i)
           cp => dataptr(crse, i)
-          do n = 1, 1
+          do n = 1, nc 
              select case (dm)
              case (1)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_1d(fp(:,1,1,n), lof, &
+                   call ml_interp_bcs_1d(&
+                        fp(:,1,1,n), lof, &
                         cp(:,1,1,n), loc, hic, &
                         lo, hi, ir, side)
                 else if ( nodal_q(crse) ) then
@@ -395,22 +400,22 @@ contains
                 end if
              case (2)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_2d(fp(:,:,1,n), lof, &
-                        cp(:,:,1,n), loc, hic, &
+                   call ml_interp_bcs_2d(&
+                        fp(:,:,1,n), lof, cp(:,:,1,n), loc, hic, &
                         lo, hi, ir, side)
                 else if ( nodal_q(crse) ) then
-                   call ml_interp_bcs_2d_nodal(fp(:,:,1,n), lof, &
-                        cp(:,:,1,n), loc, hic, &
+                   call ml_interp_bcs_2d_nodal(&
+                        fp(:,:,1,n), lof, cp(:,:,1,n), loc, hic, &
                         lo, hi, ir, side)
                 end if
              case (3)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_3d(fp(:,:,:,n), lof, &
-                        cp(:,:,:,n), loc, hic, &
+                   call ml_interp_bcs_3d(&
+                        fp(:,:,:,n), lof, cp(:,:,:,n), loc, hic, &
                         lo, hi, ir, side)
                 else if ( nodal_q(crse) )  then
-                   call ml_interp_bcs_3d_nodal(fp(:,:,:,n), lof, &
-                        cp(:,:,:,n), loc, hic, &
+                   call ml_interp_bcs_3d_nodal( &
+                        fp(:,:,:,n), lof, cp(:,:,:,n), loc, hic, &
                         lo, hi, ir, side)
                 end if
              end select
@@ -467,10 +472,10 @@ contains
       do jc = lo(2)/ir(2), hi(2)/ir(2)
         first_der  = ZERO
         second_der = ZERO
-        if (jc > loc(2) .and. jc < hic(2)) then
+        if ( jc > loc(2) .and. jc < hic(2) ) then
           first_der  = HALF * (cc(ic,jc+1)-cc(ic,jc-1))
           second_der = (cc(ic,jc+1)+cc(ic,jc-1)-TWO*cc(ic,jc))
-        else if (jc > loc(2)) then
+        else if ( jc > loc(2) ) then
           if (jc > loc(2)+1) then
             first_der  = HALF*( THREE*cc(ic,jc)-FOUR*cc(ic,jc-1)+cc(ic,jc-2))
             second_der = cc(ic,jc-2) - TWO*cc(ic,jc-1) + cc(ic,jc)
@@ -478,8 +483,8 @@ contains
             first_der  =         (cc(ic,jc  )-cc(ic,jc-1))
             second_der = ZERO
           end if
-        else if (jc < hic(2)) then
-          if (jc < hic(2)-1) then
+        else if ( jc < hic(2) ) then
+          if ( jc < hic(2)-1 ) then
             first_der  = HALF*(-THREE*cc(ic,jc)+FOUR*cc(ic,jc+1)-cc(ic,jc+2))
             second_der = cc(ic,jc+2) - TWO*cc(ic,jc+1) + cc(ic,jc)
           else
@@ -489,35 +494,35 @@ contains
         end if
 
         j = ir(2)*jc
-        do m = 0,ir(2)-1
+        do m = 0, ir(2)-1
           ff(i,j+m) = cc(ic,jc) + xloc(m)*first_der + HALF*xloc(m)**2*second_der
         end do
       end do
 
-    else if (side == 2 .or. side == -2) then
+    else if ( side == 2 .or. side == -2 ) then
 
       j  = lo(2)
       jc = j / ir(2)
       do ic = lo(1)/ir(1), hi(1)/ir(1)
         first_der  = ZERO
         second_der = ZERO
-        if (ic > loc(1) .and. ic < hic(1)) then
+        if ( ic > loc(1) .and. ic < hic(1) ) then
           first_der  = HALF * (cc(ic+1,jc)-cc(ic-1,jc))
           second_der = (cc(ic+1,jc)+cc(ic-1,jc)-TWO*cc(ic,jc))
-        else if (ic > loc(1)) then
-          if (ic > loc(1)+1) then
+        else if ( ic > loc(1) ) then
+          if ( ic > loc(1)+1 ) then
             first_der  = HALF*( THREE*cc(ic,jc)-FOUR*cc(ic-1,jc)+cc(ic-2,jc))
             second_der = cc(ic-2,jc) - TWO*cc(ic-1,jc) + cc(ic,jc)
           else
-            first_der  =       (cc(ic,jc  )-cc(ic-1,jc))
+            first_der  = (cc(ic,jc)-cc(ic-1,jc))
             second_der = ZERO
           end if
-        else if (ic < hic(1)) then
+        else if ( ic < hic(1) ) then
           if (ic < hic(1)-1) then
             first_der  = HALF*(-THREE*cc(ic,jc)+FOUR*cc(ic+1,jc)-cc(ic+2,jc))
             second_der = cc(ic+2,jc) - TWO*cc(ic+1,jc) + cc(ic,jc)
           else
-            first_der  =       (cc(ic+1,jc)-cc(ic,jc  ))
+            first_der  = (cc(ic+1,jc)-cc(ic,jc  ))
             second_der = ZERO
           end if
         end if

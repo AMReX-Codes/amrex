@@ -796,3 +796,13 @@ subroutine t_bl_types
   implicit none
   call bl_types_info(unit_stdout())
 end subroutine t_bl_types
+
+subroutine t_box_read
+  use box_module
+  implicit none
+  type(box) :: bx
+  open(1, file = "tbox", status="old")
+  call box_read(bx, 1)
+  print *, 'bx = ', bx
+  close(1)
+end subroutine t_box_read

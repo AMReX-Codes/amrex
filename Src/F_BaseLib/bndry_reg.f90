@@ -7,6 +7,7 @@ module bndry_reg_module
 
   type, public :: bndry_reg
      integer :: dim = 0
+     integer :: nc  = 1
      type(multifab), pointer :: bmf(:,:) => Null()
      type(layout) :: la
      type(layout), pointer :: laf(:,:) => Null()
@@ -34,11 +35,12 @@ contains
     br%dim = 0
   end subroutine bndry_reg_destroy
 
-  subroutine bndry_reg_build(br, la, rr, pd, width, nodal)
+  subroutine bndry_reg_build(br, la, rr, pd, nc, width, nodal)
     type(layout), intent(inout) :: la
     type(bndry_reg), intent(out) :: br
     integer, intent(in) :: rr(:)
     type(box), intent(in) :: pd
+    integer, intent(in), optional :: nc
     integer, intent(in), optional :: width
     logical, intent(in), optional :: nodal(:)
     type(box) :: rbox
@@ -51,7 +53,9 @@ contains
     type(box) :: lpd
     type(boxarray) :: baa
     logical :: nd_flag(size(rr))
+    integer :: lnc
 
+    lnc = 1; if ( present(nc) ) lnc = nc
     lw = 0; if ( present(width) ) lw = width
 
     dm = layout_dim(la)
@@ -63,6 +67,7 @@ contains
 
     br%dim = dm
     br%la  = la
+    br%nc  = lnc
 
     lpd = box_nodalize(pd, nodal)
 
@@ -122,7 +127,7 @@ contains
 
           call build(baa, bxs, sort = .false.)
           call build(br%laf(i,f), baa)
-          call build(br%bmf(i,f), br%laf(i,f), 1, 0)
+          call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
 
        end do
