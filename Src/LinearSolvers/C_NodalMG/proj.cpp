@@ -4,6 +4,7 @@
 #include <CArena.H>
 #include <Utility.H>
 #include <ParmParse.H>
+#include <VisMF.H>
 
 #include <iostream>
 #include <iomanip>
@@ -33,6 +34,9 @@ RegType bc20;
 RegType bc01;
 RegType bc11;
 RegType bc21;
+std::string denfile;
+bool use_denfile = false;
+MultiFab density;
 
 holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 
@@ -89,6 +93,13 @@ main(int argc, char **argv)
       BoxLib::Error("stencil must be cross, terrain, or full");
     }
 
+    pp.query("denfile", denfile);
+    if ( denfile.size() > 0 ) 
+      {
+	use_denfile = true;
+      }
+    
+
     if ( ParallelDescriptor::IOProcessor() )
     {
 	std::cout << "nrep = " << nrep << std::endl;
@@ -98,16 +109,33 @@ main(int argc, char **argv)
     std::cout << std::setprecision(15);
 
     int num = pp.countname("file");
-    for ( int k = 0; k < num; k++)
-    {
-	std::string filename;
-	pp.getkth("file", k, filename, 0);
-	if ( ParallelDescriptor::IOProcessor() )
-	{
-	    std::cout << "file " << k << " is " << filename << std::endl;
-	}
-	driver(filename.c_str());
-    }
+
+    if ( use_denfile && hg_stencil != holy_grail_amr_multigrid::cross ) 
+      {
+	BoxLib::Error("denfile needs cross stencil");
+      }
+
+    if ( use_denfile && num > 0 )
+      {
+	BoxLib::Error("can't use denfile and file spec");
+      }
+    else if ( use_denfile ) 
+      {
+	driver(denfile.c_str());
+      }
+    else
+      {
+	for ( int k = 0; k < num; k++)
+	  {
+	    std::string filename;
+	    pp.getkth("file", k, filename, 0);
+	    if ( ParallelDescriptor::IOProcessor() )
+	      {
+		std::cout << "file " << k << " is " << filename << std::endl;
+	      }
+	    driver(filename.c_str());
+	  }
+      }
 
     if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
     {
@@ -142,20 +170,32 @@ main(int argc, char **argv)
 void
 driver(const char *filename)
 {
-    Array<BoxArray> m;
-    Array<IntVect> ratio;
-    Array<Box> domain;
+  Array<BoxArray> m;
+  Array<IntVect> ratio;
+  Array<Box> domain;
 
-    std::fstream grid;
-    grid.open(filename, std::ios::in);
-    if ( grid.fail() )
+  if ( use_denfile )
     {
-	BoxLib::Warning("Failed to open grid file");
-	return;
+      VisMF::Read(density, denfile);
+      m.resize(1);
+      m[0] = density.boxArray();
+      ratio.resize(0);
+      domain.resize(1);
+      domain[0] = m[0].minimalBox();
     }
-    amr_multigrid::mesh_read(m, ratio, domain, grid);
-    grid.close();
-    projtest(m, ratio, domain);
+  else
+    {
+      std::fstream grid;
+      grid.open(filename, std::ios::in);
+      if ( grid.fail() )
+	{
+	  BoxLib::Warning("Failed to open grid file");
+	  return;
+	}
+      amr_multigrid::mesh_read(m, ratio, domain, grid);
+      grid.close();
+    }
+  projtest(m, ratio, domain);
 }
 
 void
@@ -419,8 +459,17 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	}
 	else
 	{
-	    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
-	    rhoinv[ilev].setVal(1.0);
+	  if ( use_denfile ) 
+	    {
+	      rhoinv.set(ilev, new MultiFab(cmesh,1,0));
+	      rhoinv[0].copy(density);
+	      rhoinv[0].invert(1.0, 0, 1);
+	    }
+	  else
+	    {
+	      rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
+	      rhoinv[ilev].setVal(1.0);
+	    }
 	}
 	rhs.set(ilev, new MultiFab(nmesh, 1, 1));
 	//rhs.set(ilev, new MultiFab(cmesh, 1, 1));
