@@ -83,6 +83,7 @@ private:
 bool
 task_restriction_fill::ready()
 {
+    abort();
     tf->ready();
     const Box fb = tf->fab().box();
     const Box pb = m[ind].box();

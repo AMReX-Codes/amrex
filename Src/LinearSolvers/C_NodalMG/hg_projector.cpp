@@ -89,7 +89,7 @@ public:
 	: f(f_), s(s_), S(S_), igrid(igrid_), tf(tf_), creg(creg_), rat(rat_), idim(idim_), idir(idir_) {}
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -114,7 +114,7 @@ public:
 	: f(f_), s(s_), igrid(igrid_), Sfp(Sfp_), Scp(Scp_), creg(creg_), rat(rat_), t(t_), ga(ga_) {}
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -148,7 +148,7 @@ public:
     }
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -183,7 +183,7 @@ public:
     }
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {

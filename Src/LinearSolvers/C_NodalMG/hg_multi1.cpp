@@ -57,6 +57,7 @@ public:
     }
     virtual bool ready()
     {
+	abort();
 	if ( tf->ready() )
 	{
 	    interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
