@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.40 1998-06-21 17:56:23 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.41 1998-07-08 16:33:36 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -289,8 +289,8 @@ FluxRegister::Reflux (MultiFab&       S,
         const RF& rf          = RFs[i];
 
         assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        assert(S.DistributionMap().ProcessorMap()[rf.m_fabidx] == MyProc);
-        assert(volume.DistributionMap().ProcessorMap()[rf.m_fabidx] == MyProc);
+        assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
+        assert(volume.DistributionMap()[rf.m_fabidx] == MyProc);
 
         FArrayBox& fab_S            = S[rf.m_fabidx];
         const FArrayBox& fab_volume = volume[rf.m_fabidx];
@@ -482,7 +482,7 @@ FluxRegister::Reflux (MultiFab&       S,
         const RF& rf          = RFs[i];
 
         assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        assert(S.DistributionMap().ProcessorMap()[rf.m_fabidx] == MyProc);
+        assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
 
         FArrayBox& fab_S = S[rf.m_fabidx];
         Box fine_face    = ::adjCell(grids[rf.m_fridx],rf.m_face);
@@ -659,7 +659,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         FabSet& fabset = bndry[the_face];
         int fabindex   = fbid_mflx.FabIndex();
 
-        assert(fabset.DistributionMap().ProcessorMap()[fabindex] == MyProc);
+        assert(fabset.DistributionMap()[fabindex] == MyProc);
 
         FArrayBox&  fab      = fabset[fabindex];
         const int*  flo      = mflx_fab.box().loVect();
