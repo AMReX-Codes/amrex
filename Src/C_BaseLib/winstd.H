@@ -16,6 +16,14 @@
 //#undef min
 #undef abs
 
+struct timespec
+{
+    long int tv_sec;
+    long int tv_nsec;
+};
+typedef int mode_t;
+typedef int pid_t;
+
 // Place some globals in the standard namespace, where they belong
 namespace std
 {

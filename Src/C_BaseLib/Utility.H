@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.48 2001-07-26 20:31:38 car Exp $
+// $Id: Utility.H,v 1.49 2001-07-26 20:50:06 car Exp $
 //
 #include <iostream>
 #include <string>
@@ -11,13 +11,6 @@
 #ifndef WIN32
 #include <sys/types.h>
 #include <sys/wait.h>
-#endif
-#ifdef WIN32
-struct timespec
-{
-    long int tv_sec;
-    long int tv_nsec;
-};
 #endif
 
 #include <BLassert.H>
@@ -61,10 +54,6 @@ namespace BoxLib
     std::string Concatenate (const std::string& root,
                              int                num);
 
-#ifdef WIN32
-    bool UtilCreateDirectory (const std::string& path,
-                              int                mode);
-#else
     /*@ManDoc:
       Creates the specified directories.  `path' may be either a full pathname
       or a relative pathname.  It will create all the directories in the
@@ -85,7 +74,6 @@ namespace BoxLib
     */
     bool UtilCreateDirectory (const std::string& path,
                               mode_t             mode);
-#endif
     //
     //@ManDoc: Output a message and abort when couldn't create the directory.
     //
@@ -128,13 +116,11 @@ namespace BoxLib
     */
     void InitRandom (unsigned long seed);
 
-#ifndef WIN32
     /*@ManDoc: Try to execute a shell command in a subshell.
                User is responsible for calling waitpid() on the pid
 	       returned from this function.
     */
     pid_t Execute (const char* cmd);
-#endif
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //

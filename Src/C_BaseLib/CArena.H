@@ -1,9 +1,7 @@
 #ifndef BL_CARENA_H
 #define BL_CARENA_H
 
-#ifdef WIN32
-#pragma warning (disable : 4786)
-#endif
+#include <winstd.H>
 #include <cstddef>
 #include <set>
 #include <vector>
