@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.45 1998-06-16 18:01:37 lijewski Exp $
+// $Id: Amr.cpp,v 1.46 1998-07-06 20:44:00 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -29,8 +29,11 @@ using std::ios;
 #include <stdio.h>
 #endif
 
+//
+// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
+//
 #ifndef BL_USE_SETBUF
-#define setbuf pubsetbuf
+#define pubsetbuf setbuf
 #endif
 
 AmrLevel&
@@ -423,14 +426,12 @@ Amr::writePlotFile (const aString& root,
 
     aString HeaderFileName = pltfile + "/Header";
 
-#ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
+
     ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
-    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+
     int old_prec;
 
     if (ParallelDescriptor::IOProcessor())
@@ -661,14 +662,12 @@ Amr::restart (const aString& filename)
     File += '/';
     File += "Header";
 
-#ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
+
     ifstream is;
 
-#ifdef BL_USE_SETBUF
-    is.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
+    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+
     is.open(File.c_str(), ios::in);
 
     if (!is.good())
@@ -789,14 +788,12 @@ Amr::checkPoint ()
 
     aString HeaderFileName = ckfile + "/Header";
 
-#ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
+
     ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
-    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+
     int old_prec, i;
 
     if (ParallelDescriptor::IOProcessor())
