@@ -1,6 +1,6 @@
 
 //
-// $Id: tFB.cpp,v 1.8 2001-10-17 17:53:33 lijewski Exp $
+// $Id: tFB.cpp,v 1.9 2004-03-04 18:09:01 car Exp $
 //
 // A test program for FillBoundary().
 //
@@ -17,13 +17,13 @@ static
 void
 DumpFirstFab (const MultiFab& mf)
 {
-    BL_ASSERT(mf.length() > 1);
+    BL_ASSERT(mf.size() > 1);
 
     if (ParallelDescriptor::IOProcessor())
     {
         BL_ASSERT(mf.DistributionMap()[0] == ParallelDescriptor::MyProc());
 
-        cout << mf[0] << endl;
+	std::cout << mf[0] << std::endl;
     }
 }
 
@@ -39,9 +39,9 @@ DoIt (MultiFab& mf)
     //
     for (int i = 0; i < 10; i++)
     {
-        for(MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            mfi().setVal(mfi.index()+1,0);
+            mf[mfi].setVal(mfi.index()+1,0);
         }
 
         mf.FillBoundary(0,1);
@@ -53,9 +53,9 @@ DoIt (MultiFab& mf)
     //
     for (int i = 0; i < 10; i++)
     {
-        for(MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            mfi().setVal(mfi.index()+10,1);
+            mf[mfi].setVal(mfi.index()+10,1);
         }
 
         mf.FillBoundary(1,1);
@@ -67,9 +67,9 @@ DoIt (MultiFab& mf)
     //
     for (int i = 0; i < 10; i++)
     {
-        for(MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            mfi().setVal(mfi.index()+100);
+            mf[mfi].setVal(mfi.index()+100);
         }
 
         mf.FillBoundary();
@@ -92,7 +92,7 @@ main (int argc, char** argv)
     Box bx2 = bx1;
     bx2.shift(0,2);
 
-    bl.append(bx1); bl.append(bx2);
+    bl.push_back(bx1); bl.push_back(bx2);
 
     BoxArray ba(bl);
     
