@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.38 1999-04-11 23:29:58 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.39 1999-04-12 20:31:47 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -36,6 +36,7 @@ MultiFab::Copy (MultiFab&       dst,
                 int             nghost)
 {
     assert(dst.boxArray() == src.boxArray());
+    assert(dst.distributionMap == src.distributionMap);
     assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
     for (MultiFabIterator mfi(dst); mfi.isValid(); ++mfi)
