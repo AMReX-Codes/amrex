@@ -502,7 +502,8 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		{
 		    // outside corner
 		    Box fbox = refine(cbox, rat);
-		    int idir0, idir1;
+		    int idir0;
+		    int idir1;
 		    if (geo & level_interface::XL) 
 		    {
 			fbox.growLo(0, rat[0]);

@@ -154,8 +154,7 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 	int jgrid = lev_interface.direct_exterior_ref(igrid);
 	if (jgrid >= 0) 
 	{
-	    Box tb;
-	    tb = em[igrid];
+	    Box tb = em[igrid];
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
 	    {
@@ -392,19 +391,18 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			kgrid = lev_interface.grid(1, iedge, 2);
 		    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
 		    {	
-			Box b;
 			int dir[2];
 			node_dirs(dir, lev_interface.box(1, iedge).type());
 			if (kgrid == lev_interface.grid(1, iedge, 1)) 
 			{
-			    b = lev_interface.node_box(1, iedge);
+			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[0], -1));
 			    b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
 			}
 			else 
 			{
-			    b = lev_interface.node_box(1, iedge);
+			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
 			    b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, igrid, jgrid, b.shift(dir[0],  1));
@@ -420,19 +418,18 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			kgrid = lev_interface.grid(1, iedge, 3);
 		    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
 		    {
-			Box b;		    
 			int dir[2];
 			node_dirs(dir, lev_interface.box(1, iedge).type());
 			if (kgrid == lev_interface.grid(1, iedge, 0)) 
 			{
-			    b = lev_interface.node_box(1, iedge);
+			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[0],  1));
 			    b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
 			}
 			else 
 			{
-			    b = lev_interface.node_box(1, iedge);
+			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
 			    b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, igrid, jgrid, b.shift(dir[0], -1));
