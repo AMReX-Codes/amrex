@@ -41,3 +41,15 @@ ifeq ($(WHICHLINUX), PCCLUSTER)
              #  this should be made into a link to the current version  ^^^^^^
 endif
 
+ifeq ($(WHICHLINUX), ALPHACLUSTER)
+  FC  := fort -assume nounderscore
+#  FC  := fort
+  override FORTLINK := LOWERCASE
+  #FOPTF += -O5 -fast -transform_loops -speculate all -automatic
+  FOPTF = -O5 -fast
+  FOPTF = -O2
+  LIBRARY_LOCATIONS += /usr/local/pkg/gcc-2.95.1-generic/lib/gcc-lib/alpha-redhat-linux/2.95.1
+             #  this should be made into a link to the current version  ^^^^^^
+  LIBRARIES += -lfor
+endif
+
