@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.3 1999-01-04 18:09:00 marc Exp $
+c $Id: ABec_2D.F,v 1.4 1999-01-04 19:01:07 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -10,6 +10,7 @@ c
 
 #include "ABec_F.H"
 #include "ArrayLim.H"
+#include "CONSTANTS.H"
 
 c-----------------------------------------------------------------------
 c      
