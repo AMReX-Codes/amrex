@@ -133,7 +133,6 @@ contains
   function diag_0_q(ss) result(r)
     logical :: r
     real(kind=dp_t), intent(in) :: ss(:,:,:,0:)
-    integer :: i, j
     r = any(ss(:,:,:,0) == ZERO)
   end function diag_0_q
 
@@ -382,7 +381,7 @@ contains
     integer, pointer :: mp(:,:,:,:)
     type(box) :: bx, pd
     real(kind=dp_t) lxa(st%dim), lxb(st%dim)
-    integer :: lorder, lfill
+    integer :: lorder
     real(kind=dp_t) :: lal, lbe
 
     pd = get_pd(get_layout(st%ss))

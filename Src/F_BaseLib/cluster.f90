@@ -316,7 +316,8 @@ contains
     type(box), intent(in) :: bx
     integer, intent(out) :: sigx(lo(1):),sigy(lo(1):),sigz(lo(1):)
     integer, intent(out) :: lplx(lo(1):),lply(lo(1):),lplz(lo(1):)
-    logical, pointer :: tp(:,:,:,:), mp(:,:,:,:)
+    logical, pointer :: tp(:,:,:,:)
+!   logical, pointer :: mp(:,:,:,:)
     integer :: n
 
     integer, allocatable :: tsigx(:),tsigy(:),tsigz(:)
