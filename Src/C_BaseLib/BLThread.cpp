@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.21 2001-11-01 18:53:15 car Exp $
+// $Id: BLThread.cpp,v 1.22 2001-11-01 23:21:34 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -812,7 +812,7 @@ extern "C" void* thr_func(void* arg_)
 	*a = ++thread_counter;
     }
     // Initially the TS must be NULL
-    THREAD_REQUIRE( ts_tid.set(a) == 0 );
+    THREAD_ASSERT( ts_tid.set(a) == 0 );
     return (*func)(arg);
 }
 
