@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.83 1998-11-24 19:22:38 lijewski Exp $
+// $Id: FabArray.H,v 1.84 1998-12-01 21:56:23 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -824,7 +824,7 @@ class FabArrayCopyDescriptor
                       int        numcomp,
                       bool       bUseValidBox = true);
 
-    void CollectData (Array<int>* cachedSnds = 0);
+    void CollectData ();
 
     void FillFab (FabArrayId       fabarrayid,
                   const FillBoxId& fillboxid,
@@ -2345,7 +2345,7 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>* cachedSnds)
+FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
     dataAvailable = true;
 
@@ -2386,50 +2386,20 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>* cachedSnds)
     //
     // Set Snds[i] to # of blocks we must send to CPU i ...
     //
-    if (cachedSnds == 0 || cachedSnds->length() == 0)
+    mpi_gath.start();
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
     {
-        mpi_gath.start();
-        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
-            if ((rc = MPI_Gather(&Rcvs[i],
-                                 1,
-                                 MPI_INT,
-                                 Snds.dataPtr(),
-                                 1,
-                                 MPI_INT,
-                                 i,
-                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
-        mpi_gath.end();
-
-        if (cachedSnds)
-            *cachedSnds = Snds;
+        if ((rc = MPI_Gather(&Rcvs[i],
+                             1,
+                             MPI_INT,
+                             Snds.dataPtr(),
+                             1,
+                             MPI_INT,
+                             i,
+                             MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
     }
-    else
-    {
-        assert(cachedSnds->length() == ParallelDescriptor::NProcs());
-
-#ifndef NDEBUG
-        mpi_gath.start();
-        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
-            if ((rc = MPI_Gather(&Rcvs[i],
-                                 1,
-                                 MPI_INT,
-                                 Snds.dataPtr(),
-                                 1,
-                                 MPI_INT,
-                                 i,
-                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
-        mpi_gath.end();
-
-        assert(*cachedSnds == Snds);
-#endif
-        Snds = *cachedSnds;
-    }
+    mpi_gath.end();
 
     assert(Snds[MyProc] == 0);
 
