@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.5 1997-09-24 22:06:44 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.6 1997-11-26 05:07:26 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -42,20 +42,11 @@ using std::ios;
 #endif
 #endif
 
-//
-// This stuff exists to support reading of old FABs.
-//
-
 #if defined(BL_ARCH_IEEE)
    static const char sys_name[] = "IEEE";
 #elif defined(BL_ARCH_CRAY)
    static const char sys_name[] = "CRAY";
 #endif
-
-//
-// Default format to Native FP type.
-//
-FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
 
 //
 // Default Ordering to Normal Order.
@@ -66,7 +57,8 @@ FABio::Ordering FArrayBox::ordering = FABio::FAB_NORMAL_ORDER;
 // Our 8-bit FABio type.
 //
 class FABio_8bit
-    : public FABio
+    :
+    public FABio
 {
 public:
     virtual void read (istream&   is,
@@ -87,7 +79,8 @@ protected:
 // Our ASCII FABio type.
 //
 class FABio_ascii
-    : public FABio
+    :
+    public FABio
 {
 public:
     virtual void read (istream&   is,
@@ -108,7 +101,8 @@ protected:
 // Our binary FABio type.
 //
 class FABio_binary
-    : public FABio
+    :
+    public FABio
 {
 public:
     FABio_binary (RealDescriptor* rd_);
@@ -134,8 +128,7 @@ protected:
 // This isn't inlined as it's virtual.
 //
 
-FABio::~FABio ()
-{}
+FABio::~FABio () {}
 
 void
 FABio::write_header (ostream&         os,
@@ -145,22 +138,40 @@ FABio::write_header (ostream&         os,
     assert(nvar <= f.nComp());
     os << f.box() << ' ' << nvar << '\n';
     if (os.fail())
-        BoxLib::Error("FABio::write_header(ostream&,FArrayBox&,int) failed");
+        BoxLib::Error("FABio::write_header() failed");
 }
 
 //
-// The default FABio pointer is NATIVE.
+// Initially we have yet to read the ParmParse file.
+//
+bool FArrayBox::Initialized = false;
+
+//
+// Default format to NATIVE FP type.
+//
+FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
+
+//
+// The default FABio pointer must also be NATIVE.
 //
 FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
-    : BaseFab<Real>()
-{}
+    :
+    BaseFab<Real>()
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+}
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n)
-    : BaseFab<Real>(b,n)
-{}
+    :
+    BaseFab<Real>(b,n)
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+}
 
 void
 FArrayBox::setFormat (FABio::Format fmt)
@@ -169,8 +180,12 @@ FArrayBox::setFormat (FABio::Format fmt)
 
     switch (fmt)
     {
-    case FABio::FAB_ASCII: fio = new FABio_ascii; break;
-    case FABio::FAB_8BIT:  fio = new FABio_8bit;  break;
+    case FABio::FAB_ASCII:
+        fio = new FABio_ascii;
+        break;
+    case FABio::FAB_8BIT:
+        fio = new FABio_8bit;
+        break;
     case FABio::FAB_NATIVE:
         fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
         break;
@@ -224,8 +239,12 @@ FArrayBox::getPrecision ()
 #ifndef BL_CRAY_BUG_DEFARG
 FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
                       Real                         val)
-    : BaseFab<Real>(pf,val)
-{}
+    :
+    BaseFab<Real>(pf,val)
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+}
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
 
@@ -233,12 +252,13 @@ FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
 // This isn't inlined as it's virtual.
 //
 
-FArrayBox::~FArrayBox ()
-{}
+FArrayBox::~FArrayBox () {}
 
 void
 FArrayBox::init ()
 {
+    FArrayBox::Initialized = true;
+
     ParmParse pp("fab");
 
     aString ord, fmt;
@@ -273,7 +293,6 @@ FArrayBox::init ()
 
         setFABio(fio);
     }
-
     //
     // This block sets ordering which doesn't affect output format.
     // It is only used when reading in an old FAB.
@@ -292,14 +311,6 @@ FArrayBox::init ()
             BoxLib::Abort();
         }
     }
-}
-
-Real
-FArrayBox::norm (int p,
-                 int comp,
-                 int numcomp) const
-{
-    return norm(domain,p,comp,numcomp);
 }
 
 Real
@@ -323,8 +334,7 @@ FArrayBox::norm (const Box& subbox,
             const Real* row = &thisR;
             if (tmp == 0)
             {
-                tmp = new Real[thisLen];
-                if (tmp == 0)
+                if ((tmp = new Real[thisLen]) == 0)
                     BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
@@ -349,8 +359,7 @@ FArrayBox::norm (const Box& subbox,
             const Real* row = &thisR;
             if (tmp == 0)
             {
-                tmp = new Real[thisLen];
-                if (tmp == 0)
+                if ((tmp = new Real[thisLen]) == 0)
                     BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
@@ -383,6 +392,7 @@ FABio::read_header (istream&   is,
     int nvar;
     Box bx;
     FABio* fio = 0;
+    RealDescriptor* rd = 0;
     char c;
 
     is >> c;
@@ -417,10 +427,11 @@ FABio::read_header (istream&   is,
         case FABio::FAB_8BIT:  fio = new FABio_8bit;  break;
         case FABio::FAB_NATIVE:
         case FABio::FAB_IEEE:
-            fio = new FABio_binary(RealDescriptor::newRealDescriptor(typ_in,
-                                                                     wrd_in,
-                                                                     machine,
-                                                                     FArrayBox::ordering));
+            rd = RealDescriptor::newRealDescriptor(typ_in,
+                                                   wrd_in,
+                                                   machine,
+                                                   FArrayBox::ordering);
+            fio = new FABio_binary(rd);
             break;
         default:
             BoxLib::Error("FABio::read_header(): Unrecognized FABio header");
@@ -432,8 +443,7 @@ FABio::read_header (istream&   is,
         // The "new" FAB format.
         //
         is.putback(c);
-        RealDescriptor* rd = new RealDescriptor;
-        if (rd == 0)
+        if ((rd = new RealDescriptor) == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);
         is >> *rd;
         is >> bx;
@@ -455,34 +465,12 @@ FABio::read_header (istream&   is,
     return fio;
 }
 
-ostream&
-operator<< (ostream&         os,
-            const FArrayBox& f)
-{
-    static FABio_ascii fabio_ascii;
-    fabio_ascii.write(os,f,0,f.nComp());
-    return os;
-}
-
-istream&
-operator>> (istream&   is,
-            FArrayBox& f)
-{
-    FABio* fabrd = FABio::read_header(is,f);
-    fabrd->read(is,f);
-    delete fabrd;
-    return is;
-}
-
 FArrayBox::FArrayBox (istream& ifile)
 {
-    readFrom(ifile);
-}
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
 
-void
-FArrayBox::writeOn (ostream& os) const
-{
-    writeOn(os,0,nComp());
+    readFrom(ifile);
 }
 
 void
@@ -514,13 +502,6 @@ FArrayBox::skipFAB (istream& is,
     delete fabrd;
     num_comp = f.nComp();
     return f.box();
-}
-
-void
-FArrayBox::skipFAB (istream& is)
-{
-    int ignore = 0;
-    skipFAB(is, ignore);
 }
 
 void
@@ -561,7 +542,8 @@ FABio_ascii::read (istream&   is,
     for (p = sm; p <= bg; bx.next(p))
     {
         is >> q;
-        if(p != q) {
+        if (p != q)
+        {
 	  cerr << "Error:  read IntVect " << q << "  should be " << p << '\n';
           BoxLib::Error("FABio_ascii::read() bad IntVect");
 	}
@@ -585,7 +567,13 @@ FABio_ascii::write_header (ostream&         os,
                            const FArrayBox& f,
                            int              nvar) const
 {
-    os << "FAB: " << FABio::FAB_ASCII << ' ' << 0 << ' ' << sys_name << '\n';
+    os << "FAB: "
+       << FABio::FAB_ASCII
+       << ' '
+       << 0
+       << ' '
+       << sys_name
+       << '\n';
     FABio::write_header(os, f, nvar);
 }
 
@@ -689,7 +677,8 @@ FABio_8bit::write_header (ostream&         os,
 }
 
 FABio_binary::FABio_binary (RealDescriptor* rd_)
-    : rd(rd_)
+    :
+    rd(rd_)
 {}
 
 void
@@ -749,33 +738,36 @@ printRange (ostream&         os,
             int              comp,
             int              numcomp)
 {
-    //
-    // FIXME FIXME for aliases.
-    //
-    IntVect low = reg.smallEnd();
-    IntVect hi  = reg.bigEnd();
-    IntVect point;
-    //
-    // Sanity checks.
-    //
-    if ((! reg.ok() ) || comp < 0 || comp+numcomp > fab.nComp())
+    if (!reg.ok() || comp < 0 || comp+numcomp > fab.nComp())
     {
-        os << "printRange: bad indices:" <<  reg;
-        os << ' ' << comp << ' ' << numcomp << '\n';
+        os << "printRange(): bad indices:"
+           <<  reg
+           << ' '
+           << comp
+           << ' '
+           << numcomp
+           << '\n';
         return;
     }
-    if (!( (fab.box()).contains(reg)))
+    if (!fab.box().contains(reg))
     {
-        os << "printRange: indices outside FAB:" << reg << '\n';
-        os << fab.box() << '\n';
+        os << "printRange(): indices outside FAB:"
+           << reg
+           << '\n'
+           << fab.box()
+           << '\n';
         return;
     }
 
-    int prec = os.precision(8);
-    for (point=low; point <= hi; reg.next(point))
+    IntVect low = reg.smallEnd();
+    IntVect hi  = reg.bigEnd();
+    IntVect point;
+
+    int old_prec = os.precision(8);
+    for (IntVect point = low; point <= hi; reg.next(point))
     {
         os << point;
-        for (int k=comp; k<comp+numcomp; k++)
+        for (int k = comp; k < comp+numcomp; k++)
         {
             os << setw(15) << fab(point,k);
             if (k < comp+numcomp-1)
@@ -784,8 +776,7 @@ printRange (ostream&         os,
         }
         os << '\n';
     }
-    os << setprecision(prec);
-    os << '\n';
+    os << setprecision(old_prec) << '\n';
 
     if (os.fail())
         BoxLib::Error("printRange() failed");
@@ -800,11 +791,11 @@ printRange (ostream&         os,
             int              comp,
             int              numcomp)
 {
-    IntVect low(ilo);
-    IntVect hi(ihi);
-    IntVect typ(fab.box().type());
-    Box reg(low,hi,typ);
-    printRange(os,fab,reg,comp,numcomp);
+    printRange(os,
+               fab,
+               Box(IntVect(ilo), IntVect hi(ihi), IntVect(fab.box().type())),
+               comp,
+               numcomp);
 }
 
 void
@@ -861,11 +852,14 @@ printRange (ostream&         os,
             int              comp,
             int              numcomp)
 {
-    IntVect low(ilo,jlo,klo);
-    IntVect hi(ihi,jhi,khi);
-    IntVect typ(fab.box().type());
-    Box reg(low,hi,typ);
-    printRange(os,fab,reg,comp,numcomp);
+    
+    printRange(os,
+               fab,
+               Box(IntVect(ilo,jlo,klo),
+                   IntVect(ihi,jhi,khi),
+                   IntVect(fab.box().type())),
+               comp,
+               numcomp);
 }
 
 void
@@ -882,3 +876,22 @@ printRange (const FArrayBox& fab,
     printRange(cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,numcomp);
 }
 #endif
+
+ostream&
+operator<< (ostream&         os,
+            const FArrayBox& f)
+{
+    static FABio_ascii fabio_ascii;
+    fabio_ascii.write(os,f,0,f.nComp());
+    return os;
+}
+
+istream&
+operator>> (istream&   is,
+            FArrayBox& f)
+{
+    FABio* fabrd = FABio::read_header(is,f);
+    fabrd->read(is,f);
+    delete fabrd;
+    return is;
+}

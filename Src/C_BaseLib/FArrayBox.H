@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.5 1997-11-18 00:04:50 lijewski Exp $
+// $Id: FArrayBox.H,v 1.6 1997-11-26 05:07:25 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -193,10 +193,9 @@ public:
   your data out with less precision than your computation in order to
   save space.
 
-  The format and precision may be set in a file
-  read by the ParmParse class.  See the `init' member function.
-  After setting the format or precision, all subsequent output
-  for all FArrayBox's obey that setting.
+  The format and precision may be set in a file read by the ParmParse
+  class by the "fab.format" variable.  Allowed values are NATIVE, ASCII,
+  8BIT and IEEE32.
 
   FABs written using `operator<<' are always written in ASCII.
   FABS written using `writOn' use the FABio::Format specified with
@@ -208,13 +207,13 @@ public:
   this class.  The internal precision of FARRAYBOX objects is
   set by defining either `BL\_USE\_FLOAT' or `BL\_USE\_DOUBLE' 
 
-  This class does NOT provide a copy constructor or assignment operator.
-*/
+  This class does NOT provide a copy constructor or assignment operator.  */
 
 class FArrayBox
-    : public ArithFab<Real>, 
-      public OrderedFab<Real>,
-      public NormedFab<Real>
+    :
+    public ArithFab<Real>, 
+    public OrderedFab<Real>,
+    public NormedFab<Real>
 {
     //
     // FABio is a friend of ours.
@@ -397,11 +396,6 @@ public:
     //
     static void skipFAB (istream& is);
 
-    /*@ManDoc: Call this to read the FArrayBox info stored in the
-               ParmParse class.
-    */
-    static void init ();
-
     /*@ManDoc: Set the FABio::Format in the program.
                This is the preferred way to set the output format
                in "new" FABs.  When desiging new programs, this should
@@ -454,15 +448,24 @@ public:
 
 protected:
     //
+    // Initialize from ParmParse with "fab" prefix.
+    //
+    static void init ();
+    //
     // Format and ordering for all FAB output.
     // This stuff exists solely to support reading old FABs.
     //
     static FABio::Format   format;
     static FABio::Ordering ordering;
     //
+    // Has init() been called?
+    //
+    static bool Initialized;
+    //
     // The FABio pointer describing our output format.
     //
     static FABio* fabio;
+
 private:
     //
     // These are disallowed.
@@ -501,6 +504,30 @@ FArrayBox::setFABio (FABio* rd)
     assert(rd != 0);
     delete fabio;
     fabio = rd;
+}
+
+inline
+Real
+FArrayBox::norm (int p,
+                 int comp,
+                 int numcomp) const
+{
+    return norm(domain,p,comp,numcomp);
+}
+
+inline
+void
+FArrayBox::writeOn (ostream& os) const
+{
+    writeOn(os,0,nComp());
+}
+
+inline
+void
+FArrayBox::skipFAB (istream& is)
+{
+    int ignore = 0;
+    skipFAB(is, ignore);
 }
 
 #endif /*BL_FARRAYBOX_H*/
