@@ -1,0 +1,77 @@
+ALPHA=0
+BETA=0
+GAMMA=1
+
+COM=mcmg3d.OSF1.KCC.ex
+
+for i in 1 2 3 4 5 6 7 8 9
+do
+	echo " case $i -------------------------- "
+	CUX=0
+	CUY=0
+	CUZ=0
+
+	CVX=0
+	CVY=0
+	CVZ=0
+
+	CWX=0
+	CWY=0
+	CWZ=0
+
+	if test $i = 1 
+	then
+		CUX=1
+	elif test $i = 2
+	then
+		CUY=1
+	elif test $i = 3
+	then
+		CUZ=1
+	elif test $i = 4
+	then
+		CVX=1
+	elif test $i = 5
+	then
+		CVY=1
+	elif test $i = 6
+	then
+		CVZ=1
+	elif test $i = 7
+	then
+		CWX=1
+	elif test $i = 8
+	then
+		CWY=1
+	elif test $i = 9
+	then
+		CWZ=1
+	fi
+	# construct probin
+	{
+		echo " \$fortin"
+		echo
+		echo " cux = $CUX"
+		echo " cuy = $CUY"
+		echo " cuz = $CUZ"
+		echo
+		echo " cvx = $CVX"
+		echo " cvy = $CVY"
+		echo " cvz = $CVZ"
+		echo
+		echo " cwx = $CWX"
+		echo " cwy = $CWY"
+		echo " cwz = $CWZ"
+		echo
+		echo " alpha = $ALPHA"
+		echo " beta = $BETA"
+		echo " gamma = $GAMMA"
+		echo
+		echo " \$end"
+	} > probin
+	
+	#${COM} inputs boxes=grids/gr8.dog geometry.prob_lo = "-0.125 -0.125 -0.125" geometry.prob_hi = "1.125 1.125 1.125" | grep n2
+	${COM} inputs boxes=grids/gr16.dog geometry.prob_lo = "-0.0625 -0.0625 -0.0625" geometry.prob_hi = "1.0625 1.0625 1.0625" | grep 'n[23]'
+	${COM} inputs boxes=grids/gr32.dog geometry.prob_lo = "-0.03125 -0.03125 -0.03125" geometry.prob_hi = "1.03125 1.03125 1.03125" | grep 'n[23]'
+
+done

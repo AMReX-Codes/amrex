@@ -1,0 +1,2234 @@
+#include <REAL.H>
+
+#include "DivVis_F.H"
+#include <LO_BCTYPES.H>
+#include "ArrayLim.H"
+
+c :::: usage:
+c :::: this .mF file is meant to be run through Mathematica.  This converts
+c :::: compact symbolic expressions into fortran which is stored in a .F
+c :::: file.
+
+c----------------------------------------------------------------
+c     this is the fortran support file for the the operator 
+c     L(U) = alpha*a(x)*U - beta*Div( tau )
+c
+c     where U is the two component vector (u,v) and
+c     tau is a three by three tensor
+c     tau = | t_xx     t_xy 	t_xz|
+c           | t_xy     t_yy 	t_yz|
+c	    | t_xz     t_yz	t_zz|
+c
+c     t_xx = 2*mu * u_x
+c     t_yy = 2*mu * v_y
+c     t_zz = 2*mu * w_z
+c     t_xy = mu*(u_y + v_x)
+c     t_xz = mu*(u_z + w_x)
+c     t_yz = mu*(v_z + w_y)
+
+c ::: define standard replacements used by Mathematica
+c ::: see file visc3d.ma
+c ::: <* standardrepl = { dudx[i+half  ,j       ,k       ]->dudxe,
+                          dudx[i-1+half,j       ,k       ]->dudxw,
+                          dvdy[i,       j+half  ,k       ]->dvdyn ,
+                          dvdy[i,       j-1+half,k       ]->dvdys ,
+			  dwdz[i,       j       ,k+half  ]->dwdzt,
+			  dwdz[i,       j       ,k-1+half]->dwdzb,
+
+                          dudy[i,       j  +half,k]-> dudyn ,
+                          dudy[i,       j-1+half,k]-> dudys ,
+                          dudy[i+half,  j       ,k]-> dudye ,
+                          dudy[i-1+half,j       ,k]-> dudyw ,
+
+                          dvdx[i,       j  +half,k]-> dvdxn ,
+                          dvdx[i,       j-1+half,k]-> dvdxs ,
+                          dvdx[i+half,  j       ,k]-> dvdxe ,
+                          dvdx[i-1+half,j       ,k]-> dvdxw ,
+
+			  dudz[i       ,j       ,k+half  ]->dudzt,
+			  dudz[i       ,j       ,k-1+half]->dudzb,
+			  dudz[i+half  ,j       ,k       ]->dudze,
+			  dudz[i-1+half,j       ,k       ]->dudzw,
+
+			  dvdz[i       ,j       ,k+half  ]->dvdzt,
+			  dvdz[i       ,j       ,k-1+half]->dvdzb,
+			  dvdz[i       ,j+half  ,k       ]->dvdzn,
+			  dvdz[i       ,j-1+half,k       ]->dvdzs,
+
+			  dwdx[i+half  ,j       ,k       ]->dwdxe,
+			  dwdx[i+half-1,j       ,k       ]->dwdxw,
+			  dwdx[i       ,j       ,k+half  ]->dwdxt,
+			  dwdx[i       ,j       ,k+half-1]->dwdxb,
+
+			  dwdy[i       ,j+half  ,k       ]->dwdyn,
+			  dwdy[i       ,j+half-1,k       ]->dwdys,
+			  dwdy[i       ,j       ,k+half  ]->dwdyt,
+			  dwdy[i       ,j       ,k+half-1]->dwdyb,
+
+                          murepl1, murepl2,murepl3,
+                          tauxxdef, tauyydef,tauxydef,tauxzdef,tauyzdef,
+                          tauzzdef,
+			  vol->hx*hy*hz };  *>
+
+c ::: interface notes:
+c ::: 1) trander* ALWAYS have values in them, even if the cells are
+c :::    all covered.  Might as well.  These are edge located derivative
+c :::    values.  In index space, they are located the same as the mask
+c :::    cells.  Which is somewhat anomalous.  These are edge values, after
+c :::    all.  While the masks are cell-centered.  But it seems easier
+c :::    at the moment.
+c ::: 2) the normal derivatives are evaluated in the normal fashion.
+c ::: 3) tangential derivatives which reach outside the rectangle DO have
+c :::    to check the masks.  
+
+      subroutine FORT_DVAPPLY(
+     $     u, DIMS(u),
+     $     alpha, beta,
+     $     a, DIMS(a),
+     $     muX, DIMS(muX),
+     $     muY, DIMS(muY),
+     $     muZ, DIMS(muZ),
+     $     out, DIMS(out),
+     $     maskn,DIMS(maskn),
+     $     maske,DIMS(maske),
+     $     maskw,DIMS(maskw),
+     $     masks,DIMS(masks),
+     $     maskt,DIMS(maskt),
+     $     maskb,DIMS(maskb),
+     $     trandern,DIMS(trandern),
+     $     trandere,DIMS(trandere),
+     $     tranderw,DIMS(tranderw),
+     $     tranders,DIMS(tranders),
+     $     trandert,DIMS(trandert),
+     $     tranderb,DIMS(tranderb),
+     $     lo,hi,h
+     $     )
+      REAL_T alpha, beta
+      integer DIMDEC(u)
+      integer DIMDEC(a)
+      integer DIMDEC(muX)
+      integer DIMDEC(muY)
+      integer DIMDEC(muZ)
+      integer DIMDEC(out)
+      integer DIMDEC(maskn)
+      integer DIMDEC(maske)
+      integer DIMDEC(maskw)
+      integer DIMDEC(masks)
+      integer DIMDEC(maskt)
+      integer DIMDEC(maskb)
+      integer DIMDEC(trandern)
+      integer DIMDEC(trandere)
+      integer DIMDEC(tranderw)
+      integer DIMDEC(tranders)
+      integer DIMDEC(trandert)
+      integer DIMDEC(tranderb)
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      REAL_T h(BL_SPACEDIM)
+      REAL_T u(DIMV(u),3)
+      REAL_T a(DIMV(a))
+      REAL_T muX(DIMV(muX))
+      REAL_T muY(DIMV(muY))
+      REAL_T muZ(DIMV(muZ))
+      REAL_T out(DIMV(out),3)
+      integer  maskn(DIMV(maskn))
+      integer  maske(DIMV(maske))
+      integer  maskw(DIMV(maskw))
+      integer  masks(DIMV(masks))
+      integer  maskt(DIMV(maskt))
+      integer  maskb(DIMV(maskb))
+
+c ::: for transverse derives, first 3 is for variable, second 3 is for
+c ::: direction of derivative.  Obviously not all are used, but this is easy.
+      REAL_T trandern(DIMV(trandern),3,3)
+      REAL_T trandere(DIMV(trandere),3,3)
+      REAL_T tranderw(DIMV(tranderw),3,3)
+      REAL_T tranders(DIMV(tranders),3,3)
+      REAL_T trandert(DIMV(trandert),3,3)
+      REAL_T tranderb(DIMV(tranderb),3,3)
+
+      integer i,j,k
+      REAL_T tauxxw,tauxxe,tauyyn,tauyys
+      REAL_T tauxye,tauxyw,tauxyn,tauxys
+      REAL_T hx,hy,hz
+      REAL_T dudxe,dudxw
+      REAL_T dvdyn,dvdys
+      REAL_T dudye,dudyw
+      REAL_T dudyn,dudys
+      REAL_T dvdxe,dvdxw
+      REAL_T dvdxn,dvdxs
+      REAL_T dudzb,dudzt
+      REAL_T dwdzt,dwdzb
+      REAL_T dwdxb,dwdxt
+      REAL_T dvdzb,dvdzt
+      REAL_T dwdyb,dwdyt
+      REAL_T dudzw,dudze
+      REAL_T dwdxw,dwdxe
+      REAL_T dvdzs,dvdzn
+      REAL_T dwdys,dwdyn
+
+      logical False, True
+      parameter( False=.false.)
+      parameter( True=.true. )
+
+      hx = h(1)
+      hy = h(2)
+      hz = h(3)
+
+c ::: cases:
+c     ::: 0) interior.  All usual derivative expressions
+c     ::: 1-6) face but not on edge.  
+c     ::: 7-18) edge but not on corner.
+c     ::: 19-26) corners.
+
+c ::: case 0
+c ::: <* indexcond = Function[ {i,j,k}, False ] ; *>
+c ::: <* maskray = maskerr ; *>
+      do k=lo(3)+1,hi(3)-1
+         do j=lo(2)+1,hi(2)-1
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+         enddo
+      enddo
+
+c ::: case 1, top face
+c ::: <* indexcond = Function[{i,j,k},k>0] ; *>
+c ::: <* maskray = maskt ; *>
+c ::: <* tranderiv = trandert ; *>
+      k=hi(3)
+         do j=lo(2)+1,hi(2)-1
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+         enddo
+
+c ::: case 2, bottom face
+c ::: <* indexcond = Function[{i,j,k},k<0] ; *>
+c ::: <* maskray = maskb ; *>
+c ::: <* tranderiv = tranderb ; *>
+      k=lo(3)
+         do j=lo(2)+1,hi(2)-1
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+         enddo
+
+c ::: case 3, west face
+c ::: <* indexcond = Function[{i,j,k},i<0] ; *>
+c ::: <* maskray = maskw ; *>
+c ::: <* tranderiv = tranderw ; *>
+      i = lo(1)
+      do k=lo(3)+1,hi(3)-1
+         do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+      enddo
+
+c ::: case 4, east face
+c ::: <* indexcond = Function[{i,j,k},i>0] ; *>
+c ::: <* maskray = maske ; *>
+c ::: <* tranderiv = trandere ; *>
+      i = hi(1)
+      do k=lo(3)+1,hi(3)-1
+         do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+      enddo
+	
+c ::: case 5, north face
+c ::: <* indexcond = Function[{i,j,k},j>0] ; *>
+c ::: <* maskray = maskn ; *>
+c ::: <* tranderiv = trandern ; *>
+      j = hi(2)
+      do k=lo(3)+1,hi(3)-1
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+      enddo
+
+
+c ::: case 6, south face
+c ::: <* indexcond = Function[{i,j,k},j<0] ; *>
+c ::: <* maskray = masks ; *>
+c ::: <* tranderiv = tranders ; *>
+      j = lo(2)
+      do k=lo(3)+1,hi(3)-1
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+      enddo
+
+c ::: case 7, top-north edge 
+c ::: <* indexcond = Function[{i,j,k},(k>0||j>0)] ; *>
+c ::: <* Clear[maskray] *>
+c ::: <* Clear[tranderiv] *>
+      k=hi(3)
+         j=hi(2)
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+
+
+c ::: case 8, top-south edge 
+c ::: <* indexcond = Function[{i,j,k},(k>0||j<0)] ; *>
+      k=hi(3)
+         j=lo(2)
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+
+
+c ::: case 9, top-west edge 
+c ::: <* indexcond = Function[{i,j,k},(k>0||i<0)] ; *>
+      k=hi(3)
+      i=lo(1)
+         do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+
+c ::: case 10, top-east edge 
+c ::: <* indexcond = Function[{i,j,k},(k>0||i>0)] ; *>
+      k=hi(3)
+      i=hi(1)
+         do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maske  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+
+
+c ::: case 11, bottom-north edge 
+c ::: <* indexcond = Function[{i,j,k},(k<0||j>0)] ; *>
+      k=lo(3)
+      j=hi(2)
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+
+
+c ::: case 12, bottom-south edge 
+c ::: <* indexcond = Function[{i,j,k},(k<0||j<0)] ; *>
+      k=lo(3)
+      j=lo(2)
+            do i=lo(1)+1,hi(1)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskray] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskray] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskray] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+            enddo
+
+
+
+c ::: case 13, bottom-west edge 
+c ::: <* indexcond = Function[{i,j,k},(k<0||i<0)] ; *>
+      k=lo(3)
+      i=lo(1)
+      do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskray] *>
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+
+
+
+c ::: case 14, bottom-east edge 
+c ::: <* indexcond = Function[{i,j,k},(k<0||i>0)] ; *>
+      k=lo(3)
+      i=hi(1)
+         do j=lo(2)+1,hi(2)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskray] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskray] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskray] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskray] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+         enddo
+
+
+c ::: case 15, east-north edge
+c ::: <* indexcond = Function[{i,j,k},(j>0||i>0)] ; *>
+      j=hi(2)
+      i=hi(1)
+      do k=lo(3)+1,hi(3)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+      enddo
+
+
+c ::: case 16, east-south edge
+c ::: <* indexcond = Function[{i,j,k},(j<0||i>0)] ; *>
+      j=lo(2)
+      i=hi(1)
+      do k=lo(3)+1,hi(3)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+      enddo
+
+
+c ::: case 17, west-north edge
+c ::: <* indexcond = Function[{i,j,k},(j>0||i<0)] ; *>
+      j=hi(2)
+      i=lo(1)
+      do k=lo(3)+1,hi(3)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+      enddo
+
+
+
+c ::: case 18, west-south edge
+c ::: <* indexcond = Function[{i,j,k},(j<0||i<0)] ; *>
+      j=lo(2)
+      i=lo(1)
+      do k=lo(3)+1,hi(3)-1
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,tranderiv,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,tranderiv,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,tranderiv,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,tranderiv,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskray] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskray] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+      enddo
+
+c ::: case 19, top-north-east corner
+c ::: <* indexcond = Function[{i,j,k},(k>0||j>0||i>0)] ; *>
+      k=hi(3)
+      j=hi(2)
+      i=hi(1)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+c ::: case 20, top-north-west corner
+c ::: <* indexcond = Function[{i,j,k},(k>0||j>0||i<0)] ; *>
+           i=lo(1)
+           j=hi(2)
+           k=hi(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 21, top-south-east corner
+c ::: <* indexcond = Function[{i,j,k},(k>0||j<0||i>0)] ; *>
+           i=hi(1)
+           j=lo(2)
+           k=hi(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 22, top-south-west corner
+c ::: <* indexcond = Function[{i,j,k},(k>0||j<0||i<0)] ; *>
+           i=lo(1)
+           j=lo(2)
+           k=hi(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskt  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskt  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 23, bottom-north-east corner
+c ::: <* indexcond = Function[{i,j,k},(k<0||j>0||i>0)] ; *>
+           i=hi(1)
+           j=hi(2)
+           k=lo(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 24, bottom-north-west corner
+c ::: <* indexcond = Function[{i,j,k},(k<0||j>0||i<0)] ; *>
+           i=lo(1)
+           j=hi(2)
+           k=lo(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,maskn  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,maskn  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,maskn  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,maskn  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 25, bottom-south-east corner
+c ::: <* indexcond = Function[{i,j,k},(k<0||j<0||i>0)] ; *>
+           i=hi(1)
+           j=lo(2)
+           k=lo(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maske  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maske  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maske  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maske  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+c ::: case 26, bottom-south-west corner
+c ::: <* indexcond = Function[{i,j,k},(k<0||j<0||i<0)] ; *>
+           i=lo(1)
+           j=lo(2)
+           k=lo(3)
+c     :::  get expressions for normal derivatives
+               dudxe = <* FA[ dudx[i+half,j,k] //.    allDerivAllUV ] *>
+               dudxw = <* FA[ dudx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dvdyn = <* FA[ dvdy[i,j+half,k] //.    allDerivAllUV ] *>
+               dvdys = <* FA[ dvdy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dwdzt = <* FA[ dwdz[i,j,k+half]   //.  allDerivAllUV ] *>
+               dwdzb = <* FA[ dwdz[i,j,k-1+half] //.  allDerivAllUV ] *>
+
+               dudyn = <* FA[ dudy[i,j  +half,k] //.  allDerivAllUV ] *>
+               dudys = <* FA[ dudy[i,j-1+half,k] //.  allDerivAllUV ] *>
+
+               dvdxe = <* FA[ dvdx[i+half,j,k]   //.  allDerivAllUV ] *>
+               dvdxw = <* FA[ dvdx[i-1+half,j,k] //.  allDerivAllUV ] *>
+
+               dudzt = <* FA[ dudz[i       ,j,k  +half] //. allDerivAllUV ] *>
+               dudzb = <* FA[ dudz[i       ,j,k-1+half] //. allDerivAllUV ] *>
+
+               dvdzb = <* FA[ dvdz[i, j, k-1+half] //. allDerivAllUV ] *>
+               dvdzt = <* FA[ dvdz[i, j, k  +half] //. allDerivAllUV ] *>
+
+               dwdxw = <* FA[ dwdx[i-1+half,j,k  ] //. allDerivAllUV ] *>
+               dwdxe = <* FA[ dwdx[i  +half,j,k  ] //. allDerivAllUV ] *>
+
+               dwdys = <* FA[ dwdy[i,j-1+half,k  ] //. allDerivAllUV ] *>
+               dwdyn = <* FA[ dwdy[i,j  +half,k  ] //. allDerivAllUV ] *>
+
+c     ::: get expressions for tangential derivatives
+<*altgen[dvdxn,i,j  +half,k,dvdx,dvdxalt,trandern ,2,1,indexcond,maskw  ] *>
+<*altgen[dvdxs,i,j-1+half,k,dvdx,dvdxalt,tranders ,2,1,indexcond,maskw  ] *>
+<*altgen[dwdxb,i,j,k-1+half,dwdx,dwdxalt,tranderb ,3,1,indexcond,maskw  ] *>
+<*altgen[dwdxt,i,j,k  +half,dwdx,dwdxalt,trandert ,3,1,indexcond,maskw  ] *>
+<*altgen[dudye,i  +half,j,k,dudy,dudyalt,trandere ,1,2,indexcond,masks  ] *>
+<*altgen[dudyw,i-1+half,j,k,dudy,dudyalt,tranderw ,1,2,indexcond,masks  ] *>
+<*altgen[dwdyb,i,j,k-1+half,dwdy,dwdyalt,tranderb ,3,2,indexcond,masks  ] *>
+<*altgen[dwdyt,i,j,k  +half,dwdy,dwdyalt,trandert ,3,2,indexcond,masks  ] *>
+<*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderw ,1,3,indexcond,maskb  ] *>
+<*altgen[dudze,i  +half,j,k,dudz,dudzalt,trandere ,1,3,indexcond,maskb  ] *>
+<*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
+<*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
+
+c     :::  evaluate expression
+               out(i,j,k,1) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,1] - beta* (
+                                hy*hz*(tauxx[i+half  ,j       ,k]-
+                                       tauxx[i-1+half,j       ,k])+ 
+                                hx*hz*(tauxy[i       ,j+half  ,k]-
+                                       tauxy[i       ,j-1+half,k] )+
+                                hx*hy*(tauxz[i       ,j       ,k+half]-
+                                       tauxz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,2) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,2] - beta* (
+                                hy*hz*(tauxy[i+half  ,j       ,k]-
+                                       tauxy[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyy[i       ,j+half  ,k]-
+                                       tauyy[i       ,j-1+half,k] )+
+                                hx*hy*(tauyz[i       ,j       ,k+half]-
+                                       tauyz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+               out(i,j,k,3) = <* FA[ (alpha*a[i,j,k]*u[i,j,k,3] - beta* (
+                                hy*hz*(tauxz[i+half  ,j       ,k]-
+                                       tauxz[i-1+half,j       ,k])+ 
+                                hx*hz*(tauyz[i       ,j+half  ,k]-
+                                       tauyz[i       ,j-1+half,k] )+
+                                hx*hy*(tauzz[i       ,j       ,k+half]-
+                                       tauzz[i       ,j       ,k-1+half]))/vol
+                                ) //. standardrepl ] *>
+
+
+
+
+
+
+      return
+      end
+
+
+
+

@@ -1,0 +1,8 @@
+geometry.coord_sys      = 0        # 0 => cart, 1 => RZ
+geometry.prob_lo   =   -0.0625 -0.0625 -0.0625
+geometry.prob_hi   =   1.0625 1.0625 1.0625
+cg.v = 2
+cg.maxiter = 500
+mg.v = 2
+mg.usecg = 0
+boxes = grids/gr16.dog

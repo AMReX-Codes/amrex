@@ -1,0 +1,34 @@
+: b shell
+
+COM=mcmg2d.OSF1.KCC.DEBUG.ex
+
+CMP='~wyc/_crimson/_cvsdir/billc/varden/_tensor/_cmp/cmp_fab3d.OSF1.KCC.DEBUG.ex' 
+
+
+echo 8 cccccccccccccccc
+
+${COM} inputs boxes=grids/gr8.dog geometry.prob_lo = "-0.125 -0.125 -0.125" geometry.prob_hi = "1.125 1.125 1.125"
+mv dog.fab dog8.fab
+
+
+echo 16 cccccccccccccccc
+
+${COM} inputs boxes=grids/gr16.dog geometry.prob_lo = "-0.0625 -0.0625 -0.0625" geometry.prob_hi = "1.0625 1.0625 1.0625"
+mv dog.fab dog16.fab
+
+
+echo 32 cccccccccccccccc
+
+${COM} inputs boxes=grids/gr32.dog geometry.prob_lo = "-0.03125 -0.03125 -0.03125" geometry.prob_hi = "1.03125 1.03125 1.03125"
+mv dog.fab dog32.fab
+
+$CMP -1 dog16.fab dog8.fab
+$CMP -1 dog32.fab dog16.fab
+
+exit 0
+echo 64 cccccccccccccccc
+
+${COM} inputs boxes=grids/gr64.dog geometry.prob_lo = "-0.015625 -0.015625 -0.015625" geometry.prob_hi = "1.015625 1.015625 1.015625"
+mv dog.fab dog64.fab
+
+

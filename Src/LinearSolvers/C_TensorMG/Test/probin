@@ -1,0 +1,19 @@
+ $fortin
+
+ cux = 1
+ cuy = 0
+ cuz = 0
+
+ cvx = 0
+ cvy = 0
+ cvz = 0
+
+ cwx = 0
+ cwy = 0
+ cwz = 1
+
+ alpha = 1
+ beta = 1
+ gamma = 1
+
+ $end
