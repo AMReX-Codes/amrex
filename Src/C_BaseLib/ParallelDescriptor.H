@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.15 1998-02-17 22:42:04 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.16 1998-02-19 17:15:52 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -42,26 +42,45 @@ extern "C"
 //
 // Some of these can be collapsed.
 //
-
 struct FabComTag
 {
-  int fromProc;
-  int toProc;
-  int fabIndex;
-  int fineIndex;
-  int crseIndex;
-  int srcComp;
-  int destComp;
-  int nComp;
-  int face;
-  int dataType;
-  int fabArrayId;
-  int fillBoxId;
-  int procThatNeedsData;
-  int procThatHasData;
-  Box box;
-  Box ovlpBox;
-  Box subBox;
+    int fromProc;
+    int toProc;
+    int fabIndex;
+    int fineIndex;
+    int crseIndex;
+    int srcComp;
+    int destComp;
+    int nComp;
+    int face;
+    int dataType;
+    int fabArrayId;
+    int fillBoxId;
+    int procThatNeedsData;
+    int procThatHasData;
+    Box box;
+    Box ovlpBox;
+    Box subBox;
+    //
+    // A default constructor -- to quiet 3rd.
+    //
+    FabComTag ()
+    {
+        fromProc          = 0;
+        toProc            = 0;
+        fabIndex          = 0;
+        fineIndex         = 0;
+        crseIndex         = 0;
+        srcComp           = 0;
+        destComp          = 0;
+        nComp             = 0;
+        face              = 0;
+        dataType          = 0;
+        fabArrayId        = 0;
+        fillBoxId         = 0;
+        procThatNeedsData = 0;
+        procThatHasData   = 0;
+    }
 };
 
 #ifndef BL_USE_BSP
