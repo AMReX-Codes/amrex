@@ -4,7 +4,7 @@
 #define _MCINTERPBNDRYDATA_H_
 
 //
-// $Id: MCInterpBndryData.H,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+// $Id: MCInterpBndryData.H,v 1.5 1999-01-06 00:31:42 marc Exp $
 //
 
 #include <Assert.H>
@@ -63,9 +63,9 @@ public:
     //
     //@ManDoc: interpret user BCs to those expected by LinOp
     //
-    virtual void setBndryConds (const Array<BCRec>& phys_bc,
-				const Geometry&     geom,
-				int                 ratio) = 0;
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                int          ratio,
+                                int          comp=0) = 0;
     //
     //@ManDoc: set bndry values at coarse level (non interpolation performed)
     //

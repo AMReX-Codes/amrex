@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.5 1999-01-04 21:31:49 lijewski Exp $
+// $Id: MCInterpBndryData.cpp,v 1.6 1999-01-06 00:31:43 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -86,9 +86,13 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 
     assert(grids.ready());
     assert(grids == mf.boxArray());
+    float d = BL_SPACEDIM;
+    int nDer = pow(d,d-1) + d;
+    assert(bc.length()==nDer);
 
-    int ref_ratio = 1;
-    setBndryConds(bc, geom, ref_ratio);
+    int ratio = 1;
+    for (int n=bnd_start; n<bnd_start+nDer; ++n)
+        setBndryConds(bc[n], ratio, n);
 
     const Real* h = geom.CellSize();
     //
@@ -168,9 +172,13 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
 
     assert(grids.ready());
     assert(grids == fine.boxArray());
+    float d = BL_SPACEDIM;
+    int nDer = pow(d,d-1) + d;
+    assert(bc.length()==nDer);
 
-    setBndryConds(bc, geom, ratio);
-
+    for (int n=bnd_start; n<bnd_start+nDer; ++n)
+        setBndryConds(bc[n], ratio, n);
+    
     const Real* h = geom.CellSize();
     //
     // First interpolate from coarse to fine on bndry.
