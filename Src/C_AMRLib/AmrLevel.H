@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.23 1998-10-07 21:18:18 vince Exp $
+// $Id: AmrLevel.H,v 1.24 1998-11-29 00:22:09 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -269,6 +269,13 @@ public:
         return state[state_indx].oldData();
     }
     //
+    //@ManDoc: State data at old time.
+    //
+    const MultiFab& get_old_data (int state_indx) const
+    {
+        return state[state_indx].oldData();
+    }
+    //
     //@ManDoc: State data at new time.
     //
     MultiFab& get_new_data (int state_indx)
@@ -276,9 +283,16 @@ public:
         return state[state_indx].newData();
     }
     //
+    //@ManDoc: State data at new time.
+    //
+    const MultiFab& get_new_data (int state_indx) const
+    {
+        return state[state_indx].newData();
+    }
+    //
     //@ManDoc: Returns list of Descriptors.
     //
-    const DescriptorList& get_desc_lst () const
+    static const DescriptorList& get_desc_lst ()
     {
         return desc_lst;
     }
@@ -328,7 +342,7 @@ private:
     //
     // Disallowed.
     //
-    AmrLevel(const AmrLevel&);
+    AmrLevel (const AmrLevel&);
     AmrLevel& operator = (const AmrLevel&);
 };
 
