@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.24 1998-03-27 23:53:21 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.25 1998-03-28 00:45:04 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -294,7 +294,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     bIsInitialized(false)
 {}
 
-#if (NEWFPMINBOX == 0)
+#ifndef BL_NEWFPMINBOX
 FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                       MultiFab&     leveldata,
                                       int           boxGrow,
@@ -674,9 +674,8 @@ FillPatchIterator::isValid (bool bDoSync)
     return true;
 }
 
-#endif /*NEWFPMINBOX==0*/
+#else /*BL_NEWFPMINBOX*/
 
-#if (NEWFPMINBOX == 1)
 FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                       MultiFab&     levelData,
                                       int           boxGrow,
@@ -943,7 +942,7 @@ FillPatchIterator::isValid (bool bDoSync)
 
     return true;
 }
-#endif /*NEWFPMINBOX==1*/
+#endif /*!BL_NEWFPMINBOX*/
 
 FillPatchIterator::~FillPatchIterator () {}
 
