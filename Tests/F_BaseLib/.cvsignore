@@ -1,1 +1,3 @@
 t
+*.ncb *.opt *.plg
+Debug Release
