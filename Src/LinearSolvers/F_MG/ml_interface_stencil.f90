@@ -16,17 +16,17 @@ module ml_interface_stencil_module
   real (kind = dp_t), private, parameter :: FOURTH= 0.25_dp_t
   real (kind = dp_t), private, parameter :: EIGHTH= 0.125_dp_t
 
-  interface ml_stencil_interface
-     module procedure ml_interface_1d
-     module procedure ml_interface_2d
-     module procedure ml_interface_3d
-  end interface
+!   interface ml_stencil_interface
+!      module procedure ml_interface_1d
+!      module procedure ml_interface_2d
+!      module procedure ml_interface_3d
+!   end interface
 
 contains
 
  subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim)
   type(multifab), intent(inout) :: res
-  type(multifab), intent(inout) :: flux
+  type(multifab), intent(in   ) :: flux
   type(multifab), intent(in   ) :: crse
   type(multifab), intent(in   ) :: ss
   type(box), intent(in) :: crse_domain
@@ -106,7 +106,89 @@ contains
 
     end do
   end do
- end subroutine ml_interface
+ end subroutine ml_interface 
+subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
+  type(multifab), intent(inout) :: res
+  type(multifab), intent(in   ) :: flux
+  type(multifab), intent(in   ) :: crse
+  type(multifab), intent(in   ) :: ss
+  integer, intent(in) :: cr, cf
+  type(box), intent(in) :: crse_domain
+  type(box) :: rbox, fbox, cbox, sbox
+  integer :: lo (res%dim), hi (res%dim)
+  integer :: loc(res%dim)
+  integer :: lof(res%dim)
+  integer :: lor(res%dim)
+  integer :: los(res%dim)
+  integer :: lo_dom(res%dim), hi_dom(res%dim)
+  integer :: dm
+  integer :: face, dim
+  integer :: dir
+  integer :: i, j, n
+
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  real(kind=dp_t), pointer :: fp(:,:,:,:)
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  real(kind=dp_t), pointer :: sp(:,:,:,:)
+
+  dm = res%dim
+  dir = dim
+
+  lo_dom = lwb(crse_domain)
+  hi_dom = upb(crse_domain)
+
+  do j = 1, crse%nboxes
+
+    cbox = get_ibox(crse,j)
+    loc = lwb(cbox) - crse%ng
+
+    rbox = get_ibox(res,j)
+    lor = lwb(rbox) - res%ng
+
+    sbox = get_ibox(ss,j)
+    los = lwb(sbox) - ss%ng
+
+    do i = 1, flux%nboxes
+
+       fbox   = get_ibox(flux,i)
+       lof = lwb(fbox)
+
+       if (box_contains(crse_domain,fbox)) then
+        if (.not. empty(box_intersection(cbox,fbox))) then
+
+          lo = lwb(box_intersection(cbox,fbox))
+          hi = upb(box_intersection(cbox,fbox))
+          fp => dataptr(flux, i, cf)
+          cp => dataptr(crse, j, cr)
+          rp => dataptr(res, j, cr)
+          sp => dataptr(ss, j)
+           select case (dm)
+           case (1)
+             call ml_interface_1d(rp(:,1,1,1), lor, &
+                                  fp(:,1,1,1), lof, &
+                                  cp(:,1,1,1), loc, &
+                                  sp(:,1,1,:), los, &
+                                  lo, hi, face, dim)
+            case (2)
+             call ml_interface_2d(rp(:,:,1,1), lor, &
+                                  fp(:,:,1,1), lof, &
+                                  cp(:,:,1,1), loc, &
+                                  sp(:,:,1,:), los, &
+                                  lo, hi, face, dim)
+            case (3)
+             call ml_interface_3d(rp(:,:,:,1), lor, &
+                                  fp(:,:,:,1), lof, &
+                                  cp(:,:,:,1), loc, &
+                                  sp(:,:,:,:), los, &
+                                  lo, hi, face, dim)
+           end select
+
+        end if
+       end if
+
+    end do
+  end do
+ end subroutine ml_interface_c
 
   subroutine ml_interface_1d(res, lor, fine_flux, lof, cc, loc, &
                              ss , los, lo, hi, face, dim)
