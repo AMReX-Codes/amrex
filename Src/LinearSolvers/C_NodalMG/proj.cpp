@@ -188,6 +188,26 @@ void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m,
   }
 }
 
+void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m,
+		 const Array<Box>& d)
+{
+  for (int ilev = 0 ; ilev < m.length() ; ilev++) {
+    double h = 1.0 / d[ilev].length(0);
+    for (int igrid = 0; igrid < m[ilev].length() ; igrid++) {
+      for (int i = m[ilev][igrid].smallEnd(0);
+	   i <= m[ilev][igrid].bigEnd(0); i++) {
+	for (int j = m[ilev][igrid].smallEnd(1);
+	     j <= m[ilev][igrid].bigEnd(1); j++) {
+          double x = (i + 0.5) * h;
+          double y = (j + 0.5) * h;
+          u[0][ilev][igrid](Iv(i,j)) = 0.0;
+          u[1][ilev][igrid](Iv(i,j)) = x;
+        }
+      }
+    }
+  }
+}
+
 void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 	    PArray<MultiFab>& rhoinv, const Array<BoxArray>& m,
 	    const Array<Box>& d)
@@ -326,6 +346,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 
 #if (BL_SPACEDIM == 2)
   //hb93_test1(u, m);
+  //linear_test(u, m, domain);
   //rhs[1][0](Iv(16,51)) = 100.0;
   //rhs[1][0](Iv(16,50)) = 100.0;
   //rhs[0][0](Iv(24,32)) = 100.0;
@@ -524,6 +545,9 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     contour(u[i], ratio, ncont);
     cin.get();
   }
+  cout << "Pressure norm is " << pmfnorm(p) << endl;
+  contour(p, ratio, ncont);
+  cin.get();
 #endif
 /*
   if (m.length() < 3) {
