@@ -19,7 +19,7 @@ INCLUDE_LOCATIONS += ../pBoxLib_2
 
 include $(TOP)/mk/Make.defs
 
-CPPFLAGS += -DBL_USE_NEW_HFILES
+CPPFLAGS += -DBL_USE_NEW_HFILES -UBL_USE_SETBUF
 
 include ./Make.package
 include ../pBoxLib_2/Make.package
