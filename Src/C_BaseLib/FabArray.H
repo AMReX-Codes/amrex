@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.21 1997-11-23 00:12:08 lijewski Exp $
+// $Id: FabArray.H,v 1.22 1997-11-23 21:42:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,6 +26,7 @@
 #include <FArrayBox.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
+#include <RunStats.H>
 #include <Utility.H>
 
 /*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
@@ -358,10 +359,6 @@ public:
     {
         faName = faname;
     }
-    //
-    // Print out some FabArray-wide statistics.
-    //
-    static void PrintStats (ostream& os);
 
 protected:
 
@@ -382,75 +379,7 @@ private:
     // This is used locally in all define functions.
     //
     void AllocFabs (int nvar);
-    //
-    // Accumulated total numPts() of FABs allocated on this CPU during run.
-    //
-    static double m_numpts;
 };
-
-//
-// The lone static member in FabArray.
-//
-template <class T, class FAB> double FabArray<T,FAB>::m_numpts;
-
-template <class T, class FAB>
-void
-FabArray<T,FAB>::PrintStats (ostream& os)
-{
-    struct
-    {
-        int    m_cpu; // CPU #
-        double m_vol; // Total numPts() of FABs on that CPU.
-    }
-    msg_hdr;
-
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
-
-    if (!ParallelDescriptor::IOProcessor())
-    {
-        msg_hdr.m_cpu = ParallelDescriptor::MyProc();
-        msg_hdr.m_vol = m_numpts;
-        ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
-                                     &msg_hdr,
-                                     0,
-                                     0);
-    }
-
-    ParallelDescriptor::Synchronize();
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        double total;
-        Array<double> volume(ParallelDescriptor::NProcs());
-        total = m_numpts;
-        volume[ParallelDescriptor::MyProc()] = m_numpts;
-
-        for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
-        {
-            assert(len == 0);
-            total += msg_hdr.m_vol;
-            volume[msg_hdr.m_cpu] = msg_hdr.m_vol;
-            ParallelDescriptor::ReceiveData(0, 0);
-        }
-
-        if (total > 0)
-        {
-            os << '\n';
-            for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-            {
-                if (volume[i])
-                {
-                    os << "Percentage of FABs allocated on CPU #"
-                       << i
-                       << ":\t"
-                       << 100.0*volume[i]/total
-                       << '\n';
-                }
-            }
-            os << '\n';
-        }
-    }
-}
 
 template <class T, class FAB> class ConstFabArrayIterator;
 
@@ -1030,7 +959,7 @@ FabArray<T,FAB>::AllocFabs (int nvar)
       if (f == 0)
           BoxLib::OutOfMemory(__FILE__, __LINE__);
       fabparray.set(fai.index(), f);
-      m_numpts += tmp.numPts();
+      RunStats::addNumPts(tmp.numPts());
   }
 }
 
