@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.27 1998-04-17 18:13:52 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.28 1998-04-17 22:22:07 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -40,27 +40,33 @@ CommData::CommData (int        face,
                     int        fabindex,
                     int        fromproc,
                     int        id,
+                    int        ncomp,
+                    int        srccomp,
+                    int        fabarrayid,
                     const Box& box)
 {
     m_data[0] = face;
     m_data[1] = fabindex;
     m_data[2] = fromproc;
     m_data[3] = id;
+    m_data[4] = ncomp;
+    m_data[5] = srccomp;
+    m_data[6] = fabarrayid;
 
     const IntVect& sm = box.smallEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+i] = sm[i];
+        m_data[7+i] = sm[i];
 
     const IntVect& bg = box.bigEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+BL_SPACEDIM+i] = bg[i];
+        m_data[7+BL_SPACEDIM+i] = bg[i];
 
     IntVect typ = box.type();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[4+2*BL_SPACEDIM+i] = typ[i];
+        m_data[7+2*BL_SPACEDIM+i] = typ[i];
 }
 
 void
