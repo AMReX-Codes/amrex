@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.16 1998-06-10 19:40:49 lijewski Exp $
+// $Id: Geometry.cpp,v 1.17 1998-06-10 22:18:58 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -182,20 +182,6 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 
     FabArrayId faid = facd.RegisterFabArray(&fa);
 
-    FillPeriodicFabArray(fa,pirm,sComp,nComp,facd,faid);
-}
-
-void
-Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>&               fa,
-                                PIRMMap&                                pirm,
-                                int                                     sComp,
-                                int                                     nComp,
-                                FabArrayCopyDescriptor<Real,FArrayBox>& facd,
-                                FabArrayId                              faid) const
-{
-    if (!isAnyPeriodic())
-        return;
-    
     typedef PIRMMap::iterator PIRMMapIt;
     //
     // Register boxes in copy decriptor.

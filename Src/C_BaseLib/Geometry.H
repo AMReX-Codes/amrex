@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.11 1998-06-10 19:40:49 lijewski Exp $
+// $Id: Geometry.H,v 1.12 1998-06-10 22:18:58 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -217,16 +217,6 @@ public:
 			       PIRMMap&                  pirm,
 			       int                       sComp,
 			       int                       nComp) const;
-
-    //
-    // Fill periodic cells in FabArray per PIRMMap
-    //
-    void FillPeriodicFabArray (FabArray<Real,FArrayBox>&               fa,
-			       PIRMMap&                                pirm,
-			       int                                     sComp,
-			       int                                     nComp,
-                               FabArrayCopyDescriptor<Real,FArrayBox>& facd,
-                               FabArrayId                              faid) const;
 protected:
     //
     // Helper function.
