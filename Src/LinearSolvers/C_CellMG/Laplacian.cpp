@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.3 1998-07-07 17:25:14 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.4 1998-07-29 19:09:54 lijewski Exp $
 //
 
 #include <Laplacian.H>
@@ -26,7 +26,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
     int nc = rhsL.nComp();
 
-    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi)
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
         DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
         DependentFabSetIterator f0fsi(solnLmfi, f0);
@@ -118,7 +118,7 @@ Laplacian::Fapply (MultiFab&       y,
 {
     int nc = y.nComp();
 
-    for (MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi)
+    for (MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi)
     {
         DependentMultiFabIterator xmfi(ymfi,  x);
 

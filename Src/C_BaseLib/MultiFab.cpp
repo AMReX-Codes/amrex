@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.26 1998-07-24 22:41:15 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.27 1998-07-29 19:10:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -107,7 +107,7 @@ MultiFab::min (int comp,
 
     Real mn = INFINITY;
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mn = Min(mn, mfi().min(b, comp));
@@ -127,7 +127,7 @@ MultiFab::min (const Box& region,
 
     Real mn = INFINITY;
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -150,7 +150,7 @@ MultiFab::max (int comp,
 
     Real mn = -INFINITY;
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mn = Max(mn, mfi().max(b, comp));
@@ -171,7 +171,7 @@ MultiFab::max (const Box& region,
     Real mn = -INFINITY;
 
     int first = true;
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -206,7 +206,7 @@ MultiFab::minus (const MultiFab& mf,
     assert(lst_comp < n_comp && lst_comp < mf.n_comp);
     assert(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi, mf);
         Box bx(mfi.validbox());
@@ -224,7 +224,7 @@ MultiFab::plus (Real val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mfi().plus(val, b, comp, num_comp);
@@ -241,7 +241,7 @@ MultiFab::plus (Real       val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -266,7 +266,7 @@ MultiFab::plus (const MultiFab& mf,
     assert(lst_comp < n_comp && lst_comp < mf.n_comp);
     assert(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi, mf);
         Box bx(mfi.validbox());
@@ -284,7 +284,7 @@ MultiFab::mult (Real val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mfi().mult(val, b, comp, num_comp);
@@ -301,7 +301,7 @@ MultiFab::mult (Real       val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -321,7 +321,7 @@ MultiFab::invert (Real numerator,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mfi().invert(numerator, b, comp, num_comp);
@@ -338,7 +338,7 @@ MultiFab::invert (Real       numerator,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -357,7 +357,7 @@ MultiFab::negate (int comp,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b(grow(mfi.validbox(), nghost));
         mfi().negate(b, comp, num_comp);
@@ -373,7 +373,7 @@ MultiFab::negate (const Box& region,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
@@ -624,7 +624,7 @@ BuildFBsirec (const SI&       si,
 
     const BoxArray& ba = mf.boxArray();
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         for (int j = 0; j < mf.length(); j++)
         {

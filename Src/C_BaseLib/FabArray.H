@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.69 1998-07-27 21:33:06 lijewski Exp $
+// $Id: FabArray.H,v 1.70 1998-07-29 19:10:29 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -477,7 +477,7 @@ class FabArrayIterator
     //
     //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid (bool bDoSync = true);
+    bool isValid ();
     //
     //@ManDoc: The index into the underlying BoxArray of the current FAB.
     //
@@ -624,7 +624,7 @@ class ConstFabArrayIterator
     //
     //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid (bool bDoSync = true) const;
+    bool isValid () const;
     //
     //@ManDoc: The index into the underlying BoxArray of the current FAB.
     //
@@ -863,8 +863,6 @@ class FabArrayCopyDescriptor
     vector<FabArray<T,FAB>*> fabArrays;
     vector<FCDMap>           fabCopyDescList;
     vector<FabComTag>        fabComTagList;
-    long                     totalRemoteBytes;
-    int                      totalRemoteBoxes;
     int                      nextFillBoxId;
     bool                     dataAvailable;
 
@@ -974,7 +972,7 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::clearUnmanaged ()
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         delete fabparray.remove(fai.index());
     }
@@ -1042,7 +1040,7 @@ FabArray<T,FAB>::ok () const
 
     ConstFabArrayIterator<T,FAB> fai(*this);
 
-    for ( ; fai.isValid(false) && isok; ++fai)
+    for ( ; fai.isValid() && isok; ++fai)
     {
         if (fabparray.defined(fai.index()))
         {
@@ -1104,7 +1102,7 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::AllocFabs (int nvar)
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box tmp = ::grow(fai.validbox(), n_grow);
         fabparray.set(fai.index(), new FAB(tmp, nvar));
@@ -1149,7 +1147,7 @@ FabArray<T,FAB>::setBndry (T   val,
 {
     if (n_grow > 0)
     {
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
         }
@@ -1163,13 +1161,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dest_comp,
                        int                    num_comp)
 {
-    static RunStats stats("fabarray_copy");
-
-    stats.start();
-
     if (src.boxarray == boxarray)
     {
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             DependentFabArrayIterator<T,FAB> dfai(fai, src);
 
@@ -1181,24 +1175,19 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             }
         }
 
-        stats.end();
-
         return;
     }
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    static RunStats stats("fabarray_copy");
 
-    FabComTag tag;
+    stats.start();
 
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-
-    FAB fab;
-
-#ifdef BL_USE_MPI
+    const int         MyProc = ParallelDescriptor::MyProc();
+    FabComTag         tag;
+    FAB               fab;
     vector<FabComTag> sTags;
     Array<int>        msgs(ParallelDescriptor::NProcs(), 0);
     Array<int>        nrcv(ParallelDescriptor::NProcs(), 0);
-#endif
 
     for (int i = 0; i < length(); ++i)
     {
@@ -1237,31 +1226,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                         tag.toProc   = distributionMap[i];
                         tag.fabIndex = i;
                         tag.box      = src.boxarray[ii] & boxarray[i];
-#ifdef BL_USE_MPI
                         //
                         // Use tag.fineIndex to store index into `src'.
                         //
                         tag.fineIndex = ii;
                         sTags.push_back(tag);
                         msgs[distributionMap[i]]++;
-#else
-                        //
-                        // Send intersection of src[ii] to fab[i]s proc.
-                        //
-                        fab.resize(tag.box,num_comp);
-
-                        fab.copy(src[ii],
-                                 tag.box,
-                                 src_comp,
-                                 tag.box,
-                                 0,
-                                 num_comp);
-
-                        ParallelDescriptor::SendData(tag.toProc,
-                                                     &tag,
-                                                     fab.dataPtr(),
-                                                     tag.box.numPts()*num_comp*sizeof(T));
-#endif /*BL_USE_MPI*/
                     }
                 }
             }
@@ -1408,30 +1378,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                            dest_comp,
                                            num_comp);
     }
-#else
-    ParallelDescriptor::Synchronize();
-    //
-    // Now receive data if any was sent.
-    //
-    int dataWaitingSize;
-
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
-    {
-        assert(tag.box.ok());
-        assert(MyProc == tag.toProc);
-        assert(dataWaitingSize == tag.box.numPts()*num_comp*sizeof(T));
-
-        fab.resize(tag.box, num_comp);
-
-        ParallelDescriptor::ReceiveData(fab.dataPtr(), dataWaitingSize);
-
-        fabparray[tag.fabIndex].copy(fab,
-                                     tag.box,
-                                     0,
-                                     tag.box,
-                                     dest_comp,
-                                     num_comp);
-    }
 #endif /*BL_USE_MPI*/
 
     stats.end();
@@ -1488,6 +1434,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
 {
     assert(dest_comp + num_comp <= dest.nComp());
 
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
 
     int overlapLength = 0, overlapIndex = 0;
@@ -1517,8 +1464,6 @@ FabArray<T,FAB>::copy (FAB&       dest,
     {
         overlapData.set(i, new FAB(overlapBA[i], num_comp));
 
-        ParallelDescriptor::ShareVar(overlapData[i].dataPtr(),
-                                     overlapBA[i].numPts()*num_comp*sizeof(T));
         if (MyProc == overlapProc[i])
         {
             overlapData[i].copy(fabparray[overlapFAIdx[i]],
@@ -1527,11 +1472,9 @@ FabArray<T,FAB>::copy (FAB&       dest,
                                 num_comp);
         }
     }
-    ParallelDescriptor::Synchronize();  // for ShareVar
 
     for (int i = 0; i < overlapLength; i++)
     {
-#ifdef BL_USE_MPI
         int rc = MPI_Bcast(overlapData[i].dataPtr(),
                            overlapData[i].box().numPts()*num_comp,
                            mpi_data_type(overlapData[i].dataPtr()),
@@ -1539,26 +1482,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                            MPI_COMM_WORLD);
         if (!(rc == MPI_SUCCESS))
             ParallelDescriptor::Abort(rc);
-#else
-        bool overlapDataIsLocal = (overlapProc[i] == MyProc);
-
-        for (int np = 0; np < ParallelDescriptor::NProcs(); np++)
-        {
-            if (overlapDataIsLocal && MyProc != np)
-            {
-                //
-                // Broadcast data.
-                //
-                ParallelDescriptor::WriteData(np,
-                                              overlapData[i].dataPtr(),
-                                              overlapData[i].dataPtr(),
-                                              0,
-                                              overlapData[i].box().numPts() * overlapData[i].nComp() * sizeof(T));
-            }
-        }
-#endif /*BL_USE_MPI*/
     }
-    ParallelDescriptor::Synchronize();  // Make sure data has arrived.
 
     for (int i = 0; i < overlapLength; i++)
     {
@@ -1569,20 +1493,34 @@ FabArray<T,FAB>::copy (FAB&       dest,
                   dest_comp,
                   num_comp);
     }
-    for (int i = overlapBA.length() - 1; i >= 0; i--)
+#else
+    for (int j = 0; j < length(); ++j)
     {
         //
-        // In reverse order.
+        // Test all distributed objects.
         //
-        ParallelDescriptor::UnshareVar(overlapData[i].dataPtr());
+        if (boxarray[j].intersects(subbox))
+        {
+            //
+            // Restrict copy to domain of validity of source.
+            //
+            Box destbox = boxarray[j] & subbox;
+            dest.copy(fabparray[j],
+                      destbox,
+                      src_comp,
+                      destbox,
+                      dest_comp,
+                      num_comp);
+        }
     }
+#endif /*BL_USE_MPI*/
 }
 
 template <class T, class FAB>
 void
 FabArray<T,FAB>::setVal (T val)
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         fai().setVal(val);
     }
@@ -1598,7 +1536,7 @@ FabArray<T,FAB>::setVal (T   val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         fai().setVal(val, ::grow(fai.validbox(), nghost), comp, num_comp);
     }
@@ -1615,7 +1553,7 @@ FabArray<T,FAB>::setVal (T          val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b = ::grow(fai.validbox(),nghost) & region;
 
@@ -1746,20 +1684,11 @@ FabArrayIterator<T,FAB>::fabbox () const
 template <class T, class FAB>
 inline
 bool
-FabArrayIterator<T,FAB>::isValid (bool bDoSync)
+FabArrayIterator<T,FAB>::isValid ()
 {
     assert(currentIndex >= 0);
 
-    bool valid = currentIndex < fabArray.length();
-
-#ifdef BL_USE_BSP
-    if (!valid && bDoSync)
-    {
-        ParallelDescriptor::Synchronize();
-    }
-#endif
-
-    return valid;
+    return currentIndex < fabArray.length();
 }
 
 template <class T, class FAB>
@@ -1947,20 +1876,11 @@ ConstFabArrayIterator<T,FAB>::fabbox() const
 template <class T, class FAB>
 inline
 bool
-ConstFabArrayIterator<T,FAB>::isValid (bool bDoSync) const
+ConstFabArrayIterator<T,FAB>::isValid () const
 {
     assert(currentIndex >= 0);
 
-    bool valid = currentIndex < fabArray.length();
-
-#ifdef BL_USE_BSP
-    if (!valid && bDoSync)
-    {
-        ParallelDescriptor::Synchronize();
-    }
-#endif
-
-    return valid;
+    return currentIndex < fabArray.length();
 }
 
 template <class T, class FAB>
@@ -2028,12 +1948,8 @@ template <class T, class FAB>
 FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
     :
     nextFillBoxId(0),
-    dataAvailable(false),
-    totalRemoteBoxes(0),
-    totalRemoteBytes(0)
-{
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-}
+    dataAvailable(false)
+{}
 
 template <class T, class FAB>
 FabArrayId
@@ -2126,9 +2042,6 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
             // Do not send the data yet.
             //
             fabComTagList.push_back(fabComTag);
-
-            totalRemoteBoxes++;
-            totalRemoteBytes += intersect.numPts()*fabArray->nComp()*sizeof(T);
         }
 
         fabCopyDescList[fabarrayid.Id()].insert(FCDMapValueType(fcd->fillBoxId,fcd));
@@ -2261,22 +2174,19 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
    fabCopyDescList.clear();
    fabComTagList.clear();
 
-   totalRemoteBytes = 0;
-   totalRemoteBoxes = 0;
-   nextFillBoxId    = 0;
-   dataAvailable    = false;
+   nextFillBoxId = 0;
+   dataAvailable = false;
 }
 
 template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
 
-    if (ParallelDescriptor::NProcs() == 1)
-        assert(fabComTagList.size() == 0);
+    assert(ParallelDescriptor::NProcs() > 1 || fabComTagList.size() == 0);
 
-#ifdef BL_USE_MPI
     Array<int> msgs(ParallelDescriptor::NProcs(), 0);
     Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
     //
@@ -2437,113 +2347,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
-#else
-    FabComTag tag;
 
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
+    fabComTagList.clear();
 
-    int dataWaitingSize, nRequestMessages = 0, nFabMessages = 0;
-
-    assert(ParallelDescriptor::GetMessageHeader(dataWaitingSize,&tag) == false);
-
-    for (int i = 0; i < fabComTagList.size(); i++)
-    {
-        assert(fabComTagList[i].box.ok());
-        assert(fabComTagList[i].procThatNeedsData == MyProc);
-        assert(fabComTagList[i].procThatHasData   != MyProc);
-
-        ParallelDescriptor::SendData(fabComTagList[i].procThatHasData,
-                                     &fabComTagList[i], 0, 0);
-        ++nRequestMessages;
-    }
-
-    ParallelDescriptor::Synchronize();
-
-    if (!dataAvailable)
-    {
-        FAB fab;
-
-        while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
-        {
-            assert(tag.box.ok());
-            assert(dataWaitingSize == 0);
-            assert(tag.procThatHasData == MyProc);
-
-            ParallelDescriptor::ReceiveData(0, 0);  // Advance msg hdr.
-            --nRequestMessages;
-            //
-            // Now send the requested data from the fabs on this processor.
-            //
-            fab.resize(tag.box, tag.nComp);
-
-            fab.copy((*fabArrays[tag.fabArrayId])[tag.fabIndex],
-                     tag.box,
-                     tag.srcComp,
-                     tag.box,
-                     0,
-                     tag.nComp);
-            //
-            // ^ copy to zero component of temp fab
-            //
-            ParallelDescriptor::SendData(tag.procThatNeedsData,
-                                         &tag,
-                                         fab.dataPtr(),
-                                         tag.box.numPts()*tag.nComp*sizeof(T));
-
-            ++nFabMessages;
-        }
-    }
-
-    ParallelDescriptor::Synchronize();
-    //
-    // Now collect all remote data into local fab data caches.
-    //
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
-    {
-        assert(tag.box.ok());
-        assert(tag.procThatHasData != MyProc);
-        assert(MyProc == tag.procThatNeedsData);
-        //
-        // Find the box in the list and move the data.
-        //
-	pair<FCDMapIter, FCDMapIter> match;
-
-        match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
-
-        FCDMapIter fmi = match.first;
-
-        for ( ; fmi != match.second; ++fmi)
-        {
-            FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
-
-            assert(fcdp->fillBoxId == tag.fillBoxId);
-
-            if (fcdp->subBox == tag.box)
-            {
-                ParallelDescriptor::ReceiveData(fcdp->localFabSource->dataPtr(),
-                                                tag.box.numPts() *
-                                                tag.nComp * sizeof(T));
-                --nFabMessages;
-                break;
-            }
-        }
-        assert(!(fmi == match.second));
-    }
-
-#ifndef NDEBUG
-    ParallelDescriptor::ReduceIntSum(nRequestMessages);
-    assert(nRequestMessages == 0);
-    ParallelDescriptor::ReduceIntSum(nFabMessages);
-    assert(nFabMessages == 0);
-#endif
 #endif /*BL_USE_MPI*/
-    //
-    // Clear out fabComTagList space.
-    //
-    {
-        vector<FabComTag> tmp;
-        tmp.swap(fabComTagList);
-    }
+
     dataAvailable = true;
 }
 
@@ -2612,18 +2420,6 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats () const
     cout << "----- "
          << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
-
-    cout << "----- "
-         << MyProc
-         << ":  totalRemoteBoxes = "
-         << totalRemoteBoxes
-         << '\n';
-
-    cout << "----- "
-         << MyProc
-         << ":  totalRemoteBytes = "
-         << totalRemoteBytes
-         << '\n';
 
     for (int fa = 0; fa < fabArrays.size(); ++fa)
     {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.30 1998-07-28 17:47:49 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.31 1998-07-29 19:10:28 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -232,7 +232,7 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
     m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
 }
 
-#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
+#ifdef BL_USE_MPI
 
 class WeightedBox
 {
@@ -419,7 +419,7 @@ top:
 
     return result;
 }
-#endif /*defined(BL_USE_BSP) || defined(BL_USE_MPI)*/
+#endif /*BL_USE_MPI*/
 
 void
 DistributionMapping::KnapSackProcessorMap (int             nprocs,
@@ -438,7 +438,7 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
     }
     else
     {
-#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
+#ifdef BL_USE_MPI
         vector<long> pts(boxes.length());
 
         for (int i = 0; i < pts.size(); i++)

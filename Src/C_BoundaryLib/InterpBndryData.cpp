@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.4 1998-07-07 17:25:14 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.5 1998-07-29 19:09:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -87,7 +87,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     IntVect ref_ratio = IntVect::TheUnitVector();
     setBndryConds(bc, ref_ratio);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         assert(grids[mfi.index()] == mfi.validbox());
 
@@ -158,8 +158,7 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
     Real* derives = 0;
     int tmplen    = 0;
 
-    for (ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(false);
-         ++fine_mfi)
+    for (ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
     {
         assert(grids[fine_mfi.index()] == fine_mfi.validbox());
 

@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.12 1998-07-15 22:42:09 lijewski Exp $
+// $Id: TagBox.H,v 1.13 1998-07-29 19:09:09 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -86,9 +86,9 @@ public:
     void merge (const TagBox& src);
 
     /*@ManDoc: Add location of every tagged cell to IntVect array,
-               starting at given location.
+               starting at given location.  Returns # of collated points.
     */
-    void collate (IntVect* ar, int start) const;
+    int collate (IntVect* ar, int start) const;
     //
     //@ManDoc: Returns number of tagged cells in specified Box.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.7 1998-07-07 17:25:15 lijewski Exp $
+// $Id: LinOp.cpp,v 1.8 1998-07-29 19:09:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -208,7 +208,7 @@ LinOp::applyBC (MultiFab&      inout,
         const FabSet& fs                   = bgb.bndryValues(oitr());
         const int comp                     = 0;
 
-        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(false);
+        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid();
              ++inoutmfi)
         {
             DependentFabSetIterator ffsi(inoutmfi, f);
@@ -247,7 +247,7 @@ LinOp::residual (MultiFab&       residL,
 {
     apply(residL, solnL, level, bc_mode);
 
-    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi)
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
         DependentMultiFabIterator residLmfi(solnLmfi, residL);
         DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
@@ -286,7 +286,7 @@ LinOp::norm (const MultiFab& in,
              int             level) const
 {
     Real norm = 0.0;
-    for (ConstMultiFabIterator inmfi(in); inmfi.isValid(false); ++inmfi)
+    for (ConstMultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
     {
         Real tnorm = inmfi().norm(gbox[level][inmfi.index()]);
         norm      += tnorm*tnorm;
@@ -354,7 +354,7 @@ LinOp::prepareForLevel (int level)
         //
         const FabSet& bndry = bgb[face];
 
-        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(false);
+        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid();
              ++bndryfsi)
         {
             int gn = bndryfsi.index();
@@ -453,7 +453,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     switch (cdir)
     {
     case -1:
-        for ( ; csmfi.isValid(false); ++csmfi)
+        for ( ; csmfi.isValid(); ++csmfi)
         {
             DependentMultiFabIterator fnmfi(csmfi, fn);
 
@@ -469,7 +469,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     case 2:
         if (harmavg)
         {
-            for ( ; csmfi.isValid(false); ++csmfi)
+            for ( ; csmfi.isValid(); ++csmfi)
             {
                 DependentMultiFabIterator fnmfi(csmfi, fn);
 
@@ -486,7 +486,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
         }
         else
         {
-            for ( ; csmfi.isValid(false); ++csmfi)
+            for ( ; csmfi.isValid(); ++csmfi)
             {
                 DependentMultiFabIterator fnmfi(csmfi, fn);
 
@@ -538,7 +538,7 @@ operator<< (ostream&     os,
     {
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
-        ParallelDescriptor::Synchronize();
+
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
             if (nproc == ParallelDescriptor::MyProc())
@@ -556,7 +556,6 @@ operator<< (ostream&     os,
                     }
                 }
             }
-            ParallelDescriptor::Synchronize();
         }
     }
     

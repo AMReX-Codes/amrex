@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.42 1998-07-24 01:24:52 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.43 1998-07-29 19:09:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -589,11 +589,11 @@ FillPatchIterator::Initialize (int           boxGrow,
 }
 
 bool
-FillPatchIterator::isValid (bool bDoSync)
+FillPatchIterator::isValid ()
 {
     assert(m_init);
 
-    if (!MultiFabIterator::isValid(bDoSync))
+    if (!MultiFabIterator::isValid())
         return false;
 
     RunStats stats(RunstatString, m_amrlevel.Level());

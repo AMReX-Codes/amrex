@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.3 1998-07-07 17:25:12 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.4 1998-07-29 19:09:49 lijewski Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -183,7 +183,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif    
 
     int nc = solnL.nComp();
-    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false);
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid();
          ++solnLmfi)
     {
         DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
@@ -304,7 +304,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
 #endif
     int nc = y.nComp();
 
-    for (MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi)
+    for (MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi)
     {
         DependentMultiFabIterator xmfi(ymfi,  x);
         DependentMultiFabIterator amfi(ymfi,  a);

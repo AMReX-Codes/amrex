@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.4 1998-07-07 17:25:13 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.5 1998-07-29 19:09:52 lijewski Exp $
 //
 
 // Conjugate gradient support
@@ -76,7 +76,7 @@ CGSolver::norm (const MultiFab& res)
     Real resk   = 0.0;
     const BoxArray& gbox = res.boxArray();
 
-    for (ConstMultiFabIterator mfi(res); mfi.isValid(false); ++mfi) 
+    for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
     {
         assert(mfi.validbox() == gbox[mfi.index()]);
 
@@ -221,7 +221,7 @@ CGSolver::solve (MultiFab&       sol,
         int ncomp = z->nComp();
         const BoxArray& gbox = r->boxArray();
 
-        for (MultiFabIterator rmfi(*r); rmfi.isValid(false); ++rmfi)
+        for (MultiFabIterator rmfi(*r); rmfi.isValid(); ++rmfi)
         {
             DependentMultiFabIterator zmfi(rmfi, (*z));
             Real trho;
@@ -333,7 +333,7 @@ CGSolver::advance (MultiFab&       p,
     const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = p.nComp();
 
-    for (MultiFabIterator pmfi(p); pmfi.isValid(false); ++pmfi)
+    for (MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
     {
         DependentMultiFabIterator zmfi(pmfi, z);
 
@@ -361,7 +361,7 @@ CGSolver::update (MultiFab&       sol,
     const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = r.nComp();
 
-    for (MultiFabIterator solmfi(sol); solmfi.isValid(false); ++solmfi)
+    for (MultiFabIterator solmfi(sol); solmfi.isValid(); ++solmfi)
     {
         DependentMultiFabIterator rmfi(solmfi, r);
         DependentMultiFabIterator pmfi(solmfi, p);
@@ -396,7 +396,7 @@ CGSolver::axp (MultiFab&      w,
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
 
-    for (MultiFabIterator pmfi(p); pmfi.isValid(false); ++pmfi)
+    for (MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
     {
         DependentMultiFabIterator wmfi(pmfi, w);
         Real tpw;

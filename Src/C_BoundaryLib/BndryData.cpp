@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.4 1998-07-07 17:25:12 lijewski Exp $
+// $Id: BndryData.cpp,v 1.5 1998-07-29 19:09:51 lijewski Exp $
 //
 
 #include <BndryData.H>
@@ -98,7 +98,7 @@ BndryData::operator= (const BndryData& src)
         }
         bcloc[face].resize(ngrd);
         masks[face].resize(ngrd);
-        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(false); ++bfsi)
+        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
             const int grd = bfsi.index();
             bcond[face][grd] = src.bcond[face][grd];
@@ -139,7 +139,7 @@ BndryData::define (const BoxArray&      _grids,
         //
         // Alloc mask and set to quad_interp value.
         //
-        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(false); ++bfsi)
+        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
             Box face_box = ::adjCell(grids[bfsi.index()], face, 1);
             //
