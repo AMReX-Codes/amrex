@@ -75,7 +75,7 @@ protected:
     int m_dgrid;
     const int m_sgrid;
     const Box m_bx;
-    const Box s_bx;
+    const Box m_sbx;
     bool m_local;
 };
 
@@ -94,7 +94,7 @@ private:
     const MultiFab& m_smf;
     const int m_sgrid;
     const Box m_bx;
-    const Box s_bx;
+    const Box m_sbx;
     bool m_local;
 };
 

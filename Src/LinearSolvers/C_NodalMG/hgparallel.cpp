@@ -3,7 +3,7 @@
 
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), s_bx(bx), m_local(false)
+: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false)
 #ifdef BL_USE_MPI
 , tmp(0), m_request(MPI_REQUEST_NULL)
 #endif
@@ -11,7 +11,7 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, co
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid), m_local(false)
+: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false)
 #ifdef BL_USE_MPI
 , tmp(0), m_request(MPI_REQUEST_NULL)
 #endif
@@ -30,8 +30,8 @@ task_copy::~task_copy()
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
     m_sno = sno;
-    assert( s_bx.numPts() == m_bx.numPts() );
-    debug_out << "task_copy::init " << m_mf.nComp() << ' ' << m_smf.nComp() << endl;
+    assert( m_sbx.numPts() == m_bx.numPts() );
+    // debug_out << "task_copy::init " << m_mf.nComp() << ' ' << m_smf.nComp() << endl;
 #ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
@@ -39,7 +39,7 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
-	tmp = new FArrayBox(s_bx, m_mf.nComp());
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Irecv");
@@ -47,8 +47,8 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
     else if ( is_local(m_smf, m_sgrid) ) 
     {
-	tmp = new FArrayBox(s_bx, m_mf.nComp());
-	tmp->copy(m_smf[m_sgrid], s_bx);
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	tmp->copy(m_smf[m_sgrid], m_sbx);
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Isend");
@@ -83,7 +83,7 @@ void task_copy::hint() const
     debug_out << ' ';
     debug_out << m_sno << ' ';
     debug_out << m_bx  << ' ' << m_dgrid << ' ';
-    debug_out << s_bx  << ' ' << m_sgrid << ' ';
+    debug_out << m_sbx  << ' ' << m_sgrid << ' ';
     debug_out << endl;	// to flush
 }
 
@@ -91,7 +91,7 @@ bool task_copy::ready()
 {
     if ( m_local )
     {
-	m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
+	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
 	return true;
     }
 #ifdef BL_USE_MPI
@@ -111,7 +111,7 @@ bool task_copy::ready()
 	    assert( status.MPI_TAG    == m_sno );
 	    MPI_Get_count(&status, MPI_DOUBLE, &count);
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    m_mf[m_dgrid].copy(*tmp, s_bx, 0, m_bx, 0, m_mf.nComp());
+	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
 	}
 	return true;
     }
@@ -142,10 +142,9 @@ bool task_copy_local::ready()
 bool task_list::def_verbosity = true;
 
 task_list::task_list(MPI_Comm comm_)
+    : seq_no(0), verbosity(def_verbosity)
 {
-    seq_no = 0;
     MPI_Comm_dup(comm_, &comm);
-    verbosity = def_verbosity;
 }
 
 task_list::~task_list()
