@@ -149,6 +149,25 @@ SOURCE=.\COORDSYS_3D.FOR
 # Begin Source File
 
 SOURCE=.\COORDSYS_3D.F
+
+!IF  "$(CFG)" == "bndrylib - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "bndrylib - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\COORDSYS_3D.F
+InputName=COORDSYS_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+        ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Group
 # End Group
