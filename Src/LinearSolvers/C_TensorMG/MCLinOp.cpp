@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.11 1999-05-10 18:54:27 car Exp $
+// $Id: MCLinOp.cpp,v 1.12 1999-08-06 21:48:36 propp Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -38,7 +38,6 @@ MCLinOp::initialize ()
 {
     ParmParse pp("MCLp");
     pp.query("harmavg", def_harmavg);
-    pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
