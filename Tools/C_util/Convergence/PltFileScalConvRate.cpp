@@ -1,5 +1,4 @@
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 #include <iostream>
 #include <cstdio>
@@ -8,14 +7,6 @@
 #include <cmath>
 using std::ios;
 using std::set_new_handler;
-#else
-#include <new.h>
-#include <iostream.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#endif
 
 #include <unistd.h>
 
@@ -27,13 +18,6 @@ using std::set_new_handler;
 
 #ifndef NDEBUG
 #include "TV_TempWrite.H"
-#endif
-
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
 #endif
 
 static
