@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.100 1999-10-30 00:01:36 propp Exp $
+// $Id: Amr.cpp,v 1.101 1999-11-03 16:33:26 propp Exp $
 //
 
 #include <TagBox.H>
@@ -464,7 +464,7 @@ Amr::~Amr ()
         checkPoint();
 
     if (level_steps[0] > last_plotfile)
-        writePlotFile();
+        writePlotFile(plot_file_root,level_steps[0]);
 
     levelbld->variableCleanUp();
 
@@ -719,7 +719,7 @@ Amr::init (Real strt_time,
         initialInit(strt_time,stop_time);
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
-            writePlotFile();
+            writePlotFile(plot_file_root,level_steps[0]);
     }
 }
 
@@ -1179,7 +1179,7 @@ Amr::timeStep (int  level,
     if (plotfile_on_restart && !(restart_file.isNull()) )
     {
 	plotfile_on_restart = 0;
-	writePlotFile();
+	writePlotFile(plot_file_root,level_steps[0]);
     }
     //
     // Advance grids at this level.
@@ -1293,7 +1293,7 @@ Amr::coarseTimeStep (Real stop_time)
     if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1)
     {
         last_plotfile = level_steps[0];
-        writePlotFile();
+        writePlotFile(plot_file_root,level_steps[0]);
     }
 }
 

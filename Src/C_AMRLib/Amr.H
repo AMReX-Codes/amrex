@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.25 1999-08-13 16:28:57 propp Exp $
+// $Id: Amr.H,v 1.26 1999-11-03 16:33:25 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -252,10 +252,6 @@ public:
                       Real           time,
                       int            lev,
                       int            ngrow);
-    //
-    //@ManDoc: Write a plotfile to disk.
-    //
-    void writePlotFile ();
     //
     //@ManDoc: Name of the restart file.
     //
@@ -546,13 +542,6 @@ int
 Amr::nProper () const
 {
     return n_proper;
-}
-
-inline
-void
-Amr::writePlotFile ()
-{
-    writePlotFile(plot_file_root,level_steps[0]);
 }
 
 inline
