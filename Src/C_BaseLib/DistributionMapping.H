@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.4 1997-11-25 18:47:05 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.5 1997-11-25 22:17:51 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -19,17 +19,17 @@ class DistributionMapping
     enum Strategy { ROUNDROBIN, RANDOM, SIZEBALANCED, KNAPSACK };
 
     DistributionMapping ();
-    DistributionMapping (int             nprocessors,
+    DistributionMapping (int             nprocs,
                          const BoxArray& boxes);
 
     ~DistributionMapping ();
 
-    void define (int             nprocessors,
+    void define (int             nprocs,
                  const BoxArray& boxes);
 
-    const Array<int>& ProcessorMap () const { return processorMap; }
+    const Array<int>& ProcessorMap () const;
 
-    int operator[] (int index) const { return processorMap[index]; }
+    int operator[] (int index) const;
     //
     // Set distribution strategy.
     //
@@ -41,9 +41,12 @@ class DistributionMapping
 
   private:
     //
-    // Creates the processor map.
+    // Four ways to create the processor map.
     //
-    void CreateProcessorMap ();
+    void RoundRobinProcessorMap ();
+    void KnapSackProcessorMap ();
+    void RandomProcessorMap ();
+    void SizeBalancedProcessorMap ();
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -58,17 +61,26 @@ class DistributionMapping
     //
     // Local data.
     //
-    int        nProcessors;
-    BoxArray   boxarray;
-    Array<int> processorMap;
+    int        m_nprocs;
+    BoxArray   m_boxarray;
+    Array<int> m_proc_map;
+    //
+    // A useful typedef.
+    //
+    typedef void (DistributionMapping::*PVMF)();
     //
     // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
     //
-    static Strategy distributionStrategy;
+    static Strategy m_Strategy;
+    //
+    // Pointer to one of the CreateProcessorMap() functions.
+    // Corresponds to the one specified by `m_Strategy'.
+    //
+    static PVMF m_BuildMap;
     //
     // Have we initialized from ParmParse yet?
     //
-    static bool initialized;
+    static bool m_Initialized;
 };
 
 //
@@ -77,5 +89,23 @@ class DistributionMapping
 ostream&
 operator<< (ostream&                   os,
             const DistributionMapping& pmap);
+
+//
+// Inlines.
+//
+
+inline
+const Array<int>&
+DistributionMapping::ProcessorMap () const
+{
+    return m_proc_map;
+}
+
+inline
+int
+DistributionMapping::operator[] (int index) const
+{
+    return m_proc_map[index];
+}
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

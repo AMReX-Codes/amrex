@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.10 1997-11-25 19:55:15 car Exp $
+// $Id: DistributionMapping.cpp,v 1.11 1997-11-25 22:17:51 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -30,31 +30,47 @@ using namespace std;
 // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
 //
 DistributionMapping::Strategy
-DistributionMapping::distributionStrategy = DistributionMapping::ROUNDROBIN;
+DistributionMapping::m_Strategy = DistributionMapping::ROUNDROBIN;
+
+DistributionMapping::PVMF
+DistributionMapping::m_BuildMap = DistributionMapping::RoundRobinProcessorMap;
 
 void
 DistributionMapping::strategy (DistributionMapping::Strategy how)
 {
-    DistributionMapping::distributionStrategy = how;
+    DistributionMapping::m_Strategy = how;
+
+    switch (how)
+    {
+    case ROUNDROBIN:
+        m_BuildMap = DistributionMapping::RoundRobinProcessorMap;
+        break;
+    case RANDOM:
+        m_BuildMap = DistributionMapping::RandomProcessorMap;
+        break;
+    case KNAPSACK:
+        m_BuildMap = DistributionMapping::KnapSackProcessorMap;
+        break;
+    case SIZEBALANCED:
+        m_BuildMap = DistributionMapping::SizeBalancedProcessorMap;
+        break;
+    default:
+        BoxLib::Error("Bad DistributionMapping::Strategy");
+    }
 }
 
 DistributionMapping::Strategy
 DistributionMapping::strategy ()
 {
-    return DistributionMapping::distributionStrategy;
+    return DistributionMapping::m_Strategy;
 }
 
-bool DistributionMapping::initialized = false;
-
-//
-// Forward declaration.
-//
-static vector< list<int> > knapsack (const vector<long>&, int);
+bool DistributionMapping::m_Initialized = false;
 
 void
 DistributionMapping::init ()
 {
-    DistributionMapping::initialized = true;
+    DistributionMapping::m_Initialized = true;
         
     ParmParse pp("DistributionMapping");
 
@@ -62,96 +78,100 @@ DistributionMapping::init ()
 
     if (pp.query("strategy", theStrategy))
     {
+        DistributionMapping::Strategy how = ROUNDROBIN;
+
         if (theStrategy == "ROUNDROBIN")
-        {
-            DistributionMapping::distributionStrategy = ROUNDROBIN;
-        }
+            how = ROUNDROBIN;
         else if (theStrategy == "KNAPSACK")
-        {
-            DistributionMapping::distributionStrategy = KNAPSACK;
-        }
+            how = KNAPSACK;
         else if (theStrategy == "RANDOM")
-        {
-            DistributionMapping::distributionStrategy = RANDOM;
-        }
+            how = RANDOM;
         else if (theStrategy == "SIZEBALANCED")
-        {
-            DistributionMapping::distributionStrategy = SIZEBALANCED;
-        }
+            how = SIZEBALANCED;
         else
         {
             aString msg("Unknown strategy: ");
             msg += theStrategy;
             BoxLib::Warning(msg.c_str());
         }
+
+        strategy(how);
     }
 }
 
 DistributionMapping::DistributionMapping ()
     :
-    nProcessors(0)
+    m_nprocs(0)
 {
-    if (!initialized)
+    if (!m_Initialized)
         DistributionMapping::init();
-
-    CreateProcessorMap();
 }
 
-DistributionMapping::DistributionMapping (int             nprocessors,
+DistributionMapping::DistributionMapping (int             nprocs,
                                           const BoxArray& boxes)
     :
-    nProcessors(nprocessors),
-    boxarray(boxes),
-    processorMap(boxes.length())
+    m_nprocs(nprocs),
+    m_boxarray(boxes),
+    m_proc_map(boxes.length())
 {
-    if (!initialized)
+    if (!m_Initialized)
         DistributionMapping::init();
 
-    CreateProcessorMap();
+    RunStats stats("processor_map");
+
+    stats.start();
+    (this->*m_BuildMap)();
+    stats.end();
 }
 
 DistributionMapping::~DistributionMapping () {}
 
 void
-DistributionMapping::define (int             nprocessors,
+DistributionMapping::define (int             nprocs,
                              const BoxArray& boxes)
 {
-    nProcessors = nprocessors;
-    boxarray = boxes;
-    processorMap.resize(boxes.length());
-    CreateProcessorMap();
-}
+    m_nprocs   = nprocs;
+    m_boxarray = boxes;
+    m_proc_map.resize(boxes.length());
 
-void
-DistributionMapping::CreateProcessorMap ()
-{
     RunStats stats("processor_map");
 
     stats.start();
+    (this->*m_BuildMap)();
+    stats.end();
+}
 
-    switch (DistributionMapping::distributionStrategy)
+void
+DistributionMapping::RoundRobinProcessorMap ()
+{
+    for (int i = 0; i < m_proc_map.length(); i++)
     {
-    case ROUNDROBIN:
-    {
-        for (int i = 0; i < processorMap.length(); i++)
-        {
-            processorMap[i] = i % nProcessors;
-        }
+        m_proc_map[i] = i % m_nprocs;
     }
-    break;
-    case RANDOM:
-        BoxLib::Error("RANDOM not implemented");
-        break;
-    case KNAPSACK:
+}
+
+//
+// Forward declaration.
+//
+static vector< list<int> > knapsack (const vector<long>&, int);
+
+void
+DistributionMapping::KnapSackProcessorMap ()
+{
+    if (m_boxarray.length() <= m_nprocs)
     {
-        vector<long> pts(boxarray.length());
+        RoundRobinProcessorMap();
+    }
+    else
+    {
+        vector<long> pts(m_boxarray.length());
 
         for (int i = 0; i < pts.size(); i++)
         {
-            pts[i] = boxarray[i].numPts();
+            pts[i] = m_boxarray[i].numPts();
         }
 
-        vector< list<int> > vec = knapsack(pts, nProcessors);
+        vector< list<int> > vec = knapsack(pts, m_nprocs);
 
         list<int>::iterator lit;
 
@@ -159,19 +179,22 @@ DistributionMapping::CreateProcessorMap ()
         {
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
             {
-                processorMap[*lit] = i;
+                m_proc_map[*lit] = i;
             }
         }
     }
-    break;
-    case SIZEBALANCED:
-        BoxLib::Error("SIZEBALANCED not implemented");
-        break;
-    default:
-        BoxLib::Error("Bad Strategy");
-    }
+}
 
-    stats.end();
+void
+DistributionMapping::RandomProcessorMap()
+{
+    BoxLib::Error("DistributionMapping::RANDOM not implemented");
+}
+
+void
+DistributionMapping::SizeBalancedProcessorMap()
+{
+    BoxLib::Error("DistributionMapping::SIZEBALANCED not implemented");
 }
 
 ostream&
@@ -182,7 +205,7 @@ operator<< (ostream&                   os,
 
     for (int i = 0; i < pmap.ProcessorMap().length(); i++)
     {
-        os << "processorMap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
+        os << "m_proc_map[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
 
     os << ')' << '\n';
@@ -215,7 +238,7 @@ operator< (const WeightedBox& lhs,
 class WeightedBoxList
 {
     list<WeightedBox> m_lb;
-    long m_weight;
+    long              m_weight;
 public:
     WeightedBoxList() : m_weight(0) {}
     long weight () const
@@ -249,13 +272,13 @@ operator< (const WeightedBoxList& lhs,
 static
 vector< list<int> >
 knapsack (const vector<long>& pts,
-          int                 nProcessors)
+          int                 nprocs)
 {
+    assert(nprocs > 0);
     //
     // Sort balls by size largest first.
     //
-    assert(nProcessors > 0);
-    vector< list<int> > result(nProcessors);
+    vector< list<int> > result(nprocs);
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
     for (int i = 0; i < pts.size(); ++i)
@@ -269,11 +292,11 @@ knapsack (const vector<long>& pts,
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
     priority_queue<WeightedBoxList> wblq;
-    for (int i  = 0; i < nProcessors; ++i)
+    for (int i  = 0; i < nprocs; ++i)
     {
 	wblq.push(WeightedBoxList());
     }
-    assert(wblq.size() == nProcessors);
+    assert(wblq.size() == nprocs);
     for (int i = 0; i < pts.size(); ++i)
     {
 	WeightedBoxList wbl = wblq.top();
@@ -281,14 +304,14 @@ knapsack (const vector<long>& pts,
 	wbl.push_back(lb[i]);
 	wblq.push(wbl);
     }
-    assert(wblq.size() == nProcessors);
+    assert(wblq.size() == nprocs);
     list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
 	wblqg.push_back(wblq.top());
         wblq.pop();
     }
-    assert(wblqg.size() == nProcessors);
+    assert(wblqg.size() == nprocs);
     wblqg.sort();
     //
     // Compute the max weight and the sum of the weights.
@@ -302,15 +325,14 @@ knapsack (const vector<long>& pts,
 	sum_weight += wgt;
 	max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
-    cout << "sum_weight = " << sum_weight << '\n';
-    cout << "max_weight = " << max_weight << '\n';
-    double efficiency = 0;
-    if (max_weight)
-        efficiency = sum_weight/nProcessors/max_weight;
-    cout << "Efficiency = " << efficiency << '\n';
+    //cout << "sum_weight = " << sum_weight << '\n';
+    //cout << "max_weight = " << max_weight << '\n';
+    //double efficiency = sum_weight/nprocs/max_weight;
+    //cout << "Efficiency = " << efficiency << '\n';
 top:
     list<WeightedBoxList>::iterator it_top = wblqg.begin();
-    list<WeightedBoxList>::iterator it_chk = it_top; it_chk++;
+    list<WeightedBoxList>::iterator it_chk = it_top;
+    it_chk++;
     WeightedBoxList wbl_top = *it_top;
     //
     // For each ball in the heaviest box.
@@ -366,8 +388,7 @@ top:
 		    // for(list<WeightedBoxList>::const_iterator ita = wblqg.begin(); ita != wblqg.end(); ++ita)
 		    //	cout << ita->weight() << '\n';
 		    max_weight = (*wblqg.begin()).weight();
-                    if (max_weight)
-                        efficiency = sum_weight/(nProcessors*max_weight);
+                    //efficiency = sum_weight/(nprocs*max_weight);
                     //cout << "Efficiency = " << efficiency << '\n';
                     //cout << "max_weight = " << max_weight << '\n';
 		    goto top;
@@ -379,7 +400,7 @@ top:
     // Here I am "load-balanced".
     //
     list<WeightedBoxList>::const_iterator cit = wblqg.begin();
-    for (int i = 0; i < nProcessors; ++i)
+    for (int i = 0; i < nprocs; ++i)
     {
 	const WeightedBoxList& wbl = *cit;
         list<WeightedBox>::const_iterator it1 = wbl.begin();
