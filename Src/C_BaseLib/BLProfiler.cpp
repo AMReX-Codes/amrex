@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.8 2001-07-21 17:41:43 car Exp $
+// $Id: BLProfiler.cpp,v 1.9 2001-07-22 18:11:02 car Exp $
 //
 
 #include <winstd.H>
@@ -659,7 +659,8 @@ Profiler::glean()
 	t_packets[0] = tps;
     }
 
-    std::vector<size_t> ntags = ParallelDescriptor::Gather(tagr.size(), ParallelDescriptor::IOProcessor());
+    std::vector<size_t> ntags
+	= ParallelDescriptor::Gather(tagr.size(), ParallelDescriptor::IOProcessorNumber());
     for ( int i = 1; i < ParallelDescriptor::NProcs(); ++i )
     {
 	if ( ParallelDescriptor::IOProcessor() )

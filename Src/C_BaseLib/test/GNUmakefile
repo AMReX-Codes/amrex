@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 2001-07-21 00:53:50 car Exp $
+# $Id: GNUmakefile,v 1.4 2001-07-22 18:11:03 car Exp $
 #
 
 #
@@ -10,9 +10,9 @@ COMP         = g++
 DIM          = 2
 PRECISION    = DOUBLE
 DEBUG        = TRUE
+USE_MPI      = TRUE
 USE_MPI      = FALSE
 USE_THREADS = TRUE
-USE_MPI = TRUE
 
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
@@ -26,7 +26,8 @@ DEFINES += -DBL_PROFILING
 # that simply needs to link against BoxLib.
 #
 #_progs = tVisMF tDir t8BIT tFB tFAC
-_progs = tProfiler tThread tWorkQueue
+#_progs = tProfiler tThread tWorkQueue
+_progs = tRan
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
