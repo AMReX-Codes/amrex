@@ -526,7 +526,8 @@ bool task_copy_local::depends_on_q(const task* t1) const
     if ( m_fab==0 && is_remote(m_smf, m_sgrid)) return false;
     if ( const task_copy_local* t1tc = dynamic_cast<const task_copy_local*>(t1) )
     {
-	// if ( m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx) ) return true;
+	if ( !eq(m_smf, t1tc->m_smf) ) return false;
+	if ( m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx) ) return true;
     }
     return false;
 }
