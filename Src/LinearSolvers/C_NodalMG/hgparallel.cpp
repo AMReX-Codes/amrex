@@ -15,6 +15,7 @@ bool HG_is_debugging = false;
 #ifdef BL_USE_MPI
 MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
 int HG::mpi_tag_ub;
+int HG::max_live_tasks = 50;
 #endif
 int HG::multigrid_maxiter = 100;
 int HG::cgsolve_maxiter = 250;
@@ -29,6 +30,7 @@ void HG::MPI_init()
 	pp.query("cgsolve_maxiter", cgsolve_maxiter);
 	pp.query("multigrid_maxiter", multigrid_maxiter);
 	pp.query("cgsolve_tolfact", cgsolve_tolfact);
+	pp.query("max_live_tasks", max_live_tasks);
 	initialized = true;
 #ifdef BL_USE_MPI
 	int res;
@@ -200,6 +202,7 @@ void task_list::execute()
 	print_dependencies(debug_out);
 #endif
     }
+    int live_tasks = 0;
     while ( !tasks.empty() )
     {
 	task::task_proxy t = tasks.front();
@@ -212,16 +215,19 @@ void task_list::execute()
 	{
 	    if ( ! t->is_started() )
 	    {
+		if ( live_tasks > HG::max_live_tasks)
+		    continue;
 		if ( ! t->startup() )
 		{
 		    t.set_finished();
 		    continue;
 		}
+		live_tasks++;
 	    }
 	    assert(t->is_started());
 	    if ( t->ready() )
 	    {
-		t.set_finished();
+		t.set_finished(); live_tasks--;
 		continue;
 	    }
 	}
@@ -233,6 +239,7 @@ void task_list::execute()
 	}
 #endif
     }
+    assert(live_tasks == 0);
     seq_no = 1;
 }
 
