@@ -309,7 +309,7 @@ contains
       pf%refrat(:,2:pf%dim) = spread(pf%refrat(:,1), dim=2, ncopies=pf%dim-1)
 
       do i = 1, pf%flevel
-         call box_read(pf%grids(i)%pdbx, unit)
+         call box_read(pf%grids(i)%pdbx, unit = lun)
       end do
       read(unit=lun, fmt=*) (idummy, i=1, pf%flevel)
       do i = 1, pf%flevel
@@ -348,7 +348,7 @@ contains
               call bl_error("BUILD_PLOTFILE: unexpected n", n)
          idummy = bl_stream_scan_int(strm)
          do j = 1, pf%grids(i)%nboxes
-            call box_read(pf%grids(i)%fabs(j)%bx, unit)
+            call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
             pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)
             pf%grids(i)%fabs(j)%nc = nc
          end do

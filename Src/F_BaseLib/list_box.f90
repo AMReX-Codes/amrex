@@ -1,5 +1,5 @@
 module list_box_module
-  use box_module;  
+  use box_module  
   implicit none
 
   type list_box_node
@@ -481,7 +481,7 @@ contains
   subroutine list_unique_box(l, tst)
     interface
        function tst(p,q) result(r)
-         use box_module;  
+         use box_module  
          implicit none
          logical :: r
          type(box), intent(in) :: p, q
@@ -502,7 +502,7 @@ contains
       use bl_error_module
       interface
          function tst(p,q) result(r)
-           use box_module;  
+           use box_module  
            implicit none
            logical :: r
            type(box), intent(in) :: p, q
@@ -646,7 +646,7 @@ contains
     type(list_box), intent(inout) :: l
     interface
        function tst(p) result(r)
-         use box_module;  
+         use box_module  
          implicit none
          logical :: r
          type(box), intent(in) :: p

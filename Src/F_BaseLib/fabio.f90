@@ -14,6 +14,7 @@ module fabio_module
 
   integer, parameter :: FABIO_DOUBLE = 1
   integer, parameter :: FABIO_SINGLE = 2
+  
 
   interface
      subroutine fabio_close(fd)
@@ -69,15 +70,12 @@ module fabio_module
      module procedure fabio_ml_multifab_write_d
   end interface
 
-  interface fabio_read
-     module procedure fabio_fab_read_d
-  end interface
-
   integer, parameter :: FABIO_RDONLY = 0
   integer, parameter :: FABIO_WRONLY = 1
   integer, parameter :: FABIO_RDWR   = 2
 
   integer, parameter :: FABIO_MAX_VAR_NAME = 20
+  integer, parameter :: FABIO_MAX_PATH_NAME = 128
 
 contains
 
@@ -249,16 +247,6 @@ contains
     end if
   end subroutine fabio_multifab_write_d
 
-  subroutine fabio_fab_read_d(fd, fb)
-    integer, intent(in)  :: fd
-    type(fab), intent(out) :: fb
-  end subroutine fabio_fab_read_d
-
-  subroutine fabio_multifab_read_d(fd, mf)
-    integer, intent(in)  :: fd
-    type(multifab), intent(out) :: mf
-  end subroutine fabio_multifab_read_d
-
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx)
     use bl_IO_module
     type(multifab), intent(in) :: mfs(:)
@@ -373,5 +361,195 @@ contains
        close(unit=un)
     end if
   end subroutine fabio_ml_multifab_write_d
+
+  subroutine fabio_ml_multifab_read_d(mmf, root, unit, ng)
+    use bl_stream_module
+    use bl_IO_module
+    type(multifab), intent(out) :: mmf(:)
+    character(len=*), intent(in) :: root
+    integer, intent(in), optional :: unit
+    integer, intent(in), optional :: ng
+    integer :: lun
+    type(bl_stream) :: strm
+    character(len=256) :: str
+
+    call build(strm, unit)
+    lun = bl_stream_the_unit(strm)
+    open(unit=lun, &
+         file = trim(root) // "/" // "Header", &
+         status = 'old', action = 'read')
+    read(unit=lun,fmt='(a)') str
+    if ( str == '&ML_MULTIFAB' ) then
+       call bl_error("PLOTFILE_BUILD: not implemented")
+    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
+       call build_ns_plotfile
+    else
+       call bl_error('FABIO_ML_MULTIFAB_WRITE_D: Header has improper magic string', str)
+    end if
+    call destroy(strm)
+
+  contains
+
+    ! NavierStokes-V1.1 Plotfile Formats
+    ! Record
+    !     : c : NavierStokes-V1.1/HyperClaw-V1.1
+    !     : c : Numbers of fields = n
+    !    n: i : Field Names
+    !     : i : Dimension = dm
+    !     : r : Time
+    !     : i : Number of Levels - 1 : nl
+    !     : r : Physical domain lo end [1:dm]
+    !     : r : Physical domain hi end [1:dm]
+    !     : i : Refinement Ratios [1:nl-1]
+    !     : b : Prob domains per level [1:nl]
+    !     : i : unused [1:nl]
+    !   nl: r : grid spacing, per level, [1:dm]
+    !     : i : unused  :
+    !     : i : unused
+    !     For each level
+    !     [
+    !       : iiri : dummy, nboxes, dummy, dummy
+    !       For each box, j
+    !       [
+    !         : r :  plo[1:dm,j], phi[1:dm, j]
+    !       ]
+    !       : c : level directory
+    !     ]
+    !     Close Header File
+    !     For each level
+    !     [
+    !       Open Header of sub-directory
+    !       : iiii: dummy, dummy, ncomponents, dummy
+    !       : i ; '(', nboxes dummy
+    !       For each box, j
+    !       [
+    !         : b : bx[j]
+    !       ]
+    !       :  : ')'
+    !       For each box, j
+    !       [
+    !         : ci : 'FabOnDisk: ' Filename[j], Offset[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : min[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : man[j]
+    !       ]
+    !       Close subgrid file
+    !     ]
+
+    subroutine build_ns_plotfile()
+      integer :: i, n, k
+      integer :: j, nc
+      integer n1
+      character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
+      integer :: offset
+      integer :: idummy, sz, fd
+      real(kind=dp_t) :: rdummy, tm
+      integer :: nvars, dm, flevel
+      integer, allocatable :: refrat(:,:), nboxes(:)
+      real(kind=dp_t), allocatable :: dxlev(:,:)
+      type(box), allocatable :: pdbx(:), bxs(:)
+      type(box) :: bx
+      type(boxarray) :: ba
+      type(layout) :: la
+      character(len=256), allocatable :: fileprefix(:)
+      character(len=256), allocatable :: header(:)
+      real(kind=dp_t), pointer :: pp(:,:,:,:)
+
+      read(unit=lun,fmt=*) nvars
+      do i = 1, nvars
+         read(unit=lun,fmt='(a)') cdummy
+      end do
+      read(unit=lun, fmt=*) dm
+      read(unit=lun, fmt=*) tm
+      read(unit=lun, fmt=*) flevel
+      flevel = flevel + 1
+
+      if ( size(mmf) < flevel ) then
+          call bl_error("FABIO_ML_MULTIFAB_READ_D: multifab array to small")
+      end if
+
+      allocate(pdbx(flevel))
+      allocate(nboxes(flevel))
+      allocate(fileprefix(flevel))
+      allocate(header(flevel))
+
+      read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+      !! Not make this really work correctly, I need to see if these are
+      !! IntVects here.  I have no examples of this.
+      allocate(refrat(flevel-1,1:dm))
+      read(unit=lun, fmt=*) refrat(:,1)
+      refrat(:,2:dm) = spread(refrat(:,1), dim=2, ncopies=dm-1)
+
+      do i = 1, flevel
+         call box_read(pdbx(i), unit = lun)
+      end do
+      read(unit=lun, fmt=*) (idummy, i=1, flevel)
+      allocate(dxlev(flevel,1:dm))
+      do i = 1, flevel
+         read(unit=lun, fmt=*) dxlev(i,:)
+      end do
+
+      read(unit=lun, fmt=*) idummy, idummy
+      do i = 1, flevel
+         read(unit=lun, fmt=*) idummy, nboxes(i), rdummy, idummy
+         do j = 1, nboxes(i)
+            read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+         end do
+         read(unit=lun, fmt='(a)') str
+         str1 = str(:index(str, "/")-1)
+         fileprefix(i) = str1
+         str1 = trim(str(index(str, "/")+1:)) // "_H"
+         header(i) = trim(str1)
+      end do
+      close(unit=lun)
+      do i = 1, flevel
+         open(unit=lun, &
+              action = 'read', &
+              status = 'old', file = trim(trim(root) // "/" //  &
+              trim(fileprefix(i)) // "/" // &
+              trim(header(i))) )
+         read(unit=lun, fmt=*) idummy, idummy, nc, idummy
+         allocate(bxs(nboxes(i)))
+         if ( nc /= nvars ) &
+              call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+         call bl_stream_expect(strm, '(')
+         n = bl_stream_scan_int(strm)
+         if ( n /= nboxes(i) ) &
+              call bl_error("BUILD_PLOTFILE: unexpected n", n)
+         idummy = bl_stream_scan_int(strm)
+         do j = 1, nboxes(i)
+            call box_read(bxs(j), unit = lun)
+         end do
+         call bl_stream_expect(strm, ')')
+         call build(ba, bxs)
+         call build(la, ba)
+         call multifab_build(mmf(i),la,nc = nvars, ng = ng)
+         read(unit=lun, fmt=*) idummy
+         do j = 1, nboxes(i)
+            read(unit=lun, fmt=*) cdummy, &
+                 filename, offset
+            call fabio_open(fd,                         &
+               trim(root) // "/" //                &
+               trim(fileprefix(i)) // "/" // &
+               trim(filename))
+            bx = get_box(mmf(i), j)
+            pp => dataptr(mmf(i), j, bx)
+            sz = volume(bxs(j))
+            call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
+            call fabio_close(fd)
+         end do
+         deallocate(bxs)
+         call destroy(ba)
+         close(unit=lun)
+      end do
+    end subroutine build_ns_plotfile
+  end subroutine fabio_ml_multifab_read_d
 
 end module fabio_module

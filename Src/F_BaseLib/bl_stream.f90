@@ -71,7 +71,8 @@ contains
        if ( is_space(c) ) cycle
        call bl_stream_putback_chr(strm, c)
        exit
-100 end do
+100    continue
+    end do
   end subroutine bl_stream_eat_whitespace
 
   function bl_stream_peek_chr(strm, set) result(r)
@@ -130,7 +131,8 @@ contains
        end if
 200    r = EOF
        exit
-100 end do
+100    continue
+    end do
   end function bl_stream_scan_chr
 
   subroutine bl_stream_expect_str(strm, str)

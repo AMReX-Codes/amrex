@@ -806,3 +806,14 @@ subroutine t_box_read
   print *, 'bx = ', bx
   close(1)
 end subroutine t_box_read
+
+subroutine t_ml_mf_read
+  use fabio_module
+  character(len=128) root
+  type(multifab), allocatable :: mmf(:)
+  root = 'plt0000'
+  allocate(mmf(2))
+  call fabio_ml_multifab_read_d(mmf, root, ng = 1)
+  call fabio_ml_multifab_write_d(mmf, (/2/), "plogo")
+
+end subroutine t_ml_mf_read
