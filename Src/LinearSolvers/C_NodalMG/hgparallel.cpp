@@ -49,8 +49,8 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_sbx);
-	HG_DEBUG_OUT( "Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	HG_DEBUG_OUT( "Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
 	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
@@ -119,8 +119,8 @@ bool task_copy::ready()
 	    if ( res != 0 )
 		ParallelDescriptor::Abort( res );
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    HG_DEBUG_OUT( "Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	    HG_DEBUG_OUT( "Box(R) of tmp "   << m_sno << " " << tmp->box() << endl );
+	    HG_DEBUG_OUT( ">> Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	    HG_DEBUG_OUT( ">>>Box(R) of tmp "   << m_sno << " " << tmp->box() << endl );
 	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
 	}
