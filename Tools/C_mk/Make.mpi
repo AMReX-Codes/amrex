@@ -3,16 +3,21 @@ ifeq ($(MACHINE), OSF1)
   BL_MPI_LIBS += -lmpi
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
 endif
+
 ifeq ($(MACHINE), AIX)
   MPI_HOME:=/usr/lpp/ppe.poe
   BL_MPI_LIBS += -lmpi
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
 endif
+
 ifeq ($(MACHINE), Linux)
   MPI_HOME=$(HOME)/amr/mpich
   BL_MPI_LIBS += -lmpich
   LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
 endif
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
+
+ifneq ($(MPI_HOME),)
+  INCLUDE_LOCATIONS += $(MPI_HOME)/include
+endif
 
 
