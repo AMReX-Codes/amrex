@@ -1,33 +1,12 @@
 //
-// $Id: CArena.cpp,v 1.29 2001-10-16 19:59:51 lijewski Exp $
+// $Id: CArena.cpp,v 1.30 2001-10-18 17:55:31 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <utility>
 #include <cstring>
 
-#include <BArena.H>
 #include <CArena.H>
-#include <Thread.H>
-
-Arena*
-BoxLib::The_Arena ()
-{
-    static ThreadSpecificData<Arena> arena;
-
-    Arena* a = arena.get();
-
-    if (a == 0)
-    {
-#if defined(BL_THREADS) || defined(BL_COALESCE_FABS)
-        arena.set(a = new CArena);
-#else
-        arena.set(a = new BArena);
-#endif
-    }
-
-    return a;
-}
 
 CArena::CArena (size_t hunk_size)
 {

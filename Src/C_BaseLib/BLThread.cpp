@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.14 2001-09-07 22:03:21 car Exp $
+// $Id: BLThread.cpp,v 1.15 2001-10-18 17:55:31 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -727,18 +727,21 @@ private:
 
 ThreadSpecificData<void>::Implementation::Implementation(void (*tsd)(void*))
 {
+    //printf("%p: ThreadSpecificData<void>::Implementation::Implementation()\n",this);
     THREAD_REQUIRE( pthread_key_create(&m_key, reinterpret_cast<thr_vvp>(tsd)) );
     THREAD_ASSERT(get() == 0);
 }
 
 ThreadSpecificData<void>::Implementation::~Implementation()
 {
+    //printf("%p: ThreadSpecificData<void>::Implementation::~Implementation()\n",this);
     THREAD_REQUIRE( pthread_key_delete(m_key) );
 }
 
 void*
 ThreadSpecificData<void>::Implementation::set(const void* v)
 {
+    //printf("%p: ThreadSpecificData<void>::Implementation::set(%p)\n",this,v);
     void* ov = pthread_getspecific(m_key);
     THREAD_REQUIRE( pthread_setspecific(m_key, v) );
     return ov;
@@ -747,7 +750,10 @@ ThreadSpecificData<void>::Implementation::set(const void* v)
 void*
 ThreadSpecificData<void>::Implementation::get() const
 {
-    return pthread_getspecific(m_key);
+
+    void* v = pthread_getspecific(m_key);
+    //printf("%p: ThreadSpecificData<void>::Implementation::get(%p)\n",this,v);
+    return v;
 }
 #endif
 
