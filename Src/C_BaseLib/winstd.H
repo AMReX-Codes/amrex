@@ -2,7 +2,7 @@
 #define _WINSTD_H_
 
 // This files 'fixes' MSVC 6 so that it is more like real C++.
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
 // The STL and template classes in general will yield symbols greater
 // than 256 chars, which are truncated; this suppresses the CL
 // warning.
