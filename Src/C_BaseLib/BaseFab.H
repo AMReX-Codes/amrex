@@ -2,7 +2,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.32 2001-07-20 16:54:08 lijewski Exp $
+// $Id: BaseFab.H,v 1.33 2001-07-20 17:20:48 car Exp $
 //
 
 #include <cstdlib>
@@ -67,7 +67,9 @@ template <class T>
 class BaseFab
 {
 public:
-
+    
+    typedef T value_type;
+    
     /*@ManDoc: Construct an invalid `BaseFab'.  The domain is invalid, the
                number of components is zero, and no actually array memory is
                allocated. An invalid `BaseFab' must be resized

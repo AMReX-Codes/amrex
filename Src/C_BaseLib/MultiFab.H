@@ -2,7 +2,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.35 2001-07-19 20:02:46 lijewski Exp $
+// $Id: MultiFab.H,v 1.36 2001-07-20 17:20:49 car Exp $
 //
 
 #include <BLassert.H>
@@ -65,7 +65,7 @@ namespace BoxLib
 */
 class MultiFab
     :
-    public FabArray<Real, FArrayBox>
+    public FabArray<FArrayBox>
 {
   public:
 
@@ -367,7 +367,7 @@ class ConstMultiFabIterator;
 */
 class MultiFabIterator
     :
-    public FabArrayIterator<Real,FArrayBox>
+    public FabArrayIterator<FArrayBox>
 {
   public:
     //
@@ -375,7 +375,7 @@ class MultiFabIterator
     //
     MultiFabIterator (MultiFab& multifab)
         :
-        FabArrayIterator<Real, FArrayBox>(multifab) {}
+        FabArrayIterator<FArrayBox>(multifab) {}
 
   private:
     //
@@ -400,7 +400,7 @@ class MultiFabIterator
 
 class DependentMultiFabIterator
     :
-    public DependentFabArrayIterator<Real,FArrayBox>
+    public DependentFabArrayIterator<FArrayBox>
 {
   public:
     //
@@ -409,7 +409,7 @@ class DependentMultiFabIterator
     DependentMultiFabIterator (MultiFabIterator& controllermfiter,
                                MultiFab&         dependentmultifab)
         :
-        DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+        DependentFabArrayIterator<FArrayBox>(controllermfiter,
                                                   dependentmultifab) {}
     //
     //@ManDoc: Constructor over an immutable dependent MultiFab.
@@ -417,7 +417,7 @@ class DependentMultiFabIterator
     DependentMultiFabIterator (MultiFabIterator& controllermfiter,
                                const MultiFab&   dependentmultifab)
         :
-        DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+        DependentFabArrayIterator<FArrayBox>(controllermfiter,
                                                   dependentmultifab) {}
   private:
     //
@@ -441,7 +441,7 @@ class DependentMultiFabIterator
 
 class ConstMultiFabIterator
     :
-    public ConstFabArrayIterator<Real,FArrayBox>
+    public ConstFabArrayIterator<FArrayBox>
 {
   public:
     //
@@ -449,7 +449,7 @@ class ConstMultiFabIterator
     //
     ConstMultiFabIterator (const MultiFab& multifab)
         :
-        ConstFabArrayIterator<Real,FArrayBox>(multifab) {}
+        ConstFabArrayIterator<FArrayBox>(multifab) {}
 
   private:
     //
@@ -474,7 +474,7 @@ class ConstMultiFabIterator
 
 class ConstDependentMultiFabIterator
     :
-    public ConstDependentFabArrayIterator<Real,FArrayBox>
+    public ConstDependentFabArrayIterator<FArrayBox>
 {
   public:
     //
@@ -483,7 +483,7 @@ class ConstDependentMultiFabIterator
     ConstDependentMultiFabIterator (ConstMultiFabIterator& controllermfiter,
                                     const MultiFab&        dependentmultifab)
         :
-        ConstDependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+        ConstDependentFabArrayIterator<FArrayBox>(controllermfiter,
                                                        dependentmultifab) {}
   private:
     //
@@ -496,13 +496,13 @@ class ConstDependentMultiFabIterator
 
 class MultiFabCopyDescriptor
     :
-    public FabArrayCopyDescriptor<Real,FArrayBox>
+    public FabArrayCopyDescriptor<FArrayBox>
 {
   public:
 
     MultiFabCopyDescriptor ()
         :
-        FabArrayCopyDescriptor<Real, FArrayBox>() {}
+        FabArrayCopyDescriptor<FArrayBox>() {}
 
     MultiFabId RegisterMultiFab (MultiFab* mf)
     {
