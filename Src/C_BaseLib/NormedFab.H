@@ -4,7 +4,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.3 1998-05-04 21:24:58 lijewski Exp $
+// $Id: NormedFab.H,v 1.4 1999-04-15 23:28:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -29,9 +29,11 @@ using std::endl;
 //@Memo: A BaseFab with Norms
 /*@Doc:
 
-  This class provides various L-p norms to a BaseFab.
+  This is NOT a polymorphic class.
 
-  This class does NOT provide a copy constructor or assignment operator.
+  It provides various L-p norms to a BaseFab.
+
+  It does NOT provide a copy constructor or assignment operator.
  */
 
 template <class T>
@@ -50,26 +52,26 @@ public:
     explicit NormedFab (const Box& b,
                         int        n = 1);
     //
-    //@ManDoc: The (virtual) destructor.
+    //@ManDoc: The destructor.
     //
-    virtual ~NormedFab();
+    ~NormedFab ();
 
     /*@ManDoc: Compute the Lp-norm of this FAB using components
-               (comp : comp+numcomp-1).
+               (scomp : scomp+ncomp-1).
                p < 0  -> ERROR
                p = 0  -> infinity norm (max norm)
                p = 1  -> sum of ABS(FAB)
     */
-    virtual Real norm (int p,
-                       int comp=0,
-                       int numcomp=1) const;
+    Real norm (int p,
+               int scomp = 0,
+               int ncomp = 1) const;
     //
     //@ManDoc: Same as above except only on given subbox.
     //
-    virtual Real norm (const Box& subbox,
-                       int        p,
-                       int        comp=0,
-                       int        numcomp=1) const;
+    Real norm (const Box& subbox,
+               int        p,
+               int        scomp = 0,
+               int        ncomp = 1) const;
     //
     //@ManDoc:  Compute absolute value for all components of this FAB.
     //
@@ -96,8 +98,6 @@ private:
 template <class T>
 inline
 NormedFab<T>::NormedFab ()
-    :
-    BaseFab<T>()
 {}
 
 template <class T>
@@ -108,10 +108,10 @@ NormedFab<T>::NormedFab (const Box& b,
     BaseFab<T>(b,n)
 {}
 
-//
-// This isn't inlined as it's virtual.
-//
-template <class T> NormedFab<T>::~NormedFab() {}
+template <class T>
+inline
+NormedFab<T>::~NormedFab()
+{}
 
 template <class T>
 void
@@ -146,11 +146,8 @@ NormedFab<T>::abs (const Box& subbox,
     } EndFor
 }
 
-//
-// This isn't inlined as it's virtual.
-//
-
 template <class T>
+inline
 Real
 NormedFab<T>::norm (int p,
                     int comp,
@@ -169,9 +166,10 @@ NormedFab<T>::norm (const Box& subbox,
     assert(comp >= 0 && comp+numcomp <= nComp());
     assert(p >= 0);
 
-    Real* tmp  = 0;
-    int tmplen = 0;
-    Real nrm   = 0;
+    Real  nrm    = 0;
+    Real* tmp    = 0;
+    int   tmplen = 0;
+
     if (p == 0)
     {
         ForAllThisCPencil(T,subbox,comp,numcomp)
@@ -179,7 +177,7 @@ NormedFab<T>::norm (const Box& subbox,
             const T* row = &thisR;
             if (tmp == 0)
             {
-                tmp = new Real[thisLen];
+                tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = Abs(Real(row[i]));
@@ -201,7 +199,7 @@ NormedFab<T>::norm (const Box& subbox,
             const T* row = &thisR;
             if (tmp == 0)
             {
-                tmp = new Real[thisLen];
+                tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = Abs(Real(row[i]));
@@ -217,7 +215,9 @@ NormedFab<T>::norm (const Box& subbox,
             nrm += tmp[i];
     }
     else
+    {
       BoxLib::Error("NormedFab::norm(): only p == 0 or p == 1 are supported");
+    }
 
     delete [] tmp;
 

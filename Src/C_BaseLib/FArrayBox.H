@@ -4,11 +4,14 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.12 1998-08-14 16:36:19 car Exp $
+// $Id: FArrayBox.H,v 1.13 1999-04-15 23:27:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
+#ifndef __GNUC__
+#include <limits>
+#endif
 using std::cin;
 using std::cout;
 using std::cerr;
@@ -218,6 +221,8 @@ public:
   this class.  The internal precision of FARRAYBOX objects is
   set by defining either `BL\_USE\_FLOAT' or `BL\_USE\_DOUBLE' 
 
+  This is NOT a polymorphic class.
+
   This class does NOT provide a copy constructor or assignment operator.  */
 
 class FArrayBox
@@ -261,10 +266,9 @@ public:
     //
     explicit FArrayBox (istream& is);
     //
-    //@ManDoc:  The (virtual) destructor.
+    //@ManDoc:  The destructor.
     //
-    virtual ~FArrayBox ();
-
+    ~FArrayBox ();
     //
     // For debugging purposes we hide BaseFab version and do some extra work.
     //
@@ -272,88 +276,88 @@ public:
                  int        N = 1);
 
     /*@ManDoc: Compute the Lp-norm of this FAB using components
-               (comp : comp+numcomp-1).  p < 0  -> ERROR.
+               (scomp : scomp+ncomp-1).  p < 0  -> ERROR.
                p = 0  -> infinity norm (max norm).
                p = 1  -> sum of ABS(FAB)
                p > 1  -> Lp-norm
     */
-    virtual Real norm (int p=2,
-                       int comp=0,
-                       int numcomp=1) const;
+    Real norm (int p     = 2,
+               int scomp = 0,
+               int ncomp = 1) const;
     //
     //@ManDoc: Same as above except only on given subbox.
     //
-    virtual Real norm (const Box& subbox,
-                       int        p=2,
-                       int        comp=0,
-                       int        numcomp=1) const;
+    Real norm (const Box& subbox,
+               int        p     = 2,
+               int        scomp = 0,
+               int        ncomp = 1) const;
     //
     //@ManDoc: Print subrange of FAB in formatted form to output stream.
     //
-    friend void printRange (ostream&,
-                            const FArrayBox&,
-                            const Box&,
-                            int              comp,
-                            int              numcomp = 1);
+    friend void printRange (ostream&         os,
+                            const FArrayBox& fab,
+                            const Box&       bx,
+                            int              scomp,
+                            int              ncomp = 1);
 #if   BL_SPACEDIM==1
 
     /*@ManDoc: Print subrange defined by (ilo:ihi)
-               using components (comp : comp+numcomp-1).
+               using components (scomp : scomp+ncomp-1).
     */
-    friend void printRange (ostream&,
-                            const FArrayBox&,
+    friend void printRange (ostream&          os,
+                            const FArrayBox&  bx,
                             int               ilo,
                             int               ihi,
-                            int               comp,
-                            int               numcomp=1);
+                            int               scomp,
+                            int               ncomp = 1);
 
     /*@ManDoc: Same as above but print to standard output.
                This is useful for debugging.
     */
-    friend void printRange (const FArrayBox&,
+    friend void printRange (const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               comp,
-                            int               numcomp=1);
+                            int               ncomp = 1);
 #elif BL_SPACEDIM==2
 
     /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi)
-               using components (comp : comp+numcomp-1).
+               using components (scomp : scomp+ncomp-1).
     */
-    friend void printRange (ostream&,
-                            const FArrayBox&,
+    friend void printRange (ostream&          os,
+                            const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               jlo,
                             int               jhi,
-                            int               comp,
-                            int               numcomp=1);
+                            int               scomp,
+                            int               ncomp = 1);
  
     /*@ManDoc: Same as above but print to standard output.
                This is useful for debugging.
     */
-    friend void printRange (const FArrayBox&,
+    friend void printRange (const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               jlo,
                             int               jhi,
-                            int               comp,
-                            int               numcomp=1);
+                            int               scomp,
+                            int               ncomp = 1);
 #elif BL_SPACEDIM==3
 
     /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi) X (klo:khi)
-               using components (comp : comp+numcomp-1).
+               using components (scomp : scomp+ncomp-1).
     */
-    friend void printRange (ostream&,
-                            const FArrayBox&,
+    friend void printRange (ostream&          os,
+                            const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               jlo,
                             int               jhi,
                             int               klo,
                             int               khi,
-                            int               comp,
-                            int               numcomp=1);
+                            int               scomp,
+                            int               ncomp = 1);
  
     /*@ManDoc: Same as above but print to standard output.
                This is useful for debugging.
@@ -365,8 +369,8 @@ public:
                             int               jhi,
                             int               klo,
                             int               khi,
-                            int               comp,
-                            int               numcomp=1);
+                            int               scomp,
+                            int               ncomp = 1);
 #endif
     //
     //@ManDoc: Write FABs in ASCII form.
@@ -383,7 +387,7 @@ public:
                The default format is ASCII.
     */
     void writeOn (ostream& of) const;
-    //
+
     /*@ManDoc: Write only selected range of components.  comp specifies
                from which component (starting at 0) to write at each
                point in space.  num\_comp specifies how many data points
@@ -401,14 +405,13 @@ public:
     //@ManDoc: Read FAB from istream.  Format is as it was written out.
     //
     void readFrom (istream& is);
-    //
+
     /*@ManDoc: Read FAB from istream.  Format is as it was written out.
 	       This creates a single component FAB with data from
 	       compIndex of the FAB from the istream.
 	       Returns the number of components available in the fab.
     */
-    //
-    int  readFrom (istream& is, int compIndex);
+    int readFrom (istream& is, int compIndex);
 
     /*@ManDoc: Skip over the next FAB from the input stream.
                Return the Box defining the domain of the FAB and the
@@ -509,6 +512,45 @@ typedef FArrayBox FARRAYBOX;
 //
 
 inline
+FArrayBox::FArrayBox ()
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+}
+
+inline
+FArrayBox::FArrayBox (const Box& b,
+                      int        n)
+    :
+    BaseFab<Real>(b,n)
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+    //
+    // For debugging purposes set values to QNAN when possible.
+    //
+#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+    if (std::numeric_limits<Real>::has_quiet_NaN)
+	setVal(std::numeric_limits<Real>::quiet_NaN());
+#endif
+}
+
+inline
+void
+FArrayBox::resize (const Box& b,
+                   int        N)
+{
+    BaseFab<Real>::resize(b,N);
+    //
+    // For debugging purposes set values to QNAN when possible.
+    //
+#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+    if (std::numeric_limits<Real>::has_quiet_NaN)
+	setVal(std::numeric_limits<Real>::quiet_NaN());
+#endif
+}
+
+inline
 FABio::Format
 FArrayBox::getFormat ()
 {
@@ -554,5 +596,7 @@ FArrayBox::skipFAB (istream& is)
     int ignore = 0;
     skipFAB(is, ignore);
 }
+
+inline FArrayBox::~FArrayBox () {}
 
 #endif /*BL_FARRAYBOX_H*/

@@ -4,7 +4,7 @@
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.2 1998-05-04 21:24:59 lijewski Exp $
+// $Id: OrderedFab.H,v 1.3 1999-04-15 23:28:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -38,7 +38,9 @@ using std::endl;
   Note that many operations offer the same choice of overloaded
   signatures.
 
-  This class does NOT provide a copy constructor or assignment operator.
+  This is NOT a polymorphic class.
+
+  It does NOT provide a copy constructor or assignment operator.
 */
 
 template <class T>
@@ -58,9 +60,9 @@ public:
     explicit OrderedFab (const Box& b,
                          int        n = 1);
     //
-    //@ManDoc: The (virtual) destructor.
+    //@ManDoc: The destructor.
     //
-    virtual ~OrderedFab ();
+    ~OrderedFab ();
     //
     //@ManDoc: Minimum value of given component.
     //
@@ -150,8 +152,6 @@ private:
 template <class T>
 inline
 OrderedFab<T>::OrderedFab ()
-    :
-    BaseFab<T>()
 {}
 
 template <class T>
@@ -162,11 +162,8 @@ OrderedFab<T>::OrderedFab (const Box& b,
     BaseFab<T>(b,n)
 {}
 
-//
-// This isn't inlined as it's virtual.
-//
-
 template <class T>
+inline
 OrderedFab<T>::~OrderedFab ()
 {}
 
@@ -174,8 +171,8 @@ template <class T>
 T
 OrderedFab<T>::min (int comp) const
 {
-    T *_min_row = 0;
-    int _X_len = 0;
+    T*  _min_row = 0;
+    int _X_len   = 0;
     ForAllThisCPencil(T,domain,comp,1)
     {
         const T* _row = &thisR;
@@ -239,8 +236,8 @@ template <class T>
 T
 OrderedFab<T>::max (int comp) const
 {
-    T *_max_row = 0;
-    int _X_len = 0;
+    T* _max_row = 0;
+    int _X_len  = 0;
     ForAllThisCPencil(T,domain,comp,1)
     {
         const T* _row = &thisR;
@@ -272,8 +269,8 @@ T
 OrderedFab<T>::max (const Box& subbox,
                     int        comp) const
 {
-    T *_max_row = 0;
-    int _X_len = 0;
+    T*  _max_row = 0;
+    int _X_len   = 0;
     ForAllThisCPencil(T,subbox,comp,1)
     {
         const T* _row = &thisR;
@@ -395,8 +392,8 @@ OrderedFab<T>::maskLT (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int *mptr = mask.dataPtr();
-    int cnt = 0;
+    int* mptr = mask.dataPtr();
+    int  cnt  = 0;
 
     ForAllThisCBNN(T,domain,comp,1)
     {
@@ -420,8 +417,8 @@ OrderedFab<T>::maskLE (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int *mptr = mask.dataPtr();
-    int cnt = 0;
+    int* mptr = mask.dataPtr();
+    int  cnt  = 0;
 
     ForAllThisCBNN(T,domain,comp,1)
     {
@@ -445,8 +442,8 @@ OrderedFab<T>::maskEQ (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int *mptr = mask.dataPtr();
-    int cnt = 0;
+    int* mptr = mask.dataPtr();
+    int  cnt  = 0;
 
     ForAllThisCBNN(T,domain,comp,1)
     {
@@ -470,8 +467,8 @@ OrderedFab<T>::maskGT (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int *mptr = mask.dataPtr();
-    int cnt = 0;
+    int* mptr = mask.dataPtr();
+    int  cnt  = 0;
 
     ForAllThisCBNN(T,domain,comp,1)
     {
@@ -495,8 +492,8 @@ OrderedFab<T>::maskGE(BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int *mptr = mask.dataPtr();
-    int cnt = 0;
+    int* mptr = mask.dataPtr();
+    int  cnt  = 0;
 
     ForAllThisCBNN(T,domain,comp,1)
     {

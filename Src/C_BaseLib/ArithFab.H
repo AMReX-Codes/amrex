@@ -4,7 +4,7 @@
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.2 1998-04-30 16:35:33 lijewski Exp $
+// $Id: ArithFab.H,v 1.3 1999-04-15 23:27:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,7 +45,9 @@ using std::endl;
   scalar operations take a scalar as one argument, while FAB operations
   utilize two FABS.
 
-  This class does NOT provide a copy constructor or assignment operator.
+  This is NOT a polymorphic class.
+
+  It does NOT provide a copy constructor or assignment operator.
 */
 
 template <class T>
@@ -65,9 +67,9 @@ public:
     explicit ArithFab (const Box& b,
                        int        n = 1);
     //
-    //@ManDoc: The (virtual) destructor.
+    //@ManDoc: The destructor.
     //
-    virtual ~ArithFab ();
+    ~ArithFab ();
     //
     //@ManDoc: Fill with a pattern of numbers.
     //
@@ -468,8 +470,6 @@ ArithFab<T>::divide (const ArithFab<T>& x)
 template <class T>
 inline
 ArithFab<T>::ArithFab ()
-    :
-    BaseFab<T>()
 {}
 
 template <class T>
@@ -480,10 +480,10 @@ ArithFab<T>::ArithFab (const Box &b,
     BaseFab<T>(b,n)
 {}
 
-//
-// This is not inlined as it's virtual.
-//
-template <class T> ArithFab<T>::~ArithFab () {}
+template <class T>
+inline
+ArithFab<T>::~ArithFab ()
+{}
 
 template <class T>
 void
@@ -537,7 +537,7 @@ T
 ArithFab<T>::sum (int comp,
                   int numcomp) const
 {
-    T *_sum_row = 0;
+    T*  _sum_row = 0;
     int _sum_len = 0;
     ForAllThisCPencil(T,domain,comp,numcomp)
     {
@@ -559,6 +559,7 @@ ArithFab<T>::sum (int comp,
     T _sum = _sum_row[0];
     for (int i = 1; i < _sum_len; i++)
         _sum += _sum_row[i];
+
     delete [] _sum_row;
 
     return _sum;
@@ -570,7 +571,7 @@ ArithFab<T>::sum (const Box& subbox,
                   int        comp,
                   int        numcomp) const
 {
-    T *_sum_row = 0;
+    T*  _sum_row = 0;
     int _sum_len = 0;
     ForAllThisCPencil(T,subbox,comp,numcomp)
     {
@@ -594,6 +595,7 @@ ArithFab<T>::sum (const Box& subbox,
     T _sum = _sum_row[0];
     for (int i = 1; i < _sum_len; i++)
         _sum += _sum_row[i];
+
     delete [] _sum_row;
 
     return _sum;
@@ -675,7 +677,7 @@ ArithFab<T>::invert (T          r,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator += (T r)
+ArithFab<T>::operator+= (T r)
 {
     ForAllThis(T)
     {
@@ -713,7 +715,7 @@ ArithFab<T>::plus (T          r,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator += (const ArithFab<T>& x)
+ArithFab<T>::operator+= (const ArithFab<T>& x)
 {
     ForAllThisXC(T,x)
     {
@@ -769,7 +771,7 @@ ArithFab<T>::plus (const ArithFab<T>& src,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator -= (const ArithFab<T>& x)
+ArithFab<T>::operator-= (const ArithFab<T>& x)
 {
     ForAllThisXC(T,x)
     {
@@ -825,7 +827,7 @@ ArithFab<T>::minus (const ArithFab<T>& src,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator *= (T r)
+ArithFab<T>::operator*= (T r)
 {
     ForAllThis(T)
     {
@@ -863,7 +865,7 @@ ArithFab<T>::mult (T          r,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator *= (const ArithFab<T> &x)
+ArithFab<T>::operator*= (const ArithFab<T> &x)
 {
     ForAllThisXC(T,x)
     {
@@ -919,7 +921,7 @@ ArithFab<T>::mult (const ArithFab<T>& src,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator /= (T r)
+ArithFab<T>::operator/= (T r)
 {
     ForAllThis(T)
     {
@@ -957,7 +959,7 @@ ArithFab<T>::divide (T          r,
 
 template <class T>
 ArithFab<T>&
-ArithFab<T>::operator /= (const ArithFab<T> &x)
+ArithFab<T>::operator/= (const ArithFab<T> &x)
 {
     ForAllThisXC(T,x)
     {
