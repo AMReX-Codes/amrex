@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.67 2003-04-09 22:35:24 marc Exp $
+// $Id: DistributionMapping.cpp,v 1.68 2004-10-11 20:20:47 car Exp $
 //
 #include <winstd.H>
 
@@ -17,6 +17,15 @@
 #include <queue>
 #include <algorithm>
 #include <numeric>
+
+#ifdef BL_USE_METIS
+//#include <metis.h>
+extern "C"
+{
+void METIS_PartGraphKway(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
+void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
+}
+#endif
 
 static int verbose = 0;
 static double max_efficiency = .95;
@@ -60,6 +69,9 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case KNAPSACK:
         m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
         break;
+    case METIS:
+	m_BuildMap = &DistributionMapping::MetisProcessorMap;
+    	break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
     }
@@ -105,6 +117,10 @@ DistributionMapping::Initialize ()
         {
             strategy(KNAPSACK);
         }
+	else if (theStrategy == "METIS")
+	{
+	    strategy(METIS);
+	}
         else
         {
             std::string msg("Unknown strategy: ");
@@ -244,6 +260,52 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     }
 }
 
+#ifndef BL_USE_METIS
+void
+DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
+{
+    BoxLib::Error("METIS not available on this processor");
+}
+#else
+void
+DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
+{
+    int n = boxes.size();
+    std::vector<int> xadj(n+1);
+    std::vector<int> adjncy;
+    std::vector<int> vwgt(n);
+    int* adjwgt = 0;
+    int wgtflag = 2;
+    int numflag = 0;
+    int nparts  = nprocs;
+    int options[5] = {0, 0, 0, 0, 0};
+    int edgecut;
+    std::vector<int> part(nprocs);
+    for ( int i = 0; i < n; ++i ) 
+    {
+	vwgt[i] = boxes[i].volume();
+    }
+    int cnt = 0;
+    for ( int i = 0; i < n; ++i ) 
+    {
+	Box bx = BoxLib::grow(boxes[i], 1);
+	xadj[i] = cnt;
+	for ( int j = 0; i < n; ++i )
+	{
+	    if ( j == i ) continue;
+	    if ( bx.intersects(boxes[j]) )
+	    {
+		adjncy.push_back(j);
+		cnt++;
+	    }
+	}
+    }
+    METIS_PartGraphRecursive(
+	    &n, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
+	    &wgtflag, &numflag,  &nparts, options,
+	    &edgecut, &part[0]);
+}
+#endif
 void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {

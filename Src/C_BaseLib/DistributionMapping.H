@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.23 2002-10-31 18:09:00 car Exp $
+// $Id: DistributionMapping.H,v 1.24 2004-10-11 20:20:47 car Exp $
 //
 #include <vector>
 
@@ -33,7 +33,7 @@ class DistributionMapping
     //
     //@ManDoc: The distribution strategy: ROUNDROBIN or KNAPSACK.
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK };
+    enum Strategy { ROUNDROBIN, KNAPSACK ,METIS };
     //
     //@ManDoc: The default constructor.
     //
@@ -113,6 +113,7 @@ class DistributionMapping
     //
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
+    //   DistributionMapping.strategy = METIS
     //
     static void Initialize ();
 
@@ -124,6 +125,7 @@ private:
     //
     void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
+    void MetisProcessorMap        (const BoxArray& boxes, int nprocs);
 
     //
     // Our cache of processor maps.
