@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.13 1997-11-28 00:00:45 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.14 1997-11-28 17:27:37 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -164,17 +164,34 @@ DistributionMapping::define (int             nprocs,
         m_procmap.resize(boxes.length());
     }
 
-    if (!DistributionMapping::GetMap(nprocs, boxes, m_procmap))
+    if (DistributionMapping::m_Strategy == DistributionMapping::ROUNDROBIN)
     {
+        //
+        // Don't bother with the cache -- just do it :-)
+        //
         (this->*m_BuildMap)(nprocs, boxes);
-
-        DistributionMapping::m_Cache.prepend(m_procmap);
-
-        if (DistributionMapping::m_Cache.length() > MaxCacheSize())
+    }
+    else
+    {
+        if (!DistributionMapping::GetMap(nprocs, boxes, m_procmap))
         {
-            DistributionMapping::m_Cache.removeLast();
+            (this->*m_BuildMap)(nprocs, boxes);
+            //
+            // We always prepend new processor maps.
+            //
+            DistributionMapping::m_Cache.prepend(m_procmap);
 
-            assert(DistributionMapping::m_Cache.length() == MaxCacheSize());
+            if (DistributionMapping::m_Cache.length() > MaxCacheSize())
+            {
+                do
+                {
+                    //
+                    // And remove old ones from the end.
+                    //
+                    DistributionMapping::m_Cache.removeLast();
+                }
+                while (DistributionMapping::m_Cache.length() > MaxCacheSize());
+            }
         }
     }
 
@@ -216,6 +233,9 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
 
     if (boxes.length() <= nprocs || nprocs < 2)
     {
+        //
+        // Might as well just use ROUNDROBIN.
+        //
         RoundRobinProcessorMap(nprocs, boxes);
     }
     else
