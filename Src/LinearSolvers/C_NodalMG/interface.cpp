@@ -35,10 +35,10 @@ level_interface::~level_interface()
 	    delete [] ax[i];
 	    delete [] flg[i];
 	}
-#if (BL_SPACEDIM == 3)
 	delete [] fgr;
-#endif
+#if (BL_SPACEDIM == 3)
 	delete [] egr;
+#endif
 	delete [] cgr;
     }
 }
@@ -63,7 +63,9 @@ void level_interface::copy(const level_interface& src)
 	flg[i] = src.flg[i];
     }
     fgr = src.fgr;
+#if BL_SPACEDIM==3
     egr = src.egr;
+#endif
     cgr = src.cgr;
     
     pf = src.pf;
@@ -97,7 +99,9 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 	flg[i] = src.flg[i];
     }
     fgr = src.fgr;
+#if BL_SPACEDIM == 3
     egr = src.egr;
+#endif
     cgr = src.cgr;
     
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -281,7 +285,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     }
     
 #if (BL_SPACEDIM == 2)
-    egr = fgr;
+    // egr = fgr;
 #else
     // initialize edge grid array
     idim = 1;

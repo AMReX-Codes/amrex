@@ -19,7 +19,7 @@ public:
     enum
     { 
 	N_FACE_GRIDS = 2,
-	N_EDGE_GRIDS = 2, 
+	// N_EDGE_GRIDS = 2, 
 	N_CORNER_GRIDS = 4,
 	FACEDIM  = 1
     };
@@ -99,7 +99,9 @@ private:
     int* fdm;                           // which is flat dim for this face
     Box* nodebx[BL_SPACEDIM];           // node-based versions of interface boxes
     int (*fgr)[2];                      // grid neighbor data for faces
+#if BL_SPACEDIM==3
     int (*egr)[N_EDGE_GRIDS];           // grid neighbor data for edges
+#endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
     
     void  add(List<Box>& bl, Box b, int startgrid);
