@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.42 2001-12-04 21:28:17 car Exp $
+# Make.defs $Id: Make.defs,v 1.43 2001-12-13 18:24:59 car Exp $
 #
 
 #
@@ -115,6 +115,10 @@ ifndef COMP
   COMP	= CC
 endif
 
+ifndef FCOMP
+  FCOMP  = f77
+endif
+
 ifndef USE_THREADS
   USE_THREADS  = FALSE
 endif
@@ -192,6 +196,13 @@ ifeq ($(COMP),g++)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
 endif
+ifeq ($(FCOMP),g77)
+    FC := g77
+    FOPTF += -O
+    fOPTF += -O
+    FDEBF += -g
+    fDEBF += -g
+endif
 #
 # Generic setup for using cfront ...
 #
@@ -251,6 +262,9 @@ endif
     DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
     DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
 endif
+
+# Fortran Suffix
+FCOMPSuffix := .$(FCOMP)
 
 include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
 
@@ -365,7 +379,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib, \
