@@ -1533,7 +1533,7 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S,
 	{
          // This is the same as a fill_borders call  except that it
          //   doesn't fill periodic boundaries
-  	    boundary.scalar()->fill_sync_reg_borders(S[lev],lev_interface[mglev],-1);
+  	    boundary.scalar()->fill_sync_reg_borders(S[lev], lev_interface[mglev],-1);
         }
 
 	for (MultiFabIterator s_mfi(src[lev]); s_mfi.isValid(); ++s_mfi)

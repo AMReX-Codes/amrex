@@ -140,7 +140,6 @@ protected:
     Array< Array<BoxArray> >  mg_mesh_array;
     const amr_boundary* mg_boundary;
     level_interface*          lev_interface;
-    level_interface**         interface_array;
     PArray<MultiFab>          source;             // on active levels of ml_mesh
     PArray<MultiFab>          dest;
     PArray<MultiFab>          resid;              // on mg_mesh
@@ -154,6 +153,9 @@ protected:
 
     int                       pcode;
     int                       integrate;
+private:
+    level_interface**         interface_array;
+
 };
 
 #endif /*_AMR_MULTI_H_*/

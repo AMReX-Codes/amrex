@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.46 2000-05-11 16:38:18 car Exp $
+# $Id: GNUmakefile,v 1.47 2000-06-01 22:59:47 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -13,8 +13,8 @@ PROFILE   = FALSE
 DIM       = 2
 DIM       = 3
 COMP      = cxx
-COMP      = KCC
 COMP	  = g++
+COMP      = KCC
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 NAMESPACE = TRUE
@@ -40,7 +40,7 @@ INSTALL_ROOT = $(PBOXLIB_HOME)
 include $(TOP)/mk/Make.defs
 include ./Make.package
 
-CPPFLAGS += -DBL_NOT_USING_NAMESPACE
+#CPPFLAGS += -DBL_NOT_USING_NAMESPACE
 
 ifeq ($(LBASE),proj)
   ifeq ($(KCC_VERSION),3.3)
@@ -68,6 +68,7 @@ ifeq ($(EBASE),proj)
   ifeq ($(COMP),KCC)
     CXXFLAGS += --strict
     CXXFLAGS += --display_error_number
+    CPPFLAGS += -D__KAI_STRICT
     CXXFLAGS += --diag_suppress 450
   endif
   ifeq ($(COMP),g++)
@@ -75,7 +76,7 @@ ifeq ($(EBASE),proj)
   endif
 
   ifeq ($(DEBUG),TRUE)
-#    FFLAGS += -ffortran-bounds-check
+     FFLAGS += -ffortran-bounds-check
   endif
 
   LIBRARIES         +=

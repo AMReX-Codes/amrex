@@ -99,23 +99,23 @@ protected:
     bool source_owned;
 
     // sync caches:
-    Box** fres_fbox;
-    Box** fres_cbox;
-    Box** fres_sfbox;
-    Box** fres_scbox;
-    Box** fres_creg;
+    Array< Array<Box> > fres_fbox;
+    Array< Array<Box> > fres_cbox;
+    Array< Array<Box> > fres_sfbox;
+    Array< Array<Box> > fres_scbox;
+    Array< Array<Box> > fres_creg;
 #if (BL_SPACEDIM == 3)
-    Box** eres_fbox;
-    Box** eres_cbox;
-    Box** eres_sfbox;
-    Box** eres_scbox;
-    Box** eres_creg;
+    Array< Array<Box> > eres_fbox;
+    Array< Array<Box> > eres_cbox;
+    Array< Array<Box> > eres_sfbox;
+    Array< Array<Box> > eres_scbox;
+    Array< Array<Box> > eres_creg;
 #endif
-    Box** cres_fbox;
-    Box** cres_cbox;
-    Box** cres_sfbox;
-    Box** cres_scbox;
-    Box** cres_creg;
+    Array< Array<Box> > cres_fbox;
+    Array< Array<Box> > cres_cbox;
+    Array< Array<Box> > cres_sfbox;
+    Array< Array<Box> > cres_scbox;
+    Array< Array<Box> > cres_creg;
 
     // orderings for full-level line solves:
 
