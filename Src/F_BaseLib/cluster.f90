@@ -347,17 +347,19 @@ contains
 
     do n = 1, tagboxes%nboxes; if ( remote(tagboxes, n) ) cycle
        if ( .not. intersects(get_box(tagboxes,n), bx) ) cycle
-       tp = dataptr(tagboxes, n)
+       tp => dataptr(tagboxes, n)
        do i = lx, hx
           tsigx(i) = tsigx(i) + count(tp(i,ly:hy,lz:hz,1))
        end do
 
        do j = ly, hy
-          tsigy(j) = tsigy(j) + count(tp(lx:hx,j,lz:hz,1) .and. mp(lx:hx,j,lz:hz,1))
+          ! tsigy(j) = tsigy(j) + count(tp(lx:hx,j,lz:hz,1) .and. mp(lx:hx,j,lz:hz,1))
+          tsigy(j) = tsigy(j) + count(tp(lx:hx,j,lz:hz,1))
        end do
 
        do k = lz, hz
-          tsigz(k) = tsigz(k) + count(tp(lx:hx,ly:hy,k,1) .and. mp(lx:hx,ly:hy,k,1))
+!         tsigz(k) = tsigz(k) + count(tp(lx:hx,ly:hy,k,1) .and. mp(lx:hx,ly:hy,k,1))
+          tsigz(k) = tsigz(k) + count(tp(lx:hx,ly:hy,k,1))
        end do
     end do
 
