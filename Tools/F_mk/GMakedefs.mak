@@ -131,24 +131,33 @@ ifeq ($(ARCH),Linux)
     CPPFLAGS += -DBL_HAS_SECOND
   endif
   ifeq ($(COMP),Intel)
-    _ifc_version := $(shell ifc -V 2>&1 | grep 'Version')
-    _icc_version := $(shell icc -V 2>&1 | grep 'Version')
+    _unamem := $(shell uname -m)
+    ifeq ($(_unamem),ia64)
+      _ifc := efc
+      _icc := icc
+    else
+      _ifc := ifc
+      _icc := icc
+    endif
+    _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
+    _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
     ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
-      F90 := ifort
-      FC  := ifort
+      _ifc  := ifort
       _comp := Intel8
     else
     ifeq ($(findstring Version 7.1, $(_ifc_version)), Version 7.1)
-	$(error "VERSION 7.1 of IFC Will Not Work")
+      $(error "VERSION 7.1 of IFC Will Not Work")
     else
     ifeq ($(findstring Version 7.0, $(_ifc_version)), Version 7.0)
-      F90 := ifc
-      FC  := ifc
       _comp := Intel7
+    else
+      $(errorr "$(_ifc_version) of IFC will not work")
     endif
     endif
     endif
-    CC  = icc
+    F90 := $(_ifc)
+    FC  := $(_ifc)
+    CC  := $(_icc)
     FFLAGS   =
     F90FLAGS =
     CFLAGS   =

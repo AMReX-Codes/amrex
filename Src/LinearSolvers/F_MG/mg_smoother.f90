@@ -2,7 +2,6 @@ module mg_smoother_module
 
   use stencil_module
   use stencil_nodal_module
-  use bl_types
 
   implicit none
 
