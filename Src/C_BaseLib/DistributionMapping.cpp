@@ -1,12 +1,11 @@
 //
-// $Id: DistributionMapping.cpp,v 1.45 2001-01-25 23:52:36 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.46 2001-04-19 22:25:27 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
 #include <List.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
-#include <RunStats.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
@@ -199,10 +198,6 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     {
         if (!GetMap(boxes))
         {
-            static RunStats stats("processor_map");
-
-            stats.start();
-
             (this->*m_BuildMap)(boxes,nprocs);
 
 #if defined(BL_USE_MPI) && !defined(BL_NO_PROCMAP_CACHE)
@@ -211,7 +206,6 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
             //
             DistributionMapping::m_Cache.push_back(m_procmap);
 #endif
-            stats.end();
         }
     }
 }

@@ -1,6 +1,6 @@
 
 //
-// $Id: FabSet.cpp,v 1.37 2001-01-25 23:53:23 lijewski Exp $
+// $Id: FabSet.cpp,v 1.38 2001-04-19 22:24:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -12,7 +12,6 @@ using std::list;
 
 #include <FabSet.H>
 #include <Looping.H>
-#include <RunStats.H>
 
 FabSet::FabSet () {}
 
@@ -303,13 +302,7 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    static RunStats stats("fabset_copyfrom");
-
-    stats.start();
-
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
-
-    stats.end();
 
     return *this;
 }
@@ -321,13 +314,7 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    static RunStats stats("fabset_plusfrom");
-
-    stats.start();
-
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
-
-    stats.end();
 
     return *this;
 }
@@ -382,10 +369,6 @@ FabSet::linComb (Real            a,
 {
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
-
-    static RunStats stats("fabset_lincomb");
-
-    stats.start();
 
     const BoxArray& bxa = mfa.boxArray();
     const BoxArray& bxb = mfb.boxArray();
@@ -466,8 +449,6 @@ FabSet::linComb (Real            a,
                                                  dcomp,
                                                  ncomp);
     }
-
-    stats.end();
 
     return *this;
 }
