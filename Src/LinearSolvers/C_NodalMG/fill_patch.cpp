@@ -578,7 +578,6 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-// Really just a test
 class task_restric_fill : public task
 {
 public:
