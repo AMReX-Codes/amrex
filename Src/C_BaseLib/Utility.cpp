@@ -1,10 +1,11 @@
 //
-// $Id: Utility.cpp,v 1.62 2002-10-01 22:38:42 lijewski Exp $
+// $Id: Utility.cpp,v 1.63 2002-10-24 21:56:00 lijewski Exp $
 //
 
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <ctime>
 #include <iostream>
@@ -762,22 +763,12 @@ BoxLib::InitRandom (unsigned long seed)
 double
 BoxLib::Random ()
 {
-    return the_generator.d_value();
+    return the_generator.d1_value();
 }
 
 //
-// Fortran entry point for BoxLib::Random().
+// Fortran entry points for BoxLib::Random().
 //
-
-#if defined(BL_FORT_USE_UPPERCASE)
-#define FORT_BLUTILRAND BLUTILRAND
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_BLUTILRAND blutilrand
-#elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_BLUTILRAND blutilrand_
-#endif
-
-extern "C" void FORT_BLUTILRAND (Real* rn);
 
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
@@ -785,11 +776,280 @@ BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
     BoxLib::InitRandom(seed);
 }
 
-void
-FORT_BLUTILRAND (Real* rn)
+BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(Real* rn)
 {
-    BL_ASSERT(rn != 0);
     *rn = BoxLib::Random();
+}
+
+//
+// The standard normal CDF, for one random variable.
+//
+//   Author:  W. J. Cody
+//   URL:   http://www.netlib.org/specfun/erf
+//
+// This is the erfc() routine only, adapted by the
+// transform stdnormal_cdf(u)=(erfc(-u/sqrt(2))/2;
+//
+
+static
+double
+stdnormal_cdf (double u)
+{
+    const double Sqrt_2    = 1.41421356237309504880;  // sqrt(2)
+    const double Sqrt_1_Pi = 0.56418958354775628695;  // 1/sqrt(Pi)
+
+    const double a[5] =
+    {
+        1.161110663653770e-002,
+        3.951404679838207e-001,
+        2.846603853776254e+001,
+        1.887426188426510e+002,
+        3.209377589138469e+003
+    };
+    const double b[5] =
+    {
+        1.767766952966369e-001,
+        8.344316438579620e+000,
+        1.725514762600375e+002,
+        1.813893686502485e+003,
+        8.044716608901563e+003
+    };
+    const double c[9] =
+    {
+        2.15311535474403846e-8,
+        5.64188496988670089e-1,
+        8.88314979438837594e00,
+        6.61191906371416295e01,
+        2.98635138197400131e02,
+        8.81952221241769090e02,
+        1.71204761263407058e03,
+        2.05107837782607147e03,
+        1.23033935479799725E03
+    };
+    const double d[9] =
+    {
+        1.00000000000000000e00,
+        1.57449261107098347e01,
+        1.17693950891312499e02,
+        5.37181101862009858e02,
+        1.62138957456669019e03,
+        3.29079923573345963e03,
+        4.36261909014324716e03,
+        3.43936767414372164e03,
+        1.23033935480374942e03
+    };
+    const double p[6] =
+    {
+        1.63153871373020978e-2,
+        3.05326634961232344e-1,
+        3.60344899949804439e-1,
+        1.25781726111229246e-1,
+        1.60837851487422766e-2,
+        6.58749161529837803e-4
+    };
+    const double q[6] =
+    {
+        1.00000000000000000e00,
+        2.56852019228982242e00,
+        1.87295284992346047e00,
+        5.27905102951428412e-1,
+        6.05183413124413191e-2,
+        2.33520497626869185e-3
+    };
+
+    double y, z;
+
+    y = fabs(u);
+
+    if (y <= 0.46875*Sqrt_2)
+    {
+        //
+        // Evaluate erf() for |u| <= sqrt(2)*0.46875
+        //
+        z = y*y;
+        y = u*((((a[0]*z+a[1])*z+a[2])*z+a[3])*z+a[4])
+            /((((b[0]*z+b[1])*z+b[2])*z+b[3])*z+b[4]);
+        return 0.5+y;
+    }
+
+    z = exp(-y*y/2)/2;
+
+    if (y <= 4.0)
+    {
+        //
+        // Evaluate erfc() for sqrt(2)*0.46875 <= |u| <= sqrt(2)*4.0
+        //
+        y = y/Sqrt_2;
+        y = ((((((((c[0]*y+c[1])*y+c[2])*y+c[3])*y+c[4])*y+c[5])*y+c[6])*y+c[7])*y+c[8])
+            /((((((((d[0]*y+d[1])*y+d[2])*y+d[3])*y+d[4])*y+d[5])*y+d[6])*y+d[7])*y+d[8]);
+        y = z*y;
+    }
+    else
+    {
+        //
+        // Evaluate erfc() for |u| > sqrt(2)*4.0
+        //
+        z = z*Sqrt_2/y;
+        y = 2/(y*y);
+        y = y*(((((p[0]*y+p[1])*y+p[2])*y+p[3])*y+p[4])*y+p[5])
+            /(((((q[0]*y+q[1])*y+q[2])*y+q[3])*y+q[4])*y+q[5]);
+        y = z*(Sqrt_1_Pi-y);
+    }
+
+    return u < 0.0 ? y : (1-y);
+}
+
+//
+// Lower tail quantile for standard normal distribution function.
+//
+// This function returns an approximation of the inverse cumulative
+// standard normal distribution function.  I.e., given P, it returns
+// an approximation to the X satisfying P = Pr{Z <= X} where Z is a
+// random variable from the standard normal distribution.
+//
+// The algorithm uses a minimax approximation by rational functions
+// and the result has a relative error whose absolute value is less
+// than 1.15e-9.
+//
+// Author:      Peter J. Acklam
+// Time-stamp:  2002-06-09 18:45:44 +0200
+// E-mail:      jacklam@math.uio.no
+// WWW URL:     http://www.math.uio.no/~jacklam
+//
+// C implementation adapted from Peter's Perl version
+//
+
+double
+BoxLib::InvNormDist (double p, bool best)
+{
+    if (p <= 0 || p >= 1)
+        BoxLib::Error("BoxLib::InvNormDist(): p MUST be in (0,1)");
+    //
+    // Coefficients in rational approximations.
+    //
+    static const double a[6] =
+    {
+	-3.969683028665376e+01,
+        2.209460984245205e+02,
+	-2.759285104469687e+02,
+        1.383577518672690e+02,
+	-3.066479806614716e+01,
+        2.506628277459239e+00
+    };
+
+    static const double b[5] =
+    {
+	-5.447609879822406e+01,
+        1.615858368580409e+02,
+	-1.556989798598866e+02,
+        6.680131188771972e+01,
+	-1.328068155288572e+01
+    };
+
+    static const double c[6] =
+    {
+	-7.784894002430293e-03,
+	-3.223964580411365e-01,
+	-2.400758277161838e+00,
+	-2.549732539343734e+00,
+        4.374664141464968e+00,
+        2.938163982698783e+00
+    };
+
+    static const double d[4] =
+    {
+	7.784695709041462e-03,
+	3.224671290700398e-01,
+	2.445134137142996e+00,
+	3.754408661907416e+00
+    };
+
+    static const double lo = 0.02425;
+    static const double hi = 0.97575;
+
+    double x;
+
+    if (p < lo)
+    {
+        //
+        // Rational approximation for lower region.
+        //
+        double q = sqrt(-2*log(p));
+
+        x = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+            ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+    }
+    else if (p > hi)
+    {
+        //
+        // Rational approximation for upper region.
+        //
+        double q = sqrt(-2*log(1-p));
+
+        x = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+            ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+    }
+    else
+    {
+        //
+        // Rational approximation for central region.
+        //
+        double q = p - 0.5;
+        double r = q*q;
+
+        x = (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
+            (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+    }
+    //
+    // The relative error of the approximation has absolute value less
+    // than 1.15e-9.  One iteration of Halley's rational method (third
+    // order) gives full machine precision.
+    //
+    if (best)
+    {
+        static const double Sqrt_2Pi = 2.5066282746310002;  // sqrt(2*Pi)
+
+        double e = stdnormal_cdf(x) - p;
+        double u = e*Sqrt_2Pi*exp(x*x/2);
+
+        x -= u/(1 + x*u/2);
+    }
+
+    return x;
+}
+
+//
+// Fortran entry points for BoxLib::InvNormDist().
+//
+
+BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
+{
+    double val;
+    //
+    // Get a random number in (0,1);
+    //
+    do
+    {
+        val = the_generator.d_value();
+    }
+    while (val == 0);
+
+    *result = BoxLib::InvNormDist(val,false);
+}
+
+BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
+{
+    double val;
+    //
+    // Get a random number in (0,1);
+    //
+    do
+    {
+        val = the_generator.d_value();
+    }
+    while (val == 0);
+
+    *result = BoxLib::InvNormDist(val,true);
 }
 
 

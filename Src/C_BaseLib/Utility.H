@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.52 2002-02-06 18:14:46 car Exp $
+// $Id: Utility.H,v 1.53 2002-10-24 21:56:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -94,6 +94,47 @@ namespace BoxLib
     void OutOfMemory ();
 
     /*@ManDoc:
+
+      This function returns an approximation of the inverse cumulative
+      standard normal distribution function.  I.e., given P, it returns
+      an approximation to the X satisfying P = Pr{Z <= X} where Z is a
+      random variable from the standard normal distribution.
+
+      The algorithm uses a minimax approximation by rational functions
+      and the result has a relative error whose absolute value is less
+      than 1.15e-9.
+
+      If "best" is true the approximation is further refined down to more
+      or less machine precision using one iteration of Halley's Rational
+      Method.
+
+      Author:      Peter J. Acklam
+      Time-stamp:  2002-06-09 18:45:44 +0200
+      E-mail:      jacklam@math.uio.no
+      WWW URL:     http://www.math.uio.no/~jacklam
+
+      C implementation adapted from Peter's Perl version.
+
+      "p" MUST be in the open interval (0,1).
+
+      There are two entry points for Fortran:
+    
+      REAL\_T val
+      call blinvnormdist(val)
+
+      and
+
+      REAL\_T val
+      call blinvnormdistbest(val)
+
+      Internally, these Fortran entry points call a static Mersenne Twister
+      object (the same one called by blutilrand()) to get a random number in
+      the open interval (0,1), and then sets "val" to the result of calling
+      BoxLib::InvNormDist() with that random number.
+     */
+    double InvNormDist (double p, bool best = false);
+
+    /*@ManDoc:
       Mersenne Twister pseudo-random number generator.
 
       Generates one pseudorandom real number (double) which is
@@ -109,10 +150,19 @@ namespace BoxLib
     
       REAL\_T rn
       call blutilrand(rn)
+
+      Internally, blutilrand() calls a static Mersenne Twister oject (the
+      same one used by BoxLib::Random()) to get a value in [0,1] and then
+      sets "rn" to that value.
     */
     double Random ();
 
     /*@ManDoc: Set the seed of the random number generator.
+
+      There is also an entry point for Fortran callable as:
+
+      INTEGER seed
+      call blutilinitrand(seed)
     */
     void InitRandom (unsigned long seed);
 
