@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.52 2003-05-15 22:01:01 lijewski Exp $
+// $Id: BaseFab.H,v 1.53 2004-07-21 23:50:01 car Exp $
 //
 #include <winstd.H>
 
@@ -80,7 +80,7 @@ public:
 	BFProxy operator() (int n) const;
 	BFProxy& operator= (const T& t);
     private:
-	enum {ALL = -1};
+	enum {All = -1};
 	BFProxy (BaseFab& bf, const Box& bx, int n);
 	BaseFab& m_fab;
 	const Box m_bx;
@@ -94,7 +94,7 @@ public:
 	CBFProxy operator() (const Box& bx) const;
 	CBFProxy operator() (int n) const;
     private:
-	enum {ALL = -1};
+	enum {All = -1};
 	CBFProxy (BaseFab& bf, const Box& bx, int n);
 	const BaseFab& m_fab;
 	const Box m_bx;
