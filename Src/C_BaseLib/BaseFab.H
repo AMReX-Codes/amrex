@@ -3,7 +3,7 @@
 #include <winstd.H>
 
 //
-// $Id: BaseFab.H,v 1.37 2001-07-24 18:12:34 car Exp $
+// $Id: BaseFab.H,v 1.38 2001-07-24 18:16:26 car Exp $
 //
 
 #include <cstdlib>
@@ -1102,8 +1102,9 @@ BaseFab<T>::undefine ()
     T* ptr = dptr;
 
     for (int i = 0; i < truesize; i++, ptr++)
+    {
         ptr->~T();
-
+    }
     The_FAB_Arena->free(dptr);
 
     dptr = 0;
@@ -1125,6 +1126,7 @@ BaseFab<T>::BaseFab (const BaseFab& fab)
       nvar(fab.nComp())
 {
     numpts = domain.numPts();
+    dptr = 0;
     define();
     for ( int i = 0; i < numpts*nvar; ++i )
     {
@@ -1140,6 +1142,7 @@ BaseFab<T>::operator= (const BaseFab& fab)
     domain = fab.box();
     nvar   = fab.nComp();
     numpts = domain.numPts();
+    dptr = 0;
     define();
     for ( int i = 0; i < numpts*nvar; ++i )
     {
