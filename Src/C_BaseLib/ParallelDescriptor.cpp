@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.31 1998-04-20 22:18:29 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.32 1998-04-21 05:20:27 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -397,8 +397,6 @@ ParallelDescriptor::StartParallel (int,
                                    int*    argc,
                                    char*** argv)
 {
-    TRACER("ParallelDescriptor::StartParallel()");
-
     int rc;
 
     if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
