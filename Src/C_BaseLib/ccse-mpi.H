@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.9 2001-07-20 17:01:45 car Exp $
+// $Id: ccse-mpi.H,v 1.10 2001-07-26 20:50:06 car Exp $
 //
 
 //
@@ -12,12 +12,9 @@
 //
 
 #ifdef BL_USE_MPI
+#include <winstd.H>
+
 #include <mpi.h>
-#ifdef WIN32
-#undef small
-#undef min
-#undef max
-#endif
 
 //
 // Template function to return MPI_Datatype depending on argument type.
