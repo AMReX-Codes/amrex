@@ -1785,6 +1785,43 @@ cdir$ ivdep
       end do
       end
 c-----------------------------------------------------------------------
+c sig here contains three different directions all stored on "nodes"
+      subroutine hgrlxur(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,resl2,resh2,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,idd)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
+      integer i, jdiff, kdiff, ly, lz
+      integer idd
+      AVG() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
+     &         signd(i,j,k,1)   * cor(i+1,j,k) +
+     &         signd(i,j-1,k,2) * cor(i,j-1,k) +
+     &         signd(i,j,k,2)   * cor(i,j+1,k) +
+     &         signd(i,j,k-1,3) * cor(i,j,k-1) +
+     &         signd(i,j,k,3)   * cor(i,j,k+1))
+      do ipass = 0, 1
+         ipar0 = ipass
+         do k = regl2, regh2
+            ipar0 = 1 - ipar0
+            ipar = ipar0
+            do j = regl1, regh1
+               ipar = 1 - ipar
+cdir$ ivdep
+               do i = regl0 + ipar, regh0, 2
+                  cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
+               end do
+            end do
+         end do
+      end do
+      end
+c-----------------------------------------------------------------------
       subroutine hgrlx(
      & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
      & res,   resl0,resh0,resl1,resh1,resl2,resh2,
@@ -2215,6 +2252,35 @@ c-----------------------------------------------------------------------
      &      signd(i+ly)       * (dest(i+jdiff) - dest(i)) +
      &      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
      &      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
+      end do
+      end
+c-----------------------------------------------------------------------
+      subroutine hgresur(
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
+     & src, dest, signd,
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
+     & idd)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision res(*)
+      double precision src(*)
+      double precision dest(*)
+      double precision signd(*)
+      double precision mask(*)
+      integer i, j, k, jdiff, kdiff, ly, lz
+      integer idd
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               res(i,j,k) = src(i,j,k) -
+     &        (signd(i-1,j,k,1) * (dest(i-1,j,k) - dest(i,j,k)) +
+     &         signd(i,j,k,1)   * (dest(i+1,j,k) - dest(i,j,k)) +
+     &         signd(i,j-1,k,2) * (dest(i,j-1,k) - dest(i,j,k)) +
+     &         signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
+     &         signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
+     &         signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
+            end do
+         end do
       end do
       end
 c-----------------------------------------------------------------------
