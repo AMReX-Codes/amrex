@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.20 1998-06-13 21:00:09 lijewski Exp $
+// $Id: FabSet.cpp,v 1.21 1998-06-13 21:12:28 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -93,6 +93,10 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
+    RunStats stats("fabset_copyfrom");
+
+    stats.start();
+
     assert(nghost <= src.nGrow());
 
     FabSetCopyDescriptor fscd;
@@ -140,6 +144,8 @@ FabSet::copyFrom (const MultiFab& src,
         fscd.FillFab(srcmfid, fillBoxIdList[i], (*this)[fabindex]);
     }
 
+    stats.end();
+
     return *this;
 }
 
@@ -150,6 +156,10 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
+    RunStats stats("fabset_plusfrom");
+
+    stats.start();
+
     assert(nghost <= src.nGrow());
 
     MultiFabCopyDescriptor mfcd;
@@ -199,6 +209,8 @@ FabSet::plusFrom (const MultiFab& src,
 
         (*this)[fabidx].plus(tmpfab,fbidsrc.box(),src_comp,dest_comp,num_comp);
     }
+
+    stats.end();
 
     return *this;
 }
