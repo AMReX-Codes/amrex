@@ -17,8 +17,12 @@
 class amr_boundary_class 
 {
 public:
-    amr_boundary_class() { }
-    virtual ~amr_boundary_class() { }
+    amr_boundary_class() 
+    { 
+    }
+    virtual ~amr_boundary_class()
+    { 
+    }
 
     int dir(const Box&, const Box&) const;
     void boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
@@ -64,7 +68,9 @@ class amr_fluid_boundary_class
 {
 public:
     amr_fluid_boundary_class();
-    virtual ~amr_fluid_boundary_class() { }
+    virtual ~amr_fluid_boundary_class() 
+    { 
+    }
     
     virtual const amr_boundary_class* velocity(int i) const 
     {
@@ -103,7 +109,10 @@ class inviscid_fluid_boundary_class;
 class mixed_boundary_class : public amr_boundary_class 
 {
 public:
-    mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim)  : ptr(Ptr), flowdim(idim) {}
+    mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim)  
+	: ptr(Ptr), flowdim(idim) 
+    {
+    }
     
     virtual Box box(const Box&, const Box&, int) const;
     // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;

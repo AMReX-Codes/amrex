@@ -14,17 +14,26 @@
 class amr_restrictor_class 
 {
 public:
-    amr_restrictor_class() { }
-    virtual ~amr_restrictor_class() { }
+    amr_restrictor_class() 
+    { 
+    }
+    virtual ~amr_restrictor_class() 
+    { 
+    }
     virtual Box box(const Box&, const IntVect&) const = 0;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
-    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const {}
+    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const 
+    {
+    }
 };
 
 class cell_average_restrictor_class : public amr_restrictor_class 
 {
 public:
-    explicit cell_average_restrictor_class(int i) : integrate(i) { }
+    explicit cell_average_restrictor_class(int i) 
+	: integrate(i) 
+    { 
+    }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 protected:
@@ -34,14 +43,19 @@ protected:
 class terrain_velocity_restrictor_class : public cell_average_restrictor_class 
 {
 public:
-    explicit terrain_velocity_restrictor_class(int i) : cell_average_restrictor_class(i) { }
+    explicit terrain_velocity_restrictor_class(int i) 
+	: cell_average_restrictor_class(i) 
+    { 
+    }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class injection_restrictor_class : public amr_restrictor_class 
 {
 public:
-    injection_restrictor_class() { }
+    injection_restrictor_class() 
+    { 
+    }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
@@ -49,7 +63,9 @@ public:
 class default_restrictor : public amr_restrictor_class 
 {
 public:
-    default_restrictor() { }
+    default_restrictor() 
+    { 
+    }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };

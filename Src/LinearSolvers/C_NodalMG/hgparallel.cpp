@@ -313,7 +313,6 @@ void task_copy::hint() const
 task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
     : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0)
 {
-    m_fab->copy(m_smf[m_sgrid]);
 }
 
 task_copy_local::~task_copy_local()
@@ -385,6 +384,7 @@ bool task_copy_local::ready()
     if ( m_local )
     {
 	m_fab->copy(m_smf[m_sgrid], m_bx);
+	// printRange(debug_out, *m_fab, m_bx, 0, m_fab->nComp());
 	return true;
     }
     int flag;

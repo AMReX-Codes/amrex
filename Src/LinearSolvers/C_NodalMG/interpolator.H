@@ -13,8 +13,12 @@
 class amr_interpolator_class 
 {
 public:
-    amr_interpolator_class() { }
-    virtual ~amr_interpolator_class() { }
+    amr_interpolator_class() 
+    { 
+    }
+    virtual ~amr_interpolator_class() 
+    { 
+    }
     virtual Box box(const Box&, const IntVect&) const = 0;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const IntVect&) const = 0;
 };
@@ -22,7 +26,9 @@ public:
 class bilinear_interpolator_class : public amr_interpolator_class 
 {
 public:
-    bilinear_interpolator_class() { }
+    bilinear_interpolator_class() 
+    { 
+    }
     Box box(const Box&, const IntVect&) const;
     void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const IntVect&) const;
 };
