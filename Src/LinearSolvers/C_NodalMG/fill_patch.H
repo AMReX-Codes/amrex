@@ -7,25 +7,7 @@
 #include "interpolator.H"
 #include "restrictor.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
-#  define FORT_FFCPY     fcpy_
-#else
-#  define FORT_FFCPY     FCPY
-#endif
-
-extern "C" 
-{
-    void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
-}
-
-inline void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
-{
-    Real *const dptr = r[destgrid].dataPtr();
-    Real *const sptr = r[srcgrid].dataPtr();
-    const Box& dbx = r[destgrid].box();
-    const Box& sbx = r[srcgrid].box();
-    FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
-}
+void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b);
 
 Real inner_product(const MultiFab& r, const MultiFab& s);
 
@@ -74,13 +56,6 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface,
 		       const amr_boundary_class* bdy);
-
-void restrict_patch(FArrayBox& patch, const Box& region,
-		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache,
-		    const amr_restrictor_class& restric,
-		    const level_interface& lev_interface,
-		    const amr_boundary_class* bdy);
 
 void restrict_level(MultiFab& dest, bool bflag, MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,

@@ -4,26 +4,36 @@
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FORT_FIPRODC   iprodc_
 #  define FORT_FIPRODN   iprodn_
-#  define FORT_FFCPYU    fcpyu_
 #  define FORT_FFCPY2    fcpy2_
+#  define FORT_FFCPY     fcpy_
 #else
 #  define FORT_FIPRODC   IPRODC
 #  define FORT_FIPRODN   IPRODN
-#  define FORT_FFCPYU    FCPYU
 #  define FORT_FFCPY2    FCPY2
+#  define FORT_FFCPY     FCPY
 #endif
 
 extern "C"
 {
     void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real&);
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
-    void FORT_FFCPYU(Real*, Real*, intS, const int&);
+    void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
     void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
 #else
     void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&, const int&);
 #endif
 }
+
+void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
+{
+    Real *const dptr = r[destgrid].dataPtr();
+    Real *const sptr = r[srcgrid].dataPtr();
+    const Box& dbx = r[destgrid].box();
+    const Box& sbx = r[srcgrid].box();
+    FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
+}
+
 
 Real inner_product(const MultiFab& r, const MultiFab& s)
 {
@@ -569,7 +579,7 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
     }
 }
 
-void restrict_patch(FArrayBox& patch, const Box& region,
+static void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
