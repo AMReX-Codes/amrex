@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.76 1998-10-18 01:44:17 lijewski Exp $
+// $Id: FabArray.H,v 1.77 1998-10-18 03:48:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2362,10 +2362,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                     N += fabComTagList[j].box.numPts()*fabComTagList[j].nComp;
 
             assert(N < INT_MAX);
-            //
-            // TODO -- use coalescing heap !!!
-            //
-            fab_data[i] = new T[N];
+            assert(!(The_FAB_Arena == 0));
+
+            fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
             mpi_recv.start();
             if ((rc = MPI_Irecv(fab_data[i],
@@ -2402,10 +2401,10 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                 N += recv_cd[idx+j].box().numPts() * recv_cd[idx+j].nComp();
 
             assert(N < INT_MAX);
-            //
-            // TODO -- use coalescing heap !!!
-            //
-            T *data = new T[N], *dptr = data;
+            assert(!(The_FAB_Arena == 0));
+
+            T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
+            T* dptr = data;
 
             for (int j = 0; j < Snds[i]; j++)
             {
@@ -2444,7 +2443,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
 
-            delete [] data;
+            assert(!(The_FAB_Arena == 0));
+
+            The_FAB_Arena->free(data);
 
             idx += Snds[i];
         }
@@ -2505,8 +2506,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             }
 
             assert(Processed == Rcvs[i]);
+            assert(!(The_FAB_Arena == 0));
 
-            delete [] fab_data[i];
+            The_FAB_Arena->free(fab_data[i]);
 
             fab_data[i] = 0;
         }
