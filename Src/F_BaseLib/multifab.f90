@@ -1348,14 +1348,13 @@ contains
   end subroutine multifab_fill_boundary
   subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm)
     type(multifab), intent(inout) :: mf
-    integer, intent(in) :: c
-    integer, intent(in), optional :: ng, nc
+    integer, intent(in) :: c, nc
+    integer, intent(in), optional :: ng
     logical, intent(in), optional :: nocomm
-    integer :: lng, lnc
+    integer :: lng
     logical :: lnocomm 
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
-    lnc = 1; if ( present(nc) ) lnc = nc
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
 
@@ -1385,16 +1384,16 @@ contains
                   if ( intersects(bx, bndry(ii,fc)) ) then
                      abx = intersection(bx, bndry(ii,fc))
                      if ( local(mf, i) .AND. local(mf, j) ) then
-                        p1 => dataptr(mf, i, abx, c, lnc)
-                        p2 => dataptr(mf, j, abx, c, lnc)
+                        p1 => dataptr(mf, i, abx, c, nc)
+                        p2 => dataptr(mf, j, abx, c, nc)
                         p1 = p2
                      else if ( .not. lnocomm ) then
                         if ( local(mf, j) ) then ! must send
-                           p2 => dataptr(mf, j, abx, c, lnc)
+                           p2 => dataptr(mf, j, abx, c, nc)
                            proc = get_proc(mf%la, i)
                            call parallel_send(p2, proc, tag)
                         else if ( local(mf, i) ) then  ! must recv
-                           p1 => dataptr(mf, i, abx, c, lnc)
+                           p1 => dataptr(mf, i, abx, c, nc)
                            proc = get_proc(mf%la,j)
                            call parallel_recv(p1, proc, tag)
                         end if
@@ -1427,8 +1426,8 @@ contains
          jj = bxasc%l_con%cpy(i)%ns
          sbx = bxasc%l_con%cpy(i)%sbx
          dbx = bxasc%l_con%cpy(i)%dbx
-         p1 => dataptr(mf%fbs(ii), dbx, c, lnc)
-         p2 => dataptr(mf%fbs(jj), sbx, c, lnc)
+         p1 => dataptr(mf%fbs(ii), dbx, c, nc)
+         p2 => dataptr(mf%fbs(jj), sbx, c, nc)
 !print *, i
 !print *, ii, dbx
 !print *, jj, sbx
@@ -1463,37 +1462,37 @@ contains
       ! nc to get the actual volume
 
       do i = 1, bxasc%r_con%nsnd
-         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, lnc)
-         g_snd_d(1 + lnc*bxasc%r_con%snd(i)%pv:lnc*bxasc%r_con%snd(i)%av) = &
-              reshape(p, lnc*bxasc%r_con%snd(i)%s1)
+         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+         g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = &
+              reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
       if ( d_fb_async ) then
          do i = 1, bxasc%r_con%nrp
-            rst(i) = parallel_irecv_dv(g_rcv_d(1+lnc*bxasc%r_con%rtr(i)%pv:), &
-                 lnc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+            rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
          end do
          do i = 1, bxasc%r_con%nsp
-            sst(i) = parallel_isend_dv(g_snd_d(1+lnc*bxasc%r_con%str(i)%pv:), &
-                 lnc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+            sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
+                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
          call parallel_wait(rst)
       else
          do i = 1, bxasc%r_con%nsp
-            call parallel_send_dv(g_snd_d(1+lnc*bxasc%r_con%str(i)%pv), &
-                 lnc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+            call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
          do i = 1, bxasc%r_con%nrp
-            call parallel_recv_dv(g_rcv_d(1+lnc*bxasc%r_con%rtr(i)%pv), &
-                 lnc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+            call parallel_recv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
+                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
          end do
       end if
       do i = 1, bxasc%r_con%nrcv
          sh = bxasc%r_con%rcv(i)%sh
-         sh(4) = lnc
-         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, lnc)
+         sh(4) = nc
+         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
          p =  reshape( &
-              g_rcv_d(1 + lnc*bxasc%r_con%rcv(i)%pv:lnc*bxasc%r_con%rcv(i)%av), &
+              g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
               sh)
       end do
       if ( d_fb_async) call parallel_wait(sst)
