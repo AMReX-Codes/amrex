@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.58 2002-02-06 18:14:46 car Exp $
+// $Id: Utility.cpp,v 1.59 2002-03-26 22:23:58 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -39,7 +39,7 @@ const char* path_sep_str = "/";
 #include <sys/times.h>
 #ifdef BL_AIX
 #undef _XOPEN_SOURCE_EXTENDED
-#define _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED 1
 #endif
 #include <sys/time.h>
 #ifdef BL_AIX
