@@ -30,7 +30,7 @@ bool task::recommit(list<task*>*)
 void task::_hint() const
 {
     HG_DEBUG_OUT( 
-	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started
+	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' '
 	);
 }
 
@@ -332,6 +332,11 @@ void task_copy_local::hint() const
 {
     task::_hint();
     if ( m_local ) HG_DEBUG_OUT( "L" );
+    else if ( is_local( m_smf, m_sgrid ) ) HG_DEBUG_OUT("S");
+    else HG_DEBUG_OUT("R");
+    HG_DEBUG_OUT(
+	m_bx <<  ' ' <<  m_sgrid
+	);
     HG_DEBUG_OUT( ")" << endl );
 }
 
