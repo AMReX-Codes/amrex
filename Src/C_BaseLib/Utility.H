@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.38 2001-07-20 19:45:43 car Exp $
+// $Id: Utility.H,v 1.39 2001-07-21 00:32:37 car Exp $
 //
 
 #include <iostream>
@@ -185,6 +185,29 @@ namespace BoxLib
 	double accum_val;
 	int cnt;
     };
+    // The Mersenne twistor :
+    class mt19937
+    {
+    public:
+	typedef unsigned long seed_type;
+	explicit mt19937(seed_type seed = 4357UL);
+	void rewind();
+	
+	double d1_value();	// [0,1] random numbers
+	double d_value();	// [0,1) random numbers
+	long l_value();		// [0,2^31-1] random numbers
+	unsigned long u_value(); // [0,2^32-1] random numbers
+    private:
+	void sgenrand(unsigned long seed);
+	unsigned long igenrand();
+	void reload();
+    private:
+	static const int N = 624;
+	const unsigned long init_seed;
+	unsigned long mt[N];	// the array for the state vector
+	int mti;		// mti==N+1 means mt[N] is not initialized
+    };
+
 };
 
 //

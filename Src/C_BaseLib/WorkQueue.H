@@ -1,6 +1,10 @@
 #ifndef _BL3_WORKQUEUE_H_
 #define _BL3_WORKQUEUE_H_
 
+//
+// $Id: WorkQueue.H,v 1.2 2001-07-21 00:33:15 car Exp $
+//
+
 #include <Thread.H>
 #include <queue>
 
