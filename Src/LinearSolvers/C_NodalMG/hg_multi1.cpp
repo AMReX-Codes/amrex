@@ -903,7 +903,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	    }
 	    else
 	    {
-#if BL_SPACEDIM != 3
+#if BL_SPACEDIM == 2 && 0
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{

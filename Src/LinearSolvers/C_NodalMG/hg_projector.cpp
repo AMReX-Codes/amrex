@@ -365,7 +365,6 @@ class task_fecdiv_2 : public task_fec_base
 {
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
-
     task_fecdiv_2 (FECDIV            f_,
                    task_list&        tl_,
                    MultiFab&         s_,
@@ -379,7 +378,6 @@ public:
                    const IntVect&    t_ = IntVect());
 
     virtual bool ready ();
-
 private:
 
     FECDIV           f;
@@ -428,7 +426,7 @@ task_fecdiv_2::ready ()
         const int   igrid           = grid_number();
         FArrayBox&  s               = target_fab();
         const Box&  s_box           = target_fab().box();
-        const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
+        const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(BL_SPACEDIM+0).dataPtr(), task_fab_result(BL_SPACEDIM+1).dataPtr(), task_fab_result(BL_SPACEDIM+2).dataPtr() ) };
         const Box&  uf_box          = task_fab_result(3).box();
         const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
         const Box&  uc_box          = task_fab_result(0).box();
