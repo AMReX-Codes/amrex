@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.73 2001-10-02 16:30:41 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.74 2002-10-31 18:09:00 car Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -167,11 +167,41 @@ namespace ParallelDescriptor
     //
     //@ManDoc: Returns processor number of calling program.
     //
-    int MyProc ();
+    inline int
+    MyProc ()
+    {
+        BL_ASSERT(m_MyId != -1);
+        extern int ParallelDescriptor::m_MyId;
+        return m_MyId;
+    }
     //
     //@ManDoc: Returns number of CPUs involved in the computation.
     //
-    int NProcs ();
+    inline int
+    NProcs ()
+    {
+        BL_ASSERT(m_nProcs != -1);
+        extern int ParallelDescriptor::m_nProcs;
+        return m_nProcs;
+    }
+    //
+    //@ManDoc: The CPU number of the I/O Processor.
+    //
+    inline int
+    IOProcessorNumber ()
+    {
+        extern int ParallelDescriptor::ioProcessor;
+        return ioProcessor;
+    }
+    //
+    //@ManDoc: Is this CPU the I/O Processor?
+    //
+    inline bool
+    IOProcessor ()
+    {
+         return MyProc() == IOProcessorNumber();
+    }
+
     //
     //@ManDoc: Returns number of CPUs to use in CFD portion of computation.
     //
@@ -179,7 +209,11 @@ namespace ParallelDescriptor
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
-    MPI_Comm Communicator ();
+    inline MPI_Comm Communicator ()
+    {
+        extern MPI_Comm ParallelDescriptor::m_comm;
+        return m_comm;
+    }
     //
     //@ManDoc: 
     //
@@ -194,14 +228,6 @@ namespace ParallelDescriptor
     //@ManDoc: 
     //
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
-    //
-    //@ManDoc: Is this CPU the I/O Processor?
-    //
-    bool IOProcessor ();
-    //
-    //@ManDoc: The CPU number of the I/O Processor.
-    //
-    int IOProcessorNumber ();
     //
     //@ManDoc: Issue architecture specific Abort.
     //
