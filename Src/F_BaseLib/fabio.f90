@@ -365,7 +365,7 @@ contains
   subroutine fabio_ml_multifab_read_d(mmf, root, unit, ng)
     use bl_stream_module
     use bl_IO_module
-    type(multifab), intent(out) :: mmf(:)
+    type(multifab), pointer :: mmf(:)
     character(len=*), intent(in) :: root
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: ng
@@ -471,9 +471,7 @@ contains
       read(unit=lun, fmt=*) flevel
       flevel = flevel + 1
 
-      if ( size(mmf) < flevel ) then
-          call bl_error("FABIO_ML_MULTIFAB_READ_D: multifab array to small")
-      end if
+      allocate(mmf(flevel))
 
       allocate(pdbx(flevel))
       allocate(nboxes(flevel))
