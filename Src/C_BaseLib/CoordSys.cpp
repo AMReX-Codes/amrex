@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.8 1998-10-07 21:18:24 vince Exp $
+// $Id: CoordSys.cpp,v 1.9 1999-02-25 17:35:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -170,7 +170,7 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
             int len = vc.length();
             int i;
             for (i = 0; i < len; i++) {
-                REAL r = vc[i];
+                Real r = vc[i];
                 vc[i] = 0.3*r*r*r;
             }
         }
@@ -207,7 +207,7 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
             int len = vc.length();
             int i;
             for (i = 0; i < len; i++) {
-                REAL r = vc[i];
+                Real r = vc[i];
                 vc[i] = 0.3*r*r*r;
             }
         }
