@@ -254,6 +254,16 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	    */
 	}
     }
+    else if (m.length() == 3)
+    {
+	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
+	{
+	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
+	}
+	//u[0][1][0](IntVect(20,90)) = 1.0;
+	//u[0][1][0](IntVect(50,50)) = 1.0;
+	//u[0][1][0](IntVect(22,12)) = 1.0;
+    }
     else 
     {
 	for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -437,10 +447,14 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     
     bc[0][0] = bc00;
     bc[1][0] = bc10;
-    bc[2][0] = bc20;
     bc[0][1] = bc01;
     bc[1][1] = bc11;
+
+#if BL_SPACEDIM==3
+    bc[2][0] = bc20;
     bc[2][1] = bc21;
+#endif
+
     // bc[1][0] = refWall;
     // bc[1][1] = refWall;
     // bc[0][0] = refWall;
