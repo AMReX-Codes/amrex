@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.14 1997-11-28 18:14:42 lijewski Exp $
+// $Id: Amr.cpp,v 1.15 1997-12-03 23:26:11 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -836,7 +836,7 @@ Amr::checkPoint ()
     os.open(ckfile.c_str(), ios::out|ios::trunc);
 
     if (!os.good())
-        Utility::FileOpenFailed(chkfile);
+        Utility::FileOpenFailed(ckfile);
 
     int old_prec = os.precision(15), i;
 
