@@ -1,0 +1,21 @@
+CXX = /BlueLight/llnl_2003-09-09/blrts-gnu/bin/powerpc-bgl-blrts-gnu-g++
+FC  = /BlueLight/llnl_2003-09-09/blrts-gnu/bin/powerpc-bgl-blrts-gnu-g77
+FC += -fno-second-underscore
+
+fC  = /BlueLight/llnl_2003-09-09/blrts-gnu/bin/powerpc-bgl-blrts-gnu-g77
+fC += -fno-second-underscore
+
+INCLUDE_LOCATIONS = /BlueLight/llnl_2003-09-09/bglsys/include
+LIBRARY_LOCATIONS = /BlueLight/llnl_2003-09-23/bglsys/lib
+
+ifeq ($(USE_MPI),TRUE)
+  LIBRARIES += -lmpich.rts
+endif
+LIBRARIES += -lg2c -lrts.rts -ldevices.rts
+
+MACHINE=AIX
+
+__gcc_version:=3.2
+__gcc_major_version:=3
+__gcc_minor_version:=2
+
