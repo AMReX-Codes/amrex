@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.20 1998-11-21 03:12:10 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.21 1998-11-21 19:02:54 lijewski Exp $
 #
 
 #
@@ -8,8 +8,9 @@
 #
 
 #
-# To destinguish between YMP or C90
-# don't make the distinction for now, just use CRAY
+# To destinguish between YMP or C90 ...
+#
+# Don't make the distinction for now, just use CRAY
 #
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
@@ -73,23 +74,23 @@ ifeq ($(MACHINE), HP-UX)
 endif
 
 ifndef PRECISION
-    PRECISION = DOUBLE
+    PRECISION	= DOUBLE
 endif
 
 ifndef DEBUG
-    DEBUG = TRUE
+    DEBUG	= TRUE
 endif
 
 ifndef PROFILE
-    PROFILE = FALSE
+    PROFILE	= FALSE
 endif
 
 ifndef DIM
-    DIM = 2
+    DIM		= 2
 endif
 
 ifndef COMP
-    COMP = CC
+    COMP	= CC
 endif
 #
 # Set some reasonable defaults.
@@ -100,11 +101,12 @@ CC  = cc
 #
 # Defaults for BoxLib style programs.
 #
-ARCH     = IEEE
-FORTLINK = UNDERSCORE
-FORTPREP = perl $(PBOXLIB_HOME)/scripts/strip72 -c
-MKDEP    = perl $(PBOXLIB_HOME)/scripts/mkdep
-INSTALL  = sh   $(PBOXLIB_HOME)/scripts/install-sh -c
+ARCH		= IEEE
+FORTLINK  	= UNDERSCORE
+
+FORTPREP  	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
+MKDEP		= perl $(PBOXLIB_HOME)/scripts/mkdep
+INSTALL		= sh   $(PBOXLIB_HOME)/scripts/install-sh -c
 #
 # SunOS ranlib has a problem if the library is installed 444 :-(
 #
@@ -117,11 +119,11 @@ endif
 # We assume that INSTALL_ROOT is either set on the command line,
 # set in the environment, or set by a controlling GNUmakefile.
 # It is where the stuff is to be installed. For the guthamr stuff
-# proper, we set this to PBOXLIB_HOME.  If this isn't set,
+# proper, we set this to GUTHAMR_HOME.  If this isn't set,
 # we set it to where guthamr was installed.
 #
 ifndef INSTALL_ROOT
-    INSTALL_ROOT = $(PBOXLIB_HOME)
+    INSTALL_ROOT = $(GUTHAMR_HOME)
 endif
 
 ifndef INSTALL_PREFIX
@@ -129,6 +131,11 @@ ifndef INSTALL_PREFIX
 endif
 
 RANLIB = true
+
+EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
+LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
+FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
+FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using g++ ...
 #
@@ -138,6 +145,7 @@ ifeq ($(COMP),g++)
     CXXDEBF    += -g
     FULLWARN   := -Wall
     CXX	       := g++ -ftemplate-depth-20
+    # DEFINES    += -DBL_OLD_STL
     DEFINES    += -DBL_USE_NEW_HFILES
     DEFINES    += -DBL_USE_SETBUF
 endif
@@ -270,22 +278,20 @@ objEXETempDir   = o/$(optionsSuffix).EXE
 f77TempDir	= f/$(optionsSuffix)
 
 instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
-
-EXE_OUTPUT_OPTION      = mv $*.o $(objEXETempDir)/$*.o
-LIB_OUTPUT_OPTION      = mv $*.o $(objTempDir)/$*.o
-FORT_EXE_OUTPUT_OPTION = mv $*.o $(objEXETempDir)/$*.o
-FORT_LIB_OUTPUT_OPTION = mv $*.o $(objTempDir)/$*.o
-
 #
 # For source code mainipulation
 #
-CSRCALL    = $(CEXE_sources) $(CEXE_headers) $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
-FSRCALL    = $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) $(FLIB_headers)
-cSRCALL    = $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) $(cLIB_headers)
-allSources = $(CSRCALL) $(FSRCALL) $(cSRCALL)
+CSRCALL		= $(CEXE_sources) $(CEXE_headers) \
+		  $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
+FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) \
+                  $(FLIB_headers)
+cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) \
+                  $(cLIB_headers)
+allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL)
+
 
 ifndef CLOSELIB
-    CLOSELIB := FALSE
+    CLOSELIB   := FALSE
 endif
 
 ifdef WARNINGS
