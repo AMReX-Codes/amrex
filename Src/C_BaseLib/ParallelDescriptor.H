@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.34 1998-07-29 19:10:32 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.35 1998-07-29 20:04:35 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -235,6 +235,11 @@ class ParallelDescriptor
                         int   sendcount,
                         Real* recvbuf,
                         int   root);
+
+    static void Broadcast (int   fromproc,
+                           void* src,
+                           void* dest,
+                           int   nbytes);
   private:
     //
     // My processor ID.

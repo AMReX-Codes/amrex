@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.37 1998-07-29 19:10:33 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.38 1998-07-29 20:04:36 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -273,6 +273,16 @@ ParallelDescriptor::ReduceIntSum (int& r)
 }
 
 void
+ParallelDescriptor::Broadcast (int   fromproc,
+                               void* src,
+                               void* dest,
+                               int   nbytes)
+{
+    assert(src == dest);
+    MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, MPI_COMM_WORLD);
+}
+
+void
 ParallelDescriptor::Gather (Real* sendbuf,
                             int   nsend,
                             Real* recvbuf,
@@ -340,6 +350,10 @@ void ParallelDescriptor::ReduceLongMax (long& rvar) {}
 void ParallelDescriptor::ReduceLongMin (long& rvar) {}
 void ParallelDescriptor::ReduceLongAnd (long& rvar) {}
 
+void ParallelDescriptor::Broadcast (int    fromproc,
+                                    void*  src,
+                                    void*  dest,
+                                    int    nbytes) {}
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
 //
