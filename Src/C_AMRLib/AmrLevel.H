@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.19 1998-07-01 19:20:39 lijewski Exp $
+// $Id: AmrLevel.H,v 1.20 1998-07-09 17:59:24 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -222,7 +222,6 @@ public:
     //@ManDoc: Interpolate up from coarse level.
     //
     void FillCoarsePatch (MultiFab&     dest,
-                          int           dest_comp,
                           Real          time,
                           int           state_indx,
                           int           src_comp,
@@ -346,7 +345,6 @@ class FillPatchIterator
     FillPatchIterator (AmrLevel&     amrlevel,
                        MultiFab&     leveldata,
                        int           boxGrow,
-                       int           dest_comp,
                        Real          time,
                        int           state_indx,
                        int           src_comp,
@@ -354,7 +352,6 @@ class FillPatchIterator
                        Interpolater* mapper = 0);
 
     void Initialize (int           boxGrow,
-                     int           dest_comp,
                      Real          time,
                      int           state_indx,
                      int           src_comp,
@@ -397,7 +394,6 @@ class FillPatchIterator
     int                          m_growsize;
     int                          m_stateindex;
     int                          m_scomp;
-    int                          m_dcomp;
     int                          m_ncomp;
     bool                         m_init;
 };

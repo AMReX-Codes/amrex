@@ -1,21 +1,17 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.39 1998-07-08 16:33:36 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.40 1998-07-09 17:59:25 lijewski Exp $
 //
-
-#ifdef BL_USE_NEW_HFILES
-#include <strstream>
-#else
-#include <strstream.h>
-#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <cstring>
+#include <strstream>
 #else
 #include <stdio.h>
 #include <string.h>
+#include <strstream.h>
 #endif
 
 #include <AmrLevel.H>
@@ -328,7 +324,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                       MultiFab&     leveldata,
                                       int           boxGrow,
-                                      int           dest_comp,
                                       Real          time,
                                       int           state_index,
                                       int           src_comp,
@@ -348,14 +343,13 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     m_growsize(boxGrow),
     m_stateindex(state_index),
     m_scomp(src_comp),
-    m_dcomp(dest_comp),
     m_ncomp(ncomp),
     m_init(false)
 {
-    Initialize(boxGrow,dest_comp,time,state_index,src_comp,ncomp,mapper);
+    Initialize(boxGrow,time,state_index,src_comp,ncomp,mapper);
 }
 
-static
+inline
 void
 Intersect (vector<Box>& boxes,
            const Box&   box)
@@ -373,7 +367,7 @@ Intersect (vector<Box>& boxes,
     tmp.swap(boxes);
 }
 
-static
+inline
 void
 Coarsen (vector<Box>&   boxes,
          const IntVect& ratio)
@@ -386,7 +380,6 @@ Coarsen (vector<Box>&   boxes,
 
 void
 FillPatchIterator::Initialize (int           boxGrow,
-                               int           dest_comp,
                                Real          time,
                                int           state_index,
                                int           src_comp,
@@ -406,7 +399,6 @@ FillPatchIterator::Initialize (int           boxGrow,
     m_growsize   = boxGrow;
     m_stateindex = state_index;
     m_scomp      = src_comp;
-    m_dcomp      = dest_comp;
     m_ncomp      = ncomp;
 
     Array<IntVect> pshifts(27);
@@ -539,7 +531,7 @@ FillPatchIterator::Initialize (int           boxGrow,
                                                  crse_box,
                                                  m_time,
                                                  m_scomp,
-                                                 0 /*m_dcomp*/,
+                                                 0,
                                                  m_ncomp);
 
                     unfillableThisLevel.join(tempUnfillableBoxes);
@@ -636,7 +628,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                           tempCoarseDestFab,
                                           m_time,
                                           0,
-                                          0 /*m_dcomp*/,
+                                          0,
                                           m_ncomp);
             //
             // Set non-periodic BCs in tempCoarseDestFab.
@@ -647,7 +639,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                           m_time,
                                           amrLevels[level].geom.CellSize(),
                                           amrLevels[level].geom.ProbDomain(),
-                                          0 /*m_dcomp*/,
+                                          0,
                                           0,
                                           m_ncomp);
             }
@@ -681,7 +673,7 @@ FillPatchIterator::isValid (bool bDoSync)
                     m_map[level]->interp(tempCoarseDestFab,
                                          0,
                                          tempCurrentFillPatchedFab,
-                                         0 /*m_dcomp*/,
+                                         0,
                                          m_ncomp,
                                          iSectDest,
                                          m_ratio[level],
@@ -710,7 +702,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                    srcdestBox,
                                    0,
                                    srcdestBox,
-                                   0 /*m_dcomp*/,
+                                   0,
                                    m_ncomp);
                     }
                 }
@@ -735,7 +727,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                            srcdestBox,
                                            0,
                                            srcdestBox,
-                                           m_dcomp,
+                                           0,
                                            m_ncomp);
                             }
                         }
@@ -755,7 +747,7 @@ FillPatchIterator::isValid (bool bDoSync)
                             m_time,
                             m_amrlevel.geom.CellSize(),
                             m_amrlevel.geom.ProbDomain(),
-                            m_dcomp,
+                            0,
                             m_scomp,
                             m_ncomp);
     }
@@ -769,7 +761,6 @@ FillPatchIterator::~FillPatchIterator () {}
 
 void
 AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
-                           int           dest_comp,
                            Real          time,
                            int           state_indx,
                            int           src_comp,
@@ -780,7 +771,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     // Must fill this region on crse level and interpolate.
     //
     assert(level != 0);
-    assert(ncomp <= (mfdest.nComp() - dest_comp));
+    assert(ncomp <= mfdest.nComp());
     assert((0 <= state_indx) && (state_indx < desc_lst.length()));
 
     const StateDescriptor& desc = desc_lst[state_indx];
@@ -811,7 +802,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     const int boxGrow = 0;
     MultiFab mf_crse_reg(crse_regBoxArray, ncomp, boxGrow, Fab_noallocate);
 
-    FillPatchIterator fpi(crse_lev, mf_crse_reg, boxGrow, dest_comp,
+    FillPatchIterator fpi(crse_lev, mf_crse_reg, boxGrow,
                           time, state_indx, src_comp, ncomp, mapper);
 
     for ( ; fpi.isValid(); ++fpi)
@@ -828,14 +819,13 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
         //
         // Interpolate up to fine patch.
         //
-        map->interp(fpi(),0,mfdest_mfi(),dest_comp,ncomp,dbox,
+        map->interp(fpi(),0,mfdest_mfi(),0,ncomp,dbox,
                     crse_ratio,crse_lev.geom,geom,bcr);
 
         if (!p_domain.contains(mfdest_mfi().box()))
         {
             state[state_indx].FillBoundary(mfdest_mfi(),time,geom.CellSize(),
-                                           prob_domain,dest_comp,src_comp,
-                                           ncomp);
+                                           prob_domain,0,src_comp,ncomp);
         }
     }
 }
@@ -856,7 +846,7 @@ AmrLevel::derive (const aString& name,
         mf = new MultiFab(state[state_indx].boxArray(), 1, ngrow);
 
         FillPatchIterator fpi(*this, get_new_data(state_indx), ngrow,
-                              0, time, state_indx, src_comp, 1);
+                              time, state_indx, src_comp, 1);
 
         for ( ; fpi.isValid(); ++fpi)
         {
@@ -881,7 +871,7 @@ AmrLevel::derive (const aString& name,
         {
             rec->getRange(k, state_indx, src_comp, num_comp);
 
-            FillPatchIterator fpi(*this, srcMF, ngrow, 0, time, state_indx,
+            FillPatchIterator fpi(*this, srcMF, ngrow, time, state_indx,
                                   src_comp, num_comp, rec->interp());
 
             for ( ; fpi.isValid(); ++fpi)
