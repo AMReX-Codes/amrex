@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.14 1998-05-04 21:24:58 lijewski Exp $
+// $Id: MultiFab.H,v 1.15 1998-06-12 20:34:37 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -314,12 +314,41 @@ public:
                                   int                     dest_comp,
                                   int                     num_comp,
                                   bool                    extrap = false);
+
+    /*@ManDoc: Copy on intersection within MultiFab.  Data is copied from
+               valid regions to intersecting regions of definition.  The
+               purpose is to fill in the boundary regions of each FAB in
+               the MultiFab.
+    */
+    void FillBoundary ();
+
+    /*@ManDoc: Same as FillBoundary(), but only copies
+               num\_comp components starting at start\_comp.
+    */
+    void FillBoundary (int start_comp,
+                       int num_comp);
+
 private:
     //
     // These are disabled.
     //
-    MultiFab (const MultiFab&);
-    MultiFab& operator= (const MultiFab&);
+    MultiFab (const MultiFab& rhs);
+    MultiFab& operator= (const MultiFab& rhs);
+    //
+    // FillBoundary() Helper functions.
+    //
+    MultiFabCopyDescriptor& theFBmfcd (int start_comp,
+                                       int num_comp);
+
+    vector<FillBoxId>& theFBfbid () const;
+
+    void FB_Doit (int start_comp,
+                  int num_comp);
+    //
+    // Some additional cached data.
+    //
+    MultiFabCopyDescriptor* m_FB_mfcd; /* Hack for FillBoundary */
+    vector<FillBoxId>*      m_FB_fbid; /* Hack for FillBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -490,19 +519,32 @@ class MultiFabCopyDescriptor
 //
 
 inline
-MultiFab::MultiFab ()
-    :
-    FabArray<Real,FArrayBox>()
-{}
+vector<FillBoxId>&
+MultiFab::theFBfbid () const
+{
+    assert(m_FB_fbid != 0);
+    return *m_FB_fbid;
+}
 
 inline
-MultiFab::MultiFab (const BoxArray& bxs,
-                    int             ncomp,
-                    int             ngrow,
-                    FabAlloc        alloc)
-    :
-    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
-{}
+MultiFabCopyDescriptor&
+MultiFab::theFBmfcd (int start_comp,
+                     int num_comp)
+{
+    if (m_FB_mfcd == 0)
+    {
+        FB_Doit(start_comp, num_comp);
+    }
+
+    return *m_FB_mfcd;
+}
+
+inline
+void
+MultiFab::FillBoundary ()
+{
+    FillBoundary(0, n_comp);
+}
 
 inline
 void
