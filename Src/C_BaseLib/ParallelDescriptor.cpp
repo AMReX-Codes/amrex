@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.21 1998-04-08 21:04:30 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.22 1998-04-09 16:18:10 car Exp $
 //
 
 #include <Utility.H>
@@ -459,6 +459,16 @@ ParallelDescriptor::Gather (Real* sendbuf,
 }
 
 #else
+
+void
+ParallelDescriptor::Gather (Real* sendbuf,
+			    int nsend,
+			    Real* recvbuf,
+			    int root)
+{
+    assert(root == 0);
+    for (int i = 0; i < nsend; ++i) recvbuf[i] = sendbuf[i];
+}
 
 void ParallelDescriptor::StartParallel(int, int*, char***) {}
 void ParallelDescriptor::EndParallel() {}
