@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.18 1998-04-07 20:13:48 lijewski Exp $
+// $Id: TagBox.cpp,v 1.19 1998-04-08 23:42:52 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -283,8 +283,8 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    Box bx(domain);
-    bx &= src.domain;
+    Box bx = domain & src.domain;
+
     if (bx.ok())
     {
         const int* dlo = domain.loVect();
@@ -541,32 +541,28 @@ void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
     FabArrayCopyDescriptor<TagType,TagBox> facd;
-    FabArrayId faid = facd.RegisterFabArray(this);
-    int myproc = ParallelDescriptor::MyProc();
-    List<FillBoxId> fillBoxIdList;
-    FillBoxId tempFillBoxId;
 
-    Box domain(geom.Domain());
-    TagBox tagtmp;
-    int srcComp  = 0;
-    int destComp = 0;
-    int nComp    = n_comp;
-    //
-    // This logic needs to be turned inside out to use a FabArrayIterator
-    //
+    FabArrayId faid = facd.RegisterFabArray(this);
+
+    int myproc = ParallelDescriptor::MyProc();
+
+    List<FillBoxId> fillBoxIdList;
+    FillBoxId       tempFillBoxId;
+    Box             domain(geom.Domain());
+
     for (int i = 0; i < fabparray.length(); i++)
     {
-        if (!domain.contains( boxarray[i]))
+        if (!domain.contains(boxarray[i]))
         {
             //
             // src is candidate for periodic mapping.
             //
             Array<IntVect> pshifts(27);
-            geom.periodicShift( domain, boxarray[i], pshifts );
+            geom.periodicShift(domain, boxarray[i], pshifts);
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
                 IntVect iv = pshifts[iiv];
-                Box shiftbox( boxarray[i] );
+                Box shiftbox(boxarray[i]);
                 D_TERM(shiftbox.shift(0,iv[0]);,
                        shiftbox.shift(1,iv[1]);,
                        shiftbox.shift(2,iv[2]);)
@@ -577,38 +573,26 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 {
                     if (distributionMap[j] == myproc)
                     {
-                        TagBox& dest = fabparray[j];
-                        Box intbox = dest.box() & shiftbox;
+                        Box intbox = fabparray[j].box() & shiftbox;
+
                         if (intbox.ok())
                         {
                             BoxList unfilledBoxes(intbox.ixType());
-                            //
-                            // Ok, got a hit, but be careful if is same TagBox.
-                            //
-                            if (i != j)
-                            {
-                                tempFillBoxId = facd.AddBox(faid, intbox,
-                                                            unfilledBoxes,
-                                                            srcComp, destComp,
-                                                            nComp);
-                                fillBoxIdList.append(tempFillBoxId);
-                            }
-                            else
+
+                            if (i == j)
                             {
                                 //
                                 // Is same tagbox, must be careful.
                                 //
-                                Box shintbox(intbox);
-                                IntVect tmpiv( -iv );
-                                D_TERM(shintbox.shift(0,tmpiv[0]);,
-                                       shintbox.shift(1,tmpiv[1]);,
-                                       shintbox.shift(2,tmpiv[2]);)
-                                tempFillBoxId = facd.AddBox(faid, shintbox,
-                                                            unfilledBoxes,
-                                                            srcComp, destComp,
-                                                            nComp);
-                                fillBoxIdList.append(tempFillBoxId);
+                                D_TERM(intbox.shift(0,-iv[0]);,
+                                       intbox.shift(1,-iv[1]);,
+                                       intbox.shift(2,-iv[2]);)
                             }
+
+                            tempFillBoxId = facd.AddBox(faid, intbox,
+                                                        unfilledBoxes,
+                                                        0, 0, n_comp);
+                            fillBoxIdList.append(tempFillBoxId);
                         }
                     }
                 }
@@ -620,18 +604,15 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     int ifbi = 0;
     for (ListIterator<FillBoxId> li(fillBoxIdList); li; ++li)
     {
-        fillBoxId[ifbi] = li();
-        ++ifbi;
+        fillBoxId[ifbi++] = li();
     }
     fillBoxIdList.clear();
 
     facd.CollectData();
 
-    int iFillBox = 0;
-    //
-    // This logic needs to be turned inside out to use a FabArrayIterator.
-    //
-    for (int i = 0; i < fabparray.length(); i++)
+    TagBox tagtmp;
+
+    for (int i = 0, iFillBox = 0; i < fabparray.length(); i++)
     {
         if (!domain.contains(boxarray[i]))
         {
@@ -639,11 +620,11 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             // src is candidate for periodic mapping.
             //
             Array<IntVect> pshifts(27);
-            geom.periodicShift( domain, boxarray[i], pshifts );
+            geom.periodicShift(domain, boxarray[i], pshifts);
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
                 IntVect iv = pshifts[iiv];
-                Box shiftbox( boxarray[i] );
+                Box shiftbox(boxarray[i]);
                 D_TERM(shiftbox.shift(0,iv[0]);,
                        shiftbox.shift(1,iv[1]);,
                        shiftbox.shift(2,iv[2]);)
@@ -657,21 +638,18 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                         //
                         // Local dest fab.
                         //
-                        TagBox& dest = fabparray[j];
-                        Box intbox = dest.box() & shiftbox;
+                        Box intbox = fabparray[j].box() & shiftbox;
+
                         if (intbox.ok())
                         {
-                            //
-                            // Ok, got a hit, but be careful if is same TagBox.
-                            //
+                            FillBoxId fillboxid = fillBoxId[iFillBox++];
+                            TagBox src(fillboxid.box(), n_comp);
+                            facd.FillFab(faid, fillboxid, src);
+
                             if (i != j)
                             {
-                                FillBoxId fillboxid = fillBoxId[iFillBox];
-                                ++iFillBox;
-                                TagBox src(fillboxid.box(), n_comp);
-                                facd.FillFab(faid, fillboxid, src);
                                 src.shift(iv);
-                                dest.merge(src);
+                                fabparray[j].merge(src);
                                 src.shift(-iv);
                             }
                             else
@@ -679,19 +657,15 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                                 //
                                 // Is same tagbox, must be careful.
                                 //
-                                FillBoxId fillboxid = fillBoxId[iFillBox];
-                                ++iFillBox;
-                                TagBox src(fillboxid.box(), n_comp);
-                                facd.FillFab(faid, fillboxid, src);
                                 tagtmp.resize(intbox);
                                 Box shintbox(intbox);
-                                IntVect tmpiv( -iv );
+                                IntVect tmpiv(-iv);
                                 D_TERM(shintbox.shift(0,tmpiv[0]);,
                                        shintbox.shift(1,tmpiv[1]);,
                                        shintbox.shift(2,tmpiv[2]);)
                                 assert(shintbox == fillboxid.box());
                                 tagtmp.copy(src,shintbox,0,intbox,0,1);
-                                dest.merge(tagtmp);
+                                fabparray[j].merge(tagtmp);
                             }
                         }
                     }
@@ -817,8 +791,8 @@ TagBoxArray::setVal (BoxDomain&     bd,
     {
         for (BoxDomainIterator bdi(bd); bdi; ++bdi)
         {
-            Box bx(fai.validbox());
-            bx &= bdi();
+            Box bx = fai.validbox() & bdi();
+
             if (bx.ok())
             {
                 fai().setVal(val,bx,0);
@@ -835,8 +809,8 @@ TagBoxArray::setVal (BoxArray&      ba,
     {
         for (int j = 0; j < ba.length(); j++)
         {
-            Box bx(fai.validbox());
-            bx &= ba[j];
+            Box bx = fai.validbox() & ba[j];
+
             if (bx.ok())
             {
                 fai().setVal(val,bx,0);
