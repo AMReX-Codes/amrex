@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.7 1998-04-30 15:51:19 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.8 1998-05-11 17:45:46 lijewski Exp $
 #
 
 #
@@ -130,7 +130,7 @@ FORT_OUTPUT_OPTION = -o $@
 #
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
-    CXXOPTF    += -O2
+    CXXOPTF    += -O
     CXXDEBF    += -g
     FULLWARN   := -Wall
     CXX	       := g++
