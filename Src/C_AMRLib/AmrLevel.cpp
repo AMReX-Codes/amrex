@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.87 2002-10-31 21:56:45 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.88 2002-11-09 02:15:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -824,6 +824,8 @@ FixUpPhysCorners (FArrayBox&      fab,
                   int             dcomp,
                   int             ncomp)
 {
+    BL_PROFILE("FixUpPhysCorners");
+
     const Box& ProbDomain = TheState.getDomain();
 
     if (!HasPhysBndry(fab.box(),ProbDomain,TheGeom)) return;
