@@ -1,12 +1,13 @@
 //
-// $Id: BoxList.cpp,v 1.23 2001-07-31 22:43:18 lijewski Exp $
+// $Id: BoxList.cpp,v 1.24 2001-08-01 18:14:13 lijewski Exp $
 //
+#include <winstd.H>
+
 #include <algorithm>
 #include <iostream>
 
 #include <BoxArray.H>
 #include <BoxList.H>
-#include <winstd.H>
 
 void
 BoxList::join (const BoxList& blist)

@@ -1,9 +1,13 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.41 2001-07-31 22:43:17 lijewski Exp $
+// $Id: BaseFab.H,v 1.42 2001-08-01 18:14:13 lijewski Exp $
 //
+#include <winstd.H>
+
+#include <cmath>
 #include <cstdlib>
+#include <algorithm>
 
 #include <BLassert.H>
 #include <Box.H>
@@ -11,8 +15,6 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <REAL.H>
-#include <winstd.H>
-
 //
 //@Man:
 //@Memo: A Fortran Array-like Object
@@ -1464,12 +1466,12 @@ BaseFab<T>::norm (const Box& subbox,
                 tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::abs(Real(row[i]));
+                    tmp[i] = std::abs(row[i]);
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::max(tmp[i],Real(std::abs(row[i])));
+                    tmp[i] = std::max(tmp[i],std::abs(row[i]));
             }
         } EndForPencil
         nrm = tmp[0];
@@ -1486,12 +1488,12 @@ BaseFab<T>::norm (const Box& subbox,
                 tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::abs(Real(row[i]));
+                    tmp[i] = std::abs(row[i]);
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] += std::abs(Real(row[i]));
+                    tmp[i] += std::abs(row[i]);
             }
         } EndForPencil
         nrm = tmp[0];
