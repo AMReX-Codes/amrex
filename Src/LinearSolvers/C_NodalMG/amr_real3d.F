@@ -707,7 +707,7 @@ cdir$ ivdep
       else if (kr .ne. 1) then
          do m = 1, kr-1
             q = dble(m)/kr
-            p = 1.0 - q
+            p = 1.0d0 - q
             do kc = bbl2, bbh2-1
                do jc = bbl1, bbh1
                   do ic = bbl0, bbh0
@@ -745,7 +745,7 @@ cdir$ ivdep
       else if (jr .ne. 1) then
          do m = 1, jr-1
             q = dble(m)/jr
-            p = 1.0 - q
+            p = 1.0d0 - q
             do jc = bbl1, bbh1-1
                do ic = bbl0, bbh0
 cdir$ ivdep
@@ -814,7 +814,7 @@ cdir$ ivdep
          if (regh2 - regl2 .gt. regh1 - regl1) then
             do  m = 1, ir-1
                q = dble(m)/ir
-               p = 1.0 - q
+               p = 1.0d0 - q
                do ic = bbl0, bbh0-1
                   do k = regl2, regh2
 cdir$ ivdep
@@ -829,7 +829,7 @@ cdir$ ivdep
          else
             do  m = 1, ir-1
                q = dble(m)/ir
-               p = 1.0 - q
+               p = 1.0d0 - q
                do ic = bbl0, bbh0-1
                   do k = regl2, regh2
 cdir$ ivdep
