@@ -347,7 +347,7 @@ contains
                else if (ib == 3 .and. jb == -1) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
+                   mm(i,j,1) = ibset(mm(i,j,1),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
                else if (ib == 3 .and. jb ==  1) then
