@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.46 2001-08-21 18:08:46 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.47 2004-01-07 21:18:19 car Exp $
 //
 #include <winstd.H>
 
@@ -457,7 +457,7 @@ FArrayBox::norm (const Box& subbox,
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
             nrm += tmp[i];
-        nrm = sqrt(nrm);
+        nrm = std::sqrt(nrm);
     }
     else
     {
@@ -470,19 +470,19 @@ FArrayBox::norm (const Box& subbox,
                 tmp = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = pow(row[i],pwr);
+                    tmp[i] = std::pow(row[i],pwr);
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] += pow(row[i],pwr);
+                    tmp[i] += std::pow(row[i],pwr);
             }
         } EndForPencil
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
             nrm += tmp[i];
         Real invpwr = 1.0/pwr;
-        nrm = pow(nrm,invpwr);
+        nrm = std::pow(nrm,invpwr);
     }
 
     delete [] tmp;

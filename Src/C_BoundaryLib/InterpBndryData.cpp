@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.16 2002-11-12 17:08:48 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.17 2004-01-07 21:18:49 car Exp $
 //
 #include <winstd.H>
 
@@ -155,7 +155,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
 
-        if (pow(float(mxlen), float(BL_SPACEDIM-1)) > tmplen)
+        if (std::pow(float(mxlen), float(BL_SPACEDIM-1)) > tmplen)
         {
             delete [] derives;
             tmplen = mxlen;

@@ -1,6 +1,6 @@
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.15 2002-11-13 17:15:20 lijewski Exp $
+// $Id: MCInterpBndryData.cpp,v 1.16 2004-01-07 21:18:43 car Exp $
 //
 #include <winstd.H>
 
@@ -182,7 +182,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
 
-        if (pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
+        if (std::pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
         {
             delete [] derives;
             tmplen = mxlen;

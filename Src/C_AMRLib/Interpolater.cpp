@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.31 2003-09-15 21:17:03 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.32 2004-01-07 21:18:55 car Exp $
 //
 #include <winstd.H>
 
@@ -94,7 +94,7 @@ NodeBilinear::interp (const FArrayBox& crse,
     const int* fhi = fine.hiVect();
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
-    int num_slope  = (int) pow(2.0,BL_SPACEDIM)-1;
+    int num_slope  = int(std::pow(2.0,BL_SPACEDIM))-1;
     int len0       = crse.box().length()[0];
     int slp_len    = num_slope*len0;
 
@@ -164,7 +164,7 @@ CellBilinear::interp (const FArrayBox& crse,
     const int* fhi = fine.hiVect();
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
-    int num_slope  = (int) pow(2.0,BL_SPACEDIM)-1;
+    int num_slope  = int( std::pow(2.0,BL_SPACEDIM))-1;
     int len0       = crse.box().length()[0];
     int slp_len    = num_slope*len0;
 

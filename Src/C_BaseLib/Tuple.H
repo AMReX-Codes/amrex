@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.13 2001-07-31 22:43:19 lijewski Exp $
+// $Id: Tuple.H,v 1.14 2004-01-07 21:18:19 car Exp $
 //
 
 #include <cstdlib>
@@ -20,7 +20,7 @@
   are used, T must also have a copy constructor.
 */
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 class Tuple
 {
 public:
@@ -73,12 +73,12 @@ protected:
     T vect[N];
 };
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 inline
 Tuple<T,N>::Tuple()
 {}
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 inline
 T&
 Tuple<T,N>::operator[] (int i)
@@ -87,7 +87,7 @@ Tuple<T,N>::operator[] (int i)
     return vect[i];
 }
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 inline
 const T&
 Tuple<T,N>::operator[] (int i) const
@@ -96,33 +96,33 @@ Tuple<T,N>::operator[] (int i) const
     return vect[i];
 }
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 inline
 Tuple<T,N>::operator const T* () const
 {
     return &vect[0];
 }
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 Tuple<T,N>::Tuple (const T* v)
 {
     BL_ASSERT(v != 0);
-    for (size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < N; ++i)
         vect[i] = v[i];
 }
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 Tuple<T,N>::Tuple (const Tuple<T,N>& rhs)
 {
-    for (size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < N; ++i)
         vect[i] = rhs.vect[i];
 }
 
-template <class T, size_t N>
+template <class T, std::size_t N>
 Tuple<T,N>&
 Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
 {
-    for (size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < N; ++i)
         vect[i] = rhs.vect[i];
     return *this;
 }

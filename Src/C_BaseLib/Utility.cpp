@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.64 2002-10-25 22:21:44 lijewski Exp $
+// $Id: Utility.cpp,v 1.65 2004-01-07 21:18:19 car Exp $
 //
 
 #include <cstdlib>
@@ -859,7 +859,7 @@ stdnormal_cdf (double u)
 
     double y, z;
 
-    y = fabs(u);
+    y = std::fabs(u);
 
     if (y <= 0.46875*Sqrt_2)
     {
@@ -872,12 +872,12 @@ stdnormal_cdf (double u)
         return 0.5+y;
     }
 
-    z = exp(-y*y/2)/2;
+    z = std::exp(-y*y/2)/2;
 
     if (y <= 4.0)
     {
         //
-        // Evaluate erfc() for sqrt(2)*0.46875 <= |u| <= sqrt(2)*4.0
+        // Evaluate erfc() for std::sqrt(2)*0.46875 <= |u| <= std::sqrt(2)*4.0
         //
         y = y/Sqrt_2;
         y = ((((((((c[0]*y+c[1])*y+c[2])*y+c[3])*y+c[4])*y+c[5])*y+c[6])*y+c[7])*y+c[8])
@@ -887,7 +887,7 @@ stdnormal_cdf (double u)
     else
     {
         //
-        // Evaluate erfc() for |u| > sqrt(2)*4.0
+        // Evaluate erfc() for |u| > std::sqrt(2)*4.0
         //
         z = z*Sqrt_2/y;
         y = 2/(y*y);
@@ -971,7 +971,7 @@ BoxLib::InvNormDist (double p, bool best)
         //
         // Rational approximation for lower region.
         //
-        double q = sqrt(-2*log(p));
+        double q = std::sqrt(-2*std::log(p));
 
         x = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
             ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
@@ -981,7 +981,7 @@ BoxLib::InvNormDist (double p, bool best)
         //
         // Rational approximation for upper region.
         //
-        double q = sqrt(-2*log(1-p));
+        double q = std::sqrt(-2*std::log(1-p));
 
         x = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
             ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
@@ -1007,7 +1007,7 @@ BoxLib::InvNormDist (double p, bool best)
         static const double Sqrt_2Pi = 2.5066282746310002;  // sqrt(2*Pi)
 
         double e = stdnormal_cdf(x) - p;
-        double u = e*Sqrt_2Pi*exp(x*x/2);
+        double u = e*Sqrt_2Pi*std::exp(x*x/2);
 
         x -= u/(1 + x*u/2);
     }
