@@ -1,7 +1,8 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.11 2001-08-01 21:51:07 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.12 2001-08-09 22:42:01 marc Exp $
 // 
+#include <winstd.H>
 
 #include <algorithm>
 #include <cstdlib>

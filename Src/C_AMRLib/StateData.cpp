@@ -1,7 +1,8 @@
 
 //
-// $Id: StateData.cpp,v 1.32 2001-08-01 21:50:46 lijewski Exp $
+// $Id: StateData.cpp,v 1.33 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
 
 #include <algorithm>
 

@@ -1,6 +1,8 @@
 //
-// $Id: Interpolater.cpp,v 1.20 2001-08-01 21:50:46 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.21 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
+
 #include <cmath>
 #include <climits>
 

@@ -1,9 +1,10 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.17 2001-08-01 21:51:07 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.18 2001-08-09 22:42:01 marc Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
+#include <winstd.H>
 
 #include <cstdlib>
 #include <cmath>

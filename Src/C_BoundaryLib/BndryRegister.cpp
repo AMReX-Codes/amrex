@@ -1,6 +1,7 @@
 //
-// $Id: BndryRegister.cpp,v 1.13 2001-08-01 21:50:49 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.14 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
 
 #include <BndryRegister.H>
 #include <Orientation.H>

@@ -1,6 +1,8 @@
 //
-// $Id: FabSet.cpp,v 1.39 2001-08-01 21:50:50 lijewski Exp $
+// $Id: FabSet.cpp,v 1.40 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
+
 #include <list>
 
 #include <FabSet.H>

@@ -1,3 +1,5 @@
+#include <winstd.H>
+
 #include <FabArray.H>
 
 FabArrayBase::FabArrayBase ()
