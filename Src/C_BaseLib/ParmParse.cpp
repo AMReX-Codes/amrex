@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.25 2001-07-24 05:12:48 car Exp $
+// $Id: ParmParse.cpp,v 1.26 2001-07-24 14:38:22 car Exp $
 //
 
 #include <iostream>
@@ -14,6 +14,8 @@
 #include <BoxLib.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
+#include <Box.H>
+#include <IntVect.H>
 
 namespace
 {
@@ -31,7 +33,9 @@ enum PInto
     pInt,
     pFloat,
     pDouble,
-    pString
+    pString,
+    pBox,
+    pIntVect
 };
     
 struct PP_entry
@@ -64,6 +68,22 @@ isDouble (const std::string& str,
    char* endp = 0;
    val = ::strtod(str.c_str(), &endp);
    return *endp == 0;
+}
+
+bool
+isIntVect (const std::string& str,
+	   IntVect& iv)
+{
+    BoxLib::Error("ParmParse::No IntVects yet");
+    return false;
+}
+ 
+bool
+isBox (const std::string& str,
+       Box& bx)
+{
+    BoxLib::Error("ParmParse::No Boxs yet");
+    return false;
 }
  
 
@@ -108,6 +128,8 @@ tok_name[] =
    "FLOAT",
    "DOUBLE",
    "STRING",
+   "BOX",
+   "INTVECT"
 };
 
 //
@@ -427,8 +449,8 @@ read_file (const char*           fname,
 
 void
 addDefn (std::string&         def,
-                    std::list<std::string>&   val,
-                    std::list<PP_entry*>& tab)
+	 std::list<std::string>&   val,
+	 std::list<PP_entry*>& tab)
 {
     static const std::string FileKeyword("FILE");
     //
@@ -472,65 +494,65 @@ bldTable (const char*           str,
 	  int                   lenstr,
 	  std::list<PP_entry*>& tab)
 {
-   std::string       cur_name;
-   std::list<std::string> cur_list;
-   std::string       tmp_str;
+    std::string       cur_name;
+    std::list<std::string> cur_list;
+    std::string       tmp_str;
 
-   int       i = 0;
-   PType    token;
-   const int SCRATCH_STR_LEN  = 200;
-   char      tokname[SCRATCH_STR_LEN];
+    int       i = 0;
+    PType    token;
+    const int SCRATCH_STR_LEN  = 200;
+    char      tokname[SCRATCH_STR_LEN];
 
-   for (;;)
-   {
-      token = getToken(str,i,lenstr,tokname);
+    for (;;)
+    {
+	token = getToken(str,i,lenstr,tokname);
 
-      switch (token)
-      {
-      case pEOF:
-          addDefn(cur_name,cur_list,tab);
-          return;
-      case pEQ_sign:
-          if ( cur_name.length() == 0 )
-	  {
-              BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
-	  }
-          if ( cur_list.size()==0)
-	  {
-              //
-              // First time we see equal sign, just ignore.
-              //
-              break;
-	  }
-          //
-          // Read one too far, remove last name on list.
-          //
-          tmp_str = cur_list.back();
-          cur_list.pop_back();
-          addDefn(cur_name,cur_list,tab);
-          cur_name = tmp_str;
-          break;
-      case pDefn:
-          if ( cur_name.length() == 0 )
-          {
-              cur_name = tokname;
-              break;
-          }
-          //
-          // Otherwise, fall through, this may be a string.
-          //
-      case pValue:
-          if ( cur_name.length() == 0 )
-          {
-              tokname[SCRATCH_STR_LEN-1] = 0;
-              std::string msg("ParmParse::bldTable(): value with no defn: ");
-              msg += tokname;
-              BoxLib::Abort(msg.c_str());
-          }
-          cur_list.push_back(tokname);
-          break;
-      }
-   }
+	switch (token)
+	{
+	case pEOF:
+	    addDefn(cur_name,cur_list,tab);
+	    return;
+	case pEQ_sign:
+	    if ( cur_name.length() == 0 )
+	    {
+		BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
+	    }
+	    if ( cur_list.size()==0)
+	    {
+		//
+		// First time we see equal sign, just ignore.
+		//
+		break;
+	    }
+	    //
+	    // Read one too far, remove last name on list.
+	    //
+	    tmp_str = cur_list.back();
+	    cur_list.pop_back();
+	    addDefn(cur_name,cur_list,tab);
+	    cur_name = tmp_str;
+	    break;
+	case pDefn:
+	    if ( cur_name.length() == 0 )
+	    {
+		cur_name = tokname;
+		break;
+	    }
+	    //
+	    // Otherwise, fall through, this may be a string.
+	    //
+	case pValue:
+	    if ( cur_name.length() == 0 )
+	    {
+		tokname[SCRATCH_STR_LEN-1] = 0;
+		std::string msg("ParmParse::bldTable(): value with no defn: ");
+		msg += tokname;
+		BoxLib::Abort(msg.c_str());
+	    }
+	    cur_list.push_back(tokname);
+	    break;
+	}
+    }
 }
 
 
@@ -546,9 +568,9 @@ PP_entry::dump (std::ostream& os) const
     os << tmp;
     for ( int i = 0; i < nval; i++ )
     {
-       os << " ("
-          << val[i]
-          << ')';
+	os << " ("
+	   << val[i]
+	   << ')';
     }
     os << '\n';
 
@@ -559,13 +581,13 @@ PP_entry::dump (std::ostream& os) const
 }
 
 static
-int
+bool
 squeryval (const char*  name,
-	  const std::string& thePrefix,
-	  const PInto type,
-	  void*        ptr,
-	  int          ival,
-	  int          occurence)
+	   const std::string& thePrefix,
+	   const PInto type,
+	   void*        ptr,
+	   int          ival,
+	   int          occurence)
 {
     //
     // Get last occurrance of name in table.
@@ -573,12 +595,12 @@ squeryval (const char*  name,
     const PP_entry *def = ppindex(occurence,name, thePrefix);
     if ( def == 0 )
     {
-        return 0;
+        return false;
     }
     //
     // Does it have ival values?
     //
-    if ( ival >= def->val.size() )
+    if ( size_t(ival) >= def->val.size() )
     {
         std::cerr << "ParmParse::queryval no value number"
                   << ival << " for ";
@@ -625,6 +647,12 @@ squeryval (const char*  name,
         ok = true;
         *(std::string*)ptr = valname;
         break;
+    case pBox:
+	ok = isBox(valname, *(Box*)ptr);
+	break;
+    case pIntVect:
+	ok = isIntVect(valname,*(IntVect*)ptr);
+	break;
     default:
         BoxLib::Abort("ParmParse::queryval invalid type");
     }
@@ -648,17 +676,17 @@ squeryval (const char*  name,
         def->dump(std::cerr);
         BoxLib::Abort();
     }
-    return 1;
+    return true;
 }
 
 static
 void
 sgetval (const char*  name,
-	const std::string& thePrefix,
-	const PInto type,
-	void*        ptr,
-	int          ival,
-	int          occurence)
+	 const std::string& thePrefix,
+	 const PInto type,
+	 void*        ptr,
+	 int          ival,
+	 int          occurence)
 {
     if ( squeryval(name,thePrefix,type,ptr,ival,occurence) == 0 )
     {
@@ -684,14 +712,14 @@ sgetval (const char*  name,
 }
 
 static
-int
+bool
 squeryarr (const char*  name,
-		     const std::string& thePrefix,
-                     const PInto type,
-                     void*        ptr,
-                     int          start_ix,
-                     int          num_val,
-                     int          occurence)
+	   const std::string& thePrefix,
+	   const PInto type,
+	   void*        ptr,
+	   int          start_ix,
+	   int          num_val,
+	   int          occurence)
 {
     //
     // Get last occurrance of name in table.
@@ -699,14 +727,14 @@ squeryarr (const char*  name,
     const PP_entry *def = ppindex(occurence,name, thePrefix);
     if ( def == 0 )
     {
-        return 0;
+        return false;
     }
     //
     // Does it have sufficient number of values and are they all
     // the same type?
     //
     int stop_ix = start_ix + num_val - 1;
-    if ( stop_ix >= def->val.size() )
+    if ( size_t(stop_ix) >= def->val.size() )
     {
         std::cerr << "ParmParse::queryarr too many values requested for";
         if ( occurence < 0)
@@ -724,65 +752,72 @@ squeryarr (const char*  name,
 
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
-       const std::string& valname = def->val[n];
-       //
-       // Retrieve value.
-       //
-       bool ok = false;
-       double val_dbl;
-       switch (type)
-       {
-       case pBool:
-           ok = isBoolean(valname,*(bool*)ptr);
-           ptr = (bool*)ptr+1;
-           break;
-       case pInt:
-           ok = isInteger(valname,*(int*)ptr);
-           ptr = (int*)ptr+1;
-           break;
-       case pFloat:
-           ok = isDouble(valname,val_dbl);
-           if ( ok )
-	   {
-               *(float*)ptr = (float) val_dbl;
-	   }
-           ptr = (float*)ptr+1;
-           break;
-       case pDouble:
-           ok = isDouble(valname,*(double*)ptr);
-           ptr = (double*)ptr+1;
-           break;
-       case pString:
-           ok = true;
-           *(std::string*)ptr = valname;
-           ptr = (std::string*)ptr+1;
-           break;
-       default:
-           BoxLib::Error("ParmParse::get invalid type");
-       }
-       if ( !ok )
-       {
-           std::cerr << "ParmParse::queryarr type mismatch on value number "
-                <<  n << " of ";
-           if ( occurence < 0)
-	   {
-               std::cerr << " last occurence of ";
-	   }
-           else
-	   {
-               std::cerr << " occurence number " << occurence << " of ";
-	   }
-           std::cerr << def->defname << '\n';
-           std::cerr << " Expected "
-                     << tok_name[type]
-                     << " value = "
-                     << valname << '\n';
-           def->dump(std::cerr);
-           BoxLib::Abort();
-       }
+	const std::string& valname = def->val[n];
+	//
+	// Retrieve value.
+	//
+	bool ok = false;
+	double val_dbl;
+	switch (type)
+	{
+	case pBool:
+	    ok = isBoolean(valname,*(bool*)ptr);
+	    ptr = (bool*)ptr+1;
+	    break;
+	case pInt:
+	    ok = isInteger(valname,*(int*)ptr);
+	    ptr = (int*)ptr+1;
+	    break;
+	case pFloat:
+	    ok = isDouble(valname,val_dbl);
+	    if ( ok )
+	    {
+		*(float*)ptr = (float) val_dbl;
+	    }
+	    ptr = (float*)ptr+1;
+	    break;
+	case pDouble:
+	    ok = isDouble(valname,*(double*)ptr);
+	    ptr = (double*)ptr+1;
+	    break;
+	case pString:
+	    ok = true;
+	    *(std::string*)ptr = valname;
+	    ptr = (std::string*)ptr+1;
+	    break;
+	case pBox:
+	    ok = isBox(valname,*(Box*)ptr);
+	    ptr = (Box*)ptr+1;
+	    break;
+	case pIntVect:
+	    ok = isIntVect(valname,*(IntVect*)ptr);
+	    ptr = (IntVect*)ptr+1;
+	    break;
+	default:
+	    BoxLib::Error("ParmParse::get invalid type");
+	}
+	if ( !ok )
+	{
+	    std::cerr << "ParmParse::queryarr type mismatch on value number "
+		      <<  n << " of ";
+	    if ( occurence < 0)
+	    {
+		std::cerr << " last occurence of ";
+	    }
+	    else
+	    {
+		std::cerr << " occurence number " << occurence << " of ";
+	    }
+	    std::cerr << def->defname << '\n';
+	    std::cerr << " Expected "
+		      << tok_name[type]
+		      << " value = "
+		      << valname << '\n';
+	    def->dump(std::cerr);
+	    BoxLib::Abort();
+	}
     }
-
-    return 1;
+    return true;
 }
 
 static

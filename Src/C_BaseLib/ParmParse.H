@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.18 2001-07-24 05:12:48 car Exp $
+// $Id: ParmParse.H,v 1.19 2001-07-24 14:38:21 car Exp $
 //
 
 #include <string>
@@ -17,12 +17,7 @@
 // retrieval of command-line and input-file arguments.  The entries are
 // stored in a static table in (name,value_list) pairs.
 //
-// The format of the input file is a series of OPTIONS and DEFINITIONS.
-//
-// An OPTION is an entry of the form:  -<name> and has no associated list
-// of values.  For example, the command line:
-//        prog -verbose -no_opt
-// has two options: "verbose" and "no_opt".
+// The format of the input file is a series of DEFINITIONS.
 //
 // A DEFINITION is of the form  <name> = <value> <value> ...
 // The equal sign is important since the list of values can span multiple
@@ -31,7 +26,6 @@
 // Comments in an input file include all text from a '#' character to the
 // end of the line.  Here is an example input file:
 //
-//   -no_garbage                # an OPTION
 //   niter = 100                # niter is an integer
 //   title = "Double Wammy"     # example of a string with spaces
 //   cell_size = 0.5 0.75       # cell spacing in each dimension
@@ -123,9 +117,6 @@
 //     char* in_file_name = argv[1];
 //     ParmParse pp(argc-2, argv+2, 0, in_file_name);
 //
-//     // was the "-verbose" command line argument set?
-//     int verbose = pp.contains("verbose");
-//
 //     // Query table for value of "niter".  If not in table
 //     // then set to default value
 //     if (!pp.query("niter",niter)) niter = 20;
@@ -178,18 +169,16 @@
   The ParmParse class is used to interpret parameters passed in to a program
   from the command line and an arbitrary collection of input files.  The
   parameters are stored in static table that can be queried by any object
-  of type ParmParse.  A parameter can be either an "option" (usually
-  specified on the command line) or a "definition".  An option is of the form
-  "-<name>" and is stored in the table without the hyphen.  A definition is
+  of type ParmParse.  A parameter is a  "definition".  A definition is
   of the form "<name> = <value><value>...<value>".  It is stored in the table
   as a name, value-list pair.
 
-  In the following example, verbose and no\_opt are stored in the table as
-  options.  niter is a definition with the single integer value 10; name is
-  a definition with the string value "big code" and dx is a definition with
-  the two floating point values 0.5 and 0.75.
+  In the following example, niter is a definition with the single
+  integer value 10; name is a definition with the string value "big
+  code" and dx is a definition with the two floating point values 0.5
+  and 0.75.
 
-  prog -verbose -no\_opt niter = 10 name = "big code" dx = 0.5 0.75
+  prog niter = 10 name = "big code" dx = 0.5 0.75
 
   The ParmParse class has two constructors.  The first is responsible for
   building the table and is usually called by the main routine of an
@@ -223,8 +212,6 @@
   Comments in an input file include all text from a `\#' character to the
   end of the line.  Here is a sample input file:
 
-     -no\_garbage
-
      niter = 100
 
      title = "Double Wammy"
@@ -241,8 +228,7 @@
 
      test = apple "boy blue" 10 20 30 40
 
-     FILE = prob\_file
-*/
+     FILE = prob\_file */
 
 class Box;
 class IntVect;
