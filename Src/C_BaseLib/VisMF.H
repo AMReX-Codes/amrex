@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.30 1998-02-05 23:01:37 vince Exp $
+// $Id: VisMF.H,v 1.31 1998-02-12 22:37:13 wyc Exp $
 //
 
 #include <MultiFab.H>
@@ -310,7 +310,7 @@ VisMF::GetFab (int fabIndex, int compIndex) const
 
 inline
 void
-VisMF::clear (int fabIndex, int compIndex)
+VisMF::clear (int compIndex, int fabIndex)
 {
     delete m_pa[compIndex][fabIndex];
 }
