@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.15 1997-12-11 23:25:48 lijewski Exp $
+// $Id: Utility.cpp,v 1.16 1997-12-14 23:34:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -334,3 +334,93 @@ Utility::UnlinkFile (const aString& file)
 {
     unlink(file.c_str());
 }
+
+void
+Utility::OutOfMemory ()
+{
+    BoxLib::Error("Sorry, out of memory, bye ...");
+}
+
+//
+// Ths following are the original random variations from
+// "Random Number Generators: Good Ones Are Hard To Find",
+// Stephen K. Park and Keith W. Miller, "Communications of the ACM",
+// October 1988 Volume 31 Number 10, pages 1192 - 1201.
+//
+// This requires INT_MAX of 2**31 - 1 or larger.  If INT_MAX doesn't
+// satisfy this but LONG_MAX does, replace all ints below with longs.
+
+static int The_Random_Seed = 1;
+
+void
+Utility::InitRandom (int seed)
+{
+    assert(seed != 0);
+    The_Random_Seed = seed;
+}
+
+double
+Utility::Random ()
+{
+    const int A  = 16807;
+    const int M  = 2147483647;  /* Mersenne prime 2^31-1 */
+    const int Q  = 127773;      /* m div a               */
+    const int R  = 2836;        /* m mod a               */
+
+    int hi = The_Random_Seed / Q;
+
+    The_Random_Seed = A * (The_Random_Seed - hi*Q) - R * hi;
+
+    if (The_Random_Seed <  0)
+	The_Random_Seed += M;
+
+    return double(The_Random_Seed) / double(M);
+}
+
+#if 0
+//
+// A simple test of the random number generator.
+// Report whether or not you've got a "good" random number generator.
+//
+int
+main ()
+{
+    double u;
+    for (int i = 1; i <= 10000; i++)
+    {
+        u = Utility::Random();
+    }
+    printf("The current value of seed is %d.", The_Random_Seed);
+    printf("\nIt should be 1043618065.\n");
+    return 0;
+}
+#endif
+
+//
+// Fortran entry point for Utility::Random().
+//
+#ifdef BL_FORT_USE_UPPERCASE
+
+extern "C" void UTILRAND (Real* rn);
+
+void
+UTILRAND (Real* rn)
+{
+    assert(rn != 0);
+    *rn = Utility::Random();
+}
+
+#else
+
+extern "C" void utilrand_ (Real* rn);
+
+void
+utilrand_ (Real* rn)
+{
+    assert(rn != 0);
+    *rn = Utility::Random();
+}
+
+#endif /*BL_FORT_USE_UPPERCASE*/
+
+

@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.14 1997-12-11 23:25:48 lijewski Exp $
+// $Id: Utility.H,v 1.15 1997-12-14 23:34:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -175,11 +175,35 @@ public:
     // Attempt to unlink the file.  Ignore any errors.
     //
     static void UnlinkFile (const aString& file);
+    //
+    // Aborts after printing message indicating out-of-memory; i.e. new failed.
+    // The "supported" set_new_handler() function for BoxLib applications.
+    //
+    static void OutOfMemory ();
+    //
+    // A good random number generator.  Returns values in (0,1).
+    //
+    // Ths following are the original random variations from
+    // "Random Number Generators: Good Ones Are Hard To Find",
+    // Stephen K. Park and Keith W. Miller, "Communications of the ACM",
+    // October 1988 Volume 31 Number 10, pages 1192 - 1201.
+    //
+    // There is also an entry point for Fortran callable as:
+    //
+    //    REAL_T rn
+    //    call utilrand(rn)
+    //
+    static double Random ();
+    //
+    // Set the seed of the above random number generator to any
+    // integer other than zero.
+    //
+    static void InitRandom (int seed);
 };
 
 //
 // I'm going to document right here all the BL macros that aren't documented
-// anywhere else.  Note that all there #ifdef ... #endif blocks are necessary
+// anywhere else.  Note that all these #ifdef ... #endif blocks are necessary
 // to get doc++ to properly document the macros.
 //
 
