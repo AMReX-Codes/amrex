@@ -1,9 +1,16 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 //
-// $Id: Arena.H,v 1.12 2001-07-31 17:56:24 lijewski Exp $
+// $Id: Arena.H,v 1.13 2001-10-16 19:59:51 lijewski Exp $
 //
 #include <cstddef>
+
+class Arena;
+
+namespace BoxLib
+{
+    Arena* The_Arena ();
+}
 
 //
 //@Man:
@@ -14,6 +21,7 @@
   memory allocation.  Since it is a virtual base class, you have to derive
   something from it to use it.
 */
+
 
 class Arena
 {

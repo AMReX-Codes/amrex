@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.45 2001-08-23 21:44:32 car Exp $
+// $Id: BaseFab.H,v 1.46 2001-10-16 19:59:51 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1125,10 +1125,9 @@ BaseFab<T>::define ()
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
     BL_ASSERT(numpts > 0);
-    BL_ASSERT(!(The_FAB_Arena == 0));
 
     truesize = nvar*numpts;
-    dptr     = static_cast<T*>(The_FAB_Arena->alloc(truesize*sizeof(T)));
+    dptr     = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1142,7 +1141,6 @@ template <class T>
 void
 BaseFab<T>::undefine ()
 {
-    BL_ASSERT(!(The_FAB_Arena == 0));
     //
     // Call T::~T() on the to-be-destroyed memory.
     //
@@ -1152,7 +1150,7 @@ BaseFab<T>::undefine ()
     {
         ptr->~T();
     }
-    The_FAB_Arena->free(dptr);
+    BoxLib::The_Arena()->free(dptr);
 
     dptr = 0;
 }

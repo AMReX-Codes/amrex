@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.159 2001-09-27 21:05:15 lijewski Exp $
+// $Id: FabArray.H,v 1.160 2001-10-16 19:59:51 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1003,7 +1003,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
-            fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            fab_data[i] = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 
             reqs[i] = ParallelDescriptor::Arecv(fab_data[i],N,i,seqno).req();
         }
@@ -1024,7 +1024,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
-            value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
 
             for (unsigned int j = 0; j < SndTags[i].size(); j++)
@@ -1041,7 +1041,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             ParallelDescriptor::Send(data, N, i, seqno);
 
-            The_FAB_Arena->free(data);
+            BoxLib::The_Arena()->free(data);
         }
     }
     //
@@ -1067,7 +1067,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 dptr += N;
             }
 
-            The_FAB_Arena->free(fab_data[indx[k]]);
+            BoxLib::The_Arena()->free(fab_data[indx[k]]);
         }
     }
 }
@@ -1638,7 +1638,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
-            fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            fab_data[i] = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 
             req_data[i] = ParallelDescriptor::Arecv(fab_data[i],N,i,seqno_2).req();
         }
@@ -1667,7 +1667,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
-            value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
 
             for (int j = 0; j < Snds[i]; j++)
@@ -1697,7 +1697,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             ParallelDescriptor::Send(data, N, i, seqno_2);
 
-            The_FAB_Arena->free(data);
+            BoxLib::The_Arena()->free(data);
 
             idx += Snds[i];
         }
@@ -1760,7 +1760,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(Processed == Rcvs[indx[k]]);
 
-            The_FAB_Arena->free(fab_data[indx[k]]);
+            BoxLib::The_Arena()->free(fab_data[indx[k]]);
 
             fab_data[indx[k]] = 0;
         }
