@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.39 1998-05-29 19:46:52 lijewski Exp $
+// $Id: TagBox.cpp,v 1.40 1998-06-11 22:37:45 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -628,12 +628,17 @@ TagBoxArray::mergeUnique ()
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
+    if (!geom.isAnyPeriodic())
+        return;
+
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
     FabArrayId        faid   = facd.RegisterFabArray(this);
     const int         MyProc = ParallelDescriptor::MyProc();
     vector<FillBoxId> fillBoxId;
     Box               domain(geom.Domain());
+    Array<IntVect>    pshifts(27);
+    vector<IntVect>   shifts;
 
     for (int i = 0; i < fabparray.length(); i++)
     {
@@ -642,8 +647,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             //
             // src is candidate for periodic mapping.
             //
-            Array<IntVect> pshifts(27);
             geom.periodicShift(domain, boxarray[i], pshifts);
+
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
                 Box shiftbox(boxarray[i]);
@@ -660,12 +665,21 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                         if (shiftbox.intersects(fabparray[j].box()))
                         {
                             Box intbox = fabparray[j].box() & shiftbox;
+
                             fillBoxId.push_back(facd.AddBox(faid,
                                                             intbox,
                                                             0,
                                                             0,
                                                             0,
                                                             n_comp));
+                            //
+                            // Here we'll save the index into fabparray.
+                            //
+                            fillBoxId.back().FabIndex(j);
+                            //
+                            // We maintain a parallel array of IntVect shifts.
+                            //
+                            shifts.push_back(pshifts[iiv]);
                         }
                     }
                 }
@@ -675,46 +689,17 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     facd.CollectData();
 
+    assert(fillBoxId.size() == shifts.size());
+
     TagBox src;
 
-    for (int i = 0, iFillBox = 0; i < fabparray.length(); i++)
+    for (int i = 0; i < fillBoxId.size(); i++)
     {
-        if (!domain.contains(boxarray[i]))
-        {
-            //
-            // src is candidate for periodic mapping.
-            //
-            Array<IntVect> pshifts(27);
-            geom.periodicShift(domain, boxarray[i], pshifts);
-            for (int iiv = 0; iiv < pshifts.length(); iiv++)
-            {
-                IntVect iv = pshifts[iiv];
-                Box shiftbox(boxarray[i]);
-                D_TERM(shiftbox.shift(0,iv[0]);,
-                       shiftbox.shift(1,iv[1]);,
-                       shiftbox.shift(2,iv[2]);)
-                //
-                // Possible periodic remapping, try each tagbox.
-                //
-                for (int j = 0; j < fabparray.length(); j++)
-                {
-                    if (distributionMap[j] == MyProc)
-                    {
-                        //
-                        // Local dest fab.
-                        //
-                        if (shiftbox.intersects(fabparray[j].box()))
-                        {
-                            const FillBoxId& fillboxid = fillBoxId[iFillBox++];
-                            src.resize(fillboxid.box(), n_comp);
-                            facd.FillFab(faid, fillboxid, src);
-                            src.shift(iv);
-                            fabparray[j].merge(src);
-                        }
-                    }
-                }
-            }
-        }
+        assert(distributionMap[fillBoxId[i].FabIndex()] == MyProc);
+        src.resize(fillBoxId[i].box(), n_comp);
+        facd.FillFab(faid, fillBoxId[i], src);
+        src.shift(shifts[i]);
+        fabparray[fillBoxId[i].FabIndex()].merge(src);
     }
 }
 
