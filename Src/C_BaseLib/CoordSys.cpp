@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.5 1997-12-17 23:04:32 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.6 1998-02-17 23:02:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -260,7 +260,7 @@ operator>> (istream&  is,
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
-    c.ok = tmp;
+    c.ok = tmp?true:false;
     is.ignore(BL_IGNORE_MAX, '\n');
     return is;
 }

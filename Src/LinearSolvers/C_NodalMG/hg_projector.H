@@ -133,7 +133,7 @@ protected:
     void sync_right_hand_side(PArray<MultiFab>* u);
     void interface_average(PArray<MultiFab>& S, int lev);
     void interface_divergence(PArray<MultiFab>* u, int lev);
-    void form_solution_vector(PArray<MultiFab>* u, PArray<MultiFab>& sigma_in);
+    void form_solution_vector(PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in);
     
     void sparse_node_source_adjustment(PArray<MultiFab>& sparse_source);
     

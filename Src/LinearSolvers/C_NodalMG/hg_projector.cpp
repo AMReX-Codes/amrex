@@ -284,8 +284,7 @@ void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>&
 // key feature is that both "grid" routines must be called before starting
 // the lev_interface calculation, since they trash some lev_interface points.
 
-void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u,
-					       PArray<MultiFab>& S)
+void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u, PArray<MultiFab>& S)
 {
     if (u) 
     {
@@ -398,16 +397,20 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i));
 	}
 	
-	for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+	for ( MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
-	    const Box& sbox = source[lev][igrid].box();
-	    const Box& fbox = u[0][lev][igrid].box();
-	    const Box& freg = lev_interface[mglev].part_fine(igrid);
-	    Real *const sptr = source[lev][igrid].dataPtr();
-	    Real *const u0ptr = u[0][lev][igrid].dataPtr();
-	    Real *const u1ptr = u[1][lev][igrid].dataPtr();
+	    DependentMultiFabIterator u_dmfi_0(s_mfi, u[0][lev]);
+	    DependentMultiFabIterator u_dmfi_1(s_mfi, u[1][lev]);
+	    const Box& sbox = s_mfi->box();
+	    const Box& fbox = u_dmfi_0->box();
+	    const Box& freg = lev_interface[mglev].part_fine(s_mfi.index());
+	    Real *const sptr = s_mfi->dataPtr();
+	    Real *const u0ptr = u_dmfi_0->dataPtr();
+	    Real *const u1ptr = u_dmfi_1->dataPtr();
 #if (BL_SPACEDIM == 3)
-	    Real *const u2ptr = u[2][lev][igrid].dataPtr();
+	    DependentMultiFabIterator u_dmfi_2(s_mfi, u[2][lev]);
+	    Real *const u2ptr = u_dmfi_2->dataPtr();
 #endif
 #ifdef HG_TERRAIN
 	    FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg));
@@ -1168,8 +1171,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 #endif
 }
 
-void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
-						    PArray<MultiFab>& sigma_in)
+void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in)
 {
     if (u) 
     {

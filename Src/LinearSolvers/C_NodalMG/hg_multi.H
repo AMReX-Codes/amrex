@@ -68,10 +68,10 @@ public:
     void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
 	Real H[], int Lev_min, int Lev_max);
     void clear();
+protected:
     
     int smoother_mode;
     int line_solve_dim;
-protected:
     const amr_fluid_boundary_class& boundary;
     PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
     Real (*h)[BL_SPACEDIM];

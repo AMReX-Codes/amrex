@@ -345,13 +345,12 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
 {
-    int igrid, jgrid;
     if (type(r) == IntVect::TheNodeVector()) 
     {
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    igrid = lev_interface.fgrid(iface, 0);
-	    jgrid = lev_interface.fgrid(iface, 1);
+	    int igrid = lev_interface.fgrid(iface, 0);
+	    int jgrid = lev_interface.fgrid(iface, 1);
 	    // only do interior faces with fine grid on both sides
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
@@ -360,8 +359,8 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 #if (BL_SPACEDIM == 2)
 	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
 	{
-	    igrid = lev_interface.cgrid(icor, 0);
-	    jgrid = lev_interface.cgrid(icor, 3);
+	    int igrid = lev_interface.cgrid(icor, 0);
+	    int jgrid = lev_interface.cgrid(icor, 3);
 	    // only do interior corners with fine grid on all sides
 	    if (igrid < 0 || jgrid < 0 || lev_interface.cgeo(icor) != level_interface::ALL)
 		break;
@@ -371,8 +370,8 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 #else
 	for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
 	{
-	    igrid = lev_interface.egrid(iedge, 0);
-	    jgrid = lev_interface.egrid(iedge, 3);
+	    int igrid = lev_interface.egrid(iedge, 0);
+	    int jgrid = lev_interface.egrid(iedge, 3);
 	    // only do interior edges with fine grid on all sides
 	    if (igrid < 0 || jgrid < 0 || lev_interface.egeo(iedge) != level_interface::ALL)
 		break;
@@ -381,8 +380,8 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	}
 	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
 	{
-	    igrid = lev_interface.cgrid(icor, 0);
-	    jgrid = lev_interface.cgrid(icor, 7);
+	    int igrid = lev_interface.cgrid(icor, 0);
+	    int jgrid = lev_interface.cgrid(icor, 7);
 	    // only do interior corners with fine grid on all sides
 	    if (igrid < 0 || jgrid < 0 || lev_interface.cgeo(icor) != level_interface::ALL)
 		break;
@@ -617,6 +616,7 @@ void restrict_patch(FArrayBox& patch, const Box& region,
     assert(region.sameType(patch.box()));
     assert(region.type() == type(r));
     
+    // fillpatchiterator
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
 	Box cbox = r.box(igrid);
@@ -648,27 +648,22 @@ void restrict_level(MultiFab& dest, int bflag, MultiFab& r, const IntVect& rat,
 		    const amr_boundary_class& bdy)
 {
     assert(bflag == 0);
+    // fillpatchiterator
     for (int igrid = 0; igrid < dest.length(); igrid++) 
     {
 	if (bflag) 
 	{
-	    restrict_patch(dest[igrid], r, rat,
-		border_cache,
-		restric, lev_interface, bdy);
+	    restrict_patch(dest[igrid], r, rat, border_cache, restric, lev_interface, bdy);
 	}
 	else 
 	{
-	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, 
-		border_cache,
-		restric, lev_interface, bdy);
+	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache, restric, lev_interface, bdy);
 	}
     }
 }
 
-void sync_borders(MultiFab& r,
-			 const copy_cache* sync_cache,
-			 const level_interface& lev_interface,
-			 const amr_boundary_class& bdy)
+void sync_borders(MultiFab& r, 
+		  const copy_cache* sync_cache, const level_interface& lev_interface, const amr_boundary_class& bdy)
 {
     if (sync_cache) 
     {
