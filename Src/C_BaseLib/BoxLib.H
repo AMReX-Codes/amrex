@@ -4,7 +4,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.4 1999-05-10 18:54:20 car Exp $
+// $Id: BoxLib.H,v 1.5 2000-01-06 18:26:40 lijewski Exp $
 //
 
 //
@@ -42,7 +42,7 @@ public:
     static void Abort (const char * msg = nullString);
 
     /*@ManDoc: Prints assertion failed messages to cerr and exits
-               via abort().  Intended for use by the BL_ASSERT() macro
+               via abort().  Intended for use by the BL\_ASSERT() macro
                in <BLassert.H>.
     */
     static void Assert (const char* EX,
