@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.9 1998-07-01 20:43:52 vince Exp $
+# Make.defs $Id: Make.defs,v 1.10 1998-07-07 15:41:52 car Exp $
 #
 
 #
@@ -144,7 +144,8 @@ ifeq ($(COMP),g++)
     CXXOPTF    += -O
     CXXDEBF    += -g
     FULLWARN   := -Wall
-    CXX	       := g++
+    CXX	       := g++ -ftemplate-depth-20
+    DEFINES    += -DBL_USE_SETBUF
 endif
 
 #
