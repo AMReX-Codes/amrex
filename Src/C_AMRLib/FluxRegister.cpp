@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.46 1998-08-11 20:33:20 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.47 1998-08-12 18:00:53 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -784,13 +784,16 @@ void
 FluxRegister::CrseInitFinish ()
 {
 #ifdef BL_USE_MPI
+
+    static RunStats mpi_recv("mpi_recv");
+    static RunStats mpi_send("mpi_send");
+    static RunStats mpi_redu("mpi_reduce");
+    static RunStats mpi_wait("mpi_waitall");
     //
     // Pass each processor # of IRecv()s it'll need to post.
     //
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
-
-    static RunStats mpi_stats("mpi");
 
     assert(CITags.size() == CIFabs.size());
 
@@ -803,7 +806,7 @@ FluxRegister::CrseInitFinish ()
 
     Array<int> nrcv(NProcs, 0);
 
-    mpi_stats.start();
+    mpi_redu.start();
 
     for (int i = 0; i < NProcs; i++)
     {
@@ -817,7 +820,7 @@ FluxRegister::CrseInitFinish ()
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_redu.end();
 
     const int NumRecv = nrcv[MyProc];
 
@@ -829,7 +832,7 @@ FluxRegister::CrseInitFinish ()
     // First receive/send the box information.
     // I'll receive the NumRecv boxes in any order.
     //
-    mpi_stats.start();
+    mpi_recv.start();
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -842,6 +845,10 @@ FluxRegister::CrseInitFinish ()
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    mpi_recv.end();
+
+    mpi_send.start();
 
     for (int i = 0; i < CITags.size(); i++)
     {
@@ -872,6 +879,10 @@ FluxRegister::CrseInitFinish ()
             ParallelDescriptor::Abort(rc);
     }
 
+    mpi_send.end();
+
+    mpi_wait.start();
+
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
@@ -879,7 +890,7 @@ FluxRegister::CrseInitFinish ()
         ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_wait.end();
     //
     // Now the FAB data itself.
     //
@@ -887,7 +898,7 @@ FluxRegister::CrseInitFinish ()
     {
         fabs.set(i, new FArrayBox(recv[i].box(), recv[i].nComp()));
 
-        mpi_stats.start();
+        mpi_recv.start();
 
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * recv[i].nComp(),
@@ -898,10 +909,10 @@ FluxRegister::CrseInitFinish ()
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
-        mpi_stats.end();
+        mpi_recv.end();
     }
 
-    mpi_stats.start();
+    mpi_send.start();
 
     for (int i = 0; i < CITags.size(); i++)
     {
@@ -932,12 +943,16 @@ FluxRegister::CrseInitFinish ()
             ParallelDescriptor::Abort(rc);
     }
 
+    mpi_send.end();
+
+    mpi_wait.start();
+
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
-    mpi_stats.end();
+    mpi_wait.end();
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -996,6 +1011,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
     {
         ConstDependentMultiFabIterator areamfi(mflxmfi, area);
+
         FineAdd(mflxmfi(),
                 areamfi(),
                 dir,

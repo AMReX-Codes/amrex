@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.39 1998-08-11 20:33:40 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.40 1998-08-12 18:01:10 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -55,7 +55,7 @@ CommData::CommData (int        face,
 #include <ccse-mpi.H>
 #include <RunStats.H>
 
-static const aString MPI_Stats("mpi");
+static const aString REDUCE("mpi_reduce");
 
 int ParallelDescriptor::m_nProcs = -1;
 int ParallelDescriptor::m_MyId   = -1;
@@ -125,7 +125,7 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats("mpi_barrier");
 
     mpi_stats.start();
 
@@ -142,7 +142,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
     int src = r, recv; // `src' is either 0 or 1.
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -166,7 +166,7 @@ ParallelDescriptor::ReduceBoolOr  (bool& r)
 {
     int src = r, recv; // `src' is either 0 or 1.
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -189,7 +189,7 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 {
     Real recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -212,7 +212,7 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 {
     Real recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -235,7 +235,7 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 {
     Real recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -258,7 +258,7 @@ ParallelDescriptor::ReduceLongAnd (long& r)
 {
     long recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -281,7 +281,7 @@ ParallelDescriptor::ReduceLongSum (long& r)
 {
     long recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -305,7 +305,7 @@ ParallelDescriptor::ReduceIntSum (int& r)
 {
     int recv;
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats(REDUCE);
 
     mpi_stats.start();
 
@@ -332,7 +332,7 @@ ParallelDescriptor::Broadcast (int   fromproc,
 {
     assert(src == dest);
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats("mpi_broadcast");
 
     mpi_stats.start();
 
@@ -354,7 +354,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
-    static RunStats mpi_stats(MPI_Stats);
+    static RunStats mpi_stats("mpi_gather");
 
     mpi_stats.start();
 
