@@ -1,24 +1,46 @@
 FORT_CPP = /usr/lib/acpp
 
+BITNESS := 64
+
+ifeq ($(BITNESS), 32)
 ifeq ($(WHICHIRIX64), ESCHER)
-  XTRALIBS +=  /usr/lib64/libfortran.so 
-ifeq ($(COMP),g++)
-  CXXFLAGS += -mabi=64 -mips4
+  XTRALIBS +=  /usr/lib32/libfortran.so
+  ifeq ($(COMP),CC)
+    CXXFLAGS += -LANG:std -LANG:libc_in_namespace_std
+  else
+    CXXFLAGS += -mabi=32
+  endif
+endif
+else
+ifeq ($(WHICHIRIX64), ESCHER)
+  XTRALIBS +=  /usr/lib64/libfortran.so
+  ifeq ($(COMP),CC)
+    CXXFLAGS += -mips4 -LANG:std -LANG:libc_in_namespace_std
+  else
+    CXXFLAGS += -mabi=64 -mips4
+  endif
 endif
 endif
+
 ifeq ($(WHICHIRIX64), MAHLER)
   XTRALIBS +=  /usr/lib32/libfortran.so
 endif
 
 ifeq ($(COMP),CC)
 #CXX     := CC -ptused -LANG:ansi-for-init-scope=ON
-CXX     := CC -64 -LANG:ansi-for-init-scope=ON
+ifeq ($(BITNESS), 32)
+CXX     := CC -32 -LANG:ansi-for-init-scope=ON -ptnone -prelink
+else
+CXX     := CC -64 -LANG:ansi-for-init-scope=ON -ptnone -prelink
+endif
 CXXOPTF += -O2 -OPT:Olimit=4800
 CXXDEBF += -g 
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
 XTRALIBS          +=  -lftn -lm -lXm -lXt -lX11 -lm
+
+INCLUDE_LOCATIONS += /usr/local/pkg/nsg/MIPSpro/7.4/usr/include/CC
 
 ifeq ($(WHICHIRIX64), ERC2000)
   XTRAINCLOC        += /usr/include/X11 /usr/lib/Xm
@@ -28,7 +50,10 @@ endif
 
 #override XTRADEFS += -DBL_USE_SETBUF -DBL_OLD_STL
 endif
-XTRALIBS          +=  -lftn -lm -lXm -lXt -lX11 -lm
+#XTRALIBS          +=  -lftn -lm -lXm -lXt -lX11 -lm
+XTRALIBS          +=  -lftn
+
+CXX     +=  -LD_LAYOUT:lgot_buffer=30
 
 ifeq ($(COMP),KCC)
 CXX     := KCC
@@ -40,6 +65,26 @@ FORT_CPP = KCC -E
 #
 endif
 
+ifeq ($(BITNESS), 32)
+ifeq ($(WHICHIRIX64), ESCHER)
+  FC     = f90
+  fC     = $(FC)
+  FOPTF += -O2 -OPT:Olimit=4800
+  fOPTF += -O2 -OPT:Olimit=4800
+else
+  ifeq ($(WHICHIRIX64), MAHLER)
+    FC     = f90 -r8 -IPA
+    fC     = $(FC)
+    FOPTF += -Ofast=ip30 -OPT:Olimit=4800
+    fOPTF += -Ofast=ip30 -OPT:Olimit=4800
+  else
+    FC     = f77 -32
+    fC     = $(FC)
+    FOPTF += -g3  -Ofast=ip27
+    fOPTF += -g3  -Ofast=ip27
+  endif
+endif
+else
 ifeq ($(WHICHIRIX64), ESCHER)
   FC     = f90 -64
   fC     = $(FC)
@@ -57,6 +102,7 @@ else
     FOPTF += -g3  -Ofast=ip27
     fOPTF += -g3  -Ofast=ip27
   endif
+endif
 endif
 
 FDEBF += -g
