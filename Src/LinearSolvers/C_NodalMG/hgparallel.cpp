@@ -35,7 +35,7 @@ bool task_copy::depends_on_q(const task* t1) const
     }
     else
     {
-	BoxLib::Abort("Nightmare");
+	throw "Nightmare in task_copy::depends_on_q";
     }
     return false;
 }
@@ -96,7 +96,7 @@ void task_copy::startup()
     }
     else
     {
-	BoxLib::Error("task_copy::ready: Can't be here");
+	throw "task_copy::ready: Can't be here";
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -180,7 +180,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    abort(); return m_local;
+    throw "FIXME task_copy_local::ready"; return m_local;
 }
 
 bool task_copy_local::depends_on_q(const task* t1) const
@@ -192,7 +192,7 @@ bool task_copy_local::depends_on_q(const task* t1) const
     }
     else
     {
-	BoxLib::Abort("Nightmare");
+	throw "Nightmare in task_copy_local::depends_on_q";
     }
     return false;
 }
@@ -203,7 +203,7 @@ void task_copy_local::startup()
     {
 	m_local = true;
     }
-#if 0 && defined(HG_DEBUG)
+#if 0
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
@@ -229,7 +229,7 @@ void task_copy_local::startup()
 #endif
     else
     {
-	BoxLib::Error("task_copy::ready: Can't be here");
+	throw "task_copy::ready: Can't be here";
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -324,6 +324,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    abort(); return true;
+    throw "FIXME task_fab_get::ready"; return true;
 }
 

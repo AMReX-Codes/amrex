@@ -36,8 +36,7 @@ int main(int argc, char **argv)
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
     debug_out.open(fname.str().c_str(), ios::trunc);
-    if ( debug_out.fail() )
-	BoxLib::Error("Failed to open debug file");
+    if ( debug_out.fail() ) throw "Failed to open debug file";
     debug_out << std::setprecision(15);
 #endif
 
