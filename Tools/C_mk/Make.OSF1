@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.15 1999-09-10 20:53:01 lijewski Exp $
+# $Id: Make.OSF1,v 1.16 2000-03-22 15:51:45 lijewski Exp $
 #
 
 #
@@ -11,7 +11,12 @@ ifeq ($(COMP),cxx)
   CXXOPTF  += -O2 -tune host -Olimit 2400
   CXXDEBF  += -g
   CXXPRFF  := -p
-  override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  ifeq ($(WHICHOSF1),V3)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  endif
+  ifeq ($(WHICHOSF1),V4)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
+  endif
   #
   # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
   #
@@ -40,7 +45,12 @@ ifeq ($(COMP),KCC)
 endif
 
 ifeq ($(COMP),g++)
-  override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  ifeq ($(WHICHOSF1),V3)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  endif
+  ifeq ($(WHICHOSF1),V4)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
+  endif
   #
   # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
   #
