@@ -276,18 +276,29 @@ c-----------------------------------------------------------------------
       integer regl0,regh0,regl1,regh1
       double precision cen(cenl0:cenh0,cenl1:cenh1)
       double precision signd(snl0:snh0,snl1:snh1, 2)
+      double precision tmp
       integer irz
       integer i, j, k
       do j = regl1, regh1
          do i = regl0, regh0
-            cen(i,j) = 1.0D0 / (signd(i-1,j,1) + signd(i,j,1) +
-     &           signd(i,j-1,2) + signd(i,j,2))
+            tmp = (signd(i-1,j,1) + signd(i,j,1) 
+     &           + signd(i,j-1,2) + signd(i,j,2))
+            if ( tmp .eq. 0.0 ) then
+               cen(i,j) = 0.0D0
+            else
+               cen(i,j) = 1.0D0 / tmp
+            end if
          end do
          if (irz .eq. 1 .and. regl0 .eq. 0) then
             i = 0
-            cen(i,j) = 1.0D0 / (signd(i-1,j,1) + signd(i,j,1) +
-     &           0.5d0*signd(i,j-1,2) + 0.5d0*signd(i,j,2))
-         endif
+            tmp = (signd(i-1,j,1) + signd(i,j,1)
+     &           + 0.5d0*(signd(i,j-1,2) + signd(i,j,2)))
+            if ( tmp .eq. 0.0 ) then
+               cen(i,j) = 0.0D0
+            else
+               cen(i,j) = 1.0D0 / tmp 
+            end if
+         end if
       end do
       end
 c five-point variable stencils
