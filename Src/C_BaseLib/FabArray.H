@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.51 1998-05-25 06:01:24 lijewski Exp $
+// $Id: FabArray.H,v 1.52 1998-05-26 16:17:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1394,8 +1394,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     // Now receive data if any was sent.
     //
     int dataWaitingSize;
-
-    FAB fab;
 
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
     {
