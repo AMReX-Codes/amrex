@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.38 1998-10-18 01:43:50 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.39 1998-11-18 20:31:56 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -144,8 +144,7 @@ class ParallelDescriptor
     /*@ManDoc: Perform any needed parallel initialization.  This MUST be the
                first routine in this class called from within a program.
     */
-    static void StartParallel (int     nprocs,
-                               int*    argc = 0,
+    static void StartParallel (int*    argc = 0,
                                char*** argv = 0);
 
     /*@ManDoc: Perform any needed parallel finalization.  This MUST be the

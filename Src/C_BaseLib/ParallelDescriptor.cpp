@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.47 1998-11-16 15:53:17 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.48 1998-11-18 20:31:56 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -108,8 +108,7 @@ const char* ParallelDescriptor::ErrorString (int errorcode)
 }
 
 void
-ParallelDescriptor::StartParallel (int,
-                                   int*    argc,
+ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv)
 {
     assert(m_MyId == -1);
@@ -420,8 +419,8 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-void ParallelDescriptor::StartParallel(int, int*, char***) {}
-void ParallelDescriptor::EndParallel() {}
+void ParallelDescriptor::StartParallel (int*, char***) {}
+void ParallelDescriptor::EndParallel () {}
 
 void ParallelDescriptor::Abort () { ::abort(); }
 void ParallelDescriptor::Abort (int) { ::abort(); }
