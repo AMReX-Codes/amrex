@@ -21,9 +21,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
       do 10 j = fregl1, fregh1
          do 10 i = fregl0, fregh0
             gpx(i,j) = 0.5d0 * (dest(i+1,j) + dest(i+1,j+1) -
-     @                          dest(i,j) - dest(i,j+1))
+     @                          dest(i  ,j) - dest(i  ,j+1))
  10         gpy(i,j) = 0.5d0 * (dest(i,j+1) + dest(i+1,j+1) -
-     @                          dest(i,j) - dest(i+1,j))
+     @                          dest(i,j  ) - dest(i+1,j  ))
       end
 
       subroutine hgdiv(src, dims(src),
@@ -42,9 +42,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
          do 10 i = fregl0, fregh0
  10         src(i,j) = fac *
      @        (uf(i,j-1) - uf(i-1,j-1) +
-     @         uf(i,j)   - uf(i-1,j) +
+     @         uf(i,j  ) - uf(i-1,j) +
      @         vf(i-1,j) - vf(i-1,j-1) +
-     @         vf(i,j)   - vf(i,j-1))
+     @         vf(i  ,j) - vf(i,j-1))
       end
 
 c Note---only generates values at coarse points along edge of fine grid
