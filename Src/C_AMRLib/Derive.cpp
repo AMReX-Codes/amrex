@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.12 1999-05-10 18:54:08 car Exp $
+// $Id: Derive.cpp,v 1.13 1999-08-16 18:21:54 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,28 @@ DeriveRec::DeriveRec (const aString& name,
     derive_name(name),
     der_type(result_type),
     n_derive(nvar_derive),
+    variable_names(),
+    func(der_func),
+    mapper(interp),
+    bx_map(box_map),
+    n_state(0),
+    nsr(0),
+    rng(0),
+    bcr(0)
+{}
+
+DeriveRec::DeriveRec (const aString& name,
+                      IndexType      result_type,
+                      int            nvar_derive,
+		      Array<aString>& var_names,
+                      DeriveFunc     der_func,
+                      DeriveBoxMap   box_map,
+                      Interpolater*  interp)
+    :
+    derive_name(name),
+    der_type(result_type),
+    n_derive(nvar_derive),
+    variable_names(var_names),
     func(der_func),
     mapper(interp),
     bx_map(box_map),
@@ -119,6 +141,16 @@ DeriveRec::buildBC (const DescriptorList& d_list)
     }
 }
 
+const
+aString&
+DeriveRec::variableName(int comp) const
+{
+  if (comp < variable_names.length()) 
+     return variable_names[comp];
+
+  return derive_name;
+}
+
 bool
 DeriveList::canDerive (const aString& name) const 
 {
@@ -158,5 +190,4 @@ DeriveList::addComponent (const aString&        name,
     BL_ASSERT (li != 0);
     lst[li].addRange(d_list, state_indx, s_comp, n_comp);
 }
-
 
