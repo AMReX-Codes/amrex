@@ -250,6 +250,10 @@ SOURCE=.\hg_proj3d.F
 # End Group
 # Begin Source File
 
+SOURCE=.\Notes.doc
+# End Source File
+# Begin Source File
+
 SOURCE=.\proj.cpp
 # End Source File
 # End Target
