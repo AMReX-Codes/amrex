@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.6 1998-03-30 20:24:10 lijewski Exp $
+// $Id: BndryRegister.H,v 1.7 1998-05-06 22:36:14 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -42,50 +42,51 @@ class BndryRegister
 
 public:
     //
-    //@ManDoc: default constructor.
+    //@ManDoc: The default constructor.
     //
     BndryRegister();
     //
-    //@ManDoc: constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
+    //@ManDoc: The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
+    //
     BndryRegister (const BoxArray& _grids,
                    int             _in_rad,
                    int             _out_rad,
                    int             _extent_rad,
                    int             _ncomp);
     //
-    //@ManDoc: copy constructor.
+    //@ManDoc: The copy constructor.
     //
     BndryRegister (const BndryRegister& src);
     //
-    //@ManDoc: copy assignment operator.
+    //@ManDoc: The copy assignment operator.
     //
     BndryRegister& operator= (const BndryRegister& src);
     //
-    //@ManDoc: destructor.
+    //@ManDoc: The destructor.
     //
     virtual ~BndryRegister();
     //
-    //@ManDoc: get box domain (as an array of boxes).
+    //@ManDoc: Get box domain (as an array of boxes).
     //
     const BoxArray& boxes () const;
     //
-    //@ManDoc: return the number of grids in this domain.
+    //@ManDoc: Return the number of grids in this domain.
     //
     int length () const;
     //
-    //@ManDoc: return const set of FABs bounding the domain grid boxes on a given orientation
+    //@ManDoc: Return const set of FABs bounding the domain grid boxes on a given orientation
     //
     const FabSet& operator[] (const Orientation& _face) const;
     //
-    //@ManDoc: return set of FABs bounding the domain grid boxes on a given orientation
+    //@ManDoc: Return set of FABs bounding the domain grid boxes on a given orientation
     //
     FabSet& operator[] (const Orientation& _face);
     //
-    //@ManDoc: set all boundary FABs to given value.
+    //@ManDoc: Set all boundary FABs to given value.
     //
     void setVal (Real v);
     //
-    //@ManDoc: fill the boundary FABs on intersect with given MultiFab.
+    //@ManDoc: Fill the boundary FABs on intersection with given MultiFab.
     //
     BndryRegister& copyFrom (const MultiFab& src,
                              int             nghost,
@@ -93,7 +94,7 @@ public:
                              int             dest_comp,
                              int             num_comp);
     //
-    //@ManDoc: increment the boundary FABs on intersect with given MultiFab.
+    //@ManDoc: Increment the boundary FABs on intersect with given MultiFab.
     //
     BndryRegister& plusFrom (const MultiFab& src,
                              int             nghost,
@@ -113,11 +114,11 @@ public:
                             int             num_comp,
                             int             n_ghost=0);
     //
-    //@ManDoc: set box domain, if not set previously.
+    //@ManDoc: Set box domain, if not set previously.
     //
     void setBoxes (const BoxArray& _grids);
     //
-    //@ManDoc: build FABs along given face.
+    //@ManDoc: Build FABs along given face.
     //
     void define (const Orientation& _face,
                  const IndexType&   _typ,

@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.7 1998-04-02 00:13:15 lijewski Exp $
+// $Id: FabSet.H,v 1.8 1998-05-06 22:36:16 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -28,7 +28,7 @@
         particular orientation (ie. the lo-i side of each grid in a list).
 
         Since a FabSet FAB will likely be used to bound a grid box,
-        FArrayBox::resize operations are disallowed.  Also, to preserve
+        FArrayBox::resize() operations are disallowed.  Also, to preserve
         flexibility in applicable boundary scenarios, intersecting
         FABs in the FabSet are not guaranteed to contain identical data--thus
         copy operations from a FabSet to any FAB-like structure may be
@@ -45,34 +45,34 @@ class FabSet
 
 public:
     //
-    //@ManDoc: default constructor.
+    //@ManDoc: The default constructor.
     //
     FabSet ();
     //
-    //@ManDoc: construct _len sets of FABs.
+    //@ManDoc: Construct a set of `len' FABs.
     //
-    FabSet (int _len);
+    FabSet (int len);
     //
-    //@ManDoc: destructor.
+    //@ManDoc: The destructor.
     //
     virtual ~FabSet ();
     //
-    // promote these back to public.
+    //@ManDoc: Promote all setVal() member functions back to public.
     //
     MultiFab::setVal;
     //
-    //@ManDoc: copy from this FabSet to the destination FAB.
+    //@ManDoc: Copy from this FabSet to the destination FAB.
     //
     const FabSet& copyTo (FArrayBox& dest) const;
     //
-    //@ManDoc: copy specified components of this FabSet to the components of the destination FAB
+    //@ManDoc: Copy specified components of this FabSet to the components of the destination FAB
     //
     const FabSet& copyTo (FArrayBox& dest,
                           int        src_comp,
                           int        dest_comp,
                           int        num_comp) const;
     //
-    //@ManDoc: copy specified components of this FabSet to the compoentns of the destination FAB over the subregion
+    //@ManDoc: Copy specified components of this FabSet to the components of the destination FAB over the subregion
     //
     const FabSet& copyTo (FArrayBox& dest,
                           const Box& subbox,
@@ -80,18 +80,18 @@ public:
                           int        dest_comp,
                           int        num_comp) const;
     //
-    //@ManDoc: copy from the FAB to this FabSet.
+    //@ManDoc: Copy from the FAB to this FabSet.
     //
     FabSet& copyFrom (const FArrayBox& src);
     //
-    //@ManDoc: copy from the specified components of a source FAB to the components to this destination FabSet
+    //@ManDoc: Copy from the specified components of a source FAB to the components to this destination FabSet
     //
     FabSet& copyFrom (const FArrayBox& src,
                       int              src_comp,
                       int              dest_comp,
                       int              num_comp);
     //
-    //@ManDoc: copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
+    //@ManDoc: Copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
     //
     FabSet& copyFrom (const FArrayBox& src,
                       const Box&       subbox,
@@ -99,7 +99,7 @@ public:
                       int              dest_comp,
                       int              num_comp);
     //
-    //@ManDoc: copy from the source MultiFab to this destination FabSet.
+    //@ManDoc: Copy from the source MultiFab to this destination FabSet.
     //
     FabSet& copyFrom (const MultiFab& src,
                       int             nghost,
@@ -167,101 +167,208 @@ public:
     friend class ConstFabSetIterator;
     friend class ConstDependentFabSetIterator;
     friend class FabSetCopyDescriptor;
-
+    //
+    //@ManDoc: Promote operator[] back to public.
+    //
     MultiFab::operator[];
+    //
+    //@ManDoc: Promote clear() back to public.
+    //
     MultiFab::clear;
+    //
+    //@ManDoc: Promote DistributionMap() back to public.
+    //
     MultiFab::DistributionMap;
-
+    //
+    //@ManDoc: The box at the specified index into the underlying BoxArray.
+    //
     const Box& box (int K) const { return fabboxarray[K]; }
+    //
+    //@ManDoc: The box corresponding to the FAB at specified index.
+    //
     Box fabbox (int K) const { return fabboxarray[K]; }
-
+    //
+    //@ManDoc: Set the FAB at the specified index into the underlying BoxArray.
+    //
     void setFab (int        boxno,
                  FArrayBox* fab);
-
+    //
+    //@ManDoc: Change the size of the set of FABs.
+    //
     void resize (int newsize) { fabparray.resize(newsize); }
+    //
+    //@ManDoc: Set the Box at the specified index into the BoxArray.
+    //
     void setBox (int index, const Box& b) { fabboxarray.set(index, b); }
+    //
+    //@ManDoc: Use specified BoxArray as our computational grid.
+    //
     void DefineGrids (const BoxArray& newgrids)
     {
         boxarray.define(newgrids);
         fabboxarray.resize(newgrids.length());
     }
-    bool ready ()             { return fabparray.ready();    }
-    bool defined (int i)      { return fabparray.defined(i); }
-
+    //
+    //@ManDoc: True if there is at least one FAB in the underlying MultiFab.
+    //
+    bool ready () const { return fabparray.ready(); }
+    //
+    //@ManDoc: True if there is a FAB at specified index.
+    //
+    bool defined (int i) const { return fabparray.defined(i); }
+    //
+    //@ManDoc: Define the distribution map on specified boxarray.
+    //
     void DefineDistributionMap (const BoxArray& boxarray)
     {
         distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
     }
 
   private:
+
     BoxArray fabboxarray;
 };
+
+//
+//@Man:
+//@Memo: An iterator over the FABs in a FabSet.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a FabSet such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the FabSet that are actually owned by that CPU.
+*/
 
 class FabSetIterator
     :
     public MultiFabIterator
 {
 public:
+    //
+    //@ManDoc: Construct a FabSetIterator.
+    //
     FabSetIterator (FabSet& fabset)
         :
         MultiFabIterator(fabset) {}
+    //
+    //@ManDoc: The destructor.
+    //
     ~FabSetIterator () {}
 };
+
+//
+//@Man:
+//@Memo: An iterator over a dependent FabSet.
+/*@Doc:
+
+  This class is used to iterator over a FabSet (the dependent FabSet) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a FabSetIterator.  This allows us to iterate
+  over a FabSet and access the associated FAB(s) in one or more dependent
+  FabSets.
+*/
 
 class DependentFabSetIterator
     :
     public DependentMultiFabIterator
 {
 public:
+    //
+    //@ManDoc: Constructor over a mutable dependent FabSet.
+    //
     DependentFabSetIterator (FabSetIterator& controllerfsiter,
                              FabSet&         fabset)
         : DependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: Constructor over an immutable dependent FabSet.
+    //
     DependentFabSetIterator (FabSetIterator& controllerfsiter,
                              const FabSet&   fabset)
         :
         DependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: Constructor over a mutable dependent FabSet initialized with a MultiFabIterator.
+    //
     DependentFabSetIterator (MultiFabIterator& controllerfsiter,
                              FabSet&           fabset)
         :
         DependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: Constructor over an immutable dependent FabSet initialized with a MultiFabIterator.
+    //
     DependentFabSetIterator (MultiFabIterator& controllerfsiter,
                              const FabSet&     fabset)
         :
         DependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~DependentFabSetIterator () {}
 };
+
+//
+//@Man:
+//@Memo: A constant iterator over the FABs in a FabSet.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a FabSet such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the FabSet that are actually owned by that CPU.  It is
+  a constant iterator; you can access the FABs but you cannot change them.
+*/
 
 class ConstFabSetIterator
     :
     public ConstMultiFabIterator
 {
 public:
+    //
+    //@ManDoc: Construct a ConstFabSetIterator.
+    //
     ConstFabSetIterator (const FabSet &fabset)
         :
         ConstMultiFabIterator(fabset) {}
 
+    //
+    //@ManDoc: The destructor.
+    //
     ~ConstFabSetIterator () {}
 };
+
+//
+//@Man:
+//@Memo: A constant iterator over a dependent FabSet.
+/*@Doc:
+
+  This class is used to iterator over a FabSet (the dependent FabSet) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a ConstFabSetIterator.  This allows us to
+  iterate over a constant FabSet and access the associated FAB(s) in one or
+  more dependent FabSets.
+*/
 
 class ConstDependentFabSetIterator
     :
     public ConstDependentMultiFabIterator
 {
 public:
+    //
+    //@ManDoc: Constructor taking a ConstFabSetIterator.
+    //
     ConstDependentFabSetIterator (ConstFabSetIterator& controllerfsiter,
                                   const FabSet&        fabset)
         :
         ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: Constructor taking a ConstMultiFabIterator.
+    //
     ConstDependentFabSetIterator (ConstMultiFabIterator& controllerfsiter,
                                   const FabSet&          fabset)
         :
         ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~ConstDependentFabSetIterator () {}
 };
 
