@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.39 1998-12-10 22:16:07 lijewski Exp $
+// $Id: Geometry.cpp,v 1.40 1998-12-10 23:24:15 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -107,10 +107,16 @@ Geometry::buildPIRMMap (MultiFab&  mf,
             }
         }
 
-        bool DoIt     = !Domain().contains(dest);
-        Box TheDomain = Domain();
+        bool NodeCentered = !dest.ixType().cellCentered()
+        bool DoIt;
+        Box  TheDomain;
 
-        if (!dest.ixType().cellCentered())
+        if (!NodeCentered)
+        {
+            DoIt      = !Domain().contains(dest);
+            TheDomain = Domain();
+        }
+        else
         {
             //
             // If we're nodal, we don't want to do the nodes on the boundary.
@@ -216,6 +222,60 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
 
         mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
+    }
+
+    stats.end();
+}
+
+void
+Geometry::IncrementPeriodicBoundary (MultiFab& mf,
+                                     int       srccomp,
+                                     int       numcomp) const
+{
+    assert(mf.length() == 0 || mf.boxArray()[0].ixType().nodeCentered());
+
+    if (!isAnyPeriodic())
+        return;
+
+    static RunStats stats("fill_periodic_bndry");
+
+    stats.start();
+
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(srccomp,numcomp,false,false);
+
+    const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),false,false);
+
+    PIRMMap& pirm = getPIRMMap(mf,fpb);
+
+    const MultiFabId mfid = 0;
+    //
+    // Add boxes we need to collect, if we haven't already done so.
+    //
+    if (mfcd.nFabComTags() == 0)
+    {
+        for (int i = 0; i < pirm.size(); i++)
+        {
+            pirm[i].fbid = mfcd.AddBox(mfid,
+                                       pirm[i].srcBox,
+                                       0,
+                                       pirm[i].srcId,
+                                       srccomp,
+                                       srccomp,
+                                       numcomp);
+        }
+    }
+
+    mfcd.CollectData();
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    for (int i = 0; i < pirm.size(); i++)
+    {
+        assert(mf.DistributionMap()[pirm[i].mfid] == MyProc);
+
+        assert(pirm[i].fbid.box() == pirm[i].srcBox);
+
+        mfcd.FillFabPlus(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
     }
 
     stats.end();
