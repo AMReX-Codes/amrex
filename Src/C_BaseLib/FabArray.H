@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.124 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FabArray.H,v 1.125 2001-07-19 17:51:48 lijewski Exp $
 //
 
 #include <climits>
@@ -951,7 +951,7 @@ FabArray<T,FAB>::fabbox (int K) const
     //
     // Do not use fabparray[K] because it may not be valid in parallel.
     //
-    return ::grow(boxarray[K], n_grow);
+    return BoxLib::grow(boxarray[K], n_grow);
 }
 
 template <class T, class FAB>
@@ -1154,7 +1154,7 @@ FabArray<T,FAB>::setFab (int  boxno,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.ready());
-    BL_ASSERT(elem->box() == ::grow(boxarray[boxno],n_grow));
+    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
     BL_ASSERT(!fabparray.defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 

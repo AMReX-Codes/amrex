@@ -2,7 +2,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.20 2001-07-19 16:57:30 lijewski Exp $
+// $Id: Box.H,v 1.21 2001-07-19 17:51:48 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -132,16 +132,16 @@ namespace BoxLib
                Both Boxes must have identical type.
     */
     Box minBox (const Box& b1, const Box& b2);
-
-    //
-    //@ManDoc: Write an ASCII representation to the ostream.
-    //
-    std::ostream& operator<< (std::ostream& os, const Box& bx);
-    //
-    //@ManDoc: Read from istream.
-    //
-    std::istream& operator>> (std::istream& os, Box& bx);
 }
+
+//
+//@ManDoc: Write an ASCII representation to the ostream.
+//
+std::ostream& operator<< (std::ostream& os, const Box& bx);
+//
+//@ManDoc: Read from istream.
+//
+std::istream& operator>> (std::istream& os, Box& bx);
 
 //
 //@Man:
