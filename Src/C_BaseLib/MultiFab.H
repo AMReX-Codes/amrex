@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.23 1998-09-30 19:28:56 lijewski Exp $
+// $Id: MultiFab.H,v 1.24 1998-11-07 00:30:43 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -329,7 +329,8 @@ class MultiFab
     //
     MultiFabCopyDescriptor& theFPBmfcd (int   src_comp,
                                         int   num_comp,
-                                        bool  no_ovlp);
+                                        bool  no_overlap,
+                                        bool  do_corners);
     //
     //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
     //
@@ -360,6 +361,7 @@ private:
     int                     m_FPB_scomp;  /* Hack for FillPeriodicBoundary */
     int                     m_FPB_ncomp;  /* Hack for FillPeriodicBoundary */
     bool                    m_FPB_noovlp; /* Hack for FillPeriodicBoundary */
+    bool                    m_FPB_docrns; /* Hack for FillPeriodicBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -563,18 +565,21 @@ inline
 MultiFabCopyDescriptor&
 MultiFab::theFPBmfcd (int   src_comp,
                       int   num_comp,
-                      bool  no_ovlp)
+                      bool  no_overlap,
+                      bool  do_corners)
 {
     assert(src_comp >= 0);
     assert(num_comp > 0);
 
-    if (!(m_FPB_scomp == src_comp &&
-          m_FPB_ncomp == num_comp &&
-          m_FPB_noovlp == no_ovlp))
+    if (!(m_FPB_scomp  == src_comp   &&
+          m_FPB_ncomp  == num_comp   &&
+          m_FPB_noovlp == no_overlap &&
+          m_FPB_docrns == do_corners))
     {
         m_FPB_scomp  = src_comp;
         m_FPB_ncomp  = num_comp;
-        m_FPB_noovlp = no_ovlp;
+        m_FPB_noovlp = no_overlap;
+        m_FPB_docrns = do_corners;
 
         if (m_FPB_mfcd == 0)
         {
