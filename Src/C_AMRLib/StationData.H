@@ -1,6 +1,6 @@
 
 //
-// $Id: StationData.H,v 1.8 2000-10-02 20:48:43 lijewski Exp $
+// $Id: StationData.H,v 1.9 2001-07-23 20:06:06 vince Exp $
 //
 
 #ifndef _StationData_H_
@@ -81,6 +81,7 @@ private:
 
     Array<StationRec> m_stn;   // Array of stations.
     Array<aString>    m_vars;  // Names of StateData components to output.
+    Array<bool>       m_IsDerived;  // true if the variable is a derived quantity
     Array<int>        m_typ;   // The state_index corresponding to m_vars.
     Array<int>        m_ncomp; // The component of the state_index for m_typ.
     ofstream          m_ofile; // Output stream.

@@ -1,6 +1,6 @@
 
 //
-// $Id: StationData.cpp,v 1.12 2000-10-02 20:48:44 lijewski Exp $
+// $Id: StationData.cpp,v 1.13 2001-07-23 20:06:07 vince Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
@@ -39,6 +39,7 @@ StationData::init ()
         const int N = pp.countval("vars");
 
         m_vars.resize(N);
+        m_IsDerived.resize(N);
         m_typ.resize(N);
         m_ncomp.resize(N);
 
@@ -46,12 +47,19 @@ StationData::init ()
         {
             pp.get("vars", m_vars[i], i);
 
-            if (!AmrLevel::isStateVariable(m_vars[i],m_typ[i],m_ncomp[i]))
+            m_IsDerived[i] = false;
+            if ( ! AmrLevel::isStateVariable(m_vars[i],m_typ[i],m_ncomp[i]))
             {
+              if(AmrLevel::get_derive_lst().canDerive(m_vars[i])) {
+                m_IsDerived[i] = true;
+                m_ncomp[i] = 0;
+              } else {
                 cout << "StationData::init(): `"
                      << m_vars[i]
-                     << "' is not a state variable\n";
-                BoxLib::Abort();
+                     << "' is not a state or derived variable\n";
+                 BoxLib::Abort();
+              }
+
             }
         }
     }
@@ -144,6 +152,15 @@ StationData::report (Real            time,
 
     data.resize(N);
 
+    Array<MultiFab *> mfPtrs(N, NULL);
+    int nGhost(0);
+    for(int iVar(0); iVar < m_vars.length(); ++iVar) {
+      if(m_IsDerived[iVar]) {
+        mfPtrs[iVar] =
+	     const_cast<AmrLevel &>(amrlevel).derive(m_vars[iVar], time, nGhost);
+      }
+    }
+
     for (int i = 0; i < m_stn.length(); i++)
     {
         if (m_stn[i].own && m_stn[i].level == level)
@@ -153,6 +170,33 @@ StationData::report (Real            time,
             //
             for (int j = 0; j < N; j++)
             {
+              if(m_IsDerived[j]) {
+                const MultiFab *mf = mfPtrs[j];
+
+                BL_ASSERT(mf != NULL);
+                BL_ASSERT(mf->DistributionMap() ==
+		          amrlevel.get_new_data(0).DistributionMap());
+                BL_ASSERT(mf->DistributionMap()[m_stn[i].grd] == MyProc);
+                //
+                // Find IntVect so we can index into FAB.
+                // We want to use Geometry::CellIndex().
+                // Must adjust the position to account for NodeCentered-ness.
+                //
+                IndexType ityp = 
+                        amrlevel.get_derive_lst().get(m_vars[j])->deriveType();
+
+                Real pos[BL_SPACEDIM];
+
+                D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                       pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
+                       pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
+
+                IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
+
+                data[j] = (*mf)[m_stn[i].grd](idx,m_ncomp[j]);
+
+	      } else {
+
                 const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
                 BL_ASSERT(mf.nComp() > m_ncomp[j]);
@@ -173,6 +217,7 @@ StationData::report (Real            time,
                 IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
 
                 data[j] = mf[m_stn[i].grd](idx,m_ncomp[j]);
+	      }
             }
             //
             // Write data to output stream.
@@ -194,6 +239,13 @@ StationData::report (Real            time,
     m_ofile.flush();
 
     BL_ASSERT(!m_ofile.bad());
+
+
+    for(int iVarD(0); iVarD < m_vars.length(); ++iVarD) {
+      if(m_IsDerived[iVarD]) {
+        delete mfPtrs[iVarD];
+      }
+    }
 }
 
 void
