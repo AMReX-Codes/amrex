@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.32 1998-07-24 22:41:01 lijewski Exp $
+// $Id: Geometry.cpp,v 1.33 1998-09-30 19:29:16 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -75,8 +75,7 @@ Geometry::FlushPIRMCache ()
 Geometry::PIRMMap&
 Geometry::buildPIRMMap (MultiFab&  mf,
                         bool       no_ovlp,
-                        const FPB& fpb,
-                        bool       build_mfcd) const
+                        const FPB& fpb) const
 {
     assert(isAnyPeriodic());
     assert(MaxFPBCacheSize > 0);
@@ -153,43 +152,6 @@ Geometry::buildPIRMMap (MultiFab&  mf,
         }
     }
 
-    if (!build_mfcd)
-    {
-        //
-        // We now need to populate the m_pirm member of the just-added FPB.
-        // Since all we're trying to do is get the FillBoxId returned from
-        // AddBox() correctly we'll use arbitrary src_comp and num_comp;
-        // We use a `static' MultiFabCopyDescriptor to cut down on memory
-        // allocation/deallocation; it's only really needed to collect the
-        // FillBoxIds from AddBox() and insert them into the `m_pirm' member.
-        //
-        static MultiFabCopyDescriptor dummy_mfcd;
-
-        MultiFabId mfid = dummy_mfcd.RegisterMultiFab(&mf);
-
-        assert(mfid == MultiFabId(0));
-
-        const int src_comp = 0;
-        const int num_comp = 1;
-
-        for (int i = 0; i < pirm.size(); i++)
-        {
-            pirm[i].fbid = dummy_mfcd.AddBox(mfid,
-                                             pirm[i].srcBox,
-                                             0,
-                                             pirm[i].srcId,
-                                             src_comp,
-                                             src_comp,
-                                             num_comp);
-
-            assert(pirm[i].fbid.box() == pirm[i].srcBox);
-        }
-        //
-        // Don't forget to set `dummy_mfcd' back to its pristine state.
-        //
-        dummy_mfcd.clear();
-    }
-
     return pirm;
 }
 
@@ -206,40 +168,28 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     stats.start();
 
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,num_comp,no_ovlp);
+
     const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp);
 
-    bool build_mfcd = false;
+    PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb);
 
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,
-                                                 num_comp,
-                                                 no_ovlp,
-                                                 build_mfcd);
-    PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb,build_mfcd);
+    const MultiFabId mfid = 0;
 
-    if (build_mfcd)
+    for (int i = 0; i < pirm.size(); i++)
     {
-        FillBoxId fbid;
-
-        MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
-
-        assert(mfid == MultiFabId(0));
-
-        for (int i = 0; i < pirm.size(); i++)
-        {
-            pirm[i].fbid = mfcd.AddBox(mfid,
-                                       pirm[i].srcBox,
-                                       0,
-                                       pirm[i].srcId,
-                                       src_comp,
-                                       src_comp,
-                                       num_comp);
-        }
+        pirm[i].fbid = mfcd.AddBox(mfid,
+                                   pirm[i].srcBox,
+                                   0,
+                                   pirm[i].srcId,
+                                   src_comp,
+                                   src_comp,
+                                   num_comp);
     }
 
     mfcd.CollectData();
 
-    const MultiFabId MFID = 0;
-    const int MyProc      = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
 
     for (int i = 0; i < pirm.size(); i++)
     {
@@ -247,7 +197,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
 
-        mfcd.FillFab(MFID,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
+        mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
     }
 
     stats.end();
