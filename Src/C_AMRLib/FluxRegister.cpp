@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.20 1998-04-17 18:14:12 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.21 1998-04-17 22:21:31 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -882,6 +882,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                           // those box()s to be sent next.
                           //
                           i,
+                          0, // Not Used.
+                          0, // Not Used.
+                          0, // Not Used.
                           sTags[i].box);
         //
         // Use MPI_Send() as we don't care whether or not this is buffered.
