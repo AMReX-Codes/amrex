@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.66 2003-08-14 19:18:14 lijewski Exp $
+// $Id: TagBox.cpp,v 1.67 2003-08-14 22:26:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -521,15 +521,11 @@ TagBoxArray::collate (long& numtags) const
     //
     // The caller of collate() is responsible for delete[]ing this space.
     //
-    IntVect* TheCollateSpace = new IntVect[numtags];
-
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
-    Array<int> offset(ParallelDescriptor::NProcs(),0);
+    IntVect*  TheCollateSpace = new IntVect[numtags];
+    int*      start           = reinterpret_cast<int*>(TheCollateSpace);
+    const int IOProc          = ParallelDescriptor::IOProcessorNumber();
 
     int count = 0;
-
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).collate(TheCollateSpace,count);
@@ -537,6 +533,8 @@ TagBoxArray::collate (long& numtags) const
     }
 
 #if BL_USE_MPI
+    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
+    Array<int> offset(ParallelDescriptor::NProcs(),0);
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
@@ -548,13 +546,9 @@ TagBoxArray::collate (long& numtags) const
                ParallelDescriptor::Mpi_typemap<int>::type(),
                IOProc,
                ParallelDescriptor::Communicator());
-#endif
 
     if (ParallelDescriptor::IOProcessor())
     {
-        BL_ASSERT(IOProc == 0);
-        BL_ASSERT(offset[0] == 0);
-
         for (int i = 0; i < nmtags.size(); i++)
             //
             // Convert from count of tags to count of integers to expect.
@@ -564,10 +558,6 @@ TagBoxArray::collate (long& numtags) const
         for (int i = 1; i < offset.size(); i++)
             offset[i] = offset[i-1] + nmtags[i-1];
     }
-
-    int* start = reinterpret_cast<int*>(TheCollateSpace);
-
-#if BL_USE_MPI
     //
     // Gather all the tags to IOProc into TheCollateSpace.
     //
