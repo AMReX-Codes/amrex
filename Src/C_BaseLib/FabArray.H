@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.60 1998-06-10 22:24:32 lijewski Exp $
+// $Id: FabArray.H,v 1.61 1998-06-10 23:30:13 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2103,7 +2103,7 @@ FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 
     fabArrays.push_back(fabarray);
 
-    fabCopyDescList.resize(nextFabArrayId + 1);
+    fabCopyDescList.resize(nextFabArrayId + 1, FCDMap());
 
     return FabArrayId(nextFabArrayId++);
 }
