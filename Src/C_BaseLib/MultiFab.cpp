@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.23 1998-07-08 19:17:52 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.24 1998-07-08 21:56:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -583,7 +583,7 @@ static SIList SICache;
 //
 // Maximum size of the cache.
 //
-int const MaxSICacheSize = 10;
+const int MaxSICacheSize = 10;
 
 void
 MultiFab::FlushSICache ()
@@ -600,7 +600,8 @@ MultiFab::SICacheSize ()
 static
 vector<SIRec>&
 BuildFBsirec (const SI&       si,
-              const MultiFab& mf)
+              const MultiFab& mf,
+              bool            doit)
 {
     assert(si.m_ncomp > 0);
     assert(si.m_scomp >= 0);
@@ -640,18 +641,51 @@ BuildFBsirec (const SI&       si,
                 sirec.push_back(SIRec(mfi.index(),j,bx));
             }
         }
-    }    
+    }
+
+    if (doit)
+    {
+        //
+        // This is the case where we've already got a valid MFCD but where the
+        // cached SIRecs used to build it has been flushed from our cache.
+        //
+        // We now need to populate the m_fbid members of the just-added
+        // SIRecs.  We use a `static' MultiFabCopyDescriptor to cut down
+        // on memory allocation/deallocation.
+        //
+        static MultiFabCopyDescriptor mfcd;
+
+        MultiFabId mfid = mfcd.RegisterMultiFab(const_cast<MultiFab*>(&mf));
+
+        assert(mfid == MultiFabId(0));
+
+        for (int i = 0; i < sirec.size(); i++)
+        {
+            sirec[i].m_fbid = mfcd.AddBox(mfid,
+                                          sirec[i].m_bx,
+                                          0,
+                                          sirec[i].m_j,
+                                          si.m_scomp,
+                                          si.m_scomp,
+                                          si.m_ncomp);
+        }
+        //
+        // Don't forget to set `mfcd' back to its pristine state.
+        //
+        mfcd.clear();
+    }
 
     return sirec;
 }
 
-static
+inline
 vector<SIRec>&
 TheFBsirec (int             scomp,
             int             ncomp,
             int             ngrow,
             const BoxArray& ba,
-            const MultiFab& mf)
+            const MultiFab& mf,
+            bool            building_mfcd)
 {
     assert(ncomp > 0);
     assert(scomp >= 0);
@@ -667,7 +701,7 @@ TheFBsirec (int             scomp,
         }
     }
 
-    return BuildFBsirec(si,mf);
+    return BuildFBsirec(si,mf,!building_mfcd);
 }
 
 void
@@ -693,11 +727,12 @@ MultiFab::buildFBmfcd (int src_comp,
 
     assert(mfid == MultiFabId(0));
 
-    vector<SIRec>& sirec = TheFBsirec(m_FB_scomp,
-                                      m_FB_ncomp,
+    vector<SIRec>& sirec = TheFBsirec(src_comp,
+                                      num_comp,
                                       nGrow(),
                                       boxArray(),
-                                      *this);
+                                      *this,
+                                      true);
     //
     // Add boxes we need to collect.
     //
@@ -707,9 +742,9 @@ MultiFab::buildFBmfcd (int src_comp,
                                             sirec[i].m_bx,
                                             0,
                                             sirec[i].m_j,
-                                            m_FB_scomp,
-                                            m_FB_scomp,
-                                            m_FB_ncomp);
+                                            src_comp,
+                                            src_comp,
+                                            num_comp);
     }
 }
 
@@ -733,7 +768,8 @@ MultiFab::FillBoundary (int src_comp,
                                             m_FB_ncomp,
                                             nGrow(),
                                             boxArray(),
-                                            *this);
+                                            *this,
+                                            false);
     for (int i = 0; i < sirec.size(); i++)
     {
         int fabindex = sirec[i].m_i;
