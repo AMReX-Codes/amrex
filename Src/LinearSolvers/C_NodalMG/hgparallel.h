@@ -258,8 +258,7 @@ public:
 	    bool tresult = (*tfi)->ready();
 	    result = tresult && result;
 	}
-	if ( !result ) return false;
-	return true;
+	return result;
     }
     virtual bool recommit(list<task*>* tl);
 protected:

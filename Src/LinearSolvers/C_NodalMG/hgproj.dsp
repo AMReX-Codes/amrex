@@ -96,6 +96,10 @@ SOURCE=.\amr_multi.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\bl_abort.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\boundary.cpp
 # End Source File
 # Begin Source File
@@ -149,10 +153,6 @@ SOURCE=.\amr_multi.H
 # Begin Source File
 
 SOURCE=.\boundary.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\counted_ptr.h
 # End Source File
 # Begin Source File
 
@@ -279,6 +279,19 @@ SOURCE=.\hg_proj3d.F
 # Begin Source File
 
 SOURCE=.\hgproj.pg
+# End Source File
+# Begin Source File
+
+SOURCE=.\matherr.f90
+
+!IF  "$(CFG)" == "hgproj - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
+
+# SUBTRACT F90 /stand:<none>
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

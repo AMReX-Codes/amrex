@@ -49,8 +49,6 @@ public:
 	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
     {
 	assert(dbx.sameType(dmf[dgrid].box()));
-	const Box cb = interp->box(dbx, rat);
-	tf = new task_fill_patch( dmf, dgrid, cb, smf, lev_interface, 0, -1, -1);
     }
     virtual bool ready()
     {
@@ -64,6 +62,7 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
+	tf = new task_fill_patch( dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1);
 	return tf->init(sno, comm);
     }
     virtual ~task_interpolate_patch()
