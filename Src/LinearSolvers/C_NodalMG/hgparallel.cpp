@@ -17,7 +17,7 @@ task_copy::~task_copy()
 #endif
 }
 
-void task_copy::init(sequence_number sno, MPI_Comm comm)
+bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
 #ifdef BL_USE_MPI
     assert( is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid) );
@@ -36,14 +36,11 @@ void task_copy::init(sequence_number sno, MPI_Comm comm)
 	s_tmp->copy(m_smf[m_sgrid]);
 	MPI_Isend(s_tmp->dataPtr(), m_bx.numPts()*s_tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_mf,  m_dgrid), comm, &m_request);
     }
+    return false;
 #else
     m_ready = true;
+    return true;
 #endif
-}
-
-bool task_copy::is_off_processor() const
-{
-    return is_remote(m_mf, m_dgrid) && is_remote(m_smf, m_sgrid);
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
@@ -123,13 +120,12 @@ void task_list::execute()
 void task_list::add_task(task* t)
 {
     seq_no++;
-    if ( t->is_off_processor() )
+    if ( ! t->init(seq_no, comm) )
     {
 	delete t;
     }
     else
     {
-	t->init(seq_no, comm);
 	tasks.push_back(t);
     }
 }

@@ -70,13 +70,9 @@ public:
     {
 	return false;
     };
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FCERES func;
@@ -111,13 +107,9 @@ public:
     {
 	return false;
     };
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FCERES func;

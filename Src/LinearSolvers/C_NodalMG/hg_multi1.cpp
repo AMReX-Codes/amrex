@@ -68,13 +68,9 @@ public:
     {
 	delete tf;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	return is_remote(dmf, dgrid) && tf->is_off_processor();
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	tf->init(sno, comm);
+	return tf->init(sno, comm);
     }
 private:
     task_fab* tf;

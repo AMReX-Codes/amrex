@@ -41,8 +41,7 @@ public:
     typedef unsigned int sequence_number;
     virtual ~task() {}
     virtual bool ready() = 0;
-    virtual void init(sequence_number sno, MPI_Comm comm) = 0;
-    virtual bool is_off_processor() const = 0;
+    virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
 };
 
 class task_copy : public task
@@ -52,8 +51,7 @@ public:
     task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb);
     virtual ~task_copy();
     virtual bool ready();
-    virtual bool is_off_processor() const;
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
@@ -75,13 +73,9 @@ public:
     task_copy_local(FArrayBox& fab_, const MultiFab& mf_, int grid_, const Box& bx);
     virtual ~task_copy_local();
     virtual bool ready();
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FArrayBox& m_fab;
@@ -96,8 +90,7 @@ class task_fab : public task
 {
 public:
     virtual const FArrayBox& fab() = 0;
-    virtual bool is_off_processor() const = 0;
-    virtual void init(sequence_number sno, MPI_Comm comm) = 0;
+    virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
 };
 
 class task_fab_get : public task_fab
@@ -108,13 +101,9 @@ public:
     virtual ~task_fab_get();
     virtual const FArrayBox& fab();
     virtual bool ready();
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     const MultiFab& r;
@@ -146,11 +135,7 @@ public:
     virtual ~task_fill_patch();
     virtual const FArrayBox& fab();
     virtual bool ready();
-    virtual bool is_off_processor() const
-    {
-	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
     bool fill_patch_blindly();
     bool fill_exterior_patch_blindly();
@@ -172,8 +157,7 @@ class task_linked_task : public task
 public:
     task_linked_task(task* t_) : lcpt(t_) {}
     virtual bool ready() { return lcpt->ready(); }
-    virtual void init(sequence_number no, MPI_Comm comm) { lcpt->init(no, comm); }
-    virtual bool is_off_processor() const { return lcpt->is_off_processor(); }
+    virtual bool init(sequence_number no, MPI_Comm comm) { return lcpt->init(no, comm); }
 private:
     LnClassPtr<task> lcpt;
 };
@@ -192,13 +176,9 @@ public:
 	}
 	return false;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     MultiFab& m;
