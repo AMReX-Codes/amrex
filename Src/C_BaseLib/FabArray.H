@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.152 2001-08-02 16:01:43 car Exp $
+// $Id: FabArray.H,v 1.153 2001-09-21 21:38:21 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -649,7 +649,6 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     fabArray(fabarray),
     currentIndex(0)
 {
-#ifdef BL_USE_MPI
     //
     // Increment the currentIndex to start at the first valid index
     // for this ParallelDescriptor::MyProc.
@@ -660,14 +659,12 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     {
         ++currentIndex;
     }
-#endif
 }
 
 inline
 void
 MFIter::operator++ ()
 {
-#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     //
     // Go to the next index on this processor.
@@ -677,9 +674,6 @@ MFIter::operator++ ()
         ++currentIndex;
     }
     while (fabArray.DistributionMap()[currentIndex] != MyProc);
-#else
-    ++currentIndex;
-#endif
 }
 
 inline

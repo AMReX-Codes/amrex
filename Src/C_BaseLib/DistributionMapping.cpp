@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.55 2001-08-09 22:41:59 marc Exp $
+// $Id: DistributionMapping.cpp,v 1.56 2001-09-21 21:38:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -270,8 +270,6 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
 }
 
-#ifdef BL_USE_MPI
-
 class WeightedBox
 {
     int  m_boxid;
@@ -455,7 +453,6 @@ top:
 
     return result;
 }
-#endif /*BL_USE_MPI*/
 
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
@@ -470,7 +467,6 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
     }
     else
     {
-#ifdef BL_USE_MPI
         std::vector< std::list<int> > vec = knapsack(pts,nprocs);
 
         BL_ASSERT(int(vec.size()) == nprocs);
@@ -488,9 +484,6 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
         // Set sentinel equal to our processor number.
         //
         m_procmap[pts.size()] = ParallelDescriptor::MyProc();
-#else
-        BoxLib::Error("How did this happen?");
-#endif
     }
 }
 
@@ -506,7 +499,6 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
     }
     else
     {
-#ifdef BL_USE_MPI
         std::vector<long> pts(boxes.size());
 
         for (unsigned int i = 0; i < pts.size(); i++)
@@ -529,9 +521,6 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
         // Set sentinel equal to our processor number.
         //
         m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
-#else
-        BoxLib::Error("How did this happen?");
-#endif
     }
 }
 
