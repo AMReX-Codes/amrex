@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.62 1998-11-05 06:42:59 almgren Exp $
+// $Id: Amr.cpp,v 1.63 1998-11-24 01:01:14 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -512,10 +512,12 @@ Amr::writePlotFile (const aString& root,
             BoxLib::Error("Amr::writePlotFile() failed");
     }
 
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     Real dPlotFileTime1 = ParallelDescriptor::second();
     Real dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
 
-    ParallelDescriptor::ReduceRealMax(dPlotFileTime);
+    ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -817,10 +819,12 @@ Amr::restart (const aString& filename)
     for (lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_restart();
 
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     Real dRestartTime1 = ParallelDescriptor::second();
     Real dRestartTime  = dRestartTime1 - dRestartTime0;
 
-    ParallelDescriptor::ReduceRealMax(dRestartTime);
+    ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -931,10 +935,12 @@ Amr::checkPoint ()
             BoxLib::Error("Amr::checkpoint() failed");
     }
 
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     Real dCheckPointTime1 = ParallelDescriptor::second();
     Real dCheckPointTime  = dCheckPointTime1 - dCheckPointTime0;
 
-    ParallelDescriptor::ReduceRealMax(dCheckPointTime);
+    ParallelDescriptor::ReduceRealMax(dCheckPointTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
