@@ -40,6 +40,21 @@ COPTF += -O2
 CDEBF += -g
 CPRFF +=
 
+BSP_DEVICE = DRMA_SHMEM
+BSP_MACHINE = CRAYT3E
+
+ifeq ($(COMP),CC)
+#
+# Uncomment this line if filebuf::setbuf() is a public member function
+# in your C++ I/O library implementation so that constructs of the following
+# form are legal:
+#
+#    os.rdbuf()->setbuf(buffer, buffer_size);
+#
+# this is a big win on the T3E -- vince
+DEFINES += -DBL_USE_SETBUF
+endif
+
 OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 FORTPREP	= perl ../scripts/strip72 -c
