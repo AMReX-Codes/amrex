@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.16 1998-10-02 19:36:48 lijewski Exp $
+// $Id: BaseFab.H,v 1.17 1998-11-30 21:30:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -492,7 +492,11 @@ T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
+    assert(n >= 0);
+    assert(n < nvar);
     assert(!(dptr == 0));
+    assert(domain.contains(p));
+
     return dptr[domain.index(p)+n*numpts];
 }
 
@@ -502,6 +506,8 @@ T&
 BaseFab<T>::operator() (const IntVect& p)
 {
     assert(!(dptr == 0));
+    assert(domain.contains(p));
+
     return dptr[domain.index(p)];
 }
 
@@ -511,7 +517,11 @@ const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
+    assert(n >= 0);
+    assert(n < nvar);
     assert(!(dptr == 0));
+    assert(domain.contains(p));
+
     return dptr[domain.index(p)+n*numpts];
 }
 
@@ -521,6 +531,8 @@ const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
     assert(!(dptr == 0));
+    assert(domain.contains(p));
+
     return dptr[domain.index(p)];
 }
 
