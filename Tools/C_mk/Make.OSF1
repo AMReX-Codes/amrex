@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.23 2002-03-21 00:41:08 vince Exp $
+# $Id: Make.OSF1,v 1.24 2002-03-27 21:35:59 car Exp $
 #
 
 #
@@ -29,9 +29,13 @@ ifeq ($(MACHINE), OSF1)
 endif
 
 ifeq ($(COMP),cxx)
-  CXX      := cxx -define_templates
+  CXX      := cxx
   FULLWARN := +pp -fullwarn
-  CXXOPTF  += -O2 -tune host -Olimit 2400
+  CXXOPTF  += -O3 -fast -Olimit 2400
+  CXXOPTF  += -no_exceptions
+#  CXXOPTF  += -std strict_ansi
+  CXXOPTF  += -model ansi
+  CPPFLAGS += -D__USE_STD_IOSTREAM
   CXXDEBF  += -g
   CXXPRFF  := -p
   ifeq ($(WHICHOSF1),V3)
