@@ -1062,9 +1062,9 @@ holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0), hx, isRZ, imax));
+	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(D_DECL(0,0,0)), hx, isRZ, imax));
 #else
-	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0)));
+	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(D_DECL(0,0,0))));
 #endif
         //
 	// Fill in the grids on the other sides, if any.
