@@ -1,4 +1,4 @@
-
+#include "amr_defs.H"
 #include "hgparallel.h"
 
 // TASK_COPY
@@ -59,6 +59,19 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     return true;
 }
 
+void
+task_copy::hint() const
+{
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	debug_out << "task_copy : ";
+	debug_out << m_local << " ";
+	debug_out <<  m_bx << " ";
+	debug_out << m_dgrid << " ";
+	debug_out << m_sgrid << " ";
+	debug_out << endl;
+    }
+}
 
 bool task_copy::ready()
 {
@@ -103,10 +116,13 @@ bool task_copy_local::ready()
 
 // TASK_LIST
 
-task_list::task_list(MPI_Comm comm_) 
+bool task_list::def_verbosity = true;
+
+task_list::task_list(MPI_Comm comm_)
 {
     seq_no = 0;
     MPI_Comm_dup(comm_, &comm);
+    verbosity = def_verbosity;
 }
 
 task_list::~task_list()
@@ -121,6 +137,8 @@ void task_list::execute()
     {
 	task* t = tasks.front();
 	tasks.pop_front();
+	if ( verbosity )
+	    t->hint();
 	if ( t->ready() )
 	{
 	    delete t;
