@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.13 1998-06-03 23:11:19 lijewski Exp $
+// $Id: FabSet.H,v 1.14 1999-02-24 01:03:47 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -106,6 +106,17 @@ public:
                       int             src_comp,
                       int             dest_comp,
                       int             num_comp);
+    //
+    //@ManDoc: Copy from the FabSet to this FabSet.
+    //
+    FabSet& copyFrom (const FabSet& src);
+    //
+    //@ManDoc: Copy from the specified components of a source FabSet to the components to this destination FabSet
+    //
+    FabSet& copyFrom (const FabSet& src,
+                      int           src_comp,
+                      int           dest_comp,
+                      int           num_comp);
     //
     //@ManDoc: Copy to the MultiFab from this FabSet.
     //
@@ -409,7 +420,7 @@ inline
 const FabSet&
 FabSet::copyTo (FArrayBox& dest) const
 {
-    this->copy(dest);
+    copyTo(dest,dest.box(),0,0,nComp());
     return *this;
 }
 
@@ -420,20 +431,15 @@ FabSet::copyTo (FArrayBox& dest,
                 int        dest_comp,
                 int        num_comp) const
 {
-    this->copy(dest, src_comp, dest_comp, num_comp);
+    copyTo(dest, dest.box(), src_comp, dest_comp, num_comp);
     return *this;
 }
 
 inline
-const FabSet&
-FabSet::copyTo (FArrayBox& dest,
-                const Box& subbox,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp) const
+FabSet&
+FabSet::copyFrom (const FabSet& src)
 {
-    this->copy(dest, subbox, src_comp, dest_comp, num_comp);
-    return *this;
+    return copyFrom(src,0,0,nComp());
 }
 
 //
@@ -446,7 +452,8 @@ FabSet::plus (Real v,
               int  comp,
               int  num_comp)
 {
-    this->plus(v, comp, num_comp);
+    MultiFab* tmp = this;
+    tmp->plus(v, comp, num_comp);
     return *this;
 }
 
@@ -457,7 +464,8 @@ FabSet::plus (Real       v,
               int        comp,
               int        num_comp)
 {
-    this->plus(v, subreg, comp, num_comp);
+    MultiFab* tmp = this;
+    tmp->plus(v, subreg, comp, num_comp);
     return *this;
 }
 
@@ -467,7 +475,8 @@ FabSet::mult (Real v,
               int  comp,
               int  num_comp)
 {
-    this->mult(v, comp, num_comp);
+    MultiFab* tmp = this;
+    tmp->mult(v, comp, num_comp);
     return *this;
 }
 
@@ -478,7 +487,8 @@ FabSet::mult (Real       v,
               int        comp,
               int        num_comp)
 {
-    this->mult(v, subreg, comp, num_comp);
+    MultiFab* tmp = this;
+    tmp->mult(v, subreg, comp, num_comp);
     return *this;
 }
 

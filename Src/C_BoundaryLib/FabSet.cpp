@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.27 1998-07-29 19:09:30 lijewski Exp $
+// $Id: FabSet.cpp,v 1.28 1999-02-24 01:03:47 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -77,13 +77,56 @@ FabSet::copyFrom (const FArrayBox& src,
     return *this;
 }
 
+const FabSet&
+FabSet::copyTo (FArrayBox& dest,
+                const Box& subbox,
+                int        src_comp,
+                int        dest_comp,
+                int        num_comp) const
+{
+    //
+    // Implemented in terms of MultiFab::copy(FArrayBox).
+    //
+    BoxArray tmp = boxarray;
+    boxarray = fabboxarray;
+    copy(dest, subbox, src_comp, dest_comp, num_comp);
+    boxarray = tmp;
+    return *this;
+}
+
 void
 FabSet::copyTo (MultiFab& dest) const
 {
+    //
+    // Implemented in terms of MultiFab::copy(MultiFab).
+    //
     BoxArray tmp = boxarray;
     boxarray = fabboxarray;
     dest.copy(*this);
     boxarray = tmp;
+}
+
+FabSet&
+FabSet::copyFrom (const FabSet& src,
+                  int           src_comp,
+                  int           dest_comp,
+                  int           num_comp)
+{
+    //
+    // Implemented in terms of FabSet::copyFrom(MultiFab).
+    //
+    // In order to do this I must be able to modify `src' ...
+    //
+    FabSet* src_alias = const_cast<FabSet*>(&src);
+
+    assert(!(src_alias == 0));
+
+    BoxArray tmp = src_alias->boxarray;
+    src_alias->boxarray = src_alias->fabboxarray;
+    copyFrom(src, 0, src_comp, dest_comp, nComp());
+    src_alias->boxarray = tmp;
+
+    return *this;
 }
 
 FabSet&
@@ -93,6 +136,9 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
+    assert((nComp()+src_comp) <= num_comp);
+    assert((src.nComp()+dest_comp) <= num_comp);
+
     static RunStats stats("fabset_copyfrom");
 
     stats.start();
@@ -137,7 +183,7 @@ FabSet::copyFrom (const MultiFab& src,
 
     for (int i = 0; i < fillBoxIdList.size(); i++)
     {
-        int fabindex = fillBoxIdList[i].FabIndex();
+        const int fabindex = fillBoxIdList[i].FabIndex();
 
         assert(DistributionMap()[fabindex] == MyProc);
         //
@@ -203,7 +249,7 @@ FabSet::plusFrom (const MultiFab& src,
     {
         const FillBoxId& fbidsrc = fillBoxIdList[i];
 
-        int fabidx = fbidsrc.FabIndex();
+        const int fabidx = fbidsrc.FabIndex();
 
         assert(DistributionMap()[fabidx] == MyProc);
 
@@ -340,7 +386,7 @@ FabSet::linComb (Real            a,
         b_fab.resize(fbid_mfb.box(), num_comp);
         mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
-        int fabindex = fbid_mfa.FabIndex();
+        const int fabindex = fbid_mfa.FabIndex();
 
         assert(DistributionMap()[fabindex] == MyProc);
 
