@@ -181,10 +181,10 @@ module multifab_module
   end interface
 
   interface saxpy
-     module procedure saxpy_3_c
-     module procedure saxpy_3
-     module procedure saxpy_4
-     module procedure saxpy_5
+     module procedure multifab_saxpy_3_c
+     module procedure multifab_saxpy_3
+     module procedure multifab_saxpy_4
+     module procedure multifab_saxpy_5
   end interface
 
   interface fill_boundary
@@ -2436,7 +2436,7 @@ contains
     !$OMP END PARALLEL DO
   end subroutine multifab_rescale
 
-  subroutine saxpy_5(a, b1, b, c1, c)
+  subroutine multifab_saxpy_5(a, b1, b, c1, c)
     real(dp_t), intent(in) :: b1, c1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b, c
@@ -2453,9 +2453,9 @@ contains
        ap = b1*bp + c1*cp
     end do
     !$OMP END PARALLEL DO
-  end subroutine saxpy_5
+  end subroutine multifab_saxpy_5
 
-  subroutine saxpy_4(a, b, c1, c)
+  subroutine multifab_saxpy_4(a, b, c1, c)
     real(dp_t), intent(in) :: c1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b,c
@@ -2472,9 +2472,9 @@ contains
        ap = bp + c1*cp
     end do
     !$OMP END PARALLEL DO
-  end subroutine saxpy_4
+  end subroutine multifab_saxpy_4
 
-  subroutine saxpy_3(a, b1, b, all)
+  subroutine multifab_saxpy_3(a, b1, b, all)
     real(dp_t), intent(in) :: b1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b
@@ -2505,9 +2505,9 @@ contains
        end do
        !$OMP END PARALLEL DO
     end if
-  end subroutine saxpy_3
+  end subroutine multifab_saxpy_3
 
-  subroutine saxpy_3_c(a, ia, b1, b, all)
+  subroutine multifab_saxpy_3_c(a, ia, b1, b, all)
     real(dp_t), intent(in) :: b1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b
@@ -2537,7 +2537,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     end if
-  end subroutine saxpy_3_c
+  end subroutine multifab_saxpy_3_c
 
   function multifab_norm_l1_c(mf, comp, nc, all) result(r)
     real(dp_t) :: r
@@ -2588,29 +2588,47 @@ contains
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_norm_l1
 
-  function multifab_norm_l2_c(mf, comp, nc, all) result(r)
+  function multifab_norm_l2_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
     integer, intent(in) :: comp
     logical, intent(in), optional :: all
     integer, intent(in), optional :: nc
     type(multifab), intent(in) :: mf
+    type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
     integer :: i
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-       end if
-       r1 = r1 + sum(mp**2)
-    end do
-    !$OMP END PARALLEL DO
+    if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_pbox(mask, i))
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_ibox(mask, i))
+          end if
+          r1 = r1 + sum(mp**2, mask=lp)
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+          end if
+          r1 = r1 + sum(mp**2)
+       end do
+       !$OMP END PARALLEL DO
+    end if
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
   end function multifab_norm_l2_c
