@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.44 1999-03-12 21:17:39 lijewski Exp $
+// $Id: Geometry.cpp,v 1.45 1999-03-27 01:01:16 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -16,6 +16,65 @@ RealBox Geometry::prob_domain;
 bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBList Geometry::m_FPBCache;
+
+Geometry::FPB::FPB ()
+    :
+    m_scomp(-1),
+    m_ncomp(-1),
+    m_ngrow(-1),
+    m_no_overlap(false),
+    m_do_corners(false) {}
+
+Geometry::FPB::FPB (const BoxArray& ba,
+                    const Box&      domain,
+                    int             scomp,
+                    int             ncomp,
+                    int             ngrow,
+                    bool            no_overlap,
+                    bool            do_corners)
+    :
+    m_ba(ba),
+    m_domain(domain),
+    m_scomp(scomp),
+    m_ncomp(ncomp),
+    m_ngrow(ngrow),
+    m_no_overlap(no_overlap),
+    m_do_corners(do_corners)
+{
+    assert(scomp >= 0);
+    assert(ncomp >  0);
+    assert(ngrow >= 0);
+    assert(domain.ok());
+}
+
+Geometry::FPB::FPB (const FPB& rhs)
+    :
+    m_cache(rhs.m_cache),
+    m_commdata(rhs.m_commdata),
+    m_pirm(rhs.m_pirm),
+    m_ba(rhs.m_ba),
+    m_domain(rhs.m_domain),
+    m_scomp(rhs.m_scomp),
+    m_ncomp(rhs.m_ncomp),
+    m_ngrow(rhs.m_ngrow),
+    m_no_overlap(rhs.m_no_overlap),
+    m_do_corners(rhs.m_do_corners)
+{}
+
+Geometry::FPB::~FPB () {}
+
+bool
+Geometry::FPB::operator== (const FPB& rhs) const
+{
+    return
+        m_scomp      == rhs.m_scomp      &&
+        m_ncomp      == rhs.m_ncomp      &&
+        m_ngrow      == rhs.m_ngrow      &&
+        m_no_overlap == rhs.m_no_overlap &&
+        m_do_corners == rhs.m_do_corners &&
+        m_domain     == rhs.m_domain     &&
+        m_ba         == rhs.m_ba;
+}
 
 ostream&
 operator<< (ostream&        os,
@@ -70,9 +129,9 @@ Geometry::FlushPIRMCache ()
     m_FPBCache.clear();
 }
 
-Geometry::PIRMMap&
-Geometry::buildPIRMMap (MultiFab&  mf,
-                        const FPB& fpb) const
+Geometry::FPB&
+Geometry::buildFPB (MultiFab&  mf,
+                    const FPB& fpb) const
 {
     assert(isAnyPeriodic());
 
@@ -80,9 +139,14 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
     //cout << "*** FPB Cache Size = " << m_FPBCache.size() << endl;
 
-    PIRMMap& pirm = m_FPBCache.front().m_pirm;
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    const DistributionMapping& DMap   = mf.DistributionMap();
+    Array<int>&                cache  = m_FPBCache.front().m_cache;
+    PIRMMap&                   pirm   = m_FPBCache.front().m_pirm;
 
     Array<IntVect> pshifts(27);
+
+    cache.resize(ParallelDescriptor::NProcs(),0);
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -146,41 +210,46 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                     Box shftbox = src + pshifts[i];
                     Box src_box = dest & shftbox;
                     Box dst_box = src_box - pshifts[i];
+
                     pirm.push_back(PIRec(mfi.index(),j,dst_box,src_box));
+
+                    if (DMap[j] != MyProc)
+                        //
+                        // DMap[j] will want something from us.
+                        //
+                        cache[DMap[j]] += 1;
                 }
             }
         }
+
+        assert(cache[DMap[mfi.index()]] == 0);
     }
 
-    return pirm;
+    return m_FPBCache.front();
 }
 
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
-                                int       src_comp,
-                                int       num_comp,
-                                bool      no_overlap,
-                                bool      do_corners) const
+                                int       scomp,
+                                int       ncomp,
+                                bool      noovlp,
+                                bool      corners) const
 {
-    if (!isAnyPeriodic())
-        return;
+    if (!isAnyPeriodic()) return;
 
     static RunStats stats("fill_periodic_bndry");
 
     stats.start();
 
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,
-                                                 num_comp,
-                                                 no_overlap,
-                                                 do_corners);
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(scomp,ncomp,noovlp,corners);
 
-    const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_overlap,do_corners);
-
-    PIRMMap& pirm = getPIRMMap(mf,fpb);
+    FPB TheFPB(mf.boxArray(),Domain(),scomp,ncomp,mf.nGrow(),noovlp,corners);
 
     const MultiFabId mfid = 0;
+    FPB&             fpb  = getFPB(mf,TheFPB);
+    PIRMMap&         pirm = fpb.m_pirm;
     //
-    // Add boxes we need to collect, if we haven't already done so.
+    // Add boxes we need to collect if we haven't already done so.
     //
     if (mfcd.nFabComTags() == 0)
     {
@@ -190,24 +259,22 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                        pirm[i].srcBox,
                                        0,
                                        pirm[i].srcId,
-                                       src_comp,
-                                       src_comp,
-                                       num_comp,
-                                       !do_corners);
+                                       scomp,
+                                       scomp,
+                                       ncomp,
+                                       !corners);
         }
     }
 
-    mfcd.CollectData();
-
-    const int MyProc = ParallelDescriptor::MyProc();
+    mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
 
     for (int i = 0; i < pirm.size(); i++)
     {
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
         assert(pirm[i].srcBox.sameSize(pirm[i].dstBox));
-        assert(mf.DistributionMap()[pirm[i].mfid] == MyProc);
+        assert(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
 
-        mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
+        mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
     }
 
     stats.end();

@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.26 1998-12-11 02:47:14 lijewski Exp $
+// $Id: Geometry.H,v 1.27 1999-03-27 01:01:16 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -215,50 +215,37 @@ public:
 
 protected:
     //
-    // Used in caching PIRMMaps.
+    // Used in caching PIRMMaps && CommData.
     //
     struct FPB
     {
-        FPB ()
-            :
-            m_ngrow(-1),
-            m_no_overlap(false),
-            m_do_corners(false) {}
+        FPB ();
 
         FPB (const BoxArray& ba,
              const Box&      domain,
+             int             scomp,
+             int             ncomp,
              int             ngrow,
              bool            no_overlap,
-             bool            do_corners)
-            :
-            m_ba(ba),
-            m_domain(domain),
-            m_ngrow(ngrow),
-            m_no_overlap(no_overlap),
-            m_do_corners(do_corners)
-        {
-            assert(ngrow >= 0);
-            assert(domain.ok());
-        }
+             bool            do_corners);
 
-        ~FPB () {}
+        FPB (const FPB& rhs);
 
-        bool operator== (const FPB& rhs) const
-        {
-            return
-                m_ngrow == rhs.m_ngrow &&
-                m_no_overlap == rhs.m_no_overlap &&
-                m_do_corners == rhs.m_do_corners &&
-                m_domain == rhs.m_domain &&
-                m_ba == rhs.m_ba;
-        }
+        ~FPB ();
 
-        PIRMMap  m_pirm;
-        BoxArray m_ba;
-        Box      m_domain;
-        int      m_ngrow;
-        bool     m_no_overlap;
-        bool     m_do_corners;
+        bool operator== (const FPB& rhs) const;
+        bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
+
+        Array<int>      m_cache;    // Snds cached for CollectData().
+        Array<CommData> m_commdata; // Yet another cache for CollectData().
+        PIRMMap         m_pirm;
+        BoxArray        m_ba;
+        Box             m_domain;
+        int             m_scomp;
+        int             m_ncomp;
+        int             m_ngrow;
+        bool            m_no_overlap;
+        bool            m_do_corners;
     };
     //
     // A useful typedef.
@@ -271,11 +258,11 @@ protected:
     //
     // Helper functions for FillPeriodicBoundary(). 
     //
-    PIRMMap& getPIRMMap (MultiFab&  mf,
-                         const FPB& fpb) const;
+    FPB& getFPB (MultiFab&  mf,
+                 const FPB& fpb) const;
 
-    PIRMMap& buildPIRMMap (MultiFab&  mf,
-                           const FPB& fpb) const;
+    FPB& buildFPB (MultiFab&  mf,
+                   const FPB& fpb) const;
     //
     // Static data.
     //
@@ -394,9 +381,9 @@ Geometry::PIRMCacheSize ()
 }
 
 inline
-Geometry::PIRMMap&
-Geometry::getPIRMMap (MultiFab&  mf,
-                      const FPB& fpb) const
+Geometry::FPB&
+Geometry::getFPB (MultiFab&  mf,
+                  const FPB& fpb) const
 {
     assert(isAnyPeriodic());
     //
@@ -410,11 +397,11 @@ Geometry::getPIRMMap (MultiFab&  mf,
     {
         if (*it == fpb)
         {
-            return (*it).m_pirm;
+            return *it;
         }
     }
 
-    return buildPIRMMap(mf,fpb);
+    return buildFPB(mf,fpb);
 }
 
 #endif /*_GEOMETRY_H_*/
