@@ -10,7 +10,7 @@
 #endif
 
 bool HG_is_debugging = false;
-MPI_Comm HG::mpi_comm;
+MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
 int HG::mpi_tag_ub;
 
 void HG::MPI_init()
@@ -18,15 +18,16 @@ void HG::MPI_init()
     static int first = 0;
     if ( first == 0 )
     {
+	first = 1;
 	int flag;
-	int res = MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_tag_ub, &flag);
-	if ( res != 0  )
+	int res;
+	// res = MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_tag_ub, &flag);
+	// if ( res != 0  )
+	//    ParallelDescriptor::Abort( res );
+	res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+	if ( res != 0 )
 	    ParallelDescriptor::Abort( res );
     }
-    int res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
-    // HG_DEBUG_OUT("<<<< task_list::task_list(): comm_ = " << MPI_COMM_WORLD << " comm = " << mpi_comm << endl);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
 }
 
 void HG::MPI_finish()
