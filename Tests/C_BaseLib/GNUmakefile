@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.11 2004-03-04 18:09:01 car Exp $
+# $Id: GNUmakefile,v 1.12 2004-04-27 17:00:44 car Exp $
 #
 
 #
@@ -11,6 +11,8 @@ DIM          = 2
 PRECISION    = DOUBLE
 COMP = PathScale
 FCOMP = PathScale
+COMP  = Intel
+FCOMP = Intel
 DEBUG        = FALSE
 DEBUG        = TRUE
 USE_MPI      = TRUE
@@ -29,7 +31,7 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 # that simply needs to link against BoxLib.
 #
 #_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-#_progs += tProfiler tThread tWorkQueue
+#_progs += tProfiler tWorkQueue
 #_progs += tRan
 #_progs  := tProfiler
 _progs  := tread
