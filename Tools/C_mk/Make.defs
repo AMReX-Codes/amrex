@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.24 1999-05-24 18:11:45 car Exp $
+# Make.defs $Id: Make.defs,v 1.25 1999-06-23 17:59:40 car Exp $
 #
 
 #
@@ -165,18 +165,31 @@ ifeq ($(COMP),KCC)
 		echo 'int i;' > _X.cpp;				\
 		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep KAI;	\
 		/bin/rm -f _X.cpp _X.o)
+  KCC_MAJOR_VERSION=3
 ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
     KCC_VERSION=3.1
+    KCC_MINOR_VERSION=1
     CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.2, $(__kcc_version)), KAI C++ 3.2)
     KCC_VERSION=3.2
+    KCC_MINOR_VERSION=2
     CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.3, $(__kcc_version)), KAI C++ 3.3)
     KCC_VERSION=3.3
+    KCC_MINOR_VERSION=3
     CLOSELIB := TRUE
+    CXXLIBFLAGS = --one_per
 endif
+ifeq ($(findstring KAI C++ 3.4, $(__kcc_version)), KAI C++ 3.4)
+    KCC_VERSION=3.4
+    KCC_MINOR_VERSION=4
+    CLOSELIB := TRUE
+    CXXLIBFLAGS = --one_per
+endif
+  DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
+  DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
 endif
 
 include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
