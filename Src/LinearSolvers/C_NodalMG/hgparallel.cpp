@@ -61,7 +61,7 @@ void HG::MPI_finish () {}
 task::task (task_list& tl_) 
     :
     m_task_list(tl_),
-    m_sno(tl_.get_then_advance()),
+    m_sno(1),
     m_cnt(1),
     m_finished(false),
     m_started(false)
@@ -84,6 +84,12 @@ bool
 task::work_to_do () const
 {
     return true;
+}
+
+bool
+task::need_to_communicate (int& /*with*/) const
+{
+    return false;
 }
 
 void
@@ -157,15 +163,11 @@ task::ready ()
 
 task_list::task_list ()
     :
-    seq_no(1),
-    seq_delta(1),
+    seq_no(ParallelDescriptor::NProcs(),1),
     verbose(HG::pverbose)
 {}
 
-task_list::~task_list ()
-{
-    seq_no = 1;
-}
+task_list::~task_list () {}
 
 task::task_proxy task_list::add_task (task* t)
 {
@@ -202,6 +204,21 @@ task_list::execute ()
     if (HG_is_debugging)
         MPI_Barrier(HG::mpi_comm);
 #endif
+
+    //
+    // Assign message tag IDs ...
+    //
+    list<task::task_proxy>::iterator tli = tasks.begin();
+
+    for ( ; tli != tasks.end(); ++tli)
+    {
+        int with = -1;
+
+        if ((*tli)->need_to_communicate(with))
+        {
+            (*tli)->set_sequence_number(get_then_advance(with));
+        }
+    }
 
     if (verbose)
     {
@@ -257,7 +274,8 @@ restart:
     }
     BL_ASSERT(live_tasks == 0);
 
-    seq_no = 1;
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        seq_no[i] = 1;
 }
 
             // r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
@@ -419,6 +437,30 @@ task_copy::work_to_do () const
 }
 
 bool
+task_copy::need_to_communicate (int& with) const
+{
+    bool result = false;
+
+#ifdef BL_USE_MPI
+    if (!m_local)
+    {
+        if (is_local(m_mf,m_dgrid))
+        {
+            with   = processor_number(m_smf,m_sgrid);
+            result = true;
+        }
+        else if (is_local(m_smf,m_sgrid)) 
+        {
+            with   = processor_number(m_mf,m_dgrid);
+            result = true;
+        }
+    }
+#endif
+
+    return result;
+}
+
+bool
 task_copy::startup ()
 {
     m_started = true;
@@ -568,6 +610,30 @@ bool
 task_copy_local::work_to_do () const
 {
     return (m_fab != 0 || is_local(m_smf,m_sgrid)) && !m_done;
+}
+
+bool
+task_copy_local::need_to_communicate (int& with) const
+{
+    bool result = false;
+
+#ifdef BL_USE_MPI
+    if (!m_local)
+    {
+        if (m_fab != 0)
+        {
+            with   = processor_number(m_smf,m_sgrid);
+            result = true;
+        }
+        else if (is_local(m_smf, m_sgrid)) 
+        {
+            with   = m_target_proc_id;
+            result = true;
+        }
+    }
+#endif
+
+    return result;
 }
 
 bool

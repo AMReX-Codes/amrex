@@ -80,6 +80,8 @@ public:
     virtual bool ready ();
     virtual bool startup ();
     virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
+
 private:
     const amr_boundary_class* m_bdy;
     FArrayBox*                m_fab;
@@ -138,6 +140,30 @@ bool
 task_bdy_fill::work_to_do () const
 {
     return !m_local && (m_fab != 0 || (m_fab == 0 && is_local(m_smf,m_sgrid)));
+}
+
+bool
+task_bdy_fill::need_to_communicate (int& with) const
+{
+    bool result = false;
+
+#ifdef BL_USE_MPI
+    if (!m_local)
+    {
+        if (m_fab != 0)
+        {
+            with   = processor_number(m_smf,m_sgrid);
+            result = true;
+        }
+        else if (m_fab == 0 && is_local(m_smf, m_sgrid)) 
+        {
+            with   = m_target_proc_id;
+            result = true;
+        }
+    }
+#endif
+
+    return result;
 }
 
 bool
@@ -755,6 +781,8 @@ public:
     virtual void hint () const;
     virtual bool startup ();
     virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
+
 private:
     //
     // The data.
@@ -810,6 +838,30 @@ bool
 task_restric_fill::work_to_do () const
 {
     return !m_local && (is_local(m_d,m_dgrid) || is_local(m_r,m_rgrid));
+}
+
+bool
+task_restric_fill::need_to_communicate (int& with) const
+{
+    bool result = false;
+
+#ifdef BL_USE_MPI
+    if (!m_local)
+    {
+        if (is_local(m_d, m_dgrid))
+        {
+            with   = processor_number(m_r,m_rgrid);
+            result = true;
+        }
+        else if (is_local(m_r, m_rgrid))
+        {
+            with   = processor_number(m_d,m_dgrid);
+            result = true;
+        }
+    }
+#endif
+
+    return result;
 }
 
 bool

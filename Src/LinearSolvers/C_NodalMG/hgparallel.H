@@ -139,11 +139,13 @@ public:
     bool is_started () const { return m_started; }
     virtual bool depends_on_q (const task* t1) const;
     virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
     void depend_on (const task_proxy& t1);
     bool depend_ready ();
     virtual void hint () const;
     void print_dependencies (ostream& os) const;
     sequence_number get_sequence_number () const { return m_sno; }
+    void set_sequence_number (sequence_number sno) { m_sno = sno; }
 
 protected:
     friend class task_proxy;
@@ -152,12 +154,12 @@ protected:
     //
     // The data.
     //
-    task_list&            m_task_list;
-    list<task_proxy>      dependencies;
-    const sequence_number m_sno;
-    unsigned int          m_cnt;
-    bool                  m_finished;
-    bool                  m_started;
+    task_list&       m_task_list;
+    list<task_proxy> dependencies;
+    sequence_number  m_sno;
+    unsigned int     m_cnt;
+    bool             m_finished;
+    bool             m_started;
 
 private:
     //
@@ -187,22 +189,22 @@ public:
     bool empty () const { return tasks.empty(); }
     int size () const { return tasks.size(); }
 
-    task::sequence_number get_then_advance ()
+    task::sequence_number get_then_advance (int proc)
     {
-        task::sequence_number tmp = seq_no;
-        seq_no += seq_delta;
-        return tmp;
+        task::sequence_number sno = seq_no[proc];
+        seq_no[proc] = sno + 1;
+        return sno;
     }
+
     void print_dependencies (ostream& os) const;
 
 private:
     //
     // The data.
     //
-    list<task::task_proxy> tasks;
-    task::sequence_number  seq_no;
-    int                    seq_delta;
-    bool                   verbose;
+    list<task::task_proxy>       tasks;
+    Array<task::sequence_number> seq_no;
+    bool                         verbose;
     //
     // Some class-wide static data.
     //
@@ -242,6 +244,7 @@ public:
     virtual void hint () const;
     virtual bool startup ();
     virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
 
 protected:
     //
@@ -282,6 +285,8 @@ public:
     virtual bool startup ();
     virtual bool depends_on_q (const task* t1) const;
     virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
+
 private:
     //
     // The data.
