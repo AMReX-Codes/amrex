@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.4 1998-05-04 21:25:01 lijewski Exp $
+// $Id: RunStats.H,v 1.5 1998-07-24 01:25:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,15 +49,15 @@ private:
         level(0),
         is_on(0)
     {}
-    int operator== (const RunStatsData &s1) const
+    bool operator== (const RunStatsData &s1) const
     {
         return (name == s1.name) && (level == s1.level);
     }
-    int operator!= (const RunStatsData &s1) const
+    bool operator!= (const RunStatsData &s1) const
     {
         return (name != s1.name) || (level != s1.level);
     }
-    RunStatsData (const char* _name, int _level) 
+    RunStatsData (const aString& _name, int _level) 
         :
         name(_name),
         run_time(0.0),
@@ -82,7 +82,7 @@ public:
     //
     //@ManDoc: The constructor.
     //
-    RunStats (const char* name, int level = 0);
+    RunStats (const aString& name, int level = 0);
     //
     //@ManDoc: The destructor.
     //
@@ -111,14 +111,7 @@ public:
     //@ManDoc: Return number of cells advanced at given level.
     //
     static long getCells (int level);
-    //
-    //@ManDoc: Turn on recording of this stat.
-    //
-    static void turnOn (const char * s, int level = -1);
-    //
-    //@ManDoc: Turn off recording of this stat.
-    //
-    static void turnOff (const char * s, int level = -1);
+
     //
     //@ManDoc: Record I/O bytes written to disk.
     //
@@ -156,13 +149,21 @@ public:
                                long&                 tot_cells);
 private:
     //
+    // Turn on recording of this stat.
+    //
+    static void turnOn (const aString& s, int level = -1);
+    //
+    // Turn off recording of this stat.
+    //
+    static void turnOff (const aString& s, int level = -1);
+    //
     // Init from ParmParse with "RunStats" prefix.
     //
     static void init ();
     //
     // Do we have an entry by the specified name?
     //
-    static RunStatsData* find (const char* _name, int _level);
+    static RunStatsData* find (const aString& _name, int _level);
 
     void resize (int level);
 
@@ -210,16 +211,16 @@ RunStats::getCells (int lev)
 
 inline
 void
-RunStats::turnOn (const char* s,
-                  int         _level)
+RunStats::turnOn (const aString& s,
+                  int            _level)
 {
     RunStats::find(s, _level)->is_on = true;
 }
 
 inline
 void
-RunStats::turnOff (const char* s,
-                   int         _level)
+RunStats::turnOff (const aString& s,
+                   int            _level)
 {
     if (!(_level == -1))
     {

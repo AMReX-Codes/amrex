@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.5 1998-04-08 21:04:30 lijewski Exp $
+// $Id: RunStats.cpp,v 1.6 1998-07-24 01:25:38 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -43,26 +43,29 @@ RunStats::init ()
         for (int i = 0, n = pp.countval("statvar"); i < n; i++)
         {
             pp.get("statvar", nm, i);
-            turnOn(nm.c_str());
+            turnOn(nm);
         }
     }
 }
 
-RunStatsData *
-RunStats::find (const char* _name,
-                int         _level)
+RunStatsData*
+RunStats::find (const aString& _name,
+                int            _level)
 {
     for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
+    {
         if (it().level == _level && it().name == _name)
+        {
             return &RunStats::TheStats[it];
-
+        }
+    }
     RunStats::TheStats.append(RunStatsData(_name, _level));
 
     return &RunStats::TheStats.lastElement();
 }
 
-RunStats::RunStats (const char* _name,
-                    int         _level)
+RunStats::RunStats (const aString& _name,
+                    int            _level)
     :
     name(_name),
     level(_level)
@@ -350,7 +353,7 @@ RunStats::report_values (const Array<aString>& stat_names,
 
     for (int i = 0; i < NStats ; i++)
     {
-        RunStatsData* e = RunStats::find(stat_names[i].c_str(), -1);
+        RunStatsData* e = RunStats::find(stat_names[i], -1);
         assert(e != 0);
         stat_time[i]  = e->run_time;
         stat_wtime[i] = e->run_wtime;
