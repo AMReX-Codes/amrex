@@ -2117,14 +2117,14 @@ contains
             ind(i,j) = inode
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
               aa(iedge) = sp(i,j,1)                           ! SW
-              iedge = iedge + 1
               if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
               if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
               aa(iedge) = sp(i,j,2)                           ! S
-              iedge = iedge + 1
               if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
               aa(iedge) = sp(i,j,4)                           ! W
