@@ -31,8 +31,6 @@ public:
 class task_fab : public task
 {
 public:
-    Real* dataPtr();
-    const Real* dataPtr() const;
     virtual const FArrayBox& fab() const = 0;
 };
 
@@ -63,8 +61,6 @@ public:
 private:
     list<task*> tasks;
 };
-
-
 
 class task_fab_get : public task_fab
 {
