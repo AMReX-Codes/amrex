@@ -1,26 +1,8 @@
 //
-// $Id: BoxDomain.cpp,v 1.12 2001-07-23 22:30:23 car Exp $
+// $Id: BoxDomain.cpp,v 1.13 2001-07-23 23:07:36 lijewski Exp $
 //
 
 #include <BoxDomain.H>
-
-bool
-BoxDomain::contains (const IntVect& v) const
-{
-    return BoxList::contains(v);
-}
-
-bool
-BoxDomain::contains (const Box& b) const
-{
-    return BoxList::contains(b);
-}
-
-bool
-BoxDomain::contains (const BoxList& bl) const
-{
-    return BoxList::contains(bl);
-}
 
 BoxDomain&
 BoxDomain::intersect (const Box& b)
@@ -134,11 +116,13 @@ BoxDomain::operator!= (const BoxDomain& rhs) const
 }
 
 BoxDomain::BoxDomain ()
-    : BoxList(IndexType::TheCellType())
+    :
+    BoxList(IndexType::TheCellType())
 {}
 
 BoxDomain::BoxDomain (IndexType _ctype)
-    : BoxList(_ctype)
+    :
+    BoxList(_ctype)
 {}
 
 void
@@ -162,10 +146,12 @@ BoxDomain::add (const Box& b)
                 //
                 BoxList tmpbl(BoxLib::boxDiff(*ci, *bli));
                 tmp.splice(tmp.end(), tmpbl.listBox());
-                ci = check.erase(ci);
+                check.erase(ci++);
             }
             else
+            {
                 ++ci;
+            }
         }
         check.splice(check.end(), tmp);
     }
