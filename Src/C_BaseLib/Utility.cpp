@@ -1,6 +1,6 @@
 
 //
-// $Id: Utility.cpp,v 1.41 2000-10-02 20:52:39 lijewski Exp $
+// $Id: Utility.cpp,v 1.42 2000-10-03 20:26:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -44,11 +44,12 @@ const char* path_sep_str = "/";
 #include <sys/types.h>
 #include <sys/times.h>
 #ifdef BL_AIX
-#define _XOPEN_SOURCE_EXTENDED 1
+#undef _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED
 #endif
 #include <sys/time.h>
 #ifdef BL_AIX
-#define _XOPEN_SOURCE_EXTENDED 0
+#undef _XOPEN_SOURCE_EXTENDED
 #endif
 #include <sys/param.h>
 #include <unistd.h>
