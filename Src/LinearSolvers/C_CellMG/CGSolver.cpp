@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.11 1999-05-10 18:54:16 car Exp $
+// $Id: CGSolver.cpp,v 1.12 1999-08-06 18:20:16 propp Exp $
 //
 
 // Conjugate gradient support
@@ -23,7 +23,6 @@ CGSolver::initialize ()
     ParmParse pp("cg");
 
     pp.query("maxiter", def_maxiter);
-    pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     pp.query("unstable_criterion",def_unstable_criterion);
 
