@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.47 2002-03-26 21:50:49 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.48 2002-03-26 22:15:43 car Exp $
 #
 
 #
@@ -351,26 +351,30 @@ F77SourceFiles	=
 F90SourceFiles	=
 f77SourceFiles	=
 
-objForLibs	=	$(CLIB_sources:%.cpp=%.o) \
-			$(FLIB_sources:%.F=%.o) \
-			$(cLIB_sources:%.c=%.o) \
-			$(fLIB_sources:%.f=%.o) \
+objForLibs	=	$(CLIB_sources:%.cpp=%.o)			\
+			$(FLIB_sources:%.F=%.o)				\
+			$(F90LIB_sources:%.F90=%.o)			\
+			$(cLIB_sources:%.c=%.o)				\
+			$(fLIB_sources:%.f=%.o)				\
+			$(f90LIB_sources:%.f90=%.o)			\
 
-objStandalone	= 	$(CEXE_sources:%.cpp=%.o) \
-			$(FEXE_sources:%.F=%.o) \
-			$(cEXE_sources:%.c=%.o) \
-			$(fEXE_sources:%.f=%.o)
+objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
+			$(FEXE_sources:%.F=%.o)				\
+			$(F90EXE_sources:%.F90=%.o)			\
+			$(cEXE_sources:%.c=%.o)				\
+			$(fEXE_sources:%.f=%.o)				\
+			$(f90EXE_sources:%.f90=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
-instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers)
+instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers) $(f90LIB_headers)
 
 INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL) $(GNU_STD_INCL)
 LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
 
-DEFINES		+= 	-DBL_SPACEDIM=$(DIM)      \
-		  	-DBL_FORT_USE_$(FORTLINK) \
-		  	-DBL_$(MACHINE)           \
+DEFINES		+= 	-DBL_SPACEDIM=$(DIM)				\
+		  	-DBL_FORT_USE_$(FORTLINK)			\
+		  	-DBL_$(MACHINE)					\
 		  	$(XTRADEFS)
 
 ifeq ($(PRECISION),FLOAT)
@@ -391,7 +395,7 @@ LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
-optionsLib	= $(addprefix lib, \
+optionsLib	= $(addprefix lib,					\
 			$(addsuffix $(optionsSuffix).a, $(LBASE)))
 
 instIncludeDir	= $(INSTALL_PREFIX)/include
@@ -414,15 +418,19 @@ instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
 #
 # For source code mainipulation
 #
-CSRCALL		= $(CEXE_sources) $(CEXE_headers) \
+CSRCALL		= $(CEXE_sources) $(CEXE_headers)			\
 		  $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
-FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) \
+FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) 	\
                   $(FLIB_headers)
-cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) \
+F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers) $(F90LIB_sources) \
+                  $(F90LIB_headers)
+cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) 	\
                   $(cLIB_headers)
-fSRCALL		= $(fEXE_sources) $(fEXE_headers) $(fLIB_sources) \
+fSRCALL		= $(fEXE_sources) $(fEXE_headers) $(fLIB_sources) 	\
                   $(fLIB_headers)
-allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL) $(fSRCALL)
+f90SRCALL	= $(f90EXE_sources) $(f90EXE_headers) $(f90LIB_sources) \
+                  $(f90LIB_headers)
+allSources	= $(CSRCALL) $(FSRCALL) $(F90SRCALL) $(cSRCALL) $(fSRCALL) $(f90SRCALL)
 
 
 ifndef CLOSELIB

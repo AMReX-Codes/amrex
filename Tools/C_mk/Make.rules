@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.18 2001-09-19 17:04:43 car Exp $
+# $Id: Make.rules,v 1.19 2002-03-26 22:15:43 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -108,10 +108,8 @@ $(optionsLib)(%.o): %.F
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
-	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $< $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f
@@ -137,9 +135,7 @@ $(objEXETempDir)/%.o: %.F
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(fC) $(FFLAGS) -c $(FEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
@@ -227,25 +223,22 @@ endif
 ifdef FLIB_sources
 -include $(FLIB_sources:%.F=$(depTempDir)/%.d)
 endif
+ifdef F90LIB_sources
+-include $(F90LIB_sources:%.F90=$(depTempDir)/%.d)
+endif
 ifdef cLIB_sources
 -include $(cLIB_sources:%.c=$(depTempDir)/%.d)
 endif
-ifndef WE_HATE_FORTRAN_CPP
-ifdef fLIB_sources
--include $(fLIB_sources:%.f=$(depTempDir)/%.d)
-endif
-endif
+#
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
 endif
 ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
 endif
+ifdef F90EXE_sources
+-include $(F90EXE_sources:%.F90=$(depEXETempDir)/%.d)
+endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
-endif
-ifndef WE_HATE_FORTRAN_CPP
-ifdef fEXE_sources
--include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
-endif
 endif
