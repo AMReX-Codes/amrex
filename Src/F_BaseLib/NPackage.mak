@@ -117,11 +117,11 @@ cobjects = $(cobjects) $(obj_dir)\f2kgetcl.obj
 
 {$(boxlib_dir)}.f{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
-	$(FOR) /c $(FFLAGS) $< /object:$(obj_dir)
+	$(FOR) /c $(FFLAGS) $< $(FOB)
 
 {$(boxlib_dir)}.f90{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
-	$(FOR) /c $(FFLAGS) $< /object:$(obj_dir)
+	$(FOR) /c $(FFLAGS) $< $(FOB)
 
 {$(boxlib_dir)}.c{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"

@@ -2,9 +2,17 @@
 #NDEBUG=T
 #OMP=T
 #ALL=T
+COMP=Compaq
 
+
+!IF "$(COMP)" == "Compaq"
 FOR=f90
 F77=f77
+!ENDIF
+!IF "$(COMP)" == "Salford"
+FOR=ftn95
+F77=ftn95
+!ENDIF
 
 sources = $(f90sources) $(fsources) $(csources)
 objects = $(f90objects) $(cobjects) $(fobjects)
@@ -21,6 +29,12 @@ mpi_ldfl = /LIBPATH:"$(mpi_home)\LIB" ws2_32.lib mpichd.lib
 
 tdir    = t
 
+!IF "$(COMP)" == "Salford"
+FOB=/b
+!ENDIF
+
+!IF "$(COMP)" == "Compaq"
+FOB=/object:$(obj_dir)\
 !IFDEF NDEBUG
 mdir    = $(tdir)\obj
 obj_dir = $(tdir)\obj
@@ -39,6 +53,7 @@ FFLAGS  = $(FFLAGS) /warn:unused
 FFLAGS  = $(FFLAGS) /warn:truncated_source
 FFLAGS  = $(FFLAGS) /warn:uncalled
 FFLAGS  = $(FFLAGS) /check:nounderflow
+!ENDIF
 !ENDIF
 
 LDFLAGS = /link $(mpi_ldfl) /stack:8000000
