@@ -334,6 +334,7 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 #endif
 }
 
+#if BL_SPACEDIM == 3
 // local function used only by fill_internal_borders:
 
 static inline void node_dirs(int dir[2], const IntVect& typ)
@@ -352,6 +353,7 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 	dir[1] = 2;
     }
 }
+#endif
 
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
@@ -368,6 +370,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 {
     assert(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
+    assert( w == 1 || w == 0 );
+
     if ( type(r) == IntVect::TheNodeVector() ) 
     {
 #if (BL_SPACEDIM == 3)
@@ -501,8 +505,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 {
     assert(r.nComp() == 1);
-    
     assert(type(r) == IntVect::TheNodeVector());
+
     // PARALLEL
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {

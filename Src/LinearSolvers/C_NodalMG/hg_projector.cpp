@@ -111,6 +111,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     clear();
 }
 
+#if 0
 void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
 					    PArray<MultiFab>& p,
 					    PArray<MultiFab>& Coarse_source,
@@ -141,6 +142,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     form_solution_vector(u, Sigma);
     clear();
 }
+#endif
 
 void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 					      PArray<MultiFab>& p,
@@ -423,6 +425,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
     }
 }
 
+#if 0
 // Obsolete:
 void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 { 
@@ -450,6 +453,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 	}
     }
 }
+#endif
 
 void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 { 
@@ -492,7 +496,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    Scp = &S[lev-1][jgrid];
 	    cbox = Scp->box();
 	}
-	FArrayBox& Sc = *Scp;
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
 	Real* sptr = source[lev][igrid].dataPtr();
@@ -502,13 +505,13 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	FORT_HGFAVG(sptr, DIMLIST(sbox),
-		    Sc.dataPtr(), DIMLIST(cbox),
+		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
 		    D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 		    &hx, &isRZ, &imax);
 #else
 	FORT_HGFAVG(sptr, DIMLIST(sbox),
-		    Sc.dataPtr(), DIMLIST(cbox),
+		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
 		    D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 #endif
@@ -554,14 +557,13 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    Scp = &S[lev-1][jgrid];
 	    cbox = Scp->box();
 	}
-	FArrayBox& Sc = *Scp;
 	FArrayBox Sf(fbox);
 	fill_patch(Sf, Sf.box(), S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	FORT_HGEAVG(sptr, DIMLIST(sbox),
-		    Sc.dataPtr(), DIMLIST(cbox),
+		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf.dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
 	if (jgrid < 0) 
@@ -613,7 +615,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    Scp = &S[lev-1][jgrid];
 	    cbox = Scp->box();
 	}
-	FArrayBox& Sc = *Scp;
 	FArrayBox Sf(fbox);
 	fill_patch(Sf, Sf.box(), S[lev], lev_interface[mglev], boundary.scalar(), 0, icor);
 	Box creg = lev_interface[mglev].box(0, icor);
@@ -624,13 +625,13 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
-		    Sc.dataPtr(), DIMLIST(cbox),
+		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf.dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(),
 		    &hx, &isRZ, &imax);
 #else
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
-		    Sc.dataPtr(), DIMLIST(cbox),
+		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf.dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
 #endif
@@ -683,7 +684,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else
 	    cbox.growHi(idim, rat[idim]);
 	cbox.convert(IntVect::TheCellVector()).coarsen(rat);
-	FArrayBox *ucp, *vcp;
+	FArrayBox* ucp;
+	FArrayBox* vcp;
 	const int jgrid = find_patch(cbox, u[0][lev-1]);
 	if (jgrid < 0) 
 	{
@@ -698,8 +700,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    vcp = &u[1][lev-1][jgrid];
 	    cbox = ucp->box();
 	}
-	FArrayBox& uc = *ucp;
-	FArrayBox& vc = *vcp;
 	Real* u0ptr = u[0][lev][igrid].dataPtr();
 	Real* u1ptr = u[1][lev][igrid].dataPtr();
 #if (BL_SPACEDIM == 3)
@@ -713,7 +713,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    wcp = &u[2][lev-1][jgrid];
 	}
-	FArrayBox& wc = *wcp;
 	Real* u2ptr = u[2][lev][igrid].dataPtr();
 #endif
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
@@ -722,7 +721,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (m_hg_terrain)
 	{
 	    FORT_HGFDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
 				D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	}
@@ -732,13 +731,13 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 			&isRZ, &imax);
 #else
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 #endif
@@ -798,9 +797,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    wcp = &u[2][lev-1][jgrid];
 	    cbox = ucp->box();
 	}
-	FArrayBox& uc = *ucp;
-	FArrayBox& vc = *vcp;
-	FArrayBox& wc = *wcp;
 	FArrayBox uf(fbox), vf(fbox), wf(fbox);
 	fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 1, iedge);
 	fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 1, iedge);
@@ -811,7 +807,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (m_hg_terrain)
 	{
 	    FORT_HGEDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 				DIMLIST(creg),
 				D_DECL(rat[0], rat[1], rat[2]),
@@ -820,7 +816,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else
 	{
 	    FORT_HGEDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
@@ -880,8 +876,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    vcp = &u[1][lev-1][jgrid];
 	    cbox = ucp->box();
 	}
-	FArrayBox& uc = *ucp;
-	FArrayBox& vc = *vcp;
 	FArrayBox uf(fbox), vf(fbox);
 	fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
 	fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 0, icor);
@@ -896,7 +890,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    wcp = &u[2][lev-1][jgrid];
 	}
-	FArrayBox& wc = *wcp;
 	FArrayBox  wf(fbox);
 	fill_patch(wf, wf.box(), u[2][lev], lev_interface[mglev], boundary.velocity(2), 0, icor);
 #  endif
@@ -906,14 +899,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (m_hg_terrain)
 	{
 	    FORT_HGCDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox), DIMLIST(creg),
 				D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
 	}
 	else
 	{
 	    FORT_HGCDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox), DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
 	}
@@ -983,8 +976,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		vcp = &u[1][lev-1][jgrid];
 		cbox = ucp->box();
 	    }
-	    FArrayBox& uc = *ucp;
-	    FArrayBox& vc = *vcp;
 	    fbox.convert(IntVect::TheCellVector());
 	    FArrayBox uf(fbox), vf(fbox);
 	    fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
@@ -995,7 +986,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg), D_DECL(&hx, &hy, &hz),
 			D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
@@ -1037,8 +1028,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		vcp = &u[1][lev-1][jgrid];
 		cbox = ucp->box();
 	    }
-	    FArrayBox& uc = *ucp;
-	    FArrayBox& vc = *vcp;
 	    const Box& fbox = u[0][lev][igrid].box();
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
@@ -1047,7 +1036,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    Real* u1ptr = u[1][lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGODIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&idir0, &idir1, &isRZ);
@@ -1078,8 +1067,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		vcp = &u[1][lev-1][jgrid];
 		cbox = ucp->box();
 	    }
-	    FArrayBox& uc = *ucp;
-	    FArrayBox& vc = *vcp;
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
 	    FArrayBox uf(fbox), vf(fbox);
@@ -1091,7 +1078,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGDDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg), D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&jdir, &isRZ);
@@ -1164,15 +1151,13 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		vcp = &u[1][lev-1][jgrid];
 		cbox = ucp->box();
 	    }
-	    FArrayBox& uc = *ucp;
-	    FArrayBox& vc = *vcp;
-	    cbox = uc.box();
+	    cbox = ucp->box();
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
 	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGIDIV(sptr, DIMLIST(sbox),
-			D_DECL(uc.dataPtr(), vc.dataPtr(), wc.dataPtr()), DIMLIST(cbox),
+			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg), D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&idir0, &idir1, &isRZ);
