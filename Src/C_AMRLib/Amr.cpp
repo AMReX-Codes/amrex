@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.46 1998-07-06 20:44:00 lijewski Exp $
+// $Id: Amr.cpp,v 1.47 1998-07-06 21:17:24 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -32,7 +32,7 @@ using std::ios;
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
-#ifndef BL_USE_SETBUF
+#ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
 

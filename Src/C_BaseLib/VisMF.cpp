@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.50 1998-07-06 20:44:18 lijewski Exp $
+// $Id: VisMF.cpp,v 1.51 1998-07-06 21:17:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,7 +18,7 @@ using std::ofstream;
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
-#ifndef BL_USE_SETBUF
+#ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
 
