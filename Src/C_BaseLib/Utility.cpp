@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.21 1998-04-30 16:35:34 lijewski Exp $
+// $Id: Utility.cpp,v 1.22 1998-05-07 22:26:10 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -192,6 +192,12 @@ Utility::wsecond (double* r)
 }
 
 #endif /*!defined(BL_ARCH_CRAY)*/
+
+void
+Utility::ResetWallClockTime ()
+{
+    BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+}
 
 //
 // Return true if argument is a non-zero length string of digits.

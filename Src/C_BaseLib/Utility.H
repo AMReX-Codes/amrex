@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.20 1998-05-04 21:25:02 lijewski Exp $
+// $Id: Utility.H,v 1.21 1998-05-07 22:26:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -50,6 +50,10 @@ public:
                stores the result in t.
     */
     static double wsecond (double* t = 0);
+    //
+    //@ManDoc: Reset start of Wall Clock Time for wsecond() to NOW.
+    //
+    static void ResetWallClockTime ();
     //
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
