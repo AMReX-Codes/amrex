@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.7 1997-11-24 18:52:31 lijewski Exp $
+// $Id: RunStats.H,v 1.8 1997-11-24 21:04:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -70,13 +70,14 @@ private:
 class RunStats
 {
 public:
+
     RunStats (const char *name, int level = 0);
 
     ~RunStats ();
     
     friend ostream& operator<< (ostream &os, const RunStats &r);
     //
-    // Start timeing given variable.
+    // Start timing given variable.
     //
     void start ();
     //
@@ -105,7 +106,7 @@ public:
     //
     static void addBytes (long count);
     //
-    // Record 
+    // Record numPts() of FAB in each MultiFab on this CPU.
     //
     static void addNumPts (long count);
     //

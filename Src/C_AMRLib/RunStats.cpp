@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.11 1997-11-24 18:52:32 lijewski Exp $
+// $Id: RunStats.cpp,v 1.12 1997-11-24 21:04:37 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -46,7 +46,7 @@ RunStats::start ()
     if (gentry->is_on && entry->is_on)
     {
         time  = -Utility::second();
-        wtime = -ParallelDescriptor::second();
+        wtime = -Utility::wsecond();
     }
 }
 
@@ -56,7 +56,7 @@ RunStats::end ()
     if (gentry->is_on && entry->is_on)
     {
         time  += Utility::second();
-        wtime += ParallelDescriptor::second();
+        wtime += Utility::wsecond();
 
         entry->run_time   += time;
         gentry->run_time  += time;
@@ -164,7 +164,7 @@ void
 RunStats::report (ostream& os)
 {
     double rtime  = Utility::second();
-    double rwtime = ParallelDescriptor::second();
+    double rwtime = Utility::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
@@ -282,7 +282,7 @@ void
 RunStats::dumpStats (ofstream& os)
 {
     double rtime  = Utility::second();
-    double rwtime = ParallelDescriptor::second();
+    double rwtime = Utility::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
