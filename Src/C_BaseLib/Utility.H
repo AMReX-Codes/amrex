@@ -3,9 +3,9 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-/*
-** $Id: Utility.H,v 1.6 1997-09-19 18:04:35 vince Exp $
-*/
+//
+// $Id: Utility.H,v 1.7 1997-11-08 01:42:02 jbb Exp $
+//
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
