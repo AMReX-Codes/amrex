@@ -2,6 +2,7 @@
 //  DatasetClient.C
 // -------------------------------------------------------------------
 // #define _OSF_SOURCE
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
@@ -133,7 +134,9 @@ bool SendRealArray(int sockfd, Real *data[], int nvar,    // size nvar
   // --------------------------------------------------- send the data.
   //cout << ">>> sending data." << endl;
 
-  int totalDataBytes = sizeof(Real) * dataBox.numPts();
+  long t_long = sizeof(Real) * dataBox.numPts();
+  assert(t_long < INT_MAX);
+  int totalDataBytes = int(t_long);
   int totalBytesSent, dataBytesRemaining;
   int dataBufferSize;
   char *getDataHere, *dataComponentStartingAddress;
