@@ -183,6 +183,9 @@ public:
 		const Box& up_box = upt[0]->operator[](igrid).box();
 		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
+		HG_DEBUG_OUT( "<< task_fecdiv s "  << m_sno << " " << s.norm(s_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv up[0] " << m_sno << " " << upt[0]->operator[](igrid).norm(up_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv uc[1] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	    }
 	    return true;
@@ -226,6 +229,9 @@ public:
 		const Box& up_box = task_fab_result(1).box();
 		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(2).dataPtr(), task_fab_result(4).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
+		HG_DEBUG_OUT( "<< task_fecdiv_2 s "  << m_sno << " " << s.norm(s_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv_2 up[0] " << m_sno << " " << task_fab_result(1).norm(up_box, 2) << endl );
+		HG_DEBUG_OUT( "<< task_fecdiv_2 uc[1] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
 	    }
 	    return true;
