@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.28 1998-07-24 22:41:14 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.29 1998-07-27 20:43:37 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -192,10 +192,13 @@ DistributionMapping::define (int             nprocs,
         if (!GetMap(nprocs, boxes))
         {
             (this->*m_BuildMap)(nprocs, boxes);
+
+#ifndef BL_NO_PROCMAP_CACHE
             //
             // We always append new processor maps.
             //
             DistributionMapping::m_Cache.push_back(m_procmap);
+#endif
         }
     }
 
