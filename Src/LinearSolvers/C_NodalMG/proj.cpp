@@ -60,6 +60,11 @@ driver(const char *filename)
     
     fstream grid;
     grid.open(filename, ios::in);
+    if ( grid.fail() )
+    {
+	BoxLib::Warning("Failed to a open file");
+	return;
+    }
     amr_multigrid::mesh_read(m, ratio, domain, grid);
     grid.close();
     projtest(m, ratio, domain);
