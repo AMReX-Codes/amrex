@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.90 1999-02-10 21:09:56 lijewski Exp $
+// $Id: FabArray.H,v 1.91 1999-03-17 21:57:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -267,25 +267,11 @@ public:
     void setFab (int  K,
                  FAB* elem);
 
-    /*@ManDoc: Removes the Kth FAB from the FabArray and returns it to the
-               caller.  It leaves the Kth element undefined.  It is the
-               callers responsibility to delete the pointer when no
-               longer needed.
-    */
-    FAB* remove (int K);
-
     /*@ManDoc: Delete the Kth element in the FabArray only if the array is
                managed.  It leaves the Kth element in the FabArray undefined
                for both managed and unmanaged FabArrays.
     */
-    void clear (int K);
     void clear ();
-
-    /*@ManDoc: Delete all elements in the FabArray.  Use this only
-               on unmanaged FabArrays.  It leaves all elements
-               in the FabArray undefined.
-    */
-    void clearUnmanaged ();
 
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val.
@@ -416,7 +402,7 @@ private:
     //
     // This is used locally in all define functions.
     //
-    void AllocFabs (int nvar);
+    void AllocFabs ();
 };
 
 template <class T, class FAB> class ConstFabArrayIterator;
@@ -948,36 +934,10 @@ FabArray<T,FAB>::nComp () const
 
 template <class T, class FAB>
 inline
-FAB*
-FabArray<T,FAB>::remove (int K)
-{
-    return fabparray.remove(K);
-}
-
-template <class T, class FAB>
-inline
-void
-FabArray<T,FAB>::clear (int K)
-{
-    fabparray.clear(K);
-}
-
-template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::clear ()
 {
     fabparray.clear();
-}
-
-template <class T, class FAB>
-void
-FabArray<T,FAB>::clearUnmanaged ()
-{
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
-    {
-        delete fabparray.remove(fai.index());
-    }
 }
 
 template <class T, class FAB>
@@ -1075,7 +1035,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     if (alloc == Fab_allocate)
     {
         n_comp = 1;
-        AllocFabs(n_comp);
+        AllocFabs();
     }
 }
 
@@ -1093,19 +1053,17 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
     fabparray.resize(bxs.length());
     if (alloc == Fab_allocate)
-    {
-        AllocFabs(nvar);
-    }
+        AllocFabs();
 }
 
 template <class T, class FAB>
 void
-FabArray<T,FAB>::AllocFabs (int nvar)
+FabArray<T,FAB>::AllocFabs ()
 {
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box tmp = ::grow(fai.validbox(), n_grow);
-        fabparray.set(fai.index(), new FAB(tmp, nvar));
+        fabparray.set(fai.index(), new FAB(tmp, n_comp));
         RunStats::addNumPts(tmp.numPts());
     }
 }
