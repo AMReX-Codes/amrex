@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.17 2001-03-21 14:59:00 car Exp $
+# $Id: Make.rules,v 1.18 2001-09-19 17:04:43 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -230,8 +230,10 @@ endif
 ifdef cLIB_sources
 -include $(cLIB_sources:%.c=$(depTempDir)/%.d)
 endif
+ifndef WE_HATE_FORTRAN_CPP
 ifdef fLIB_sources
 -include $(fLIB_sources:%.f=$(depTempDir)/%.d)
+endif
 endif
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
@@ -242,6 +244,8 @@ endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
 endif
+ifndef WE_HATE_FORTRAN_CPP
 ifdef fEXE_sources
 -include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
+endif
 endif
