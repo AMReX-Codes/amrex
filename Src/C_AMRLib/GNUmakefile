@@ -1,15 +1,16 @@
 #
-# $Id: GNUmakefile,v 1.6 1999-01-04 18:27:14 marc Exp $
+# $Id: GNUmakefile,v 1.7 1999-01-06 21:27:58 lijewski Exp $
 #
 PBOXLIB_HOME = ..
-
-TOP = $(PBOXLIB_HOME)
-
+TOP          = $(PBOXLIB_HOME)
+#
+# Variables for the user to set ...
+#
 PRECISION = DOUBLE
-DEBUG = TRUE
-DIM = 3
-COMP = KCC
-USE_MPI = TRUE
+DEBUG     = TRUE
+DIM       = 3
+COMP      = KCC
+USE_MPI   = TRUE
 #
 # The base name of the library we're building.
 #
@@ -19,7 +20,23 @@ LBASE = amr
 #
 INSTALL_ROOT = $(TOP)
 
-include $(TOP)/mk/Make.defs ./Make.package
+include $(TOP)/mk/Make.defs
+#
+# Here's where we enable the accessibility of ArrayView.
+#
+USE_ARRAYVIEW = FALSE
+#
+# Use ArrayView on OSF1 ...
+#
+ifeq ($(MACHINE),OSF1)
+USE_ARRAYVIEW = TRUE
+endif
+
+ifeq ($(USE_ARRAYVIEW),TRUE)
+DEFINES += -DBL_USE_ARRAYVIEW
+endif
+
+include ./Make.package
 
 INCLUDE_LOCATIONS += $(TOP)/include
 
@@ -37,7 +54,6 @@ CXXFLAGS += --one_instantiation_per_object
 endif
 
 all: $(optionsLib)
-
 #
 # Libraries to close against.
 #
