@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCMultiGrid.cpp,v 1.8 1999-08-06 21:48:37 propp Exp $
+// $Id: MCMultiGrid.cpp,v 1.9 2000-08-09 20:23:04 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -200,9 +200,10 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     // Relax system maxiter times, stop if relative error <= _eps_rel or
     // if absolute err <= _abs_eps
     //
-    long returnVal = 0;  // should use bool for return value from this function
-    Real error0 = errorEstimate(level, bc_mode);
-    Real error  = error0;
+    int  returnVal = 0;  // should use bool for return value from this function
+    Real error0    = errorEstimate(level, bc_mode);
+    Real error     = error0;
+
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < level; k++)
@@ -235,7 +236,8 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	error = errorEstimate(level, bc_mode);
 	if (verbose > 1 ||
             (((eps_rel > 0. && error < eps_rel*error0) ||
-              (eps_abs > 0. && error < eps_abs)) && verbose) ) {
+              (eps_abs > 0. && error < eps_abs)) && verbose) )
+        {
 	    if (ParallelDescriptor::IOProcessor())
 	    {
 		for (int k = 0; k < level; k++)
@@ -248,7 +250,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	}
     }
     
-    if (nit==numiter || error <= eps_rel*error0 || error <= eps_abs)
+    if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
     {
 	//
 	// Omit ghost update since maybe not initialized in calling routine.
@@ -260,19 +262,10 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	_sol.plus(*initialsolution,0,_sol.nComp(),0);
 	returnVal = 1;
     }
-    else
-    {
-	returnVal = 0;
-    }
-    //
-    // Use long instead of bool--there is a bug on the t3e which
-    // causes reduction problems with bool.
-    //
-    ParallelDescriptor::ReduceLongAnd(returnVal);
     //
     // Otherwise, failed to solve satisfactorily.
     //
-    return ((int) returnVal);
+    return returnVal;
 }
 
 int
