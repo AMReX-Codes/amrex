@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.9 1999-02-03 19:29:57 lijewski Exp $
+// $Id: RunStats.cpp,v 1.10 1999-02-03 21:55:15 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -450,20 +450,12 @@ RunStats::readStats (ifstream& is,
     is.ignore(BL_IGNORE_MAX,')');
 }
 
-//
-// Gather the processor specific Incremental_Num_Pts to IOProcessor().
-//
-
 void
 RunStats::CollectNumPts ()
 {
     //
-    // Never decrease the size of RunStats::TheNumPts.
+    // Gather the processor specific Incremental_Num_Pts to IOProcessor().
     //
-    if (ParallelDescriptor::IOProcessor())
-        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
-            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
-
     Array<Real> numpts(ParallelDescriptor::NProcs());
 
     ParallelDescriptor::Gather(&Incremental_Num_Pts,
@@ -472,8 +464,15 @@ RunStats::CollectNumPts ()
                                ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
-        for (int i = 0; i < numpts.length(); i++)
-            RunStats::TheNumPts[i] += numpts[i];
+    {
+        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
+            //
+            // Never decrease the size of RunStats::TheNumPts.
+            //
+            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
+
+        RunStats::TheNumPts = numpts[i];
+    }
 
     Incremental_Num_Pts = 0;
 }
