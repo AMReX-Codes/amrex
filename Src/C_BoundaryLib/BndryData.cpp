@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.7 1999-01-04 18:09:37 marc Exp $
+// $Id: BndryData.cpp,v 1.8 1999-03-17 21:58:46 lijewski Exp $
 //
 
 #include <BndryData.H>
@@ -18,15 +18,70 @@ BndryData::BndryData (const BoxArray&      _grids,
     define(_grids,_ncomp,_geom);
 }
 
-BndryData::BndryData (const BndryData& src)
+void
+BndryData::init (const BndryData& src)
 {
-    (*this) = src;
+    //
+    // Got to save the geometric info.
+    //
+    geom = src.geom;
+    //
+    // Redefine grids and bndry array.
+    //
+    const int ngrd  = grids.length();
+    const int ncomp = src.nComp();
+
+    for (OrientationIter fi; fi; ++fi)
+    {
+        const Orientation face = fi();
+
+        bcond[face].resize(ngrd);
+
+        for (int grd = 0; grd < ngrd; ++grd)
+        {
+            bcond[face][grd].resize(ncomp);
+	    for (int n = 0; n < ncomp; ++n)
+		bcond[face][grd][n] = src.bcond[face][grd][n];
+        }
+
+        bcloc[face].resize(ngrd);
+        masks[face].resize(ngrd);
+
+        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
+        {
+            const int grd        = bfsi.index();
+            bcloc[face][grd]     = src.bcloc[face][grd];
+            const Mask& src_mask = src.masks[face][grd];
+            Mask* m = new Mask(src_mask.box(),src_mask.nComp());
+            m->copy(src_mask);
+            masks[face].set(grd,m);
+        }
+    }
+}
+
+BndryData::BndryData (const BndryData& src)
+    :
+    BndryRegister(src)
+{
+    init(src);
+}
+
+BndryData&
+BndryData::operator= (const BndryData& src)
+{
+    BndryRegister::operator=(src);
+
+    clear_masks();
+
+    init(src);
+
+    return *this;
 }
 
 BndryData::~BndryData ()
 {
     //
-    // Masks was not allocated with PArrayManage, must manually dealloc.
+    // Masks was not allocated with PArrayManage -- manually dealloc.
     //
     clear_masks();
 }
@@ -36,7 +91,8 @@ BndryData::clear_masks ()
 {
     for (OrientationIter oitr; oitr; oitr++)
     {
-        Orientation face = oitr();
+        const Orientation face = oitr();
+
         for (int k = 0; k < masks[face].length(); k++)
         {
             if (masks[face].defined(k))
@@ -47,95 +103,30 @@ BndryData::clear_masks ()
     }
 }
 
-ostream&
-operator<< (ostream&         os,
-            const BndryData& bd)
-{
-    if (ParallelDescriptor::NProcs() != 1)
-	BoxLib::Abort("BndryData::operator<< not yet implemented in parallel");
-    const BoxArray& grds = bd.boxes();
-    int ngrds = grds.length();
-    int ncomp = bd.bcond[0][0].length();
-    os << "[BndryData with " << ngrds << " grids and "<<ncomp<<" comps:\n";
-    for (int grd = 0; grd < ngrds; grd++)
-    {
-    for (OrientationIter face; face; ++face)
-    {
-        Orientation f = face();
-        os << "::: face " << f << " of grid " << grds[grd] << "\n";
-        os << "BC = " ;
-        for( int i=0; i<ncomp; ++i)
-        {
-        os << bd.bcond[f][grd][i] << " ";
-        }
-        os << " LOC = " << bd.bcloc[f][grd] << "\n";
-        os << bd.masks[f][grd];
-        os << bd.bndry[f][grd];
-    }
-    os << "--------------------------------------------------" << endl;
-    }
-    return os;
-}
-
-BndryData&
-BndryData::operator= (const BndryData& src)
-{
-    //
-    // Got to save the geometric info.
-    //
-    geom = src.geom;
-    //
-    // Redefine grids and bndry array.
-    //
-    BndryRegister::operator= ( (BndryRegister) src);
-    int ngrd = grids.length();
-    int ncomp = src.nComp();
-    clear_masks();
-    for (OrientationIter fi; fi; ++fi)
-    {
-        Orientation face = fi();
-        bcond[face].resize(ngrd);
-        for (int grd = 0; grd < ngrd; ++grd)
-        {
-            bcond[face][grd].resize(ncomp);
-	    for (int n=0; n<ncomp; ++n)
-		bcond[face][grd][n] = src.bcond[face][grd][n];
-        }
-        bcloc[face].resize(ngrd);
-        masks[face].resize(ngrd);
-        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
-        {
-            const int grd = bfsi.index();
-            //bcond[face][grd] = src.bcond[face][grd];
-            bcloc[face][grd] = src.bcloc[face][grd];
-            const Mask& src_mask = src.masks[face][grd];
-            Mask* m = new Mask(src_mask.box(),src_mask.nComp());
-            m->copy(src_mask);
-            masks[face].set(grd,m);
-        }
-    }
-    return *this;
-}
-
 void
 BndryData::define (const BoxArray&      _grids,
                    int                  _ncomp,
                    const ProxyGeometry& _geom)
 {
     geom = _geom;
+
     BndryRegister::setBoxes(_grids);
+
     const int ngrd = grids.length();
+
     assert(ngrd > 0);
 
     Array<IntVect> pshifts(27);
 
     for (OrientationIter fi; fi; ++fi)
     {
-        Orientation face = fi();
-        const int coord_dir = face.coordDir();
+        const Orientation face      = fi();
+        const int         coord_dir = face.coordDir();
+
         masks[face].resize(ngrd);
         bcloc[face].resize(ngrd);
         bcond[face].resize(ngrd);
+
         for (int ig = 0; ig < ngrd; ++ig)
         {
             bcond[face][ig].resize(_ncomp);
@@ -210,4 +201,38 @@ BndryData::define (const BoxArray&      _grids,
             }
         }
     }
+}
+
+ostream&
+operator<< (ostream&         os,
+            const BndryData& bd)
+{
+    if (ParallelDescriptor::NProcs() != 1)
+	BoxLib::Abort("BndryData::operator<<(): not implemented in parallel");
+
+    const BoxArray& grds  = bd.boxes();
+    const int       ngrds = grds.length();
+    const int       ncomp = bd.bcond[0][0].length();
+
+    os << "[BndryData with " << ngrds << " grids and " << ncomp << " comps:\n";
+
+    for (int grd = 0; grd < ngrds; grd++)
+    {
+        for (OrientationIter face; face; ++face)
+        {
+            Orientation f = face();
+
+            os << "::: face " << f << " of grid " << grds[grd] << "\nBC = ";
+
+            for (int i = 0; i < ncomp; ++i)
+                os << bd.bcond[f][grd][i] << ' ';
+
+            os << " LOC = " << bd.bcloc[f][grd] << '\n';
+            os << bd.masks[f][grd];
+            os << bd.bndry[f][grd];
+        }
+        os << "--------------------------------------------------" << endl;
+    }
+
+    return os;
 }
