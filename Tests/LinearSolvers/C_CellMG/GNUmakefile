@@ -111,19 +111,9 @@ ifeq ($(MACHINE),OSF1)
     #FDEBF += -automatic
     # FOR RUNNING 3RD ONLY
   endif
-endif
-
-STRICTLY=TRUE
-ifeq ($(STRICTLY),TRUE)
-  ifeq ($(COMP),KCC)
-    CXXFLAGS += --strict
-    CPPFLAGS += -D__KAI_STRICT
-    CXXFLAGS += --display_error_number
-    CXXFLAGS +=  --diag_suppress 450
-  endif
-  ifeq ($(COMP),g++)
-    #CXXFLAGS += -Wall
-  endif
+  DEFINES += -DBL3_NANOSLEEP
+  LIBRARIES+=-lrt
+  FFLAGS += -automatic
 endif
 
 CXXFLAGS +=
