@@ -1,139 +1,99 @@
-PRECISION = DOUBLE
-DEBUG	= FALSE
-DEBUG	= TRUE
-PROFILE = FALSE
+#
+# $Id: GNUmakefile,v 1.2 1999-03-12 18:55:48 sstanley Exp $
+#
+PBOXLIB_HOME = ../../
 
-DIM	= 2
-DIM	= 3
-
-COMP = KCC
-
-PBOXLIB_HOME = ../..
-
-USE_BSP=TRUE
-USE_BSP=FALSE
-USE_NETCDF=FALSE
-USE_ARRAYVIEW = FALSE
-USE_ARRAYVIEW = TRUE
+TOP = $(PBOXLIB_HOME)
+#
+# Variables for the user to set ...
+#
+PRECISION     = DOUBLE
+DEBUG	      = FALSE
+PROFILE       = FALSE
+DIM	      = 3
+COMP          = KCC
+USE_MPI       = FALSE
 
 #
-# What is the type of BSP device?
+# Base name of the executable.
 #
-ifeq ($(USE_BSP),TRUE)
-BSP_DEVICE = SHMEM_SYSV
+EBASE = viewMF
+
+include $(TOP)/mk/Make.defs ./Make.package
+
+CEXE_sources += $(EBASE).cpp
+
+DEFINES += -DBL_PARALLEL_IO
+
+#
+# Local INCLUDES
+#
+INCLUDE_LOCATIONS += . $(TOP)/include $(TOP)/pAmrvis ../
+LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+LIBRARIES         += -lbox$(DIM)d
+
+ifeq ($(USE_MPI),TRUE)
+LIBRARIES += -lmpi
+ifeq ($(MACHINE),OSF1)
+INCLUDE_LOCATIONS += /usr/local/mpi/include
+LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
-
-EBASE = vmf
-LBASE = 
-
-HERE = .
-
-include $(PBOXLIB_HOME)/mk/Make.defs
-
-CPPFLAGS += -DBL_USE_NEW_HFILES
-
-INCLUDE_LOCATIONS += . $(PBOXLIB_HOME)/pBoxLib_2
-
-ifeq ($(USE_BSP), TRUE)
-DEFINES += -DBL_USE_BSP
-ifeq ($(BSP_MACHINE), OSF1)
-BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
-endif
-ifeq ($(MACHINE), T3E)
-ifeq ($(WHICHT3E), NERSC)
-DEFINES += -DBL_T3E_NERSC
-BSP_HOME = /u1/vince/BSP
-endif
-ifeq ($(WHICHT3E), NAVO)
-DEFINES += -DBL_T3E_NAVO
-BSP_HOME = /home/Cvince/BSP
-endif
+ifeq ($(MACHINE),AIX)
+INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
+LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
 endif
 endif
 
-ifeq ($(DEBUG),TRUE)
-ifeq ($(USE_ARRAYVIEW),TRUE)
-ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
-INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-#LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
-#LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
-CEXE_headers += DatasetClient.H ArrayView.H
-CEXE_sources += DatasetClient.cpp
-DEFINES += -DBL_USE_ARRAYVIEW
-#DEFINES += -DBL_ARRAYVIEW_TAGBOX
+ifeq ($(MACHINE),OSF1)
+#
+# Some additional stuff for our preferred development/debugging environment.
+#
+ifeq ($(PRECISION),DOUBLE)
+FFLAGS += -real_size 64
 endif
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
-CEXE_headers += TV_TempWrite.H
-endif
-
-ifeq ($(USE_BSP), TRUE)
-INCLUDE_LOCATIONS += $(BSP_HOME)/include
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)/$(BSP_DEVICE)
-endif
-
-ifeq ($(USE_NETCDF),TRUE)
-LIBRARIES += /usr/people/stevens/bin/libnetcdf.a
-INCLUDE_LOCATIONS += /usr/people/stevens/bin
-endif
-
-ifeq ($(USE_BSP), TRUE)
-ifeq ($(DEBUG), TRUE)
-LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
-else
-ifeq ($(BSP_MACHINE), OSF1)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-else
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O2
+FDEBF += -C
+FDEBF += -warn argument_checking
+FDEBF += -warn declarations
+ifneq ($(FC), f90)
+FDEBF += -warn truncated_source
+FDEBF += -warn unused
 endif
 endif
-endif
-
-###### exception library (for newest bsplib)
-ifeq ($(BSP_MACHINE), OSF1)
-LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
-LIBRARIES += -lexc 
-endif
-
-#CXXFLAGS = -g --diag_suppress 177
-#CXXFLAGS = --strict_warnings
-ifeq ($(BSP_MACHINE), OSF1)
-#FFLAGS += -real_size 64
-#FDEBF += -C
-#FDEBF += - -warn argument_checking
-#FDEBF += - -warn declarations
-#FDEBF += - -warn truncated_source
-#FDEBF += - -warn unused
-#FOPTF  = -fast -O5 -tune ev5
-endif
-
+#
+# For Running 3rd Only
+#
 3RD = 1
-3RD=
+3RD =
 ifdef 3RD
-# FOR RUNNING 3RD ONLY
 LDFLAGS += --link_command_prefix 3rd
-#CXXDEBF = +K0 --link_command_prefix 3rd -non_shared
 LDFLAGS += -non_shared -v
-#LIBRARIES += -ldnet_stub
-#FDEBF += -automatic
-# FOR RUNNING 3RD ONLY
 endif
 
-CXXFLAGS +=
-CXXOPTF +=
-CXXDEBF +=
-
-CFLAGS +=
-COPTF +=
-CDEBF +=
-
-include Make.package
-
-FOPTF = -fast
-
-vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/util
-vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/util
+vpath %.F   .. $(TOP)/pAmrvis
+vpath %.H   .. $(TOP)/pAmrvis
+vpath %.cpp .. $(TOP)/pAmrvis
+vpath %.a   $(LIBRARY_LOCATIONS)
 
 all: $(executable)
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+ifeq ($(MACHINE),T3E)
+#
+# We don't explicity set the path of the mpi directory on the T3E.
+#
+$(executable): $(filter-out -lmpi, $(LIBRARIES))
+else
+$(executable): $(LIBRARIES)
+endif
+#
+# Build and install all libraries needed in an appropriate order.
+#
+libs:
+	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+
+#
+# Cleanup libraries.
+#
+cleanlibs:
+	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+
+include $(TOP)/mk/Make.rules

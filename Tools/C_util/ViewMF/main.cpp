@@ -77,7 +77,7 @@ main (int   argc,
       exit(-1);
     }
 #endif
-    ParallelDescriptor::StartParallel(nprocs);
+    ParallelDescriptor::StartParallel();
 
     Box box0(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(3,3,3)));
     Box box1(IntVect(D_DECL(4,4,4)),IntVect(D_DECL(7,7,7)));
@@ -127,7 +127,7 @@ main (int   argc,
       exit(-1);
     }
 #endif
-    ParallelDescriptor::StartParallel(nprocs);
+    ParallelDescriptor::StartParallel();
 
     MultiFab mf;
     readMF(mf,argv[1]);
@@ -172,7 +172,7 @@ main (int   argc,
       exit(-1);
     }
 #endif
-    ParallelDescriptor::StartParallel(nprocs);
+    ParallelDescriptor::StartParallel();
 
     Box box0(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(3,3,3)));
     Box box1(IntVect(D_DECL(4,4,4)),IntVect(D_DECL(7,7,7)));
@@ -229,7 +229,7 @@ int main (int   argc,
       exit(-1);
     }
 #endif
-    ParallelDescriptor::StartParallel(nprocs);
+    ParallelDescriptor::StartParallel();
 
     MultiFab mf0,mf1;
     readMF(mf0,argv[1]);
