@@ -1,5 +1,33 @@
 # Make for SX-6 (SUPERUX := SUPER-UX)
 
+ifeq ($(WHICHSX6), ASAMA)
+# Stuttgart Germany
+# don't use 'sxc++ -E', it cant always handle multiple macro
+# expansions per line
+FORT_CPP := gcc -E
+CXX      := sxc++ -K rtti
+FC       := sxf90
+fC       := $(FC)
+
+FOPTF += -C vopt -R5 -ftrace
+fOPTF += $(FOPTF)
+FDEBF += -gv
+fDEBF += -gv
+
+# MLW: sopt, ssafe, vopt vsafe all cause code to crash
+# MLW: Only use -ftrace flag when compiling main.c
+#CXXOPTF += -g -Cssafe -Xp -traceback -O,fullmsg -ftrace
+CXXOPTF += -g -Cssafe -Xp -traceback -O,fullmsg 
+CXXDEBF += -g -Cnoopt -Xp -traceback 
+#CXXDEBF += -gv
+CDEBF   += -gv
+
+LDFLAGS += -f90lib 
+
+FORTLINK := UNDERSCORE
+
+else
+# probably from ARSC system
 FORT_CPP := c++ -E
 CXX      := c++ -K rtti
 FC       := f90
@@ -18,3 +46,5 @@ CXXDEBF += -gv
 CDEBF   += -gv
 
 LDFLAGS += -f90lib
+
+endif
