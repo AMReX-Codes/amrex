@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.1 1997-09-15 20:37:04 lijewski Exp $
+# $Id: Make.rules,v 1.2 1998-02-13 21:13:07 lijewski Exp $
 #
 
 #
@@ -126,6 +126,20 @@ ifneq ($(CLOSELIB), TRUE)
 	$(RM) $(objTempDir)/$*.o
 endif
 
+$(optionsLib)(%.o): %.f90
+	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
+ifeq ($(MACHINE),CRAY)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f
+	mv $*.o $(objTempDir)
+else
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f -o $(objTempDir)/$*.o
+endif
+	$(AR) r $@ $(objTempDir)/$*.o
+ifneq ($(CLOSELIB), TRUE)
+	$(RM) $(objTempDir)/$*.o
+endif
+
 #
 # Rules for objects.
 #
@@ -139,6 +153,12 @@ $(objTempDir)/%.o: %.c
 	$(COMPILE.c) $(CEXEFLAGS) -DBL_LANG_C $< $(OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.F
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+
+$(objTempDir)/%.o: %.f90
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
@@ -168,6 +188,13 @@ $(depTempDir)/%.dl: %.F
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.dl: %.f90
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 #
 # Rules for dependencies in bare object files.
 #
@@ -187,6 +214,13 @@ $(depTempDir)/%.d: %.c
 		sed -e '\''s,$*.o,$(objTempDir)/& $@,'\'' > $@'
 
 $(depTempDir)/%.d: %.F
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objTempDir)/& $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.f90
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
