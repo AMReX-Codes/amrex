@@ -1774,6 +1774,76 @@ c sig here contains three different directions all stored on "nodes"
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
       end
+
+c-----------------------------------------------------------------------
+c sig here contains three different directions all stored on "nodes"
+c MLW: Strip-mining modification for NEC SX6
+c MLW: For partially vectorized loops that require vector temporaries
+c MLW: The compiler guesses at the length of the loop and issues a 
+c MLW: run-time error if vector length is larger.  
+c MLW: Can extend the size of the temporary with
+c MLW: the LOOPCNT directive, but it will not vectorize the loop
+c MLW: if this value is too large (~ 15000).  Decided to explicitly
+c MLW: stripmine the loop.
+c MLW: NOTE: Only will be called on NEC SX6
+      subroutine hgrlxu_sx(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,resl2,resh2,
+     & mask,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,idd)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
+      integer i, jdiff, kdiff, ly, lz
+      integer idd
+      integer striplen, istart, iend, ilen, istop
+      AVG() = (sig(i-1)        * cor(i-1) +
+     &         sig(i)          * cor(i+1) +
+     &         sig(i+ly-jdiff) * cor(i-jdiff) +
+     &         sig(i+ly)       * cor(i+jdiff) +
+     &         sig(i+lz-kdiff) * cor(i-kdiff) +
+     &         sig(i+lz)       * cor(i+kdiff))
+      jdiff =  resh0 - resl0 + 1
+      kdiff = (resh1 - resl1 + 1) * jdiff
+      ly    = (resh2 - resl2 + 1) * kdiff
+      lz    = 2 * ly
+c     IMPORTANT: striplen must be an even number less than LOOPCNT     
+      striplen = 5000
+c     Do the Red cells
+      istart = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+     &          (regl0 - resl0) + 1
+      iend   = (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
+     &          (regh0 - resl0) + 1
+      do while (istart <= iend)
+         ilen = min(striplen,iend-istart+1)
+         istop = istart + ilen - 1
+!CDIR LOOPCNT=5500
+         do i = istart, istop, 2
+            cor(i) = cor(i)
+     &           + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+         end do
+         istart = istart + ilen
+      end do
+c     Do the Black cells (shifted over by one)
+      istart = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+     &          (regl0 - resl0) + 2
+      do while (istart <= iend)
+         ilen = min(striplen,iend-istart+1)
+         istop = istart + ilen - 1
+!CDIR LOOPCNT=5500
+         do i = istart, istop, 2
+            cor(i) = cor(i)
+     &           + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+         end do
+         istart = istart + ilen
+      end do
+      end
+
 c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
       subroutine hgrlxur(

@@ -12,7 +12,11 @@
 #define   FORT_HGRLX		hgrlx_
 #define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
 #define   FORT_HGRLX_FULL	hgrlx_full_
+#ifdef BL_SUPERUX
+#define   FORT_HGRLXU		hgrlxu_sx_
+#else
 #define   FORT_HGRLXU		hgrlxu_
+#endif
 #define   FORT_HGRLXUR		hgrlxur_
 #define   FORT_HGRLXL		hgrlxl_
 #define   FORT_HGRLXL_FULL	hgrlxl_full_
@@ -33,7 +37,11 @@
 #define   FORT_HGRLX		HGRLX
 #define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
 #define   FORT_HGRLX_FULL	HGRLX_FULL
+#ifdef BL_SUPERUX
+#define   FORT_HGRLXU		HGRLXU_SX
+#else
 #define   FORT_HGRLXU		HGRLXU
+#endif
 #define   FORT_HGRLXUR		HGRLXUR
 #define   FORT_HGRLXL		HGRLXL
 #define   FORT_HGRLXL_FULL	HGRLXL_FULL
@@ -54,7 +62,11 @@
 #define   FORT_HGRLX		hgrlx
 #define   FORT_HGRLX_TERRAIN    hgrlx_terrain
 #define   FORT_HGRLX_FULL	hgrlx_full
+#ifdef BL_SUPERUX
+#define   FORT_HGRLXU		hgrlxu_sx
+#else
 #define   FORT_HGRLXU		hgrlxu
+#endif
 #define   FORT_HGRLXUR		hgrlxur
 #define   FORT_HGRLXL		hgrlxl
 #define   FORT_HGRLXL_FULL	hgrlxl_full
