@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.28 1999-03-05 23:18:37 almgren Exp $
+// $Id: AmrLevel.H,v 1.29 1999-03-11 17:48:07 marc Exp $
 //
 
 #include <REAL.H>
@@ -321,6 +321,17 @@ public:
     //
     MultiFab& get_data (int  state_indx,
                         Real time);
+
+    //
+    //@ManDoc: Hack to allow override of (non-fine-fine) fillpatched boundary data
+    //
+    virtual void set_preferred_boundary_values(FArrayBox& S,
+                                               int        state_index,
+                                               int        iGrid,
+                                               int        src_comp,
+                                               int        dst_comp,
+                                               int        num_comp,
+                                               Real       time) const {}
 
 protected:
     //
