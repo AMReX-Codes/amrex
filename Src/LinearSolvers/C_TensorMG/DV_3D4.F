@@ -120,7 +120,7 @@ c
       integer maskb(DIMV(maskb))
       integer DIMDEC(trander)
       REAL_T trander(DIMV(trander),3,3)
-      integer bct
+      integer bct(nc)
       REAL_T bcl
       REAL_T h(BL_SPACEDIM)
 c
@@ -190,8 +190,8 @@ c
 c     The west face of the grid
 c
       if(cdir .eq. 0) then
-         if (is_neumann(bct)) then
-            do n = 1, nc
+         do n = 1,nc
+            if (is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      u(lo(1)-1,j,k,n) = cvmgt(
@@ -207,12 +207,9 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
 c ::: ::: Null
-            i = lo(1)
-c           do n = 1,nc
-            n = 1
+               i = lo(1)
 c ::: ::: ::: Y
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of west face
@@ -256,15 +253,13 @@ c ::: ::: ::: Z
                   endif
                   trander(i-1,j,k,n,3) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,lenx
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(1)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, lenx+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,lenx
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(1)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, lenx+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
@@ -328,14 +323,11 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: Null
 c ::: ::: interior part of west side
-            edgloc = 0.
-            i = lo(1)
-c           do n = 1,nc
-            n = 1
+               edgloc = 0.
+               i = lo(1)
 c ::: ::: ::: Y
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
@@ -508,10 +500,7 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
-
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      u(lo(1)-1, j, k, n) = cvmgt(
@@ -530,18 +519,18 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON WEST FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON WEST FACE IN APPLYBC'
+               stop
+            endif
+	 enddo
       endif
 c
 c     The east face of the grid
 c
       if(cdir .eq. 3) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
+         do n = 1,nc
+            if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      u(hi(1)+1,j,k,n) = cvmgt(
@@ -557,11 +546,8 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
-            i = hi(1)
-c           do n = 1,nc
-            n = 1
+               i = hi(1)
 c ::: ::: ::: Y
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of west face
@@ -605,15 +591,13 @@ c ::: ::: ::: Z
                   endif
                   trander(i+1,j,k,n,3) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,lenx
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(1)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, lenx+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,lenx
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(1)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, lenx+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
@@ -677,13 +661,10 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part of west side
-            edgloc = 0.
-            i = hi(1)
-c           do n = 1,nc
-            n = 1
+               edgloc = 0.
+               i = hi(1)
 c ::: ::: ::: Y
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
@@ -856,10 +837,7 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
-
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      u(hi(1)+1, j, k, n) = cvmgt(
@@ -878,18 +856,18 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
+               stop
+            endif
+         enddo
       endif
 c
 c     The south of the Grid
 c
       if(cdir .eq. 1) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
+	 do n = 1,nc
+            if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do i = lo(1),hi(1)
                      u(i,lo(2)-1,k,n) = cvmgt(
@@ -905,11 +883,8 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
-            j = lo(2)
-c           do n = 1,nc
-            n = 2
+               j = lo(2)
 c ::: ::: ::: X
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of south face
@@ -954,15 +929,13 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j-1,k,n,3) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,leny
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(2)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, leny+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,leny
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(2)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, leny+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
@@ -1026,13 +999,10 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-            edgloc = 0.
-            j=lo(2)
-c           do n=1,nc
-            n = 2
+               edgloc = 0.
+               j=lo(2)
 c ::: ::: ::: X
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
@@ -1205,10 +1175,7 @@ c ::: ::: ::: Z
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
-
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      u(i, lo(2)-1, k, n) = cvmgt(
@@ -1227,18 +1194,18 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
+               stop
+            endif
+         enddo
       endif
 c
 c     The north of the grid
 c
       if (cdir .eq. 4) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
+         do n = 1,nc
+            if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      u(i,hi(2)+1,k,n) = cvmgt(
@@ -1254,11 +1221,8 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
-            j = hi(2)
-c           do n=1,nc
-            n = 2
+               j = hi(2)
 c ::: ::: ::: X
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of south face
@@ -1303,15 +1267,13 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j+1,k,n,3) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,leny
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(2)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, leny+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,leny
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(2)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, leny+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
@@ -1375,13 +1337,10 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-            edgloc = 0.
-            j=hi(2)
-c           do n=1,nc
-            n = 2
+               edgloc = 0.
+               j=hi(2)
 c ::: ::: ::: X
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
@@ -1554,10 +1513,7 @@ c ::: ::: ::: Z
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
-
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      u(i, hi(2)+1, k, n) = cvmgt(
@@ -1576,18 +1532,18 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
+               stop
+            endif
+         enddo
       endif
 c
 c     The bottom of the Grid
 c
       if(cdir .eq. 2) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
+         do n = 1,nc
+           if(is_neumann(bct(n))) then
                do j = lo(2), hi(2)
                   do i = lo(1),hi(1)
                      u(i,j,lo(3)-1,n) = cvmgt(
@@ -1603,11 +1559,8 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
-            k = lo(3)
-c           do n=1,nc
-            n = 3
+               k = lo(3)
 c ::: ::: X
                do j=lo(2),hi(2)
 c ::: ::: ::: interior part of bottom face
@@ -1652,15 +1605,13 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k-1,n,2) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,lenz
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(3)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, lenz+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,lenz
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(3)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, lenz+2, coef)
 #if USE_TMP
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
@@ -1724,13 +1675,10 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-            edgloc = 0.
-            k = lo(3)
-c           do n=1,nc 
-            n = 3
+               edgloc = 0.
+               k = lo(3)
 c ::: ::: ::: X
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
@@ -1903,9 +1851,7 @@ c ::: ::: ::: Y
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      u(i, j, lo(3)-1, n) = cvmgt(
@@ -1924,18 +1870,18 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
+               stop
+            endif
+         enddo
       endif
 c
 c     The top of the grid
 c
       if (cdir .eq. 5) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
+         do n = 1,nc
+            if(is_neumann(bct(n))) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      u(i,j, hi(3)+1,n) = cvmgt(
@@ -1951,11 +1897,8 @@ c
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential derivative part
-            k = hi(3)
-c           do n=1,nc
-            n = 3
+               k = hi(3)
 c ::: ::: X
                do j=lo(2),hi(2)
 c ::: ::: ::: interior part of bottom face
@@ -2000,15 +1943,13 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k+1,n,2) = innder
                enddo
-c           enddo
-         else if (is_dirichlet(bct)) then
-            do m=0,lenz
-               x(m) = m + 0.5
-            enddo
-            x(-1) = - bcl/h(3)
-            xInt = - 0.5
-            call polyInterpCoeff(xInt, x, lenz+2, coef)
-            do n = 1, nc
+            else if (is_dirichlet(bct(n))) then
+               do m=0,lenz
+                  x(m) = m + 0.5
+               enddo
+               x(-1) = - bcl/h(3)
+               xInt = - 0.5
+               call polyInterpCoeff(xInt, x, lenz+2, coef)
 #if USE_TMP
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
@@ -2073,13 +2014,10 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-            edgloc = 0.
-            k = hi(3)
-c           do n=1,nc 
-            n = 3
+               edgloc = 0.
+               k = hi(3)
 c ::: ::: ::: X
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
@@ -2252,9 +2190,7 @@ c ::: ::: ::: Y
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-c           enddo
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
+            else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      u(i, j, hi(3)+1, n) = cvmgt(
@@ -2273,12 +2209,11 @@ c           enddo
                      enddo
                   enddo
                endif
-            enddo
-         else
-            print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
-            stop
-         endif
+            else
+               print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
+               stop
+            endif
+	 enddo
       endif
-c
       end
 
