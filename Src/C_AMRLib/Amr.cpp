@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.38 1998-04-30 16:35:03 lijewski Exp $
+// $Id: Amr.cpp,v 1.39 1998-05-12 22:12:42 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -149,6 +149,10 @@ Amr::Amr ()
 	aString data_file_name;
 	pp.get("data_log",data_file_name);
 	setRecordDataInfo(data_file_name);
+    }
+    if (pp.contains("probin_file"))
+    {
+        pp.get("probin_file",probin_file);
     }
     //
     // Restart or run from scratch?
@@ -561,8 +565,17 @@ Amr::initialInit ()
     //
     Real strt_time = 0;
     int  init = true;
+    //
+    // Populate integer array with name of `probin' file.
+    //
+    int probin_file_length = probin_file.length();
 
-    FORT_PROBINIT (&init);
+    Array<int> probin_file_name(probin_file_length);
+
+    for (int i = 0; i < probin_file_length; i++)
+        probin_file_name[i] = probin_file[i];
+
+    FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length);
     cumtime = strt_time;
     //
     // Define base level grids.
@@ -622,7 +635,17 @@ Amr::restart (const aString& filename)
     // Init problem dependent data.
     //
     int init = false;
-    FORT_PROBINIT (&init);
+    //
+    // Populate integer array with name of `probin' file.
+    //
+    int probin_file_length = probin_file.length();
+
+    Array<int> probin_file_name(probin_file_length);
+
+    for (int i = 0; i < probin_file_length; i++)
+        probin_file_name[i] = probin_file[i];
+
+    FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length);
     //
     // Start calculation from given restart file.
     //
