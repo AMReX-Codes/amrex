@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.12 2002-09-27 19:20:00 almgren Exp $
+c $Id: INTERP_3D.F,v 1.13 2002-10-01 23:56:07 marc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2065,9 +2065,11 @@ c :::
       REAL_T crse_tot(nvar)
       integer num_cells_ok(nvar)
 
+      integer rMAX
+      parameter (rMAX = 4)
       REAL_T alpha, sumN, sumP, crseTot, negVal
       REAL_T sum_fine_new,sum_fine_old
-      REAL_T orig_fine(0:1,0:1,0:1)
+      REAL_T orig_fine(0:rMAX-1,0:rMAX-1,0:rMAX-1)
       integer redo_me
       integer ioff,joff,koff
       integer i,j,k,ic,jc,kc,n,nn
