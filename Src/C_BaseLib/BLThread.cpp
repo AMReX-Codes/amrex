@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.23 2001-11-07 22:00:57 car Exp $
+// $Id: BLThread.cpp,v 1.24 2001-11-09 14:33:10 car Exp $
 //
 
 #include <winstd.H>
@@ -473,13 +473,13 @@ Thread::baseThread ()
     return getID() == 0;
 }
 
+#ifdef WIN32
 Thread::CancelState
 Thread::setCancelState(CancelState cs)
 {
     return cs;
 }
 
-#ifdef WIN32
 int
 Thread::max_threads()
 {
