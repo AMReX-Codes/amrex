@@ -27,7 +27,9 @@
 
 extern "C" 
 {
-    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*);
+    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
+    void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
+
     void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
     void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
     void FORT_HGCEN_TERRAIN(Real*, intS, Real*, intS, intS);
@@ -36,7 +38,6 @@ extern "C"
 #endif
     void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGINTS_NO_SIGMA_NODE(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
-    void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*);
     void FORT_HGSCON(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGCEN(Real*, intS, Real*, intS, intS);
 }
@@ -189,7 +190,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ);
+	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
 	
 #if (BL_SPACEDIM == 2)
 	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
@@ -201,7 +202,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM+1),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ);
+	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
 	patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
 	patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
 	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
@@ -713,7 +714,7 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 	const Box& creg = lev_interface[lto].part_fine(w_mfi.index());
 	FORT_FANRST2(r_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 	    w_mfi->dataPtr(), DIMLIST(fbox),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integrate);
+	    D_DECL(rat[0], rat[1], rat[2]), 1, &integrate, 0, 0);
     }
     
     clear_part_interface(resid[lto], lev_interface[lto]);
