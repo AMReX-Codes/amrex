@@ -1,9 +1,9 @@
 #ifndef BL_REAL_H
 #define BL_REAL_H
 
-//
-// $Id: REAL.H,v 1.6 2001-07-17 23:02:27 lijewski Exp $
-//
+/*
+ * $Id: REAL.H,v 1.7 2001-07-17 23:14:38 car Exp $
+ */
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
