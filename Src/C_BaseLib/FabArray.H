@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.40 1998-04-19 03:46:05 lijewski Exp $
+// $Id: FabArray.H,v 1.41 1998-04-20 22:34:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,6 +41,7 @@ using std::vector;
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
+#include <Tracer.H>
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
@@ -1014,6 +1015,8 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 {
+    TRACER("FabArray<T,FAB>::copy(FabArray)");
+
     if (DistributionMap().ProcessorMap() == farray.DistributionMap().ProcessorMap())
     {
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
@@ -1128,7 +1131,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                              MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    const int NumRecv = nrcv[ParallelDescriptor::MyProc()];
+    const int NumRecv = nrcv[MyProc];
 
     Array<MPI_Request> reqs(NumRecv);
     Array<MPI_Status>  stat(NumRecv);
@@ -1340,6 +1343,8 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        dest_comp,
                        int        num_comp) const
 {
+    TRACER("FabArray<T,FAB>::copy(FAB)");
+
     assert(dest_comp + num_comp <= dest.nComp());
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -2180,6 +2185,8 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
+    TRACER("FabArrayCopyDescriptor::CollectData()");
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     if (ParallelDescriptor::NProcs() == 1)
