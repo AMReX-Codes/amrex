@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.15 1999-02-24 16:50:31 lijewski Exp $
+// $Id: FabSet.H,v 1.16 1999-03-31 17:04:17 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -220,8 +220,22 @@ public:
     //
     bool defined (int i) const { return fabparray.defined(i); }
     //
-    //@ManDoc: Define the distribution map on specified boxarray.
+    //@ManDoc: Flush cached stuff between regriddings.
     //
+    static void FlushCache ();
+
+protected:
+    //
+    // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.
+    //
+    enum How { COPYFROM, PLUSFROM };
+
+    void DoIt (const MultiFab& src,
+               int             ngrow,
+               int             scomp,
+               int             dcomp,
+               int             ncomp,
+               How             how);
 };
 
 //
