@@ -68,11 +68,11 @@ public:
     }
     virtual bool ready()
     {
-	abort(); return false;
+	throw "FIXME task_fceres_2::ready"; return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	abort(); return false;
+	throw "FIXME task_fceres_2::init"; return false;
     }
 private:
     FCERES func;
@@ -105,11 +105,11 @@ public:
     }
     virtual bool ready()
     {
-	abort(); return false;
+	throw "FIXME task_fceres_4::ready"; return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	abort(); return false;
+	throw "FIXME task_fceres_4::init"; return false;
     }
 private:
     FCERES func;
