@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.22 1998-03-25 21:32:19 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.23 1998-03-26 17:31:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1473,12 +1473,8 @@ AmrLevel::derive (const aString& name,
         BoxArray srcBA(state[state_indx].boxArray());
         BoxArray dstBA(state[state_indx].boxArray());
 
+        srcBA.convert(rec->boxMap());
         dstBA.convert(rec->deriveType());
-
-        for (int i = 0; i < srcBA.length(); i++)
-        {
-            srcBA.set(i, rec->boxMap()(srcBA[i]));
-        }
 
         MultiFab srcMF(srcBA, rec->numState(), ngrow);
 
