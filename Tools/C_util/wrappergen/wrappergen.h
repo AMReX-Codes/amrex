@@ -129,6 +129,8 @@ void ListizeString _ANSI_ARGS_(( char *str, char ***list, int *len ));
 
 int IsReservedName _ANSI_ARGS_(( char *name ));
 
+int IsNameInList _ANSI_ARGS_((char* name, char** list, int nitems ));
+
 void OutChar _ANSI_ARGS_(( int c, int where, void *outputForm ));
 
 void DoForEach _ANSI_ARGS_(( FILE *outf,

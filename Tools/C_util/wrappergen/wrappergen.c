@@ -1,3 +1,5 @@
+#include <ctype.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -18,7 +20,6 @@ fn_def *fn_list;
 int n_fn, nwrapperFiles;
 {
   int fn_num, argNum, fileNum, i;
-  fn_def fn;
   wrapperinfo winfo;
 
   ListCreate( winfo.wrapperDefs, wrapperdef, 10 );
@@ -63,11 +64,9 @@ fn_def *fn_list;
 int n_fn;
 wrapperinfo *winfo;
 {
-  FILE *inf;
   fileinfo finfo;
   rpcinfo rinfo;
   replacement rpc;
-  char *tmpStr;
 
   finfo.str = ReadFileIntoString( fileName );
   finfo.name = fileName;
@@ -96,7 +95,7 @@ rpcinfo *rinfo;
 wrapperinfo *winfo;
 {
   int escBodyLen, i, startingLine;
-  char **escBodyList, *escBody, *ptr, *preceding;
+  char **escBodyList, *escBody, *preceding;
 
 #if DEBUG
   fprintf( stderr, "Process String %s in file %s (%d) on line %d\n",
@@ -143,10 +142,8 @@ wrapperinfo *winfo;
 int escBodyLen, startingLine;
 char **escBodyList, *escBody;
 {
-  char c, repNo, format[20];
-  char *body, *varName, *space;
-  xpandList fnNames;
-  int strRead;
+  char repNo;
+  char *body;
 
   /* if the excape sequence ("{{...") does not start with an
      identifier or the identifier is not recognized, assume it's
@@ -266,10 +263,8 @@ int *escBodyLen, *startingLine;
   /* anything read before reaching an escape sequence is returned in
      'preceding' */
 
-  xpandList escBodyChars, escBodyIdx, escBodyLit;
   char *escBegin, *escEnd;
   char c;
-  int escapeFound, tmpInt;
 
   /* first job, read until {{ is found */
 
@@ -597,11 +592,8 @@ char *body, **argv;
 int argc, startLine, allFn;
 {
   int i, fn_num, lineNo, escLen, escStartLine;
-  replacement rpc;
-  char *bodyCopy, *escBody, **escList, *preceding,
-       *prefixEnd, *suffixStart;
+  char *bodyCopy, *escBody, **escList, *preceding;
   wrapperdef newWrapper;
-  variable newVar;
   xpandList vars, varStr;
   fileinfo my_finfo;
 
@@ -2816,7 +2808,7 @@ fn_def *fn_list;
 int n_fn;
 wrapperinfo *winfo;
 {
-  int i, j, w, v, wrapperNum, nwpr, nvar;
+  int i, j, w, v, wrapperNum, nwpr;
   char ***uniqueVarLists;
   wrapperdef *wpr;
 
@@ -2997,10 +2989,9 @@ char ***varNames;
 {
   rpcinfo rinfo;
   replacement rpc;
-  int i, nvars, line, wrapperNum, nwpr;
+  int i, nvars, wrapperNum, nwpr;
   char *argNum;
   wrapperdef *wpr;
-  fileinfo finfo;
 
   wpr = ListHeadPtr( winfo->wrapperDefs, wrapperdef ); 
   nwpr = ListSize( winfo->wrapperDefs, wrapperdef ); 

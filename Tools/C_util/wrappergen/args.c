@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "args.h"
 #include "expandingList.h"
 #include <string.h>
@@ -11,7 +12,7 @@ GetIntArg( argc, argv, switchName, val )
 int *argc, *val;
 char **argv, *switchName;
 {
-  int i, nremove, j;		/* nremove - number of arguments to remove */
+  int i, nremove;		/* nremove - number of arguments to remove */
 
   for (i=1; i<*argc; i++) {		  /* loop through all args */
     if (!strcmp( switchName, argv[i] )) { /* if this is the switch we want, */
@@ -44,7 +45,7 @@ int *argc;
 double *val;
 char **argv, *switchName;
 {
-  int i, nremove, j;		/* nremove - number of arguments to remove */
+  int i, nremove;		/* nremove - number of arguments to remove */
 
   for (i=1; i<*argc; i++) {		  /* loop through all args */
     if (!strcmp( switchName, argv[i] )) { /* if this is the switch we want, */
@@ -76,8 +77,7 @@ GetStringArg( argc, argv, switchName, val )
 int *argc;
 char **argv, *switchName, **val;
 {
-  int i, nremove, j;		/* nremove - number of arguments to remove */
-  char *readPtr;
+  int i, nremove;		/* nremove - number of arguments to remove */
 
   for (i=1; i<*argc; i++) {		  /* loop through all args */
     if (!strcmp( switchName, argv[i] )) { /* if this is the switch we want, */
@@ -134,9 +134,9 @@ GetArgAdjacentString( argc, argv, switchName, value )
 int *argc;
 char **argv, *switchName, **value;
 {
-  int argNum, i, str_len;
+  int argNum, str_len;
   xpandList listStr;
-  char *readPtr, *start, *end, *theString;
+  char *readPtr, *theString;
 
   ListCreate( listStr, char, 10 );
 
@@ -173,6 +173,7 @@ char **argv, *switchName, **value;
 
 
 
+int
 GetIntListArg( argc, argv, switchName, intList, listLen )
 int *argc;
 char **argv, *switchName;
@@ -199,12 +200,12 @@ int **intList, *listLen;
   return 1;
 }
 
+int
 GetStringListArg( argc, argv, switchName, strList, listLen )
 int *argc, *listLen;
 char **argv, *switchName, ***strList;
 {
   char *list, *token, *str_dup;
-  int temp_int;
   xpandList tempStrList;
   
   ListCreate( tempStrList, char *, 10 );
