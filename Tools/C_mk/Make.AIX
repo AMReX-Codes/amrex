@@ -35,11 +35,15 @@ ifeq ($(PROFILE), TRUE)
   #FPRFF    +=
 endif
 
-#FC     = xlf -N 80 -e I
-FC     = xlf
-#FOPTF += -O4 -qmaxmem=30000 -qhot -qtune=auto
+FC = xlf
+
+ifeq ($(PRECISION),FLOAT)
 FOPTF += -O3 -qarch=auto -qtune=auto
 FDEBF += -g
+else
+FOPTF += -O3 -qarch=auto -qtune=auto -qdpc
+FDEBF += -g -qdpc
+endif
 
 COPTF += -O2
 CDEBF += -g
