@@ -4,17 +4,14 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.7 1999-05-10 18:54:09 car Exp $
+// $Id: CoordSys.H,v 1.8 2000-04-21 16:23:32 car Exp $
 //
 
+#include <FArrayBox.H>
 #include <REAL.H>
 #include <Array.H>
 #include <Box.H>
 
-//
-// Forward declaration.
-//
-class FArrayBox;
 
 //
 //@Man:
