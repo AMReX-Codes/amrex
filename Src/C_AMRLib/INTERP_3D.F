@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.11 2002-08-29 22:14:34 car Exp $
+c $Id: INTERP_3D.F,v 1.12 2002-09-27 19:20:00 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2024,6 +2024,340 @@ c	       ::::: stuff into fine array
       end
 
 
+c ::: 
+c ::: --------------------------------------------------------------
+c ::: protect_interp:   redo interpolation if the result of linccinterp
+c ::: generates under- or overshoots.
+c ::: 
+c ::: 
+c ::: Inputs/Outputs
+c ::: fine        <=>  (modify) fine grid array
+c ::: flo,fhi      =>  (const)  index limits of fine grid
+c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+c ::: cblo,cbhi    =>  (const)  coarse equivalent of fblo,fbhi
+c ::: nvar         =>  (const)  number of variables in state vector
+c ::: lratio(3)    =>  (const)  refinement ratio between levels
+c ::: 
+c ::: crse         =>  (const)  coarse grid data widended by 1 zone
+c ::: clo,chi      =>  (const)  index limits of crse grid
+c :::
+c ::: --------------------------------------------------------------
+c ::: 
 
+      subroutine FORT_PROTECT_INTERP (fine, DIMS(fine), fblo, fbhi, 
+     &                                crse, DIMS(crse), cblo, cbhi,
+     &                                fine_state, DIMS(state), 
+     &                                nvar, lratiox, lratioy, lratioz, bc)
 
+      implicit none
 
+      integer DIMDEC(fine)
+      integer DIMDEC(crse)
+      integer DIMDEC(state)
+      integer fblo(3), fbhi(3)
+      integer cblo(3), cbhi(3)
+      integer lratiox, lratioy, lratioz, nvar
+      integer bc(3,2,nvar)
+      REAL_T fine(DIMV(fine),nvar)
+      REAL_T crse(DIMV(crse), nvar)
+      REAL_T fine_state(DIMV(state), nvar)
+      REAL_T sum(nvar)
+      REAL_T crse_tot(nvar)
+      integer num_cells_ok(nvar)
+
+      REAL_T alpha, sumN, sumP, crseTot, negVal
+      REAL_T sum_fine_new,sum_fine_old
+      REAL_T orig_fine(0:1,0:1,0:1)
+      integer redo_me
+      integer ioff,joff,koff
+      integer i,j,k,ic,jc,kc,n,nn
+      integer icase
+
+      do kc = cblo(3), cbhi(3)
+      do jc = cblo(2), cbhi(2)
+      do ic = cblo(1), cbhi(1)
+         do n = 2, nvar-1
+
+            redo_me = 0
+            do koff = 0, lratioz-1
+            do joff = 0, lratioy-1
+            do ioff = 0, lratiox-1
+               i = lratiox*ic + ioff
+               j = lratioy*jc + joff
+               k = lratioz*kc + koff
+               if ((fine_state(i,j,k,n)+fine(i,j,k,n)) .lt. 0.d0) redo_me = 1
+            enddo
+            enddo
+            enddo
+c
+c ****************************************************************************************
+c
+c           If all the fine values are non-negative after the original interpolated 
+c            correction, then we do nothing here.
+c
+c           If any of the fine values are negative after the original interpolated
+c            correction, then we do our best.
+c
+c           Special cases:
+c
+c             1) Coarse correction > 0, and fine_state has some cells with 
+c                negative values which will be filled before adding to the other cells.
+c                Use the correction to bring negative cells to zero, then
+c                distribute the remaining positive proportionally.
+c
+c             2) Coarse correction > 0, and correction can not make them all
+c                positive.  Add correction only to the negative cells, in proportion
+c                to their magnitude.
+c
+c             3) Coarse correction < 0, and fine_state DOES NOT have enough
+c                  have enough positive state to absorb it.  Here we bring
+c                  all the positive fine cells to zero then distribute the remaining
+c                  negative amount in such a way as to make them all as close to the
+c                  same negative value as possible.
+c
+c             4) Coarse correction < 0, fine_state has enough
+c                  positive state to absorb it without making any fine 
+c                  cells negative, BUT fine_state+fine is currently negative
+c                  in at least one fine cell.  Here just take a constant percentage
+c                  away from each positive and don't touch the negatives.
+c
+c             crseTot = sum of all interpolated values of the correction,
+c                       which is equivalent to the coarse correction * ratio**3
+c             SumN = sum of all negative values of fine_state
+c             SumP = sum of all positive values of fine_state
+c
+c ****************************************************************************************
+c
+
+            if (redo_me .eq. 1) then
+
+               icase = 0
+               sum_fine_old = 0.d0
+               do koff = 0, lratioz-1
+               do joff = 0, lratioy-1
+               do ioff = 0, lratiox-1
+                  i = lratiox*ic + ioff
+                  j = lratioy*jc + joff
+                  k = lratioz*kc + koff
+                  sum_fine_old = sum_fine_old + fine(i,j,k,n)
+                  orig_fine(ioff,joff,koff) = fine(i,j,k,n)
+               enddo
+               enddo
+               enddo
+
+               crseTot = lratiox*lratioy*lratioz*crse(ic,jc,kc,n)
+
+               sumN = zero
+               sumP = zero
+               do koff = 0, lratioz-1
+               do joff = 0, lratioy-1
+               do ioff = 0, lratiox-1
+                  i = lratiox*ic + ioff
+                  j = lratioy*jc + joff
+                  k = lratioz*kc + koff
+                  if (fine_state(i,j,k,n) .le. 0.d0) then
+                    sumN = SumN + fine_state(i,j,k,n)
+                  else
+                    sumP = sumP + fine_state(i,j,k,n)
+                  endif
+               enddo
+               enddo
+               enddo
+
+               if (crseTot .gt. 0.d0 .and. crseTot .ge. abs(sumN)) then
+c              Here we want to fill in the negative values first, then add
+c                the remaining positive proportionally.
+
+                   icase = 1
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      if (fine_state(i,j,k,n) .lt. 0.d0) then
+                        fine(i,j,k,n) = -fine_state(i,j,k,n)
+                      endif
+                   enddo
+                   enddo
+                   enddo
+
+                   alpha = (crseTot - abs(sumN)) / sumP
+
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      if (fine_state(i,j,k,n) .gt. 0.d0) then
+                        fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
+                      endif
+                   enddo
+                   enddo
+                   enddo
+            
+                 endif
+
+               if (crseTot .gt. 0.d0. and. crseTot .lt. abs(sumN)) then
+c              Here we don't have enough positive correction to fill all the
+c                negative values of state, so we just try to fill them proportionally
+c                and don't add any correction to the states already positive.
+
+                   icase = 2
+                   alpha = crseTot / abs(sumN)
+
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      if (fine_state(i,j,k,n) .lt. 0.d0) then
+                        fine(i,j,k,n) = alpha * abs(fine_state(i,j,k,n))
+                      else 
+                        fine(i,j,k,n) = 0.d0
+                      endif
+                   enddo
+                   enddo
+                   enddo
+
+               endif
+
+               if (crseTot .lt. 0.d0. and. abs(crseTot) .gt. sumP) then
+c              Here we don't have enough positive states to absorb all the
+c                negative correction, so we want to end up with all the fine
+c                cells having the same negative value.
+
+                   icase = 3
+                   negVal = (sumP + sumN + crseTot)/float(lratiox*lratioy*lratioz)
+
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      fine(i,j,k,n) = negVal - fine_state(i,j,k,n)
+                   enddo
+                   enddo
+                   enddo
+
+               endif
+
+               if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP
+     $                               .and. (sumP+sumN+crseTot) .gt. 0.d0) then
+c              Here we have enough positive states to absorb all the
+c                negative correction *and* redistribute to make negative cells
+c                positive. 
+
+                   icase = 4
+                   alpha = (crseTot + sumN) / sumP
+
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      if (fine_state(i,j,k,n) .lt. 0.d0) then
+                        fine(i,j,k,n) = -fine_state(i,j,k,n)
+                      else
+                        fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
+                      endif  
+                   enddo
+                   enddo
+                   enddo
+
+               endif
+
+               if (crseTot .lt. 0.d0. and. abs(crseTot) .lt. sumP
+     $                               .and. (sumP+sumN+crseTot) .le. 0.d0) then
+c              Here we have enough positive states to absorb all the
+c                negative correction, but not to fix the states already negative. 
+c                We bring all the positive states to zero, and use whatever 
+c                remaining positiveness from the states to help the negative states.
+
+                   icase = 5
+                   alpha = (crseTot + sumP) / sumN
+
+                   do koff = 0, lratioz-1
+                   do joff = 0, lratioy-1
+                   do ioff = 0, lratiox-1
+                      i = lratiox*ic + ioff
+                      j = lratioy*jc + joff
+                      k = lratioz*kc + koff
+                      if (fine_state(i,j,k,n) .gt. 0.d0) then
+                        fine(i,j,k,n) = -fine_state(i,j,k,n)
+                      else 
+                        fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
+                      endif
+                   enddo
+                   enddo
+                   enddo
+
+               endif
+
+               sum_fine_new = 0.d0
+               do koff = 0, lratioz-1
+               do joff = 0, lratioy-1
+               do ioff = 0, lratiox-1
+                  i = lratiox*ic + ioff
+                  j = lratioy*jc + joff
+                  k = lratioz*kc + koff
+                  sum_fine_new = sum_fine_new + fine(i,j,k,n)
+               enddo
+               enddo
+               enddo
+
+               if (abs(sum_fine_new - sum_fine_old) .gt. 1.e-8) then
+                  print *,' '
+                  print *,'PROTECT_INTERP: BLEW CONSERVATION with ICASE = ',icase
+                  print *,'AT COARSE CELL ',ic,jc,kc,' AND COMPONENT ',n
+                  print *,'OLD SUM / NEW SUM ',sum_fine_new, sum_fine_old
+               endif
+
+c              do koff = 0, lratioz-1
+c              do joff = 0, lratioy-1
+c              do ioff = 0, lratiox-1
+c                 i = lratiox*ic + ioff
+c                 j = lratioy*jc + joff
+c                 k = lratioz*kc + koff
+c                 if ((fine_state(i,j,k,n) + fine(i,j,k,n)) .lt. 0.d0) then
+c                    print *,'STILL NEGATIVE AT ',i,j,k,n
+c                    print *,'AT COARSE CELL ',ic,jc,kc
+c                    print *,'FINE STATE ',fine_state(i,j,k,n)
+c                    print *,'FINE CORRECTION ',fine(i,j,k,n)
+c                    print *,'CRSETOT ',crseTot
+c                    print *,'SUMN / SUMP ',sumN, sumP
+c                    print *,' '
+c                 endif
+c              enddo
+c              enddo
+c              enddo
+
+c           End (if redo .eq. 1)
+            endif
+
+         enddo
+
+c     Set sync for density (n=1) to sum of spec sync (2:nvar-1)
+         do koff = 0, lratioz-1
+         do joff = 0, lratioy-1
+         do ioff = 0, lratiox-1
+            i = lratiox*ic + ioff
+            j = lratioy*jc + joff
+            k = lratioz*kc + koff
+            fine(i,j,k,1) = 0.d0
+            do n = 2,nvar-1
+               fine(i,j,k,1) = fine(i,j,k,1) + fine(i,j,k,n)
+            enddo
+         enddo
+         enddo
+         enddo
+
+c     End of coarse index loops
+      enddo
+      enddo
+      enddo
+      end

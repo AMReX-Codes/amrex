@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.10 2002-04-26 22:10:02 lijewski Exp $
+** $Id: INTERP_F.H,v 1.11 2002-09-27 19:20:00 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -13,6 +13,7 @@
 #    define FORT_CQINTERP    cqinterp
 #    define FORT_CCINTERP2   ccinterp2
 #    define FORT_PCINTERP    pcinterp
+#    define FORT_PROTECT_INTERP    printerp
 #else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_NBINTERP    NBINTERP
@@ -22,6 +23,7 @@
 #    define FORT_CQINTERP    CQINTERP
 #    define FORT_CCINTERP2   CCINTERP2
 #    define FORT_PCINTERP    PCINTERP
+#    define FORT_PROTECT_INTERP    PRINTERP
 #  else
 #  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_NBINTERP    nbinterp
@@ -31,6 +33,7 @@
 #    define FORT_CQINTERP    cqinterp
 #    define FORT_CCINTERP2   ccinterp2
 #    define FORT_PCINTERP    pcinterp
+#    define FORT_PROTECT_INTERP    printerp_
 #  else
 #    define FORT_NBINTERP    nbinterp_
 #    define FORT_CBINTERP    cbinterp_
@@ -39,6 +42,7 @@
 #    define FORT_CQINTERP    cqinterp_
 #    define FORT_CCINTERP2   ccinterp2_
 #    define FORT_PCINTERP    pcinterp_
+#    define FORT_PROTECT_INTERP    printerp_
 #  endif
 #  endif
 
@@ -133,6 +137,21 @@ extern "C"
                         D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const int* nvar, Real* strip,
                         const int* strip_lo, const int* strip_hi);
+
+    void FORT_PROTECT_INTERP (      Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
+                              const  int* fblo, const int* fbhi,
+                              const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                              const  int* cblo, const int* cbhi,
+#if (BL_SPACEDIM == 2)
+                              const Real* fvcx, const Real* fvcy,
+                              ARLIM_P(fblo), ARLIM_P(fbhi),
+                              const Real* cvcx, const Real* cvcy,
+                              ARLIM_P(cblo), ARLIM_P(cbhi),
+#endif
+                              Real* state, ARLIM_P(slo), ARLIM_P(shi),
+                              const int* nvar,
+                              D_DECL(const int* lrx,const int* lry,const int* lrz),
+                              const int* bc); 
   }
 #endif
 
