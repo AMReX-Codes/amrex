@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1999-01-04 18:26:32 marc Exp $
+# $Id: GNUmakefile,v 1.5 1999-03-10 16:33:31 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -70,5 +70,12 @@ LDFLAGS += --link_command_prefix 3rd
 LDFLAGS += -non_shared -v
 endif
 
-FOPTF = -fast
+ifeq ($(MACHINE),T3E)
+  #
+  # Turn off warning about double precision constants.
+  #
+  FOPTF += -M 1110
+  FDEBF += -M 1110
+endif
+
 include $(TOP)/mk/Make.rules
