@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.50 1999-01-20 19:24:00 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.51 1999-01-21 20:27:05 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -848,6 +848,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
                            int           state_indx,
                            int           scomp,
                            int           ncomp,
+                           bool          do_ghost_cells,
                            Interpolater* mapper)
 {
     //
@@ -907,17 +908,29 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
                     ncomp,
                     dbox,
                     crse_ratio,
-                    crse_lev.geom,geom,bcr);
+                    crse_lev.geom,
+                    geom,
+                    bcr);
+    }
 
-        if (!p_domain.contains(mfdest_mfi().box()))
+    if (do_ghost_cells && mfdest.nGrow() > 0)
+    {
+        mfdest.FillBoundary(dcomp,ncomp);
+
+        geom.FillPeriodicBoundary(mfdest,dcomp,ncomp,false,false);
+
+        for (MultiFabIterator mfi(mfdest); mfi.isValid(); ++mfi)
         {
-            state[state_indx].FillBoundary(mfdest_mfi(),
-                                           time,
-                                           geom.CellSize(),
-                                           prob_domain,
-                                           dcomp,
-                                           scomp,
-                                           ncomp);
+            if (!p_domain.contains(mfi().box()))
+            {
+                state[state_indx].FillBoundary(mfi(),
+                                               time,
+                                               geom.CellSize(),
+                                               prob_domain,
+                                               dcomp,
+                                               scomp,
+                                               ncomp);
+            }
         }
     }
 }

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.26 1998-12-25 18:58:09 lijewski Exp $
+// $Id: AmrLevel.H,v 1.27 1999-01-21 20:27:05 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -219,16 +219,23 @@ public:
                            int          clearval,
                            int          tagval,
                            Real         time,
-			   int          n_error_buf = 0, int ngrow = 0) = 0;
-    //
-    //@ManDoc: Interpolate up from coarse level.
-    //
+			   int          n_error_buf = 0,
+                           int          ngrow = 0) = 0;
+    /*
+      @ManDoc: Interpolate from coarse level to the valid area in dest.
+               If do\_ghost\_cells is true we also set the ghost cells
+               properly via calls to MultiFab::FillBoundary(),
+               Geometry::FillPeriodicBoundary() and StateData::FillBoundary().
+               If do\_ghost\_cells is false this function does not touch any of
+               the ghost cells in the MultiFab.
+    */
     void FillCoarsePatch (MultiFab&     dest,
                           int           dst_comp,
                           Real          time,
                           int           state_indx,
                           int           src_comp,
                           int           ncomp,
+                          bool          do_ghost_cells = false,
                           Interpolater* mapper = 0);
     //
     //@ManDoc: Function to set physical boundary conditions.
