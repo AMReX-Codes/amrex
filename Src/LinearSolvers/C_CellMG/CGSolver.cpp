@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.26 2001-08-21 22:15:41 car Exp $
+// $Id: CGSolver.cpp,v 1.27 2002-03-27 17:54:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -563,8 +563,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         std::cout << "CGSolver_bicgstab: Initial error (error0) =  " << rnorm0 << '\n';
     }
     int ret = 0;			// will return this value if all goes well
-    Real rho_1;
-    Real alpha, omega;
+    Real rho_1 = 0, alpha = 0, omega = 0;
     int nit = 1;
     for (; nit <= maxiter; ++nit)
     {
@@ -770,7 +769,7 @@ CGSolver::solve_cg (MultiFab&       sol,
     const Real rh_norm =   rnorm0;
     Real sol_norm = 0.0;
     int ret = 0;			// will return this value if all goes well
-    Real rho_1;
+    Real rho_1 = 0;
     int nit = 1;
     for (; nit <= maxiter; ++nit)
     {
