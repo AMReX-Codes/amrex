@@ -746,10 +746,8 @@ task_local_base::depends_on_q (const task* t1) const
         if (!(m_fab == t1tc->m_fab))     return false;
         if (!mfeq(m_smf, t1tc->m_smf))   return false;
         if (m_region.intersects(t1tc->m_region)) return true;
-
-//        if (m_sgrid != t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx))
-//            return true;
-
+        if (m_sgrid != t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx))
+            return true;
     }
 
     return false;

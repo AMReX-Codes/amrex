@@ -51,17 +51,13 @@ amr_boundary::dir (const Box& region,
 {
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
-	if (region.bigEnd(i) < domain.smallEnd(i))
-	    return -(i+1);
-	if (region.smallEnd(i) > domain.bigEnd(i))
-	    return +(i+1);
+	if (region.bigEnd(i) < domain.smallEnd(i)) return -(i+1);
+	if (region.smallEnd(i) > domain.bigEnd(i)) return +(i+1);
     }
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
-	if (region.bigEnd(i) == domain.smallEnd(i))
-	    return -(i+1);
-	if (region.smallEnd(i) == domain.bigEnd(i))
-	    return +(i+1);
+	if (region.bigEnd(i) == domain.smallEnd(i)) return -(i+1);
+	if (region.smallEnd(i) == domain.bigEnd(i)) return +(i+1);
     }
     BL_ASSERT("amr_boundary::dir---boundary box not outside domain." == 0);
     return 0;
@@ -113,7 +109,7 @@ mixed_boundary::box_ (const Box& image,
 		 << "image(" << image << ") "
 		 << "domain(" << domain << ") "
 		 << "idir(" << idir << ") ");
-    const int idim = abs(idir) - 1;
+    const int idim  = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
     Box retbox(image);
 
@@ -185,8 +181,7 @@ mixed_boundary::box_ (const Box& image,
     {
 	BoxLib::Error( "mixed_boundary::box---boundary type not supported");
     }
-    HG_DEBUG_OUT("==>retbox(" << retbox << ")"
-		 << endl);
+    HG_DEBUG_OUT("==>retbox(" << retbox << ")" << endl);
     return retbox;
 }
 
@@ -248,8 +243,7 @@ mixed_boundary::anImage (const Box& region,
 
     BL_ASSERT(image.type() == srcbox.type());
 
-    HG_DEBUG_OUT("==>image(" << image << ")"
-		 << endl);
+    HG_DEBUG_OUT("==>image(" << image << ")" << endl);
     return image;
 }
 
@@ -265,7 +259,6 @@ mixed_boundary::fill (FArrayBox&       patch,
 		      const FArrayBox& src,
 		      const Box&       domain) const
 {
-    // BL_ASSERT(domain.type() == IntVect::TheZeroVector());
     HG_DEBUG_OUT("FILL: "
 		 << "patch.box(" << patch.box() << ") "
 		 << "region(" << region << ") "
@@ -276,7 +269,7 @@ mixed_boundary::fill (FArrayBox&       patch,
     tdomain.convert(type(src));
     Box idomain = ::grow(tdomain, IntVect::TheZeroVector()-type(src));
     Box img     = anImage(region, src.box(), domain);
-    int idir = 0;
+    int idir    = 0;
     int refarray[BL_SPACEDIM] = {0};
     bool negflag = true;
     bool negarray[BL_SPACEDIM-1];
@@ -464,7 +457,7 @@ mixed_boundary::fill_ (FArrayBox&       patch,
 		       const Box&       domain,
 		       int              idir) const
 {
-    const int idim = abs(idir) - 1;
+    const int idim  = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
 
     if (flowdim == -4 && (t == refWall || t == inflow))
@@ -507,7 +500,6 @@ mixed_boundary::fill_ (FArrayBox&       patch,
 	else if (flowdim == -1)
 	{
             //
-	    //BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 	    // Inflow density---just reflect interior for now
             //
 	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
@@ -542,9 +534,7 @@ mixed_boundary::fill_ (FArrayBox&       patch,
 	else if (flowdim >= 0)
 	{
             //
-	    // transverse velocity components
-	    // patch.assign(0.0, region);
-	    // we now believe this looks like a refWall to transverse components
+	    // Transverse velocity components.
             //
 	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
 		       DIMLIST(region),
@@ -612,69 +602,80 @@ extern "C"
 }
 
 class task_fill_bord
-  : public task_copy_base
+  :
+    public task_copy_base
 {
 public:
-  task_fill_bord(F_B f_, task_list& tl_,
-		 MultiFab& mf_, int dgrid_,
-		 const Box& b_, const Box& bb_,
-		 int idim_, int jjj_, int nstart_);
-  virtual bool ready();
+
+  task_fill_bord (F_B        f_,
+                  task_list& tl_,
+                  MultiFab&  mf_,
+                  int        dgrid_,
+                  const Box& b_,
+                  const Box& bb_,
+                  int        idim_,
+                  int        jjj_,
+                  int        nstart_);
+
+  virtual bool ready ();
+
 private:
-  void doit();
-  const F_B& f;
+  void doit ();
+
+  const F_B f;
   const int idim;
   const int jjj;
   const int nstart;
 };
 
-#undef USE_TASK_FILL_BORD
-#ifdef USE_TASK_FILL_BORD
-task_fill_bord::task_fill_bord(F_B f_, task_list& tl_,
-			       MultiFab& mf_, int dgrid_,
-			       const Box& b_, const Box& bb_,
-			       int idim_, int jjj_, int nstart_)
-  : task_copy_base(tl_, mf_, dgrid_, b_, mf_, dgrid_, bb_),
-    f(f_), idim(idim_), jjj(jjj_), nstart(nstart_)
+task_fill_bord::task_fill_bord (F_B f_, task_list& tl_,
+                                MultiFab& mf_, int dgrid_,
+                                const Box& b_, const Box& bb_,
+                                int idim_, int jjj_, int nstart_)
+  :
+    task_copy_base(tl_, mf_, dgrid_, b_, mf_, dgrid_, bb_),
+    f(f_),
+    idim(idim_),
+    jjj(jjj_),
+    nstart(nstart_)
 {
-  BL_ASSERT( m_tmp == 0 );
-  BL_ASSERT( &m_dmf == &m_smf );
-  BL_ASSERT( m_dgrid == m_sgrid );
+    BL_ASSERT( m_tmp == 0 );
+    BL_ASSERT( &m_dmf == &m_smf );
+    BL_ASSERT( m_dgrid == m_sgrid );
   
-  if ( work_to_do() )
+    if ( work_to_do() )
     {
-      _do_depend();
+        _do_depend();
 
-      if ( is_local(m_dmf, m_dgrid) && is_local(m_smf, m_sgrid) )
+        if ( is_local(m_dmf, m_dgrid) && is_local(m_smf, m_sgrid) )
         {
-	  m_local = true;
+            m_local = true;
 
-	  if ( dependencies.empty() )
+            if ( dependencies.empty() )
             {
-	      doit();
-	      //
-	      // Flip the work_to_do() bit.
-	      //
-	      m_done = true;
+                doit();
+                //
+                // Flip the work_to_do() bit.
+                //
+                m_done = true;
             }
         }
     }
 }
 
 bool
-task_fill_bord::ready()
+task_fill_bord::ready ()
 {
-  BL_ASSERT( m_tmp == 0 );
+  BL_ASSERT(m_tmp == 0);
   BL_ASSERT(is_started());
-  BL_ASSERT( m_local );
+  BL_ASSERT(m_local);
   BL_ASSERT(!m_done);
   doit();
   return true;
-
 }
 
 void
-task_fill_bord::doit()
+task_fill_bord::doit ()
 {
   BL_ASSERT( m_tmp == 0 );
   BL_ASSERT( m_dgrid == m_sgrid );
@@ -683,7 +684,7 @@ task_fill_bord::doit()
   BL_ASSERT( !m_done );
   BL_ASSERT( is_local(m_dmf, m_dgrid) );
   
-  FArrayBox& fab = m_dmf[m_dgrid];
+  FArrayBox& fab     = m_dmf[m_dgrid];
   const Box& fab_box = fab.box();
   (*f)(fab.dataPtr(nstart), DIMLIST(fab_box),
        DIMLIST(m_dbx),
@@ -691,7 +692,6 @@ task_fill_bord::doit()
        DIMLIST(m_sbx),
        &idim, jjj);
 }
-#endif
 
 void
 mixed_boundary::fill_borders (MultiFab&              r,
@@ -705,7 +705,9 @@ mixed_boundary::fill_borders (MultiFab&              r,
     const Box& domain = lev_interface.domain();
 
     task_list tl;
-    // we are looping over only the fine-fine faces
+    //
+    // We are looping over only the fine-fine faces.
+    //
     for (int iface = 0;
 	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
     {
@@ -752,9 +754,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
                     //
 		    // Terrain sigma
                     //
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, jgrid)) continue;
-#endif
 		    bb.shift(
 			idim,
 			2 * domain.smallEnd(idim) - 1 + a
@@ -765,41 +764,20 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			if ((i == idim + BL_SPACEDIM)
 			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1))
 			{
-#ifndef USE_TASK_FILL_BORD
-			  FORT_FBNEG(r[jgrid].dataPtr(i), DIMLIST(rbox),
-				     DIMLIST(b),
-				     r[jgrid].dataPtr(i), DIMLIST(rbox),
-				     DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, jgrid, b, bb, idim, 1, i)
-			       );
-#endif
+			    tl.add_task(
+                                new task_fill_bord(FORT_FBNEG, tl, r, jgrid,
+                                                   b, bb, idim, 1, i));
 			}
 			else
 			{
-#ifndef USE_TASK_FILL_BORD
-			    FORT_FBREF(r[jgrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(b),
-				       r[jgrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, 1, i)
-			       );
-#endif
+			    tl.add_task(
+                                new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                                   b, bb, idim, 1, i));
 			}
 		    }
 		}
 		else if (t == refWall)
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if ( is_remote(r, jgrid) ) continue;
-#endif
 		    bb.shift(
 			idim,
 			(2 * domain.smallEnd(idim) - 1 + a
@@ -807,47 +785,25 @@ mixed_boundary::fill_borders (MultiFab&              r,
 		    const Box& rbox = r.fabbox(jgrid);
 		    if (idim == flowdim || flowdim == -3)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, jgrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBNEG, tl, r, jgrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		    else
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		}
 		else if (t == periodic)
 		{
 		    const int isrc = lev_interface.exterior_ref(igrid);
 		    bb.shift(idim, domain.length(idim));
-		    //r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 		    tl.add_task(new task_copy(tl, r, jgrid, b, r, isrc, bb));
 		}
 		else if (t == inflow)
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if ( is_remote(r, jgrid) ) continue;
-#endif
 		    bb.shift(
 			idim,
 			(2 * domain.smallEnd(idim) - 1 + a
@@ -855,91 +811,43 @@ mixed_boundary::fill_borders (MultiFab&              r,
 		    const Box& rbox = r.fabbox(jgrid);
 		    if (flowdim == -2)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                                new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                                   b, bb, idim, r.nComp(), 0));
 		    }
 		    else if (flowdim == -1)
 		    {
                         //
-			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		    else if (flowdim == -3)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, jgrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBNEG, tl, r, jgrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		    else if (idim == flowdim)
 		    {
                         //
-			// For this to work, fill_borders must be called exactly
-			// once for each level of this variable.
+			// For this to work, fill_borders must be called
+                        // exactly once for each level of this variable.
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox),
-				     DIMLIST(b),
-				     r[jgrid].dataPtr(), DIMLIST(rbox),
-				     DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBINFLO,
-						  tl, r, jgrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBINFLO, tl, r, jgrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		    else if (flowdim >= 0)
 		    {
                         //
-			// transverse velocity components
-			//r[jgrid].assign(0.0, b);
-			// we now believe this looks like a refWall to transverse comps
+			// Transverse velocity components.
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		}
 		else if (t == outflow)
@@ -947,9 +855,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
                     //
 		    // Do nothing if NODE-based, reflect if CELL-based.
                     //
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, jgrid)) continue;
-#endif
 		    if (type(r, idim) == IndexType::CELL)
 		    {
 			bb.shift(
@@ -957,18 +862,9 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			    (2 * domain.smallEnd(idim) - 1 + a
 			     - b.bigEnd(idim) - b.smallEnd(idim)));
 			const Box& rbox = r.fabbox(jgrid);
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[jgrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, jgrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, jgrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		}
 	    }
@@ -994,9 +890,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow))
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, igrid)) continue;
-#endif
                     //
 		    // Terrain sigma
                     //
@@ -1010,41 +903,20 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			if ((i == idim + BL_SPACEDIM)
 			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1))
 			{
-#ifndef USE_TASK_FILL_BORD
-			    FORT_FBNEG(r[igrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(b),
-				       r[igrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, igrid, b, bb, idim, 1, i)
-			       );
-#endif
+			    tl.add_task(
+                                new task_fill_bord(FORT_FBNEG, tl, r, igrid,
+                                                   b, bb, idim, 1, i));
 			}
 			else
 			{
-#ifndef USE_TASK_FILL_BORD
-			    FORT_FBREF(r[igrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(b),
-				       r[igrid].dataPtr(i), DIMLIST(rbox),
-				       DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, 1, i)
-			       );
-#endif
+			    tl.add_task(
+                                new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                                   b, bb, idim, 1, i));
 			}
 		    }
 		}
 		else if (t == refWall)
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, igrid)) continue;
-#endif
 		    bb.shift(
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
@@ -1052,47 +924,25 @@ mixed_boundary::fill_borders (MultiFab&              r,
 		    const Box& rbox = r.fabbox(igrid);
 		    if (idim == flowdim || flowdim == -3)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, igrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBNEG, tl, r, igrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		    else
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		}
 		else if (t == periodic)
 		{
 		    const int isrc = lev_interface.exterior_ref(jgrid);
 		    bb.shift(idim, -domain.length(idim));
-		    //r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 		    tl.add_task(new task_copy(tl, r, igrid, b, r, isrc, bb));
 		}
 		else if (t == inflow)
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, igrid)) continue;
-#endif
 		    bb.shift(
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
@@ -1100,98 +950,47 @@ mixed_boundary::fill_borders (MultiFab&              r,
 		    const Box& rbox = r.fabbox(igrid);
 		    if (flowdim == -2)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(),
-				   DIMLIST(rbox), DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		    else if (flowdim == -1)
 		    {
                         //
-			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		    else if (flowdim == -3)
 		    {
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBNEG,
-						  tl, r, igrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBNEG, tl, r, igrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		    else if (idim == flowdim)
 		    {
                         //
-			// For this to work, fill_borders must be called exactly
-			// once for each level of this variable.
+			// For this to work, fill_borders must be called
+                        // exactly once for each level of this variable.
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBINFLO(r[igrid].dataPtr(), DIMLIST(rbox),
-				     DIMLIST(b),
-				     r[igrid].dataPtr(), DIMLIST(rbox),
-				     DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBINFLO,
-						  tl, r, igrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBINFLO, tl, r, igrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		    else if (flowdim >= 0)
 		    {
                         //
-			// transverse velocity components
-			//r[igrid].assign(0.0, rbox);
-			// we now believe this looks like a refWall to transverse comps
+			// Transverse velocity components.
                         //
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, 1);
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, 1, 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                               b, bb, idim, 1, 0));
 		    }
 		}
 		else if (t == outflow)
 		{
-#ifndef USE_TASK_FILL_BORD
-		    if (is_remote(r, igrid)) continue;
-#endif
                     //
 		    // Do nothing if NODE-based, reflect if CELL-based.
                     //
@@ -1202,18 +1001,9 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			    (2 * domain.bigEnd(idim) + 1 + a
 			     - b.bigEnd(idim) - b.smallEnd(idim)));
 			const Box& rbox = r.fabbox(igrid);
-#ifndef USE_TASK_FILL_BORD
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(b),
-				   r[igrid].dataPtr(), DIMLIST(rbox),
-				   DIMLIST(bb), &idim, r.nComp());
-#else
-			    tl.add_task
-			      (
-			       new task_fill_bord(FORT_FBREF,
-						  tl, r, igrid, b, bb, idim, r.nComp(), 0)
-			       );
-#endif
+                        tl.add_task(
+                            new task_fill_bord(FORT_FBREF, tl, r, igrid,
+                                               b, bb, idim, r.nComp(), 0));
 		    }
 		}
 	    }
@@ -1227,8 +1017,8 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 			               const level_interface& lev_interface,
           			       int                    w) const
 {
-//  This is the same as the fill_borders routine except that it
-//    doesn't fill outside periodic boundaries
+    // This is the same as the fill_borders routine except that it
+    // doesn't fill outside periodic boundaries
 
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
@@ -1237,7 +1027,9 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
     const Box& domain = lev_interface.domain();
 
     task_list tl;
-    // we are looping over only the fine-fine faces
+    //
+    // We are looping over only the fine-fine faces.
+    //
     for (int iface = 0;
 	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
@@ -1332,7 +1124,6 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 #if 0
 		    int isrc = lev_interface.exterior_ref(igrid);
 		    bb.shift(idim, domain.length(idim));
-		    //r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 		    tl.add_task(new task_copy(tl, r, jgrid, b, r, isrc, bb));
 #endif
 		}
@@ -1354,7 +1145,6 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		    else if (flowdim == -1) 
 		    {
                         //
-			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
 			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
@@ -1372,8 +1162,8 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		    else if (idim == flowdim) 
 		    {
                         //
-			// For this to work, fill_borders must be called exactly
-			// once for each level of this variable.
+			// For this to work, fill_borders must be called
+                        // exactly once for each level of this variable.
                         //
 			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox),
 				     DIMLIST(b),
@@ -1383,9 +1173,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		    else if (flowdim >= 0) 
 		    {
                         //
-			// transverse velocity components
-			//r[jgrid].assign(0.0, b);
-			// we now believe this looks like a refWall to transverse comps
+			// Transverse velocity components.
                         //
 			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
 				   DIMLIST(b),
@@ -1398,8 +1186,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
                     //
 		    // Do nothing if NODE-based, reflect if CELL-based.
                     //
-		    if (is_remote(r, jgrid))
-                        continue;
+		    if (is_remote(r, jgrid)) continue;
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
 			bb.shift(
@@ -1421,8 +1208,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
-		    if (is_remote(r, igrid))
-                        continue;
+		    if (is_remote(r, igrid)) continue;
                     //
 		    // Terrain sigma
                     //
@@ -1452,8 +1238,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		}
 		else if (t == refWall) 
 		{
-		    if (is_remote(r, igrid))
-                        continue;
+		    if (is_remote(r, igrid)) continue;
 		    bb.shift(
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
@@ -1479,7 +1264,6 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 #if 0
 		    int isrc = lev_interface.exterior_ref(jgrid);
 		    bb.shift(idim, -domain.length(idim));
-		    //r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 		    tl.add_task(new task_copy(tl, r, igrid, b, r, isrc, bb));
 #endif
 		}
@@ -1501,7 +1285,6 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		    else if (flowdim == -1) 
 		    {
                         //
-			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
 			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
@@ -1530,9 +1313,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		    else if (flowdim >= 0) 
 		    {
                         //
-			// transverse velocity components
-			//r[igrid].assign(0.0, rbox);
-			// we now believe this looks like a refWall to transverse comps
+			// Transverse velocity components.
                         //
 			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
 				   DIMLIST(b),
@@ -1542,8 +1323,7 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 		}
 		else if (t == outflow) 
 		{
-		    if (is_remote(r, igrid))
-                        continue;
+		    if (is_remote(r, igrid)) continue;
                     //
 		    // Do nothing if NODE-based, reflect if CELL-based.
                     //
@@ -1683,7 +1463,7 @@ mixed_boundary::duplicate (List<Box>& bl,
 bool
 mixed_boundary::singular () const
 {
-    BL_ASSERT(flowdim == -2); // pressure boundary only
+    BL_ASSERT(flowdim == -2);
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
     {
