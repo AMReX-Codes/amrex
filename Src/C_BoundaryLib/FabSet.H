@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.5 1998-03-30 20:05:35 lijewski Exp $
+// $Id: FabSet.H,v 1.6 1998-03-30 20:24:11 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -106,14 +106,6 @@ public:
                       int             src_comp,
                       int             dest_comp,
                       int             num_comp);
-    //
-    //@ManDoc: copy from this source FabSet to the destination MultiFab.
-    //
-    const FabSet& copyTo (MultiFab& dest,
-                          int       nghost,
-                          int       src_comp,
-                          int       dest_comp,
-                          int       num_comp) const;
     //
     //@ManDoc: Componentwise multiply each datum in this FabSet for specified components.
     //

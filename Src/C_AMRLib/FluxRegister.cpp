@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.7 1998-02-18 21:35:34 vince Exp $
+// $Id: FluxRegister.cpp,v 1.8 1998-03-30 20:23:46 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -88,24 +88,6 @@ FluxRegister::SumReg (int comp) const
     }
     ParallelDescriptor::ReduceRealSum(sum);
     return sum;
-}
-
-void
-FluxRegister::copyTo (MultiFab& mflx,
-                      int       dir,
-                      int       src_comp,
-                      int       dest_comp,
-                      int       num_comp)
-{
-    assert( dir >= 0 && dir < BL_SPACEDIM);
-
-    Orientation lo_face(dir,Orientation::low);
-    const FabSet &lofabs = bndry[lo_face];
-    lofabs.copyTo(mflx,0,src_comp,dest_comp,num_comp);
-
-    Orientation hi_face(dir,Orientation::high);
-    const FabSet &hifabs = bndry[hi_face];
-    hifabs.copyTo(mflx,0,src_comp,dest_comp,num_comp);
 }
 
 void

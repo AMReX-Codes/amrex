@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.5 1998-03-30 20:05:35 lijewski Exp $
+// $Id: FabSet.cpp,v 1.6 1998-03-30 20:24:11 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -142,40 +142,6 @@ FabSet::copyFrom (const MultiFab& src,
               fscd.FillFab(srcmfid, fbid, sfabTemp);
               int srcCompTemp = 0;  // Copy from temp src = 0
               dfab.copy(sfabTemp, ovlp, srcCompTemp, ovlp, dest_comp, num_comp);
-            }
-        }
-    }
-
-    return *this;
-}
-
-const FabSet&
-FabSet::copyTo (MultiFab& dest,
-                int       nghost,
-                int       src_comp,
-                int       dest_comp,
-                int       num_comp) const
-{
-    if (ParallelDescriptor::NProcs() > 1)
-        BoxLib::Error("FabSet::copyTo(MultiFab) not implemented");
-
-    int dlen = dest.length();
-    int slen = length();
-    assert (nghost <= dest.nGrow());
-    const BoxArray& dba = dest.boxArray();
-    for (int d = 0; d < dlen; d++)
-    {
-        FArrayBox& dfab = dest[d];
-        Box dbox = grow(dba[d],nghost);
-        for (int s = 0; s < slen; s++)
-        {
-            const FArrayBox& sfab = (*this)[s];
-            const Box& sbox = sfab.box();
-            Box ovlp = dbox;
-            ovlp &= sbox;
-            if (ovlp.ok())
-            {
-                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
             }
         }
     }

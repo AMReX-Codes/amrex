@@ -4,7 +4,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.4 1997-12-11 23:27:51 lijewski Exp $
+// $Id: FluxRegister.H,v 1.5 1998-03-30 20:23:45 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -62,10 +62,6 @@ public:
 
       //@ManDoc: copy from flux register to fab
     void copyTo(FArrayBox& flx, int dir,
-              int src_comp, int dest_comp, int num_comp);
-
-      //@ManDoc: copy from flux register to multifab
-    void copyTo(MultiFab& mf, int dir,
               int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: flx = flx + mult*register

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.5 1998-03-30 20:05:34 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.6 1998-03-30 20:24:11 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -243,20 +243,6 @@ BndryRegister::plusFrom (const MultiFab& src,
     for (OrientationIter face; face; ++face)
     {
         bndry[face()].plusFrom(src,nghost,src_comp,dest_comp,num_comp);
-    }
-    return *this;
-}
-
-const BndryRegister&
-BndryRegister::copyTo (MultiFab& dest,
-                       int       nghost,
-                       int       src_comp,
-                       int       dest_comp,
-                       int       num_comp) const
-{
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].copyTo(dest,nghost,src_comp,dest_comp,num_comp);
     }
     return *this;
 }

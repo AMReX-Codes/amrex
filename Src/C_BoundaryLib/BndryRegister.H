@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.5 1998-03-30 20:05:34 lijewski Exp $
+// $Id: BndryRegister.H,v 1.6 1998-03-30 20:24:10 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -100,14 +100,6 @@ public:
                              int             src_comp,
                              int             dest_comp,
                              int             num_comp);
-    //
-    //@ManDoc: fill the given MultiFab on intersect with the boundary FABs.
-    //
-    const BndryRegister& copyTo (MultiFab& dest,
-                                 int       nghost,
-                                 int       src_comp,
-                                 int       dest_comp,
-                                 int       num_comp) const;
     //
     //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
     //
