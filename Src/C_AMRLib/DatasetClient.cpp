@@ -277,7 +277,7 @@ bool ArrayViewMultiFabElementFormatLabel(MultiFab *debugMultiFab, int element,
 }
 
 
-
+#if 0
 #ifdef BL_ARRAYVIEW_TAGBOX
 // -------------------------------------------------------------------
 // pointer to TagBox interface
@@ -355,6 +355,7 @@ bool ArrayViewTagBoxArray(TagBoxArray *debugTagBoxArray) {
   delete debugMultiFab;
   return returnValue;
 }
+#endif
 #endif
 
 
