@@ -1,5 +1,5 @@
 //
-// $Id: CoordSys.cpp,v 1.15 2001-08-01 21:50:50 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.16 2001-08-15 19:23:55 lijewski Exp $
 //
 #include <cmath>
 #include <iostream>
@@ -337,7 +337,6 @@ CoordSys::GetVolume (FArrayBox& vol,
     FORT_SETVOL(vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
 }
 
-#if (BL_SPACEDIM == 2)
 void
 CoordSys::GetDLogA (FArrayBox& dloga,
                     const Box& region,
@@ -359,7 +358,6 @@ CoordSys::GetDLogA (const Box& region,
     GetDLogA(*dloga,region,dir);
     return dloga;
 }
-#endif /*BL_SPACEDIM == 2*/
 
 FArrayBox*
 CoordSys::GetFaceArea (const Box& region,

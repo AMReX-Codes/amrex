@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.57 2001-08-10 19:52:21 almgren Exp $
+// $Id: Geometry.cpp,v 1.58 2001-08-15 19:23:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,6 +12,8 @@
 //
 // The definition of static data members.
 //
+int Geometry::spherical_origin_fix = 0;
+
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
@@ -448,13 +450,7 @@ Geometry::Geometry (const Box& dom)
 
 Geometry::Geometry (const Geometry& g)
 {
-    domain = g.domain;
-    ok     = g.ok;
-
-    for (int k = 0; k < BL_SPACEDIM; k++)
-    {
-        dx[k] = g.dx[k];
-    }
+    define(g.domain);
 }
 
 Geometry::~Geometry() {}
@@ -470,6 +466,16 @@ Geometry::define (const Box& dom)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
     }
+    if (spherical_origin_fix == 1)
+    {
+	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && BL_SPACEDIM > 1) {
+            prob_domain.setLo(0,2.*dx[0]);
+            for (int k = 0; k < BL_SPACEDIM; k++)
+            {
+                dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+            }
+	}
+    } 
 }
 
 void
@@ -489,6 +495,8 @@ Geometry::Setup ()
     BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
     prob_domain.setLo(prob_lo);
     prob_domain.setHi(prob_hi);
+    spherical_origin_fix = 0.;
+    pp.query("spherical_origin_fix",spherical_origin_fix);
     //
     // Now get periodicity info.
     //

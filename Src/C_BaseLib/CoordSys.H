@@ -2,7 +2,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.10 2001-08-01 21:50:49 lijewski Exp $
+// $Id: CoordSys.H,v 1.11 2001-08-15 19:23:55 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -22,15 +22,8 @@ class FArrayBox;
 class CoordSys
 {
 public:
-#if (BL_SPACEDIM == 1)    
+
     enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
-#endif
-#if (BL_SPACEDIM == 2)    
-    enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
-#endif
-#if (BL_SPACEDIM == 3)
-    enum CoordType { undef = -1, cartesian = 0 };
-#endif    
     //
     //@ManDoc: Nice ASCII output.
     //
@@ -183,7 +176,6 @@ public:
     */
     FArrayBox* GetVolume (const Box& region) const;
     
-#if (BL_SPACEDIM == 2)
     /*@ManDoc: Compute d(log(A))/dr at cell centers in given region and
                return the results in the resize()d input FAB.
     */
@@ -194,7 +186,6 @@ public:
                responsibility to delete the returned FAB.
     */
     FArrayBox* GetDLogA (const Box& region, int dir) const;
-#endif
     //
     //@ManDoc: Return the volume of the specified cell.
     //
@@ -256,6 +247,5 @@ protected:
     Real dx[BL_SPACEDIM];
     bool ok;
 };
-
 
 #endif /*_COORDSYS_H_*/
