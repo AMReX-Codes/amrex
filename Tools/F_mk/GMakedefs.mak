@@ -167,10 +167,11 @@ ifeq ($(ARCH),Linux)
           FFLAGS   +=     -CV -CS -CA -CB
           F90FLAGS +=     -CV -CS     -CB
         else
-          FFLAGS   += -CU -CV -CS -CA -CB
-#         FFLAGS   +=             -CA
-          F90FLAGS += -CU -CV -CS     -CB
-#         F90FLAGS +=             -CA
+          FFLAGS   += -CB -CU
+#         FFLAGS   +=         -CV -CS -CA
+#         FFLAGS   +=                 -CA
+          F90FLAGS += -CB -CU -CV -CS
+#         F90FLAGS +=                 -CA
         endif
       endif
     endif
@@ -236,7 +237,7 @@ ifeq ($(ARCH),Linux)
       FFLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
       F90FLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
     else
-      FFLAGS   += -g --pca --nsav       --ap --chk aesu # --chkglobal
+      FFLAGS   += -g --pca --nsav       --ap # --chk aesu # --chkglobal
       F90FLAGS += -g --pca --nsav --f95 --ap --chk aes  # --chkglobal
     endif
     ifdef mpi_include
