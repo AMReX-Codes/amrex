@@ -40,7 +40,7 @@ extern "C"
                           Real*       dest,
                           ARLIM_P(dlo), ARLIM_P(dhi),
                           const int&  ncomp);
-};
+}
 
 #endif /*BL_LANG_CC*/
 
