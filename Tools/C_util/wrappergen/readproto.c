@@ -32,6 +32,9 @@ char *str;
 ** just after the lask searchChar that was \0'd.
 */
 
+int ReadFnList _ANSI_ARGS_((char* fn, char*** fn_names, int* n_fn ));
+void ReadFnProto _ANSI_ARGS_(( char* fn, char** fn_names, int n_fn_names, fn_def** fn_list, int* n_fn ));
+
 char *my_strtok( str, searchChar )
 char *str, searchChar;
 {
@@ -100,24 +103,21 @@ char *argv[];
   if (IsArgPresent( &argc, argv, "-c++" )) using_cpp = 1;
 
   if (ReadFnList( fn_list_file, &fn_names, &n_fn_names )) {
-    if (ReadFnProto( proto_file_name, fn_names, n_fn_names, &fn_list,
-		     &n_fn )) {
+      ReadFnProto( proto_file_name, fn_names, n_fn_names, &fn_list, &n_fn );
       WriteWrappers( outf, ListHeadPtr( wrapperFiles, char *),
 		     ListSize( wrapperFiles, char *), fn_list, n_fn );
-    }
   }
   fclose( outf );
   return 0;
 }
 
 
-int ReadFnProto( fn, fn_names, n_fn_names, fn_list, n_fn )
+void ReadFnProto( fn, fn_names, n_fn_names, fn_list, n_fn )
 char *fn, **fn_names;
 int n_fn_names, *n_fn;
 fn_def **fn_list;
 {
   int fn_num, argnum, i;
-  FILE *inf;
   char *filestr, *ptr;
   
   filestr = ReadFileIntoString( fn );
@@ -205,7 +205,6 @@ int ReadFnList( fn, fn_names, n_fn )
 char *fn, ***fn_names;
 int *n_fn;
 {
-  FILE *inf;
   xpandList fnlist;
   char *filestr, *ptr;;
 

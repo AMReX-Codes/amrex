@@ -3,6 +3,7 @@
 #  (C) 2001 by Lawrence Berkely National Laboratory
 #
 
+CC=gcc -Wall
 CPPFLAGS = $(INCLUDE_DIR)
 CFLAGS = -g
 
