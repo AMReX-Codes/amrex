@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.35 2001-02-01 00:49:02 vince Exp $
+# Make.defs $Id: Make.defs,v 1.36 2001-07-18 16:46:09 car Exp $
 #
 
 #
@@ -245,6 +245,13 @@ ifeq ($(findstring KAI C++ 4.0, $(__kcc_version)), KAI C++ 4.0)
     KCC_MINOR_VERSION:=0
     KCC_MAJOR_VERSION=4
     CLOSELIB := TRUE
+    CXXLIBFLAGS = --one_per
+endif
+ifeq ($(findstring C++ 4.0, $(__kcc_version)), C++ 4.0)
+    KCC_VERSION:=4.0
+    KCC_MINOR_VERSION:=0
+    KCC_MAJOR_VERSION:=4
+    CLOSELIB:=TRUE
     CXXLIBFLAGS = --one_per
 endif
     DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
