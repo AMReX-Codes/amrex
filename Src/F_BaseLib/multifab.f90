@@ -3211,7 +3211,7 @@ contains
       real(kind=dp_t) :: f(lo(1):,:)
       real(kind=dp_t) :: x(xo(1):,:)
       integer :: i
-      do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+      do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
          f(i,:) = x(i,:)
       end do
     end subroutine c_1d
@@ -3220,8 +3220,8 @@ contains
       real(kind=dp_t) :: f(lo(1):,lo(2):,:)
       real(kind=dp_t) :: x(xo(1):,xo(2):,:)
       integer :: i, j
-      do j = max(lo(2),xo(2)), min(lo(2),xo(2))
-         do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+      do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))
+         do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
             f(i,j,:) = x(i,j,:)
          end do
       end do
@@ -3231,9 +3231,9 @@ contains
       real(kind=dp_t) :: f(lo(1):,lo(2):,lo(3):,:)
       real(kind=dp_t) :: x(xo(1):,xo(2):,xo(3):,:)
       integer :: i, j, k
-      do k = max(lo(3),xo(3)), min(lo(3),xo(3))
-         do j = max(lo(2),xo(2)), min(lo(2),xo(2))
-            do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+      do k = max(lbound(f,3),lbound(x,3)), min(ubound(f,3),ubound(x,3))
+         do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))
+            do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
                f(i,j,k,:) = x(i,j,k,:)
             end do
          end do
