@@ -58,9 +58,18 @@ public:
     bool flag(int idim, int i)        const { return flg[idim][i]; }
     static int ngrids(int idim);
 
-    const int* ProcessorMap() const  { return processorMap; }
-    bool ownsGrid(int igrid) const { return (processorMap[igrid] == ParallelDescriptor::MyProc())?true:false; }
-    int Owner(int igrid) const { return processorMap[igrid]; }
+    const int* ProcessorMap() const  
+    { 
+	return processorMap; 
+    }
+    bool ownsGrid(int igrid) const 
+    {
+	return (processorMap[igrid] == ParallelDescriptor::MyProc())?true:false; 
+    }
+    int Owner(int igrid) const 
+    {
+	return processorMap[igrid]; 
+    }
 private:
 #if (BL_SPACEDIM == 2)
     enum
@@ -92,7 +101,7 @@ private:
     bool* flg[BL_SPACEDIM];             // flags dirichlet bdys
     int* fdm;                           // which is flat dim for this face
     Box* nodebx[BL_SPACEDIM];           // node-based versions of interface boxes
-    int (*fgr)[2];                      // grid neighbor data for faces
+    int (*fgr)[N_FACE_GRIDS];           // grid neighbor data for faces
 #if BL_SPACEDIM==3
     int (*egr)[N_EDGE_GRIDS];           // grid neighbor data for edges
 #endif
@@ -108,14 +117,15 @@ private:
 inline int level_interface::grid(int idim, int i, int j)   const 
 { 
     assert(idim >= 0 && idim <= FACEDIM);
+    assert(j >= 0 && i >= 0);
     int ret;
     switch(idim) 
     {
-    case FACEDIM: ret = fgr[i][j]; break;
+    case FACEDIM: assert(j < N_FACE_GRIDS && i < nboxes(FACEDIM)); ret = fgr[i][j]; break;
 #if BL_SPACEDIM == 3
-    case 1      : ret = egr[i][j]; break;
+    case 1      : assert(j < N_EDGE_GRIDS && i < nboxes(1)); ret = egr[i][j]; break;
 #endif
-    case 0      : ret = cgr[i][j]; break;
+    case 0      : assert(j < N_CORNER_GRIDS && i < nboxes(0)); ret = cgr[i][j]; break;
     }
     return ret;
 }
