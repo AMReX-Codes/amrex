@@ -1,4 +1,4 @@
-c     $Id: CG_2D.F,v 1.4 2000-08-24 16:02:46 car Exp $
+c     $Id: CG_2D.F,v 1.5 2002-08-29 22:14:39 car Exp $
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -133,7 +133,7 @@ c-----------------------------------------------------------------------
 c
       integer i, j, n
 c
-      pw = 0.0
+      pw = 0.0D0
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)

@@ -1,5 +1,5 @@
 c
-c $Id: LO_UTIL.F,v 1.1 1998-03-24 07:07:23 almgren Exp $
+c $Id: LO_UTIL.F,v 1.2 2002-08-29 22:14:39 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -79,12 +79,12 @@ c     Make data, locations
       x(1) = zero
       y(1) = yfunc(x(1))
       do j=2,NORDER
-         x(j) = j - 1.5*one
+         x(j) = j - 1.5D0*one
          y(j) = yfunc(x(j))
       end do
 c      
 c     Set interpolation point to ghost cell location
-      xInt = (x(2) - x(3))*0.5
+      xInt = (x(2) - x(3))*0.5D0
 c      
 c     Call routine
       call polyInterpCoeff(xInt,x,NORDER,c)

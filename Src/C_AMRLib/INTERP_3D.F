@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.10 2000-06-02 17:09:16 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.11 2002-08-29 22:14:34 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -830,7 +830,7 @@ c ... added to prevent underflow for small crse values
           do k = cslopelo(3)-1,cslopehi(3)+1
             do j = cslopelo(2)-1,cslopehi(2)+1
               do i = cslopelo(1)-1, cslopehi(1)+1 
-                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0e-20)
+                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0D-20)
               end do
             end do
           end do
@@ -1102,7 +1102,7 @@ c ... added to prevent underflow for small crse values
           do k = cslopelo(3)-1,cslopehi(3)+1
             do i = cslopelo(1)-1, cslopehi(1)+1 
               do j = cslopelo(2)-1,cslopehi(2)+1
-                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0e-20)
+                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0D-20)
               end do
             end do
           end do
@@ -1367,7 +1367,7 @@ c ... added to prevent underflow for small crse values
           do j = cslopelo(2)-1,cslopehi(2)+1
             do i = cslopelo(1)-1, cslopehi(1)+1 
               do k = cslopelo(3)-1,cslopehi(3)+1
-                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0e-20)
+                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0D-20)
               end do
             end do
           end do

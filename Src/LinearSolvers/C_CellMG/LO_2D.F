@@ -1,5 +1,5 @@
 c
-c $Id: LO_2D.F,v 1.3 1999-02-03 00:39:25 lijewski Exp $
+c $Id: LO_2D.F,v 1.4 2002-08-29 22:14:39 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -60,7 +60,7 @@ c
       REAL_T c(DIMV(c),nc)
 c
       REAL_T factor, den
-      parameter(factor=2.00)
+      parameter(factor=2.00D0)
       integer n
       integer i
       integer j
@@ -70,10 +70,10 @@ c
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)+1
                   den = f(2*i,2*j,n) + f(2*i,2*j+1,n)
-                  if (den .ne. 0.0) then
+                  if (den .ne. 0.0D0) then
                     c(i,j,n) =  factor*f(2*i,2*j,n)*f(2*i,2*j+1,n)/den
                   else
-                    c(i,j,n) =  0.0
+                    c(i,j,n) =  0.0D0
                   end if
                end do
             end do
@@ -83,10 +83,10 @@ c
             do j = lo(2), hi(2)+1
                do i = lo(1), hi(1)
                   den = f(2*i,2*j,n) + f(2*i+1,2*j,n)
-                  if (den .ne. 0.0) then
+                  if (den .ne. 0.0D0) then
                     c(i,j,n) =  factor*f(2*i,2*j,n)*f(2*i+1,2*j,n)/den
                   else
-                    c(i,j,n) =  0.0
+                    c(i,j,n) =  0.0D0
                   end if
                end do
             end do
@@ -263,15 +263,15 @@ c
             end do
             if ( flagden .eq. 1) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = 1.0
+                  den(lo(1),j) = 1.0D0
                end do
             end if
          else if (is_dirichlet(bct)) then
             do m=0,lenx
-               x(m) = m + 0.5
+               x(m) = m + 0.5D0
             end do
             x(-1) = - bcl/h(1)
-            xInt = - 0.5
+            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -284,7 +284,7 @@ c
                else
                   do j = lo(2), hi(2)
                      phi(lo(1)-1, j, n) = cvmgt(
-     $                    0.0,
+     $                    0.0D0,
      $                    phi(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
                   end do
@@ -301,7 +301,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = cvmgt(coef(0), 0.0,
+                  den(lo(1),j) = cvmgt(coef(0), 0.0D0,
      $                 mask(lo(1)-1,j) .gt. 0)
                end do
             end if
@@ -318,7 +318,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = cvmgt(-1.0, 0.0,
+                  den(lo(1),j) = cvmgt(-1.0D0, 0.0D0,
      $                 mask(lo(1)-1,j) .gt. 0)
                end do
             end if
@@ -343,15 +343,15 @@ c
             end do
 	    if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j) = 1.0
+                  den(hi(1),j) = 1.0D0
                end do
 	    end if
          else if (is_dirichlet(bct)) then
             do m=0,lenx
-               x(m) = m + 0.5
+               x(m) = m + 0.5D0
             end do
             x(-1) = - bcl/h(1)
-            xInt = - 0.5
+            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -364,7 +364,7 @@ c
                else
                   do j = lo(2), hi(2)
                      phi(hi(1)+1,j,n) = cvmgt(
-     $                    0.0,
+     $                    0.0D0,
      $                    phi(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
                   end do
@@ -381,7 +381,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j)   = cvmgt(coef(0), 0.0,
+                  den(hi(1),j)   = cvmgt(coef(0), 0.0D0,
      $                 mask(hi(1)+1,j) .gt. 0)
                end do
             end if
@@ -398,7 +398,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j) = cvmgt(-1.0, 0.0,
+                  den(hi(1),j) = cvmgt(-1.0D0, 0.0D0,
      $                 mask(hi(1)+1,j) .gt. 0)
                end do
             end if
@@ -423,15 +423,15 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1),hi(1)
-                  den(i,lo(2))   = 1.0
+                  den(i,lo(2))   = 1.0D0
                end do
             end if
          else if (is_dirichlet(bct)) then
             do m=0,leny
-               x(m) = m + 0.5
+               x(m) = m + 0.5D0
             end do
             x(-1) = - bcl/h(2)
-            xInt = - 0.5
+            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, leny+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -444,7 +444,7 @@ c
                else
                   do i = lo(1), hi(1)
                      phi(i,lo(2)-1,n) = cvmgt(
-     $                    0.0,
+     $                    0.0D0,
      $                    phi(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
                   end do
@@ -461,7 +461,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i, lo(2))   = cvmgt(coef(0), 0.0,
+                  den(i, lo(2))   = cvmgt(coef(0), 0.0D0,
      $                 mask(i, lo(2)-1) .gt. 0)
                end do
             end if
@@ -478,7 +478,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,lo(2)) = cvmgt(-1.0, 0.0,
+                  den(i,lo(2)) = cvmgt(-1.0D0, 0.0D0,
      $                 mask(i,lo(2)-1) .gt. 0)
                end do
             end if
@@ -503,16 +503,16 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2))   = 1.0
+                  den(i,hi(2))   = 1.0D0
                end do
             end if
          else if (is_dirichlet(bct)) then
             if ( bct .eq. LO_REFLECT_ODD ) leny = 0
             do m=0,leny
-               x(m) = m + 0.5
+               x(m) = m + 0.5D0
             end do
             x(-1) = - bcl/h(2)
-            xInt = - 0.5
+            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, leny+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -525,7 +525,7 @@ c
                else
                   do i = lo(1), hi(1)
                      phi(i,hi(2)+1,n) = cvmgt(
-     $                    0.0,
+     $                    0.0D0,
      $                    phi(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
                   end do
@@ -542,7 +542,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2))   = cvmgt(coef(0), 0.0,
+                  den(i,hi(2))   = cvmgt(coef(0), 0.0D0,
      $                 mask(i,hi(2)+1) .gt. 0)
                end do
             end if
@@ -559,7 +559,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2)) = cvmgt(-1.0, 0.0,
+                  den(i,hi(2)) = cvmgt(-1.0D0, 0.0D0,
      $                 mask(i,hi(2)+1) .gt. 0)
                end do
             end if
