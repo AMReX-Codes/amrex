@@ -197,21 +197,28 @@ task_list::~task_list()
 
 void task_list::execute()
 {
+    list< task** > dead_tasks;
     while ( !tasks.empty() )
     {
-	task* t = tasks.front();
+	task** t = tasks.front();
 	tasks.pop_front();
 	if ( verbose )
-	    t->hint();
-	if ( t->ready() )
+	    (*t)->hint();
+	if ( (*t)->ready() )
 	{
-	    delete t;
-	    t = 0;
+	    delete *t;
+	    *t = 0;
+	    dead_tasks.push_back(t);
 	}
 	else
 	{
 	    tasks.push_back(t);
 	}
+    }
+    while ( !dead_tasks.empty() )
+    {
+	delete dead_tasks.front();
+	dead_tasks.pop_front();
     }
 }
 
@@ -224,7 +231,19 @@ void task_list::add_task(task* t)
     }
     else
     {
-	tasks.push_back( t );
+	task** tp = new task*( t );
+	// loop here over existing tasks, see if the depend on this one,
+	// if so, add them to the dependency
+	list< task**>::const_iterator cit = tasks.begin();
+	while ( cit != tasks.end() )
+	{
+	    if ( t->depends_on_q( **cit ) )
+	    {
+		// do something
+	    }
+	    cit++;
+	}
+	tasks.push_back( tp );
     }
 }
 
