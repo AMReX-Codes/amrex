@@ -694,7 +694,7 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (get_amr_level(lto) >= 0) 
     {
-	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class( (integrate==0)?0:1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_class( (integrate==0)?0:1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
     }
     else 
     {

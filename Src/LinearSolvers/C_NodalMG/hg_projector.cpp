@@ -437,7 +437,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     {
 	const int mglev1 = ml_index[lev_min+1];
 	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min], 
-	    bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
+	    bilinear_restrictor_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
 	    mg_domain[ml_index[lev_min]].volume();
