@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.29 2001-08-21 22:16:26 car Exp $
+// $Id: BoxLib.cpp,v 1.30 2002-11-14 18:43:29 car Exp $
 //
 #include <winstd.H>
 
@@ -93,6 +93,67 @@ BoxLib::Error (const char* msg)
     write_lib_id("Error");
     write_to_stderr_without_buffering(msg);
     ParallelDescriptor::Abort();
+}
+
+namespace
+{
+  const int EOS = -1;
+
+  std::string
+  Trim (const std::string& str)
+  {
+    int n;
+    for ( n = str.size(); --n >= 0; )
+      {
+	if ( str[n] != ' ' ) break;
+      }
+    std::string result;
+    for (int i = 0; i <= n; ++i )
+      {
+	result += str[i];
+      }
+    return result;
+  }
+
+  std::string
+  Fint_2_string (const int* iarr, int nlen)
+  {
+    std::string res;
+    for ( int i = 0; i < nlen && *iarr != EOS; ++i )
+      {
+	res += *iarr++;
+      }
+    return Trim(res);
+  }
+}
+
+#include <BLFort.H>
+
+BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
+  (
+   const int istr[], const int* NSTR
+   )
+{
+  std::string res = Fint_2_string(istr, *NSTR);
+  BoxLib::Error(res.c_str());
+}
+
+BL_FORT_PROC_DECL(BL_WARNING_CPP,bl_warning_cpp)
+  (
+   const int istr[], const int* NSTR
+   )
+{
+  std::string res = Fint_2_string(istr, *NSTR);
+  BoxLib::Warning(res.c_str());
+}
+
+BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
+  (
+   const int istr[], const int* NSTR
+   )
+{
+  std::string res = Fint_2_string(istr, *NSTR);
+  BoxLib::Abort(res.c_str());
 }
 
 void

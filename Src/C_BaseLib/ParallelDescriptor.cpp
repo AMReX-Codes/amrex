@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.96 2002-10-31 18:09:00 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.97 2002-11-14 18:43:29 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -969,69 +969,36 @@ ParallelDescriptor::SeqNum ()
     return result;
 }
 
-#if  defined(BL_FORT_USE_UPPERCASE)
-#define FORT_BL_PD_BARRIER 	BL_PD_BARRIER
-#define FORT_BL_PD_COMMUNICATOR BL_PD_COMMUNICATOR
-#define FORT_BL_PD_MYPROC 	BL_PD_MYPROC
-#define FORT_BL_PD_NPROCS 	BL_PD_NPROCS
-#define FORT_BL_PD_IOPROC 	BL_PD_IOPROC
-#define FORT_BL_PD_ABORT  	BL_PD_ABORT
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_BL_PD_BARRIER 	bl_pd_barrier
-#define FORT_BL_PD_COMMUNICATOR bl_pd_communicator
-#define FORT_BL_PD_MYPROC 	bl_pd_myproc
-#define FORT_BL_PD_NPROCS 	bl_pd_nprocs
-#define FORT_BL_PD_IOPROC 	bl_pd_ioproc
-#define FORT_BL_PD_ABORT  	bl_pd_abort
-#elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_BL_PD_BARRIER 	bl_pd_barrier_
-#define FORT_BL_PD_COMMUNICATOR bl_pd_communicator_
-#define FORT_BL_PD_MYPROC 	bl_pd_myproc_
-#define FORT_BL_PD_NPROCS 	bl_pd_nprocs_
-#define FORT_BL_PD_IOPROC 	bl_pd_ioproc_
-#define FORT_BL_PD_ABORT  	bl_pd_abort_
-#endif
+#include <BLFort.H>
 
-extern  "C"
-void
-FORT_BL_PD_BARRIER ()
+BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 {
     ParallelDescriptor::Barrier();
 }
 
-extern  "C"
-void
-FORT_BL_PD_COMMUNICATOR (void* vcomm)
+BL_FORT_PROC_DECL(BL_PD_COMMUNICATOR,bl_pd_communicator)(void* vcomm)
 {
     MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
 
     *comm = ParallelDescriptor::Communicator();
 }
 
-extern  "C"
-void
-FORT_BL_PD_MYPROC (int* myproc)
+BL_FORT_PROC_DECL(BL_PD_MYPROC,bl_pd_myproc)(int* myproc)
 {
     *myproc = ParallelDescriptor::MyProc();
 }
 
-extern  "C"
-void
-FORT_BL_PD_NPROCS (int* nprocs)
+BL_FORT_PROC_DECL(BL_PD_NPROCS,bl_pd_nprocs)(int* nprocs)
 {
     *nprocs = ParallelDescriptor::NProcs();
 }
 
-extern  "C"
-void
-FORT_BL_PD_IOPROC (int* ioproc)
+BL_FORT_PROC_DECL(BL_PD_IOPROC,bl_pd_ioproc)(int* ioproc)
 {
     *ioproc = ParallelDescriptor::IOProcessorNumber();
 }
 
-extern  "C"
-void
-FORT_BL_PD_ABORT ()
+BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 {
     ParallelDescriptor::Abort();
 }
