@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffSameGrid.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
+// $Id: DiffSameGrid.cpp,v 1.5 1999-06-04 17:03:52 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -116,10 +116,7 @@ main (int   argc,
     DataServices dataServicesF(iFile2, fileType);
 
     if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
-        //
-        // This calls ParallelDescriptor::EndParallel() and exit()
-        //
-        DataServices::Dispatch(DataServices::ExitRequest, NULL);
+        BoxLib::Abort("ERROR: Dataservices not OK");
 
 
     //
@@ -131,12 +128,18 @@ main (int   argc,
     //
     // Initial Tests 
     //
-    BL_ASSERT(amrDatasHaveSameDerives(amrDataI,amrDataE));
-    BL_ASSERT(amrDataI.FinestLevel() == amrDataE.FinestLevel());
+    if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
+        BoxLib::Abort("ERROR: Plotfiles do not have the same state variables");
 
-    int nComp          = amrDataI.NComp();
+    if (amrDataI.FinestLevel() != amrDataE.FinestLevel())
+        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
+
+    int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
     const Array<aString>& derives = amrDataI.PlotVarNames();
+    Array<int> destComps(nComp);
+    for (int i = 0; i < nComp; i++) 
+        destComps[i] = i;
     
 
     //
@@ -144,15 +147,21 @@ main (int   argc,
     //
     Array<MultiFab*> error(finestLevel+1);
     
-    cout << "Level  L"<< norm << " norm of Error in Each Component" << endl
-         << "-----------------------------------------------" << endl;
+    if (ParallelDescriptor::IOProcessor())
+        cout << "Level  L"<< norm << " norm of Error in Each Component" << endl
+             << "-----------------------------------------------" << endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         const BoxArray& baE = amrDataE.boxArray(iLevel);
 
-        BL_ASSERT(baI.length() == baE.length());
+        if (baI.length() != baE.length())
+        {
+            cout << "ERROR: BoxArray lengths are not the same at level " 
+                 << iLevel << endl;
+            ParallelDescriptor::Abort();
+        }
 
 	error[iLevel] = new MultiFab(baI, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
@@ -160,25 +169,8 @@ main (int   argc,
         MultiFab dataI(baI, nComp, 0);
         MultiFab dataE(baE, nComp, 0);
 
-	for (int iGrid=0; iGrid<baI.length(); ++iGrid)
-	{
-            BL_ASSERT (baI[iGrid] == baE[iGrid]);
-
-	    for (int iComp=0; iComp<nComp; ++iComp)
-	    {
-		const Box& dataGrid = baI[iGrid];
-                FArrayBox tmpFab(dataGrid,1);
-
-                amrDataI.FillVar(&tmpFab, dataGrid,
-                                 iLevel, derives[iComp], 0);
-                dataI[iGrid].copy(tmpFab,0,iComp,1);
-
-                amrDataE.FillVar(&tmpFab, dataGrid,
-                                 iLevel, derives[iComp], 0);
-                dataE[iGrid].copy(tmpFab,0,iComp,1);
-	    }
-
-	}
+        amrDataI.FillVar(dataI, iLevel, derives, destComps);
+        amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
         (*error[iLevel]).copy(dataI);
         (*error[iLevel]).minus(dataE, 0, nComp, 0);
@@ -187,21 +179,68 @@ main (int   argc,
         //
         // Output Statistics
         //
-        cout << "  " << iLevel << "    ";
-        for (int iComp=0; iComp<nComp; ++iComp)
-        {
-            Real L2 = 0.0;
-            for (int iGrid=0; iGrid<baI.length(); ++iGrid)
-            {
-                Real grdL2 = (*error[iLevel])[iGrid].norm(norm,iComp,1);
-                L2 = L2 + pow(grdL2, norm);
-            }
-            L2 = pow(L2, (1.0/norm));
+        if (ParallelDescriptor::IOProcessor())
+            cout << "  " << iLevel << "    ";
 
-            cout << L2 << "  ";
+        Array<Real> norms(nComp);
+        for (int iComp = 0; iComp < nComp; iComp++)
+            norms[iComp] = 0.0;
+
+        for (MultiFabIterator mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        {
+            for (int iComp = 0; iComp < nComp; iComp++)
+            {
+                Real grdL2 = mfi().norm(norm, iComp, 1);
+                norms[iComp] = norms[iComp] + pow(grdL2, norm);
+            }
         }
-        cout << endl;
+
+
+#ifdef BL_USE_MPI
+        MPI_Datatype datatype = mpi_data_type(norms.dataPtr());
+        if (ParallelDescriptor::IOProcessor())
+        {
+            Array<Real> tmp(nComp);
+            for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
+                if (proc != ParallelDescriptor::IOProcessorNumber())
+                {
+                    MPI_Status stat;
+                    int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
+                                      MPI_ANY_SOURCE, proc, MPI_COMM_WORLD, 
+                                      &stat);
+
+                    if (rc != MPI_SUCCESS)
+                        ParallelDescriptor::Abort(rc);
+
+                    for (int iComp = 0; iComp < nComp; iComp++)
+                        norms[iComp] = norms[iComp] + tmp[iComp];
+                }
+        }
+        else
+        {
+            int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+                              ParallelDescriptor::IOProcessorNumber(),
+                              ParallelDescriptor::MyProc(),
+                              MPI_COMM_WORLD);
+
+            if (rc != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+        }
+#endif
+
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            for (int iComp = 0; iComp < nComp; iComp++)
+            {
+                norms[iComp] = pow(norms[iComp], (1.0/norm));
+
+                cout << norms[iComp] << " ";
+            }
+            cout << endl;
+        }
     }
+
 
     if (!difFile.isNull())
         WritePlotFile(error, amrDataI, difFile, verbose);
@@ -230,4 +269,4 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
 	    return false;
     return true;
 }
-    
+
