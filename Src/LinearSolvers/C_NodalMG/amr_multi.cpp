@@ -481,7 +481,7 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
   int rat = mg_domain[lfrom].length(0) / mg_domain[lto].length(0);
-  if (type(resid) == cellvect) {
+  if (type(resid[lto]) == cellvect) {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   cell_average_restrictor);
   }

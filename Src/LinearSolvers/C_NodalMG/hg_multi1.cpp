@@ -573,7 +573,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
     int mgc = ml_index[lev-1];
     int rat = mg_domain[mglev].length(0) / mg_domain[mgc].length(0);
     Box idomain = mg_domain[mglev];
-    idomain.convert(type(dest)).grow(-1);
+    idomain.convert(type(dest[lev])).grow(-1);
     MultiFab& target = dest[lev];
     for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
       // find a fine grid touching this face

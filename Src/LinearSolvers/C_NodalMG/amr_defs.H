@@ -78,16 +78,6 @@ inline IndexType::CellIndex type(const FabArray<Real,Fab>& r, int idir) {
   return r.box(0).type(idir);
 }
 
-inline IntVect type(const PArray<MultiFab>& a) {
-  assert(a.length() > 0);
-  return type(a[0]);
-}
-
-inline IndexType::CellIndex type(const PArray<MultiFab>& a, int idir) {
-  assert(a.length() > 0);
-  return type(a[0], idir);
-}
-
 // norm helper functions:
 
 inline Real mfnorm(MultiFab& mf) {
