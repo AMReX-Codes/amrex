@@ -41,6 +41,48 @@ extern "C"
 #endif
 }
 
+// TASK_FAB_GET
+
+class task_fab_get : public task_fab
+{
+public:
+    task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx, const MultiFab& s_, int sgrid_);
+    virtual ~task_fab_get();
+    virtual bool ready();
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+private:
+    task* tf;
+};
+
+task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx_, const MultiFab& s_, int sgrid_) 
+    : task_fab(d_, dgrid_, bx_, s_.nComp())
+{
+    tf = new task_copy_local(target, bx_, s_, sgrid_);
+}
+
+task_fab_get::~task_fab_get()
+{
+}
+
+bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
+{
+    task_fab::init(sno, comm);
+    bool result = m_local_target;
+    bool tresult = tf->init(sno, comm);
+    return result || tresult;
+    return false;
+}
+
+bool task_fab_get::ready()
+{
+    if ( tf->ready() )
+    {
+	delete tf;
+	return true;
+    }
+    return false;
+}
+
 typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*); 
 
 struct task_restriction_fill : public task
