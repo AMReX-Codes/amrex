@@ -1,11 +1,12 @@
 #!/bin/sh
-USAGE="Usage: $myName [-p project] [-d spacedim] [-o outfile] [-O <0, 1>] [-f namefile] filenames"
+USAGE="Usage: $myName [-p project] [-v prversion] [-d spacedim] [-o outfile] [-O <0, 1>] [-f namefile] filenames"
 
 myName=$0
 PROJ=IAMRAll
 DIM=2
 OFILE=$PROJ.dsp
 OLEVEL=0           # 0 - DEBUG, 1 - Release
+VERSION=0
 NFILE=
 
 #
@@ -16,7 +17,7 @@ then
         echo $USAGE
         exit
 fi
-set -- `getopt p:d:o:O:f: $*`
+set -- `getopt p:d:o:O:f:v: $*`
 if [ $? != 0 ]
   then
     echo $USAGE 
@@ -30,11 +31,24 @@ do
   -o) shift;OFILE=$1;shift;;
   -O) shift;OLEVEL=$1;shift;;
   -f) shift;NFILE=$1;shift;;
+  -v) shift;VERSION=$1;shift;;
   --) shift;break;;
   esac
 done
 
 files=$*
+
+CPROJDEF=
+CPROJVERS=
+FPROJDEF=
+FPROJVERS=
+if [ ${VERSION} != 0 ]
+ then
+   CPROJDEF='/D "BL_USE_HGPROJ_SERIAL"'
+   CPROJVERS='/D "BL_PRVERSION='${VERSION}\"
+   FPROJDEF='/DBL_USE_HGPROJ_SERIAL'
+   FPROJVERS='/DBL_PRVERSION='${VERSION}
+fi
 
 if [ -n $NFILE ]
   then
@@ -138,7 +152,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD F90 /compile_only /iface:cref /include:"Release/" /nologo /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GR /GX /O2 $cdirlist /I "C:\WMPI\include" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=${DIM} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
+# ADD CPP /nologo /W3 /GR /GX /O2 $cdirlist /I "C:\WMPI\include" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D "BL_SPACEDIM=${DIM}" ${CPROJDEF} ${CPROJVERS} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -164,7 +178,7 @@ LINK32=link.exe
 # ADD BASE F90 /compile_only /debug:full /include:"Debug/" /nologo /warn:nofileopt
 # ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /iface:cref /include:"Debug/" /libs:static /nologo /optimize:0 /threads /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /Gm /GR /GX /ZI /Od $cdirlist /I "C:\WMPI\include" /D "_CONSOLE" /D "_MBCS" /D "_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=${DIM} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
+# ADD CPP /nologo /MTd /W3 /Gm /GR /GX /ZI /Od $cdirlist /I "C:\WMPI\include" /D "_CONSOLE" /D "_MBCS" /D "_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D "BL_SPACEDIM=${DIM}" ${CPROJDEF} ${CPROJVERS} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -292,7 +306,7 @@ InputPath=$ffile
 InputName=$ifile
 
 "$(IntDir)\\$(InputName).FOR" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_PRVERSION=5 $(InputPath) | perl ..\..\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH ${FPROJDEF} ${FPROJVERS} $(InputPath) | perl ..\..\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
 
 # End Custom Build
 
@@ -304,7 +318,7 @@ InputPath=$ffile
 InputName=$ifile
 
 "$(IntDir)\\$(InputName).FOR" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_PRVERSION=5 $(InputPath) | perl ..\..\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH ${FPROJDEF} ${FPROJVERS} $(InputPath) | perl ..\..\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
 
 # End Custom Build
 
