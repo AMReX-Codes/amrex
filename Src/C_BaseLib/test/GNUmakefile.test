@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile.test,v 1.5 1998-08-21 17:58:34 car Exp $
+# $Id: GNUmakefile.test,v 1.6 1998-09-25 17:57:13 lijewski Exp $
 #
 
 #
@@ -21,7 +21,7 @@ LIBRARIES += -lbox$(optionsSuffix)
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs = tVisMF tDir
+_progs = tVisMF tDir t8BIT
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
