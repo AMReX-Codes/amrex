@@ -1,10 +1,10 @@
-//BL_COPYRIGHT_NOTICE
+/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_CONSTANTS_H
 #define BL_CONSTANTS_H
 
 /*
-** $Id: CONSTANTS.H,v 1.2 1997-09-17 22:51:15 lijewski Exp $
+** $Id: CONSTANTS.H,v 1.3 1997-09-18 18:03:33 car Exp $
 */
 
 #ifdef BL_LANG_FORT

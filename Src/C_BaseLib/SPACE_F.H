@@ -1,11 +1,11 @@
-//BL_COPYRIGHT_NOTICE
+/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_SPACE_F_H
 #define BL_SPACE_F_H
 
-//
-// $Id: SPACE_F.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
-//
+/*
+/* $Id: SPACE_F.H,v 1.3 1997-09-18 18:03:34 car Exp $
+/*
 
 #include <SPACE.H>
 

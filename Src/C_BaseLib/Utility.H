@@ -1,11 +1,11 @@
-//BL_COPYRIGHT_NOTICE
+/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-//
-// $Id: Utility.H,v 1.2 1997-09-17 22:51:22 lijewski Exp $
-//
+/*
+/* $Id: Utility.H,v 1.3 1997-09-18 18:03:34 car Exp $
+/*
 
 #include <iostream.h>
 
