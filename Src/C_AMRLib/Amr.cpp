@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.129 2001-10-17 16:43:40 lijewski Exp $
+// $Id: Amr.cpp,v 1.130 2002-03-15 20:20:32 marc Exp $
 //
 #include <winstd.H>
 
@@ -1545,8 +1545,9 @@ Amr::regrid (int  lbase,
         {
             const int  numgrids = amr_level[lev].numGrids();
             const long ncells   = amr_level[lev].countCells();
-            const long ntot     = geom[lev].Domain().numPts();
-            const Real frac     = 100.0*(Real(ncells) / Real(ntot));
+            Real frac = 100.0*Real(ncells);
+            for (int d=0; d<BL_SPACEDIM; ++d)
+                frac /= geom[lev].Domain().length(d);
 
             if (verbose)
             {
