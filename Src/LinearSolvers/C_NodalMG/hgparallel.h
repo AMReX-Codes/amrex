@@ -295,6 +295,7 @@ private:
     MPI_Request     m_request;
 #endif
     bool            m_local;
+    bool            m_done;
 };
 
 class task_fab : public task
