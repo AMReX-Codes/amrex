@@ -1,13 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.21 1998-04-17 22:21:31 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.22 1998-04-20 22:43:03 lijewski Exp $
 //
 
 #include <FluxRegister.H>
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
+#include <Tracer.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -770,13 +771,12 @@ DoIt (Orientation        face,
         tag.fabIndex = k;
         tag.box      = bx;
         tag.face     = face;
+        tag.destComp = destcomp;
+        tag.nComp    = numcomp;
 #ifdef BL_USE_MPI
         sTags.push_back(tag);
         msgs[dMap[k]]++;
 #else
-        tag.destComp = destcomp;
-        tag.nComp    = numcomp;
-
         FArrayBox fabCom(bx, numcomp);
 
         fabCom.copy(flux, bx, srccomp, bx, 0, numcomp);
@@ -799,6 +799,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         int              numcomp,
                         Real             mult)
 {
+    TRACER("FluxRegister::CrseInit()");
+
     assert(flux.box().contains(subbox));
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
