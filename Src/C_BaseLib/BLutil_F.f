@@ -17,16 +17,16 @@ C-----------------------------------------------------------------------
       PARAMETER (EOS=-1)
 C
       IF ( n .LE. len(str) ) THEN
-         STOP "blstr2int: str to large for iarr"
+          STOP "blstr2int: str to large for iarr"
       END IF
 C     Make sure that IARR is empty
       DO J = 1, N
-         iarr(J) = 0
+          iarr(J) = 0
       END DO
       j = 1
       DO i = 1, len(str)
-         iarr(j) = ichar(str(i:i))
-         j = j + 1
+          iarr(j) = ichar(str(i:i))
+          j = j + 1
       END DO
 C     EOS
       iarr(j) = EOS
@@ -42,9 +42,9 @@ C-----------------------------------------------------------------------
       INTEGER i
 C
       DO i = 1, n
-	   IF ( i .GT. LEN(str) ) STOP "blint2str: iarr to large for str"
-         IF ( iarr(i) .EQ. EOS ) GO TO 100
-         str(i:i) = char(iarr(i))
+          IF ( i .GT. LEN(str) ) STOP "blint2str: iarr to large for str"
+          IF ( iarr(i) .EQ. EOS ) GO TO 100
+          str(i:i) = char(iarr(i))
       END DO
  100  CONTINUE
 C
