@@ -1,33 +1,35 @@
-# Microsoft Developer Studio Project File - Name="pBoxLib_2" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Project File - Name="BoxLib" - Package Owner=<4>
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Static Library" 0x0104
 
-CFG=pBoxLib_2 - Win32 Debug
+CFG=BoxLib - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "pBoxLib_2.mak".
+!MESSAGE NMAKE /f "BoxLib.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "pBoxLib_2.mak" CFG="pBoxLib_2 - Win32 Debug"
+!MESSAGE NMAKE /f "BoxLib.mak" CFG="BoxLib - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "pBoxLib_2 - Win32 Release" (based on "Win32 (x86) Static Library")
-!MESSAGE "pBoxLib_2 - Win32 Debug" (based on "Win32 (x86) Static Library")
+!MESSAGE "BoxLib - Win32 Release" (based on "Win32 (x86) Static Library")
+!MESSAGE "BoxLib - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
+# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
 F90=df.exe
+RSC=rc.exe
 
-!IF  "$(CFG)" == "pBoxLib_2 - Win32 Release"
+!IF  "$(CFG)" == "BoxLib - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -39,10 +41,12 @@ F90=df.exe
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
-# ADD F90 /include:"Release/" /compile_only /nologo /stand:f90 /iface:cref /threads /warn:nofileopt
+# ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
+# ADD F90 /compile_only /iface:cref /include:"Release/" /nologo /stand:f90 /threads /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "NDEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "NDEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D for="for(0);else for" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
+# ADD BASE RSC /l 0x409
+# ADD RSC /l 0x409
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -50,7 +54,7 @@ LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
 
-!ELSEIF  "$(CFG)" == "pBoxLib_2 - Win32 Debug"
+!ELSEIF  "$(CFG)" == "BoxLib - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -62,10 +66,12 @@ LIB32=link.exe -lib
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
-# ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
-# ADD F90 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /libs:dll /debug:full /optimize:0 /check:bounds /warn:argument_checking /fpe:0 /stand:f90 /iface:cref /threads /dbglibs /warn:nofileopt
+# ADD BASE F90 /compile_only /debug:full /include:"Debug/" /nologo /warn:nofileopt
+# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /fpe:0 /iface:cref /include:"Debug/" /libs:dll /nologo /stand:f90 /threads /warn:argument_checking /warn:declarations /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "_DEBUG" /D "HG_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "HG_DEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "_DEBUG" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
+# ADD BASE RSC /l 0x409
+# ADD RSC /l 0x409
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -77,20 +83,31 @@ LIB32=link.exe -lib
 
 # Begin Target
 
-# Name "pBoxLib_2 - Win32 Release"
-# Name "pBoxLib_2 - Win32 Debug"
+# Name "BoxLib - Win32 Release"
+# Name "BoxLib - Win32 Debug"
 # Begin Group "C++ Sources"
 
 # PROP Default_Filter "cpp"
 # Begin Source File
 
-SOURCE=.\aString.cpp
-# SUBTRACT CPP /I "."
+SOURCE=.\Arena.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\BArena.cpp
 # SUBTRACT CPP /I "."
+# End Source File
+# Begin Source File
+
+SOURCE=.\BLProfiler.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\BLThread.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\BLWorkQueue.cpp
 # End Source File
 # Begin Source File
 
@@ -100,11 +117,6 @@ SOURCE=.\Box.cpp
 # Begin Source File
 
 SOURCE=.\BoxArray.cpp
-# SUBTRACT CPP /I "."
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxAssoc.cpp
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
@@ -130,6 +142,10 @@ SOURCE=.\CArena.cpp
 
 SOURCE=.\DistributionMapping.cpp
 # SUBTRACT CPP /I "."
+# End Source File
+# Begin Source File
+
+SOURCE=.\FabArray.cpp
 # End Source File
 # Begin Source File
 
@@ -178,23 +194,7 @@ SOURCE=.\ParmParse.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\RunStats.cpp
-# SUBTRACT CPP /I "."
-# End Source File
-# Begin Source File
-
-SOURCE=.\tDir.cpp
-# PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\Tracer.cpp
-# SUBTRACT CPP /I "."
-# End Source File
-# Begin Source File
-
-SOURCE=.\tVisMF.cpp
-# PROP Exclude_From_Build 1
+SOURCE=.\UseCount.cpp
 # End Source File
 # Begin Source File
 
