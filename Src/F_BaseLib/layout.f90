@@ -47,7 +47,7 @@ module layout_module
 
   type local_copy_desc
      integer   :: ns = 0         ! Source box in layout
-     integer   :: nd = 0         ! destination box in layout
+     integer   :: nd = 0         ! Destination box in layout
      type(box) :: sbx            ! Sub-box for this copy
      type(box) :: dbx            ! Sub-box for this copy
   end type local_copy_desc
@@ -57,24 +57,22 @@ module layout_module
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
 
-  type boxother
-     integer   :: no = 0
-     type(box) :: bx
-  end type boxother
+!  type boxother
+!     integer   :: no = 0
+!     type(box) :: bx
+!  end type boxother
 
-  type boxinters
-     integer :: ddbx = 0
-     type(boxother), pointer :: bxo_r(:) => Null()
-  end type boxinters
+!  type boxinters
+!     integer :: ddbx = 0
+!     type(boxother), pointer :: bxo_r(:) => Null()
+!  end type boxinters
 
   type boxassoc
-     integer :: dim = 0         ! spatial dimension 1, 2, or 3
-     integer :: nboxes = 0      ! number of boxes
-     integer :: grwth = 0       ! growth factor
+     integer :: dim    = 0                  ! spatial dimension 1, 2, or 3
+     integer :: nboxes = 0                  ! number of boxes
+     integer :: grwth  = 0                  ! growth factor
      logical, pointer :: nodal(:) => Null() ! nodal flag
-     logical :: cross = .false. ! cross/full stencil?
-     !! integer :: grwth(MAX_SPACEDIM, 2) = 0
-     type(boxinters), pointer :: bis(:) => Null()
+     logical :: cross = .false.             ! cross/full stencil?
      type(local_conn)  :: l_con
      type(remote_conn) :: r_con
      type(boxassoc), pointer :: next => Null()
@@ -671,256 +669,37 @@ contains
     r = bxasc%dim /= 0
   end function boxassoc_built_q
 
-  subroutine boxassoc_build_1(bxasc, lap, ng, nodal, cross)
-    integer, intent(in) :: ng
-    logical, intent(in), optional :: nodal(:)
-    logical, intent(in), optional :: cross
-    type(layout_rep), intent(in), target :: lap
-    type(boxassoc), intent(inout) :: bxasc
-    integer i, j, ii
-    type(box) :: bx, dabx, sabx
-    type(boxarray) :: bxa
-    integer, allocatable :: larr(:)
-    integer, allocatable ::  arr(:,:)
-    integer, allocatable :: parr(:,:)
-    integer :: lcnt_r, li_r
-    integer :: cnt_r, cnt_s, i_r, i_s
-    integer :: pcnt_r, pcnt_s, pi_r, pi_s
-    type(layout) :: la
-    integer :: sh(MAX_SPACEDIM+1)
-    integer, allocatable :: pvol(:,:)
-    integer, allocatable :: ppvol(:,:)
-    integer :: pv, rpv, spv
-    type(boxarray) :: bxai
-    type(box) :: rr(3**lap%dim, 2)
-    integer   :: nn, jj
-    type(box) :: pd, bxx, bxi
-    logical   :: pmask(lap%dim)
+  subroutine boxarray_bndry_periodic(bxai,dmn,b,nodal,pmask,ng,shfts)
+    type(boxarray), intent(out) :: bxai
+    type(box),      intent(in)  :: dmn,b
+    logical,        intent(in)  :: nodal(:),pmask(:)
+    integer,        intent(in)  :: ng
+    integer,        intent(out) :: shfts(:,:)
 
-    if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
+    integer                     :: cnt
+    type(box)                   :: bxs(3**b%dim)
+    type(box),allocatable       :: bv(:)
+    integer                     :: shft(3**b%dim,b%dim)
+    type(boxarray)              :: tba
 
-    la%lap => lap               ! just for convenience
+    call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)
 
-    bxa = get_boxarray(la)
+    shfts = 0
 
-    bxasc%dim = bxa%dim
-    bxasc%grwth = ng
-    bxasc%nboxes = bxa%nboxes
+    call periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
 
-    pmask = lap%pmask
-    pd    = lap%pd
-
-    allocate(bxasc%bis(bxasc%nboxes))
-    allocate(bxasc%nodal(bxasc%dim))
-    if ( present(nodal) ) then
-       bxasc%nodal = nodal
-    else
-       bxasc%nodal = .false.
+    if (cnt > 0) then
+       allocate(bv(tba%nboxes+cnt))
+       bv(1:tba%nboxes) = tba%bxs(1:tba%nboxes)
+       bv(tba%nboxes+1:tba%nboxes+cnt) = bxs(1:cnt)
+       shfts(tba%nboxes+1:tba%nboxes+cnt,:) = shft(1:cnt,:)
+       call destroy(tba)
+       call boxarray_build_v(tba,bv,.false.)
     end if
 
-    ! temporaries
-    allocate(larr(bxasc%nboxes))
-    allocate( arr(bxasc%nboxes, 0:2))
-    allocate(parr(0:parallel_nprocs()-1,2))
-    allocate(pvol(0:parallel_nprocs()-1,2))
-    allocate(ppvol(0:parallel_nprocs()-1,2))
+    bxai = tba
 
-    !
-    ! This region counts the number of processors you send to and receive from
-    !
-
-    parr = 0
-    arr = 0
-    pvol = 0
-
-    do i = 1, bxa%nboxes
-       larr = 0
-       bxi = box_nodalize(bxa%bxs(i), nodal)
-       call boxarray_box_boundary_n(bxai, bxi, bxasc%grwth)
-       do j = 1, bxa%nboxes
-          if ( remote(la,i) .and. remote(la,j) ) then
-             allocate(bxasc%bis(i)%bxo_r(0))
-             cycle
-          end if
-          bx = box_nodalize(get_box(bxa, j), nodal)
-          do ii = 1, bxai%nboxes
-             bxx = box_nodalize(get_box(bxai, ii), nodal)
-             call box_decompose_mod(rr, nn, bxx, bxi, pd, pmask)
-             do jj = 1, nn
-                dabx = intersection(bx, rr(jj,1))
-                sabx = intersection(bx, rr(jj,2))
-                !call print(abx, advance = 'no'); print *, volume(abx), empty(abx)
-                if ( .not. empty(sabx) ) then
-                   if ( local(la,i) .and. local(la, j) ) then
-                      ! counts the number of local I <- Local J transfers
-                      larr(j) = larr(j) + 1
-                      arr(j,0) = arr(j,0) + 1
-                   else if ( local(la, j) ) then
-                      ! counts the number of subboxes Remote I <- Local J SENDS
-                      arr(j,2) = arr(j,2) + 1
-                      ! counts the number of processors and volumes of messages SENT
-                      parr(lap%prc(i), 2) = parr(lap%prc(i), 2) + 1
-                      pvol(lap%prc(i), 2) = pvol(lap%prc(i),2) + volume(sabx)
-                   else if ( local(la, i) ) then
-                      ! counts the number of subboxes Local I <- Remote  J RECVd
-                      arr(j,1) = arr(j,1) + 1
-                      ! counts the number of processors and volumes of messages RECVd
-                      parr(lap%prc(j), 1) = parr(lap%prc(j), 1) + 1
-                      pvol(lap%prc(j), 1) = pvol(lap%prc(j),1) + volume(sabx)
-                   end if
-                end if
-             end do
-          end do
-       end do
-       lcnt_r = sum(larr(:))
-       allocate(bxasc%bis(i)%bxo_r(lcnt_r))
-       li_r = 1
-       if ( remote(la, i) ) cycle
-       do j = 1, bxa%nboxes
-          if ( remote(la,j) ) cycle
-          do ii = 1, bxai%nboxes
-             bxx = box_nodalize(get_box(bxai, ii), nodal)
-             call box_decompose_mod(rr, nn, bxx, bxi, pd, pmask)
-             do jj = 1, nn
-                dabx = intersection(box_nodalize(get_box(bxa, j), nodal), rr(jj,1))
-                sabx = intersection(box_nodalize(get_box(bxa, j), nodal), rr(jj,2))
-                if ( .not. empty(sabx) ) then
-                   bxasc%bis(i)%bxo_r(li_r)%no = j
-                   bxasc%bis(i)%bxo_r(li_r)%bx = sabx
-                   li_r = li_r + 1
-                end if
-             end do
-          end do
-       end do
-       call destroy(bxai)
-    end do
-    deallocate(larr)
-
-    lcnt_r = sum(arr(:,0))
-    cnt_r  = sum(arr(:,1))
-    cnt_s  = sum(arr(:,2))
-
-    !
-    ! Fill in the boxassoc structure.
-    !
-
-    bxasc%l_con%ncpy = lcnt_r
-    allocate(bxasc%l_con%cpy(lcnt_r))
-    bxasc%r_con%nsnd = cnt_s
-    bxasc%r_con%nrcv = cnt_r
-    allocate(bxasc%r_con%snd(cnt_s))
-    allocate(bxasc%r_con%rcv(cnt_r))
-    li_r = 1
-    i_r  = 1
-    i_s  = 1
-    do i = 1, bxa%nboxes
-       bxi = box_nodalize(bxa%bxs(i), nodal)
-       call boxarray_box_boundary_n(bxai, bxi, bxasc%grwth)
-       do j = 1, bxa%nboxes
-          ! I holds the target data
-          if ( remote(la,i) .and. remote(la,j) ) cycle
-          do ii = 1, bxai%nboxes
-             bxx = box_nodalize(get_box(bxai, ii), nodal)
-             call box_decompose_mod(rr, nn, bxx, bxi, pd, pmask)
-             do jj = 1, nn
-                dabx = intersection(box_nodalize(get_box(bxa, j), nodal), rr(jj,1))
-                sabx = intersection(box_nodalize(get_box(bxa, j), nodal), rr(jj,2))
-                !call print(abx, advance = 'no'); print *, volume(abx), empty(abx)
-                if ( .not. empty(sabx) ) then
-                   if ( local(la,i) .and. local(la, j) ) then
-                      ! Local I<-Local J
-                      bxasc%l_con%cpy(li_r)%nd  = i
-                      bxasc%l_con%cpy(li_r)%ns  = j
-                      bxasc%l_con%cpy(li_r)%sbx = sabx
-                      bxasc%l_con%cpy(li_r)%dbx = dabx
-                      li_r = li_r + 1
-                   else if ( local(la,j) ) then
-                      ! Remote I <- Local J (this is SEND)
-                      bxasc%r_con%snd(i_s)%nd = i
-                      bxasc%r_con%snd(i_s)%ns = j
-                      bxasc%r_con%snd(i_s)%sbx = sabx
-                      bxasc%r_con%rcv(i_r)%dbx = dabx
-                      bxasc%r_con%snd(i_s)%pr = get_proc(la, i)
-                      bxasc%r_con%snd(i_s)%s1 = volume(sabx)
-                      i_s = i_s + 1
-                   else if ( local(la,i) ) then
-                      ! Local I <- Remote J (this is RECV)
-                      bxasc%r_con%rcv(i_r)%nd = i
-                      bxasc%r_con%rcv(i_r)%ns = j
-                      bxasc%r_con%rcv(i_r)%dbx = dabx
-                      bxasc%r_con%rcv(i_r)%sbx = sabx
-                      bxasc%r_con%rcv(i_r)%pr = get_proc(la, j)
-                      sh = 1
-                      sh(1:bxasc%dim) = extent(dabx)
-                      bxasc%r_con%rcv(i_r)%sh = sh
-                      i_r = i_r + 1
-                   end if
-                end if
-             end do
-          end do
-       end do
-       call destroy(bxai)
-    end do
-
-    !
-    ! This region packs sorts the src/recv boxes into processor order
-    !
-
-    do i = 0, parallel_nprocs()-1
-       ppvol(i,1) = sum(pvol(0:i-1,1))
-       ppvol(i,2) = sum(pvol(0:i-1,2))
-    end do
-
-    ! Pack Receives maintaining original ordering
-    do i_r = 1, cnt_r
-       i = bxasc%r_con%rcv(i_r)%pr
-       bxasc%r_con%rcv(i_r)%pv = ppvol(i,1)
-       pv = volume(bxasc%r_con%rcv(i_r)%dbx)
-       bxasc%r_con%rcv(i_r)%av = bxasc%r_con%rcv(i_r)%pv + pv
-       ppvol(i,1) = ppvol(i,1) + pv
-    end do
-    ! Pack Sends  maintaining original ordering
-    do i_s = 1, cnt_s
-       i = bxasc%r_con%snd(i_s)%pr
-       bxasc%r_con%snd(i_s)%pv = ppvol(i,2)
-       pv = volume(bxasc%r_con%snd(i_s)%sbx)
-       bxasc%r_con%snd(i_s)%av = bxasc%r_con%snd(i_s)%pv + pv
-       ppvol(i,2) = ppvol(i,2) + pv
-    end do
-
-    ! Now compute the volume of data the each processor expects
-
-    pcnt_r = count(parr(:,1) /= 0 )
-    pcnt_s = count(parr(:,2) /= 0 )
-    bxasc%r_con%nrp  = pcnt_r
-    bxasc%r_con%nsp  = pcnt_s
-    bxasc%r_con%rvol = sum(pvol(:,1))
-    bxasc%r_con%svol = sum(pvol(:,2))
-    allocate(bxasc%r_con%str(pcnt_s))
-    allocate(bxasc%r_con%rtr(pcnt_r))
-    pi_r = 1
-    pi_s = 1
-    rpv = 0
-    spv = 0
-    do i = 0, size(pvol,dim=1)-1
-       if ( pvol(i,1) /= 0 ) then
-          bxasc%r_con%rtr(pi_r)%sz = pvol(i,1)
-          bxasc%r_con%rtr(pi_r)%pr = i
-          bxasc%r_con%rtr(pi_r)%pv = rpv
-          rpv = rpv + pvol(i,1)
-          pi_r = pi_r + 1
-       end if
-       if ( pvol(i,2) /= 0 ) then
-          bxasc%r_con%str(pi_s)%sz = pvol(i,2)
-          bxasc%r_con%str(pi_s)%pr = i
-          bxasc%r_con%str(pi_s)%pv = spv
-          spv = spv + pvol(i,2)
-          pi_s = pi_s + 1
-       end if
-    end do
-    call mem_stats_alloc(bxa_ms)
-
-  end subroutine boxassoc_build_1
+  end subroutine boxarray_bndry_periodic
 
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
     integer, intent(in) :: ng
@@ -928,21 +707,15 @@ contains
     type(layout_rep), intent(in), target :: lap
     type(boxassoc), intent(inout) :: bxasc
     logical, intent(in), optional :: cross
-    integer i, j, ii
-    type(box) :: abx, bx
-    type(boxarray) :: bxa
-    integer, allocatable :: larr(:)
-    integer, allocatable ::  arr(:,:)
-    integer, allocatable :: parr(:,:)
-    integer :: lcnt_r, li_r
-    integer :: cnt_r, cnt_s, i_r, i_s
-    integer :: pcnt_r, pcnt_s, pi_r, pi_s
+
+    integer i, j, ii, pv, rpv, spv
+    integer shft(2*3**lap%dim,lap%dim)
+    type(box) :: abx, bx, dbx
+    type(boxarray) :: bxa, bxai
+    integer :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, pcnt_r, pcnt_s, pi_r, pi_s
     type(layout) :: la
     integer :: sh(MAX_SPACEDIM+1)
-    integer, allocatable :: pvol(:,:)
-    integer, allocatable :: ppvol(:,:)
-    integer :: pv, rpv, spv
-    type(boxarray) :: bxai
+    integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
 
@@ -950,11 +723,10 @@ contains
 
     bxa = get_boxarray(la)
 
-    bxasc%dim = bxa%dim
-    bxasc%grwth = ng
+    bxasc%dim    = bxa%dim
+    bxasc%grwth  = ng
     bxasc%nboxes = bxa%nboxes
 
-    allocate(bxasc%bis(bxasc%nboxes))
     allocate(bxasc%nodal(bxasc%dim))
     if ( present(nodal) ) then
        bxasc%nodal = nodal
@@ -962,146 +734,100 @@ contains
        bxasc%nodal = .false.
     end if
 
-    ! temporaries
-    allocate(larr(bxasc%nboxes))
-    allocate( arr(bxasc%nboxes, 0:2))
     allocate(parr(0:parallel_nprocs()-1,2))
     allocate(pvol(0:parallel_nprocs()-1,2))
     allocate(ppvol(0:parallel_nprocs()-1,2))
 
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
     !
-    ! This region counts the number of processors you send to and receive from
+    ! We here consider all copies from J -> I.
     !
-
-    parr = 0
-    arr = 0
-    pvol = 0
-
     do i = 1, bxa%nboxes
-       larr = 0
-       call boxarray_box_boundary_n(bxai, box_nodalize(bxa%bxs(i), nodal), bxasc%grwth)
+       lcnt = 0
+       call boxarray_bndry_periodic(bxai,lap%pd,bxa%bxs(i),bxasc%nodal,lap%pmask,ng,shft)
        do j = 1, bxa%nboxes
-          if ( i == j ) cycle
-          if ( remote(la,i) .and. remote(la,j) ) then
-             allocate(bxasc%bis(i)%bxo_r(0))
-             cycle
-          end if
+          if ( remote(la,i) .and. remote(la,j) ) cycle
           bx = box_nodalize(get_box(bxa, j), nodal)
           do ii = 1, bxai%nboxes
              abx = intersection(bx, bxai%bxs(ii))
-!call print(abx, advance = 'no'); print *, volume(abx), empty(abx)
              if ( .not. empty(abx) ) then
                 if ( local(la,i) .and. local(la, j) ) then
-                   ! counts the number of local I <- Local J transfers
-                   larr(j) = larr(j) + 1
-                   arr(j,0) = arr(j,0) + 1
+                   lcnt   = lcnt   + 1
+                   lcnt_r = lcnt_r + 1
                 else if ( local(la, j) ) then
-                   ! counts the number of subboxes Remote I <- Local J SENDS
-                   arr(j,2) = arr(j,2) + 1
-                   ! counts the number of processors and volumes of messages SENT
+                   cnt_s               = cnt_s + 1
                    parr(lap%prc(i), 2) = parr(lap%prc(i), 2) + 1
-                   pvol(lap%prc(i), 2) = pvol(lap%prc(i),2) + volume(abx)
+                   pvol(lap%prc(i), 2) = pvol(lap%prc(i), 2) + volume(abx)
                 else if ( local(la, i) ) then
-                   ! counts the number of subboxes Local I <- Remote  J RECVd
-                   arr(j,1) = arr(j,1) + 1
-                   ! counts the number of processors and volumes of messages RECVd
+                   cnt_r               = cnt_r + 1
                    parr(lap%prc(j), 1) = parr(lap%prc(j), 1) + 1
-                   pvol(lap%prc(j), 1) = pvol(lap%prc(j),1) + volume(abx)
+                   pvol(lap%prc(j), 1) = pvol(lap%prc(j), 1) + volume(abx)
                 end if
-             end if
-          end do
-       end do
-       lcnt_r = sum(larr(:))
-       allocate(bxasc%bis(i)%bxo_r(lcnt_r))
-       li_r = 1
-       if ( remote(la, i) ) cycle
-       do j = 1, bxa%nboxes
-          if ( i == j ) cycle
-          if ( remote(la,j) ) cycle
-          do ii = 1, bxai%nboxes
-             abx = intersection(box_nodalize(get_box(bxa, j), nodal), bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                bxasc%bis(i)%bxo_r(li_r)%no = j
-                bxasc%bis(i)%bxo_r(li_r)%bx = abx
-                li_r = li_r + 1
              end if
           end do
        end do
        call destroy(bxai)
     end do
-    deallocate(larr)
-
-    lcnt_r = sum(arr(:,0))
-    cnt_r  = sum(arr(:,1))
-    cnt_s  = sum(arr(:,2))
-
     !
     ! Fill in the boxassoc structure.
     !
-
     bxasc%l_con%ncpy = lcnt_r
-    allocate(bxasc%l_con%cpy(lcnt_r))
     bxasc%r_con%nsnd = cnt_s
     bxasc%r_con%nrcv = cnt_r
+    allocate(bxasc%l_con%cpy(lcnt_r))
     allocate(bxasc%r_con%snd(cnt_s))
     allocate(bxasc%r_con%rcv(cnt_r))
-    li_r = 1
-    i_r  = 1
-    i_s  = 1
+    li_r = 1; i_r = 1; i_s = 1
+
     do i = 1, bxa%nboxes
-       call boxarray_box_boundary_n(bxai, box_nodalize(bxa%bxs(i), nodal), bxasc%grwth)
+       call boxarray_bndry_periodic(bxai,lap%pd,bxa%bxs(i),bxasc%nodal,lap%pmask,ng,shft)
        do j = 1, bxa%nboxes
-          if ( i == j ) cycle
-          ! I holds the target data
           if ( remote(la,i) .and. remote(la,j) ) cycle
           do ii = 1, bxai%nboxes
              abx = intersection(box_nodalize(get_box(bxa, j), nodal), bxai%bxs(ii))
-!call print(abx, advance = 'no'); print *, volume(abx), empty(abx)
              if ( .not. empty(abx) ) then
+                dbx = abx
+                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                 if ( local(la,i) .and. local(la, j) ) then
-                      ! Local I<-Local J
-                      bxasc%l_con%cpy(li_r)%nd = i
-                      bxasc%l_con%cpy(li_r)%ns = j
+                      bxasc%l_con%cpy(li_r)%nd  = i
+                      bxasc%l_con%cpy(li_r)%ns  = j
                       bxasc%l_con%cpy(li_r)%sbx = abx
-                      bxasc%l_con%cpy(li_r)%dbx = abx
-                      li_r = li_r + 1
+                      bxasc%l_con%cpy(li_r)%dbx = dbx
+                      li_r                      = li_r + 1
                    else if ( local(la,j) ) then
-                      ! Remote I <- Local J (this is SEND)
-                      bxasc%r_con%snd(i_s)%nd = i
-                      bxasc%r_con%snd(i_s)%ns = j
+                      bxasc%r_con%snd(i_s)%nd  = i
+                      bxasc%r_con%snd(i_s)%ns  = j
                       bxasc%r_con%snd(i_s)%sbx = abx
-                      bxasc%r_con%snd(i_s)%dbx = abx
-                      bxasc%r_con%snd(i_s)%pr = get_proc(la, i)
-                      bxasc%r_con%snd(i_s)%s1 = volume(abx)
-                      i_s = i_s + 1
+                      bxasc%r_con%snd(i_s)%dbx = dbx
+                      bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                      bxasc%r_con%snd(i_s)%s1  = volume(abx)
+                      i_s                      = i_s + 1
                    else if ( local(la,i) ) then
-                      ! Local I <- Remote J (this is RECV)
-                      bxasc%r_con%rcv(i_r)%nd = i
-                      bxasc%r_con%rcv(i_r)%ns = j
+                      bxasc%r_con%rcv(i_r)%nd  = i
+                      bxasc%r_con%rcv(i_r)%ns  = j
                       bxasc%r_con%rcv(i_r)%sbx = abx
-                      bxasc%r_con%rcv(i_r)%dbx = abx
-                      bxasc%r_con%rcv(i_r)%pr = get_proc(la, j)
-                      sh = 1
-                      sh(1:bxasc%dim) = extent(abx)
-                      bxasc%r_con%rcv(i_r)%sh = sh
-                      i_r = i_r + 1
+                      bxasc%r_con%rcv(i_r)%dbx = dbx
+                      bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                      sh                       = 1
+                      sh(1:bxasc%dim)          = extent(abx)
+                      bxasc%r_con%rcv(i_r)%sh  = sh
+                      i_r                      = i_r + 1
                    end if
                 end if
           end do
        end do
        call destroy(bxai)
     end do
-
     !
-    ! This region packs sorts the src/recv boxes into processor order
+    ! This region packs the src/recv boxes into processor order
     !
-
     do i = 0, parallel_nprocs()-1
        ppvol(i,1) = sum(pvol(0:i-1,1))
        ppvol(i,2) = sum(pvol(0:i-1,2))
     end do
-
+    !
     ! Pack Receives maintaining original ordering
+    !
     do i_r = 1, cnt_r
        i = bxasc%r_con%rcv(i_r)%pr
        bxasc%r_con%rcv(i_r)%pv = ppvol(i,1)
@@ -1109,7 +835,9 @@ contains
        bxasc%r_con%rcv(i_r)%av = bxasc%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
-    ! Pack Sends  maintaining original ordering
+    !
+    ! Pack Sends maintaining original ordering
+    !
     do i_s = 1, cnt_s
        i = bxasc%r_con%snd(i_s)%pr
        bxasc%r_con%snd(i_s)%pv = ppvol(i,2)
@@ -1117,9 +845,9 @@ contains
        bxasc%r_con%snd(i_s)%av = bxasc%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
-
+    !
     ! Now compute the volume of data the each processor expects
-
+    !
     pcnt_r = count(parr(:,1) /= 0 )
     pcnt_s = count(parr(:,2) /= 0 )
     bxasc%r_con%nrp  = pcnt_r
@@ -1128,23 +856,20 @@ contains
     bxasc%r_con%svol = sum(pvol(:,2))
     allocate(bxasc%r_con%str(pcnt_s))
     allocate(bxasc%r_con%rtr(pcnt_r))
-    pi_r = 1
-    pi_s = 1
-    rpv = 0
-    spv = 0
+    pi_r = 1; pi_s = 1; rpv  = 0; spv  = 0
     do i = 0, size(pvol,dim=1)-1
        if ( pvol(i,1) /= 0 ) then
           bxasc%r_con%rtr(pi_r)%sz = pvol(i,1)
           bxasc%r_con%rtr(pi_r)%pr = i
           bxasc%r_con%rtr(pi_r)%pv = rpv
-          rpv = rpv + pvol(i,1)
+          rpv  = rpv + pvol(i,1)
           pi_r = pi_r + 1
        end if
        if ( pvol(i,2) /= 0 ) then
           bxasc%r_con%str(pi_s)%sz = pvol(i,2)
           bxasc%r_con%str(pi_s)%pr = i
           bxasc%r_con%str(pi_s)%pv = spv
-          spv = spv + pvol(i,2)
+          spv  = spv + pvol(i,2)
           pi_s = pi_s + 1
        end if
     end do
@@ -1156,11 +881,7 @@ contains
     type(boxassoc), intent(inout) :: bxasc
     integer :: i
     if ( .not. built_q(bxasc) ) call bl_error("BOXASSOC_DESTROY: not built")
-    do i = 1, size(bxasc%bis)
-       deallocate(bxasc%bis(i)%bxo_r)
-    end do
     deallocate(bxasc%nodal)
-    deallocate(bxasc%bis)
     deallocate(bxasc%l_con%cpy)
     deallocate(bxasc%r_con%snd)
     deallocate(bxasc%r_con%rcv)
@@ -1191,20 +912,6 @@ contains
        if ( ii == parallel_myproc() ) then
           call unit_skip(un, skip)
           write(unit=un, fmt='(" PROCESSOR ", i4)') ii
-          if ( .false. ) then
-             do i = 1, bxasc%nboxes
-                call unit_skip(un, skip)
-                write(unit=un,fmt='(" Box ",i4,":: ")') i
-                do j = 1, size(bxasc%bis(i)%bxo_r)
-                   call unit_skip(un, skip)
-                   write(unit=un, fmt='(" ", i4,": ")', advance = 'no') &
-                        bxasc%bis(i)%bxo_r(j)%no
-                   call print(bxasc%bis(i)%bxo_r(j)%bx, unit=un)
-                end do
-                call unit_skip(un, skip)
-                write(unit=un, fmt='(" ------")')
-             end do
-          end if
           call unit_skip(un, skip)
           write(unit=un, fmt='(" L_CON")')
           do i = 1, bxasc%l_con%ncpy
