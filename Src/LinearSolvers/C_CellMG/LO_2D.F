@@ -1,5 +1,5 @@
 c
-c $Id: LO_2D.F,v 1.1 1998-03-24 07:07:12 almgren Exp $
+c $Id: LO_2D.F,v 1.2 1999-02-03 00:16:54 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -114,7 +114,7 @@ c
       integer i
       integer j
       REAL_T denom
-      parameter(denom=0.50d0)
+      parameter(denom=half)
 c
       if (cdir .eq. 0 ) then
          do n = 1, nc
@@ -154,7 +154,7 @@ c
       integer j
       integer n
       REAL_T denom
-      parameter(denom=0.25d0)
+      parameter(denom=fourth)
 c
       do n = 1, nc
          do j = lo(2), hi(2)

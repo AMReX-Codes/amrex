@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.4 1999-01-04 19:01:07 marc Exp $
+c $Id: ABec_2D.F,v 1.5 1999-02-03 00:16:54 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -275,7 +275,7 @@ c
       integer i,j, n
       REAL_T de, dhx, dhy
 c
-      rho = 0.0d0
+      rho = 0
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       do n = 1, nc

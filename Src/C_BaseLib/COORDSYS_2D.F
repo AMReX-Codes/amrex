@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.5 1998-10-07 21:18:23 vince Exp $
+c $Id: COORDSYS_2D.F,v 1.6 1999-02-03 00:16:31 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -35,7 +35,7 @@ c ::
        integer    i, j
        REAL_T     ri, ro, v
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+       parameter (RZFACTOR = 2*Pi)
        
        if (coord .eq. 0) then
 c
@@ -76,7 +76,7 @@ c========================================================
 
         integer i,j
         REAL_T     RZFACTOR
-        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+        parameter (RZFACTOR = 2*Pi)
 
         if(coord .eq. 0) then
            vol = (ro-ri)*dx(2)
@@ -134,7 +134,6 @@ c         ::::: R-Z
 c
           if( dir .eq. 0 ) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                dloga(i,j) = zero
                 ri = offset(1) + dx(1)*i
                 ro = ri + dx(1)
                 dlga = two/(ro+ri)                                        
@@ -184,7 +183,7 @@ c ::
        integer    i, j
        REAL_T     ri, ro, a
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+       parameter (RZFACTOR = 2*Pi)
        
        if (coord .eq. 0) then
 c

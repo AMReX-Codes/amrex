@@ -1,5 +1,5 @@
 c
-c $Id: MG_2D.F,v 1.1 1998-03-24 07:07:35 almgren Exp $
+c $Id: MG_2D.F,v 1.2 1999-02-03 00:16:54 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,7 @@ c
       integer j
       integer n
       REAL_T denom
-      parameter(denom=0.25d0)
+      parameter(denom=fourth)
 c
       do n = 1, nc
          do j = lo(2), hi(2)
