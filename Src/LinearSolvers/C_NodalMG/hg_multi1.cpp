@@ -6,32 +6,33 @@
 #  define   FORT_HGSCON     hgscon_
 #  define   FORT_HGCEN      hgcen_
 #  define   FORT_HGINTS     hgints_
-#  define   FACRST1         acrst1_
-#  define   FANRST2         anrst2_
-#  define   FANINT2         anint2_
+#  define   FORT_FACRST1    acrst1_
+#  define   FORT_FANRST2    anrst2_
+#  define   FORT_FANINT2    anint2_
 #else
 #  define   FORT_HGSRST     HGSRST
 #  define   FORT_HGSCON     HGSCON
 #  define   FORT_HGCEN      HGCEN
 #  define   FORT_HGINTS     HGINTS
-#  define   FACRST1         ACRST1
-#  define   FANRST2         ANRST2
-#  define   FANINT2         ANINT2
+#  define   FORT_FACRST1    ACRST1
+#  define   FORT_FANRST2    ANRST2
+#  define   FORT_FANINT2    ANINT2
 #endif
 
-extern "C" {
+extern "C" 
+{
 
 #if (BL_SPACEDIM == 1)
-  ERROR, not relevant
+#error not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
 #  ifdef HG_TERRAIN
-  void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
+  void FORT_FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
   void FORT_HGCEN(Real*, intS, Real*, intS, intS);
   void FORT_HGINTS(Real*, intS, intS, RealPS, intS, const Real*, intS, intS, intRS);
 #  elif (! defined HG_CONSTANT)
   void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
-#    ifndef SIGMA_NODE
+#    ifndef HG_SIGMA_NODE
   void FORT_HGCEN(Real*, intS, RealPS, intS, intS, RealRS,
 		  const int&, const int&);
   void FORT_HGINTS(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
@@ -41,8 +42,8 @@ extern "C" {
   void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
 #    endif
 #  endif
-  void FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
-  void FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
+  void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
+  void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
 #endif
 }
 
@@ -213,19 +214,19 @@ void holy_grail_sigma_restrictor::fill(FArrayBox& patch,
 #  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
 #  endif
-		dimlist(patch.box()),
-		dimlist(region),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(0), fgr.dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		fgr.dataPtr(2),
 #  endif
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
-    FACRST1(patch.dataPtr(BL_SPACEDIM),
-		dimlist(patch.box()),
-		dimlist(region),
+    FORT_FACRST1(patch.dataPtr(BL_SPACEDIM),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(BL_SPACEDIM),
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]), 0);
 
 #  if (BL_SPACEDIM == 2)
@@ -233,11 +234,11 @@ void holy_grail_sigma_restrictor::fill(FArrayBox& patch,
     patch.mult((Real) rat[0] / rat[1], region, 1, 1);
     // component 2 remains unchanged
 #  else
-    FACRST1(patch.dataPtr(BL_SPACEDIM+1),
-		dimlist(patch.box()),
-		dimlist(region),
+    FORT_FACRST1(patch.dataPtr(BL_SPACEDIM+1),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(BL_SPACEDIM+1),
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]), 0);
     patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
     patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
@@ -253,13 +254,13 @@ void holy_grail_sigma_restrictor::fill(FArrayBox& patch,
 #  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
 #  endif
-		dimlist(patch.box()),
-		dimlist(region),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(), fgr.dataPtr(),
 #  if (BL_SPACEDIM == 3)
 		fgr.dataPtr(),
 #  endif
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
   else {
@@ -267,13 +268,13 @@ void holy_grail_sigma_restrictor::fill(FArrayBox& patch,
 #  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
 #  endif
-		dimlist(patch.box()),
-		dimlist(region),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
 		fgr.dataPtr(0), fgr.dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		fgr.dataPtr(2),
 #  endif
-		dimlist(fgr.box()),
+		DIMLIST(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
 
@@ -431,7 +432,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     sigma_nd[i].set(mglev, &sigma[mglev]);
   }
 
-#  ifdef SIGMA_NODE
+#  ifdef HG_SIGMA_NODE
 
   sigma_node.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
@@ -452,14 +453,14 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       const Box& snbox = sigma_node[mglev][igrid].box();
       const Box& reg = lev_interface[mglev].part_fine(igrid);
       FORT_HGSCON(sigma_node[mglev][igrid].dataPtr(),
-                  dimlist(snbox),
+                  DIMLIST(snbox),
                   sigma_nd[0][mglev][igrid].dataPtr(),
                   sigma_nd[1][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 3)
                   sigma_nd[2][mglev][igrid].dataPtr(),
 #    endif
-                  dimlist(scbox),
-                  dimlist(reg),
+                  DIMLIST(scbox),
+                  DIMLIST(reg),
 #    if (BL_SPACEDIM == 2)
                   hx, hy
 #    else
@@ -480,7 +481,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       }
     }
   }
-#  endif  // SIGMA_NODE
+#  endif  /* HG_SIGMA_NODE */
 
 #endif
 
@@ -497,10 +498,10 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       const Box& cenbox = ctmp[igrid].box();
       const Box& reg = lev_interface[mglev].part_fine(igrid);
       const Box& sigbox = sigma[mglev][igrid].box();
-      FORT_HGCEN(ctmp[igrid].dataPtr(), dimlist(cenbox),
+      FORT_HGCEN(ctmp[igrid].dataPtr(), DIMLIST(cenbox),
 		 sigma[mglev][igrid].dataPtr(),
-                 dimlist(sigbox),
-		 dimlist(reg));
+                 DIMLIST(sigbox),
+		 DIMLIST(reg));
     }
 
 #elif (defined HG_CONSTANT)
@@ -511,7 +512,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 #else
 
-#  ifndef SIGMA_NODE
+#  ifndef HG_SIGMA_NODE
     const Real hx = h[mglev][0];
     const Real hy = h[mglev][1];
 #    if (BL_SPACEDIM == 3)
@@ -521,16 +522,16 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& cenbox = cen[mglev][igrid].box();
       const Box& reg = lev_interface[mglev].part_fine(igrid);
-#  ifndef SIGMA_NODE
+#  ifndef HG_SIGMA_NODE
       const Box& sigbox = sigma[mglev][igrid].box();
-      FORT_HGCEN(cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+      FORT_HGCEN(cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 		 sigma_nd[0][mglev][igrid].dataPtr(),
 		 sigma_nd[1][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 3)
 		 sigma_nd[2][mglev][igrid].dataPtr(),
 #    endif
-                 dimlist(sigbox),
-		 dimlist(reg),
+                 DIMLIST(sigbox),
+		 DIMLIST(reg),
 #    if (BL_SPACEDIM == 2)
 		 hx, hy,
 		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1
@@ -540,10 +541,10 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		 );
 #  else
       const Box& sigbox = sigma_node[mglev][igrid].box();
-      FORT_HGCEN(cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+      FORT_HGCEN(cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 		 sigma_node[mglev][igrid].dataPtr(),
-                 dimlist(sigbox),
-		 dimlist(reg));
+                 DIMLIST(sigbox),
+		 DIMLIST(reg));
 #  endif
     }
 
@@ -559,7 +560,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   }
 #endif
 
-#ifdef SIGMA_NODE
+#ifdef HG_SIGMA_NODE
 
   mask.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
@@ -610,7 +611,7 @@ void holy_grail_amr_multigrid::clear()
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     delete sigma.remove(mglev);
   }
-#  elif (defined SIGMA_NODE)
+#  elif (defined HG_SIGMA_NODE)
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     delete sigma.remove(mglev);
     delete sigma_node.remove(mglev);
@@ -635,7 +636,7 @@ void holy_grail_amr_multigrid::clear()
 #ifdef HG_CONSTANT
     mask.remove(mglev);
 #endif
-#ifdef SIGMA_NODE
+#ifdef HG_SIGMA_NODE
     delete mask.remove(mglev);
 #endif
   }
@@ -772,8 +773,8 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
     const Box& fbox = work[lfrom][igrid].box();
     const Box& cbox = resid[lto][igrid].box();
     const Box& creg = lev_interface[lto].part_fine(igrid);
-    FANRST2(resid[lto][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
-	    work[lfrom][igrid].dataPtr(), dimlist(fbox),
+    FORT_FANRST2(resid[lto][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+	    work[lfrom][igrid].dataPtr(), DIMLIST(fbox),
 	    D_DECL(rat[0], rat[1], rat[2]), integrate);
   }
 
@@ -788,22 +789,22 @@ void holy_grail_interpolator::fill(FArrayBox& patch,
 					 const Box& cb,
 					 const IntVect& rat) const
 {
-#ifndef SIGMA_NODE
+#ifndef HG_SIGMA_NODE
 
-  FORT_HGINTS(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
+  FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
 	      sigptr[0], sigptr[1],
 #if (BL_SPACEDIM == 3)
               sigptr[2],
 #endif
-              dimlist(sigbox),
-	      cgr.dataPtr(), dimlist(cgr.box()), dimlist(cb),
+              DIMLIST(sigbox),
+	      cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
 
 #else
 
-  FORT_HGINTS(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
-	      sigptr, dimlist(sigbox),
-	      cgr.dataPtr(), dimlist(cgr.box()), dimlist(cb),
+  FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+	      sigptr, DIMLIST(sigbox),
+	      cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
 
 #endif
@@ -829,7 +830,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
       }
       const Box& sigbox = sigma[ltmp][igrid].box();
-#elif (! defined SIGMA_NODE)
+#elif (! defined HG_SIGMA_NODE)
       Real *sigptr[BL_SPACEDIM];
       for (int i = 0; i < BL_SPACEDIM; i++) {
 	sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
@@ -875,23 +876,23 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& cbox = corr[lfrom][igrid].box();
       const Box& creg = corr[lfrom].box(igrid);
 #ifdef HG_CONSTANT
-      FANINT2(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
-	      corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
+      FANINT2(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+	      corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 	      D_DECL(rat[0], rat[1], rat[2]));
 #else
-#ifndef SIGMA_NODE
+#ifndef HG_SIGMA_NODE
       const Box& sigbox = sigma[lto][igrid].box();
 #else
       const Box& sigbox = sigma_node[lto][igrid].box();
 #endif
-      FORT_HGINTS(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
+      FORT_HGINTS(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 #ifdef HG_TERRAIN
 		  sigma[lto][igrid].dataPtr(0),
 		  sigma[lto][igrid].dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		  sigma[lto][igrid].dataPtr(2),
 #  endif
-#elif (! defined SIGMA_NODE)
+#elif (! defined HG_SIGMA_NODE)
 		  sigma_nd[0][lto][igrid].dataPtr(),
 		  sigma_nd[1][lto][igrid].dataPtr(),
 #  if (BL_SPACEDIM == 3)
@@ -900,8 +901,8 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #else
 		  sigma_node[lto][igrid].dataPtr(),
 #endif
-                  dimlist(sigbox),
-		  corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
+                  DIMLIST(sigbox),
+		  corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 		  D_DECL(rat[0], rat[1], rat[2]));
 #endif
     }

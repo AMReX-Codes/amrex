@@ -2,25 +2,26 @@
 #include "fill_patch.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FIPRODC   iprodc_
-#  define FIPRODN   iprodn_
-#  define FFCPYU    fcpyu_
-#  define FFCPY2    fcpy2_
+#  define FORT_FIPRODC   iprodc_
+#  define FORT_FIPRODN   iprodn_
+#  define FORT_FFCPYU    fcpyu_
+#  define FORT_FFCPY2    fcpy2_
 #else
-#  define FIPRODC   IPRODC
-#  define FIPRODN   IPRODN
-#  define FFCPYU    FCPYU
-#  define FFCPY2    FCPY2
+#  define FORT_FIPRODC   IPRODC
+#  define FORT_FIPRODN   IPRODN
+#  define FORT_FFCPYU    FCPYU
+#  define FORT_FFCPY2    FCPY2
 #endif
 
-extern "C" {
-  void FIPRODC(const Real*, intS, const Real*, intS, intS, Real&);
-  void FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
-  void FFCPYU(Real*, Real*, intS, const int&);
+extern "C"
+{
+  void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real&);
+  void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
+  void FORT_FFCPYU(Real*, Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
-  void FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
+  void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
 #else
-  void FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&, const int&);
+  void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&, const int&);
 #endif
 }
 
@@ -40,9 +41,9 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
       const Box& rbox = rcmfi->box();
       const Box& sbox = scmfi->box();
       const Box& reg  = rcmfi.validbox();
-      FIPRODC(rcmfi->dataPtr(), dimlist(rbox),
-	      scmfi->dataPtr(), dimlist(sbox),
-	      dimlist(reg), sum);
+      FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox),
+	      scmfi->dataPtr(), DIMLIST(sbox),
+	      DIMLIST(reg), sum);
     }
   }
   else if (type(r) == IntVect::TheNodeVector()) {
@@ -52,9 +53,9 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
       const Box& rbox = rcmfi->box();
       const Box& sbox = scmfi->box();
       const Box& reg  = rcmfi.validbox();
-      FIPRODN(rcmfi->dataPtr(), dimlist(rbox),
-	      scmfi->dataPtr(), dimlist(sbox),
-	      dimlist(reg), sum);
+      FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox),
+	      scmfi->dataPtr(), DIMLIST(sbox),
+	      DIMLIST(reg), sum);
     }
   }
   else {
@@ -384,9 +385,9 @@ int fill_patch(FArrayBox& patch, const Box& region,
 		Box tb = r.box(igrid);
 		tb &= region;
 		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+                FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+                      DIMLIST(tb),
+                      r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -418,9 +419,9 @@ int fill_patch(FArrayBox& patch, const Box& region,
 		Box tb = r.box(igrid);
 		tb &= region;
 		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+                FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+                      DIMLIST(tb),
+                      r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -452,9 +453,9 @@ int fill_patch(FArrayBox& patch, const Box& region,
 		Box tb = r.box(igrid);
 		tb &= region;
 		const Box& rbox = r[igrid].box();
-                FFCPY(patch.dataPtr(), dimlist(patch.box()),
-                      dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
+                FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
+                      DIMLIST(tb),
+                      r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -710,12 +711,12 @@ void fill_internal_borders(MultiFab& r, const level_interface& lev_interface,
       const Box& boxa = r[igrid].box();
       const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
-      FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, r.nComp());
+      FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
+	     DIMLIST(b), w, r.nComp());
 #  else
       const int ibord = r.nGrow();
-      FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, ibord, r.nComp());
+      FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
+	     DIMLIST(b), w, ibord, r.nComp());
 #  endif
 #else
       const int idim = lev_interface.fdim(iface);

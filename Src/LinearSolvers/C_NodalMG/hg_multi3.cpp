@@ -33,10 +33,11 @@
 #  define   FORT_HGIP       HGIP
 #endif
 
-extern "C" {
+extern "C" 
+{
 
 #if (BL_SPACEDIM == 1)
-  ERROR, not relevant
+#error not relevant
 #else
 #  ifdef HG_CONSTANT
   void FORT_HGRES(Real*, intS, Real*, Real*, intS, Real&);
@@ -53,7 +54,7 @@ extern "C" {
   void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 		   Real*, intS, intS, intS, const int&, const int&);
-#    elif (defined SIGMA_NODE)
+#    elif (defined HG_SIGMA_NODE)
   void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRESU(Real*, intS, Real*, Real*, Real*, Real*, intS);
   void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
@@ -132,29 +133,29 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& cenbox = cen[mglev][igrid].box();
     const Box& sigbox = sigma[mglev][igrid].box();
     const Box& freg = lev_interface[mglev].part_fine(igrid);
-    FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
-               s[igrid].dataPtr(), dimlist(sbox),
-               d[igrid].dataPtr(), dimlist(dbox),
-               sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
-               cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-               dimlist(freg));
+    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
+               s[igrid].dataPtr(), DIMLIST(sbox),
+               d[igrid].dataPtr(), DIMLIST(dbox),
+               sigma[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+               cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+               DIMLIST(freg));
   }
 
   if (iclear) {
     clear_part_interface(r, lev_interface[mglev]);
   }
 
-#elif (defined SIGMA_NODE)
+#elif (defined HG_SIGMA_NODE)
 
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
     const Box& rbox = r[igrid].box();
     const Box& freg = lev_interface[mglev].part_fine(igrid);
-    FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
+    FORT_HGRESU(r[igrid].dataPtr(), DIMLIST(rbox),
                 s[igrid].dataPtr(),
                 d[igrid].dataPtr(),
                 sigma_node[mglev][igrid].dataPtr(),
                 mask[mglev][igrid].dataPtr(),
-                dimlist(freg));
+                DIMLIST(freg));
   }
 
 #else
@@ -171,18 +172,18 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& rbox = r[igrid].box();
       const Box& freg = lev_interface[mglev].part_fine(igrid);
-      FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
+      FORT_HGRESU(r[igrid].dataPtr(), DIMLIST(rbox),
 		  s[igrid].dataPtr(), d[igrid].dataPtr(),
-		  dimlist(freg), hx);
+		  DIMLIST(freg), hx);
     }
   }
   else {
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& rbox = r[igrid].box();
       const Box& freg = lev_interface[mglev].part_fine(igrid);
-      FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
+      FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
 		 s[igrid].dataPtr(), d[igrid].dataPtr(),
-		 dimlist(freg), hx);
+		 DIMLIST(freg), hx);
     }
     clear_part_interface(r, lev_interface[mglev]);
   }
@@ -194,40 +195,40 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& sbox = s[igrid].box();
     const Box& dbox = d[igrid].box();
     const Box& freg = lev_interface[mglev].part_fine(igrid);
-#    ifndef SIGMA_NODE
+#    ifndef HG_SIGMA_NODE
     // this branch is the only one that can be reached here
     const Box& sigbox = sigma[mglev][igrid].box();
-    FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
-	       s[igrid].dataPtr(), dimlist(sbox),
-	       d[igrid].dataPtr(), dimlist(dbox),
+    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
+	       s[igrid].dataPtr(), DIMLIST(sbox),
+	       d[igrid].dataPtr(), DIMLIST(dbox),
 	       sigma_nd[0][mglev][igrid].dataPtr(),
 #      if (BL_SPACEDIM == 2)
-	       sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
-	       dimlist(freg), hx, hy,
+	       sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+	       DIMLIST(freg), hx, hy,
 	       IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 #      else
 	       sigma_nd[1][mglev][igrid].dataPtr(),
-	       sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),
-               dimlist(freg), hx, hy, hz
+	       sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+               DIMLIST(freg), hx, hy, hz
 #      endif
 	       );
 #    else
     // this branch is unreachable
     const Box& sigbox = sigma_node[mglev][igrid].box();
-    FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
-               s[igrid].dataPtr(), dimlist(sbox),
-               d[igrid].dataPtr(), dimlist(dbox),
-               sigma_node[mglev][igrid].dataPtr(), dimlist(sigbox),
-               dimlist(freg));
-#    endif // SIGMA_NODE
+    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
+               s[igrid].dataPtr(), DIMLIST(sbox),
+               d[igrid].dataPtr(), DIMLIST(dbox),
+               sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+               DIMLIST(freg));
+#    endif /* HG_SIGMA_NODE */
   }
 
   if (iclear) {
     clear_part_interface(r, lev_interface[mglev]);
   }
 
-#  endif // HG_CONSTANT
-#endif // SIGMA_NODE
+#  endif /* HG_CONSTANT */
+#endif /* HG_SIGMA_NODE */
 }
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
@@ -262,58 +263,58 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& cenbox = cen[mglev][igrid].box();
 	  const Box& sigbox = sigma[mglev][igrid].box();
-	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		     resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		     sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
-		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		     dimlist(freg));
+	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		     resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		     sigma[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		     cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		     DIMLIST(freg));
 #elif (defined HG_CONSTANT)
 #  ifdef HG_CROSS_STENCIL
 	  FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 		      mask[mglev][igrid].dataPtr(),
-		      dimlist(freg), hx);
+		      DIMLIST(freg), hx);
 #  else
 	  FORT_HGRLX(corr[mglev][igrid].dataPtr(),
-		     resid[mglev][igrid].dataPtr(), dimlist(sbox),
+		     resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 		     mask[mglev][igrid].dataPtr(),
-		     dimlist(freg), hx);
+		     DIMLIST(freg), hx);
 #  endif
 #else
-#ifdef SIGMA_NODE
+#ifdef HG_SIGMA_NODE
 /*
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& cenbox = cen[mglev][igrid].box();
 	  const Box& sigbox = sigma_node[mglev][igrid].box();
-	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		     resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		     sigma_node[mglev][igrid].dataPtr(), dimlist(sigbox),
-		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		     dimlist(freg));
+	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		     resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		     sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		     cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		     DIMLIST(freg));
 */
 	  FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
 		      resid[mglev][igrid].dataPtr(),
 		      sigma_node[mglev][igrid].dataPtr(),
-		      cen[mglev][igrid].dataPtr(), dimlist(sbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(sbox),
 		      mask[mglev][igrid].dataPtr(),
-		      dimlist(freg));
+		      DIMLIST(freg));
 #else
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& cenbox = cen[mglev][igrid].box();
 	  const Box& sigbox = sigma[mglev][igrid].box();
-	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		     resid[mglev][igrid].dataPtr(), dimlist(sbox),
+	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		     resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 		     sigma_nd[0][mglev][igrid].dataPtr(),
 #  if (BL_SPACEDIM == 2)
-		     sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
-		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		     dimlist(freg), hx, hy,
+		     sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		     cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		     DIMLIST(freg), hx, hy,
 		     IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 #  else
 		     sigma_nd[1][mglev][igrid].dataPtr(),
-		     sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),
-		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		     dimlist(freg), hx, hy, hz
+		     sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		     cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		     DIMLIST(freg), hx, hy, hz
 #  endif
 		     );
 #endif
@@ -328,28 +329,28 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #else
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& cenbox = cen[mglev][igrid].box();
-#  ifdef SIGMA_NODE
+#  ifdef HG_SIGMA_NODE
 	  const Box& sigbox = sigma_node[mglev][igrid].box();
-	  FORT_HGRLXL(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		      sigma_node[mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), line_solve_dim);
+	  FORT_HGRLXL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		      sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), line_solve_dim);
 #  else
 	  const Box& sigbox = sigma[mglev][igrid].box();
-	  FORT_HGRLXL(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
+	  FORT_HGRLXL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 		      sigma_nd[0][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 2)
-		      sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), hx, hy,
+		      sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), hx, hy,
 		      IsRZ(), mg_domain[mglev].bigEnd(0) + 1, line_solve_dim
 #    else
 		      sigma_nd[1][mglev][igrid].dataPtr(),
-		      sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), hx, hy, hz
+		      sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), hx, hy, hz
 #    endif
 		      );
 #  endif
@@ -393,40 +394,40 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  const Box& freg = corr[mglev].box(igrid);
 #ifdef HG_TERRAIN
 	  const Box& sigbox = sigma[mglev][igrid].box();
-	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		      work[mglev][igrid].dataPtr(), dimlist(wbox),
-		      sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), line_solve_dim, ipass);
+	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		      work[mglev][igrid].dataPtr(), DIMLIST(wbox),
+		      sigma[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), line_solve_dim, ipass);
 #elif (defined HG_CONSTANT)
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
-#  ifdef SIGMA_NODE
+#  ifdef HG_SIGMA_NODE
 	  const Box& sigbox = sigma_node[mglev][igrid].box();
-	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		      work[mglev][igrid].dataPtr(), dimlist(wbox),
-		      sigma_node[mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), line_solve_dim, ipass);
+	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		      work[mglev][igrid].dataPtr(), DIMLIST(wbox),
+		      sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), line_solve_dim, ipass);
 #  else
 	  const Box& sigbox = sigma[mglev][igrid].box();
-	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
-		      work[mglev][igrid].dataPtr(), dimlist(wbox),
+	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
+		      work[mglev][igrid].dataPtr(), DIMLIST(wbox),
 		      sigma_nd[0][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 2)
-		      sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), hx, hy,
+		      sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), hx, hy,
 		      IsRZ(), mg_domain[mglev].bigEnd(0) + 1,
 		      line_solve_dim, ipass
 #    else
 		      sigma_nd[1][mglev][igrid].dataPtr(),
-		      sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),
-		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
-		      dimlist(freg), dimlist(tdom), hx, hy, hz
+		      sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
+		      cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		      DIMLIST(freg), DIMLIST(tdom), hx, hy, hz
 #    endif
 		      );
 #  endif
@@ -457,9 +458,9 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 
 	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& wbox = work[mglev][igrid].box();
-	  FORT_HGRLNB(corr[mglev][igrid].dataPtr(), dimlist(fbox),
-		      work[mglev][igrid].dataPtr(), dimlist(wbox),
-		      dimlist(freg), line_solve_dim, ipass);
+	  FORT_HGRLNB(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		      work[mglev][igrid].dataPtr(), DIMLIST(wbox),
+		      DIMLIST(freg), line_solve_dim, ipass);
 	}
       }
     }
@@ -591,7 +592,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     const Box& reg = p[igrid].box();
     FORT_HGIP(z[igrid].dataPtr(), r[igrid].dataPtr(),
 	      ipmask[igrid].dataPtr(),
-	      dimlist(reg), rho);
+	      DIMLIST(reg), rho);
     p[igrid].copy(z[igrid]);
   }
   Real tol = 1.e-3 * rho;
@@ -613,7 +614,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
       const Box& reg = p[igrid].box();
       FORT_HGIP(p[igrid].dataPtr(), w[igrid].dataPtr(),
 		ipmask[igrid].dataPtr(),
-		dimlist(reg), alpha);
+		DIMLIST(reg), alpha);
     }
     alpha = rho / alpha;
     rho = 0.0;
@@ -622,7 +623,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
       FORT_HGCG1(r[igrid].dataPtr(), p[igrid].dataPtr(),
 		 z[igrid].dataPtr(), x[igrid].dataPtr(),
 		 w[igrid].dataPtr(), c[igrid].dataPtr(),
-		 ipmask[igrid].dataPtr(), dimlist(reg), alpha, rho);
+		 ipmask[igrid].dataPtr(), DIMLIST(reg), alpha, rho);
     }
     if (pcode >= 3)
       cout << i << " " << rho << endl;
@@ -632,7 +633,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& reg = p[igrid].box();
       FORT_HGCG2(p[igrid].dataPtr(), z[igrid].dataPtr(),
-		 dimlist(reg), alpha);
+		 DIMLIST(reg), alpha);
     }
   }
 #else

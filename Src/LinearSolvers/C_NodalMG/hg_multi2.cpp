@@ -17,10 +17,11 @@
 #  define   FORT_HGDRES     HGDRES
 #endif
 
-extern "C" {
+extern "C" 
+{
 
 #if (BL_SPACEDIM == 1)
-  ERROR, not relevant
+#error not relevant
 #elif (BL_SPACEDIM == 2)
 #  ifdef HG_CROSS_STENCIL
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
@@ -522,15 +523,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     Real *const rptr = resid[mglev][igrid].dataPtr();
     Real *const sptr = source[lev][igrid].dataPtr();
     Real *const dptr = dest[lev][igrid].dataPtr();
-    FORT_HGFRES(rptr, dimlist(sbox),
-		sptr, dimlist(sbox),
-		dptr, dimlist(fbox),
-		cdst.dataPtr(), dimlist(cbox),
+    FORT_HGFRES(rptr, DIMLIST(sbox),
+		sptr, DIMLIST(sbox),
+		dptr, DIMLIST(fbox),
+		cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		sigmafptr, dimlist(sigmafbox),
-		sigmac.dataPtr(), dimlist(sigmacbox),
+		sigmafptr, DIMLIST(sigmafbox),
+		sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		dimlist(creg),
+		DIMLIST(creg),
 #ifdef HG_CONSTANT
 		hx,
 		rat[0], idim, idir
@@ -588,15 +589,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       lev_interface[mglev].geo_array(ga, 1, iedge);
-      FORT_HGERES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  fdst.dataPtr(), dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGERES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  fdst.dataPtr(), DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx, rat[0],
 #elif (defined HG_TERRAIN)
@@ -648,15 +649,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
       lev_interface[mglev].geo_array(ga, 0, icor);
-      FORT_HGCRES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  fdst.dataPtr(), dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGCRES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  fdst.dataPtr(), DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx, rat[0],
 #elif (defined HG_TERRAIN)
@@ -675,7 +676,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
   }
 
-#else // 2d 9-point stencils:
+#else /* 2d 9-point stencils: */
 
   for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) {
     // find a fine grid touching this corner
@@ -712,15 +713,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
-      FORT_HGFRES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  fdst.dataPtr(), dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGFRES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  fdst.dataPtr(), DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idim, idir
@@ -759,15 +760,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       Real *const sptr = source[lev][igrid].dataPtr();
       const Box& fbox = dest[lev][igrid].box();
       Real *const dptr = dest[lev][igrid].dataPtr();
-      FORT_HGORES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  dptr, dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGORES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  dptr, DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idir0, idir1
@@ -800,15 +801,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
-      FORT_HGDRES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  fdst.dataPtr(), dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGDRES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  fdst.dataPtr(), DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], jdir
@@ -848,15 +849,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
       }
       Real *const rptr = resid[mglev][igrid].dataPtr();
       Real *const sptr = source[lev][igrid].dataPtr();
-      FORT_HGIRES(rptr, dimlist(sbox),
-		  sptr, dimlist(sbox),
-		  fdst.dataPtr(), dimlist(fbox),
-		  cdst.dataPtr(), dimlist(cbox),
+      FORT_HGIRES(rptr, DIMLIST(sbox),
+		  sptr, DIMLIST(sbox),
+		  fdst.dataPtr(), DIMLIST(fbox),
+		  cdst.dataPtr(), DIMLIST(cbox),
 #ifndef HG_CONSTANT
-		  sigmaf.dataPtr(), dimlist(sigmafbox),
-		  sigmac.dataPtr(), dimlist(sigmacbox),
+		  sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		  sigmac.dataPtr(), DIMLIST(sigmacbox),
 #endif
-		  dimlist(creg),
+		  DIMLIST(creg),
 #ifdef HG_CONSTANT
                   hx,
                   rat[0], idir0, idir1
