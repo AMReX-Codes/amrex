@@ -1,18 +1,96 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.10 1998-02-18 16:14:42 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.11 1998-03-24 20:18:52 car Exp $
 //
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 
-#ifdef BL_USE_BSP
+#if defined(BL_USE_BSP)
 
 //
 // Type of function pointer required by bsp_fold().
 //
 typedef void (*VFVVVI)(void*,void*,void*,int*);
+
+int ParallelDescriptor::MyProc ()                 
+{ 
+    return bsp_pid();                
+}
+int ParallelDescriptor::NProcs ()                 
+{ 
+    return bsp_nprocs();             
+}
+bool ParallelDescriptor::IOProcessor ()           
+{ 
+    return bsp_pid() == ioProcessor; 
+}
+int  ParallelDescriptor::IOProcessorNumber ()     
+{ 
+    return ioProcessor;              
+}
+void ParallelDescriptor::Abort (const char* msg)  
+{ 
+    bsp_abort((char*)msg);           
+}
+double ParallelDescriptor::second ()              
+{ 
+    return bsp_time();               
+}
+
+void ParallelDescriptor::ShareVar (const void* var,
+				   int         bytes)
+{
+    bsp_pushregister(var, bytes);
+}
+
+void ParallelDescriptor::UnshareVar (const void* var)
+{
+    bsp_popregister(var);
+}
+void ParallelDescriptor::WriteData (int         procnum,
+				    const void* src,
+				    void*       dest,
+				    int         offset,
+				    int         bytes)
+{
+    bsp_hpput(procnum, src, dest, offset, bytes);
+}
+void ParallelDescriptor::ReadData (int         procnum,
+				   const void* src,
+				   int         offset,
+				   void*       dest,
+				   int         bytes)
+{
+    bsp_hpget(procnum, src, offset, dest, bytes);
+}
+void ParallelDescriptor::SetMessageHeaderSize (int messageHeaderSize)
+{
+    bsp_set_tag_size(&messageHeaderSize);
+} 
+bool ParallelDescriptor::GetMessageHeader (int& dataSize,
+					   void* messageHeader)
+{
+    bsp_get_tag(&dataSize, messageHeader);
+    
+    return dataSize == -1
+	? false  // By bsp definition
+	: true;  // A message is waiting
+} 
+
+void ParallelDescriptor::SendData (int         toproc,
+				   const void* messageHeader,
+				   const void* data,
+				   int         datasizeinbytes)
+{
+    bsp_send(toproc, messageHeader, data, datasizeinbytes);
+}
+void ParallelDescriptor::ReceiveData (void* data,
+				      int   datasizeinbytes)
+{
+    bsp_move(data, datasizeinbytes);
+}
 
 void
 ParallelDescriptor::Synchronize ()
@@ -138,11 +216,19 @@ ParallelDescriptor::ReduceLongAnd (long &rvar)
 bool
 ParallelDescriptor::MessageQueueEmpty ()
 {
-  int dataWaitingSize;
-  FabComTag fabComTag;
-  ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-  return ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag);
+    int dataWaitingSize;
+    FabComTag fabComTag;
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
+    return ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag);
 }
+
+void ParallelDescriptor::Broadcast (int fromproc, void*  src, void*  dest, int nbytes)
+{
+    bsp_bcast(fromproc, (void *) src, (void *) dest, nbytes);
+}
+
+#elif defined(BL_USE_MPI)
+
 
 #else
 

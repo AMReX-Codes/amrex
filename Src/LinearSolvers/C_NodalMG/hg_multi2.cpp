@@ -214,12 +214,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     const IntVect& rat = gen_ratio[lev-1];
     int mglevc = ml_index[lev-1];
     
-    int ncomp = 1;
-    
-    if(m_hg_terrain)
-    {
-	int ncomp = 2 * BL_SPACEDIM - 1;
-    }
+    int ncomp = (m_hg_terrain)? 2*BL_SPACEDIM-1 : 1;
     const amr_boundary_class* bndry = (m_hg_terrain)? boundary.terrain_sigma() : boundary.scalar();
     
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 

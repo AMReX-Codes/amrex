@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.9 1998-02-18 21:31:14 vince Exp $
+// $Id: MultiFab.cpp,v 1.10 1998-03-24 20:18:51 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -85,7 +85,7 @@ MultiFab::writeOn (ostream& os) const
             fabparray[i].writeOn(os);
             filePosition = os.tellp();
         }
-        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
+        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition, sizeof(filePosition));
         os.seekp(filePosition);
     }
 
@@ -157,7 +157,7 @@ MultiFab::readFrom (istream& is)
             fabparray.set(i,tmp);
             filePosition = is.tellg();
         }
-        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
+        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition, sizeof(filePosition));
         is.seekg(filePosition);
     }
 

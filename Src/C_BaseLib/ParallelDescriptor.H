@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.16 1998-02-19 17:15:52 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.17 1998-03-24 20:18:52 car Exp $
 //
 
 #include <Assert.H>
@@ -83,7 +83,86 @@ struct FabComTag
     }
 };
 
-#ifndef BL_USE_BSP
+#if defined(BL_USE_BSP)
+
+class ParallelDescriptor
+{
+  public:
+
+    static int MyProc ();
+    static int NProcs ();
+    static void Synchronize ();
+    static void Synchronize (const char* msg);
+    static bool IOProcessor ();
+    static int  IOProcessorNumber ();
+    static void Abort (const char* msg);
+    static double second ();
+    //
+    // Reduction operations.
+    //
+    template<class T> static void ReduceMin (T& rvar);
+    //
+    // bool
+    //
+    static void ReduceBoolAnd (bool& rvar);
+    static void ReduceBoolOr  (bool& rvar);
+    //
+    // Real
+    //
+    static void ReduceRealSum (Real& rvar);
+    static void ReduceRealMax (Real& rvar);
+    static void ReduceRealMin (Real& rvar);
+    //
+    // int
+    //
+    static void ReduceIntSum (int& rvar);
+    static void ReduceIntMax (int& rvar);
+    static void ReduceIntMin (int& rvar);
+    //
+    // long
+    //
+    static void ReduceLongSum (long& rvar);
+    static void ReduceLongMax (long& rvar);
+    static void ReduceLongMin (long& rvar);
+    static void ReduceLongAnd (long& rvar);
+    //
+    // Data transfer functions.
+    //
+    static void ShareVar (const void* var,
+                          int         bytes);
+    static void UnshareVar (const void* var);
+    static void WriteData (int         procnum,
+                           const void* src,
+                           void*       dest,
+                           int         offset,
+                           int         bytes);
+    static void ReadData (int         procnum,
+                          const void* src,
+                          int         offset,
+                          void*       dest,
+                          int         bytes);
+    static void SetMessageHeaderSize (int messageHeaderSize);
+    static bool GetMessageHeader (int& dataSize,
+                                  void* messageHeader);
+    static bool MessageQueueEmpty ();
+
+    static void SendData (int         toproc,
+                          const void* messageHeader,
+                          const void* data,
+                          int         datasizeinbytes);
+    static void ReceiveData (void* data,
+                             int   datasizeinbytes);
+    static void Broadcast (int fromproc, void*  src, void*  dest, int nbytes);
+
+  private:
+
+    enum { ioProcessor = 0 };
+};
+
+#elif defined(BL_USE_MPI)
+
+#else
+
 
 class ParallelDescriptor
 {
@@ -159,130 +238,8 @@ public:
     static void ReceiveData (void* data,
                              int   datasizeinbytes) {}
 
-    template<class T> static void Broadcast (int fromproc,
-                                             T*  src,
-                                             T*  dest) {}
+    static void Broadcast (int fromproc, void*  src, void*  dest, size_t nbytes) {}
 
-    template<class T> static void Broadcast (int fromproc,
-                                             T*  src,
-                                             T*  dest, int nbytes) {}
-};
-
-#else
-
-class ParallelDescriptor
-{
-  public:
-
-    static int MyProc ()                 { return bsp_pid();                }
-    static int NProcs ()                 { return bsp_nprocs();             }
-    static void Synchronize ();
-    static void Synchronize (const char* msg);
-    static bool IOProcessor ()           { return bsp_pid() == ioProcessor; }
-    static int  IOProcessorNumber ()     { return ioProcessor;              }
-    static void Abort (const char* msg)  { bsp_abort((char*)msg);           }
-    static double second ()              { return bsp_time();               }
-    //
-    // Reduction operations.
-    //
-    template<class T> static void ReduceMin (T& rvar);
-    //
-    // bool
-    //
-    static void ReduceBoolAnd (bool& rvar);
-    static void ReduceBoolOr  (bool& rvar);
-    //
-    // Real
-    //
-    static void ReduceRealSum (Real& rvar);
-    static void ReduceRealMax (Real& rvar);
-    static void ReduceRealMin (Real& rvar);
-    //
-    // int
-    //
-    static void ReduceIntSum (int& rvar);
-    static void ReduceIntMax (int& rvar);
-    static void ReduceIntMin (int& rvar);
-    //
-    // long
-    //
-    static void ReduceLongSum (long& rvar);
-    static void ReduceLongMax (long& rvar);
-    static void ReduceLongMin (long& rvar);
-    static void ReduceLongAnd (long& rvar);
-    //
-    // Data transfer functions.
-    //
-    static void ShareVar (const void* var,
-                          int         bytes)
-    {
-        bsp_pushregister(var, bytes);
-    }
-    static void UnshareVar (const void* var)
-    {
-        bsp_popregister(var);
-    }
-    static void WriteData (int         procnum,
-                           const void* src,
-                           void*       dest,
-                           int         offset,
-                           int         bytes)
-    {
-        bsp_hpput(procnum, src, dest, offset, bytes);
-    }
-    static void ReadData (int         procnum,
-                          const void* src,
-                          int         offset,
-                          void*       dest,
-                          int         bytes)
-    {
-        bsp_hpget(procnum, src, offset, dest, bytes);
-    }
-    static void SetMessageHeaderSize (int messageHeaderSize)
-    {
-        bsp_set_tag_size(&messageHeaderSize);
-    } 
-    static bool GetMessageHeader (int& dataSize,
-                                  void* messageHeader)
-    {
-        bsp_get_tag(&dataSize, messageHeader);
-
-        return dataSize == -1
-            ? false  // By bsp definition
-            : true;  // A message is waiting
-    } 
-    static bool MessageQueueEmpty ();
-
-    static void SendData (int         toproc,
-                          const void* messageHeader,
-                          const void* data,
-                          int         datasizeinbytes)
-    {
-        bsp_send(toproc, messageHeader, data, datasizeinbytes);
-    }
-    static void ReceiveData (void* data,
-                             int   datasizeinbytes)
-    {
-        bsp_move(data, datasizeinbytes);
-    }
-    template<class T> static void Broadcast (int fromproc,
-                                             T*  src,
-                                             T*  dest)
-    {
-        bsp_bcast(fromproc, (void *) src, (void *) dest, sizeof(T));
-    }
-
-    template<class T> static void Broadcast (int fromproc,
-                                             T*  src,
-                                             T*  dest,
-					     int nbytes)
-    {
-        bsp_bcast(fromproc, (void *) src, (void *) dest, nbytes);
-    }
-
-  private:
-
-    enum { ioProcessor = 0 };
 };
 
 #endif /*BL_USE_BSP*/
