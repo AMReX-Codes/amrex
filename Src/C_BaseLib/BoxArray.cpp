@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.12 1999-05-10 18:54:20 car Exp $
+// $Id: BoxArray.cpp,v 1.13 1999-08-06 22:45:28 sstanley Exp $
 //
 
 #include <BLassert.H>
@@ -298,7 +298,7 @@ BoxArray::contains (const Box& b) const
 bool
 BoxArray::contains (const BoxArray& bl) const
 {
-    for (int i = 0; i < length(); i++)
+    for (int i = 0; i < bl.length(); i++)
        if (!contains(bl.m_ref->m_abox.get(i)))
            return false;
     return true;
