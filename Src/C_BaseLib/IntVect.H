@@ -1,7 +1,7 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.21 2001-10-10 20:12:44 car Exp $
+// $Id: IntVect.H,v 1.22 2004-11-30 19:21:09 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -94,6 +94,19 @@ class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
+    //
+    // An IntVect comparison class.  Needed for STL associative
+    // containers indexed by IntVects.  Uses lexicographical comparison.
+    //
+    class Compare
+    {
+    public:
+        bool operator () (const IntVect& lhs,
+                          const IntVect& rhs) const
+        {
+            return lhs.lexLT(rhs);
+        }
+    };
     //
     //@ManDoc: Construct an IntVect whose components are all zero.
     //
