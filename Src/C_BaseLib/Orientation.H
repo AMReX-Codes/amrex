@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.4 1999-02-10 21:09:57 lijewski Exp $
+// $Id: Orientation.H,v 1.5 1999-04-26 20:09:23 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -88,7 +88,7 @@ public:
     bool operator>= (const Orientation& o) const;
 
     /*@ManDoc: This conversion operator maps an orientation into a
-               unique integer in the range [0 .. 2*SpaceDim-1]
+               unique integer in the range [0 .. 2*BL_SPACEDIM-1]
                according to the above ordering.
     */
     operator int () const;
@@ -224,9 +224,9 @@ Orientation::Orientation ()
 inline
 Orientation::Orientation (int  _dir,
                           Side _side)
-    : val(SpaceDim*_side + _dir)
+    : val(BL_SPACEDIM*_side + _dir)
 {
-    assert(0 <= _dir && _dir < SpaceDim);
+    assert(0 <= _dir && _dir < BL_SPACEDIM);
 }
 
 inline
@@ -294,35 +294,35 @@ inline
 Orientation
 Orientation::flip () const
 {
-    return Orientation(val < SpaceDim ? val+SpaceDim : val-SpaceDim);
+    return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
 }
 
 inline
 int
 Orientation::coordDir () const
 {
-    return val%SpaceDim;
+    return val%BL_SPACEDIM;
 }
 
 inline
 Orientation::Side
 Orientation::faceDir () const
 {
-    return Side(val/SpaceDim);
+    return Side(val/BL_SPACEDIM);
 }
 
 inline
 bool
 Orientation::isLow () const
 {
-    return val < SpaceDim;
+    return val < BL_SPACEDIM;
 }
 
 inline
 bool
 Orientation::isHigh () const
 {
-    return val >= SpaceDim;
+    return val >= BL_SPACEDIM;
 }
 
 inline
@@ -344,7 +344,7 @@ inline
 bool
 OrientationIter::ok () const
 {
-    return 0 <= face && face < 2*SpaceDim;
+    return 0 <= face && face < 2*BL_SPACEDIM;
 }
 
 inline
@@ -381,7 +381,7 @@ OrientationIter::operator() () const
 inline
 OrientationIter::operator void* ()
 {
-    return 0 <= face && face < 2*SpaceDim ? this : 0;
+    return 0 <= face && face < 2*BL_SPACEDIM ? this : 0;
 }
 
 inline

@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.5 1998-11-13 00:16:14 marc Exp $
+// $Id: Looping.H,v 1.6 1999-04-26 20:09:22 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -745,7 +745,7 @@
 {                                                                       \
     assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
     assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    assert((ir) >= 0 && (ir) < SpaceDim);                               \
+    assert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
     assert((x).contains(bx));                                           \
     assert((y).contains(by));                                           \
     assert((bx).sameSize(by));                                          \
@@ -1110,7 +1110,7 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
 {                                                                       \
-    assert((ir) >= 0 && (ir) < SpaceDim);                               \
+    assert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
     assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
     assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
     assert((x).contains(bx));                                           \

@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.7 1999-02-10 21:09:56 lijewski Exp $
+// $Id: IntVect.H,v 1.8 1999-04-26 20:09:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -363,7 +363,7 @@ protected:
     //
     friend class Box;
 
-    int vect[SpaceDim];
+    int vect[BL_SPACEDIM];
 };
 
 //
@@ -397,7 +397,7 @@ IntVect::IntVect (const int *a)
 inline
 IntVect::IntVect (const Array<int> &a)
 {
-    assert(a.length() == SpaceDim);
+    assert(a.length() == BL_SPACEDIM);
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
@@ -419,7 +419,7 @@ inline
 int&
 IntVect::operator[] (int i)
 {
-    assert(i>=0 && i < SpaceDim);
+    assert(i>=0 && i < BL_SPACEDIM);
     return vect[i];
 }
 
@@ -427,7 +427,7 @@ inline
 int
 IntVect::operator[] (int i) const
 {
-    assert(i>=0 && i < SpaceDim);
+    assert(i>=0 && i < BL_SPACEDIM);
     return vect[i];
 }
 
@@ -436,7 +436,7 @@ IntVect&
 IntVect::setVal (int i,
                  int val)
 {
-    assert(i >=0 && i < SpaceDim);
+    assert(i >=0 && i < BL_SPACEDIM);
     vect[i] = val;
     return *this;
 }
@@ -695,7 +695,7 @@ IntVect&
 IntVect::reflect (int ref_ix,
                   int idir)
 {
-    assert(idir >= 0 && idir < SpaceDim);
+    assert(idir >= 0 && idir < BL_SPACEDIM);
     vect[idir] = -vect[idir] + 2*ref_ix;
     return *this;
 }
@@ -705,7 +705,7 @@ IntVect&
 IntVect::shift (int coord,
                 int s)
 {
-    assert(coord >= 0 && coord < SpaceDim);
+    assert(coord >= 0 && coord < BL_SPACEDIM);
     vect[coord] += s;
     return *this;
 }
@@ -787,7 +787,7 @@ inline
 IntVect
 BASISV (int dir)
 {
-    assert(dir >= 0 && dir < SpaceDim);
+    assert(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
     tmp.vect[dir] = 1;
     return tmp;
@@ -799,7 +799,7 @@ reflect (const IntVect& a,
          int            ref_ix,
          int            idir)
 {
-    assert(idir >= 0 && idir < SpaceDim);
+    assert(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
     b.vect[idir] = -b.vect[idir] + 2*ref_ix;
     return b;
@@ -836,7 +836,7 @@ IntVect&
 IntVect::coarsen (int s)
 {
     assert(s > 0);
-    for (int i = 0; i < SpaceDim; ++i)
+    for (int i = 0; i < BL_SPACEDIM; ++i)
         vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
     return *this;
 }
@@ -846,7 +846,7 @@ IntVect&
 IntVect::coarsen (const IntVect& p)
 {
     assert(p > IntVect::TheZeroVector());
-    for (int i = 0; i <SpaceDim; ++i)
+    for (int i = 0; i <BL_SPACEDIM; ++i)
     {
         const int s = p.vect[i];
         vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
