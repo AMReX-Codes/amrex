@@ -57,7 +57,6 @@ public:
 	m_comm = comm;
 	return false;
     }
-    virtual void hint() const { };
     void set_sequence_number(sequence_number sno)
     {
 	m_sno = sno;
@@ -76,7 +75,9 @@ public:
     }
     bool depend_ready();
     virtual bool recommit(list<task*>*);
+    virtual void hint() const;
 protected:
+    void _hint() const;
     sequence_number m_sno;
     list< task** > dependencies;
     bool m_started;
@@ -118,8 +119,8 @@ public:
     virtual ~task_copy();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
-    virtual void hint() const;
     virtual bool depends_on_q(const task* t) const;
+    virtual void hint() const;
 protected:
     void startup();
     MPI_Request m_request;
@@ -142,7 +143,8 @@ public:
     virtual ~task_copy_local();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
-private:
+    virtual void hint() const;
+protected:
     void startup();
 private:
     bool m_local;
