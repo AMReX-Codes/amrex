@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.59 2001-08-09 22:42:00 marc Exp $
+// $Id: TagBox.cpp,v 1.60 2001-09-24 19:10:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -313,7 +313,7 @@ TagBox::numTags () const
    int nt = 0;
    long t_long = domain.numPts();
    BL_ASSERT(t_long < INT_MAX);
-   int len = int(t_long);
+   int len = static_cast<int>(t_long);
    const TagType* d = dataPtr();
    for (int n = 0; n < len; n++)
    {
@@ -546,29 +546,24 @@ TagBoxArray::collate (long& numtags) const
     if (TagBoxArray::m_CollateCount < numtags)
         TagBoxArray::BumpCollateSpace(numtags);
 
-#ifdef BL_USE_MPI
     const int NGrids = fabparray.size();
 
     Array<int> sharedNTags(NGrids); // Shared numTags per grid.
     Array<int> startOffset(NGrids); // Start locations per grid.
 
-    for (MFIter fai(*this); fai.isValid();++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         sharedNTags[fai.index()] = get(fai).numTags();
     }
     const DistributionMapping& dMap = DistributionMap();
 
-    for (int i = 0, rc = 0; i < NGrids; ++i)
+    for (int i = 0; i < NGrids; ++i)
     {
-        if ((rc = MPI_Bcast(&sharedNTags[i],
-                            1,
-                            MPI_INT,
-                            dMap[i],
-                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+         ParallelDescriptor::Bcast(&sharedNTags[i], 1, dMap[i]);
     }
 
     startOffset[0] = 0;
+
     for (int i = 1; i < NGrids; ++i)
     {
         startOffset[i] = startOffset[i-1] + sharedNTags[i-1];
@@ -576,7 +571,7 @@ TagBoxArray::collate (long& numtags) const
     //
     // Communicate all local points so all procs have the same global set.
     //
-    for (MFIter fai(*this); fai.isValid();++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
     }
@@ -585,23 +580,15 @@ TagBoxArray::collate (long& numtags) const
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    for (int i = 0, rc = 0; i < NGrids; ++i)
+    for (int i = 0; i < NGrids; ++i)
     {
-        if ((rc = MPI_Bcast(TagBoxArray::m_CollateSpace + startOffset[i],
-                            sharedNTags[i] * BL_SPACEDIM,
-                            MPI_INT,
-                            dMap[i],
-                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    }
-#else
-    int start = 0;
+        int* iptr =
+            reinterpret_cast<int*>(TagBoxArray::m_CollateSpace+startOffset[i]);
 
-    for (MFIter fai(*this); fai.isValid();++fai)
-    {
-        start += get(fai).collate(TagBoxArray::m_CollateSpace,start);
+        ParallelDescriptor::Bcast(iptr,
+                                  sharedNTags[i] * BL_SPACEDIM,
+                                  dMap[i]);
     }
-#endif /*BL_USE_MPI*/
     //
     // Remove duplicate IntVects.
     //

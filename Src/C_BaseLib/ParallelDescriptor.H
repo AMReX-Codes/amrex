@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.68 2001-07-31 17:56:27 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.69 2001-09-24 19:10:10 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -300,16 +300,9 @@ namespace ParallelDescriptor
     //@ManDoc: Parallel gather.
     //
     void Gather (Real* sendbuf,
-                        int   sendcount,
-                        Real* recvbuf,
-                        int   root);
-    //
-    //@ManDoc: Parallel broadcast of nbyte bytes from fromproc to all procs.
-    //
-    void Broadcast (int   fromproc,
-                           void* src,
-                           void* dest,
-                           int   nbytes);
+                 int   sendcount,
+                 Real* recvbuf,
+                 int   root);
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
@@ -332,7 +325,6 @@ namespace ParallelDescriptor
     template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
-    template <class T> T Bcast(const T&, int root = 0);
 
     template <class Op, class T> T Reduce(const T& t);
     template <class Op, class T> std::vector<T> Reduce(const std::vector<T>& t);
@@ -449,16 +441,6 @@ void
 ParallelDescriptor::Bcast(T* t, size_t n, int root)
 {
     BL_MPI_REQUIRE( MPI_Bcast(t, n, Mpi_typemap<T>::type(), root, Communicator()) );
-}
-
-template <class T>
-T
-ParallelDescriptor::Bcast(const T& t, int root)
-{
-    T resl;
-    if ( MyId() == root ) resl = t;
-    BL_MPI_REQUIRE( MPI_Bcast(&resl, 1, Mpi_typemap<T>::type(), root, Communicator()) );
-    return resl;
 }
 
 template <class T, class T1>
