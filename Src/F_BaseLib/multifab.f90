@@ -3186,10 +3186,10 @@ contains
     if ( parallel_q() ) then
        call bl_error("MULTIFAB_FAB_COPY: not ready for parallel")
     end if
-    if ( size(fb,dim=4) > cf + nc - 1 ) then
+    if ( size(fb,dim=4) < cf + nc - 1 ) then
        call bl_error("MULTIFAB_FAB_COPY: fb extent to small")
     end if
-    if ( ncomp(mf) > cm + nc - 1 ) then
+    if ( ncomp(mf) < cm + nc - 1 ) then
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
     do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
@@ -3207,8 +3207,8 @@ contains
   contains
     subroutine c_1d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t) :: f(lo(1):,:)
-      real(kind=dp_t) :: x(xo(1):,:)
+      real(kind=dp_t), intent(inout)  :: f(lo(1):,:)
+      real(kind=dp_t), intent(in) :: x(xo(1):,:)
       integer :: i
       do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
          f(i,:) = x(i,:)
@@ -3216,8 +3216,8 @@ contains
     end subroutine c_1d
     subroutine c_2d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t) :: f(lo(1):,lo(2):,:)
-      real(kind=dp_t) :: x(xo(1):,xo(2):,:)
+      real(kind=dp_t), intent(inout)  :: f(lo(1):,lo(2):,:)
+      real(kind=dp_t), intent(in) :: x(xo(1):,xo(2):,:)
       integer :: i, j
       do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))
          do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
@@ -3227,8 +3227,8 @@ contains
     end subroutine c_2d
     subroutine c_3d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t) :: f(lo(1):,lo(2):,lo(3):,:)
-      real(kind=dp_t) :: x(xo(1):,xo(2):,xo(3):,:)
+      real(kind=dp_t), intent(inout) :: f(lo(1):,lo(2):,lo(3):,:)
+      real(kind=dp_t), intent(in) :: x(xo(1):,xo(2):,xo(3):,:)
       integer :: i, j, k
       do k = max(lbound(f,3),lbound(x,3)), min(ubound(f,3),ubound(x,3))
          do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))

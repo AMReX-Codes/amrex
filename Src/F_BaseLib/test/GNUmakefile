@@ -20,6 +20,7 @@ include $(FPARALLEL)/boxlib/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/boxlib
 INCLUDE_LOCATIONS += $(FPARALLEL)/boxlib
 
+
 ifdef USE_METIS
 include $(FPARALLEL)/extern/metis-4.0/Lib/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/extern/metis-4.0/Lib
