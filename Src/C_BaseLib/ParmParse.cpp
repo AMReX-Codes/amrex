@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.21 2001-07-23 17:39:01 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.22 2001-07-23 17:55:33 lijewski Exp $
 //
 
 #include <iostream>
@@ -31,12 +31,12 @@ enum PPType
 
 struct PP_entry
 {
-    PP_entry (aString&       name,
+    PP_entry (std::string&       name,
               PPType         typ,
-              List<aString>& vals);
+              List<std::string>& vals);
 
-    Array<aString> val;
-    aString        defname;
+    Array<std::string> val;
+    std::string        defname;
     PPType         deftype;
     bool           queried;
 
@@ -352,15 +352,15 @@ getToken (const char* str,
 static
 bool
 ppfound (const char*    keyword,
-         const aString& key,
-         const aString& prefix)
+         const std::string& key,
+         const std::string& prefix)
 {
     //
     // Return true if key==keyword || key == prefix.keyword.
     //
     if (!prefix.isNull())
     {
-        aString tmp(prefix);
+        std::string tmp(prefix);
         tmp += '.';
         tmp += keyword;
         return (key == tmp);
@@ -475,11 +475,11 @@ read_file (const char*      fname,
 }
 
 void
-addDefn (aString&         def,
-                    List<aString>&   val,
+addDefn (std::string&         def,
+                    List<std::string>&   val,
                     List<PP_entry*>& tab)
 {
-    static const aString FileKeyword("FILE");
+    static const std::string FileKeyword("FILE");
     //
     // Check that defn exists.
     //
@@ -513,7 +513,7 @@ addDefn (aString&         def,
         tab.append(pp);
     }
     val.clear();
-    def = aString();
+    def = std::string();
 }
 
 void
@@ -521,9 +521,9 @@ bldTable (const char*      str,
                      int              lenstr,
                      List<PP_entry*>& tab)
 {
-   aString       cur_name;
-   List<aString> cur_list;
-   aString       tmp_str;
+   std::string       cur_name;
+   List<std::string> cur_list;
+   std::string       tmp_str;
    PP_entry      *pp;
 
    int       i = 0;
@@ -579,7 +579,7 @@ bldTable (const char*      str,
           if (cur_name.length() == 0)
           {
               tokname[SCRATCH_STR_LEN-1] = 0;
-              aString msg("ParmParse::bldTable(): value with no defn: ");
+              std::string msg("ParmParse::bldTable(): value with no defn: ");
               msg += tokname;
               BoxLib::Abort(msg.c_str());
           }
@@ -648,7 +648,7 @@ squeryval (const char*  name,
         BoxLib::Abort();
     }
 
-    const aString& valname = def->val[ival];
+    const std::string& valname = def->val[ival];
 
     bool ok = false;
     double val_dbl;
@@ -762,7 +762,7 @@ squeryarr (const char*  name,
 
     for (int n = start_ix; n <= stop_ix; n++)
     {
-       const aString& valname = def->val[n];
+       const std::string& valname = def->val[n];
        //
        // Retrieve value.
        //
@@ -790,8 +790,8 @@ squeryarr (const char*  name,
            break;
        case ppString:
            ok = true;
-           *(aString*)ptr = valname;
-           ptr = (aString*)ptr+1;
+           *(std::string*)ptr = valname;
+           ptr = (std::string*)ptr+1;
            break;
        default:
            BoxLib::Error("ParmParse::get invalid type");
@@ -848,16 +848,16 @@ sgetarr (const char*  name,
 //
 static void ppinit (int argc, char** argv, const char* parfile);
 
-PP_entry::PP_entry (aString&          name,
+PP_entry::PP_entry (std::string&          name,
                     PPType typ,
-                    List<aString>&    vals)
+                    List<std::string>&    vals)
     :
     val(vals.length()),
     defname(name),
     deftype(typ),
     queried(false)
 {
-   ListIterator<aString> li(vals);
+   ListIterator<std::string> li(vals);
    for (int i = 0; li; i++, ++li)
       val[i] = vals[li];
 }
@@ -874,7 +874,7 @@ ppinit (int argc, char** argv, const char* parfile)
 
     if (argc > 0)
     {
-        aString argstr;
+        std::string argstr;
         const char SPACE = ' ';
         for (int i = 0; i < argc; i++)
         {
@@ -1288,7 +1288,7 @@ ParmParse::queryarr (const char*    name,
 void
 ParmParse::getktharr (const char*     name,
                       int             k,
-                      Array<aString>& ptr,
+                      Array<std::string>& ptr,
                       int             start_ix,
                       int             num_val)
 {
@@ -1299,7 +1299,7 @@ ParmParse::getktharr (const char*     name,
 
 void
 ParmParse::getarr (const char*     name,
-                   Array<aString>& ptr,
+                   Array<std::string>& ptr,
                    int             start_ix,
                    int             num_val)
 {
@@ -1311,7 +1311,7 @@ ParmParse::getarr (const char*     name,
 int
 ParmParse::queryktharr (const char*     name,
                         int             k,
-                        Array<aString>& ptr,
+                        Array<std::string>& ptr,
                         int             start_ix,
                         int             num_val)
 {
@@ -1322,7 +1322,7 @@ ParmParse::queryktharr (const char*     name,
 
 int
 ParmParse::queryarr (const char*     name,
-                     Array<aString>& ptr,
+                     Array<std::string>& ptr,
                      int             start_ix,
                      int             num_val)
 {
@@ -1332,7 +1332,7 @@ ParmParse::queryarr (const char*     name,
 }
 
 int
-ParmParse::countname (const aString& name)
+ParmParse::countname (const std::string& name)
 {
     return countname(name.c_str());
 }

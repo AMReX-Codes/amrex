@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.13 2001-07-19 16:57:36 lijewski Exp $
+// $Id: RunStats.H,v 1.14 2001-07-23 17:55:33 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -10,7 +10,6 @@
 #include <cstring>
 #include <cmath>
 
-#include <aString.H>
 #include <List.H>
 #include <Array.H>
 #include <ParallelDescriptor.H>
@@ -31,7 +30,7 @@ private:
         is_on(0)
     {}
 
-    RunStatsData (const aString& _name, int _level) 
+    RunStatsData (const std::string& _name, int _level) 
         :
         name(_name),
         run_time(0.0),
@@ -40,7 +39,7 @@ private:
         is_on(0)
     {}
 
-    aString name;
+    std::string name;
     Real    run_time;
     Real    run_wtime;
     int     level;
@@ -63,7 +62,7 @@ public:
     //
     //@ManDoc: The constructor.
     //
-    RunStats (const aString& name, int level = 0);
+    RunStats (const std::string& name, int level = 0);
     //
     //@ManDoc: The destructor.
     //
@@ -113,15 +112,15 @@ public:
     //
     static void readStats (std::ifstream &is, bool restart = false);
     //
-    //@ManDoc: Report the names of the statistics as an array of aString.
+    //@ManDoc: Report the names of the statistics as an array of std::string.
     //
-    static void report_names (Array<aString>& stat_names);
+    static void report_names (Array<std::string>& stat_names);
 
     /*@ManDoc: Report the values of the statistics as arrays of REALS.
                This assumes `stat\_names' is result of previous call to
                report\_names().
     */
-    static void report_values (const Array<aString>& stat_names,
+    static void report_values (const Array<std::string>& stat_names,
                                Array<Real>&          stat_time,
                                Array<Real>&          stat_wtime,
                                Real&                 tot_run_time,
@@ -135,7 +134,7 @@ private:
     //
     // Do we have an entry by the specified name?
     //
-    static RunStatsData* find (const aString& _name, int _level);
+    static RunStatsData* find (const std::string& _name, int _level);
 
     void resize (int level);
 
@@ -149,7 +148,7 @@ private:
     //
     RunStatsData* entry;
     RunStatsData* gentry;
-    aString       name;
+    std::string       name;
     Real          time;
     Real          wtime;
     int           level;

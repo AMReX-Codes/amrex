@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.135 2001-07-22 20:47:46 car Exp $
+// $Id: FabArray.H,v 1.136 2001-07-23 17:55:32 lijewski Exp $
 //
 
 #include <cstring>
@@ -12,7 +12,6 @@
 #include <vector>
 
 #include <BLassert.H>
-#include <aString.H>
 #include <PArray.H>
 #include <Array.H>
 

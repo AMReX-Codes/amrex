@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.49 2001-07-19 16:57:32 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.50 2001-07-23 17:55:32 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -89,7 +89,7 @@ DistributionMapping::init ()
         
     ParmParse pp("DistributionMapping");
 
-    aString theStrategy;
+    std::string theStrategy;
 
     if (pp.query("strategy", theStrategy))
     {
@@ -103,7 +103,7 @@ DistributionMapping::init ()
         }
         else
         {
-            aString msg("Unknown strategy: ");
+            std::string msg("Unknown strategy: ");
             msg += theStrategy;
             BoxLib::Warning(msg.c_str());
         }

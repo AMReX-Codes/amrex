@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.26 2001-07-21 00:32:37 car Exp $
+# $Id: Make.package,v 1.27 2001-07-23 17:55:32 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -13,8 +13,8 @@ endif
 C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
 C$(BOXLIB_BASE)_sources += BoxLib.cpp
 
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H BLassert.H aString.H ArrayLim.H
+C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp
+C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H BLassert.H ArrayLim.H
 
 C$(BOXLIB_BASE)_headers += REAL.H CONSTANTS.H SPACE.H SPACE_F.H
 

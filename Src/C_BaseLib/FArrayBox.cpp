@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.38 2001-07-23 17:39:00 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.39 2001-07-23 17:55:32 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -324,7 +324,7 @@ FArrayBox::init ()
 {
     ParmParse pp("fab");
 
-    aString fmt;
+    std::string fmt;
     //
     // This block can legitimately set FAB output format.
     //
@@ -376,7 +376,7 @@ FArrayBox::init ()
     // This block sets ordering which doesn't affect output format.
     // It is only used when reading in an old FAB.
     //
-    aString ord;
+    std::string ord;
     if (pp.query("ordering", ord))
     {
         if (ord == "NORMAL_ORDER")

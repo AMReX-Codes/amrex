@@ -2,14 +2,13 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.15 2001-07-22 23:41:27 car Exp $
+// $Id: ParmParse.H,v 1.16 2001-07-23 17:55:33 lijewski Exp $
 //
 
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
 
-#include <aString.H>
 #include <Array.H>
 //
 // ParmParse class implements a simple database for the storage and
@@ -147,7 +146,7 @@
 //    //
 //    // Read all variables with "plot.var" keyword.
 //    //
-//    aString var_name;
+//    std::string var_name;
 //    Array<int> range;
 //    int num = pp.countname("var");
 //    for (int k = 0; k < num; k++)
@@ -212,12 +211,12 @@
   The query functions search the table for definition names that match a given
   string (and prefix) and return values from the corresponding value list.
   The values can be returned as ints, Array<int>s, floats, Array<float>s,
-  doubles, Array<double>s, aStrings, or Array<aSring>s.  All values in the
-  table are stored as aString objects, but if an int, float, or double is
+  doubles, Array<double>s, std::strings, or Array<aSring>s.  All values in the
+  table are stored as std::string objects, but if an int, float, or double is
   requested, the translation is done automatically.  In the previous example,
-  the value of niter could be returned as either an aString, an int, a double,
-  or a float.  The values of dx can be returned as aStrings, floats, or
-  doubles, but the value of name can be returned only as an aString.
+  the value of niter could be returned as either an std::string, an int, a double,
+  or a float.  The values of dx can be returned as std::strings, floats, or
+  doubles, but the value of name can be returned only as an std::string.
 
   Comments in an input file include all text from a `\#' character to the
   end of the line.  Here is a sample input file:
@@ -291,7 +290,7 @@ public:
     /*@ManDoc: Returns the number of times the given name (prepended with
                prefix) appears in the table.
     */
-    int countname (const aString& name);
+    int countname (const std::string& name);
     //
     //@ManDoc: Write the contents of the table in ASCII to the ostream.
     //
@@ -444,10 +443,10 @@ public:
                int         ival=0);
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
-               If successful, the value is converted to a aString and stored
+               If successful, the value is converted to a std::string and stored
                in reference ref.  If the kth occurrence does not exist or
                ival'th value does not exist, or if the printed representation
-               of the value cannot be converted to a aString, an error message
+               of the value cannot be converted to a std::string, an error message
                is output and the program halts.   Note that ival = 0 is the
                first value in the list.
     */
@@ -596,27 +595,27 @@ public:
                   int            start_ix,
                   int            num_val);
 
-    /*@ManDoc: Gets an Array<aString> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an Array<std::string> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
-               aString and stored in the Array<aString> object ref.  ref is
+               std::string and stored in the Array<std::string> object ref.  ref is
                resized (if necessary) to hold num\_val values.  The value in
-               the list indexed by start\_ix is copied into Array<aString>[0],
-               Array<aString>[1] holds start\_ix+1, etc.  If the kth occurrence
+               the list indexed by start\_ix is copied into Array<std::string>[0],
+               Array<std::string>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
-               values cannot be converted to an aString, an error message is
+               values cannot be converted to an std::string, an error message is
                reported and the program halts.
     */
     void getktharr (const char*     name,
                     int             k,
-                    Array<aString>& ref,
+                    Array<std::string>& ref,
                     int             start_ix,
                     int             num_val);
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
-                 Array<aString>& ref,
+                 Array<std::string>& ref,
                  int             start_ix,
                  int             num_val);
     //
@@ -624,21 +623,21 @@ public:
     //
     int queryktharr (const char*     name,
                      int             k,
-                     Array<aString>& ref,
+                     Array<std::string>& ref,
                      int             start_ix,
                      int             num_val);
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
-                  Array<aString>& ref,
+                  Array<std::string>& ref,
                   int             start_ix,
                   int             num_val);
 private:
     //
     // Prefix used in keyword search.
     //
-    aString thePrefix;
+    std::string thePrefix;
 
 };
 

@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.31 2001-07-21 17:37:10 car Exp $
+// $Id: RunStats.cpp,v 1.32 2001-07-23 17:55:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -42,7 +42,7 @@ RunStats::init ()
 
     if (pp.contains("statvar"))
     {
-        aString nm;
+        std::string nm;
 
         for (int i = 0, n = pp.countval("statvar"); i < n; i++)
         {
@@ -54,7 +54,7 @@ RunStats::init ()
 }
 
 RunStatsData*
-RunStats::find (const aString& _name,
+RunStats::find (const std::string& _name,
                 int            _level)
 {
     for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
@@ -69,7 +69,7 @@ RunStats::find (const aString& _name,
     return &RunStats::TheStats.lastElement();
 }
 
-RunStats::RunStats (const aString& _name,
+RunStats::RunStats (const std::string& _name,
                     int            _level)
     :
     name(_name),
@@ -417,7 +417,7 @@ RunStats::report (std::ostream& os)
 }
 
 void
-RunStats::report_names (Array<aString>& stat_names)
+RunStats::report_names (Array<std::string>& stat_names)
 {
     //
     // Compute the number of distinct statistics.
@@ -448,7 +448,7 @@ RunStats::report_names (Array<aString>& stat_names)
 }
 
 void
-RunStats::report_values (const Array<aString>& stat_names,
+RunStats::report_values (const Array<std::string>& stat_names,
                          Array<Real>&          stat_time,
                          Array<Real>&          stat_wtime,
                          Real&                 tot_run_time,
@@ -548,7 +548,7 @@ RunStats::readStats (std::ifstream& is,
                      bool           restart)
 {
     is.ignore(BL_IGNORE_MAX,'(');
-    aString s;
+    std::string s;
     is >> s;
     if (s != "ListRunStats")
     {
@@ -637,7 +637,7 @@ operator>> (std::istream& is,
             RunStatsData& rd)
 {
     is.ignore(BL_IGNORE_MAX, '(');
-    aString s;
+    std::string s;
     is >> s;
     if (s != "RunStatsData")
     {

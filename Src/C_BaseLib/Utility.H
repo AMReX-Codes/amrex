@@ -2,12 +2,13 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.44 2001-07-23 17:39:01 lijewski Exp $
+// $Id: Utility.H,v 1.45 2001-07-23 17:55:33 lijewski Exp $
 //
 #include <winstd.H>
 
-#include <iostream>
 #include <ctime>
+#include <iostream>
+#include <string>
 
 #ifndef WIN32
 #include <sys/types.h>
@@ -22,7 +23,6 @@ struct timespec
 #endif
 
 #include <BLassert.H>
-#include <aString.H>
 #include <REAL.H>
 
 //
@@ -60,12 +60,12 @@ namespace BoxLib
     //
     //@ManDoc: Returns rootNNNN where NNNN == num.
     //
-    aString Concatenate (const aString& root,
-                         int            num);
+    std::string Concatenate (const std::string& root,
+                             int                num);
 
 #ifdef WIN32
-    bool UtilCreateDirectory (const aString& path,
-                              int            mode);
+    bool UtilCreateDirectory (const std::string& path,
+                              int                mode);
 #else
     /*@ManDoc:
       Creates the specified directories.  `path' may be either a full pathname
@@ -85,21 +85,21 @@ namespace BoxLib
       "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
       character string), 
     */
-    bool UtilCreateDirectory (const aString& path,
-                              mode_t         mode);
+    bool UtilCreateDirectory (const std::string& path,
+                              mode_t             mode);
 #endif
     //
     //@ManDoc: Output a message and abort when couldn't create the directory.
     //
-    void CreateDirectoryFailed (const aString& dir);
+    void CreateDirectoryFailed (const std::string& dir);
     //
     //@ManDoc: Output a message and abort when couldn't open the file.
     //
-    void FileOpenFailed (const aString& dir);
+    void FileOpenFailed (const std::string& dir);
     //
     //@ManDoc: Attempt to unlink the file.  Ignore any errors.
     //
-    void UnlinkFile (const aString& file);
+    void UnlinkFile (const std::string& file);
 
     /*@ManDoc: Aborts after printing message indicating out-of-memory;
                i.e. operator new has failed. This is the "supported"
