@@ -37,6 +37,7 @@ struct HG
 #ifdef BL_USE_MPI
     static MPI_Comm mpi_comm;
     static int mpi_tag_ub;
+    static int max_live_tasks;
 #endif
     static int multigrid_maxiter;
     static int cgsolve_maxiter;

@@ -71,10 +71,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
       MXZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(ii,j1,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
 
       MYZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(i1,jj,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
 
 
       fac00 = one / 36
@@ -560,10 +560,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
       MXZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(ii,j1,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
 
       MYZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(i1,jj,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
 
 
       ic = regl0
@@ -1478,10 +1478,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
       MXZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(ii,j1,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
 
       MYZF(i1,j1,k1,ii,jj,kk) = (six *  fdst(i1,jj,kk)  +
-     &                         three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
+     &                        three * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
       ic = regl0
       jc = regl1
       kc = regl2
