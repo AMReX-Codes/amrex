@@ -1,5 +1,5 @@
 c
-c $Id: LP_2D.F,v 1.3 2000-08-24 20:28:29 car Exp $
+c $Id: LP_2D.F,v 1.4 2000-10-03 18:17:27 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -186,7 +186,7 @@ c-----------------------------------------------------------------------
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer i, j, n
-      REAL_T h
+      REAL_T h,res
 c
       res = 8.0/h**2
       end
