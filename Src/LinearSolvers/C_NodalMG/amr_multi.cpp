@@ -389,7 +389,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	{
 	    cout << "Err from " << it + 1 << "th ml_cycle is " << err << endl;
 	}
-	if (++it > 100)
+	if (++it > HG::multigrid_maxiter)
 	{
 	    BoxLib::Error( "amr_multigrid::solve---multigrid iteration failed" );
 	}

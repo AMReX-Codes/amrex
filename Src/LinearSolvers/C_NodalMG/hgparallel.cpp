@@ -1,6 +1,8 @@
 #include "amr_defs.H"
 #include "hgparallel.h"
 
+#include <ParmParse.H>
+
 #ifdef HG_DEBUG
 #ifdef BL_USE_NEW_HFILES
 #include <typeinfo>
@@ -14,13 +16,20 @@ bool HG_is_debugging = false;
 MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
 int HG::mpi_tag_ub;
 #endif
+int HG::multigrid_maxiter = 100;
+int HG::cgsolve_maxiter = 250;
+bool HG::initialized = false;
+double HG::cgsolve_tolfact = 1.0e-3;
 
 void HG::MPI_init()
 {
-    static int first = 0;
-    if ( first == 0 )
+    if ( !initialized == 0 )
     {
-	first = 1;
+	ParmParse pp("HG");
+	pp.query("cgsolve_maxiter", cgsolve_maxiter);
+	pp.query("multigrid_maxiter", multigrid_maxiter);
+	pp.query("cgsolve_tolfact", cgsolve_tolfact);
+	initialized = true;
 #ifdef BL_USE_MPI
 	int res;
 	// int flag;

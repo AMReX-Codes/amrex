@@ -595,12 +595,12 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	cout << " cgsolve rho = " << rho << endl;
     }
 
-    const Real tol = 1.e-3 * rho;
+    const Real tol = HG::cgsolve_tolfact * rho;
     
     int i = 0;
     while (tol > 0.0) 
     {
-	if ( ++i > 250 && ParallelDescriptor::IOProcessor() )
+	if ( ++i > HG::cgsolve_maxiter && ParallelDescriptor::IOProcessor() )
 	{
 	    BoxLib::Error( "cgsolve: Conjugate-gradient iteration failed to converge" );
 	}
@@ -638,8 +638,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	}
 	if (rho <= tol)
 	    break;
-	if  ( i > 250 ) // FIXME
-	    BoxLib::Error( "hgamg::cgsolve iteration count exceeded" );
 	alpha = rho / rho_old;
 	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
