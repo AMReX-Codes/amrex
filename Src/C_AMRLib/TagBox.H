@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.9 1998-01-29 18:59:36 lijewski Exp $
+// $Id: TagBox.H,v 1.10 1998-05-06 17:50:52 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -29,61 +29,81 @@
 #define TagBox        TagBox3d
 #endif
 
+//
+//@Man:
+//@Memo: Tagged cells in a Box.
+/*@Doc:
+
+  This class is used to tag cells in a Box that need addition refinement.
+*/
+
 class TagBox
     :
     public BaseFab<char>
 {
 public:
     //
-    // The type of each tag.
+    //@ManDoc: The type of each tag.
     //
     typedef char TagType;
     //
-    // Possible values for each cell.
+    //@ManDoc: Possible values for each cell.
     //
     enum TagVal { CLEAR=0, BUF, SET };
     //
-    // Construct an invalid TagBox with no memory.
+    //@ManDoc: Construct an invalid TagBox with no memory.
     //
     TagBox ();
-
+    //
+    //@ManDoc: Construct a TagBox on Box `bx' with number of components `n'.
+    //
     TagBox (const Box& bx, int n = 1);
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~TagBox();
-    
+    //
+    //@ManDoc: Resize the box on which the TagBox is defined.
+    //
     void resize (const Box& b) { BaseFab<TagType>::resize(b,1); }
-    //
-    // Construct and return a new tagbox in which the coarsened cell is
-    // tagged of any of the corresponding fine cells are tagged.
-    //
+
+    /*@ManDoc: Construct and return a new tagbox in which the coarsened cell
+               is tagged of any of the corresponding fine cells are tagged.
+    */
     TagBox* coarsen (const IntVect & ratio);
-    //
-    // Mark neighbors of every tagged cell a distance nbuff away
-    // only search interior for initial tagged points where nwid
-    // is given as the width of the bndry region.
-    //
+
+    /*@ManDoc: Mark neighbors of every tagged cell a distance nbuff away
+               only search interior for initial tagged points where nwid
+               is given as the width of the bndry region.
+    */
     void buffer (int nbuff, int nwid);
     //
-    // Tag cells on intersect with src if corresponding src cell is tagged.
+    //@ManDoc: Tag cells on intersect with src if corresponding src cell is tagged.
     //
     void merge (const TagBox& src);
-    //
-    // Add location of every tagged cell to IntVect array,
-    // starting at given location.
-    //
-    void collate (IntVect* ar, int start) const;
 
+    /*@ManDoc: Add location of every tagged cell to IntVect array,
+               starting at given location.
+    */
+    void collate (IntVect* ar, int start) const;
+    //
+    //@ManDoc: Returns number of tagged cells in specified Box.
+    //
     int numTags (const Box& bx) const;
+    //
+    //@ManDoc: Returns total number of tagged cells in the TagBox.
+    //
     int numTags () const;
-    //
-    // Returns Array<int> of size domain.numPts() suitable for calling
-    // Fortran, with positions set to same value as in the TagBox dataPtr().
-    //
+
+    /*@ManDoc: Returns Array<int> of size domain.numPts() suitable for calling
+               Fortran, with positions set to same value as in the TagBox
+               dataPtr().
+    */
     Array<int> tags () const;
-    //
-    // Set values as specified by the array.
-    // It's an error if ar.length() != domain.numPts().
-    //
+
+    /*@ManDoc: Set values as specified by the array.
+               It's an error if ar.length() != domain.numPts().
+    */
     void tags (const Array<int>& ar);
 
 private:
@@ -94,35 +114,70 @@ private:
     TagBox& operator= (const TagBox& rhs);
 };
 
+//
+//@Man:
+//@Memo: An array of TagBoxes.
+/*@Doc:
+
+  A container class for TagBoxes.
+*/
+
 class TagBoxArray
     :
     public FabArray<TagBox::TagType,TagBox>
 {
 public:
     //
-    // The type of each tag.
+    //@ManDoc: The type of each tag.
     //
     typedef TagBox::TagType TagType;
-
+    //
+    //@ManDoc: The constructor.
+    //
     TagBoxArray (const BoxArray& bs, int _ngrow=0);
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~TagBoxArray ();
-
+    //
+    //@ManDoc: Returns the grow factor for the TagBoxArray.
+    //
     int borderSize () { return m_border; }
+    //
+    //@ManDoc: Calls buffer() on all contained TagBoxes.
+    //
     void buffer (int nbuf);
+
+    /*@ManDoc: Massages the contained TagBoxes so that any tagged cells in a
+               region where one or more TagBoxes overlap are only set in one
+               of the TagBoxes; i.e. enforces the uniqueness of tagged points
+               in the underlying BoxArray defined by the contained TagBoxes.
+    */
     void mergeUnique ();
-    //
-    // Map tagged cells through a periodic boundary to other grids in
-    // TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
-    //
+
+    /*@ManDoc: Map tagged cells through a periodic boundary to other grids in
+               TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
+    */
     void mapPeriodic (const Geometry& geom);
-
+    //
+    //@ManDoc: Set values in `bd' to `val'.
+    //
     void setVal (BoxDomain& bd, TagBox::TagVal val);
+    //
+    //@ManDoc: Set values in `ba' to `val'. 
+    //
     void setVal (BoxArray& ba, TagBox::TagVal val);
+    //
+    //@ManDoc: Calls coarsen() on all contained TagBoxes.
+    //
     void coarsen (const IntVect& ratio);
-
+    //
+    //@ManDoc: The total number of Tags in all the contained TagBoxes.
+    //
     long numTags () const;
-
+    //
+    //@ManDoc: Calls collate() on all contained TagBoxes.
+    //
     IntVect* collate (long& numtags) const;
 
 private:

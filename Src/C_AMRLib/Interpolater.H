@@ -2,7 +2,7 @@
 #define _INTERPOLATER_H_ 
 
 //
-// $Id: Interpolater.H,v 1.4 1997-12-02 21:15:48 lijewski Exp $
+// $Id: Interpolater.H,v 1.5 1998-05-06 17:50:48 lijewski Exp $
 //
 
 #include <Box.H>
@@ -10,49 +10,100 @@
 #include <FArrayBox.H>
 #include <BCRec.H>
 
-#define UNLIMITED_SLOPE 0
-#define LIMITED_SLOPE 1
+//
+//@Man:
+//@Memo: Virtual base class for interpolaters.
+/*@Doc:
 
-//
-// Virtual base class.
-//
+  Specifies interpolater interface for coarse-to-fine interpolation in space.
+*/
 
 class Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     Interpolater () {}
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~Interpolater ();
-    virtual Box  CoarseBox (const Box& fine, int ratio) = 0;
-    virtual Box  CoarseBox (const Box& fine, const IntVect& ratio) = 0;
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr) = 0;
+
+    /*@ManDoc: Returns coarsened box given fine box and refinement ratio.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio) = 0;
+
+    /*@ManDoc: Returns coarsened box given fine box and refinement ratio.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio) = 0;
+
+    /*@ManDoc: Coarse to fine interpolation in space.
+               This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr) = 0;
 };
 
 //
-// Bilinear interpolation on node centered data.
-//
+//@Man:
+//@Memo: Bilinear interpolation on node centered data.
+/*@Doc:
+
+  Bilinear interpolation on node centered data.
+*/
 
 class NodeBilinear
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     NodeBilinear ();
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~NodeBilinear ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                        FArrayBox& fine, int fine_comp,
-                        int ncomp,
-                        const Box& fine_region, const IntVect & ratio,
-                        const Geometry& crse_geom,
-                        const Geometry& fine_geom,
-                        Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
 private:
     Real* strip;       // temp space passed to FORTRAN
     int   strip_len;
@@ -61,25 +112,49 @@ private:
 };
 
 //
-// Bilinear interpolation on cell centered data.
-//
+//@Man:
+//@Memo: Bilinear interpolation on cell centered data.
+/*@Doc:
+
+  Bilinear interpolation on cell centered data.
+*/
 
 class CellBilinear
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     CellBilinear ();
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~CellBilinear ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
 private:
     Real* strip;       // temp space passed to FORTRAN
     int   strip_len;
@@ -88,24 +163,50 @@ private:
 };
 
 //
-// Conservative interpolation on cell centered data ---
-//
+//@Man:
+//@Memo: Conservative interpolation on cell centered data
+/*@Doc:
+
+  Conservative interpolation on cell centered data
+*/
+
 class CellConservative
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     CellConservative (bool limit = true);
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~CellConservative ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
+
 private:
     Real*  strip;       // temp space passed to FORTRAN
     int    strip_len;
@@ -115,58 +216,108 @@ private:
 };
 
 //
-// "Linear" conservative interpolation on cell centered data
-// I.e, conservative interpolation with a limiting scheme that 
-// preserves the value of any linear combination  of the
-// fab components--e.g.,
-// if sum_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
-//    sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
-// in all fine cells if,jf covering coarse cell ic,jc.
-//
-// If do_linear_limiting = 0, the interpolation scheme is identical to
-// the used in CellConservative for do_limited_slopes=1.
-//
+//@Man:
+//@Memo: Linear conservative interpolation on cell centered data
+/*@Doc:
+
+  Linear conservative interpolation on cell centered data
+  I.e, conservative interpolation with a limiting scheme that 
+  preserves the value of any linear combination  of the
+  fab components; e.g.,
+
+  if sum\_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
+  sum\_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
+  in all fine cells if,jf covering coarse cell ic,jc.
+
+  If do\_linear\_limiting = 0, the interpolation scheme is identical to
+  the used in CellConservative for do\_limited\_slopes=1.
+*/
 
 class CellConservativeLinear
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     CellConservativeLinear (bool do_linear_limiting_= true);
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~CellConservativeLinear ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
+
 private:
     bool do_linear_limiting;
 };
 
 //
-// Quadratic interpolation on cell centered data.
-//
+//@Man:
+//@Memo: Quadratic interpolation on cell centered data.
+/*@Doc:
+
+  Quadratic interpolation on cell centered data.
+*/
 
 class CellQuadratic
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     CellQuadratic (bool limit = true);
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~CellQuadratic ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
 private:
     Real* strip;       // temp space passed to FORTRAN
     int   strip_len;
@@ -176,25 +327,49 @@ private:
 };
 
 //
-// Piecewise Constant interpolation on cell centered data.
-//
+//@Man:
+//@Memo: Piecewise Constant interpolation on cell centered data.
+/*@Doc:
+
+  Piecewise Constant interpolation on cell centered data.
+*/
 
 class PCInterp
     :
     public Interpolater
 {
 public:
+    //
+    //@ManDoc: The constructor.
+    //
     PCInterp ();
+    //
+    //@ManDoc: The destructor.
+    //
     virtual ~PCInterp ();
-    virtual Box CoarseBox (const Box& fine, int ratio);
-    virtual Box CoarseBox (const Box& fine, const IntVect& ratio);
-    virtual void interp (FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec> &bcr);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    //@ManDoc: Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr);
 private:
     Real* strip;       // temp space passed to FORTRAN
     int   strip_len;
@@ -213,5 +388,4 @@ extern PCInterp               pc_interp;
 extern CellConservativeLinear lincc_interp;
 extern CellConservativeLinear nonlincc_interp;
 
-#endif
-
+#endif /*_INTERPOLATER_H_*/

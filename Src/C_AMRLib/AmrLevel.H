@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.14 1998-03-30 17:28:57 lijewski Exp $
+// $Id: AmrLevel.H,v 1.15 1998-05-06 17:50:44 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -27,58 +27,69 @@
 #include <VisMF.H>
 
 //
-// Virtual base class for managing individual levels.
-//
-// AmrLevel functions both as a container for state data on a level
-// and also manages the advancement of data in time.
-//
+//@Man:
+//@Memo: Virtual base class for managing individual levels.
+/*@Doc:
+
+  AmrLevel functions both as a container for state data on a level
+  and also manages the advancement of data in time.
+*/
+
 class AmrLevel
 {
   friend class FillPatchIterator;
 
 public:
+    //
+    //@ManDoc: The destructor.
+    //
+    virtual ~AmrLevel ();
 
-    virtual ~AmrLevel();
-    //
-    // A string written as the first item in writePlotFile() at level zero.
-    // This MUST be defined by each derived class.
-    // It is so we can distinguish between different types of plot files.
-    //
+    /*@ManDoc: A string written as the first item in writePlotFile() at
+               level zero. This MUST be defined by each derived class.
+               It is so we can distinguish between different types of
+               plot files.  This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
     virtual aString thePlotFileType () const = 0;
-    //
-    // Write plot file stuff to specified directory.
-    //
+
+    /*@ManDoc: Write plot file stuff to specified directory.  This is a
+               pure virtual function and hence MUST be implemented by
+               derived classes.
+    */
     virtual void writePlotFile (const aString& dir,
                                 ostream&       os,
                                 VisMF::How     how = VisMF::OneFilePerCPU) = 0;
     //
-    // Write current state to checkpoint file.
+    //@ManDoc: Write current state to checkpoint file.
     //
     virtual void checkPoint (const aString& dir,
                              ostream&       os,
                              VisMF::How     how = VisMF::OneFilePerCPU);
     //
-    // Restart from a checkpoint file.
+    //@ManDoc: Restart from a checkpoint file.
     //
     virtual void restart (Amr&     papa,
                           istream& is);
     //
-    // Is name a state variable?
+    //@ManDoc: Is name a state variable?
     //
     static int isStateVariable (const aString& name,
                                 int&           state_indx,
                                 int&           n_comp);
-    //
-    // Compute the initial time step.
-    //
+
+    /*@ManDoc: Compute the initial time step.  This is a pure virtual function
+               and hence MUST be implemented by derived classes.
+    */
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level) = 0;
-    //
-    // Compute the next time step.
-    //
+
+    /*@ManDoc: Compute the next time step.  This is a pure virtual function
+               and hence MUST be implemented by derived classes.
+    */
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
                                Array<int>&           n_cycle,
@@ -86,110 +97,128 @@ public:
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
                                Real                  stop_time) = 0;
-    //
-    // Do an integration step on this level - returns maximum safe time step.
-    //
-    virtual  Real advance (Real time,
-                           Real dt,
-                           int  iteration,
-                           int  ncycle) = 0;
-    //
-    // Contains operations to be done after a timestep.
-    //
+
+    /*@ManDoc: Do an integration step on this level.  Returns maximum safe
+               time step.  This is a pure virtual function and hence MUST
+               be implemented by derived classes.
+    */
+    virtual Real advance (Real time,
+                          Real dt,
+                          int  iteration,
+                          int  ncycle) = 0;
+
+    /*@ManDoc: Contains operations to be done after a timestep.  This is a
+               pure virtual function and hence MUST be implemented by derived
+               classes.
+    */
     virtual  void post_timestep () = 0;
-    //
-    // Contains operations to be done only after a full coarse timestep.
-    //
+
+    /*@ManDoc: Contains operations to be done only after a full coarse
+               timestep.  The default implementation does nothing.
+    */
     virtual void postCoarseTimeStep (Real time) {}
-    //
-    // Operations to be done after restart.
-    //
+
+    /*@ManDoc: Operations to be done after restart.  This is a pure virtual
+               function and hence MUST be implemented by derived classes.
+    */
     virtual  void post_restart () = 0;
-    //
-    // Operations to be done after regridding (like avgDown).
-    //
+
+    /*@ManDoc: Operations to be done after regridding (like avgDown).
+               This is a pure virtual function and hence MUST be
+               implemented by derived classes.
+    */
     virtual  void post_regrid (int lbase,
                                int new_finest) = 0;
-    //
-    // Operations to be done after initialization.
-    //
+
+    /*@ManDoc: Operations to be done after initialization.
+               This is a pure virtual function and hence MUST be
+               implemented by derived classes.
+    */
     virtual  void post_init () = 0;
-    //
-    // Is it ok to continue the calculation?
-    //
+
+    /*@ManDoc: Is it ok to continue the calculation?
+               This is a pure virtual function and hence MUST be
+               implemented by derived classes.
+    */
     virtual  int okToContinue () = 0;
-    //
-    // Init grid data at problem start-up.
-    //
+
+    /*@ManDoc: Init grid data at problem start-up.
+               This is a pure virtual function and hence MUST be
+               implemented by derived classes.
+    */
     virtual void initData () = 0;
     //
-    // Set the time levels of state data.
+    //@ManDoc: Set the time levels of state data.
     //
     virtual void setTimeLevel (Real time,
                                Real dt_old,
                                Real dt_new);
     //
-    // Alloc space for old time data.
+    //@ManDoc: Alloc space for old time data.
     //
     virtual void allocOldData ();
     //
-    // Delete old-time data.
+    //@ManDoc: Delete old-time data.
     //
     virtual void removeOldData ();
-    //
-    // Init data on this level from another AmrLevel (during regrid).
-    //
+
+    /*@ManDoc: Init data on this level from another AmrLevel (during regrid).
+               This is a pure virtual function and hence MUST be
+               implemented by derived classes.
+    */
     virtual void init (AmrLevel &old) = 0;
-    //
-    // Init data on this level after regridding if old AmrLevel
-    // did not previously exist.
-    //
+
+    /*@ManDoc: Init data on this level after regridding if old AmrLevel
+               did not previously exist. This is a pure virtual function
+               and hence MUST be implemented by derived classes.
+    */
     virtual void init () = 0;
     //
-    // Reset data to initial time by swapping new and old time data.
+    //@ManDoc: Reset data to initial time by swapping new and old time data.
     //
     void reset ();
     //
-    // Returns this AmrLevel.
+    //@ManDoc: Returns this AmrLevel.
     //
     int Level () { return level; }
     //
-    // List of grids at this level.
+    //@ManDoc: List of grids at this level.
     //
     const BoxArray& boxArray () const { return grids; }
     //
-    // Number of grids at this level.
+    //@ManDoc: Number of grids at this level.
     //
     int numGrids () { return grids.length(); }
     //
-    // Physical locations of grids at this level.
+    //@ManDoc: Physical locations of grids at this level.
     //
-    const Array<RealBox>& gridLocations () { return grid_loc; }
+    const Array<RealBox>& gridLocations () const { return grid_loc; }
     //
-    // Returns the indices defining physical domain.
+    //@ManDoc: Returns the indices defining physical domain.
     //
-    const Box& Domain () { return geom.Domain(); }
+    const Box& Domain () const { return geom.Domain(); }
     //
-    // timestep n at this level.
+    //@ManDoc: Timestep n at this level.
     //
     int nStep () { return parent->levelSteps(level); }
     //
-    // Returns a geometry object.
+    //@ManDoc: Returns the geometry object.
     //
-    const Geometry& Geom () { return geom; }
+    const Geometry& Geom () const { return geom; }
     //
-    // Returns number of cells on level.
+    //@ManDoc: Returns number of cells on level.
     //
     long countCells ();
-    //
-    // Error estimation for regridding.
-    //
+
+    /*@ManDoc: Error estimation for regridding. This is a pure virtual
+               function and hence MUST be implemented by derived classes.
+    */
     virtual void errorEst (TagBoxArray& tb,
                            int          clearval,
                            int          tagval,
                            Real         time) = 0;
     //
-    // Interpolate up from coarse level.
+    //@ManDoc: Interpolate up from coarse level.
     //
     void FillCoarsePatch (MultiFab&     dest,
                           int           dest_comp,
@@ -199,7 +228,7 @@ public:
                           int           ncomp,
                           Interpolater* mapper = 0);
     //
-    // Function to set physical boundary conditions.
+    //@ManDoc: Function to set physical boundary conditions.
     //
     void setPhysBoundaryValues (int state_indx,
                                 int comp,
@@ -209,53 +238,59 @@ public:
         state[state_indx].FillBoundary(geom.CellSize(),geom.ProbDomain(),
                                        comp,ncomp,do_new);
     }
-
+    //
+    //@ManDoc: Another function to set physical boundary conditions.
+    //
     void setPhysBoundaryValues (int  state_indx,
                                 int  comp,
                                 int  ncomp,
                                 Real time);
-    //
-    // Returns a MultiFab containing the derived data for this level.
-    //
-    // The user is responsible for deleting this pointer when done with it.
-    //
-    // If ngrow>0 the MultiFab is built on the appropriately grown BoxArray.
-    //
+
+    /*@ManDoc: Returns a MultiFab containing the derived data for this level.
+               The user is responsible for deleting this pointer when done
+               with it.  If ngrow>0 the MultiFab is built on the appropriately
+               grown BoxArray.
+    */
     MultiFab* derive (const aString& name,
                       Real           time,
                       int            ngrow);
     //
-    // State data object.
+    //@ManDoc: State data object.
     //
     StateData& get_state_data (int state_indx) { return state[state_indx]; }
     //
-    // State data at old time.
+    //@ManDoc: State data at old time.
     //
     MultiFab& get_old_data (int state_indx)
     {
         return state[state_indx].oldData();
     }
     //
-    // State data at new time.
+    //@ManDoc: State data at new time.
     //
-    MultiFab& get_new_data(int state_indx)
+    MultiFab& get_new_data (int state_indx)
     {
         return state[state_indx].newData();
     }
-
-    const DescriptorList & get_desc_lst()
+    //
+    //@ManDoc: Returns list of Descriptors.
+    //
+    const DescriptorList& get_desc_lst () const
     {
         return desc_lst;
     }
     //
-    // Boundary condition access function.
+    //@ManDoc: Boundary condition access function.
     //
     Array<int> getBCArray (int State_Type,
                            int gridno,
                            int strt_comp,
                            int num_comp);
-
-    MultiFab& get_data(int state_indx, Real time);
+    //
+    //@ManDoc: Get state data at specified index and time.
+    //
+    MultiFab& get_data (int  state_indx,
+                        Real time);
 
 protected:
     //
@@ -271,7 +306,7 @@ protected:
     //
     // Common code used by all constructors.
     //
-    void finishConstructor();    
+    void finishConstructor (); 
     //
     // The Data.
     //
@@ -304,14 +339,18 @@ class FillPatchIterator
     //
     // Constructors.
     //
-    FillPatchIterator(AmrLevel &amrlevel, MultiFab &leveldata);
+    FillPatchIterator (AmrLevel& amrlevel,
+                       MultiFab& leveldata);
 
-    FillPatchIterator(AmrLevel &amrlevel,
-                      MultiFab &leveldata,
-                      int boxGrow,
-                      int dest_comp, Real time,
-                      int state_indx, int src_comp, int ncomp,
-                      Interpolater* mapper = 0);
+    FillPatchIterator (AmrLevel&     amrlevel,
+                       MultiFab&     leveldata,
+                       int           boxGrow,
+                       int           dest_comp,
+                       Real          time,
+                       int           state_indx,
+                       int           src_comp,
+                       int           ncomp,
+                       Interpolater* mapper = 0);
 
     void Initialize (int           boxGrow,
                      int           dest_comp,
@@ -321,11 +360,11 @@ class FillPatchIterator
                      int           ncomp,
                      Interpolater* mapper = 0);
 
-    ~FillPatchIterator();
+    ~FillPatchIterator ();
 
-    const FArrayBox& operator()() const { return currentFillPatchedFab; }
+    const FArrayBox& operator() () const { return currentFillPatchedFab; }
 
-    FArrayBox& operator()()  { return currentFillPatchedFab; }
+    FArrayBox& operator() ()  { return currentFillPatchedFab; }
 
     bool isValid (bool bDoSync = true);
 
@@ -344,8 +383,8 @@ class FillPatchIterator
     MultiFab& levelData;
     MultiFabCopyDescriptor multiFabCopyDesc;
     Array< Array<MultiFabId> > stateDataMFId;   // [level][oldnew]
-    Array<IntVect> cumulativeRefRatios;             // [level]
-    Array<Interpolater *> map;                  // [level]
+    Array<IntVect> cumulativeRefRatios;         // [level]
+    Array<Interpolater*> map;                   // [level]
     Array< Array< Array< Array<FillBoxId> > > > fillBoxId;
                                 // [grid][level][fillablesubbox][oldnew]
     Array< Array< Array<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
@@ -361,4 +400,4 @@ class FillPatchIterator
     bool bIsInitialized;
 };
 
-#endif
+#endif /*_AmrLevel_H_*/

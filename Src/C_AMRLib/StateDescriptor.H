@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.8 1998-04-07 15:52:25 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.9 1998-05-06 17:50:51 lijewski Exp $
 //
 
 #include <Array.H>
@@ -17,45 +17,63 @@
 
 class Interpolater;
 
-//
-// Function called by BCRec for user-supplied boundary data.
-//
 extern "C"
 {
+//
+//@ManDoc: Type of extern "C" function called by BCRec for user-supplied boundary data.
+//
 typedef void (*BndryFunc)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
                           const int* dom_lo, const int* dom_hi,
                           const Real* dx, const Real* grd_lo,
                           const Real* time, const int* bc);
 }
+
 //
-// Attributes of state at this level.
-//
+//@Man:
+//@Memo: Attributes of StateData.
+/*@Doc:
+
+  Attributes of StateData.
+*/
 
 class StateDescriptor
 {
     friend class DescriptorList;
 
 public:
-
+    //
+    //@ManDoc: Defines the temporal centeredness of data.
+    //
     enum TimeCenter { Point = 0 , Interval };
-
+    //
+    //@ManDoc: The default constructor.
+    //
     StateDescriptor ();
-
+    //
+    //@ManDoc: Constructor that sets all data members.
+    //
     StateDescriptor (IndexType     btyp,
                      TimeCenter    ttyp,
                      int           ident,
                      int           nextra,
                      int           num_comp,
                      Interpolater* interp);
+    //
+    //@ManDoc: The destructor.
+    //
     ~StateDescriptor ();
-
+    //
+    //@ManDoc: Define the data members if constructed with default construtor.
+    //
     void define (IndexType     btyp,
                  TimeCenter    ttyp,
                  int           ident,
                  int           nextra,
                  int           num_comp,
                  Interpolater* interp);
-
+    //
+    //@ManDoc: Sets details of `comp' component.
+    //
     void setComponent (int            comp,
                        const aString& nm,
                        const BCRec&   bc,
@@ -63,13 +81,19 @@ public:
                        Interpolater*  interp=0,
                        int            max_map_start_comp = -1,
                        int            min_map_end_comp   = -1);
-
+    //
+    //@ManDoc: Resets boundary condition data for `comp' component.
+    //
     void resetComponentBCs (int          comp,
                             const BCRec& bcr,
-                            BndryFunc    func);
+                            BndryFunc    func)
+    {
+        assert(comp >= 0 && comp < ncomp);
+        bc_func[comp] = func;
+        bc[comp] = bcr;
+    }
     //
-    // Set and clean up interpolaters for a subset of the state vector
-    // components.
+    //@ManDoc: Set interpolaters for a subset of the state vector components.
     //
     void setUpMaps (int&                use_default_map,
                     const Interpolater* default_map,
@@ -81,37 +105,63 @@ public:
                     int*&               map_num_comp,
                     int*&               max_start_comp,
                     int*&               min_end_comp) const;
-
+    //
+    //@ManDoc: Cleanup interpolaters for a subset of the state vector components.
+    //
     void cleanUpMaps (Interpolater**& maps, 
                       int*&           map_start_comp,
                       int*&           map_num_comp,
                       int*&           max_start_comp,
                       int*&           min_end_comp) const;
-
+    //
+    //@ManDoc: Output names of components.
+    //
     void dumpNames (ostream& os,
                     int      start_comp,
                     int      num_comp) const;
-
-    IndexType getType() const { return type; }
-
-    StateDescriptor::TimeCenter timeType() const { return t_type; }
-
+    //
+    //@ManDoc: Returns the IndexType.
+    //
+    IndexType getType () const { return type; }
+    //
+    //@ManDoc: Returns StateDescriptor::TimeCenter.
+    //
+    StateDescriptor::TimeCenter timeType () const { return t_type; }
+    //
+    //@ManDoc: Returns number of components.
+    //
     int nComp () const { return ncomp; }
-
+    //
+    //@ManDoc: Returns the grow factor.
+    //
     int nExtra () const { return ngrow; }
-
+    //
+    //@ManDoc: Returns the interpolater.
+    //
     Interpolater* interp () const { return mapper; }
-
+    //
+    //@ManDoc: Returns the interpolater of specified component.
+    //
     Interpolater* interp (int i) const { return mapper_comp[i]; }
-
+    //
+    //@ManDoc: Returns the name of specified component.
+    //
     const aString& name (int i) const { return names[i]; }
-
+    //
+    //@ManDoc: Returns the BCRec of specified component.
+    //
     const BCRec& getBC (int i) const { return bc[i]; }
-
+    //
+    //@ManDoc: Returns all BCRecs.
+    //
     const Array<BCRec>& getBCs () const { return bc; }
-
+    //
+    //@ManDoc: Returns the BndryFunc of specified component.
+    //
     BndryFunc bndryFill (int i) const { return bc_func[i]; }
-
+    //
+    //@ManDoc: Is sc>=0 \&\& sc+nc<=ncomp ?
+    //
     int inRange (int sc, int nc) const { return sc>=0 && sc+nc<=ncomp; }
 
 protected:
@@ -144,30 +194,55 @@ protected:
     Array<int> min_map_end_comp;
 };
 
+//
+//@Man:
+//@Memo: A List of StateDescriptors.
+/*@Doc:
+
+  A container class for StateDescriptors.
+*/
+
 class DescriptorList
 {
 public:
-
+    //
+    //@ManDoc: The constructor.
+    //
     DescriptorList ();
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~DescriptorList ();
-
-    void clear ();
-
+    //
+    //@ManDoc: Set the list to its default state.
+    //
+    void clear () { desc.clear(); }
+    //
+    //@ManDoc: Returns number of elements in the list.
+    //
     int length () const { return desc.length(); }
-
+    //
+    //@ManDoc: Adss new StateDescriptor at index `indx' to list.
+    //
     void addDescriptor (int                            indx,
                         IndexType                      typ,
                         StateDescriptor::TimeCenter    ttyp,
                         int                            nextra,
                         int                            num_comp,
                         Interpolater*                  interp);
-
+    //
+    //@ManDoc: Calls resetComponentBCs() on StateDescriptor at index `indx'.
+    //
     void resetComponentBCs (int          indx,
                             int          comp,
                             const BCRec& bc,
-                            BndryFunc    func);
-
+                            BndryFunc    func)
+    {
+        desc[indx].resetComponentBCs(comp,bc,func);
+    }
+    //
+    //@ManDoc: Calls setComponent() on StateDescriptor at index `indx'.
+    //
     void setComponent (int            indx,
                        int            comp,
                        const aString& nm,
@@ -175,8 +250,14 @@ public:
                        BndryFunc      func,
                        Interpolater*  interp = 0,
                        int            max_map_start_comp = -1,
-                       int            min_map_end_comp   = -1);
-
+                       int            min_map_end_comp   = -1)
+    {
+        desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
+                                min_map_end_comp);
+    }
+    //
+    //@ManDoc: Returns StateDescriptor at index `k'.
+    //
     const StateDescriptor& operator[] (int k) const { return desc[k]; }
 
 private:
@@ -188,4 +269,5 @@ private:
 
     PArray<StateDescriptor> desc;
 };
-#endif
+
+#endif /*_StateDescriptor_H_*/
