@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.29 2001-08-21 22:15:41 car Exp $
+// $Id: LinOp.cpp,v 1.30 2002-11-26 22:47:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -532,9 +532,10 @@ LinOp::prepareForLevel (int level)
             curmask.setVal(BndryData::not_covered);
             for (int gno = 0; gno < gbox[level].size(); ++gno)
             {
-                if (gno != gn  &&  bx_k.intersects(gbox[level][gno]))
+                Box btmp = gbox[level][gno] & bx_k;
+
+                if (gno != gn && btmp.ok())
                 {
-                    Box btmp = gbox[level][gno] & bx_k;
                     curmask.setVal(BndryData::covered, btmp,0);
                 }
             }
