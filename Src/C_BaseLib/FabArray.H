@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.3 1997-09-16 19:18:12 lijewski Exp $
+// $Id: FabArray.H,v 1.4 1997-09-16 21:11:34 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -157,25 +157,22 @@ public:
     //
     //@ManDoc: Returns the grow factor that defines the region of definition.
     //
-    inline int nGrow () const;
+    int nGrow () const;
 
     /*@ManDoc: Returns a constant reference to the BoxArray that defines the
                valid region associated with this FabArray.
     */
-    inline const BoxArray &boxArray () const;
+    const BoxArray& boxArray () const;
 
     /*@ManDoc: Returns a constant reference to the Kth Box in the BoxArray.
                That is, the valid region of the Kth grid.
     */
-    virtual inline const Box& box (int K) const;
-
+    virtual const Box& box (int K) const;
 
     /*@ManDoc: Returns a constant reference to the Kth Fabs Box in the FabArray.
                That is, the region the Kth fab is actually defined on.
     */
-    virtual inline const Box fabbox (int K) const;
-
-
+    virtual const Box fabbox (int K) const;
     //
     //@ManDoc: Returns the length of this FabArray; i.e. the number of FABs.
     //
@@ -185,16 +182,16 @@ public:
                Kth element.
     */
 //protected:
-    inline const FAB& operator[] (int K) const;
+    const FAB& operator[] (int K) const;
     //
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
-    inline FAB& operator[] (int K);
+    FAB& operator[] (int K);
 
 public:
     //@ManDoc: Returns number of variables associated with each point (nvar).
     //
-    inline int nComp () const;
+    int nComp () const;
     //
     //@ManDoc: Explicitly set the Kth FAB in the FabArray to point to elem.
     //
@@ -208,21 +205,20 @@ public:
                callers responsibility to delete the pointer when no
                longer needed.
     */
-    inline FAB* remove (int K);
+    FAB* remove (int K);
 
     /*@ManDoc: Delete the Kth element in the FabArray only if the array is
 	       managed.  It leaves the Kth element in the FabArray undefined
 	       for both managed and unmanaged FabArrays.
     */
-    inline void clear (int K);
-    inline void clear ();
+    void clear (int K);
+    void clear ();
 
     /*@ManDoc: Delete all elements in the FabArray.  Use this only
 	       on unmanaged FabArrays.  It leaves all elements
 	       in the FabArray undefined.
     */
-    inline void clearUnmanaged ();
-
+    void clearUnmanaged ();
 
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val.
@@ -252,20 +248,20 @@ public:
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells.
     */
-    inline void setVal (T   val,
-                        int nghost);
+    void setVal (T   val,
+                 int nghost);
 
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells, that also
                intersect the Box region.
     */
-    inline void setVal (T          val,
-                        const Box& region,
-                        int        nghost);
+    void setVal (T          val,
+                 const Box& region,
+                 int        nghost);
     //
     //@ManDoc: Set all values in the boundary region to val.
     //
-    inline void setBndry (T val);
+    void setBndry (T val);
 
     /*@ManDoc: Set ncomp values in the boundary region, starting at
                start\_comp to val.
@@ -279,7 +275,7 @@ public:
                purpose is to fill in the boundary regions of each FAB in
                the FabArray.
     */
-    inline void FillBoundary ();
+    void FillBoundary ();
 
     /*@ManDoc: Same as FillBoundary(), but only copies
                num\_comp components starting at start\_comp.
@@ -314,24 +310,24 @@ public:
     /*@ManDoc: Copies the values contained in the intersection of the
                valid region of this FabArray with the FAB dest into dest.
     */
-    inline void copy (FAB& dest) const;
+    void copy (FAB& dest) const;
 
     /*@ManDoc: Copies the values contained in the intersection of the
                valid region of this FabArray with the FAB dest and the Box
                subbox into that subregion of dest.
     */
-    inline void copy (FAB&       dest,
-                      const Box& subbox) const;
+    void copy (FAB&       dest,
+               const Box& subbox) const;
 
     /*@ManDoc: Copies the values contained in the intersection of the
                num\_comp component valid region of this FabArray, starting at
                component src\_comp, with the FAB dest into dest, starting at
                component dest\_comp in dest.
     */
-    inline void copy (FAB& dest,
-                      int  src_comp,
-                      int  dest_comp,
-                      int  num_comp) const;
+    void copy (FAB& dest,
+               int  src_comp,
+               int  dest_comp,
+               int  num_comp) const;
 
     /*@ManDoc: Copies the values contained in the intersection of the
                num\_comp component valid region of this FabArray, starting at
@@ -383,34 +379,57 @@ template <class T, class FAB>
 class FabArrayIterator
 {
   public:
-
+    //
+    // 
+    //
     FabArrayIterator(FabArray<T,FAB>& fabarray,
                      const int        nghost = 0);
-    virtual ~FabArrayIterator();
-
-    virtual inline const FAB& operator() () const;
-    virtual inline FAB& operator() ();
-    virtual inline const Box& validbox () const;
-    virtual inline const Box& fabbox () const;
-    virtual inline FabArrayIterator<T,FAB>& operator++ ();
-    virtual inline bool isValid ();
-    virtual inline int index () const;
-
-    inline int NGhost() const;
+    //
+    //
+    //
+    const FAB& operator() () const;
+    //
+    //
+    //
+    FAB& operator() ();
+    //
+    //
+    //
+    const Box& validbox () const;
+    //
+    //
+    //
+    const Box& fabbox () const;
+    //
+    //
+    //
+    FabArrayIterator<T,FAB>& operator++ ();
+    //
+    //
+    //
+    bool isValid ();
+    //
+    //
+    //
+    int index () const;
+    //
+    //
+    //
+    int NGhost() const;
 
   protected:
 
-    FabArray<T, FAB> &fabArray;
-    int nGhost;
-    int currentIndex;
+    FabArray<T,FAB>& fabArray;
+    int              nGhost;
+    int              currentIndex;
 
   private:
     //
     // These are disallowed.
     //
-    FabArrayIterator();
-    FabArrayIterator(const FabArrayIterator<T,FAB> &);
-    FabArrayIterator<T,FAB> &operator=(const FabArrayIterator<T,FAB> &);
+    FabArrayIterator ();
+    FabArrayIterator (const FabArrayIterator<T,FAB>&);
+    FabArrayIterator<T,FAB>& operator= (const FabArrayIterator<T,FAB>&);
 };
 
 template <class T, class FAB>
@@ -610,7 +629,7 @@ class FabArrayCopyDescriptor
 
     virtual ~FabArrayCopyDescriptor ();
 
-    FabArrayId RegisterFabArray(FabArray<T, FAB> *fabarray);
+    FabArrayId RegisterFabArray(FabArray<T,FAB> *fabarray);
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
@@ -698,7 +717,6 @@ FabArray<T,FAB>::boxArray () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 FabArray<T,FAB>::box (int K) const
 {
@@ -706,7 +724,6 @@ FabArray<T,FAB>::box (int K) const
 }
 
 template <class T, class FAB>
-inline
 const Box
 FabArray<T,FAB>::fabbox (int K) const
 {
@@ -773,11 +790,10 @@ FabArray<T,FAB>::clear ()
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::clearUnmanaged ()
 {
-  for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
   {
       FAB *fab = fabparray.remove(fai.index());
       delete fab;
@@ -808,7 +824,7 @@ FabArray<T,FAB>::setVal (T          val,
 //
 
 template <class T, class FAB>
-FabArray<T, FAB>::FabArray ()
+FabArray<T,FAB>::FabArray ()
     :
     n_grow(0),
     n_comp(0),
@@ -816,9 +832,9 @@ FabArray<T, FAB>::FabArray ()
 {}
 
 template <class T, class FAB>
-FabArray<T, FAB>::FabArray (const BoxArray& bxs,
-                            int             ngrow,
-                            FabAlloc        alloc)
+FabArray<T,FAB>::FabArray (const BoxArray& bxs,
+                           int             ngrow,
+                           FabAlloc        alloc)
     :
     fabparray(0,PArrayManage)
 {
@@ -826,10 +842,10 @@ FabArray<T, FAB>::FabArray (const BoxArray& bxs,
 }
 
 template <class T, class FAB>
-FabArray<T, FAB>::FabArray (const BoxArray& bxs,
-                            int             nvar,
-                            int             ngrow,
-               FabAlloc alloc)
+FabArray<T,FAB>::FabArray (const BoxArray& bxs,
+                           int             nvar,
+                           int             ngrow,
+                           FabAlloc        alloc)
     :
     fabparray(0, PArrayManage)
 {
@@ -837,17 +853,17 @@ FabArray<T, FAB>::FabArray (const BoxArray& bxs,
 }
 
 template <class T, class FAB>
-FabArray<T, FAB>::~FabArray ()
+FabArray<T,FAB>::~FabArray ()
 {}
 
 template <class T, class FAB>
 bool
-FabArray<T, FAB>::ok () const
+FabArray<T,FAB>::ok () const
 {
     assert(boxarray.ready());
     bool isok = true;
 
-    for (ConstFabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (ConstFabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         if (fabparray.defined(fai.index()))
         {
@@ -869,9 +885,9 @@ FabArray<T, FAB>::ok () const
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::define (const BoxArray& bxs,
-                          int             ngrow,
-                          FabAlloc        alloc)
+FabArray<T,FAB>::define (const BoxArray& bxs,
+                         int             ngrow,
+                         FabAlloc        alloc)
 {
     assert( ! boxarray.ready());
     n_grow = ngrow;
@@ -889,10 +905,10 @@ FabArray<T, FAB>::define (const BoxArray& bxs,
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::define (const BoxArray& bxs,
-                          int             nvar,
-                          int             ngrow,
-                          FabAlloc        alloc)
+FabArray<T,FAB>::define (const BoxArray& bxs,
+                         int             nvar,
+                         int             ngrow,
+                         FabAlloc        alloc)
 {
     assert(!boxarray.ready());
     n_grow = ngrow;
@@ -909,9 +925,9 @@ FabArray<T, FAB>::define (const BoxArray& bxs,
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::AllocFabs (int nvar)
+FabArray<T,FAB>::AllocFabs (int nvar)
 {
-  for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
   {
       Box tmp(::grow(fai.validbox(), n_grow));
       FAB *f = new FAB(tmp, nvar);
@@ -923,8 +939,8 @@ FabArray<T, FAB>::AllocFabs (int nvar)
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::setFab (int  boxno,
-                          FAB* elem)
+FabArray<T,FAB>::setFab (int  boxno,
+                         FAB* elem)
 {
     //
     // Must check it is of the proper size.
@@ -941,7 +957,7 @@ FabArray<T, FAB>::setFab (int  boxno,
     }
     else
     {
-        ParallelDescriptor::Abort("Error in FabArray<T, FAB>::setFab:  trying to setFab remotely");
+        ParallelDescriptor::Abort("Error in FabArray<T,FAB>::setFab:  trying to setFab remotely");
     }
 }
 
@@ -961,7 +977,7 @@ FabArray<T,FAB>::setBndry(T   val,
 {
     if (n_grow > 0)
     {
-	for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+	for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
 	}
@@ -978,7 +994,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 {
     if (farray.boxarray == boxarray)
     {
-        for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             fai().copy(farray[fai.index()]);
         }
@@ -1153,17 +1169,17 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::copy (const FabArray<T, FAB>& src,
-                        int                     src_comp,
-                        int                     dest_comp,
-                        int                     num_comp,
-                        int                     nghost)
+FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
+                       int                    src_comp,
+                       int                    dest_comp,
+                       int                    num_comp,
+                       int                    nghost)
 {
     assert(src.boxarray == boxarray);
     assert(nghost <= n_grow);
     assert(nghost <= src.n_grow);
     int myproc = ParallelDescriptor::MyProc();
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b(grow(fai.validbox(), nghost));
         fai().copy(src[fai.index()], b, src_comp, b, dest_comp, num_comp);
@@ -1328,9 +1344,9 @@ FabArray<T,FAB>::copy (FAB&       dest,
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::setVal (T val)
+FabArray<T,FAB>::setVal (T val)
 {
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         fai().setVal(val);
     }
@@ -1338,15 +1354,15 @@ FabArray<T, FAB>::setVal (T val)
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::setVal (T   val,
-                          int comp,
-                          int num_comp,
-                          int nghost)
+FabArray<T,FAB>::setVal (T   val,
+                         int comp,
+                         int num_comp,
+                         int nghost)
 {
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
     int k;
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b(::grow(fai.validbox(), nghost));
         for (k = 0; k < num_comp; k++)
@@ -1358,16 +1374,16 @@ FabArray<T, FAB>::setVal (T   val,
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::setVal (T          val,
-                          const Box& region,
-                          int        comp,
-                          int        num_comp,
-                          int        nghost)
+FabArray<T,FAB>::setVal (T          val,
+                         const Box& region,
+                         int        comp,
+                         int        num_comp,
+                         int        nghost)
 {
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
     int k;
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b(::grow(fai.validbox(), nghost));
         b &= region;
@@ -1384,15 +1400,15 @@ FabArray<T, FAB>::setVal (T          val,
 template <class T, class FAB>
 inline
 void
-FabArray<T, FAB>::FillBoundary ()
+FabArray<T,FAB>::FillBoundary ()
 {
     FillBoundary(0, n_comp);
 }
 
 template <class T, class FAB>
 void
-FabArray<T, FAB>::FillBoundary (int start_comp,
-                                int num_comp)
+FabArray<T,FAB>::FillBoundary (int start_comp,
+                               int num_comp)
 {
 /*
   original code:
@@ -1411,11 +1427,11 @@ FabArray<T, FAB>::FillBoundary (int start_comp,
     }
 */
 
-    FabArrayCopyDescriptor<T, FAB> facd(true);
+    FabArrayCopyDescriptor<T,FAB> facd(true);
     FabArrayId faid = facd.RegisterFabArray(this);
     List<FillBoxId> fillBoxIdList;
 
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         for (int j = 0; j < length(); j++)
         {
@@ -1445,7 +1461,7 @@ FabArray<T, FAB>::FillBoundary (int start_comp,
 
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
 
-    for (FabArrayIterator<T, FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         for (int j = 0; j < length(); j++)
         {
@@ -1496,10 +1512,7 @@ FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray,
 }
 
 template <class T, class FAB>
-FabArrayIterator<T,FAB>::~FabArrayIterator ()
-{}
-
-template <class T, class FAB>
+inline
 FAB&
 FabArrayIterator<T,FAB>::operator() ()
 {
@@ -1509,6 +1522,7 @@ FabArrayIterator<T,FAB>::operator() ()
 }
 
 template <class T, class FAB>
+inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
@@ -1528,13 +1542,15 @@ FabArrayIterator<T,FAB>::operator++ ()
     do
     {
         ++currentIndex;
-    } while (currentIndex < fabArray.length() &&
-             fabArray.DistributionMap().ProcessorMap()[currentIndex] != myproc);
+    }
+    while (currentIndex < fabArray.length() &&
+           fabArray.DistributionMap().ProcessorMap()[currentIndex] != myproc);
 
     return *this;
 }
 
 template <class T, class FAB>
+inline
 int
 FabArrayIterator<T,FAB>::index () const
 {
@@ -1542,6 +1558,7 @@ FabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 FabArrayIterator<T,FAB>::validbox () const
 {
@@ -1549,6 +1566,7 @@ FabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 FabArrayIterator<T,FAB>::fabbox () const
 {
@@ -1556,6 +1574,7 @@ FabArrayIterator<T,FAB>::fabbox () const
 }
 
 template <class T, class FAB>
+inline
 bool
 FabArrayIterator<T,FAB>::isValid ()
 {
@@ -1569,20 +1588,20 @@ FabArrayIterator<T,FAB>::isValid ()
 }
 
 template <class T, class FAB>
-DependentFabArrayIterator<T, FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T, FAB> &controllerfaiter,
-    FabArray<T, FAB> &dependentfabarray)
+DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
+    FabArrayIterator<T,FAB> &controllerfaiter,
+    FabArray<T,FAB> &dependentfabarray)
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {}
 
 template <class T, class FAB>
-DependentFabArrayIterator<T, FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T, FAB> &controllerfaiter,
-    const FabArray<T, FAB> &dependentfabarray)
+DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
+    FabArrayIterator<T,FAB> &controllerfaiter,
+    const FabArray<T,FAB> &dependentfabarray)
     :
-    fabArray((FabArray<T, FAB> &) dependentfabarray),
+    fabArray((FabArray<T,FAB> &) dependentfabarray),
     controller(&controllerfaiter)
 {}
 
@@ -1592,25 +1611,28 @@ DependentFabArrayIterator<T,FAB>::~DependentFabArrayIterator ()
 
 template <class T, class FAB>
 int
-DependentFabArrayIterator<T, FAB>::index () const
+DependentFabArrayIterator<T,FAB>::index () const
 {
     return controller->index();
 }
 
 template <class T, class FAB>
-const Box &DependentFabArrayIterator<T, FAB>::validbox() const
+const Box&
+DependentFabArrayIterator<T,FAB>::validbox() const
 {
     return fabArray.box(controller->index());
 }
 
 template <class T, class FAB>
-const Box &DependentFabArrayIterator<T, FAB>::fabbox() const
+const Box&
+DependentFabArrayIterator<T,FAB>::fabbox() const
 {
     return fabArray[controller->index()].box();
 }
 
 template <class T, class FAB>
-FAB &DependentFabArrayIterator<T, FAB>::operator() ()
+FAB&
+DependentFabArrayIterator<T,FAB>::operator() ()
 {
     return fabArray[controller->index()];
 }
@@ -1623,7 +1645,7 @@ DependentFabArrayIterator<T,FAB>::operator() () const
 }
 
 template <class T, class FAB>
-ConstFabArrayIterator<T, FAB>::ConstFabArrayIterator(
+ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
     const FabArray<T,FAB> &fabarray,
     const int nghost)
     :
@@ -1649,7 +1671,7 @@ ConstFabArrayIterator<T,FAB>::~ConstFabArrayIterator ()
 
 template <class T, class FAB>
 const FAB&
-ConstFabArrayIterator<T, FAB>::operator() () const
+ConstFabArrayIterator<T,FAB>::operator() () const
 {
     return fabArray[currentIndex];
 }
@@ -1706,7 +1728,7 @@ ConstFabArrayIterator<T,FAB>::isValid () const
 }
 
 template <class T, class FAB>
-ConstDependentFabArrayIterator<T, FAB>::ConstDependentFabArrayIterator(
+ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     ConstFabArrayIterator<T,FAB>& controllerfaiter,
     const FabArray<T,FAB>&        dependentfabarray)
     :
@@ -1798,12 +1820,12 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T, FAB>::AddBox (const FabArrayId& fabarrayid,
-                                        const Box&        destFabBox,
-                                        BoxList&          returnedUnfilledBoxes,
-                                        int               srccomp,
-                                        int               destcomp,
-                                        int               numcomp)
+FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
+                                       const Box&        destFabBox,
+                                       BoxList&          returnedUnfilledBoxes,
+                                       int               srccomp,
+                                       int               destcomp,
+                                       int               numcomp)
 {
     int myproc = ParallelDescriptor::MyProc();
     FabComTag fabComTag;
@@ -1814,7 +1836,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox (const FabArrayId& fabarrayid,
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
     unfilledBoxDomain.add(destFabBox);
-    FabArray<T, FAB> *fabArray = fabArrays[fabarrayid.Id()];
+    FabArray<T,FAB> *fabArray = fabArrays[fabarrayid.Id()];
     for (int i = 0; i < fabArray->length(); ++i)
     {
         const Box intersectBox = destFabBox & fabArray->box(i);
@@ -1888,13 +1910,13 @@ FabArrayCopyDescriptor<T, FAB>::AddBox (const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId& fabarrayid,
-			               const Box&        destFabBox,
-				       BoxList&          returnedUnfilledBoxes,
-				       int               fabarrayindex,
-				       int               srccomp,
-                                       int               destcomp,
-                                       int               numcomp)
+FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
+                                      const Box&        destFabBox,
+                                      BoxList&          returnedUnfilledBoxes,
+                                      int               fabarrayindex,
+                                      int               srccomp,
+                                      int               destcomp,
+                                      int               numcomp)
 {
     int myproc = ParallelDescriptor::MyProc();
     FabComTag fabComTag;
@@ -1902,7 +1924,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId& fabarrayid,
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
     unfilledBoxDomain.add(destFabBox);
-    FabArray<T, FAB> *fabArray = fabArrays[fabarrayid.Id()];
+    FabArray<T,FAB> *fabArray = fabArrays[fabarrayid.Id()];
     assert(fabarrayindex >= 0 && fabarrayindex < fabArray->length());
     //for(int i = 0; i < fabArray->length(); ++i) {
     int i = fabarrayindex;
@@ -1976,7 +1998,7 @@ FabArrayCopyDescriptor<T, FAB>::AddBox(const FabArrayId& fabarrayid,
 }
 
 template <class T, class FAB>
-FabArrayCopyDescriptor<T, FAB>::~FabArrayCopyDescriptor()
+FabArrayCopyDescriptor<T,FAB>::~FabArrayCopyDescriptor()
 {
   for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
   { 
@@ -2099,16 +2121,16 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T, FAB>::FillFab (const FabArrayId& fabarrayid,
-                                         const FillBoxId&  fillboxid,
-                                         FAB&              destFab)
+FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
+                                        const FillBoxId&  fillboxid,
+                                        FAB&              destFab)
 {
     //
     // At this point, all remote data should be in local caches.
     //
     if (!dataAvailable)
     {
-        cerr << "Error in FabArrayCopyDescriptor<T, FAB>::FillFab:  ";
+        cerr << "Error in FabArrayCopyDescriptor<T,FAB>::FillFab:  ";
         cerr << "data not available" << endl;
         ParallelDescriptor::Abort("FillFab:  data not available");
     }
@@ -2139,7 +2161,7 @@ FabArrayCopyDescriptor<T, FAB>::FillFab (const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T, FAB>::PrintStats ()
+FabArrayCopyDescriptor<T,FAB>::PrintStats ()
 {
   int myproc = ParallelDescriptor::MyProc();
 
