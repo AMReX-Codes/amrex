@@ -3,7 +3,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.8 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxLib.H,v 1.9 2001-03-28 21:08:52 car Exp $
 //
 
 //
@@ -69,7 +69,6 @@ public:
    */
     static const char * const version;
 
-    static void initialize_floating_point_hardware();
 };
 
 #ifdef BL_NAMESPACE

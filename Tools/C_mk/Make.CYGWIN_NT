@@ -49,11 +49,3 @@ FDEBF += -g
 fDEBF += -g
 
 #LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
-
-
-ifdef WM_LINUX_FPU_EXTENSIONS_HOME
-  CPPFLAGS += -DBL_HAS_WM_LINUX_FPU_EXCEPTIONS
-  CPPFLAGS += -I$(WM_LINUX_FPU_EXTENSIONS_HOME)/include
-  LIBRARIES += -lfpuexc -lfenv
-  LDFLAGS  += -L$(WM_LINUX_FPU_EXTENSIONS_HOME)/lib
-endif

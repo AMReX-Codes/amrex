@@ -1,6 +1,6 @@
 
 //
-// $Id: BoxLib.cpp,v 1.12 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.13 2001-03-28 21:08:52 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,11 +14,6 @@ using std::cerr;
 #include <stdlib.h>
 #include <string.h>
 #include <iostream.h>
-#endif
-
-#ifdef BL_HAS_WM_LINUX_FPU_EXCEPTIONS
-#include <fenvwm.h>
-extern "C" void __setfpucw();
 #endif
 
 #include <BoxLib.H>
@@ -149,20 +144,6 @@ BoxLib::OutOfMemory (const char* file,
 {
     BoxLib::Assert("operator new", file, line);
 }
-
-#ifdef BL_HAS_WM_LINUX_FPU_EXCEPTIONS
-void
-BoxLib::initialize_floating_point_hardware()
-{
-  __setfpucw();			// Needed (for now) if you have a recent glibc.
-  feenabletraps(FE_INVALID|FE_DIVBYZERO|FE_STACK_FLT);
-}
-#else
-void
-BoxLib::initialize_floating_point_hardware()
-{
-}
-#endif
 
 #ifdef BL_NAMESPACE
 }
