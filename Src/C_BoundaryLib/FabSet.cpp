@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.26 1998-07-24 22:41:00 lijewski Exp $
+// $Id: FabSet.cpp,v 1.27 1998-07-29 19:09:30 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -36,7 +36,7 @@ FabSet::setFab (int        boxno,
 FabSet&
 FabSet::copyFrom (const FArrayBox& src)
 {
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         fsi().copy(src);
     }
@@ -49,7 +49,7 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              dest_comp,
                   int              num_comp)
 {
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         fsi().copy(src,src_comp,dest_comp,num_comp);
     }
@@ -65,7 +65,7 @@ FabSet::copyFrom (const FArrayBox& src,
 {
     assert(src.box().contains(subbox));
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         if (subbox.intersects(fsi().box()))
         {
@@ -105,7 +105,7 @@ FabSet::copyFrom (const MultiFab& src,
 
     vector<FillBoxId> fillBoxIdList;
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
        for (int s = 0; s < src.length(); ++s)
        {
@@ -169,7 +169,7 @@ FabSet::plusFrom (const MultiFab& src,
     vector<FillBoxId>      fillBoxIdList;
     FArrayBox              tmpfab;
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         for (int isrc = 0; isrc < src.length(); ++isrc)
         {
@@ -233,7 +233,7 @@ FabSet::linComb (Real          a,
 {
     assert(length() == src.length());
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         DependentFabSetIterator dfsi(fsi, src);
 
@@ -285,7 +285,7 @@ FabSet::linComb (Real            a,
 
     vector<FillBoxId> fillBoxIDs_mfa, fillBoxIDs_mfb;
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         for (int grd = 0; grd < bxa.length(); grd++)
         {
