@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.36 1999-03-22 15:57:48 lijewski Exp $
+// $Id: VisMF.H,v 1.37 1999-03-29 23:26:46 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -23,7 +23,7 @@ public:
     //
     //@ManDoc: How we write out MultiFabs.
     //
-    enum How { OneFilePerCPU, OneFilePerFab };
+    enum How { OneFilePerCPU };
 
     /*@ManDoc: Construct by reading in the on-disk VisMF of the specified name.
                The MF on-disk is read lazily. The name here is the name of
