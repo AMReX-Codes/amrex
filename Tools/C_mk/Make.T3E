@@ -20,6 +20,7 @@ endif
 ifeq ($(COMP),CC)
 CXXOPTF		+= -O2 -h new_for_init
 CXXDEBF		+= -g -h new_for_init
+override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR
 endif
 
 ifeq ($(COMP),KCC)
@@ -29,7 +30,7 @@ endif
 
 ifeq ($(PROFILE), TRUE)
 CXXPRFF		+= -happrentice
-XTRALIBS += -lapp
+XTRALIBS    += -lapp
 endif
 
 FC		= f90 -N 80 -e I
