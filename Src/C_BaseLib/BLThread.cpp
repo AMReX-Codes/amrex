@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.17 2001-10-22 21:12:45 lijewski Exp $
+// $Id: BLThread.cpp,v 1.18 2001-10-22 22:49:53 car Exp $
 //
 
 #include <winstd.H>
@@ -995,7 +995,7 @@ ThreadSpecificData<void>::get() const
 }
 
 // FuctioinThread
-FunctionThread::FunctionThread(Thread_Function func, void* arg_, DetachState st)
+FunctionThread::FunctionThread(Thread_Function func, void* arg_, DetachState st, int stacksize)
 {
     func(arg_);
 }
