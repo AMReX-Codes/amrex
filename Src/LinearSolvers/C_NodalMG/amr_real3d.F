@@ -891,7 +891,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, idim, idir, ncomp, integ)
+     & ir, jr, kr, ncomp, integ, idim, idir)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1028,7 +1028,7 @@ c Handles any edge geometry except all-coarse or all-fine.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ivect, ga, ncomp, integ)
+     & ir, jr, kr, ncomp, integ, ivect, ga)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1329,7 +1329,7 @@ c Handles any corner geometry except all-coarse.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ga, ncomp, integ)
+     & ir, jr, kr, ncomp, integ, ga)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2

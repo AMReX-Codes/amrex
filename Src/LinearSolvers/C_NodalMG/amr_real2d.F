@@ -415,29 +415,31 @@ c CELL-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, integ)
+     & ir, jr, ncomp, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
-      integer ir, jr, integ
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
+      integer ir, jr, ncomp, integ
+      double precision dest(destl0:desth0,destl1:desth1, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       double precision fac
-      integer i, j, m, n
+      integer i, j, m, n, nc
+	do nc = 1, ncomp
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
- 10         dest(i,j) = 0.d0
+ 10         dest(i,j,nc) = 0.d0
       do 20 n = 0, jr-1
          do 20 m = 0, ir-1
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
- 20               dest(i,j) = dest(i,j) + src(i*ir+m,j*jr+n)
+ 20               dest(i,j,nc) = dest(i,j,nc) + src(i*ir+m,j*jr+n,nc)
       if (integ .eq. 0) then
          fac = 1.d0 / (ir*jr)
          do 30 j = regl1, regh1
             do 30 i = regl0, regh0
- 30            dest(i,j) = dest(i,j) * fac
+ 30            dest(i,j,nc) = dest(i,j,nc) * fac
       end if
+	end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -445,19 +447,21 @@ c NODE-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr)
+     & ir, jr, ncomp)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
-      integer ir, jr
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      integer ir, jr, ncomp
+      double precision dest(destl0:desth0,destl1:desth1, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1, ncomp)
+      integer i, j,nc
+	do nc = 1, ncomp
       do j = regl1, regh1
          do i = regl0, regh0
-            dest(i,j) = src(i*ir,j*jr)
+            dest(i,j,nc) = src(i*ir,j*jr,nc)
          end do
       end do
+	end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -510,7 +514,7 @@ c Fills coarse region defined by reg.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, idim, idir, ncomp, integ)
+     & ir, jr, ncomp, integ, idim, idir)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -570,7 +574,7 @@ c Fills coarse point defined by reg.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, idir0, idir1, ncomp, integ)
+     & ir, jr, ncomp, integ, idir0, idir1)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -605,7 +609,7 @@ c Fills coarse point defined by reg.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, idir0, idir1, ncomp, integ)
+     & ir, jr, ncomp, integ, idir0, idir1)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -648,7 +652,7 @@ c Fills coarse point defined by reg.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, idir1, ncomp, integ)
+     & ir, jr, ncomp, integ, idir1)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1

@@ -12,7 +12,6 @@
 #define   FORT_HGINTS_NO_SIGMA_NODE     hgints_no_sigma_node_
 #define   FORT_FACRST1    acrst1_
 #define   FORT_FANRST2    anrst2_
-#define   FORT_FANINT2    anint2_
 #else
 #define   FORT_HGSRST     HGSRST
 #define   FORT_HGSCON     HGSCON
@@ -24,12 +23,11 @@
 #define   FORT_HGINTS_NO_SIGMA_NODE     HGINTS_NO_SIGMA_NODE
 #define   FORT_FACRST1    ACRST1
 #define   FORT_FANRST2    ANRST2
-#define   FORT_FANINT2    ANINT2
 #endif
 
 extern "C" 
 {
-    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int*);
+    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*);
     void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
     void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
     void FORT_HGCEN_TERRAIN(Real*, intS, Real*, intS, intS);
@@ -39,7 +37,6 @@ extern "C"
     void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGINTS_NO_SIGMA_NODE(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*);
-    void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
     void FORT_HGSCON(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGCEN(Real*, intS, Real*, intS, intS);
 }
@@ -192,7 +189,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), &integ);
+	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ);
 	
 #if (BL_SPACEDIM == 2)
 	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
@@ -204,7 +201,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM+1),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), &integ);
+	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ);
 	patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
 	patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
 	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
