@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1999-03-12 18:55:48 sstanley Exp $
+# $Id: GNUmakefile,v 1.3 1999-05-24 18:11:46 car Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -31,18 +31,6 @@ DEFINES += -DBL_PARALLEL_IO
 INCLUDE_LOCATIONS += . $(TOP)/include $(TOP)/pAmrvis ../
 LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
 LIBRARIES         += -lbox$(DIM)d
-
-ifeq ($(USE_MPI),TRUE)
-LIBRARIES += -lmpi
-ifeq ($(MACHINE),OSF1)
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
-endif
-ifeq ($(MACHINE),AIX)
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
-endif
-endif
 
 ifeq ($(MACHINE),OSF1)
 #

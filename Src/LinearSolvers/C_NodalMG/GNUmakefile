@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.35 1999-04-05 17:39:21 car Exp $
+# $Id: GNUmakefile,v 1.36 1999-05-24 18:11:44 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -69,22 +69,6 @@ ifeq ($(EBASE),proj)
 endif
 
 include $(TOP)/mk/Make.rules
-
-ifeq ($(USE_MPI), TRUE)
-  ifeq ($(MACHINE), OSF1)
-    LIBRARIES += -lmpi
-    INCLUDE_LOCATIONS += /usr/local/mpi/include
-    LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
-  endif
-  ifeq ($(MACHINE),AIX)
-    LIBRARIES += -lmpi
-    INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-    LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
-  endif
-  ifeq ($(MACHINE), Linux)
-    LIBRARIES += -lmpich
-  endif
-endif
 
 #LDFLAGS += -v
 
