@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.23 1998-04-08 21:04:28 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.24 1998-04-13 19:44:04 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -71,6 +71,7 @@ class ParallelDescriptor
     static bool   IOProcessor ();
     static int    IOProcessorNumber ();
     static void   Abort (const char* msg);
+    static void   Abort (int errorcode);
     static double second ();
     //
     // Reduction operations.
