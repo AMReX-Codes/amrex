@@ -245,7 +245,7 @@ void bilinear_restrictor_class::fill_interface(
 			    igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 			// FIXME--want minimal box 
 			const Box& fb = fine[igrid].box();
-			task_fab* tfab = new task_fab_get(fine, igrid, fb);
+			task_fab* tfab = new task_fab_get(dest, jgrid, fine, igrid, fb);
 			tl.add_task(
 			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
@@ -268,7 +268,7 @@ void bilinear_restrictor_class::fill_interface(
 		    {
 			// Usual case, a fine grid extends all along the face.
 			const Box& fb = fine[igrid].box();
-			task_fab* tfab = new task_fab_get(fine, igrid, fb);
+			task_fab* tfab = new task_fab_get(dest, jgrid, fine, igrid, fb);
 			tl.add_task(
 			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			    );
@@ -307,7 +307,7 @@ void bilinear_restrictor_class::fill_interface(
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
-		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    task_fab* tfab = new task_fab_get(dest, jgrid, fine, igrid, fb);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
@@ -413,7 +413,7 @@ void bilinear_restrictor_class::fill_interface(
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(1, iedge, itmp);
 		    const Box& fb = fine[igrid].box();
-		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    task_fab* tfab = new task_fab_get(dest, jgrid, fine, igrid, fb);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
@@ -454,7 +454,7 @@ void bilinear_restrictor_class::fill_interface(
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
-		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    task_fab* tfab = new task_fab_get(dest, jgrid, fine, igrid, fb);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
