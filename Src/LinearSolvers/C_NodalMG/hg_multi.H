@@ -99,7 +99,9 @@ private:
     
 protected: 
     
-    bool m_hg_terrain; // false
+    // these are mutually exclusive, should be a switch.
+    // full stencil not implemented in 3D.
+    bool m_hg_terrain;
     bool m_hg_cross_stencil;
     bool m_hg_full_stencil;
     int smoother_mode;
@@ -124,7 +126,7 @@ protected:
     Box** fres_creg;
     PArray<FArrayBox>* fres_sc;
     PArray<FArrayBox>* fres_dc;
-    int** fres_flag;
+    bool** fres_flag;
 #if (BL_SPACEDIM == 3)
     Box** eres_fbox;
     Box** eres_cbox;
@@ -135,7 +137,7 @@ protected:
     PArray<FArrayBox>* eres_sc;
     PArray<FArrayBox>* eres_df;
     PArray<FArrayBox>* eres_dc;
-    int** eres_flag;
+    bool** eres_flag;
 #endif
     Box** cres_fbox;
     Box** cres_cbox;
@@ -146,7 +148,7 @@ protected:
     PArray<FArrayBox>* cres_sc;
     PArray<FArrayBox>* cres_df;
     PArray<FArrayBox>* cres_dc;
-    int** cres_flag;
+    bool** cres_flag;
     
     // orderings for full-level line solves:
     

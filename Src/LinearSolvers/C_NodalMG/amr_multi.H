@@ -48,12 +48,16 @@ protected:
     
     int get_amr_level(int mglev) const 
     {
+	int result = -1;
 	for (int i = lev_min; i <= lev_max; i++) 
 	{
 	    if (ml_index[i] == mglev)
-		return i;
+	    {
+		result = i;
+		break;
+	    }
 	}
-	return -1;
+	return result;
     }
     
     // All of these have built-in defaults except can_coarsen()

@@ -40,12 +40,14 @@ public:
     level_interface() : status(-1) { }
     ~level_interface();
     
-    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
     level_interface(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy)
 	: status(-1) 
     {
 	alloc(Im, Domain, Bdy);
     }
+    // a pseudo constructor.
+    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
+    // two pseudo copy operators/constructors.
     void copy(const level_interface& src);
     void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
     
@@ -60,21 +62,10 @@ public:
     
     void geo_array(int idim, int ga[], int i) const;
 
+    int grid(int idim, int i, int j)   const;
+
     int fdim(int i)                   const { return fdm[i]; }
 
-    int grid(int idim, int i, int j)   const 
-    { 
-	int ret;
-	switch(idim) 
-	{
-	case FACEDIM: ret = fgr[i][j]; break;
-#if BL_SPACEDIM == 3
-	case 1      : ret = egr[i][j]; break;
-#endif
-	case 0      : ret = cgr[i][j]; break;
-	}
-	return ret;
-    }
     int nboxes(int idim)              const { return nbx[idim]; }
     const Box& box(int idim, int i)   const { return bx[idim][i]; }
     const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
@@ -105,10 +96,24 @@ private:
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
     
     void  add(List<Box>& bl, Box b, int startgrid);
-    void xfer(List<Box>& bl, int idim);
+    void xfer(const List<Box>& bl, int idim);
 private:
     level_interface(const level_interface&);
     void operator=(const level_interface&);
 };
+
+inline int level_interface::grid(int idim, int i, int j)   const 
+{ 
+    int ret;
+    switch(idim) 
+    {
+    case FACEDIM: ret = fgr[i][j]; break;
+#if BL_SPACEDIM == 3
+    case 1      : ret = egr[i][j]; break;
+#endif
+    case 0      : ret = cgr[i][j]; break;
+    }
+    return ret;
+}
 
 #endif
