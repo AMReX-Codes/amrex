@@ -1,5 +1,5 @@
 c
-c $Id: LP_2D.F,v 1.1 1998-03-24 07:07:27 almgren Exp $
+c $Id: LP_2D.F,v 1.2 1999-01-04 18:11:45 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -177,3 +177,48 @@ c
       end do
 c
       end
+
+c-----------------------------------------------------------------------
+c
+c     Fill in fluxes
+c
+      subroutine FORT_FLUX(
+     $     x,DIMS(x),
+     $     lo,hi,nc,
+     $     h,
+     $     xflux,DIMS(xflux),
+     $     yflux,DIMS(yflux)
+     $     )
+      implicit none
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer DIMDEC(x)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
+      REAL_T  x(DIMV(x),nc)
+      REAL_T xflux(DIMV(xflux),nc)
+      REAL_T yflux(DIMV(yflux),nc)
+      REAL_T h(BL_SPACEDIM)
+c
+      REAL_T dhx, dhy
+      integer i,j,n
+c
+      dhx = one/h(1)
+      dhy = one/h(2)
+c
+      do n = 1, nc
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)+1
+               xflux(i,j,n) = - dhx*( x(i,j,n) - x(i-1,j,n) )
+            end do
+         end do
+      end do
+      do n = 1, nc
+         do j = lo(2), hi(2)+1
+            do i = lo(1), hi(1)
+               yflux(i,j,n) = - dhy*( x(i,j,n) - x(i,j-1,n) )
+            end do
+         end do
+      end do
+      end
+
+      

@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.1 1998-03-24 07:06:21 almgren Exp $
+** $Id: LP_F.H,v 1.2 1999-01-04 18:11:46 marc Exp $
 */
 
 #include <REAL.H>
@@ -71,6 +71,14 @@ extern "C"
         const int* lo, const int* hi, const int *nc,
         const Real *h, const  int* redblack
         );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
+        Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
+        );
 #endif
 #if (BL_SPACEDIM == 3)
     void FORT_GSRB (
@@ -90,6 +98,15 @@ extern "C"
         const int* m5   , ARLIM_P(m5),      ARLIM_P(m5_hi),
         const int* lo, const int* hi, const int *nc,
         const Real *h, const  int* redblack
+        );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
+        Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi),
+        Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
         );
 #endif
 

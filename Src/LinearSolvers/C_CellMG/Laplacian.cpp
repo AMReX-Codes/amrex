@@ -1,12 +1,46 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.4 1998-07-29 19:09:54 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.5 1999-01-04 18:11:46 marc Exp $
 //
 
 #include <Laplacian.H>
 
 #include <LP_F.H>
+
+void
+Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+		     MultiFab& in, const BC_Mode& bc_mode)
+{
+    int level = 0;
+    applyBC(in,level,bc_mode);
+    const BoxArray& bxa = gbox[level];
+    int nc = in.nComp();
+
+    for (MultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
+    {
+        DependentMultiFabIterator xflmfi(inmfi, xflux);
+        DependentMultiFabIterator yflmfi(inmfi, yflux);
+#if (BL_SPACEDIM == 3)
+        DependentMultiFabIterator zflmfi(inmfi, zflux);
+#endif
+        assert(bxa[inmfi.index()] == inmfi.validbox());
+
+        FORT_FLUX(inmfi().dataPtr(),
+		  ARLIM(inmfi().loVect()), ARLIM(inmfi().hiVect()),
+		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
+		  h[level],
+		  xflmfi().dataPtr(),
+		  ARLIM(xflmfi().loVect()), ARLIM(xflmfi().hiVect()),
+		  yflmfi().dataPtr(),
+		  ARLIM(yflmfi().loVect()), ARLIM(yflmfi().hiVect())
+#if (BL_SPACEDIM == 3)
+		  ,zflmfi().dataPtr(),
+		  ARLIM(zflmfi().loVect()), ARLIM(zflmfi().hiVect())
+#endif
+		  );
+    }
+}
 
 void
 Laplacian::Fsmooth (MultiFab&       solnL,
