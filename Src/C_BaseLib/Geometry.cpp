@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.15 1998-06-10 18:23:01 lijewski Exp $
+// $Id: Geometry.cpp,v 1.16 1998-06-10 19:40:49 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -72,9 +72,9 @@ operator << (ostream&                 os,
 }
 
 Geometry::PIRMMap
-Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
-				     int             nGrow,
-                                     bool            no_ovlp) const
+Geometry::computePIRMMapForMultiFab(const BoxArray& grids,
+                                    int             nGrow,
+                                    bool            no_ovlp) const
 {
     //
     // Build a MultiMap of <i,PIRec> pairs, where i is the index of
@@ -150,9 +150,9 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
 		    // OK, we got an intersection.
                     //
 		    Box dstBox = srcBox;
-		    D_TERM( dstBox.shift(0,-iv[0]);,
-			    dstBox.shift(1,-iv[1]);,
-			    dstBox.shift(2,-iv[2]); );
+		    D_TERM(dstBox.shift(0,-iv[0]);,
+			   dstBox.shift(1,-iv[1]);,
+			   dstBox.shift(2,-iv[2]););
 
                     pirmmap.insert(PIRMMap::value_type(mfmfi.index(),
                                                        PIRec(j,dstBox,srcBox)));
@@ -181,6 +181,20 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     FabArrayCopyDescriptor<Real,FArrayBox> facd;
 
     FabArrayId faid = facd.RegisterFabArray(&fa);
+
+    FillPeriodicFabArray(fa,pirm,sComp,nComp,facd,faid);
+}
+
+void
+Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>&               fa,
+                                PIRMMap&                                pirm,
+                                int                                     sComp,
+                                int                                     nComp,
+                                FabArrayCopyDescriptor<Real,FArrayBox>& facd,
+                                FabArrayId                              faid) const
+{
+    if (!isAnyPeriodic())
+        return;
     
     typedef PIRMMap::iterator PIRMMapIt;
     //
