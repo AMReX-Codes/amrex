@@ -64,8 +64,7 @@ main (int   argc,
     //
     set_new_handler(Utility::OutOfMemory);
 
-    int nProcs = 1;
-    ParallelDescriptor::StartParallel(nProcs, &argc, &argv);
+    ParallelDescriptor::StartParallel(&argc, &argv);
 
     ParmParse pp(argc-1,argv+1);
 

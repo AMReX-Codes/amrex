@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1999-05-24 18:11:46 car Exp $
+# $Id: GNUmakefile,v 1.3 1999-06-03 23:38:43 sstanley Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -13,6 +13,9 @@ PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
 USE_MPI       = FALSE
+
+BUILD_INPLACE:=FALSE
+BUILD_INPLACE:=TRUE
 #
 # Use hgproj-serial -- only for testing.
 #
@@ -41,6 +44,7 @@ CEXE_sources += $(EBASE).cpp
 
 DEFINES += -DBL_PARALLEL_IO
 
+
 #
 # Local INCLUDES
 #
@@ -50,16 +54,30 @@ vpath %.cpp .. ../../pAmrvis
 vpath %.F   .. ../../pAmrvis
 
 
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-INCLUDE_LOCATIONS += . .. $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+
+ifeq ($(BUILD_INPLACE), TRUE)
+  include $(TOP)/pBoxLib_2/Make.package
+  include $(TOP)/bndrylib/Make.package
+  INCLUDE_LOCATIONS += . ..
+  INCLUDE_LOCATIONS += $(TOP)/iamrlib
+  INCLUDE_LOCATIONS += $(TOP)/mglib
+  INCLUDE_LOCATIONS += $(TOP)/tensorMG
+  INCLUDE_LOCATIONS += $(TOP)/amrlib
+  INCLUDE_LOCATIONS += $(TOP)/bndrylib
+  INCLUDE_LOCATIONS += $(TOP)/hgproj
+  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
 else
-INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
-INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
-INCLUDE_LOCATIONS += $(TOP)/include
-LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+  ifeq ($(USE_HGPROJ_SERIAL),FALSE)
+    INCLUDE_LOCATIONS += . .. $(TOP)/include
+    LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+    LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d -lbox$(DIM)d
+  else
+    INCLUDE_LOCATIONS += . .. $(TOP)/hgproj-serial
+    INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
+    INCLUDE_LOCATIONS += $(TOP)/include
+    LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
+    LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
+  endif
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
@@ -92,9 +110,21 @@ LDFLAGS += --link_command_prefix 3rd
 LDFLAGS += -non_shared -v
 endif
 
-vpath %.H   .. 
-vpath %.cpp .. 
-vpath %.a   $(LIBRARY_LOCATIONS)
+
+ifeq ($(BUILD_INPLACE), TRUE)
+  vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
+                $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
+                $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
+                $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+  vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
+                $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/pBoxLib_2
+else
+  vpath %.H   ..
+  vpath %.cpp ..
+  vpath %.a   $(LIBRARY_LOCATIONS)
+endif
 
 all: $(executable)
 
@@ -106,33 +136,20 @@ $(executable): $(filter-out -lmpi, $(LIBRARIES))
 else
 $(executable): $(LIBRARIES)
 endif
+
+ifneq ($(BUILD_INPLACE), TRUE)
 #
 # Build and install all libraries needed in an appropriate order.
 #
 libs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= install
-else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE=
-endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) install
 #
 # Cleanup libraries.
 #
 cleanlibs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 	cd $(TOP)/bndrylib;  $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/amrlib;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-ifeq ($(USE_HGPROJ_SERIAL),FALSE)
-	cd $(TOP)/hgproj;    $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
-else
-	cd $(TOP)/hgproj-serial; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) PRVERSION=$(PRVERSION) USE_MPI=$(USE_MPI) LBASE=proj EBASE= clean
 endif
-	cd $(TOP)/mglib;     $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
-	cd $(TOP)/iamrlib;   $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) USE_HGPROJ_SERIAL=$(USE_HGPROJ_SERIAL) clean
 
 include $(TOP)/mk/Make.rules
