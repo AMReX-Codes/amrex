@@ -2,7 +2,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.1 1998-03-24 07:06:00 almgren Exp $
+// $Id: CGSolver.H,v 1.2 1998-04-15 21:25:57 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,9 +20,9 @@
 
 //@Man:
 /*@Memo:
-        A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
-        MultiFabs rhs and phi, using the conjugate gradient algorithm, either
-        vanilla, or preconditioned via a single V-cycle of multigrid.
+  A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
+  MultiFabs rhs and phi, using the conjugate gradient algorithm, either
+  vanilla, or preconditioned via a single V-cycle of multigrid.
 */        
 /*@Doc:
         A CGSolver object solves the linear equation, L(phi)=rhs for a LinOp
@@ -84,87 +84,159 @@
 class CGSolver
 {
 public:
-//@ManMemo: Constructors
-//@ManDoc: constructor
-    CGSolver(LinOp &_Lp, bool _use_mg_precond = false, int _lev=0);
-//@ManMemo: Destructors
-//@ManDoc: destructor
-    virtual ~CGSolver();
-//@ManMemo: Callable members
-//@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
-    virtual void solve(MultiFab &solnL, const MultiFab &rhsL,
-                       Real eps_rel = -1.0, Real eps_abs = -1.0,
-                       LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
-//@ManMemo: Access members
-//@ManDoc: set maximum allowed number of CG iterations
-    void setMaxIter(int _maxiter)
-    {
-        maxiter = _maxiter;
-    }
-//@ManDoc: get maximum allowed number of CG iterations
-    int getMaxIter() const
-    {
-        return maxiter;
-    }
-//@ManDoc: set flag determining whether MG preconditioning is used
-    void setUseMGPrecond(bool _use_mg_precond)
-    {
-        use_mg_precond = _use_mg_precond;
-        set_mg_precond();
-    }
-//@ManDoc: get  flag determining whether MG preconditioning is used
-    bool getUseMGPrecond() const
-    {
-        return use_mg_precond;
-    }
-//@ManDoc: set the verbosity value
-    void setVerbose(int _verbose)
-    {
-        verbose = _verbose;
-    }
-//@ManDoc: return the verbosity value
-    int getVerbose()
-    {
-        return verbose;
-    }
+    //
+    //@ManDoc: constructor
+    //
+    CGSolver (LinOp& _Lp,
+	      bool   _use_mg_precond = false,
+	      int    _lev = 0);
+    //
+    //@ManDoc: destructor
+    //
+    virtual ~CGSolver ();
+    //
+    //@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    //
+    virtual void solve (MultiFab&       solnL,
+			const MultiFab& rhsL,
+			Real            eps_rel = -1.0,
+			Real            eps_abs = -1.0,
+			LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    //
+    //@ManDoc: set maximum allowed number of CG iterations
+    //
+    inline void setMaxIter (int _maxiter);
+    //
+    //@ManDoc: get maximum allowed number of CG iterations
+    //
+    inline int getMaxIter () const;
+    //
+    //@ManDoc: set flag determining whether MG preconditioning is used
+    //
+    inline void setUseMGPrecond (bool _use_mg_precond);
+    //
+    //@ManDoc: get  flag determining whether MG preconditioning is used
+    //
+    inline bool getUseMGPrecond () const;
+    //
+    //@ManDoc: set the verbosity value
+    //
+    inline void setVerbose (int _verbose);
+    //
+    //@ManDoc: return the verbosity value
+    //
+    inline int getVerbose ();
+
 protected:
-//@ManMemo: internal members
-//@ManDoc: construct work space, initialize parameters
-    static void initialize();
-//@ManDoc: if (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
-    virtual void set_mg_precond();
-//@ManDoc: compute p = z  +  beta p in the CG algorithm
-    void advance(MultiFab& p, Real beta, const MultiFab& z);
-//@ManDoc: compute x =+ alpha p  and  r -= alpha w in the CG algorithm
-    void update(MultiFab &sol, Real alpha, MultiFab& r,
-                const MultiFab& p, const MultiFab& w);
-//@ManDoc: compute w = A.p, and return Transpose(p).w in the CG algorithm
-    Real axp(MultiFab& w, MultiFab& p, LinOp::BC_Mode bc_mode);
-//@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
-    Real norm(const MultiFab& res);
-//@ManDoc: MultiGrid solver to be used as preconditioner
+    //
+    //@ManDoc: construct work space, initialize parameters
+    //
+    static void initialize ();
+    //
+    //@ManDoc: if  (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
+    //
+    virtual void set_mg_precond ();
+    //
+    //@ManDoc: compute p = z  +  beta p in the CG algorithm
+    //
+    void advance (MultiFab&       p,
+		  Real            beta,
+		  const MultiFab& z);
+    //
+    //@ManDoc: compute x =+ alpha p  and  r -= alpha w in the CG algorithm
+    //
+    void update (MultiFab&       sol,
+		 Real            alpha,
+		 MultiFab&       r,
+		 const MultiFab& p,
+		 const MultiFab& w);
+    //
+    //@ManDoc: compute w = A.p, and return Transpose(p).w in the CG algorithm
+    //
+    Real axp (MultiFab&      w,
+	      MultiFab&      p,
+	      LinOp::BC_Mode bc_mode);
+    //
+    //@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
+    //
+    Real norm (const MultiFab& res);
+    //
+    //@ManDoc: MultiGrid solver to be used as preconditioner
+    //
     MultiGrid * mg_precond;
-//@ManDoc: flag, whether initialized yet
+    //
+    //@ManDoc: flag, whether initialized yet
+    //
     static int initialized;
-//@ManDoc: default maximum number of allowed iterations
+    //
+    //@ManDoc: default maximum number of allowed iterations
+    //
     static int def_maxiter;
-//@ManDoc: default verbosity flag,
+    //
+    //@ManDoc: default verbosity flag,
+    //
     static int def_verbose;
-//@ManDoc: if use\_mg\_precond == true then use multigrid as a preconditioner
+    //
+    //@ManDoc: if use\_mg\_precond == true then use multigrid as a preconditioner
+    //
     bool use_mg_precond;
-//@ManDoc: current maximum number of allowed iterations
+    //
+    //@ManDoc: current maximum number of allowed iterations
+    //
     int maxiter;
-//@ManDoc: current verbosity level
+    //
+    //@ManDoc: current verbosity level
+    //
     int verbose;
-//@ManDoc: reference to operator for linear system to be solved
+    //
+    //@ManDoc: reference to operator for linear system to be solved
+    //
     LinOp &Lp;
-//@ManDoc: integer to choose which "level" of the linear operator to use
+    //
+    //@ManDoc: integer to choose which "level" of the linear operator to use
+    //
     int lev;
+    
 private:
-// Disable copy constructor
-    CGSolver(const CGSolver&);
-// Disable assignment operator
-    CGSolver& operator=(const CGSolver&);
+    // Disable copy constructor, assignment operator
+    CGSolver (const CGSolver&);
+    CGSolver& operator= (const CGSolver&);
 };
 
+inline void
+CGSolver::setMaxIter (int _maxiter)
+{
+    maxiter = _maxiter;
+}
+
+inline int
+CGSolver::getMaxIter () const
+{
+    return maxiter;
+}
+
+inline void
+CGSolver::setUseMGPrecond (bool _use_mg_precond)
+{
+    use_mg_precond = _use_mg_precond;
+    set_mg_precond();
+}
+
+inline bool
+CGSolver::getUseMGPrecond () const
+{
+    return use_mg_precond;
+}
+
+inline void
+CGSolver::setVerbose (int _verbose)
+{
+    verbose = _verbose;
+}
+
+inline int
+CGSolver::getVerbose ()
+{
+    return verbose;
+}
 #endif

@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.1 1998-03-24 07:06:28 almgren Exp $
+// $Id: LinOp.H,v 1.2 1998-04-15 21:25:58 marc Exp $
 //
 
 #include <Array.H>
@@ -15,10 +15,10 @@
 
 //@Man:
 /*@Memo:
-        A LinOp is a virtual base class for general linear operators capable
-        of acting on MultiFabs.  All implementation and access functions are
-        designed to make a LinOp object useful for representing and solving
-        a set of linear equations on a union of rectangles in 2D or 3D.
+  A LinOp is a virtual base class for general linear operators capable
+  of acting on MultiFabs.  All implementation and access functions are
+  designed to make a LinOp object useful for representing and solving
+  a set of linear equations on a union of rectangles in 2D or 3D.
 */        
 /*@Doc:
         A LinOp contains all the information necessary to construct and
@@ -87,152 +87,254 @@ class LinOp
 public:
 
     enum BC_Mode { Homogeneous_BC = 0, Inhomogeneous_BC };
+    //
+    //@ManDoc: allocate a LinOp for this box array, boundary and (uniform) spacing info
+    //
+    LinOp (const BndryData& mgb,
+	   const Real       _h);
+    //
+    //@ManDoc: allocate a LinOp for this box array, boundary data and spacing array info
+    //
+    LinOp (const BndryData& mgb,
+	   const Real*      _h);
+    //
+    //@ManDoc: alocate a LinOp w/level structure beginning at the
+    //  specified level of this LinOp
+    //
+    LinOp (const LinOp& _Lp,
+	   int          level);
+    //
+    //@ManDoc: destructor
+    //
+    virtual ~LinOp ();
+    //
+    //@ManDoc: applies level LinOp to "in", returns "out", uses BC\_mode flag
+    //
+    virtual void apply (MultiFab&      out,
+			MultiFab&      in,
+			int            level = 0,
+			LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+    //
+    //@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
+    //
+    void applyBC (MultiFab&      inout,
+		  int            level = 0,
+		  LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+    //
+    //@ManDoc: compute the level residual = rhsL - L(solnL)
+    //
+    virtual void residual (MultiFab&       residL,
+			   const MultiFab& rhsL,
+			   MultiFab&       solnL,
+			   int             level = 0,
+			   LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    //
+    //@ManDoc: smooth the level system L(solnL)=rhsL
+    //
+    void smooth (MultiFab&       solnL,
+		 const MultiFab& rhsL,
+		 int             level = 0,
+		 LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    //
+    //@ManDoc: Compute the norm of "in"
+    //
+    Real norm (const MultiFab& in,
+	       int             level = 0) const;
+    //
+    //@ManDoc: return the boundary data object
+    //
+    inline const BndryData& bndryData () const;
+    //
+    //@ManDoc: set the boundary data object
+    //
+    inline void bndryData (const BndryData& bd);
+    //
+    //@ManDoc: return the box array
+    //
+    inline const BoxArray& boxArray (int level = 0) const;
+    //
+    //@ManDoc: return the number of grids
+    //
+    inline int numGrids () const;
+    //
+    //@ManDoc: return the number of levels
+    //
+    inline int numLevels () const;
+    //
+    //@ManDoc: return the order of the boundary condition interpolant
+    //
+    inline int maxOrder () const;
+    //
+    //@ManDoc: set the order of the boundary condition interpolant
+    //
+    inline int maxOrder (int maxorder_);
+    //
+    //@ManDoc: construct/allocate internal data necessary for adding a new level
+    //
+    virtual void prepareForLevel (int level);
+    //
+    //@ManDoc: Output operator internal to an ASCII stream
+    //
+    friend std::ostream& operator << (std::ostream& os,
+				      const LinOp&  lp);
 
-//@ManMemo: administrative functions
-//@ManDoc: allocate a LinOp for this box array, boundary and (uniform) spacing info
-    LinOp(const BoxArray &ba, const BndryData& mgb, const Real _h);
-//@ManDoc: allocate a LinOp for this box array, boundary data and spacing array info
-    LinOp(const BoxArray &ba, const BndryData& mgb, const Real* _h);
-//@ManDoc: alocate a LinOp w/level structure beginning at the specified level of this LinOp
-    LinOp(const LinOp& _Lp, int level);
-//@ManDoc: destructor
-    virtual ~LinOp();
-
-//@ManMemo: apply functions
-//@ManDoc: applies level LinOp to "in", returns solution in "out"
-    void operator()(MultiFab &out, MultiFab& in, int level)
-    {
-        apply(out, in, level);
-    }
-//@ManDoc: applies level LinOp to "in", returns solution in "out" at level = 0
-    void operator()(MultiFab &out, MultiFab& in)
-    {
-        int level=0;
-        apply(out, in, level);
-    }
-//@ManDoc: applies level LinOp to "in", returns "out", uses BC\_mode flag
-    virtual void apply(MultiFab &out, MultiFab& in, int level = 0,
-               LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
-//@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
-    void applyBC(MultiFab &inout, int level = 0,
-                 LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
-//@ManDoc: compute the level residual = rhsL - L(solnL)
-    virtual void residual(MultiFab &residL, const MultiFab &rhsL, MultiFab &solnL,
-                  int level = 0, LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
-//@ManDoc: smooth the level system L(solnL)=rhsL
-    void smooth(MultiFab &solnL, const MultiFab &rhsL,
-                int level = 0, LinOp::BC_Mode bc_mode=LinOp::Inhomogeneous_BC);
-
-//@ManMemo: utility functions
-//@ManDoc: Compute the norm of "in"
-    Real norm(const MultiFab &in, int level = 0) const;
-
-//@ManMemo: access functions
-//@ManDoc: return the boundary data object
-    const BndryData& bndryData() const
-    {
-        return bgb;
-    }
-//@ManDoc: set the boundary data object
-    void bndryData(const BndryData& bd)
-    {
-        assert ( *gbox[0] == bd.boxes() );
-        bgb = bd;
-    }
-//@ManDoc: return the box array
-    const BoxArray& boxArray(int level = 0) const
-    {
-        assert(level < numLevels());
-        return *gbox[level];
-    }
-//@ManDoc: return the number of grids
-    int numGrids() const
-    {
-        return gbox[0]->length();
-    }
-//@ManDoc: return the number of levels
-    int numLevels() const
-    {
-        return h.length();
-    }
-//@ManDoc: return the order of the boundary condition interpolant
-    int maxOrder() const
-    {
-        return maxorder;
-    }
-//@ManDoc: set the order of the boundary condition interpolant
-    int maxOrder(int maxorder_)
-    {
-        assert(maxorder_ >= 2);
-        maxorder_ = (maxorder_ < 2 ? 2 : maxorder_ );
-        int omaxorder = maxorder;
-        maxorder = maxorder_;
-        return omaxorder;
-    }
-//@ManDoc: construct/allocate internal data necessary for adding a new level
-    virtual void prepareForLevel(int level);
-//@ManDoc: remove internal data necessary for a level and all higher
-    virtual void clearToLevel(int level);
 protected:
-  struct PeriodicIntersectionRec {
-    int srcno;
-    int destno;
-    Box srcbox;
-    Box destbox;
-#ifdef __GNUG__
-    bool operator == (const struct PeriodicIntersectionRec& other) const {
-      return (srcno == other.srcno ) &&
-             (destno == other.destno )&&
-             (srcbox == other.srcbox ) &&
-             (destbox == other.destbox ) ;
-    }
-#endif
-  };
-//@ManDoc: virtual to apply the level operator to the internal nodes of "in", return result in "out"
-    virtual void Fapply(MultiFab &out, const MultiFab &in, int level) = 0;
-//@ManDoc: virtual to carry out the level smoothing operation for L(solnL)=rhsL on internal nodes.  Modify solnL in place.
-    virtual void Fsmooth(MultiFab &solnL, const MultiFab &rhsL, int level,
-                         int rgbflag) = 0;
-protected:
-//@ManDoc: build coefficients at coarser level by interpolating "fine" (builds in appropriate node/cell centering)
-    void makeCoefficients(MultiFab& crs, const MultiFab &fine, int level);
-//@ManDoc: initialize LinOp internal data
-    static void initialize();
-//@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
-    Array< Tuple<Real, SPACEDIM> > h;
-//@ManDoc: Array (on level) of pointers to BoxArray's of LinOp's domain
-    Array< LnClassPtr<BoxArray> > gbox;
-//@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
-    Array< CpClassPtr<BndryRegister> > undrrelxr;
-//@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not\_covered, outside\_domain
-    Array< Array< Array< Mask*> > > maskvals;
-//@ManDoc: boundary data class
-    BndryData bgb;
-
-  //@ManDoc: Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
-    Array< Geometry > geomarray;
-  //@ManDoc: Array (on level) of Array of PeriodicIntersectionRec
-  Array< Array< struct PeriodicIntersectionRec > > pirarray;
-
-  //@ManDoc: internal function which constructs pirarray
-  void computePeriodicIntersections(const Geometry&geo, const BoxArray& boxarr,
-                                   Array<struct PeriodicIntersectionRec>&pir);
     
-//@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients, =0 is arithmetic averaging)
+    //
+    //@ManDoc: remove internal data necessary for a level and all higher
+    //
+    virtual void clearToLevel (int level) {};
+    //
+    //@ManDoc: virtual to apply the level operator to the internal nodes of
+    // "in", return result in "out"
+    //
+    virtual void Fapply (MultiFab&       out,
+			 const MultiFab& in,
+			 int             level) = 0;
+    //
+    //@ManDoc: virtual to carry out the level smoothing operation for
+    //  L(solnL)=rhsL on internal nodes.  Modify solnL in place.
+    //
+    virtual void Fsmooth (MultiFab&       solnL,
+			  const MultiFab& rhsL,
+			  int             level,
+                          int             rgbflag) = 0;
+protected:
+
+    //
+    //@ManDoc: build coefficients at coarser level by interpolating "fine"
+    //  (builds in appropriate node/cell centering)
+    //
+    void makeCoefficients (MultiFab&       crs,
+			   const MultiFab& fine,
+			   int             level);
+    //
+    //@ManDoc: initialize LinOp internal data
+    //
+    static void initialize ();
+    //
+    //@ManDoc: Helper functin for object construction
+    //
+    void initConstruct (const Real* _h);
+    //
+    //@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
+    //
+    Array< Tuple< Real, BL_SPACEDIM > > h;
+    //
+    //@ManDoc: Array (on level) of BoxArray's of LinOp's domain
+    //
+    Array< BoxArray > gbox;
+    //
+    //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid
+    //  for scratch data required to modify internal stencil on boundary
+    //
+    Array< CpClassPtr<BndryRegister> > undrrelxr;
+    //
+    //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation)
+    // of pointers to Masks for whether boundary Fabs are covered,
+    // not\_covered, outside\_domain
+    //
+    //  FIXME: This should really be an array of integer BndryRegisters
+    Array< Array< Array< Mask*> > > maskvals;
+    //
+    //@ManDoc: boundary data class
+    //
+    BndryData bgb;
+    //
+    //@ManDoc: Array (on level) of geometry objects.  Needed for determining
+    // whether stuff intersects on periodic domains
+    //
+    Array< Geometry > geomarray;
+    //
+    //@ManDoc: Array (on level) of periodic intersection info
+    //
+    Array< Geometry::PIRMMap > pirmmapArray;
+    //
+    //@ManDoc: internal function which constructs pirarray
+    //
+    void preComputePeriodicInfo (int level);
+    //
+    //@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients,
+    // =0 is arithmetic averaging)
+    //
     int harmavg;
-//@ManDoc: flag (>0 is verbose execution)
+    //
+    //@ManDoc: flag (>0 is verbose execution)
+    //
     int verbose;
-//@ManDoc: maximum interpolation order used for constructing Dirichlet ghost node values
+    //
+    //@ManDoc: maximum interpolation order used for constructing Dirichlet
+    // ghost node values
+    //
     int maxorder;
-//@ManDoc: flag (=1 if internal data initialized)
+    //
+    //@ManDoc: flag (=1 if internal data initialized)
+    //
     static bool initialized;
-//@ManDoc: default value for harm\_avg
+    //
+    //@ManDoc: default value for harm\_avg
+    //
     static int def_harmavg;
-//@ManDoc: default value for verbose
+    //
+    //@ManDoc: default value for verbose
+    //
     static int def_verbose;
-//@ManDoc: default maximum BC interpolant order
+    //
+    //@ManDoc: default maximum BC interpolant order
+    //
     static int def_maxorder;
+    
+private:
+    LinOp (const LinOp& rhs);
+    operator = (const LinOp& rhs);
 };
 
+inline const BndryData&
+LinOp::bndryData () const
+{
+    return bgb;
+}
+
+inline void
+LinOp::bndryData (const BndryData& bd)
+{
+    assert ( gbox[0] == bd.boxes() );
+    bgb = bd;
+}
+
+inline const BoxArray&
+LinOp::boxArray (int level) const
+{
+    assert(level < numLevels());
+    return gbox[level];
+}
+
+inline int
+LinOp::numGrids () const
+{
+    return gbox[0].length();
+}
+
+inline int
+LinOp::numLevels () const
+{
+    return h.length();
+}
+
+inline int
+LinOp::maxOrder () const
+{
+    return maxorder;
+}
+
+inline int
+LinOp::maxOrder (int maxorder_)
+{
+    assert(maxorder_ >= 2);
+    maxorder_ = (maxorder_ < 2 ? 2 : maxorder_ );
+    int omaxorder = maxorder;
+    maxorder = maxorder_;
+    return omaxorder;
+}
 
 #endif

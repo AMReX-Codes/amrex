@@ -1,7 +1,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.1 1998-03-24 07:06:35 almgren Exp $
+// $Id: Mask.H,v 1.2 1998-04-15 21:25:59 marc Exp $
 //
 
 #include <BaseFab.H>
@@ -9,9 +9,9 @@
 
 //@Man:
 /*@Memo:
-        A Mask is a derived Fab class whose elements maintain a logical
-        "TRUE" or "FALSE" state.  A Mask can perform several elementary
-        logical operations on its data members.
+  A Mask is a derived Fab class whose elements maintain a logical
+  "TRUE" or "FALSE" state.  A Mask can perform several elementary
+  logical operations on its data members.
 */        
 /*@Doc:
         Implement a logical class Mask to maintain the TRUE or FALSE state
@@ -30,64 +30,105 @@ class Mask
 {
 public:
 
-//@ManMemo: administrative functions
-//@ManDoc: default constructor
+    //@ManMemo: administrative functions
+
+    //
+    //@ManDoc: default constructor
+    //
     Mask()
         : BaseFab<int>() {};
-//@ManDoc: allocating constructor (nc=number of components)
+    //
+    //@ManDoc: allocating constructor (nc=number of components)
+    //
     Mask(const Box& bx, int nc = 1)
         : BaseFab<int>(bx,nc) {};
-//@ManDoc: construct from input stream
+    //
+    //@ManDoc: construct from input stream
+    //
     Mask(istream &is);
-//@ManDoc: destructor
+    //
+    //@ManDoc: destructor
+    //
     virtual ~Mask() {};
 
-//@ManMemo: I/O functions
-//@ManDoc: initialize from stream
+    //@ManMemo: I/O functions
+    
+    //
+    //@ManDoc: initialize from stream
+    //
     friend istream& operator >> (istream&, Mask&);
-//@ManDoc: initialize from stream, FAB-style
+    //
+    //@ManDoc: initialize from stream, FAB-style
+    //
     void readFrom(istream&);
-//@ManDoc: output to stream
+    //
+    //@ManDoc: output to stream
+    //
     friend ostream& operator << (ostream&, const Mask&);
-//@ManDoc: output to stream, FAB-style
+    //
+    //@ManDoc: output to stream, FAB-style
+    //
     void writeOn(ostream&) const;
-
-
-//@ManMemo: logical And functions
-//@ManDoc: in-place And operator
+    
+    //@ManMemo: logical And functions
+    
+    //
+    //@ManDoc: in-place And operator
+    //
     Mask& operator &= (const Mask& src) { return And(src); };
-//@ManDoc: in-place And
+    //
+    //@ManDoc: in-place And
+    //
     Mask& And(const Mask& src);
-//@ManDoc: as above, but specify source/destination/number of components
+    //
+    //@ManDoc: as above, but specify source/destination/number of components
+    //
     Mask& And(const Mask& src,
               int srccomp, int destcomp, int numcomp=1);
-//@ManDoc: as above, and specify subregion
+    //
+    //@ManDoc: as above, and specify subregion
+    //
     Mask& And(const Mask& src, const Box& subbox,
               int srccomp, int destcomp, int numcomp=1);
-//@ManDoc: in-pace And, over source components to destination components, and on intersection of source and destination boxes
+    //
+    //@ManDoc: in-pace And, over source components to destination components,
+    //  and on intersection of source and destination boxes
+    //
     Mask& And(const Mask& src, const Box& srcbox,
               const Box& destbox,
               int srccomp, int destcomp, int numcomp=1);
 
-//@ManMemo: logical Or functions
-//@ManDoc: in-place Or operator
+    //@ManMemo: logical Or functions
+    
+    //
+    //@ManDoc: in-place Or operator
+    //
     Mask& operator |= (const Mask& src) { return Or(src); };
-//@ManDoc: in-place Or
+    //
+    //@ManDoc: in-place Or
+    //
     Mask& Or(const Mask& src);
-//@ManDoc: as above, but specify source/destination/number of components
+    //
+    //@ManDoc: as above, but specify source/destination/number of components
+    //
     Mask& Or(const Mask& src,
              int srccomp, int destcomp, int numcomp=1);
-//@ManDoc: as above, and specify subregion
+    //
+    //@ManDoc: as above, and specify subregion
+    //
     Mask& Or(const Mask& src, const Box& subbox,
              int srccomp, int destcomp, int numcomp=1);
-//@ManDoc: in-pace Or, over source components to destination components, and on intersection of source and destination boxes
+    //
+    //@ManDoc: in-pace Or, over source components to destination components,
+    //  and on intersection of source and destination boxes
+    //
     Mask& Or(const Mask& src, const Box& srcbox,
              const Box& destbox,
              int srccomp, int destcomp, int numcomp=1);
 private:
-// Disallow copy operator
+    
+    // Disallow copy constructor and operator
     Mask& operator=(const Mask&);
-// Disallow copy constructor
     Mask(const Mask&);
 };
 

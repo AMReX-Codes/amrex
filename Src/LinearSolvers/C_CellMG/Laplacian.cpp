@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.1 1998-03-24 07:05:30 almgren Exp $
+// $Id: Laplacian.cpp,v 1.2 1998-04-15 21:25:58 marc Exp $
 //
 
 #include <Laplacian.H>
@@ -11,7 +11,7 @@ void
 Laplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
                          int level, int redBlackFlag)
 {
-    const BoxArray &bxa = *gbox[level];
+    const BoxArray &bxa = gbox[level];
     OrientationIter oitr;
     const FabSet &f0 = (*undrrelxr[level])[oitr()]; oitr++;
     const FabSet &f1 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -23,7 +23,7 @@ Laplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 #endif
     int nc = rhsL.nComp();
     //for(int gn = 0; gn < solnL.length(); ++gn) {
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi) {
+    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
       DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
       DependentFabSetIterator f0fsi(solnLmfi, f0);
       DependentFabSetIterator f1fsi(solnLmfi, f1);
@@ -111,11 +111,10 @@ Laplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 void
 Laplacian::Fapply(MultiFab& y, const MultiFab &x, int level)
 {
-    const BoxArray &bxa = *gbox[level];
     int nc = y.nComp();
     //for(int gn = 0; gn < y.length(); ++gn) {
-    for(MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi) {
-      DependentMultiFabIterator xmfi(ymfi,  x);
+    for(MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi) {
+	DependentMultiFabIterator xmfi(ymfi,  x);
         FORT_ADOTX(
             ymfi().dataPtr(), 
             ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),

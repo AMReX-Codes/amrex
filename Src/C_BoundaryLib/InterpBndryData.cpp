@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.2 1998-03-26 17:51:58 almgren Exp $
+// $Id: InterpBndryData.cpp,v 1.3 1998-04-15 21:25:58 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -104,7 +104,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 
     int ngrd = grids.length();
     //for(int grd = 0; grd < ngrd; grd++)
-    for(ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for(ConstMultiFabIterator mfi(mf); mfi.isValid(false); ++mfi)
     {
         assert(grids[mfi.index()] == mfi.validbox());
         int grd = mfi.index();
@@ -171,7 +171,7 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     Real *derives = 0;
     int  tmplen = 0;
     //for (int grd = 0; grd < ngrd; grd++)
-    for(ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
+    for(ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(false); ++fine_mfi)
     {
         assert(grids[fine_mfi.index()] == fine_mfi.validbox());
         const Box &fine_bx = fine_mfi.validbox();
