@@ -683,8 +683,9 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
 	    // use only exterior coarse-fine faces with an interior fine grid
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) || idomain.intersects(nbox))
+	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
+	    if ( idomain.intersects(nbox) ) continue;
 	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
 	}
     }

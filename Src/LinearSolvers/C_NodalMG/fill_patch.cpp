@@ -576,9 +576,7 @@ void sync_borders(MultiFab& r, const level_interface& lev_interface, const amr_b
     bdy->sync_borders(r, lev_interface);
 }
 
-void fill_borders(MultiFab& r,
-		  const level_interface& lev_interface,
-		  const amr_boundary_class* bdy, int w, bool hg_terrain)
+void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain)
 {
     fill_internal_borders(r, lev_interface, w, hg_terrain);
     assert(bdy != 0);
