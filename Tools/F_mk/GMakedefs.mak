@@ -26,6 +26,7 @@ fsources    =
 f90sources  =
 csources    =
 
+
 CPPFLAGS += -DBL_$(ARCH)
 ifeq ($(ARCH),AIX)
   CPPFLAGS += -DBL_FORT_USE_LOWERCASE
@@ -40,11 +41,11 @@ endif
 odir=.
 mdir=.
 tdir=.
-# hdir=./doc/html
 
 tdir = t/$(suf)
 odir = $(tdir)/o
 mdir = $(tdir)/m
+hdir = t/html
 
 ifeq ($(ARCH),Linux)
   ifdef MPI
@@ -365,7 +366,7 @@ endif
 
 TCSORT  :=  $(FPARALLEL)/scripts/tcsort.pl
 MODDEP  :=  $(FPARALLEL)/scripts/moddep.pl
-F90DOC  :=  f90doc
+F90DOC  :=  $(FPARALLEL)/scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags)
 LDFLAGS  += $(fld_flags)
@@ -373,6 +374,8 @@ libraries += $(mpi_libraries)
 
 objects = $(addprefix $(odir)/, $(sort $(f90sources:.f90=.o)) $(sort $(fsources:.f=.o)) $(sort $(csources:.c=.o)))
 sources =                       $(sort $(f90sources)        ) $(sort $(fsources)      ) $(sort $(csources)       )
+
+html_sources = $(addprefix $(hdir)/, $(sort $(f90sources:.f90=.html)) $(sort $(fsources:.f=.html)))
 
 COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
