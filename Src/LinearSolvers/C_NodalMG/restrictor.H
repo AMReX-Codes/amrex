@@ -15,51 +15,65 @@
 // at the edges of grids.
 //
 
-class amr_restrictor_class 
+class amr_restrictor 
 {
 public:
-    amr_restrictor_class () {}
-    virtual ~amr_restrictor_class ();
-    virtual Box box (const Box&, const IntVect&) const;
-    virtual Box rebox (const Box&, const IntVect&) const;
-    virtual void fill (FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
-    virtual void fill_interface (MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
+    amr_restrictor () {}
+    virtual ~amr_restrictor ();
+    virtual Box box (const Box&,
+		     const IntVect&) const;
+    virtual Box rebox (const Box&,
+		       const IntVect&) const;
+    virtual void fill (FArrayBox&,
+		       const Box&,
+		       const FArrayBox&,
+		       const IntVect&) const = 0;
+    virtual void fill_interface (MultiFab&, MultiFab&,
+				 const level_interface&,
+				 const amr_boundary*,
+				 const IntVect&) const;
 };
 
-class cell_average_restrictor_class : public amr_restrictor_class 
+class cell_average_restrictor : public amr_restrictor 
 {
 public:
-    explicit cell_average_restrictor_class (int i) 
+    explicit cell_average_restrictor (int i) 
 	:
         integrate(i) 
     {}
-    virtual void fill (FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+    virtual void fill (FArrayBox& patch, const Box& region,
+		       const FArrayBox& fgr, const IntVect& rat) const;
 protected:
     int integrate;
 };
 
-class terrain_velocity_restrictor_class : public cell_average_restrictor_class 
+class terrain_velocity_restrictor : public cell_average_restrictor 
 {
 public:
-    explicit terrain_velocity_restrictor_class (int i) 
+    explicit terrain_velocity_restrictor (int i) 
 	:
-        cell_average_restrictor_class(i) 
-    {}
-    virtual void fill (FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+        cell_average_restrictor(i) 
+    {
+	BL_ASSERT(i >= 0 && i < BL_SPACEDIM);
+    }
+    virtual void fill (FArrayBox& patch, const Box& region,
+		       const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class injection_restrictor_class : public amr_restrictor_class 
+class injection_restrictor : public amr_restrictor 
 {
 public:
-    injection_restrictor_class() {}
-    virtual void fill (FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+    injection_restrictor() {}
+    virtual void fill (FArrayBox& patch, const Box& region,
+		       const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class default_restrictor : public amr_restrictor_class 
+class default_restrictor : public amr_restrictor 
 {
 public:
     default_restrictor () {}
-    virtual void fill (FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+    virtual void fill (FArrayBox& patch, const Box& region,
+		       const FArrayBox& fgr, const IntVect& rat) const;
 };
 
 //
@@ -68,17 +82,28 @@ public:
 // Does nothing at coarse-fine interfaces.
 //
 
-class bilinear_restrictor_class : public amr_restrictor_class 
+class bilinear_restrictor :
+    public amr_restrictor 
 {
 public:
-    bilinear_restrictor_class(int i, bool hg_terrain);
-    virtual Box box(const Box& fb, const IntVect& rat) const;
-    virtual Box rebox(const Box& cb, const IntVect& rat) const;
-    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
-    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
+    bilinear_restrictor (int i,
+			       bool hg_terrain);
+    virtual Box box (const Box& fb,
+		     const IntVect& rat) const;
+    virtual Box rebox (const Box& cb,
+		       const IntVect& rat) const;
+    virtual void fill (FArrayBox& patch,
+		       const Box& region,
+		       const FArrayBox& fgr,
+		       const IntVect& rat) const;
+    virtual void fill_interface (MultiFab&,
+				 MultiFab&,
+				 const level_interface&,
+				 const amr_boundary*,
+				 const IntVect&) const;
 protected:
     int  integrate;
-    bool m_hg_terrain;
+    bool m_hg_dense;
 };
 
 #endif /*_RESTRICTOR_H_*/

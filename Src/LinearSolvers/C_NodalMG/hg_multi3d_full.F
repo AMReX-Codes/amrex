@@ -2,7 +2,7 @@ c twenty-seven point terrain version:
 
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres_terrain(
+      subroutine hgfres_full(
      & res,    resl0,resh0,resl1,resh1,resl2,resh2,
      & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
@@ -10,7 +10,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz, ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir, idd1)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -23,13 +23,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
-      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2, 5)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 3)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2, 3)
       integer ir, jr, kr, idim, idir
       double precision fac00, fac0, fac1, fac2, tmp, cen
       integer i, j, k, is, js, ks, l, m, n
-      double precision MXXC, MYYC, MZZC, MXZC, MYZC
-      double precision MXXF, MYYF, MZZF, MXZF, MYZF
+      integer idd1
+      double precision MXXC, MYYC, MZZC
+      double precision MXXF, MYYF, MZZF
 
       MXXC(ii,jj,kk) = (4.0D0 *  cdst(ii,j,k)   + 
      &                   2.0D0 * (cdst(ii,jj,k)  - cdst(i,jj,k) + 
@@ -46,11 +47,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                           cdst(i,jj,kk)  - cdst(i,jj,k)) + 
      &                          (cdst(ii,jj,kk) - cdst(ii,jj,k)))
 
-      MXZC(ii,jj,kk) = (6.0D0 *  cdst(ii,j,kk)  + 
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(i,jj,k)))
 
-      MYZC(ii,jj,kk) = (6.0D0 *  cdst(i,jj,kk)  + 
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(ii,j,k)))
 
       MXXF(i1,j1,k1,ii,jj,kk) = (4.0D0 *  fdst(ii,j1,k1)   + 
      &                       2.0D0 * (fdst(ii,jj,k1) - fdst(i1,jj,k1) +
@@ -67,11 +64,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                fdst(i1,jj,kk) - fdst(i1,jj,k1)) +
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
-      MXZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(ii,j1,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
-
-      MYZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(i1,jj,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
 
 
       fac00 = 1.0D0 / 36
@@ -100,16 +92,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 +sigmac(is ,j-1,k  ,3) * MZZC(i-idir,j-1,k+1)
      &                 +sigmac(is ,j  ,k-1,3) * MZZC(i-idir,j+1,k-1)
      &                 +sigmac(is ,j  ,k  ,3) * MZZC(i-idir,j+1,k+1)
-                  tmp = tmp + idir * (
-     &                 -sigmac(is ,j-1,k-1,4) * MXZC(i-idir,j-1,k-1)
-     &                 +sigmac(is ,j-1,k  ,4) * MXZC(i-idir,j-1,k+1)
-     &                 -sigmac(is ,j  ,k-1,4) * MXZC(i-idir,j+1,k-1)
-     &                 +sigmac(is ,j  ,k  ,4) * MXZC(i-idir,j+1,k+1) )
-                  tmp = tmp
-     &                 -sigmac(is ,j-1,k-1,5) * MYZC(i-idir,j-1,k-1)
-     &                 +sigmac(is ,j-1,k  ,5) * MYZC(i-idir,j-1,k+1)
-     &                 +sigmac(is ,j  ,k-1,5) * MYZC(i-idir,j+1,k-1)
-     &                 -sigmac(is ,j  ,k  ,5) * MYZC(i-idir,j+1,k+1)
 
               cen        = 
      &            4.0D0 * ( sigmac(is,j-1,k-1,1) + sigmac(is,j-1,k,1)
@@ -118,10 +100,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                    +sigmac(is,j  ,k-1,2) + sigmac(is,j  ,k,2)
      &                    +sigmac(is,j-1,k-1,3) + sigmac(is,j-1,k,3)
      &                    +sigmac(is,j  ,k-1,3) + sigmac(is,j  ,k,3)) 
-     &   + idir * 6.0D0 * (-sigmac(is,j-1,k-1,4) + sigmac(is,j-1,k,4)
-     &                    -sigmac(is,j  ,k-1,4) + sigmac(is,j  ,k,4))
-     &          + 6.0D0 * ( sigmac(is,j-1,k  ,5) - sigmac(is,j-1,k-1,5)
-     &                    +sigmac(is,j  ,k-1,5) - sigmac(is,j  ,k,5)) 
 
                res(i*ir,j*jr,k*kr) =
      &          src(i*ir,j*jr,k*kr) - fac00 * (tmp - cen * cdst(i,j,k))
@@ -168,24 +146,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                * MZZF(i,j+n,k+l,i+idir,j+n+1,k+l-1)
      &           +sigmaf(is,j+n  ,k+l  ,3) 
      &                * MZZF(i,j+n,k+l,i+idir,j+n+1,k+l+1)
-            tmp = tmp + idir * (
-     &            sigmaf(is,j+n-1,k+l-1,4) 
-     &                * MXZF(i,j+n,k+l,i+idir,j+n-1,k+l-1)
-     &           -sigmaf(is,j+n-1,k+l  ,4) 
-     &                * MXZF(i,j+n,k+l,i+idir,j+n-1,k+l+1)
-     &           +sigmaf(is,j+n  ,k+l-1,4) 
-     &                * MXZF(i,j+n,k+l,i+idir,j+n+1,k+l-1)
-     &           -sigmaf(is,j+n  ,k+l  ,4) 
-     &                * MXZF(i,j+n,k+l,i+idir,j+n+1,k+l+1))
-            tmp = tmp
-     &           -sigmaf(is,j+n-1,k+l-1,5) 
-     &                * MYZF(i,j+n,k+l,i+idir,j+n-1,k+l-1)
-     &           +sigmaf(is,j+n-1,k+l  ,5) 
-     &                * MYZF(i,j+n,k+l,i+idir,j+n-1,k+l+1)
-     &           +sigmaf(is,j+n  ,k+l-1,5) 
-     &                * MYZF(i,j+n,k+l,i+idir,j+n+1,k+l-1)
-     &           -sigmaf(is,j+n  ,k+l  ,5) 
-     &                * MYZF(i,j+n,k+l,i+idir,j+n+1,k+l+1)
 
             cen =
      &       4.0D0 *(sigmaf(is,j+n-1,k+l-1,1) + sigmaf(is,j+n-1,k+l  ,1)
@@ -194,11 +154,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &             +sigmaf(is,j+n  ,k+l-1,2) + sigmaf(is,j+n  ,k+l  ,2)
      &             +sigmaf(is,j+n-1,k+l-1,3) + sigmaf(is,j+n-1,k+l  ,3)
      &             +sigmaf(is,j+n  ,k+l-1,3) + sigmaf(is,j+n  ,k+l  ,3))
-     &     + idir * 
-     &      6.0D0 *(-sigmaf(is,j+n-1,k+l  ,4) + sigmaf(is,j+n-1,k+l-1,4)
-     &             -sigmaf(is,j+n  ,k+l  ,4) + sigmaf(is,j+n  ,k+l-1,4))
-     &    + 6.0D0 *( sigmaf(is,j+n-1,k+l  ,5) - sigmaf(is,j+n-1,k+l-1,5)
-     &             +sigmaf(is,j+n  ,k+l-1,5) - sigmaf(is,j+n  ,k+l  ,5))
 
              res(i,j,k) = res(i,j,k) 
      &            - fac1 * (tmp - cen * fdst(i,j+n,k+l))
@@ -231,16 +186,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 +sigmac(i-1,js,k  ,3) * MZZC(i-1,j-idir,k+1)
      &                 +sigmac(i  ,js,k-1,3) * MZZC(i+1,j-idir,k-1)
      &                 +sigmac(i  ,js,k  ,3) * MZZC(i+1,j-idir,k+1)
-                  tmp = tmp
-     &                 -sigmac(i-1,js,k-1,4) * MXZC(i-1,j-idir,k-1)
-     &                 +sigmac(i-1,js,k  ,4) * MXZC(i-1,j-idir,k+1)
-     &                 +sigmac(i  ,js,k-1,4) * MXZC(i+1,j-idir,k-1)
-     &                 -sigmac(i  ,js,k  ,4) * MXZC(i+1,j-idir,k+1)
-                  tmp = tmp + idir * ( 
-     &                 -sigmac(i-1,js,k-1,5) * MYZC(i-1,j-idir,k-1)
-     &                 +sigmac(i-1,js,k  ,5) * MYZC(i-1,j-idir,k+1)
-     &                 -sigmac(i  ,js,k-1,5) * MYZC(i+1,j-idir,k-1)
-     &                 +sigmac(i  ,js,k  ,5) * MYZC(i+1,j-idir,k+1) )
 
                cen =
      &            4.0D0 * (sigmac(i-1,js,k-1,1) + sigmac(i-1,js,k,1)
@@ -249,10 +194,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                   +sigmac(i  ,js,k-1,2) + sigmac(i  ,js,k,2)
      &                   +sigmac(i-1,js,k-1,3) + sigmac(i-1,js,k,3)
      &                   +sigmac(i  ,js,k-1,3) + sigmac(i  ,js,k,3))
-     &          + 6.0D0 * (sigmac(i-1,js,k  ,4) - sigmac(i-1,js,k-1,4)
-     &                   +sigmac(i  ,js,k-1,4) - sigmac(i  ,js,k  ,4))
-     &   + idir * 6.0D0 * (-sigmac(i-1,js,k-1,5) + sigmac(i-1,js,k,5)
-     &                    -sigmac(i  ,js,k-1,5) + sigmac(i  ,js,k,5))
 
                res(i*ir,j*jr,k*kr) =
      &          src(i*ir,j*jr,k*kr) - fac00 * (tmp - cen * cdst(i,j,k))
@@ -299,24 +240,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                    * MZZF(i+m,j,k+l,i+m+1,j+idir,k+l-1)
      &           +sigmaf(i+m  ,js,k+l  ,3) 
      &                    * MZZF(i+m,j,k+l,i+m+1,j+idir,k+l+1)
-            tmp = tmp
-     &           -sigmaf(i+m-1,js,k+l-1,4) 
-     &                    * MXZF(i+m,j,k+l,i+m-1,j+idir,k+l-1)
-     &           +sigmaf(i+m-1,js,k+l  ,4) 
-     &                    * MXZF(i+m,j,k+l,i+m-1,j+idir,k+l+1)
-     &           +sigmaf(i+m  ,js,k+l-1,4) 
-     &                    * MXZF(i+m,j,k+l,i+m+1,j+idir,k+l-1)
-     &           -sigmaf(i+m  ,js,k+l  ,4) 
-     &                    * MXZF(i+m,j,k+l,i+m+1,j+idir,k+l+1)
-            tmp = tmp + idir * (
-     &            sigmaf(i+m-1,js,k+l-1,5) 
-     &                    * MYZF(i+m,j,k+l,i+m-1,j+idir,k+l-1)
-     &           -sigmaf(i+m-1,js,k+l  ,5) 
-     &                    * MYZF(i+m,j,k+l,i+m-1,j+idir,k+l+1)
-     &           +sigmaf(i+m  ,js,k+l-1,5) 
-     &                    * MYZF(i+m,j,k+l,i+m+1,j+idir,k+l-1)
-     &           -sigmaf(i+m  ,js,k+l  ,5) 
-     &                    * MYZF(i+m,j,k+l,i+m+1,j+idir,k+l+1))
 
          cen =
      &    4.0D0 * (sigmaf(i+m-1,js,k+l-1,1) + sigmaf(i+m-1,js,k+l  ,1)
@@ -325,11 +248,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &           +sigmaf(i+m  ,js,k+l-1,2) + sigmaf(i+m  ,js,k+l  ,2)
      &           +sigmaf(i+m-1,js,k+l-1,3) + sigmaf(i+m-1,js,k+l  ,3)
      &           +sigmaf(i+m  ,js,k+l-1,3) + sigmaf(i+m  ,js,k+l  ,3))
-     &   +6.0D0 * (sigmaf(i+m-1,js,k+l  ,4) - sigmaf(i+m-1,js,k+l-1,4)
-     &           +sigmaf(i+m  ,js,k+l-1,4) - sigmaf(i+m  ,js,k+l  ,4))
-     &   + idir * 
-     &    6.0D0 * (-sigmaf(i+m-1,js,k+l  ,5) + sigmaf(i+m-1,js,k+l-1,5)
-     &            -sigmaf(i+m  ,js,k+l  ,5) + sigmaf(i+m  ,js,k+l-1,5))
 
           res(i,j,k) = res(i,j,k) - fac1 * (tmp - cen * fdst(i+m,j,k+l))
                   end do
@@ -360,16 +278,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 +sigmac(i-1,j  ,ks,3) * MZZC(i-1,j+1,k-idir)
      &                 +sigmac(i  ,j-1,ks,3) * MZZC(i+1,j-1,k-idir)
      &                 +sigmac(i  ,j  ,ks,3) * MZZC(i+1,j+1,k-idir)
-                  tmp = tmp + idir * (
-     &                 -sigmac(i-1,j-1,ks,4) * MXZC(i-1,j-1,k-idir)
-     &                 -sigmac(i-1,j  ,ks,4) * MXZC(i-1,j+1,k-idir)
-     &                 +sigmac(i  ,j-1,ks,4) * MXZC(i+1,j-1,k-idir)
-     &                 +sigmac(i  ,j  ,ks,4) * MXZC(i+1,j+1,k-idir) )
-                  tmp = tmp + idir * (
-     &                 -sigmac(i-1,j-1,ks,5) * MYZC(i-1,j-1,k-idir)
-     &                 +sigmac(i-1,j  ,ks,5) * MYZC(i-1,j+1,k-idir)
-     &                 -sigmac(i  ,j-1,ks,5) * MYZC(i+1,j-1,k-idir)
-     &                 +sigmac(i  ,j  ,ks,5) * MYZC(i+1,j+1,k-idir) )
 
                cen = 
      &            4.0D0 * ( sigmac(i-1,j-1,ks,1)
@@ -384,14 +292,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                    +sigmac(i-1,j  ,ks,3)
      &                    +sigmac(i  ,j-1,ks,3)
      &                    +sigmac(i  ,j  ,ks,3))
-     &   + idir * 6.0D0 * (-sigmac(i-1,j-1,ks,4)   
-     &                    -sigmac(i-1,j  ,ks,4)
-     &                    +sigmac(i  ,j-1,ks,4) 
-     &                    +sigmac(i  ,j  ,ks,4) )
-     &   + idir * 6.0D0 * (-sigmac(i-1,j-1,ks,5)  
-     &                    +sigmac(i-1,j,ks,5)
-     &                    -sigmac(i  ,j-1,ks,5)     
-     &                    +sigmac(i  ,j,ks,5))
 
                res(i*ir,j*jr,k*kr) =
      &          src(i*ir,j*jr,k*kr) - fac00 * (tmp - cen * cdst(i,j,k))
@@ -438,24 +338,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                * MZZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
      &           +sigmaf(i+m  ,j+n  ,ks,3) 
      &                * MZZF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
-            tmp = tmp + idir * (
-     &            sigmaf(i+m-1,j+n-1,ks,4) 
-     &                * MXZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     &           +sigmaf(i+m-1,j+n  ,ks,4) 
-     &                * MXZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     &           -sigmaf(i+m  ,j+n-1,ks,4) 
-     &                * MXZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     &           -sigmaf(i+m  ,j+n  ,ks,4) 
-     &                * MXZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
-            tmp = tmp + idir * (
-     &            sigmaf(i+m-1,j+n-1,ks,5) 
-     &                * MYZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     &           -sigmaf(i+m-1,j+n  ,ks,5) 
-     &                * MYZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     &           +sigmaf(i+m  ,j+n-1,ks,5) 
-     &                * MYZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     &           -sigmaf(i+m  ,j+n  ,ks,5) 
-     &                * MYZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
 
          cen =
      &      4.0D0 * (sigmaf(i+m-1,j+n-1,ks,1)
@@ -470,16 +352,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &             +sigmaf(i+m-1,j+n  ,ks,3)
      &             +sigmaf(i+m  ,j+n-1,ks,3)
      &             +sigmaf(i+m  ,j+n  ,ks,3))
-     &    + idir * 
-     &      6.0D0 * (sigmaf(i+m-1,j+n-1,ks,4)
-     &             +sigmaf(i+m-1,j+n  ,ks,4)
-     &             -sigmaf(i+m  ,j+n-1,ks,4)
-     &             -sigmaf(i+m  ,j+n  ,ks,4))
-     &    + idir * 
-     &      6.0D0 * (sigmaf(i+m-1,j+n-1,ks,5)
-     &             -sigmaf(i+m-1,j+n  ,ks,5)
-     &             +sigmaf(i+m  ,j+n-1,ks,5)
-     &             -sigmaf(i+m  ,j+n  ,ks,5))
 
           res(i,j,k) = res(i,j,k) - fac1 * (tmp - cen * fdst(i+m,j+n,k))
                   end do
@@ -491,7 +363,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres_terrain(
+      subroutine hgeres_full(
      & res,    resl0,resh0,resl1,resh1,resl2,resh2,
      & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
@@ -512,14 +384,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
-      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,3)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,3)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       double precision fac00, fac0, fac1, fac, tmp, cen
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
-      double precision MXXC, MYYC, MZZC, MXZC, MYZC
-      double precision MXXF, MYYF, MZZF, MXZF, MYZF
+      double precision MXXC, MYYC, MZZC
+      double precision MXXF, MYYF, MZZF
       MXXC(ii,jj,kk) = (4.0D0 *  cdst(ii,jc,kc) + 
      &                   2.0D0 * (cdst(ii,jj,kc) - cdst(ic,jj,kc) + 
      &                           cdst(ii,jc,kk) - cdst(ic,jc,kk)) +
@@ -535,11 +407,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                           cdst(ic,jj,kk) - cdst(ic,jj,kc)) +
      &                          (cdst(ii,jj,kk) - cdst(ii,jj,kc)))
 
-      MXZC(ii,jj,kk) = (6.0D0 *  cdst(ii,jc,kk) +
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(ic,jj,kc)))
-
-      MYZC(ii,jj,kk) = (6.0D0 *  cdst(ic,jj,kk) +
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(ii,jc,kc)))
 
       MXXF(i1,j1,k1,ii,jj,kk) = (4.0D0 *  fdst(ii,j1,k1)   + 
      &                        2.0D0 * (fdst(ii,jj,k1) - fdst(i1,jj,k1) +
@@ -556,11 +423,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                fdst(i1,jj,kk) - fdst(i1,jj,k1)) +
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
-      MXZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(ii,j1,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
-
-      MYZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(i1,jj,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
 
 
       ic = regl0
@@ -602,16 +464,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
      &                 +sigmaf(if+m  ,jf+ji-1,kf+ki-1,3) * 
      &                    MZZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir)
-                  tmp = tmp + kdir * (
-     &                  sigmaf(if+m-1,jf+ji-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir) )
-                  tmp = tmp + jdir * kdir * (
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir) )
 
                   cen =
      &               4.0D0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,1)
@@ -620,10 +472,6 @@ c each quadrant is two octants and their share of the two central edges
      &                       +sigmaf(if+m  ,jf+ji-1,kf+ki-1,2)
      &                       +sigmaf(if+m-1,jf+ji-1,kf+ki-1,3)
      &                       +sigmaf(if+m  ,jf+ji-1,kf+ki-1,3))
-     &             + 6.0D0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,4)
-     &                       -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4)) * kdir 
-     &             + 6.0D0 * (-sigmaf(if+m-1,jf+ji-1,kf+ki-1,5)
-     &                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir
 
                   tmp = tmp - cen * fdst(if+m,jf,kf)
 
@@ -649,16 +497,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZC(ic-1,jc+jdir,kc+kdir)
      &                 +sigmac(ic  ,jc+ji-1,kc+ki-1,3) * 
      &                    MZZC(ic+1,jc+jdir,kc+kdir)
-                  tmp = tmp + kdir * (
-     &                  sigmac(ic-1,jc+ji-1,kc+ki-1,4) * 
-     &                    MXZC(ic-1,jc+jdir,kc+kdir)
-     &                 -sigmac(ic  ,jc+ji-1,kc+ki-1,4) * 
-     &                    MXZC(ic+1,jc+jdir,kc+kdir) )
-                  tmp = tmp + jdir * kdir * ( 
-     &                 -sigmac(ic-1,jc+ji-1,kc+ki-1,5) * 
-     &                    MYZC(ic-1,jc+jdir,kc+kdir)
-     &                 -sigmac(ic  ,jc+ji-1,kc+ki-1,5) * 
-     &                    MYZC(ic+1,jc+jdir,kc+kdir) )
                    cen =
      &               4.0D0 * ( sigmac(ic-1,jc+ji-1,kc+ki-1,1)
      &                       +sigmac(ic  ,jc+ji-1,kc+ki-1,1)
@@ -666,10 +504,6 @@ c each quadrant is two octants and their share of the two central edges
      &                       +sigmac(ic  ,jc+ji-1,kc+ki-1,2)
      &                       +sigmac(ic-1,jc+ji-1,kc+ki-1,3)
      &                       +sigmac(ic  ,jc+ji-1,kc+ki-1,3))
-     &             + 6.0D0 * ( sigmac(ic-1,jc+ji-1,kc+ki-1,4)
-     &                       -sigmac(ic  ,jc+ji-1,kc+ki-1,4)) * kdir
-     &             + 6.0D0 * (-sigmac(ic-1,jc+ji-1,kc+ki-1,5)
-     &                    -sigmac(ic  ,jc+ji-1,kc+ki-1,5)) * jdir * kdir
 
                      tmp = tmp - cen * cdst(ic,jc,kc)
                      res(if,jf,kf) = res(if,jf,kf) + tmp
@@ -718,24 +552,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
      &                 +sigmaf(if+m  ,jf+n  ,kf+ki-1,3) * 
      &                    MZZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir)
-                  tmp = tmp + kdir * (
-     &                 +sigmaf(if+m-1,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &                 +sigmaf(if+m-1,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir) )
-                  tmp = tmp + kdir * ( 
-     &                 +sigmaf(if+m-1,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m-1,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &                 +sigmaf(if+m  ,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir) )
 
          cen =
      &      4.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,1)
@@ -750,14 +566,6 @@ c each face is two faces and two sides of an edge
      &             +sigmaf(if+m-1,jf+n  ,kf+ki-1,3)
      &             +sigmaf(if+m  ,jf+n-1,kf+ki-1,3)
      &             +sigmaf(if+m  ,jf+n  ,kf+ki-1,3))
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,4)
-     &             +sigmaf(if+m-1,jf+n  ,kf+ki-1,4)
-     &             -sigmaf(if+m  ,jf+n-1,kf+ki-1,4)
-     &             -sigmaf(if+m  ,jf+n  ,kf+ki-1,4)) * kdir
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,5)
-     &             -sigmaf(if+m-1,jf+n  ,kf+ki-1,5)
-     &             +sigmaf(if+m  ,jf+n-1,kf+ki-1,5)
-     &             -sigmaf(if+m  ,jf+n  ,kf+ki-1,5)) * kdir
 
                   tmp = tmp - cen * fdst(if+m,jf+n,kf)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
@@ -800,24 +608,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
      &                 +sigmaf(if+m  ,jf+ji-1,kf+l  ,3) * 
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1)
-                  tmp = tmp + ( 
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
-                  tmp = tmp + jdir * (
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
          cen =
      &      4.0D0 * (
      &             +sigmaf(if+m-1,jf+ji-1,kf+l-1,1)  
@@ -832,14 +622,6 @@ c each face is two faces and two sides of an edge
      &             +sigmaf(if+m-1,jf+ji-1,kf+l  ,3)
      &             +sigmaf(if+m  ,jf+ji-1,kf+l-1,3)  
      &             +sigmaf(if+m  ,jf+ji-1,kf+l  ,3))
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+ji-1,kf+l  ,4)  
-     &             -sigmaf(if+m-1,jf+ji-1,kf+l-1,4)
-     &             +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) 
-     &             -sigmaf(if+m  ,jf+ji-1,kf+l  ,4))
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+ji-1,kf+l-1,5)  
-     &             -sigmaf(if+m-1,jf+ji-1,kf+l  ,5)
-     &             +sigmaf(if+m  ,jf+ji-1,kf+l-1,5)  
-     &             -sigmaf(if+m  ,jf+ji-1,kf+l  ,5)) * jdir
 
                   tmp = tmp - cen * fdst(if+m,jf,kf+l)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
@@ -884,16 +666,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
      &                 +sigmaf(if+ii-1,jf+n  ,kf+ki-1,3) * 
      &                    MZZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir)
-                  tmp = tmp + idir * kdir * (
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir) )
-                  tmp = tmp + kdir * (
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir) )
                   cen =
      &                  4.0D0 * ( sigmaf(if+ii-1,jf+n-1,kf+ki-1,1)
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,1)
@@ -901,10 +673,6 @@ c each quadrant is two octants and their share of the two central edges
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,2)
      &                          +sigmaf(if+ii-1,jf+n-1,kf+ki-1,3)
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,3))
-     &                + 6.0D0 * (-sigmaf(if+ii-1,jf+n-1,kf+ki-1,4)
-     &                  -sigmaf(if+ii-1,jf+n  ,kf+ki-1,4)) * idir * kdir
-     &                + 6.0D0 * ( sigmaf(if+ii-1,jf+n-1,kf+ki-1,5) 
-     &                         -sigmaf(if+ii-1,jf+n  ,kf+ki-1,5)) * kdir
 
                   tmp = tmp - cen * fdst(if,jf+n,kf)
 
@@ -929,16 +697,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZC(ic+idir,jc-1,kc+kdir)
      &                 +sigmac(ic+ii-1,jc  ,kc+ki-1,3) * 
      &                    MZZC(ic+idir,jc+1,kc+kdir)
-                  tmp = tmp + idir * kdir * (
-     &                 -sigmac(ic+ii-1,jc-1,kc+ki-1,4) * 
-     &                    MXZC(ic+idir,jc-1,kc+kdir)
-     &                 -sigmac(ic+ii-1,jc  ,kc+ki-1,4) * 
-     &                    MXZC(ic+idir,jc+1,kc+kdir) )
-                  tmp = tmp + kdir * (
-     &                 +sigmac(ic+ii-1,jc-1,kc+ki-1,5) * 
-     &                    MYZC(ic+idir,jc-1,kc+kdir)
-     &                 -sigmac(ic+ii-1,jc  ,kc+ki-1,5) * 
-     &                    MYZC(ic+idir,jc+1,kc+kdir) )
                   cen =
      &               4.0D0 * (
      &                       +sigmac(ic+ii-1,jc-1,kc+ki-1,1)
@@ -947,10 +705,6 @@ c each quadrant is two octants and their share of the two central edges
      &                       +sigmac(ic+ii-1,jc  ,kc+ki-1,2)
      &                       +sigmac(ic+ii-1,jc-1,kc+ki-1,3)
      &                       +sigmac(ic+ii-1,jc  ,kc+ki-1,3))
-     &             + 6.0D0 * (-sigmac(ic+ii-1,jc-1,kc+ki-1,4)
-     &                    -sigmac(ic+ii-1,jc  ,kc+ki-1,4)) * idir * kdir
-     &             + 6.0D0 * ( sigmac(ic+ii-1,jc-1,kc+ki-1,5) 
-     &                       -sigmac(ic+ii-1,jc  ,kc+ki-1,5)) * kdir
 
                      tmp = tmp - cen * cdst(ic,jc,kc)
                      res(if,jf,kf) = res(if,jf,kf) + tmp
@@ -998,24 +752,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
      &                 +sigmaf(if+m  ,jf+n  ,kf+ki-1,3) * 
      &                    MZZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir)
-                  tmp = tmp + kdir * (
-     &                  sigmaf(if+m-1,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &                 +sigmaf(if+m-1,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir) )
-                  tmp = tmp + kdir * (
-     &                  sigmaf(if+m-1,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m-1,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &                 +sigmaf(if+m  ,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir) )
 
          cen =
      &      4.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,1)
@@ -1030,14 +766,6 @@ c each face is two faces and two sides of an edge
      &             +sigmaf(if+m-1,jf+n  ,kf+ki-1,3)
      &             +sigmaf(if+m  ,jf+n-1,kf+ki-1,3)
      &             +sigmaf(if+m  ,jf+n  ,kf+ki-1,3))
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,4)
-     &             +sigmaf(if+m-1,jf+n  ,kf+ki-1,4)
-     &             -sigmaf(if+m  ,jf+n-1,kf+ki-1,4)
-     &             -sigmaf(if+m  ,jf+n  ,kf+ki-1,4)) * kdir
-     &    + 6.0D0 * (sigmaf(if+m-1,jf+n-1,kf+ki-1,5)
-     &             -sigmaf(if+m-1,jf+n  ,kf+ki-1,5)
-     &             +sigmaf(if+m  ,jf+n-1,kf+ki-1,5)
-     &             -sigmaf(if+m  ,jf+n  ,kf+ki-1,5)) * kdir
 
                   tmp = tmp - cen * fdst(if+m,jf+n,kf)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
@@ -1079,24 +807,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
      &                 +sigmaf(if+ii-1,jf+n  ,kf+l  ,3) * 
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1)
-                  tmp = tmp + idir * (
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
-                  tmp = tmp + (
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
 
                   cen =
      &               4.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l-1,1) 
@@ -1111,14 +821,6 @@ c each face is two faces and two sides of an edge
      &                      +sigmaf(if+ii-1,jf+n-1,kf+l  ,3)
      &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,3) 
      &                      +sigmaf(if+ii-1,jf+n  ,kf+l  ,3))
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+n-1,kf+l  ,4)
-     &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+n  ,kf+l  ,4)) * idir
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l  ,5) 
-     &                      -sigmaf(if+ii-1,jf+n-1,kf+l-1,5)
-     &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) 
-     &                      -sigmaf(if+ii-1,jf+n  ,kf+l  ,5))
 
                   tmp = tmp - cen * fdst(if,jf+n,kf+l)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
@@ -1162,16 +864,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
      &                 +sigmaf(if+ii-1,jf+ji-1,kf+l  ,3) * 
      &                    MZZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1)
-                  tmp = tmp + idir * (
-     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1) )
-                  tmp = tmp + jdir * (
-     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1) )
                   cen =
      &               4.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,1) 
      &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,1)
@@ -1179,10 +871,6 @@ c each quadrant is two octants and their share of the two central edges
      &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,2)
      &                      +sigmaf(if+ii-1,jf+ji-1,kf+l-1,3) 
      &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,3))
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+ji-1,kf+l  ,4)) * idir
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,5) 
-     &                      -sigmaf(if+ii-1,jf+ji-1,kf+l  ,5)) * jdir
 
                   tmp = tmp - cen * fdst(if,jf,kf+l)
 
@@ -1207,16 +895,6 @@ c each quadrant is two octants and their share of the two central edges
      &                    MZZC(ic+idir,jc+jdir,kc-1)
      &                 +sigmac(ic+ii-1,jc+ji-1,kc  ,3) * 
      &                    MZZC(ic+idir,jc+jdir,kc+1)
-                  tmp = tmp + idir * (
-     &                 +sigmac(ic+ii-1,jc+ji-1,kc-1,4) * 
-     &                    MXZC(ic+idir,jc+jdir,kc-1)
-     &                 -sigmac(ic+ii-1,jc+ji-1,kc  ,4) * 
-     &                    MXZC(ic+idir,jc+jdir,kc+1) )
-                  tmp = tmp + jdir * (
-     &                 +sigmac(ic+ii-1,jc+ji-1,kc-1,5) * 
-     &                    MYZC(ic+idir,jc+jdir,kc-1)
-     &                 -sigmac(ic+ii-1,jc+ji-1,kc  ,5) * 
-     &                    MYZC(ic+idir,jc+jdir,kc+1) )
                   cen =
      &               4.0D0 * (sigmac(ic+ii-1,jc+ji-1,kc-1,1)
      &                      +sigmac(ic+ii-1,jc+ji-1,kc  ,1)
@@ -1224,10 +902,6 @@ c each quadrant is two octants and their share of the two central edges
      &                      +sigmac(ic+ii-1,jc+ji-1,kc  ,2)
      &                      +sigmac(ic+ii-1,jc+ji-1,kc-1,3)
      &                      +sigmac(ic+ii-1,jc+ji-1,kc  ,3) )
-     &             + 6.0D0 * (sigmac(ic+ii-1,jc+ji-1,kc-1,4) 
-     &                      -sigmac(ic+ii-1,jc+ji-1,kc  ,4) ) * idir
-     &             + 6.0D0 * (sigmac(ic+ii-1,jc+ji-1,kc-1,5)
-     &                      -sigmac(ic+ii-1,jc+ji-1,kc  ,5) ) * jdir
 
                      tmp = tmp - cen * cdst(ic,jc,kc)
                      res(if,jf,kf) = res(if,jf,kf) + tmp
@@ -1275,24 +949,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
      &                 +sigmaf(if+m  ,jf+ji-1,kf+l  ,3) * 
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1)
-                  tmp = tmp + (
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
-                  tmp = tmp + jdir * (
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
                   cen =
      &               4.0D0 * (sigmaf(if+m-1,jf+ji-1,kf+l-1,1)  
      &                      +sigmaf(if+m-1,jf+ji-1,kf+l  ,1)
@@ -1306,14 +962,6 @@ c each face is two faces and two sides of an edge
      &                      +sigmaf(if+m-1,jf+ji-1,kf+l  ,3)
      &                      +sigmaf(if+m  ,jf+ji-1,kf+l-1,3)  
      &                      +sigmaf(if+m  ,jf+ji-1,kf+l  ,3))
-     &             + 6.0D0 * (sigmaf(if+m-1,jf+ji-1,kf+l  ,4)  
-     &                      -sigmaf(if+m-1,jf+ji-1,kf+l-1,4)
-     &                      +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) 
-     &                      -sigmaf(if+m  ,jf+ji-1,kf+l  ,4))
-     &             + 6.0D0 * (sigmaf(if+m-1,jf+ji-1,kf+l-1,5)  
-     &                      -sigmaf(if+m-1,jf+ji-1,kf+l  ,5)
-     &                      +sigmaf(if+m  ,jf+ji-1,kf+l-1,5)  
-     &                      -sigmaf(if+m  ,jf+ji-1,kf+l  ,5)) * jdir
                   tmp = tmp - cen * fdst(if+m,jf,kf+l)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
                         end do
@@ -1353,24 +1001,6 @@ c each face is two faces and two sides of an edge
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
      &                 +sigmaf(if+ii-1,jf+n  ,kf+l  ,3) * 
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1)
-                  tmp = tmp + idir * (
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
-                  tmp = tmp + (
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
 
                   cen =
      &               4.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l-1,1) 
@@ -1385,14 +1015,6 @@ c each face is two faces and two sides of an edge
      &                      +sigmaf(if+ii-1,jf+n-1,kf+l  ,3)
      &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,3) 
      &                      +sigmaf(if+ii-1,jf+n  ,kf+l  ,3))
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+n-1,kf+l  ,4)
-     &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+n  ,kf+l  ,4)) * idir
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+n-1,kf+l  ,5) 
-     &                      -sigmaf(if+ii-1,jf+n-1,kf+l-1,5)
-     &                      +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) 
-     &                      -sigmaf(if+ii-1,jf+n  ,kf+l  ,5))
                   tmp = tmp - cen * fdst(if,jf+n,kf+l)
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
                         end do
@@ -1409,7 +1031,7 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres_terrain(
+      subroutine hgcres_full(
      & res,    resl0,resh0,resl1,resh1,resl2,resh2,
      & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
@@ -1430,14 +1052,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
-      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,3)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,3)
       integer ir, jr, kr, ga(0:1,0:1,0:1), idd
       double precision cen, sum, fac00, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
-      double precision MXXC, MYYC, MZZC, MXZC, MYZC
-      double precision MXXF, MYYF, MZZF, MXZF, MYZF
+      double precision MXXC, MYYC, MZZC
+      double precision MXXF, MYYF, MZZF
       MXXC(ii,jj,kk) = (4.0D0 *  cdst(ii,jc,kc) + 
      &                   2.0D0 * (cdst(ii,jj,kc) - cdst(ic,jj,kc) + 
      &                           cdst(ii,jc,kk) - cdst(ic,jc,kk)) +
@@ -1453,11 +1075,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                           cdst(ic,jj,kk) - cdst(ic,jj,kc)) +
      &                          (cdst(ii,jj,kk) - cdst(ii,jj,kc)))
 
-      MXZC(ii,jj,kk) = (6.0D0 *  cdst(ii,jc,kk) +
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(ic,jj,kc)))
-
-      MYZC(ii,jj,kk) = (6.0D0 *  cdst(ic,jj,kk) +
-     &                   3.0D0 * (cdst(ii,jj,kk) - cdst(ii,jc,kc)))
 
       MXXF(i1,j1,k1,ii,jj,kk) = (4.0D0 *  fdst(ii,j1,k1)   + 
      &                        2.0D0 * (fdst(ii,jj,k1) - fdst(i1,jj,k1) +
@@ -1474,11 +1091,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                                fdst(i1,jj,kk) - fdst(i1,jj,k1)) +
      &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
-      MXZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(ii,j1,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
 
-      MYZF(i1,j1,k1,ii,jj,kk) = (6.0D0 *  fdst(i1,jj,kk)  +
-     &                        3.0D0 * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
       ic = regl0
       jc = regl1
       kc = regl2
@@ -1505,17 +1118,11 @@ c octants
      &                MYYF(if,jf,kf,if+idir,jf+jdir,kf+kdir)
      &             +sigmaf(if+ii-1,jf+ji-1,kf+ki-1,3) * 
      &                MZZF(if,jf,kf,if+idir,jf+jdir,kf+kdir)
-     &             -sigmaf(if+ii-1,jf+ji-1,kf+ki-1,4) * 
-     &              MXZF(if,jf,kf,if+idir,jf+jdir,kf+kdir) * idir * kdir
-     &             -sigmaf(if+ii-1,jf+ji-1,kf+ki-1,5) * 
-     &              MYZF(if,jf,kf,if+idir,jf+jdir,kf+kdir) * jdir * kdir
 
          cen =
      &      4.0D0 * ( sigmaf(if+ii-1,jf+ji-1,kf+ki-1,1)
      &              +sigmaf(if+ii-1,jf+ji-1,kf+ki-1,2)
      &              +sigmaf(if+ii-1,jf+ji-1,kf+ki-1,3))
-     &    + 6.0D0 * (-sigmaf(if+ii-1,jf+ji-1,kf+ki-1,4)) * idir * kdir
-     &    + 6.0D0 * (-sigmaf(if+ii-1,jf+ji-1,kf+ki-1,5)) * jdir * kdir
 
                    sum = sum - cen * fdst(if,jf,kf)
 
@@ -1528,17 +1135,11 @@ c octants
      &                MYYC(ic+idir,jc+jdir,kc+kdir)
      &             +sigmac(ic+ii-1,jc+ji-1,kc+ki-1,3) * 
      &                MZZC(ic+idir,jc+jdir,kc+kdir)
-     &             -sigmac(ic+ii-1,jc+ji-1,kc+ki-1,4) * 
-     &                MXZC(ic+idir,jc+jdir,kc+kdir) * idir * kdir
-     &             -sigmac(ic+ii-1,jc+ji-1,kc+ki-1,5) * 
-     &                MYZC(ic+idir,jc+jdir,kc+kdir) * jdir * kdir
 
          cen =
      &      4.0D0 * ( sigmac(ic+ii-1,jc+ji-1,kc+ki-1,1)
      &              +sigmac(ic+ii-1,jc+ji-1,kc+ki-1,2)
      &              +sigmac(ic+ii-1,jc+ji-1,kc+ki-1,3))
-     &    + 6.0D0 * (-sigmac(ic+ii-1,jc+ji-1,kc+ki-1,4)) * idir * kdir
-     &    + 6.0D0 * (-sigmac(ic+ii-1,jc+ji-1,kc+ki-1,5)) * jdir * kdir
 
                    sum = sum - cen * cdst(ic,jc,kc)
 
@@ -1587,24 +1188,6 @@ c faces
      &        MZZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
      &     +sigmaf(if+m  ,jf+n  ,kf+ki-1,3) * 
      &        MZZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir))
-         sum = sum + fac * kdir * (
-     &     +sigmaf(if+m-1,jf+n-1,kf+ki-1,4) * 
-     &        MXZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &     +sigmaf(if+m-1,jf+n  ,kf+ki-1,4) * 
-     &        MXZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &     -sigmaf(if+m  ,jf+n-1,kf+ki-1,4) * 
-     &        MXZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &     -sigmaf(if+m  ,jf+n  ,kf+ki-1,4) * 
-     &        MXZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir))
-         sum = sum + fac * kdir * (
-     &     +sigmaf(if+m-1,jf+n-1,kf+ki-1,5) * 
-     &        MYZF(if+m,jf+n,kf,if+m-1,jf+n-1,kf+kdir)
-     &     -sigmaf(if+m-1,jf+n  ,kf+ki-1,5) * 
-     &        MYZF(if+m,jf+n,kf,if+m-1,jf+n+1,kf+kdir)
-     &     +sigmaf(if+m  ,jf+n-1,kf+ki-1,5) * 
-     &        MYZF(if+m,jf+n,kf,if+m+1,jf+n-1,kf+kdir)
-     &     -sigmaf(if+m  ,jf+n  ,kf+ki-1,5) * 
-     &        MYZF(if+m,jf+n,kf,if+m+1,jf+n+1,kf+kdir))
 
          cen =
      &      4.0D0 * ( sigmaf(if+m-1,jf+n-1,kf+ki-1,1)
@@ -1619,14 +1202,6 @@ c faces
      &              +sigmaf(if+m-1,jf+n  ,kf+ki-1,3)
      &              +sigmaf(if+m  ,jf+n-1,kf+ki-1,3)
      &              +sigmaf(if+m  ,jf+n  ,kf+ki-1,3))
-     &    + 6.0D0 * ( sigmaf(if+m-1,jf+n-1,kf+ki-1,4)
-     &              +sigmaf(if+m-1,jf+n  ,kf+ki-1,4)
-     &              -sigmaf(if+m  ,jf+n-1,kf+ki-1,4)
-     &              -sigmaf(if+m  ,jf+n  ,kf+ki-1,4)) * kdir
-     &    + 6.0D0 * ( sigmaf(if+m-1,jf+n-1,kf+ki-1,5)
-     &              -sigmaf(if+m-1,jf+n  ,kf+ki-1,5)
-     &              +sigmaf(if+m  ,jf+n-1,kf+ki-1,5)
-     &              -sigmaf(if+m  ,jf+n  ,kf+ki-1,5)) * kdir
 
           sum = sum - fac * cen * fdst(if+m,jf+n,kf)
                      end do
@@ -1667,24 +1242,6 @@ c faces
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
      &                 +sigmaf(if+m  ,jf+ji-1,kf+l  ,3) * 
      &                    MZZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
-         sum = sum + fac * (
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
-         sum = sum + fac * jdir * (
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m-1,jf+jdir,kf+l+1)
-     &                 +sigmaf(if+m  ,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if+m,jf,kf+l,if+m+1,jf+jdir,kf+l+1) )
 
          cen =
      &      4.0D0 * (
@@ -1700,16 +1257,6 @@ c faces
      &            + sigmaf(if+m-1,jf+ji-1,kf+l,3)
      &        +sigmaf(if+m  ,jf+ji-1,kf+l-1,3) 
      &            + sigmaf(if+m  ,jf+ji-1,kf+l,3))
-     &     +6.0D0 * (
-     &         sigmaf(if+m-1,jf+ji-1,kf+l  ,4) 
-     &            - sigmaf(if+m-1,jf+ji-1,kf+l-1,4)
-     &        +sigmaf(if+m  ,jf+ji-1,kf+l-1,4) 
-     &            - sigmaf(if+m  ,jf+ji-1,kf+l,4))
-     &     +6.0D0 * jdir * (
-     &         sigmaf(if+m-1,jf+ji-1,kf+l-1,5) 
-     &            - sigmaf(if+m-1,jf+ji-1,kf+l,5)
-     &        +sigmaf(if+m  ,jf+ji-1,kf+l-1,5) 
-     &            - sigmaf(if+m  ,jf+ji-1,kf+l,5))
 
           sum = sum - fac * cen * fdst(if+m,jf,kf+l)
                      end do
@@ -1749,24 +1296,6 @@ c faces
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
      &                 +sigmaf(if+ii-1,jf+n  ,kf+l  ,3) * 
      &                    MZZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
-         sum = sum + fac * idir * (
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,4) * 
-     &                    MXZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
-         sum = sum + fac * (
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l-1)
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n-1,kf+l+1)
-     &                 +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+l  ,5) * 
-     &                    MYZF(if,jf+n,kf+l,if+idir,jf+n+1,kf+l+1) )
 
          cen =
      &      4.0D0 * (
@@ -1782,16 +1311,6 @@ c faces
      &        + sigmaf(if+ii-1,jf+n-1,kf+l  ,3)
      &       +sigmaf(if+ii-1,jf+n  ,kf+l-1,3) 
      &        + sigmaf(if+ii-1,jf+n  ,kf+l  ,3))
-     &    + 6.0D0 * idir * (
-     &        sigmaf(if+ii-1,jf+n-1,kf+l-1,4) 
-     &        - sigmaf(if+ii-1,jf+n-1,kf+l  ,4)
-     &       +sigmaf(if+ii-1,jf+n  ,kf+l-1,4) 
-     &        - sigmaf(if+ii-1,jf+n  ,kf+l  ,4))
-     &    + 6.0D0 * (
-     &        sigmaf(if+ii-1,jf+n-1,kf+l  ,5) 
-     &        - sigmaf(if+ii-1,jf+n-1,kf+l-1,5)
-     &       +sigmaf(if+ii-1,jf+n  ,kf+l-1,5) 
-     &        - sigmaf(if+ii-1,jf+n  ,kf+l  ,5))
 
           sum = sum - fac * cen * fdst(if,jf+n,kf+l)
                      end do
@@ -1812,7 +1331,7 @@ c edges
      &             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
      &             .eq. 1) then
                   fac1 = 1.0D0 / ir
-                  do m = idir, idir*(ir-1), idir
+                  do  m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
 
                   sum = sum + fac * (
@@ -1830,16 +1349,6 @@ c edges
      &                    MZZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
      &                 +sigmaf(if+m  ,jf+ji-1,kf+ki-1,3) * 
      &                    MZZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir) )
-                  sum = sum + fac * kdir * (
-     &                 +sigmaf(if+m-1,jf+ji-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4) * 
-     &                    MXZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir) )
-                  sum = sum  + fac * jdir * kdir * (
-     &                 -sigmaf(if+m-1,jf+ji-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf,kf,if+m-1,jf+jdir,kf+kdir)
-     &                 -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5) * 
-     &                    MYZF(if+m,jf,kf,if+m+1,jf+jdir,kf+kdir) )
 
                   cen =
      &               4.0D0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,1)
@@ -1848,13 +1357,9 @@ c edges
      &                       +sigmaf(if+m  ,jf+ji-1,kf+ki-1,2)
      &                       +sigmaf(if+m-1,jf+ji-1,kf+ki-1,3)
      &                       +sigmaf(if+m  ,jf+ji-1,kf+ki-1,3))
-     &             + 6.0D0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,4)
-     &                       -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4)) * kdir 
-     &             + 6.0D0 * (-sigmaf(if+m-1,jf+ji-1,kf+ki-1,5)
-     &                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir
 
                   sum = sum - fac * cen * fdst(if+m,jf,kf)
-                  end do
+               end do
                end if
 
                if (ga(ii,ji,ki) -
@@ -1879,16 +1384,6 @@ c edges
      &                    MZZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
      &                 +sigmaf(if+ii-1,jf+n  ,kf+ki-1,3) * 
      &                    MZZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir) )
-                  sum = sum + fac * idir * kdir * (
-     &                 -sigmaf(if+ii-1,jf+n-1,kf+ki-1,4) * 
-     &                    MXZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+ki-1,4) * 
-     &                    MXZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir) )
-                  sum = sum  + fac * kdir * (
-     &                 +sigmaf(if+ii-1,jf+n-1,kf+ki-1,5) * 
-     &                    MYZF(if,jf+n,kf,if+idir,jf+n-1,kf+kdir)
-     &                 -sigmaf(if+ii-1,jf+n  ,kf+ki-1,5) * 
-     &                    MYZF(if,jf+n,kf,if+idir,jf+n+1,kf+kdir) )
                   cen =
      &                  4.0D0 * ( sigmaf(if+ii-1,jf+n-1,kf+ki-1,1)
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,1)
@@ -1896,13 +1391,9 @@ c edges
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,2)
      &                          +sigmaf(if+ii-1,jf+n-1,kf+ki-1,3)
      &                          +sigmaf(if+ii-1,jf+n  ,kf+ki-1,3))
-     &                + 6.0D0 * (-sigmaf(if+ii-1,jf+n-1,kf+ki-1,4)
-     &                  -sigmaf(if+ii-1,jf+n  ,kf+ki-1,4)) * idir * kdir
-     &                + 6.0D0 * ( sigmaf(if+ii-1,jf+n-1,kf+ki-1,5) 
-     &                         -sigmaf(if+ii-1,jf+n  ,kf+ki-1,5)) * kdir
                   sum = sum - fac * cen * fdst(if,jf+n,kf)
 
-               end do
+                  end do
 
                end if
 
@@ -1928,30 +1419,16 @@ c edges
      &                    MZZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
      &                 +sigmaf(if+ii-1,jf+ji-1,kf+l  ,3) * 
      &                    MZZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1) )
-                  sum = sum + fac * idir * (
-     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,4) * 
-     &                    MXZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+ji-1,kf+l  ,4) * 
-     &                    MXZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1) )
-                  sum = sum + fac * jdir * (
-     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,5) * 
-     &                    MYZF(if,jf,kf+l,if+idir,jf+jdir,kf+l-1)
-     &                 -sigmaf(if+ii-1,jf+ji-1,kf+l  ,5) * 
-     &                    MYZF(if,jf,kf+l,if+idir,jf+jdir,kf+l+1) )
                   cen =
-     &               4.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,1) 
-     &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,1)
-     &                      +sigmaf(if+ii-1,jf+ji-1,kf+l-1,2) 
-     &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,2)
-     &                      +sigmaf(if+ii-1,jf+ji-1,kf+l-1,3) 
-     &                      +sigmaf(if+ii-1,jf+ji-1,kf+l  ,3))
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,4) 
-     &                      -sigmaf(if+ii-1,jf+ji-1,kf+l  ,4)) * idir
-     &             + 6.0D0 * (sigmaf(if+ii-1,jf+ji-1,kf+l-1,5) 
-     &                      -sigmaf(if+ii-1,jf+ji-1,kf+l  ,5)) * jdir
+     &               4.0D0 * (
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,1) 
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l  ,1)
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,2) 
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l  ,2)
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l-1,3) 
+     &                 +sigmaf(if+ii-1,jf+ji-1,kf+l  ,3))
 
                   sum = sum - fac * cen * fdst(if,jf,kf+l)
-
                   end do
                end if
             end do
@@ -1962,7 +1439,7 @@ c weighting
       end
 c twenty-seven-point terrain stencils
 c-----------------------------------------------------------------------
-      subroutine hgcen_terrain(
+      subroutine hgcen_full(
      & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sig, sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      &      regl0,regh0,regl1,regh1,regl2,regh2)
@@ -1970,38 +1447,31 @@ c-----------------------------------------------------------------------
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      double precision sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 5)
+      double precision sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 3)
       integer i, j, k
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
                cen(i,j,k) = 36 /
-     &           (4.0D0 * (sig(i-1,j-1,k-1,1) + sig(i-1,j-1,k,1) +
-     &                    sig(i-1,j,k-1,1)   + sig(i-1,j,k,1) +
-     &                    sig(i,j-1,k-1,1)   + sig(i,j-1,k,1) +
-     &                    sig(i,j,k-1,1)     + sig(i,j,k,1) +
-     &                    sig(i-1,j-1,k-1,2) + sig(i-1,j-1,k,2) +
-     &                    sig(i-1,j,k-1,2)   + sig(i-1,j,k,2) +
-     &                    sig(i,j-1,k-1,2)   + sig(i,j-1,k,2) +
-     &                    sig(i,j,k-1,2)     + sig(i,j,k,2) +
-     &                    sig(i-1,j-1,k-1,3) + sig(i-1,j-1,k,3) +
-     &                    sig(i-1,j,k-1,3)   + sig(i-1,j,k,3) +
-     &                    sig(i,j-1,k-1,3)   + sig(i,j-1,k,3) +
-     &                    sig(i,j,k-1,3)     + sig(i,j,k,3)) +
-     &            6.0D0 * (sig(i-1,j-1,k,4)   - sig(i-1,j-1,k-1,4) +
-     &                    sig(i-1,j,k,4)     - sig(i-1,j,k-1,4) +
-     &                    sig(i,j-1,k-1,4)   - sig(i,j-1,k,4) +
-     &                    sig(i,j,k-1,4)     - sig(i,j,k,4) +
-     &                    sig(i-1,j-1,k,5)   - sig(i-1,j-1,k-1,5) +
-     &                    sig(i-1,j,k-1,5)   - sig(i-1,j,k,5) +
-     &                    sig(i,j-1,k,5)     - sig(i,j-1,k-1,5) +
-     &                    sig(i,j,k-1,5)     - sig(i,j,k,5)))
+     &              (4.0D0 * (
+     &              sig(i-1,j-1,k-1,1) + sig(i-1,j-1,k,1) +
+     &              sig(i-1,j  ,k-1,1) + sig(i-1,j  ,k,1) +
+     &              sig(i  ,j-1,k-1,1) + sig(i  ,j-1,k,1) +
+     &              sig(i  ,j  ,k-1,1) + sig(i  ,j  ,k,1) +
+     &              sig(i-1,j-1,k-1,2) + sig(i-1,j-1,k,2) +
+     &              sig(i-1,j  ,k-1,2) + sig(i-1,j  ,k,2) +
+     &              sig(i  ,j-1,k-1,2) + sig(i  ,j-1,k,2) +
+     &              sig(i  ,j  ,k-1,2) + sig(i  ,j  ,k,2) +
+     &              sig(i-1,j-1,k-1,3) + sig(i-1,j-1,k,3) +
+     &              sig(i-1,j  ,k-1,3) + sig(i-1,j  ,k,3) +
+     &              sig(i  ,j-1,k-1,3) + sig(i  ,j-1,k,3) +
+     &              sig(i  ,j  ,k-1,3) + sig(i  ,j  ,k,3)))
             end do
          end do
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx_terrain(
+      subroutine hgrlx_full(
      & cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
@@ -2014,11 +1484,11 @@ c-----------------------------------------------------------------------
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
-      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 3)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision fac, tmp
       integer i, j, k
-      double precision MXX, MYY, MZZ, MXZ, MYZ
+      double precision MXX, MYY, MZZ
       MXX(ii,jj,kk) = (4.0D0 *  cor(ii,j,k)   + 
      &                  2.0D0 * (cor(ii,jj,k)  - cor(i,jj,k) + 
      &                          cor(ii,j,kk)  - cor(i,j,kk)) + 
@@ -2034,11 +1504,7 @@ c-----------------------------------------------------------------------
      &                          cor(i,jj,kk)  - cor(i,jj,k)) + 
      &                         (cor(ii,jj,kk) - cor(ii,jj,k)))
 
-      MXZ(ii,jj,kk) = (6.0D0 *  cor(ii,j,kk)  + 
-     &                  3.0D0 * (cor(ii,jj,kk) - cor(i,jj,k)))
 
-      MYZ(ii,jj,kk) = (6.0D0 *  cor(i,jj,kk)  + 
-     &                  3.0D0 * (cor(ii,jj,kk) - cor(ii,j,k)))
       fac = 1.0D0 / 36
          do k = regl2, regh2
             do j = regl1, regh1
@@ -2073,24 +1539,6 @@ cdir$ ivdep
      &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
      &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
      &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
                   cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
                end do
             end do
@@ -2098,7 +1546,7 @@ cdir$ ivdep
       end
 c cor substituted for dest to use same macro:
 c-----------------------------------------------------------------------
-      subroutine hgres_terrain(
+      subroutine hgres_full(
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & cor, destl0,desth0,destl1,desth1,destl2,desth2,
@@ -2116,11 +1564,11 @@ c-----------------------------------------------------------------------
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision cor(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 3)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision fac, tmp
       integer i, j, k
-      double precision MXX, MYY, MZZ, MXZ, MYZ
+      double precision MXX, MYY, MZZ
       MXX(ii,jj,kk) = (4.0D0 *  cor(ii,j,k)   + 
      &                  2.0D0 * (cor(ii,jj,k)  - cor(i,jj,k) + 
      &                          cor(ii,j,kk)  - cor(i,j,kk)) + 
@@ -2136,74 +1584,53 @@ c-----------------------------------------------------------------------
      &                          cor(i,jj,kk)  - cor(i,jj,k)) + 
      &                         (cor(ii,jj,kk) - cor(ii,jj,k)))
 
-      MXZ(ii,jj,kk) = (6.0D0 *  cor(ii,j,kk)  + 
-     &                  3.0D0 * (cor(ii,jj,kk) - cor(i,jj,k)))
 
-      MYZ(ii,jj,kk) = (6.0D0 *  cor(i,jj,kk)  + 
-     &                  3.0D0 * (cor(ii,jj,kk) - cor(ii,j,k)))
       fac = 1.0D0 / 36
-         do k = regl2, regh2
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
-                  if (cen(i,j,k) .ne. 0.0D0) then
-                     res(i,j,k) = src(i,j,k)
-     &                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
-                  else
-                     res(i,j,k) = 0.0D0
-                  end if
-               end do
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               tmp = 
+     &              sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     &              sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     &              sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     &              sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+               tmp = tmp +
+     &              sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     &              sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     &              sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     &              sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+               tmp = tmp +
+     &              sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     &              sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     &              sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     &              sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+               tmp = tmp +
+     &              sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     &              sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     &              sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     &              sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+               tmp = tmp +
+     &              sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     &              sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     &              sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     &              sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+               tmp = tmp +
+     &              sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     &              sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     &              sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     &              sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+               if (cen(i,j,k) .ne. 0.0D0) then
+                  res(i,j,k) = src(i,j,k)
+     &                 - fac * tmp + cor(i,j,k) / cen(i,j,k)
+               else
+                  res(i,j,k) = 0.0D0
+               end if
             end do
          end do
+      end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnf_terrain(
+      subroutine hgrlnf_full(
      & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
      & res,   resl0,resh0,resl1,resh1,resl2,resh2,
      & wrk,   wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
@@ -2225,5 +1652,5 @@ c-----------------------------------------------------------------------
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
-      stop 'hgrlnf_terrain: no code'
+      stop 'hgrlnf_full: no code'
       end

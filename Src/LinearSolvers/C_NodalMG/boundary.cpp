@@ -29,19 +29,25 @@
 
 extern "C" 
 {
-    void FORT_FBREF  (Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-    void FORT_FBREFM (Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-    void FORT_FBNEG  (Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-    void FORT_FBNEGM (Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-    void FORT_FBINFLO(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-    void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
+    void FORT_FBREF  (Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
+    void FORT_FBREFM (Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
+    void FORT_FBNEG  (Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
+    void FORT_FBNEGM (Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
+    void FORT_FBINFLO(Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
+    void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS,
+		      const int*, const int&);
 }
 
-amr_boundary_class::~amr_boundary_class () {}
+amr_boundary::~amr_boundary () {}
 
 int
-amr_boundary_class::dir (const Box& region,
-                         const Box& domain) const
+amr_boundary::dir (const Box& region,
+		   const Box& domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
@@ -57,15 +63,15 @@ amr_boundary_class::dir (const Box& region,
 	if (region.smallEnd(i) == domain.bigEnd(i))
 	    return +(i+1);
     }
-    BL_ASSERT("amr_boundary_class::dir---boundary box not outside domain." == 0);
+    BL_ASSERT("amr_boundary::dir---boundary box not outside domain." == 0);
     return 0;
 }
 
 void
-amr_boundary_class::boundary_mesh (BoxArray&       exterior_mesh,
-                                   int*&           grid_ref,
-                                   const BoxArray& interior_mesh,
-                                   const Box&      domain) const
+amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
+			     int*&           grid_ref,
+			     const BoxArray& interior_mesh,
+			     const Box&      domain) const
 {
     BoxList bl;
     List<int> il;
@@ -89,9 +95,9 @@ amr_boundary_class::boundary_mesh (BoxArray&       exterior_mesh,
 }
 
 Box
-mixed_boundary_class::box (const Box& region,
-                           const Box& domain,
-                           int        idir) const
+mixed_boundary::box (const Box& region,
+		     const Box& domain,
+		     int        idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
@@ -106,16 +112,28 @@ mixed_boundary_class::box (const Box& region,
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.smallEnd(idim) - 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	    else
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.smallEnd(idim)
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	}
 	else if (idir > 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.bigEnd(idim) + 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	    else
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.bigEnd(idim) + 2
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	}
     }
     else if (t == inflow) 
@@ -132,12 +150,18 @@ mixed_boundary_class::box (const Box& region,
 	{
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.smallEnd(idim) - 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 		retbox.setSmall(idim, domain.smallEnd(idim) - 1);
 	    }
 	    else 
 	    {
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.smallEnd(idim)
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 		retbox.setSmall(idim, domain.smallEnd(idim));
 	    }
 	}
@@ -146,12 +170,18 @@ mixed_boundary_class::box (const Box& region,
 	    BL_ASSERT(idir != 0);
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.bigEnd(idim) + 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	    else 
 	    {
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(
+		    idim,
+		    (2 * domain.bigEnd(idim) + 2
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	}
@@ -170,15 +200,15 @@ mixed_boundary_class::box (const Box& region,
     }
     else 
     {
-	BoxLib::Error( "mixed_boundary_class::box---boundary type not supported");
+	BoxLib::Error( "mixed_boundary::box---boundary type not supported");
     }
     return retbox;
 }
 
 Box
-mixed_boundary_class::image (const Box& region,
-                             const Box& srcbox,
-                             const Box& domain) const
+mixed_boundary::image (const Box& region,
+		       const Box& srcbox,
+		       const Box& domain) const
 {
     Box tdomain = domain;
     tdomain.convert(srcbox.type());
@@ -199,7 +229,10 @@ mixed_boundary_class::image (const Box& region,
 	    }
 	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
-		image.shift(idim, tdomain.smallEnd(idim) + idomain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		image.shift(
+		    idim,
+		    (tdomain.smallEnd(idim) + idomain.smallEnd(idim) - 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	    }
 	    else if (t == periodic) 
 	    {
@@ -214,7 +247,10 @@ mixed_boundary_class::image (const Box& region,
 	    // There is no correspondence with above???
 	    if (t == refWall || t == inflow || t == outflow) 
 	    {
-		image.shift(idim, tdomain.bigEnd(idim) + idomain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		image.shift(
+		    idim,
+		    (tdomain.bigEnd(idim) + idomain.bigEnd(idim) + 1
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
 	    }
 	    else if (t == periodic) 
 	    {
@@ -235,10 +271,10 @@ mixed_boundary_class::image (const Box& region,
 //
 
 void
-mixed_boundary_class::fill (FArrayBox&       patch,
-                            const Box&       region,
-                            const FArrayBox& src,
-                            const Box&       domain) const
+mixed_boundary::fill (FArrayBox&       patch,
+		      const Box&       region,
+		      const FArrayBox& src,
+		      const Box&       domain) const
 {
     Box tdomain = domain;
     tdomain.convert(type(src));
@@ -249,8 +285,10 @@ mixed_boundary_class::fill (FArrayBox&       patch,
     bool negflag = true;
     bool negarray[BL_SPACEDIM-1];
 
-    for (int i = 0; i < BL_SPACEDIM - 1; i++) 
+    for (int i = 0; i < BL_SPACEDIM - 1; i++)
+    {
 	negarray[i] = true;
+    }
     
     for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
@@ -267,11 +305,15 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 		refarray[idim] = 1;
 
 		if (flowdim == -3 || t == refWall && idim == flowdim)
+		{
 		    negflag = !negflag;
+		}
 		if (flowdim == -4) 
 		{
-		    if (idim < BL_SPACEDIM - 1) 
+		    if (idim < BL_SPACEDIM - 1)
+		    {
 			negarray[idim] = !negarray[idim];
+		    }
 		    else 
 		    {
 			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
@@ -293,15 +335,21 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 		refarray[idim] = 1;
 
 		if (flowdim == -3 || t == refWall && idim == flowdim)
+		{
 		    negflag = !negflag;
+		}
 		if (flowdim == -4) 
 		{
-		    if (idim < BL_SPACEDIM - 1) 
+		    if (idim < BL_SPACEDIM - 1)
+		    {
 			negarray[idim] = !negarray[idim];
+		    }
 		    else 
 		    {
-			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
+			for (int i = 0; i < BL_SPACEDIM - 1; i++)
+			{
 			    negarray[i] = !negarray[i];
+			}
 		    }
 		}
 	    }
@@ -404,12 +452,12 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 }
 
 void
-mixed_boundary_class::fill (FArrayBox&       patch,
-                            const Box&       region,
-                            const FArrayBox& bgr,
-                            const Box&       bb,
-                            const Box&       domain,
-                            int              idir) const
+mixed_boundary::fill (FArrayBox&       patch,
+		      const Box&       region,
+		      const FArrayBox& bgr,
+		      const Box&       bb,
+		      const Box&       domain,
+		      int              idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
@@ -419,17 +467,23 @@ mixed_boundary_class::fill (FArrayBox&       patch,
         //
 	// Terrain sigma.
         //
-	BoxLib::Abort( "mixed_boundary_class::fill(): terrain undefined" );
+	BoxLib::Abort( "mixed_boundary::fill(): terrain undefined" );
     }
     else if (t == refWall) 
     {
 	if (idim == flowdim || flowdim == -3) 
 	{
-	    FORT_FBNEG(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBNEG(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
 	else 
 	{
-	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
     }
     else if (t == periodic) 
@@ -440,19 +494,28 @@ mixed_boundary_class::fill (FArrayBox&       patch,
     {
 	if (flowdim == -2) 
 	{
-	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
 	else if (flowdim == -1) 
 	{
             //
-	    //BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
+	    //BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 	    // Inflow density---just reflect interior for now
             //
-	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
 	else if (flowdim == -3) 
 	{
-	    FORT_FBNEG(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBNEG(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
 	else if (idim == flowdim) 
 	{
@@ -460,7 +523,10 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 	    // For this to work, fill_borders must already have been called
 	    // to initialize values in the first ghost cell outside the domain.
             //
-	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, 1);
+	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()),
+			 DIMLIST(region),
+			 bgr.dataPtr(), DIMLIST(bgr.box()),
+			 DIMLIST(bb), &idim, 1);
 	}
 	else if (flowdim >= 0) 
 	{
@@ -469,7 +535,10 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 	    // patch.assign(0.0, region);
 	    // we now believe this looks like a refWall to transverse components
             //
-	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
     }
     else if (t == outflow) 
@@ -479,25 +548,31 @@ mixed_boundary_class::fill (FArrayBox&       patch,
         //
 	if (type(patch,idim) == IndexType::CELL) 
 	{
-	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
+	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()),
+		       DIMLIST(region),
+		       bgr.dataPtr(), DIMLIST(bgr.box()),
+		       DIMLIST(bb), &idim, patch.nComp());
 	}
     }
     else 
     {
-	BoxLib::Abort( "mixed_boundary_class::fill(): boundary type not supported" );
+	BoxLib::Abort( "mixed_boundary::fill(): boundary type not supported" );
     }
 }
 
 void
-mixed_boundary_class::sync_borders (MultiFab&              r,
-                                    const level_interface& lev_interface) const
+mixed_boundary::sync_borders (MultiFab&              r,
+			      const level_interface& lev_interface) const
 {
     BL_ASSERT(type(r) == IntVect::TheNodeVector());
     
     task_list tl;
-    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+    // we are looping over only the fine-fine faces
+    for (int iface = 0;
+	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
+	if (lev_interface.geo(level_interface::FACEDIM, iface)
+	    != level_interface::ALL)
 	    break;
         int igrid = lev_interface.grid(level_interface::FACEDIM,iface,0);
 	if (igrid < 0) 
@@ -505,22 +580,24 @@ mixed_boundary_class::sync_borders (MultiFab&              r,
 	    const int idim = lev_interface.fdim(iface);
 	    if (ptr->bc[idim][0] == periodic) 
 	    {
-		const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+		const int jgrid =
+		    lev_interface.grid(level_interface::FACEDIM, iface, 1);
 		igrid = lev_interface.exterior_ref(igrid);
-		const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
+		const Box& b =
+		    lev_interface.node_box(level_interface::FACEDIM, iface);
 		Box bb = b;
 		bb.shift(idim, lev_interface.domain().length(idim));
 		tl.add_task(new task_copy(tl, r, jgrid, b, r, igrid, bb));
 	    }
 	}
     }
-    tl.execute("mixed_boundary_class::sync_borders");
+    tl.execute("mixed_boundary::sync_borders");
 }
 
 void
-mixed_boundary_class::fill_borders (MultiFab&              r,
-                                    const level_interface& lev_interface,
-                                    int                    w) const
+mixed_boundary::fill_borders (MultiFab&              r,
+			      const level_interface& lev_interface,
+			      int                    w) const
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
@@ -529,13 +606,18 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
     const Box& domain = lev_interface.domain();
 
     task_list tl;
-    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+    // we are looping over only the fine-fine faces
+    for (int iface = 0;
+	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
+	if (lev_interface.geo(level_interface::FACEDIM, iface)
+	    != level_interface::ALL)
 	    break;
 
-	const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
-	const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+	const int igrid =
+	    lev_interface.grid(level_interface::FACEDIM, iface, 0);
+	const int jgrid =
+	    lev_interface.grid(level_interface::FACEDIM, iface, 1);
 
 	if (igrid < 0 || jgrid < 0) 
 	{
@@ -551,10 +633,16 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 		{
 		    if (i != idim) 
 		    {
-			if (lev_interface.interior_mesh()[jgrid].smallEnd(i) == b.smallEnd(i))
+			if (lev_interface.interior_mesh()[jgrid].smallEnd(i)
+			    == b.smallEnd(i))
+			{
 			    b.growLo(i, w);
-			if (lev_interface.interior_mesh()[jgrid].bigEnd(i) == b.bigEnd(i))
+			}
+			if (lev_interface.interior_mesh()[jgrid].bigEnd(i)
+			    == b.bigEnd(i))
+			{
 			    b.growHi(i, w);
+			}
 		    }
 		}
 		b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
@@ -567,33 +655,52 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
                     //
 		    if (is_remote(r, jgrid))
                         continue;
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			2 * domain.smallEnd(idim) - 1 + a
+			- b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
 		    {
 			Real* rptr = r[jgrid].dataPtr(i);
-			if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+			if ((i == idim + BL_SPACEDIM)
+			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 			{
-			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			    FORT_FBNEG(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
 			}
 			else 
 			{
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			    FORT_FBREF(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
 			}
 		    }
 		}
 		else if (t == refWall) 
 		{
 		    if ( is_remote(r, jgrid) ) continue;
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			(2 * domain.smallEnd(idim) - 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
 		    const Box& rbox = r[jgrid].box();
 		    if (idim == flowdim || flowdim == -3) 
 		    {
-			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else 
 		    {
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		}
 		else if (t == periodic) 
@@ -606,23 +713,35 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 		else if (t == inflow) 
 		{
 		    if ( is_remote(r, jgrid) ) continue;
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			(2 * domain.smallEnd(idim) - 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
 		    const Box& rbox = r[jgrid].box();
 		    if (flowdim == -2) 
 		    {
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (flowdim == -1) 
 		    {
                         //
-			//BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
+			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (flowdim == -3) 
 		    {
-			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
 		    }
 		    else if (idim == flowdim) 
 		    {
@@ -630,7 +749,10 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 			// For this to work, fill_borders must be called exactly
 			// once for each level of this variable.
                         //
-			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b),  r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(b),
+				     r[jgrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(bb), &idim, 1);
 		    }
 		    else if (flowdim >= 0) 
 		    {
@@ -639,7 +761,10 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 			//r[jgrid].assign(0.0, b);
 			// we now believe this looks like a refWall to transverse comps
                         //
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
 		    }
 		}
 		else if (t == outflow) 
@@ -651,9 +776,15 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
                         continue;
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
-			bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+			bb.shift(
+			    idim,
+			    (2 * domain.smallEnd(idim) - 1 + a
+			     - b.bigEnd(idim) - b.smallEnd(idim)));
 			const Box& rbox = r[jgrid].box();
-			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		}
 	    }
@@ -663,10 +794,15 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 		{
 		    if (i != idim) 
 		    {
-			if (lev_interface.interior_mesh()[igrid].smallEnd(i) == b.smallEnd(i))
+			if (lev_interface.interior_mesh()[igrid].smallEnd(i)
+			    == b.smallEnd(i))
+			{
 			    b.growLo(i, w);
+			}
 			if (lev_interface.interior_mesh()[igrid].bigEnd(i) == b.bigEnd(i))
+			{
 			    b.growHi(i, w);
+			}
 		    }
 		}
 		b.shift(idim, a).growHi(idim, w-a).convert(type(r));
@@ -679,18 +815,28 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
                     //
 		    // Terrain sigma
                     //
-		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
 		    const Box& rbox = r[igrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
 		    {
 			Real* rptr = r[igrid].dataPtr(i);
-			if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+			if ((i == idim + BL_SPACEDIM)
+			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 			{
-			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			    FORT_FBNEG(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
 			}
 			else 
 			{
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			    FORT_FBREF(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
 			}
 		    }
 		}
@@ -698,15 +844,24 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 		{
 		    if (is_remote(r, igrid))
                         continue;
-		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
 		    const Box& rbox = r[igrid].box();
 		    if (idim == flowdim || flowdim == -3) 
 		    {
-			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else 
 		    {
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		}
 		else if (t == periodic) 
@@ -719,23 +874,35 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 		else if (t == inflow) 
 		{
 		    if (is_remote(r, igrid)) continue;
-		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
 		    const Box& rbox = r[igrid].box();
 		    if (flowdim == -2) 
 		    {
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(),
+				   DIMLIST(rbox), DIMLIST(bb), &idim, 1);
 		    }
 		    else if (flowdim == -1) 
 		    {
                         //
-			//BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
+			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
                         //
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (flowdim == -3) 
 		    {
-			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (idim == flowdim) 
 		    {
@@ -743,7 +910,10 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 			// For this to work, fill_borders must be called exactly
 			// once for each level of this variable.
                         //
-			FORT_FBINFLO(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b),  r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBINFLO(r[igrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(b),
+				     r[igrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(bb), &idim, 1);
 		    }
 		    else if (flowdim >= 0) 
 		    {
@@ -752,7 +922,10 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 			//r[igrid].assign(0.0, rbox);
 			// we now believe this looks like a refWall to transverse comps
                         //
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
 		    }
 		}
 		else if (t == outflow) 
@@ -764,25 +937,31 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
                     //
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
-			bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
+			bb.shift(
+			    idim,
+			    (2 * domain.bigEnd(idim) + 1 + a
+			     - b.bigEnd(idim) - b.smallEnd(idim)));
 			const Box& rbox = r[igrid].box();
-			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
 		    }
 		}
 	    }
         }
     }
-    tl.execute("mixed_boundary_class::fill_borders");
+    tl.execute("mixed_boundary::fill_borders");
 }
 
 
 void
-mixed_boundary_class::check_against_boundary (BoxList&   bl,
-                                              List<int>& il,
-                                              const Box& b,
-                                              int        ib,
-                                              const Box& d,
-                                              int        dim1) const
+mixed_boundary::check_against_boundary (BoxList&   bl,
+					List<int>& il,
+					const Box& b,
+					int        ib,
+					const Box& d,
+					int        dim1) const
 {
     for (int i = dim1; i < BL_SPACEDIM; i++) 
     {
@@ -814,7 +993,8 @@ mixed_boundary_class::check_against_boundary (BoxList&   bl,
 	    }
 	    else 
 	    {
-		BoxLib::Abort( "mixed_boundary_class::check_against_boundary():  Boundary type not supported" );
+		BoxLib::Abort( "mixed_boundary::check_against_boundary():"
+			       "Boundary type not supported" );
 	    }
 	}
 	if (b.bigEnd(i) == d.bigEnd(i)) 
@@ -845,15 +1025,16 @@ mixed_boundary_class::check_against_boundary (BoxList&   bl,
 	    }
 	    else 
 	    {
-		BoxLib::Abort( "mixed_boundary_class::check_against_boundary():  Boundary type not supported" );
+		BoxLib::Abort( "mixed_boundary::check_against_boundary():"
+			       "Boundary type not supported" );
 	    }
 	}
     }
 }
 
 void
-mixed_boundary_class::duplicate (List<Box>& bl,
-                                 const Box& domain) const
+mixed_boundary::duplicate (List<Box>& bl,
+			   const Box& domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -868,14 +1049,18 @@ mixed_boundary_class::duplicate (List<Box>& bl,
 			Box btmp = bn();
 			btmp.shift(i, domain.length(i));
 			if (!bl.includes(btmp))
+			{
 			    bl.append(btmp);
+			}
 		    }
 		    else if (bn().bigEnd(i) - 1 == domain.bigEnd(i)) 
 		    {
 			Box btmp = bn();
 			btmp.shift(i, -domain.length(i));
 			if (!bl.includes(btmp))
+			{
 			    bl.append(btmp);
+			}
 		    }
 		}
 	    }
@@ -884,73 +1069,79 @@ mixed_boundary_class::duplicate (List<Box>& bl,
 }
 
 bool
-mixed_boundary_class::singular () const
+mixed_boundary::singular () const
 {
     BL_ASSERT(flowdim == -2); // pressure boundary only
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
 	if (ptr->bc[idim][0] == outflow || ptr->bc[idim][1] == outflow)
+	{
             return false;
+	}
     }
 
     return true;
 }
 
-amr_fluid_boundary_class::amr_fluid_boundary_class ()
+amr_fluid_boundary::amr_fluid_boundary ()
 {
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
 	v[i] = 0;
+    }
 
     s  = 0;
     p  = 0;
     ts = 0;
 }
 
-amr_fluid_boundary_class::~amr_fluid_boundary_class () {}
+amr_fluid_boundary::~amr_fluid_boundary () {}
 
-const amr_boundary_class*
-amr_fluid_boundary_class::velocity (int i) const 
+const amr_boundary*
+amr_fluid_boundary::velocity (int i) const 
 {
     return v[i];
 }
 
-const amr_boundary_class*
-amr_fluid_boundary_class::scalar () const 
+const amr_boundary*
+amr_fluid_boundary::scalar () const 
 {
     return s;
 }
 
-const amr_boundary_class*
-amr_fluid_boundary_class::pressure () const 
+const amr_boundary*
+amr_fluid_boundary::pressure () const 
 {
     return p;
 }
 
-const amr_boundary_class*
-amr_fluid_boundary_class::terrain_sigma () const 
+const amr_boundary*
+amr_fluid_boundary::terrain_sigma () const 
 {
     return ts;
 }
 
-inviscid_fluid_boundary_class::inviscid_fluid_boundary_class (RegType Bc[BL_SPACEDIM][2])
+inviscid_fluid_boundary::inviscid_fluid_boundary (RegType Bc[BL_SPACEDIM][2])
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
 	bc[i][0] = Bc[i][0];
 	bc[i][1] = Bc[i][1];
-	if ((bc[i][0] == periodic || bc[i][1] == periodic) && bc[i][1] != bc[i][0])
+	if ((bc[i][0] == periodic || bc[i][1] == periodic)
+	    && bc[i][1] != bc[i][0])
 	{
-	    BoxLib::Abort( "inviscid_fluid_boundary_class::inviscid_fluid_boundary(): periodic bc's don't match" );
+	    BoxLib::Abort( "inviscid_fluid_boundary::inviscid_fluid_boundary():"
+			   "periodic bc's don't match" );
 	}
-	v[i] = new mixed_boundary_class(this, i);
+	v[i] = new mixed_boundary(this, i);
     }
-    s  = new mixed_boundary_class(this, -1);
-    p  = new mixed_boundary_class(this, -2);
-    ts = new mixed_boundary_class(this, -4);
+    s  = new mixed_boundary(this, -1);
+    p  = new mixed_boundary(this, -2);
+    ts = new mixed_boundary(this, -4);
 }
 
-inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class ()
+inviscid_fluid_boundary::~inviscid_fluid_boundary ()
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -960,14 +1151,15 @@ inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class ()
     delete p;
     delete ts;
 }
+
 RegType
-inviscid_fluid_boundary_class::getLoBC(int idim) const
+inviscid_fluid_boundary::getLoBC(int idim) const
 {
-  return bc[idim][0];
+    return bc[idim][0];
 }
 
 RegType
-inviscid_fluid_boundary_class::getHiBC(int idim) const
+inviscid_fluid_boundary::getHiBC(int idim) const
 {
-  return bc[idim][1];
+    return bc[idim][1];
 }

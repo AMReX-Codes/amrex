@@ -26,14 +26,14 @@ inner_product (const MultiFab& r,
 void
 sync_borders (MultiFab&                 r,
               const level_interface&    lev_interface,
-              const amr_boundary_class* bdy);
+              const amr_boundary* bdy);
 
 void
 fill_borders (MultiFab&                 r,
               const level_interface&    lev_interface,
-              const amr_boundary_class* bdy,
+              const amr_boundary* bdy,
               int                       w,
-              bool                      hg_terrain);
+              bool                      hg_dense);
 
 void
 clear_part_interface (MultiFab&              r,
@@ -45,15 +45,15 @@ interpolate_patch (MultiFab&                     dmf,
                    const Box&                    region,
                    const MultiFab&               r,
                    const IntVect&                rat,
-                   const amr_interpolator_class& interp,
+                   const amr_interpolator& interp,
                    const level_interface&        lev_interface);
 
 void
 restrict_level (MultiFab&                   dest,
                 MultiFab&                   r,
                 const IntVect&              rat,
-                const amr_restrictor_class& restric,
+                const amr_restrictor& restric,
                 const level_interface&      lev_interface,
-                const amr_boundary_class*   bdy);
+                const amr_boundary*   bdy);
 
 #endif /*_FILL_PATCH_H_*/

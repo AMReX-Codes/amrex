@@ -1,4 +1,31 @@
 c-----------------------------------------------------------------------
+c Debuging tool
+      subroutine print_sum(
+     & res,    resl0,resl1,resl2,resh0,resh1,resh2,
+     &         regl0, regl1, regl2, regh0, regh1, regh2)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision sum1, sum2
+      sum1 = 0.0d0
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               sum1 = sum1 + res(i,j,k)
+            end do
+         end do
+      end do
+      sum2 = 0.0d0
+      do k = resl2, resh2
+         do j = resl1, resh1
+            do i = resl0, resh0
+               sum2 = sum2 + res(i,j,k)
+            end do
+         end do
+      end do
+      print *, 'sum1 = ', sum1, 'sum2 = ', sum2
+      end
+c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(
      & v0, v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
@@ -802,6 +829,14 @@ c NODE-based data only.
             end do
          end if
       end do
+      if ( .FALSE. ) then
+         print *, 'anrst2'
+         print *, destl0, desth0, destl1, desth1, destl2, desth2
+         print *, regl0,  regh0,  regl1,  regh1,  regl2,  regh2
+         print *, srcl0,  srch0,  srcl1,  srch1,  srcl2,  srch2
+         print *, ir, jr, kr, integ
+         print *, dest
+      end if
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.

@@ -5,26 +5,17 @@
 
 #include "amr_defs.H"
 
-class amr_boundary_class;
+class amr_boundary;
 
 class level_interface 
 {
 public:
     
 #if (BL_SPACEDIM == 2)
-#if defined(HG_OLD)
-    enum 
-    { 
-	LL = 0x1, HL = 0x2, LH = 0x4, HH = 0x8,
-	XL = 0x5, XH = 0xA, YL = 0x3, YH = 0xC,
-	ALL = 0xF, LOW = 0x1 
-    };
-#else
     enum
     {
 	ALL = 0xF, LOW = 0x01
     };
-#endif
 #else
     enum 
     {
@@ -47,13 +38,13 @@ public:
     //
     void alloc (const BoxArray&           Im,
                 const Box&                Domain,
-                const amr_boundary_class* Bdy);
+                const amr_boundary* Bdy);
     //
     // Two pseudo copy operators/constructors.
     //
     void copy (const level_interface& src);
     void alloc_coarsened (const BoxArray&           Im,
-                          const amr_boundary_class* Bdy,
+                          const amr_boundary* Bdy,
                           const level_interface&    src,
                           const IntVect&            rat);
     
@@ -62,8 +53,15 @@ public:
     const Box& domain () const		     { return dom; }
     const BoxArray& interior_mesh () const   { return im; }
     const BoxArray& exterior_mesh () const   { return em; }
-    int exterior_ref (int igrid) const	     { BL_ASSERT(igrid < -1); return grid_ref[-2-igrid]; }
-    int direct_exterior_ref (int igrid)const { BL_ASSERT(igrid > -1); return grid_ref[   igrid]; }
+    int exterior_ref (int igrid) const
+    {
+	BL_ASSERT(igrid < -1);
+	return grid_ref[-2-igrid];
+    }
+    int direct_exterior_ref (int igrid) const
+    {
+	BL_ASSERT(igrid > -1); return grid_ref[   igrid];
+    }
     const Box& part_fine (int i) const	     { return pf[i]; }
     
     Array<int> geo_array (int idim, int i) const;
@@ -137,11 +135,20 @@ inline int level_interface::grid (int idim, int i, int j) const
     int ret;
     switch(idim) 
     {
-    case FACEDIM: BL_ASSERT(j < N_FACE_GRIDS && i < nboxes(FACEDIM)); ret = fgr[i][j]; break;
+    case FACEDIM:
+	BL_ASSERT(j < N_FACE_GRIDS && i < nboxes(FACEDIM));
+	ret = fgr[i][j];
+	break;
 #if BL_SPACEDIM == 3
-    case 1      : BL_ASSERT(j < N_EDGE_GRIDS && i < nboxes(1)); ret = egr[i][j]; break;
+    case 1      :
+	BL_ASSERT(j < N_EDGE_GRIDS && i < nboxes(1));
+	ret = egr[i][j];
+	break;
 #endif
-    case 0      : BL_ASSERT(j < N_CORNER_GRIDS && i < nboxes(0)); ret = cgr[i][j]; break;
+    case 0      :
+	BL_ASSERT(j < N_CORNER_GRIDS && i < nboxes(0));
+	ret = cgr[i][j];
+	break;
     }
     return ret;
 }

@@ -181,10 +181,22 @@ public:
     //
     void execute (const char* msg);
 
-    list<task::task_proxy>::const_iterator begin () const { return tasks.begin(); }
-    list<task::task_proxy>::iterator begin () { return tasks.begin(); }
-    list<task::task_proxy>::const_iterator end () const { return tasks.end(); }
-    list<task::task_proxy>::iterator end () { return tasks.end(); }
+    list<task::task_proxy>::const_iterator begin () const
+    {
+	return tasks.begin();
+    }
+    list<task::task_proxy>::iterator begin ()
+    {
+	return tasks.begin();
+    }
+    list<task::task_proxy>::const_iterator end () const
+    {
+	return tasks.end();
+    }
+    list<task::task_proxy>::iterator end ()
+    {
+	return tasks.end();
+    }
 
     bool empty () const { return tasks.empty(); }
     int size () const { return tasks.size(); }
@@ -332,9 +344,10 @@ protected:
 };
 
 class level_interface;
-class amr_boundary_class;
+class amr_boundary;
 
-class task_fill_patch : public task_fab
+class task_fill_patch
+    : public task_fab
 {
 public:
 
@@ -344,7 +357,7 @@ public:
                      const Box&                region_,
                      const MultiFab&           r_,
                      const level_interface&    lev_interface_,
-                     const amr_boundary_class* bdy_,
+                     const amr_boundary* bdy_,
                      int                       idim_ /* = -1*/,
                      int                       index_ /*= -1*/);
 
@@ -359,7 +372,7 @@ private:
 
     const MultiFab&           r;
     const level_interface&    lev_interface;
-    const amr_boundary_class* bdy;
+    const amr_boundary* bdy;
     const int                 idim;
     const int                 index;
 };

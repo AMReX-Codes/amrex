@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.15 1999-04-08 21:00:56 car Exp $
+# $Id: Make.package,v 1.16 1999-09-14 18:26:56 car Exp $
 #
 
 HGPROJ_BASE=EXE
@@ -7,20 +7,24 @@ ifeq ($(LBASE),proj)
   HGPROJ_BASE=LIB
 endif
 
-C$(HGPROJ_BASE)_sources += interface.cpp boundary.cpp interpolator.cpp \
+C$(HGPROJ_BASE)_sources += \
+		interface.cpp boundary.cpp interpolator.cpp \
                 restrictor.cpp fill_patch.cpp amr_multi.cpp \
                 hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
                 hg_projector.cpp hgparallel.cpp
 
-C$(HGPROJ_BASE)_headers += amr_defs.H interface.H boundary.H interpolator.H \
+C$(HGPROJ_BASE)_headers += \
+		interface.H boundary.H interpolator.H \
                 restrictor.H fill_patch.H amr_multi.H \
-                hg_multi.H hg_projector.H hgparallel.H
+                hg_multi.H \
+		hg_projector.H hgparallel.H
 
-F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
-                hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+C$(HGPROJ_BASE)_headers += amr_defs.H 
 
-ifeq ($(DIM),3)
-  F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
-endif
+F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+
+F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d.F
+F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
+F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_full.F
 
 F$(HGPROJ_BASE)_headers +=

@@ -6,33 +6,30 @@
 #define   FORT_HGSRST		hgsrst_
 #define   FORT_HGSCON		hgscon_
 #define   FORT_HGCEN		hgcen_
+#define   FORT_HGCEN_TERRAIN	hgcen_terrain_
 #define   FORT_HGCEN_FULL	hgcen_full_
-#define   FORT_HGCEN_NO_SIGMA   hgcen_no_sigma_
-#define   FORT_HGCEN_TERRAIN    hgcen_terrain_
 #define   FORT_HGINTS		hgints_
-#define   FORT_HGINTS_NO_SIGMA  hgints_no_sigma_
+#define   FORT_HGINTS_DENSE	hgints_dense_
 #define   FORT_FACRST1		acrst1_
 #define   FORT_FANRST2		anrst2_
 #elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGSRST		HGSRST
 #define   FORT_HGSCON		HGSCON
 #define   FORT_HGCEN		HGCEN
-#define   FORT_HGCEN_FULL	HGCEN_FULL
-#define   FORT_HGCEN_NO_SIGMA   HGCEN_NO_SIGMA
 #define   FORT_HGCEN_TERRAIN	HGCEN_TERRAIN
+#define   FORT_HGCEN_FULL	HGCEN_FULL
 #define   FORT_HGINTS		HGINTS
-#define   FORT_HGINTS_NO_SIGMA  HGINTS_NO_SIGMA
+#define   FORT_HGINTS_DENSE	HGINTS_DENSE
 #define   FORT_FACRST1		ACRST1
 #define   FORT_FANRST2		ANRST2
 #elif defined( BL_FORT_USE_LOWERCASE )
 #define   FORT_HGSRST		hgsrst
 #define   FORT_HGSCON		hgscon
 #define   FORT_HGCEN		hgcen
-#define   FORT_HGCEN_FULL	hgcen_full
-#define   FORT_HGCEN_NO_SIGMA   hgcen_no_sigma
 #define   FORT_HGCEN_TERRAIN	hgcen_terrain
+#define   FORT_HGCEN_FULL	hgcen_full
 #define   FORT_HGINTS		hgints
-#define   FORT_HGINTS_NO_SIGMA  hgints_no_sigma
+#define   FORT_HGINTS_DENSE	hgints_dense
 #define   FORT_FACRST1		acrst1
 #define   FORT_FANRST2		anrst2
 #else
@@ -41,22 +38,20 @@
 
 extern "C" 
 {
-    void FORT_FACRST1        (Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
-    void FORT_FANRST2        (Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
+    void FORT_FACRST1       (Real*, intS, intS, const Real*, intS, intRS,
+			     const int&, const int*, const int*, const int*);
+    void FORT_FANRST2       (Real*, intS, intS, const Real*, intS, intRS,
+			     const int&, const int*, const int*, const int*);
 
-    void FORT_HGSRST         (RealPS, intS, intS, CRealPS, intS, intRS);
-    void FORT_HGINTS         (Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
-    void FORT_HGCEN_TERRAIN  (Real*, intS, Real*, intS, intS);
-#if BL_SPACEDIM == 2
-    void FORT_HGCEN_FULL     (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGCEN_NO_SIGMA (Real*, intS, RealPS, intS, intS, CRealPS, const int*);
-    void FORT_HGCEN          (Real*, intS, Real*, intS, intS, const int*);
-#elif (BL_SPACEDIM == 3)
-    void FORT_HGCEN_NO_SIGMA (Real*, intS, RealPS, intS, intS, CRealPS);
-    void FORT_HGCEN          (Real*, intS, Real*, intS, intS);
-#endif
-    void FORT_HGINTS_NO_SIGMA(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
-    void FORT_HGSCON         (Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGSRST        (RealPS, intS, intS, CRealPS, intS, intRS);
+    void FORT_HGINTS        (Real*, intS, intS, Real*, intS,
+			     const Real*, intS, intS, intRS);
+    void FORT_HGINTS_DENSE  (Real*, intS, intS, CRealPS, intS,
+			     const Real*, intS, intS, intRS);
+    void FORT_HGCEN         (Real*, intS, Real*, intS, intS, const int*);
+    void FORT_HGCEN_FULL    (Real*, intS, Real*, intS, intS);
+    void FORT_HGCEN_TERRAIN (Real*, intS, Real*, intS, intS);
+    void FORT_HGSCON        (Real*, intS, RealPS, intS, intS, CRealPS);
 }
 
 class task_interpolate_patch : public task
@@ -68,7 +63,7 @@ public:
                             const Box&                    dbx_,
                             const MultiFab&               smf_,
                             const IntVect&                rat_,
-                            const amr_interpolator_class* interp_,
+                            const amr_interpolator* interp_,
                             const level_interface&        lev_interface_);
     virtual bool ready ();
     virtual ~task_interpolate_patch ();
@@ -82,7 +77,7 @@ private:
     const Box                     dbx;
     const MultiFab&               smf;
     const IntVect                 rat;
-    const amr_interpolator_class* interp;
+    const amr_interpolator* interp;
     const level_interface&        lev_interface;
 };
 
@@ -92,7 +87,7 @@ task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
                                                 const Box&      dbx_,
                                                 const MultiFab& smf_,
                                                 const IntVect&  rat_,
-                                                const amr_interpolator_class* interp_,
+                                                const amr_interpolator* interp_,
                                                 const level_interface& lev_interface_)
     :
     task(tl_),
@@ -106,7 +101,14 @@ task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
     tf(0)
 {
     BL_ASSERT(dbx.sameType(dmf.box(dgrid)));
-    tf = m_task_list.add_task(new task_fill_patch(m_task_list,dmf,dgrid,interp->box(dbx,rat),smf,lev_interface,0,-1,-1));
+    tf = m_task_list.add_task(
+	new task_fill_patch(m_task_list,
+			    dmf,
+			    dgrid,
+			    interp->box(dbx,rat),
+			    smf,
+			    lev_interface,0,-1,-1)
+	);
     depend_on(tf);
 }
 
@@ -120,7 +122,9 @@ task_interpolate_patch::ready ()
         BL_ASSERT(tf->ready());
 	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
         BL_ASSERT(tff != 0);
-	interp->fill(dmf[dgrid], dbx, tff->fab(), tff->fab().box(), rat);
+	interp->fill(dmf[dgrid], dbx,
+		     tff->fab(), tff->fab().box(),
+		     rat);
     }
     return true;
 }
@@ -135,6 +139,66 @@ task_interpolate_patch::~task_interpolate_patch ()
 {
     delete interp;
 }
+
+class holy_grail_interpolator_dense
+    : public bilinear_interpolator 
+{
+public:
+    holy_grail_interpolator_dense(Real* Sigptr[BL_SPACEDIM],
+				  const Box& Sigbox)
+	: sigbox(Sigbox) 
+    {
+	for( int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	    sigptr[i] = Sigptr[i];
+	}
+    }
+    virtual void fill(FArrayBox& patch,
+		      const Box& region,
+		      const FArrayBox& cgr,
+		      const Box& cb,
+		      const IntVect& rat) const;
+protected:
+    Real* sigptr[BL_SPACEDIM];
+    const Box sigbox;
+};
+
+class holy_grail_interpolator
+    : public bilinear_interpolator 
+{
+public:
+    holy_grail_interpolator(Real *Sigptr,
+			    const Box& Sigbox)
+	: sigptr(Sigptr),
+	  sigbox(Sigbox) 
+    { 
+    }
+    virtual void fill(FArrayBox& patch,
+		      const Box& region,
+		      const FArrayBox& cgr,
+		      const Box& cb,
+		      const IntVect&) const;
+protected:
+    Real* sigptr;
+    const Box sigbox;
+};
+
+class holy_grail_sigma_restrictor
+    : public cell_average_restrictor 
+{
+public:
+    explicit holy_grail_sigma_restrictor(holy_grail_amr_multigrid::stencil m_hg_stencil_) 
+	: cell_average_restrictor(0),
+	  m_hg_stencil(m_hg_stencil_) 
+    { 
+    }
+    virtual void fill(FArrayBox& patch,
+		      const Box& region,
+		      const FArrayBox& fgr,
+		      const IntVect& rat) const;
+private:
+    holy_grail_amr_multigrid::stencil m_hg_stencil;
+};
 
 void
 holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
@@ -174,7 +238,8 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
 	h[mglev_max][i] = H[i];
 	for (int mglev = mglev_max - 1; mglev >= 0; mglev--) 
 	{
-	    int rat = mg_domain[mglev+1].length(i) / mg_domain[mglev].length(i);
+	    int rat =
+		mg_domain[mglev+1].length(i) / mg_domain[mglev].length(i);
 	    h[mglev][i] = rat * h[mglev+1][i];
 	}
     }
@@ -260,30 +325,32 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
 	singular = (sng == mg_domain[0].numPts());
     }
     
-    if (m_stencil == terrain)
+    // if (m_stencil == terrain)	// FIXME
+    if ( is_dense(m_stencil) )
 	integrate = 1;
 }
 
 
 void
-holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
-                                         const Box&       region,
-                                         const FArrayBox& fgr,
-                                         const IntVect&   rat) const
+holy_grail_sigma_restrictor::fill (FArrayBox&       patch,
+				   const Box&       region,
+				   const FArrayBox& fgr,
+				   const IntVect&   rat) const
 {
     BL_ASSERT(patch.box().cellCentered());
     BL_ASSERT(rat[0] == 2 && rat[1] == 2 ||
 	rat[0] == 2 && rat[1] == 1 ||
 	rat[0] == 1 && rat[1] == 2);
-    
-    if (m_hg_terrain)
+
+    if (m_hg_stencil == holy_grail_amr_multigrid::terrain)
     {
-	FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-                    DIMLIST(patch.box()),
-                    DIMLIST(region),
-                    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
-                    DIMLIST(fgr.box()),
-                    D_DECL(rat[0], rat[1], rat[2]));
+	FORT_HGSRST(
+	    D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
+	    DIMLIST(patch.box()),
+	    DIMLIST(region),
+	    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
+	    DIMLIST(fgr.box()),
+	    D_DECL(rat[0], rat[1], rat[2]));
 	const int integ = 0;
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM),
                      DIMLIST(patch.box()),
@@ -293,8 +360,8 @@ holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
                      D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
 	
 #if (BL_SPACEDIM == 2)
-	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
-	patch.mult((Real) rat[0] / rat[1], region, 1, 1);
+	patch.mult(Real(rat[1]) / rat[0], region, 0, 1);
+	patch.mult(Real(rat[0]) / rat[1], region, 1, 1);
 	// component 2 remains unchanged
 #else
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM+1),
@@ -303,33 +370,52 @@ holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
                      fgr.dataPtr(BL_SPACEDIM+1),
                      DIMLIST(fgr.box()),
                      D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
-	patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
-	patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
-	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
-	patch.mult((Real) rat[1],                   region, 3, 1);
-	patch.mult((Real) rat[0],                   region, 4, 1);
+	patch.mult(Real(rat[1] * rat[2]) / rat[0], region, 0, 1);
+	patch.mult(Real(rat[0] * rat[2]) / rat[1], region, 1, 1);
+	patch.mult(Real(rat[0] * rat[1]) / rat[2], region, 2, 1);
+	patch.mult(Real(rat[1]),                   region, 3, 1);
+	patch.mult(Real(rat[0]),                   region, 4, 1);
 #endif
-	
+    }
+    else if (m_hg_stencil ==  holy_grail_amr_multigrid::full)
+    {
+	FORT_HGSRST(
+	    D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
+	    DIMLIST(patch.box()),
+	    DIMLIST(region),
+	    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
+	    DIMLIST(fgr.box()),
+	    D_DECL(rat[0], rat[1], rat[2]));
+#if (BL_SPACEDIM == 2)
+	patch.mult(Real(rat[1]) / rat[0], region, 0, 1);
+	patch.mult(Real(rat[0]) / rat[1], region, 1, 1);
+#else
+	patch.mult(Real(rat[1] * rat[2]) / rat[0], region, 0, 1);
+	patch.mult(Real(rat[0] * rat[2]) / rat[1], region, 1, 1);
+	patch.mult(Real(rat[0] * rat[1]) / rat[2], region, 2, 1);
+#endif
     }
     else
     {
 	if (fgr.nComp() == 1) 
 	{
-	    FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-                        DIMLIST(patch.box()),
-                        DIMLIST(region),
-                        D_DECL(fgr.dataPtr(), fgr.dataPtr(), fgr.dataPtr()),
-                        DIMLIST(fgr.box()),
-                        D_DECL(rat[0], rat[1], rat[2]));
+	    FORT_HGSRST(
+		D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
+		D_DECL(fgr.dataPtr(), fgr.dataPtr(), fgr.dataPtr()),
+		DIMLIST(fgr.box()),
+		D_DECL(rat[0], rat[1], rat[2]));
 	}
 	else 
 	{
-	    FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-                        DIMLIST(patch.box()),
-                        DIMLIST(region),
-                        D_DECL(fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
-                        DIMLIST(fgr.box()),
-                        D_DECL(rat[0], rat[1], rat[2]));
+	    FORT_HGSRST(
+		D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
+		DIMLIST(patch.box()),
+		DIMLIST(region),
+		D_DECL(fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
+		DIMLIST(fgr.box()),
+		D_DECL(rat[0], rat[1], rat[2]));
 	}
     }
 }
@@ -339,7 +425,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
                                        int for_sync_reg)
 {
     int lev;
-    if (m_stencil == terrain)
+    if (m_stencil == terrain || m_stencil == full )
     {
 	//
 	// For terrain stencils we have as many sigma arrays passed as
@@ -347,57 +433,76 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	// multigrid purposes.  This simplifies handling as we do not
 	// need to maintain separate arrays for different purposes.
 	//
-	const int ncomp = 2 * BL_SPACEDIM - 1;
+	const int ncomp = m_stencil == terrain ?
+	    2 * BL_SPACEDIM - 1 :
+	    BL_SPACEDIM;
 	
 	sigma.resize(mglev_max+1);
 	
         if (for_sync_reg == 0)
         {
-	 for (int mglev = 0; mglev <= mglev_max; mglev++) 
- 	 {
-	    sigma.set(mglev, new MultiFab(mg_mesh[mglev], ncomp, 1));
-	    sigma[mglev].setVal(1.e20);
-	    if ((lev = get_amr_level(mglev)) >= 0) 
-		for (MultiFabIterator s_mfi(Sigma[lev]); s_mfi.isValid(); ++s_mfi)
+	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
+	    {
+		sigma.set(mglev, new MultiFab(mg_mesh[mglev], ncomp, 1));
+		sigma[mglev].setVal(1.e20);
+		if ((lev = get_amr_level(mglev)) >= 0)
 		{
-		    DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
-		    t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0, t_dmfi.validbox(), 0, ncomp);
+		    for (MultiFabIterator s_mfi(Sigma[lev]);
+			 s_mfi.isValid(); ++s_mfi)
+		    {
+			DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
+			t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0,
+				     t_dmfi.validbox(), 0, ncomp);
+		    }
 		}
-	 }
+	    }
 	}
         else
 	{
 	    sigma.set(mglev_max, new MultiFab(mg_mesh[mglev_max], ncomp, 1));
 	    sigma[mglev_max].setVal(1.e20);
-	    if ((lev = get_amr_level(mglev_max)) >= 0) 
-		for (MultiFabIterator s_mfi(Sigma[lev]); s_mfi.isValid(); ++s_mfi)
+	    if ((lev = get_amr_level(mglev_max)) >= 0)
+	    {
+		for (MultiFabIterator s_mfi(Sigma[lev]);
+		     s_mfi.isValid(); ++s_mfi)
 		{
 		    DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev_max]);
 		    t_dmfi->copy(s_mfi(), grow(s_mfi.validbox(),1), 0, 
-                                          grow(t_dmfi.validbox(),1), 0, ncomp);
+				 grow(t_dmfi.validbox(),1), 0, ncomp);
 		}
+	    }
 	}
 	
-        if (for_sync_reg == 0) 
-	  for (int mglev = mglev_max; mglev > 0; mglev--) 
-	  {
-	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	    restrict_level(sigma[mglev-1], sigma[mglev], rat, 
-                           holy_grail_sigma_restrictor_class(), 
-                           default_level_interface, 0);
-	  }
-
+        if (for_sync_reg == 0)
+	{
+	    for (int mglev = mglev_max; mglev > 0; mglev--) 
+	    {
+		IntVect rat = mg_domain[mglev].length()
+		    / mg_domain[mglev-1].length();
+		restrict_level(
+		    sigma[mglev-1], sigma[mglev], rat, 
+		    holy_grail_sigma_restrictor(m_stencil), 
+		    default_level_interface, 0);
+	    }
+	}
         if (for_sync_reg == 0) 
         {
-	  for (int mglev = 0; mglev <= mglev_max; mglev++) 
-	      fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(),
-                           -1, m_stencil == terrain);
+	    for (int mglev = 0; mglev <= mglev_max; mglev++)
+	    {
+		// FIXME, not terrain sigma?
+		fill_borders(sigma[mglev], lev_interface[mglev],
+			     boundary.terrain_sigma(),
+			     -1, is_dense(m_stencil));
+		HG_TEST_NORM( sigma[mglev], "build_sigma bb");
+	    }
         } 
         else if (for_sync_reg == 1)
         {
-	      fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.terrain_sigma(), 
-                           -1, m_stencil == terrain);
-        } 
+	    // FIXME, not terrain sigma?
+	    fill_borders(sigma[mglev_max], lev_interface[mglev_max],
+			 boundary.terrain_sigma(), 
+			 -1, is_dense(m_stencil));
+        }
     }
     else
     {
@@ -413,12 +518,14 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	// only as a local variable here
 	//
 	PArray<MultiFab> sigma_split;
-        if (for_sync_reg == 0) {
-	  sigma_split.resize(mglev_max);
-  	  for (int mglev = 0; mglev < mglev_max; mglev++) 
-  	  {
-	      sigma_split.set(mglev, new MultiFab(mg_mesh[mglev], BL_SPACEDIM, 1));
-	  }
+        if (for_sync_reg == 0)
+	{
+	    sigma_split.resize(mglev_max);
+	    for (int mglev = 0; mglev < mglev_max; mglev++) 
+	    {
+		sigma_split.set(mglev,
+				new MultiFab(mg_mesh[mglev], BL_SPACEDIM, 1));
+	    }
 	}
 	sigma.resize(mglev_max + 1);
 	sigma.set(mglev_max, new MultiFab(mg_mesh[mglev_max], 1, 1));
@@ -436,81 +543,96 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	// a huge value in ghost cells so that coarse-fine lev_interface
 	// interpolation will linear, as finite element derivation requires.
 	//
-        if (for_sync_reg == 0) 
-	  for (int mglev = 0; mglev < mglev_max; mglev++) 
-	  {
-	    MultiFab& target = sigma_split[mglev];
-	    target.setVal(1.e20);
-	    int lev;
-	    if ((lev = get_amr_level(mglev)) >= 0) 
+        if (for_sync_reg == 0)
+	{
+	    for (int mglev = 0; mglev < mglev_max; mglev++) 
 	    {
-		MultiFab& s_comp = Sigma[lev];
-		for (int i = 0; i < BL_SPACEDIM; i++) 
+		MultiFab& target = sigma_split[mglev];
+		target.setVal(1.e20);
+		int lev;
+		if ((lev = get_amr_level(mglev)) >= 0) 
 		{
-		    for (MultiFabIterator s_mfi(s_comp); s_mfi.isValid(); ++s_mfi)
+		    MultiFab& s_comp = Sigma[lev];
+		    for (int i = 0; i < BL_SPACEDIM; i++) 
 		    {
-			DependentMultiFabIterator t_dmfi(s_mfi, target);
-			t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0, t_dmfi.validbox(), i, 1);
+			for (MultiFabIterator s_mfi(s_comp);
+			     s_mfi.isValid(); ++s_mfi)
+			{
+			    DependentMultiFabIterator t_dmfi(s_mfi, target);
+			    t_dmfi->copy(s_mfi(), s_mfi.validbox(),
+					 0, t_dmfi.validbox(), i, 1);
+			}
 		    }
 		}
 	    }
-	  }
-	
+	}
 	sigma[mglev_max].setVal(1.e20);
-	HG_TEST_NORM(sigma[mglev_max], "restrict_level aa1");
-	HG_TEST_NORM(Sigma[  lev_max], "restrict_level aa10");
+	HG_TEST_NORM(sigma[mglev_max], "build_sigma aa1");
+	HG_TEST_NORM(Sigma[  lev_max], "build_sigma aa10");
         if (for_sync_reg == 0) 
         {
-	  for (MultiFabIterator S_mfi(Sigma[lev_max]); S_mfi.isValid(); ++S_mfi)
-	  {
-	      DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
-	      s_dmfi->copy(S_mfi(), mg_mesh[mglev_max][S_mfi.index()], 0, 
-                           mg_mesh[mglev_max][S_mfi.index()], 0, 1);
-  	  }
+	    for (MultiFabIterator S_mfi(Sigma[lev_max]);
+		 S_mfi.isValid(); ++S_mfi)
+	    {
+		DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
+		s_dmfi->copy(
+		    S_mfi(), mg_mesh[mglev_max][S_mfi.index()], 0, 
+		    mg_mesh[mglev_max][S_mfi.index()], 0, 1);
+	    }
   	}
         else 
   	{
-	  for (MultiFabIterator S_mfi(Sigma[lev_max]); S_mfi.isValid(); ++S_mfi)
-	  {
-	      DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
-	      s_dmfi->copy(S_mfi(), grow(mg_mesh[mglev_max][S_mfi.index()],1), 0, 
-                                    grow(mg_mesh[mglev_max][S_mfi.index()],1), 0, 1);
-  	  }
+	    for (MultiFabIterator S_mfi(Sigma[lev_max]);
+		 S_mfi.isValid(); ++S_mfi)
+	    {
+		DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
+		s_dmfi->copy(
+		    S_mfi(), grow(mg_mesh[mglev_max][S_mfi.index()],1), 0, 
+		    grow(mg_mesh[mglev_max][S_mfi.index()],1), 0, 1);
+	    }
   	}
-	HG_TEST_NORM(sigma[mglev_max], "restrict_level aa2");
-        if (for_sync_reg == 0) 
-	  if (mglev_max > 0) 
-	  {
-	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
-	    restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, 
-                           holy_grail_sigma_restrictor_class(), 
-                           default_level_interface, 0);
-	  }
-
+	HG_TEST_NORM(sigma[mglev_max], "build_sigma aa2");
+        if (for_sync_reg == 0)
+	{
+	    if (mglev_max > 0) 
+	    {
+		IntVect rat = mg_domain[mglev_max].length()
+		    / mg_domain[mglev_max-1].length();
+		restrict_level(
+		    sigma_split[mglev_max-1], sigma[mglev_max], rat, 
+		    holy_grail_sigma_restrictor(m_stencil), 
+		    default_level_interface, 0);
+	    }
+	}
         if (for_sync_reg == 0) 
         {
-	  fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.scalar(), 
-                       -1, m_stencil == terrain);
+	    fill_borders(sigma[mglev_max], lev_interface[mglev_max],
+			 boundary.scalar(), 
+			 -1, is_dense(m_stencil));
 
-	  for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
-	  {
-	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 
-                           holy_grail_sigma_restrictor_class(), 
-                           default_level_interface, 0);
-	  }
+	    for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
+	    {
+		IntVect rat = mg_domain[mglev].length()
+		    / mg_domain[mglev-1].length();
+		restrict_level(
+		    sigma_split[mglev-1], sigma_split[mglev], rat, 
+		    holy_grail_sigma_restrictor(m_stencil), 
+		    default_level_interface, 0);
+	    }
 
-	  for (int mglev = 0; mglev < mglev_max; mglev++) 
-	  {
-	    HG_TEST_NORM(sigma_split[mglev], "build_sigma 0");
-	    fill_borders(sigma_split[mglev], lev_interface[mglev], boundary.scalar(), 
-                         -1, m_stencil == terrain);
-	    HG_TEST_NORM(sigma_split[mglev], "build_sigma");
-	  }
+	    for (int mglev = 0; mglev < mglev_max; mglev++) 
+	    {
+		HG_TEST_NORM(sigma_split[mglev], "build_sigma 0");
+		fill_borders(sigma_split[mglev], lev_interface[mglev],
+			     boundary.scalar(), 
+			     -1, is_dense(m_stencil));
+		HG_TEST_NORM(sigma_split[mglev], "build_sigma");
+	    }
         }
         else if (for_sync_reg == 1)
         {
-          boundary.scalar()->fill_borders(sigma[mglev_max], lev_interface[mglev_max],-1);
+	    boundary.scalar()->fill_borders(sigma[mglev_max],
+					    lev_interface[mglev_max],-1);
         }
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -518,24 +640,25 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    sigma_nd[i].resize(mglev_max + 1);
 	}
 	
-        if (for_sync_reg == 0) 
-	  for (int mglev = 0; mglev < mglev_max; mglev++) 
-	  {
-	    MultiFab& s = sigma_split[mglev];
-	    for (int i = 0; i < BL_SPACEDIM; i++) 
+        if (for_sync_reg == 0)
+	{
+	    for (int mglev = 0; mglev < mglev_max; mglev++) 
 	    {
-		sigma_nd[i].set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
-		MultiFab& d = sigma_nd[i][mglev];
-		for (MultiFabIterator s_mfi(s); s_mfi.isValid(); ++s_mfi)
+		MultiFab& s = sigma_split[mglev];
+		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
-		    DependentMultiFabIterator d_dmfi(s_mfi, d);
-		    d_dmfi->copy(s_mfi(), i, 0);
+		    sigma_nd[i].set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
+		    MultiFab& d = sigma_nd[i][mglev];
+		    for (MultiFabIterator s_mfi(s); s_mfi.isValid(); ++s_mfi)
+		    {
+			DependentMultiFabIterator d_dmfi(s_mfi, d);
+			d_dmfi->copy(s_mfi(), i, 0);
+		    }
 		}
+		delete sigma_split.remove(mglev);
+		sigma.set(mglev, &sigma_nd[0][mglev]);
 	    }
-	    delete sigma_split.remove(mglev);
-	    sigma.set(mglev, &sigma_nd[0][mglev]);
-	  }
-	
+	}
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    sigma_nd[i].set(mglev_max, &sigma[mglev_max]);
@@ -548,143 +671,124 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    {
                 if (for_sync_reg == 0 || mglev == mglev_max) 
                 {
-		  BoxArray mesh = mg_mesh[mglev];
-		  mesh.convert(IndexType(IntVect::TheNodeVector()));
-		  sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
-		  sigma_node[mglev].setVal(1.e20);
+		    BoxArray mesh = mg_mesh[mglev];
+		    mesh.convert(IndexType(IntVect::TheNodeVector()));
+		    sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
+		    sigma_node[mglev].setVal(1.e20);
 	        }
 	    }
 	    
 	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	    {
-              if (for_sync_reg == 0 || mglev == mglev_max) 
-              {
-		const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0], h[mglev][1], h[mglev][2]) };
-		for (MultiFabIterator s_mfi(sigma[mglev]); s_mfi.isValid(); ++s_mfi)
+		for ( int i = 0; i < BL_SPACEDIM; ++i )
 		{
-		    DependentMultiFabIterator sn_dmfi(s_mfi, sigma_node[mglev]);
-		    DependentMultiFabIterator D_DECL(sn0(s_mfi, sigma_nd[0][mglev]),
-			sn1(s_mfi, sigma_nd[1][mglev]),
-			sn2(s_mfi, sigma_nd[2][mglev]));
-		    const Box& scbox = s_mfi->box();
-		    const Box& snbox = sn_dmfi->box();
-                    Box reg = (for_sync_reg > 0) ? 
-                             surroundingNodes(mg_mesh[mglev][s_mfi.index()]) : 
-	                     Box(lev_interface[mglev].part_fine(s_mfi.index()));
-		    FORT_HGSCON(sn_dmfi->dataPtr(),
-                                DIMLIST(snbox),
-                                D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
-                                DIMLIST(scbox),
-                                DIMLIST(reg),
-                                D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+		    HG_TEST_NORM(sigma_nd[i][mglev], "build_sigma pre hgscon");
 		}
-		
-		if (mglev < mglev_max) 
+		if (for_sync_reg == 0 || mglev == mglev_max) 
 		{
-		    sigma_nd[0].remove(mglev);
-		    for (int i = 1; i < BL_SPACEDIM; i++) 
+		    const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0],
+							    h[mglev][1],
+							    h[mglev][2]) };
+		    for (MultiFabIterator s_mfi(sigma[mglev]);
+			 s_mfi.isValid(); ++s_mfi)
 		    {
-			delete sigma_nd[i].remove(mglev);
+			DependentMultiFabIterator sn_dmfi(
+			    s_mfi, sigma_node[mglev]);
+			DependentMultiFabIterator D_DECL(
+			    sn0(s_mfi, sigma_nd[0][mglev]),
+			    sn1(s_mfi, sigma_nd[1][mglev]),
+			    sn2(s_mfi, sigma_nd[2][mglev])
+			    );
+			const Box& scbox = s_mfi->box();
+			const Box& snbox = sn_dmfi->box();
+			Box reg = (for_sync_reg > 0) ? 
+			    surroundingNodes(mg_mesh[mglev][s_mfi.index()]) : 
+			    Box(lev_interface[mglev].part_fine(s_mfi.index()));
+			FORT_HGSCON(
+			    sn_dmfi->dataPtr(),
+			    DIMLIST(snbox),
+			    D_DECL(sn0->dataPtr(),
+				   sn1->dataPtr(),
+				   sn2->dataPtr()), DIMLIST(scbox),
+			    DIMLIST(reg),
+			    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+		    }
+		    if (mglev < mglev_max) 
+		    {
+			sigma_nd[0].remove(mglev);
+			for (int i = 1; i < BL_SPACEDIM; i++) 
+			{
+			    delete sigma_nd[i].remove(mglev);
+			}
+		    }
+		    else 
+		    {
+			for (int i = 0; i < BL_SPACEDIM; i++) 
+			{
+			    sigma_nd[i].remove(mglev);
+			}
 		    }
 		}
-		else 
-		{
-		    for (int i = 0; i < BL_SPACEDIM; i++) 
-		    {
-			sigma_nd[i].remove(mglev);
-		    }
-		}
+		HG_TEST_NORM(sigma_node[mglev], "build_sigma hgscon");
 	    }
-	 }
 	}
     }
     
-    if (for_sync_reg == 0) {
-    cen.resize(mglev_max + 1);
-    for (int mglev = 0; mglev <= mglev_max; mglev++) 
+    if (for_sync_reg == 0)
     {
-	cen.set(mglev, new MultiFab(corr[mglev].boxArray(), 1, dest[lev_min].nGrow()));
-	MultiFab& ctmp = cen[mglev];
-	ctmp.setVal(0.0);
+	cen.resize(mglev_max + 1);
+	for (int mglev = 0; mglev <= mglev_max; mglev++) 
+	{
+	    cen.set(mglev,
+		    new MultiFab(corr[mglev].boxArray(), 1,
+				 dest[lev_min].nGrow()));
+	    MultiFab& ctmp = cen[mglev];
+	    ctmp.setVal(0.0);
 	
-	if (m_stencil == terrain)
-	{
-	    for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
+	    if ( m_stencil == terrain || m_stencil == full)
 	    {
-		DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
-		const Box& cenbox = c_mfi->box();
-		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-		const Box& sigbox = s_dmfi->box();
-		FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox), s_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
+		for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
+		{
+		    DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
+		    const Box& cenbox = c_mfi->box();
+		    const Box& reg =
+			lev_interface[mglev].part_fine(c_mfi.index());
+		    const Box& sigbox = s_dmfi->box();
+		    if ( m_stencil == terrain )
+		    {
+			FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox),
+					   s_dmfi->dataPtr(), DIMLIST(sigbox),
+					   DIMLIST(reg));
+		    }
+		    else
+		    {
+			FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
+					s_dmfi->dataPtr(), DIMLIST(sigbox),
+					DIMLIST(reg));
+		    }
+		}
 	    }
+	    else
+	    {
+		HG_TEST_NORM(sigma_node[mglev],"buildsigma");
+		for (MultiFabIterator c_mfi(cen[mglev]);
+		     c_mfi.isValid(); ++c_mfi)
+		{
+		    const Box& cenbox = c_mfi->box();
+		    const Box& reg =
+			lev_interface[mglev].part_fine(c_mfi.index());
+		    DependentMultiFabIterator sn_dmfi(
+			c_mfi, sigma_node[mglev]);
+		    const Box& sigbox = sn_dmfi->box();
+		    const int isRZ = getCoordSys();
+		    FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), 
+			       sn_dmfi->dataPtr(), DIMLIST(sigbox), 
+			       DIMLIST(reg),&isRZ);
+		}
+	    }	
+	    HG_TEST_NORM(ctmp, "buildsigma");
+	    clear_part_interface(ctmp, lev_interface[mglev]);
 	}
-	else if (m_stencil == full)
-	{
-#if defined(HG_FULL_STENCIL)
-#if BL_SPACEDIM != 3
-	    const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
-	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
-	    {
-		const Box& cenbox = c_mfi->box();
-		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]), 
-		    sn1(c_mfi, sigma_nd[1][mglev]),
-		    sn2(c_mfi, sigma_nd[2][mglev]));
-		const Box& sigbox = sn0->box();
-#if (BL_SPACEDIM == 2)
-		const int imax = mg_domain[mglev].bigEnd(0) + 1;
-		const int isRZ = IsRZ();
-		FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
-                                D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()), DIMLIST(sigbox),
-                                DIMLIST(reg),
-                                D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
-#else
-		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
-                                    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox),
-                                    DIMLIST(reg),
-                                    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
-#endif
-	    }
-#endif
-#endif
-	}
-	else
-	{
-	    HG_TEST_NORM(sigma_node[mglev],"buildsigma");
-	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
-	    {
-		const Box& cenbox = c_mfi->box();
-		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-#if BL_SPACEDIM == 2 && 0
-		const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
-		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
-		    sn1(c_mfi, sigma_nd[1][mglev]),
-		    sn2(c_mfi, sigma_nd[2][mglev]));
-		const Box& sigbox = sn0->box();
-		const int isRZ = IsRZ();
-		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox), 
-                       D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
-                       DIMLIST(sigbox), DIMLIST(reg), 
-                       D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]),&isRZ);
-#else
-		DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
-		const Box& sigbox = sn_dmfi->box();
-#if (BL_SPACEDIM == 2)
-		const int isRZ = IsRZ();
-		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), 
-                           sn_dmfi->dataPtr(), DIMLIST(sigbox), 
-                           DIMLIST(reg),&isRZ);
-#elif (BL_SPACEDIM == 3)
-		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), 
-                           sn_dmfi->dataPtr(), DIMLIST(sigbox), 
-                           DIMLIST(reg));
-#endif
-#endif
-	    }
-	}	
-	HG_TEST_NORM(ctmp, "buildsigma");
-	clear_part_interface(ctmp, lev_interface[mglev]);
-    }
     }
     
     if (m_stencil == cross)
@@ -692,25 +796,29 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	mask.resize(mglev_max + 1);
         if (for_sync_reg == 0) 
         {
-	  for (int mglev = 0; mglev <= mglev_max; mglev++) 
-	  {
-	    mask.set(mglev, new MultiFab(corr[mglev].boxArray(), 1, dest[lev_min].nGrow()));
-	    MultiFab& mtmp = mask[mglev];
-	    mtmp.setVal(0.0);
-	    for (MultiFabIterator m_mfi(mtmp); m_mfi.isValid(); ++m_mfi)
+	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	    {
-		m_mfi->setVal(1.0, lev_interface[mglev].part_fine(m_mfi.index()), 0);
+		mask.set(mglev,
+			 new MultiFab(corr[mglev].boxArray(), 1,
+				      dest[lev_min].nGrow()));
+		MultiFab& mtmp = mask[mglev];
+		mtmp.setVal(0.0);
+		for (MultiFabIterator m_mfi(mtmp); m_mfi.isValid(); ++m_mfi)
+		{
+		    m_mfi->setVal(1.0,
+				  lev_interface[mglev].part_fine(m_mfi.index()), 0);
+		}
+		HG_TEST_NORM(mtmp, "buildsigma 2");
+		clear_part_interface(mtmp, lev_interface[mglev]);
 	    }
-	    HG_TEST_NORM(mtmp, "buildsigma 2");
-	    clear_part_interface(mtmp, lev_interface[mglev]);
-	  }
         }
         else 
         {
-	    mask.set(mglev_max, new MultiFab(corr[mglev_max].boxArray(), 
-                     1, dest[lev_min].nGrow()));
+	    mask.set(mglev_max, new MultiFab(corr[mglev_max].boxArray(),
+					     1, dest[lev_min].nGrow()));
             mask[mglev_max].setVal(0.0);
-	    for (MultiFabIterator m_mfi(mask[mglev_max]); m_mfi.isValid(); ++m_mfi)
+	    for (MultiFabIterator m_mfi(mask[mglev_max]);
+		 m_mfi.isValid(); ++m_mfi)
             {
                 Box subbox(m_mfi.validbox());
 		m_mfi->setVal(1.0,subbox,0);
@@ -736,31 +844,12 @@ holy_grail_amr_multigrid::clear ()
     delete cgwork.remove(6);
     delete cgwork.remove(7);
     
-    if (m_stencil == terrain)
+    if (m_stencil == terrain || m_stencil == full )
     {
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
 	    delete sigma.remove(mglev);
 	}
-    }
-    else if (m_stencil == full)
-    {
-#if defined(HG_FULL_STENCIL)
-
-	delete sigma.remove(mglev_max);
-	for (int i = 0; i < BL_SPACEDIM; i++) 
-	{
-	    sigma_nd[i].remove(mglev_max);
-	}
-	for (int mglev = 0; mglev < mglev_max; mglev++) 
-	{
-	    sigma.remove(mglev);
-	    for (int i = 0; i < BL_SPACEDIM; i++) 
-	    {
-		delete sigma_nd[i].remove(mglev);
-	    }
-	}
-#endif
     }
     else
     {
@@ -768,24 +857,9 @@ holy_grail_amr_multigrid::clear ()
 	{
 	    delete sigma.remove(mglev);
 	    if (sigma_node.ready() && sigma_node.defined(mglev))
+	    {
 		delete sigma_node.remove(mglev);
-#if BL_SPACEDIM == 2 && 0
-	    if (mglev < mglev_max) 
-	    {
-		sigma_nd[0].remove(mglev);
-		for (int i = 1; i < BL_SPACEDIM; i++) 
-		{
-		    delete sigma_nd[i].remove(mglev);
-		}
 	    }
-	    else 
-	    {
-		for (int i = 0; i < BL_SPACEDIM; i++) 
-		{
-		    sigma_nd[i].remove(mglev);
-		}
-	    }
-#endif	
 	}
     }
     
@@ -793,7 +867,9 @@ holy_grail_amr_multigrid::clear ()
     {
 	delete cen.remove(mglev);
 	if (mask.ready() && mask.defined(mglev))
+	{
 	    delete mask.remove(mglev);
+	}
     }
     
     delete [] h;
@@ -801,7 +877,10 @@ holy_grail_amr_multigrid::clear ()
     {
 	for (int lev = lev_min; lev <= lev_max; lev++) 
 	{
-	    if (source.defined(lev)) delete source.remove(lev);
+	    if (source.defined(lev))
+	    {
+		delete source.remove(lev);
+	    }
 	}
     }
     
@@ -814,32 +893,25 @@ holy_grail_amr_multigrid::sync_resid_clear ()
     line_order.clear();
     line_after.clear();
     
-    if (m_stencil == terrain)
+    if (m_stencil == terrain || m_stencil == full )
     {
-      delete sigma.remove(mglev_max);
-    }
-    else if (m_stencil == full)
-    {
-#if defined(HG_FULL_STENCIL)
-
 	delete sigma.remove(mglev_max);
-	for (int i = 0; i < BL_SPACEDIM; i++) 
-	{
-	    sigma_nd[i].remove(mglev_max);
-	}
-#endif
     }
     else
     {
-      delete sigma.remove(mglev_max);
-      if (sigma_node.ready() && sigma_node.defined(mglev_max))
-	delete sigma_node.remove(mglev_max);
+	delete sigma.remove(mglev_max);
+	if (sigma_node.ready() && sigma_node.defined(mglev_max))
+	{
+	    delete sigma_node.remove(mglev_max);
+	}
     }
 
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
     {
 	if (mask.ready() && mask.defined(mglev))
+	{
 	    delete mask.remove(mglev);
+	}
     }
     
     delete [] h;
@@ -847,7 +919,10 @@ holy_grail_amr_multigrid::sync_resid_clear ()
     {
 	for (int lev = lev_min; lev <= lev_max; lev++) 
 	{
-	    if (source.defined(lev)) delete source.remove(lev);
+	    if (source.defined(lev))
+	    {
+		delete source.remove(lev);
+	    }
 	}
     }
     
@@ -886,22 +961,34 @@ holy_grail_amr_multigrid::sync_interfaces ()
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mgc].length();
 	MultiFab& target = dest[lev];
 	task_list tl;
-	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
+	for (int iface = 0;
+	     iface < lev_interface[mglev].nboxes(level_interface::FACEDIM);
+	     iface++) 
 	{
             //
 	    // Find a fine grid touching this face.
             //
-	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
+	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM,
+						  iface, 0);
 	    if (igrid < 0)
-		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
-	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
+		igrid = lev_interface[mglev].grid(level_interface::FACEDIM,
+						  iface, 1);
+	    const unsigned int geo =
+		lev_interface[mglev].geo(level_interface::FACEDIM, iface);
             //
 	    // Reject fine-fine interfaces and those without an interior fine grid
             //
-	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
+	    const Box& nbox =
+		lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
+	    if (   geo == level_interface::ALL
+		|| igrid < 0
+		|| lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
+	    tl.add_task(
+		new task_interpolate_patch(tl,target,igrid,nbox,
+					   dest[lev-1],rat,
+					   new bilinear_interpolator(),
+					   lev_interface[mgc]));
 	}
 	tl.execute("holy_grail_amr_multigrid::sync_interfaces");
     }
@@ -919,24 +1006,36 @@ holy_grail_amr_multigrid::sync_periodic_interfaces ()
 	idomain.convert(type(dest[lev])).grow(-1);
 	MultiFab& target = dest[lev];
 	task_list tl;
-	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
+	for (int iface = 0;
+	     iface < lev_interface[mglev].nboxes(level_interface::FACEDIM);
+	     iface++) 
 	{
             //
 	    // Find a fine grid touching this face.
             //
-	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
+	    int igrid =
+		lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	    if (igrid < 0)
-		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
-	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
+		igrid =
+		    lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
+	    const unsigned int geo =
+		lev_interface[mglev].geo(level_interface::FACEDIM, iface);
             //
 	    // Use only exterior coarse-fine faces with an interior fine grid.
             //
-	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
+	    const Box& nbox =
+		lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
+	    if ( geo == level_interface::ALL
+		 || igrid < 0
+		 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
 	    if (idomain.intersects(nbox))
                 continue;
-	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
+	    tl.add_task(
+		new task_interpolate_patch(tl,target,igrid,nbox,
+					   dest[lev-1],rat,
+					   new bilinear_interpolator(),
+					   lev_interface[mgc]));
 	}
 	tl.execute("holy_grail_amr_multigrid::sync_periodic_interfaces");
     }
@@ -947,14 +1046,21 @@ holy_grail_amr_multigrid::mg_restrict_level (int lto,
                                              int lfrom)
 {
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
+    HG_TEST_NORM( resid[lto], "mg_restrict_level: resid in" );
+    HG_TEST_NORM( work[lfrom], "mg_restrict_level: work in" );
     if (get_amr_level(lto) >= 0) 
     {
-	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_class( (integrate==0)?0:1, m_stencil == terrain), lev_interface[lfrom], mg_boundary);
+	restrict_level(
+	    resid[lto], work[lfrom], rat,
+	    bilinear_restrictor((integrate==0)?0:1, is_dense(m_stencil)),
+	    lev_interface[lfrom], mg_boundary);
     }
     else 
     {
 	mg_restrict(lto, lfrom);
     }
+    HG_TEST_NORM( resid[lto], "mg_restrict_level: resid out" );
+    HG_TEST_NORM( work[lfrom], "mg_restrict_level: work out" );
 }
 
 void
@@ -963,7 +1069,8 @@ holy_grail_amr_multigrid::mg_restrict (int lto,
 {
     HG_TEST_NORM( work[lfrom], "mg_restrict 1");
     HG_TEST_NORM( resid[lto], "mg_restrict 11");
-    fill_borders(work[lfrom], lev_interface[lfrom], mg_boundary, -1, m_stencil == terrain);
+    fill_borders(work[lfrom], lev_interface[lfrom],
+		 mg_boundary, -1, is_dense(m_stencil));
     const IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     for (MultiFabIterator w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
     {
@@ -980,31 +1087,33 @@ holy_grail_amr_multigrid::mg_restrict (int lto,
 }
 
 void
-holy_grail_interpolator_class_not_cross::fill (FArrayBox&       patch,
-                                               const Box&       region,
-                                               const FArrayBox& cgr,
-                                               const Box&       cb,
-                                               const IntVect&   rat) const
+holy_grail_interpolator_dense::fill (FArrayBox&       patch,
+				     const Box&       region,
+				     const FArrayBox& cgr,
+				     const Box&       cb,
+				     const IntVect&   rat) const
 {
-    FORT_HGINTS_NO_SIGMA(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-                         D_DECL(sigptr[0], sigptr[1], sigptr[2]),
-                         DIMLIST(sigbox),
-                         cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
-                         D_DECL(rat[0], rat[1], rat[2]));
+    FORT_HGINTS_DENSE(
+	patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+	D_DECL(sigptr[0], sigptr[1], sigptr[2]),
+	DIMLIST(sigbox),
+	cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
+	D_DECL(rat[0], rat[1], rat[2]));
     
 }
 
 void
-holy_grail_interpolator_class::fill (FArrayBox&       patch,
-                                     const Box&       region,
-                                     const FArrayBox& cgr,
-                                     const Box&       cb,
-                                     const IntVect&   rat) const
+holy_grail_interpolator::fill (FArrayBox&       patch,
+			       const Box&       region,
+			       const FArrayBox& cgr,
+			       const Box&       cb,
+			       const IntVect&   rat) const
 {
-    FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-                sigptr, DIMLIST(sigbox),
-                cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
-                D_DECL(rat[0], rat[1], rat[2]));
+    FORT_HGINTS(
+	patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
+	sigptr, DIMLIST(sigbox),
+	cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
+	D_DECL(rat[0], rat[1], rat[2]));
     
 }
 
@@ -1019,12 +1128,14 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
         //
 	const int ltmp = lfrom + 1;
 	MultiFab& target = work[ltmp];
-	const IntVect rat = mg_domain[ltmp].length() / mg_domain[lfrom].length();
+	const IntVect rat =
+	    mg_domain[ltmp].length() / mg_domain[lfrom].length();
+	HG_TEST_NORM( corr[lfrom], "mg_interpolate_level");
 	task_list tl;
 	for (int igrid = 0; igrid < target.length(); igrid++) 
 	{
-	    amr_interpolator_class* hgi;
-	    if (m_stencil == terrain)
+	    amr_interpolator* hgi;
+	    if (m_stencil == terrain || m_stencil == full )
 	    {
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		if ( is_local(sigma[ltmp], igrid) )
@@ -1035,57 +1146,37 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		    }
 		}
 		//const Box& sigbox = sigma[ltmp][igrid].box();
-		const Box& sigbox = sigma[ltmp].box(igrid);
-		BL_ASSERT( is_remote(sigma[ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
-		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
-	    }
-	    else if (m_stencil == full)
-	    {
-#if defined(HG_FULL_STENCIL)
-		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
-		for (int i = 0; i < BL_SPACEDIM; i++) 
-		{
-		    if ( is_local(sigma_nd[i][ltmp], igrid) )
-		    {
-			sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
-		    }
-		}
-		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
-		BL_ASSERT(is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
-		// const Box& sigbox = sigma[ltmp][igrid].box();
-		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
-#endif
+		//const Box& sigbox = sigma[ltmp].box(igrid);
+		const Box sigbox =
+		    grow(sigma[ltmp].box(igrid),
+			 sigma[ltmp].nGrow());
+		BL_ASSERT( is_remote(sigma[ltmp], igrid)
+			|| sigbox == sigma[ltmp][igrid].box()); // FIXME: WHAT IS THIS SUPPOSED TO MEAN?
+		hgi = new holy_grail_interpolator_dense(sigptr, sigbox);
 	    }
 	    else
 	    {
-#if BL_SPACEDIM == 2 && 0
-		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
-		for (int i = 0; i < BL_SPACEDIM; i++) 
-		{
-		    if ( is_local(sigma_nd[i][ltmp], igrid) )
-		    {
-			sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
-		    }
-		}
-		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
-		BL_ASSERT( is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma_nd[0][ltmp][igrid].box());
-		// const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
-		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
-#else
 		Real* sigptr = 0;
 		if ( is_local(sigma_node[ltmp], igrid ) )
 		{
 		    sigptr = sigma_node[ltmp][igrid].dataPtr();
 		}
-		const Box& sigbox = grow(sigma_node[ltmp].box(igrid), sigma_node[ltmp].nGrow());
-		BL_ASSERT( is_remote(sigma_node[ltmp], igrid) || sigbox == sigma_node[ltmp][igrid].box());
+		const Box sigbox =
+		    grow(sigma_node[ltmp].box(igrid),
+			 sigma_node[ltmp].nGrow());
+		BL_ASSERT(    is_remote(sigma_node[ltmp], igrid)
+			   || sigbox == sigma_node[ltmp][igrid].box());
 		// const Box& sigbox = sigma_node[ltmp][igrid].box();
-		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
-#endif
+		hgi = new holy_grail_interpolator(sigptr, sigbox);
 	    }
-	    tl.add_task(new task_interpolate_patch(tl,target,igrid,target.box(igrid),corr[lfrom],rat,hgi,lev_interface[lfrom]));
+	    tl.add_task(
+		new task_interpolate_patch(tl,target,igrid,target.box(igrid),
+					   corr[lfrom],rat,
+					   hgi,
+					   lev_interface[lfrom]));
 	}
 	tl.execute("holy_grail_amr_multigrid::mg_interpolate_level");
+	HG_TEST_NORM( target, "mg_interpolate_level a");
 	if (lto > ltmp) 
 	{
 	    corr[ltmp].copy(target);
@@ -1098,7 +1189,8 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	// Multigrid interpolation, grids known to match up
 	// special stencil needed for multigrid convergence.
         //
-	const IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
+	const IntVect rat = mg_domain[lto].length()
+	    / mg_domain[lfrom].length();
 	for (MultiFabIterator w_mfi(work[lto]); w_mfi.isValid(); ++w_mfi)
 	{
 	    DependentMultiFabIterator c_dmfi(w_mfi, corr[lfrom]);
@@ -1106,55 +1198,29 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	    const Box& freg = w_mfi.validbox();
 	    const Box& cbox = c_dmfi->box();
 	    const Box& creg = c_dmfi.validbox();
-	    if (m_stencil == terrain)
+	    if ( m_stencil == terrain || m_stencil == full )
 	    {
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma[lto]);
 		const Box& sigbox = sn_dmfi->box();
-		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-                                     D_DECL(sn_dmfi->dataPtr(0), sn_dmfi->dataPtr(1), sn_dmfi->dataPtr(2)), 
-                                     DIMLIST(sigbox),
-                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-                                     D_DECL(rat[0], rat[1], rat[2]));
-	    }
-	    else if (m_stencil == full)
-	    {
-#if defined(HG_FULL_STENCIL)
-#if (BL_SPACEDIM == 2)
-		DependentMultiFabIterator D_DECL(s0_dmfi(w_mfi, sigma_nd[0][lto]),
-						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
-						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
-		const Box& sigbox = s0_dmfi->box();
-		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-                                     D_DECL(s0_dmfi->dataPtr(), s1_dmfi->dataPtr(), s2_dmfi->dataPtr()),
-                                     DIMLIST(sigbox),
-                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-                                     D_DECL(rat[0], rat[1], rat[2]));
-#endif
-#endif
+		FORT_HGINTS_DENSE(
+		    w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		    D_DECL(sn_dmfi->dataPtr(0),
+			   sn_dmfi->dataPtr(1),
+			   sn_dmfi->dataPtr(2)), DIMLIST(sigbox),
+		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	    }
 	    else
 	    {
-#if (BL_SPACEDIM == 2) && 0
-		DependentMultiFabIterator D_DECL(s0_dmfi(w_mfi, sigma_nd[0][lto]),
-						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
-						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
-		const Box& sigbox = s0_dmfi->box();
-		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-                                     D_DECL(s0_dmfi->dataPtr(),
-                                            s1_dmfi->dataPtr(),
-                                            s2_dmfi->dataPtr()), DIMLIST(sigbox),
-                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-                                     D_DECL(rat[0], rat[1], rat[2]));
-#else
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma_node[lto]);
 		const Box& sigbox = sn_dmfi->box();
-		FORT_HGINTS(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-                            sn_dmfi->dataPtr(),
-                            DIMLIST(sigbox),
-                            c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-                            D_DECL(rat[0], rat[1], rat[2]));
-#endif
+		FORT_HGINTS(
+		    w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+		    sn_dmfi->dataPtr(), DIMLIST(sigbox),
+		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	    }
 	}
+	HG_TEST_NORM( work[lto], "mg_interpolate_level");
     }
 }

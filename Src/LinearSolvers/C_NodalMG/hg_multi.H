@@ -5,60 +5,47 @@
 
 #include "amr_multi.H"
 
-class holy_grail_interpolator_class_not_cross : public bilinear_interpolator_class 
+class holy_grail_amr_multigrid
+    : public amr_multigrid 
 {
 public:
-    holy_grail_interpolator_class_not_cross(Real **Sigptr, const Box& Sigbox)
-	: sigptr(Sigptr), sigbox(Sigbox) 
-    { 
-    }
-    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
-protected:
-    Real **sigptr;
-    const Box& sigbox;
-};
+    enum stencil { terrain = 0, full = 1, cross = 2 };
 
-class holy_grail_interpolator_class : public bilinear_interpolator_class 
-{
-public:
-    holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
-	: sigptr(Sigptr), sigbox(Sigbox) 
-    { 
-    }
-    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect&) const;
-protected:
-    Real *sigptr;
-    const Box sigbox;
-};
-
-class holy_grail_sigma_restrictor_class : public cell_average_restrictor_class 
-{
-public:
-    holy_grail_sigma_restrictor_class() 
-	: cell_average_restrictor_class(0), m_hg_terrain(false) 
-    { 
-    }
-    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
-private:
-    bool m_hg_terrain;
-};
-
-class holy_grail_amr_multigrid : public amr_multigrid 
-{
-public:
-    enum stencil { terrain = 0, full = 1, cross = 2 }; 
-
-    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, const Box& fdomain, int Lev_min_min, int Lev_min_max, int Lev_max_max, const amr_fluid_boundary_class& Boundary, stencil stencil_ = cross, int Pcode = 2)
-	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max, Boundary.pressure(), Pcode), boundary(Boundary), smoother_mode(2), line_solve_dim(-1),  m_stencil(stencil_)
+    static bool is_dense(stencil sval)
     {
-	BL_ASSERT(m_stencil != full );
+	return sval == terrain || sval == full;
+    }
+
+    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh,
+			     const Array<IntVect>& Gen_ratio,
+			     const Box& fdomain,
+			     int Lev_min_min,
+			     int Lev_min_max,
+			     int Lev_max_max,
+			     const amr_fluid_boundary& Boundary,
+			     stencil stencil_ = cross,
+			     int Pcode = 2)
+	: amr_multigrid(Mesh,
+			Gen_ratio,
+			Lev_min_min,
+			Lev_min_max,
+			Lev_max_max,
+			Boundary.pressure(),
+			Pcode),
+	  boundary(Boundary),
+	  smoother_mode(2),
+	  line_solve_dim(-1),
+	  m_stencil(stencil_)
+    {
 	build_mesh(fdomain);
     }
     void set_line_solve_dimension(int dim)
     {
 	if (dim != -1) 
 	{
-	    BoxLib::Abort( "holy_grail_amr_multigird::holy_grail_amr_multigrid(): LineSolves not supported in parallel" );
+	    BoxLib::Abort(
+		"holy_grail_amr_multigrid::holy_grail_amr_multigrid():"
+		"LineSolves not supported in parallel" );
 	}
 	line_solve_dim = dim;
     }
@@ -68,32 +55,53 @@ public:
     }
 
 protected:
-    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma,  Real H[], int Lev_min, int Lev_max, int for_sync_reg);
+    void alloc(PArray<MultiFab>& Dest,
+	       PArray<MultiFab>& Source,
+	       PArray<MultiFab>& Coarse_source,
+	       PArray<MultiFab>& Sigma,
+	       Real H[],
+	       int Lev_min,
+	       int Lev_max,
+	       int for_sync_reg);
     void sync_resid_clear();
     void clear();
     void build_line_order(int lsd);
     
-    void build_sigma(PArray<MultiFab>& Sigma, int for_sync_reg);
+    void build_sigma(PArray<MultiFab>& Sigma,
+		     int for_sync_reg);
     
     void alloc_sync_caches();
     void delete_sync_caches();
-    void build_sync_cache(int mglev, int lev);
+    void build_sync_cache(int mglev,
+			  int lev);
     
     // all these inherited in some form from amr_multigrid
-    virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const;
+    virtual bool can_coarsen(const BoxArray& mesh,
+			     const Box& domain) const;
     virtual void sync_interfaces();
     
     // special case for periodic cleanup at the end:
     void sync_periodic_interfaces();
     
-    virtual void mg_interpolate_level(int lto, int lfrom);
-    virtual void mg_restrict_level(int lto, int lfrom);
-    virtual void interface_residual(int mglev, int lev);
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear, int for_sync_reg = 0);
-    virtual void relax(int mglev, int i1, bool is_zero);
+    virtual void mg_interpolate_level(int lto,
+				      int lfrom);
+    virtual void mg_restrict_level(int lto,
+				   int lfrom);
+    virtual void interface_residual(int mglev,
+				    int lev);
+    virtual void level_residual(MultiFab& r,
+				MultiFab& s,
+				MultiFab& d,
+				int mglev,
+				bool iclear,
+				int for_sync_reg = 0);
+    virtual void relax(int mglev,
+		       int i1,
+		       bool is_zero);
     virtual void cgsolve(int mglev);
     
-    void mg_restrict(int lto, int lfrom);
+    void mg_restrict(int lto,
+		     int lfrom);
 private:
     holy_grail_amr_multigrid(const holy_grail_amr_multigrid&);
     void operator=(const holy_grail_amr_multigrid&);
@@ -105,7 +113,7 @@ protected:
     stencil m_stencil;
     int smoother_mode;
     int line_solve_dim;
-    const amr_fluid_boundary_class& boundary;
+    const amr_fluid_boundary& boundary;
     PArray<MultiFab> sigma;
     PArray<MultiFab> sigma_nd[BL_SPACEDIM];
     PArray<MultiFab> sigma_node;
