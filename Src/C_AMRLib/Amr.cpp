@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.109 2000-06-15 16:57:41 lijewski Exp $
+// $Id: Amr.cpp,v 1.110 2000-06-16 17:39:49 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1683,10 +1683,7 @@ Amr::grid_places (int              lbase,
                     bx.refine(ref_ratio[lev-1]);
                     if (bx.longside() > max_grid_size)
                     {
-                        cout << "Grid "
-                             << bx
-                             << " too large"
-                             << '\n';
+                        cout << "Grid " << bx << " too large" << '\n';
                         BoxLib::Error();
                     }
                     bl.append(bx);
@@ -1801,7 +1798,7 @@ Amr::grid_places (int              lbase,
 
             BoxList bl_tagged;
             for (int i = 0; i < new_grids[levf+1].length(); i++)
-                bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+                bl_tagged.add(::coarsen(new_grids[levf+1][i],ref_ratio[levf]));
             //
             // This grows the boxes by nerr if they touch the edge of the
             // domain in preparation for them being shrunk by nerr later.
@@ -1819,10 +1816,14 @@ Amr::grid_places (int              lbase,
                 }
             }
 
-            Box mboxF = Box(bl_tagged.minimalBox()).grow(1);
-            BoxList blFcomp = complementIn(mboxF,bl_tagged);
-            blFcomp.accrete(nerr);
-            BoxList blF = complementIn(mboxF,blFcomp);
+            Box mboxF = ::grow(bl_tagged.minimalBox(),1);
+            BoxList blFcomp = ::complementIn(mboxF,bl_tagged);
+            IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                        nerr/ref_ratio[levf][1],
+                                        nerr/ref_ratio[levf][2]));
+            for (BoxListIterator bli(blFcomp); bli; ++bli)
+                blFcomp[bli].grow(iv);
+            BoxList blF = ::complementIn(mboxF,blFcomp);
 
             BoxArray baF(blF);
             baF.grow(n_proper);
@@ -1831,13 +1832,14 @@ Amr::grid_places (int              lbase,
             // levc will not be enough to cover the error buffering
             // at levf which was just subtracted off.
             //
-            for (int idir=0; idir < BL_SPACEDIM; idir++) 
+            for (int idir = 0; idir < BL_SPACEDIM; idir++) 
             {
-              if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
-                baF.grow(idir,nerr-n_error_buf[levc]*ref_ratio[levc][idir]);
+                if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
+                    baF.grow(idir,nerr-n_error_buf[levc]*ref_ratio[levc][idir]);
             }
 
             baF.coarsen(ref_ratio[levc]);
+
             tags.setVal(baF,TagBox::SET);
         }
         //
