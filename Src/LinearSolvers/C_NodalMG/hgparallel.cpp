@@ -93,6 +93,7 @@ void task_list::add_task(task* t, task::sequence_number seq_no_)
 void task_list::execute()
 {
     if ( HG_is_debugging ) MPI_Barrier(comm);
+    HG_DEBUG_OUT("Processing List " << comm << " with " << tasks.size() << " elements " << endl);
     list< task** > dead_tasks;
     // The dead_task list is used, because the tasks being processed also appear
     // in tasks dependecy lists.
@@ -102,8 +103,10 @@ void task_list::execute()
 	tasks.pop_front();
 	if ( verbose ) 
 	    (*t)->hint();
+	HG_DEBUG_OUT("*** Trying " << t << endl;)
 	if ( (*t)->ready() )
 	{
+	    HG_DEBUG_OUT("*** Finished " << t << endl);
 	    list<task*> tl;
 	    if ( (*t)->recommit(&tl) )
 	    {
@@ -119,6 +122,7 @@ void task_list::execute()
 	}
 	else
 	{
+	    HG_DEBUG_OUT("*** Retry " << t << endl);
 	    tasks.push_back(t);
 	}
     }
@@ -131,6 +135,7 @@ void task_list::execute()
 
 bool task_list::execute_no_block()
 {
+    HG_DEBUG_OUT("No Block Processing List " << comm << " with " << tasks.size() << " elements " << endl);
     list< task** >::iterator tli = tasks.begin();
     while ( tli != tasks.end() )
     {
