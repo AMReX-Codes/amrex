@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.29 1998-07-27 20:43:37 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.30 1998-07-28 17:47:49 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -171,10 +171,6 @@ void
 DistributionMapping::define (int             nprocs,
                              const BoxArray& boxes)
 {
-    static RunStats stats("processor_map");
-
-    stats.start();
-
     if (!(m_procmap.length() == boxes.length()+1))
     {
         m_procmap.resize(boxes.length()+1);
@@ -191,6 +187,12 @@ DistributionMapping::define (int             nprocs,
     {
         if (!GetMap(nprocs, boxes))
         {
+            static const aString TheName("processor_map");
+
+            RunStats stats(TheName);
+
+            stats.start();
+
             (this->*m_BuildMap)(nprocs, boxes);
 
 #ifndef BL_NO_PROCMAP_CACHE
@@ -199,10 +201,9 @@ DistributionMapping::define (int             nprocs,
             //
             DistributionMapping::m_Cache.push_back(m_procmap);
 #endif
+            stats.end();
         }
     }
-
-    stats.end();
 }
 
 DistributionMapping::~DistributionMapping () {}
