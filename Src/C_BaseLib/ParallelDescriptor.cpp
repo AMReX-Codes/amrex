@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.23 1998-04-09 22:37:27 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.24 1998-04-13 19:44:26 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -320,8 +320,8 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
 #include "mpi.h"
 
-static int numprocs = -1;
-static int myid     = -1;
+static int nProcs = -1;
+static int MyId   = -1;
 
 inline
 MPI_Datatype
@@ -331,40 +331,74 @@ TheRealType ()
 }
 
 void
+ParallelDescriptor::Abort (const char* msg)
+{
+    BoxLib::Warning(msg);
+
+    MPI_Abort(MPI_COMM_WORLD, -1);
+}
+
+void
+ParallelDescriptor::Abort (int errorcode)
+{
+    assert(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
+
+    int len = 0;
+
+    char msg[MPI_MAX_ERROR_STRING+1];
+
+    MPI_Error_string(errorcode, msg, &len);
+
+    assert(len <= MPI_MAX_ERROR_STRING);
+
+    ParallelDescriptor::Abort(msg);
+}
+
+void
 ParallelDescriptor::StartParallel (int,
                                    int*    argc,
                                    char*** argv)
 {
-    MPI_Init(argc, argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    int rc;
+
+    if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+
+    if ((rc = MPI_Comm_size(MPI_COMM_WORLD, &nProcs)) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+
+    if ((rc = MPI_Comm_rank(MPI_COMM_WORLD, &MyId)) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
 }
 
 void
 ParallelDescriptor::EndParallel ()
 {
-    MPI_Finalize();
+    int rc = MPI_Finalize();
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
 }
 
 int
 ParallelDescriptor::MyProc ()
 {
-    assert(myid != -1);
-    return myid;
+    assert(MyId != -1);
+    return MyId;
 }
 
 int
 ParallelDescriptor::NProcs ()
 {
-    assert(numprocs != -1);
-    return numprocs;
+    assert(nProcs != -1);
+    return nProcs;
 }
 
 bool
 ParallelDescriptor::IOProcessor ()
 {
-    assert(myid == -1);
-    return myid == ioProcessor;
+    assert(MyId == -1);
+    return MyId == ioProcessor;
 }
 
 int
@@ -382,7 +416,10 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    MPI_Barrier(MPI_COMM_WORLD);
+    int rc = MPI_Barrier(MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
 }
 
 void ParallelDescriptor::Synchronize () {}
@@ -391,7 +428,12 @@ void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_MAX, MPI_COMM_WORLD);
+
+    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_MAX, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+    
     r = recv;
 }
 
@@ -399,7 +441,12 @@ void
 ParallelDescriptor::ReduceRealMin (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_MIN, MPI_COMM_WORLD);
+
+    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_MIN,MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
     r = recv;
 }
 
@@ -407,7 +454,12 @@ void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_SUM, MPI_COMM_WORLD);
+
+    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_SUM,MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
     r = recv;
 }
 
@@ -415,7 +467,12 @@ void
 ParallelDescriptor::ReduceLongAnd (long& r)
 {
     long recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_LAND, MPI_COMM_WORLD);
+
+    int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_LAND, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
     r = recv;
 }
 
@@ -423,7 +480,12 @@ void
 ParallelDescriptor::ReduceLongSum (long& r)
 {
     long recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
     r = recv;
 }
 
@@ -431,15 +493,13 @@ void
 ParallelDescriptor::ReduceIntSum (int& r)
 {
     int recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    r = recv;
-}
 
-void
-ParallelDescriptor::Abort (const char* msg)
-{
-    BoxLib::Warning(msg);
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    int rc = MPI_Allreduce(&r, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
+    r = recv;
 }
 
 void
@@ -455,23 +515,27 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = TheRealType();
 
-    MPI_Gather(sendbuf, nsend, typ, recvbuf, nsend, typ, root, MPI_COMM_WORLD);
+    int rc = MPI_Gather(sendbuf,nsend,typ,recvbuf,nsend,typ,root,MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
 }
 
 #else
 
 void
 ParallelDescriptor::Gather (Real* sendbuf,
-			    int nsend,
+			    int   nsend,
 			    Real* recvbuf,
-			    int root)
+			    int   root)
 {
     assert(root == 0);
     assert(nsend > 0);
     assert(!(sendbuf == 0));
     assert(!(recvbuf == 0));
 
-    for (int i = 0; i < nsend; ++i) recvbuf[i] = sendbuf[i];
+    for (int i = 0; i < nsend; ++i)
+        recvbuf[i] = sendbuf[i];
 }
 
 void ParallelDescriptor::StartParallel(int, int*, char***) {}
