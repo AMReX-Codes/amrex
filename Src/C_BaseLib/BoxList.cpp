@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.13 2001-07-19 17:23:41 car Exp $
+// $Id: BoxList.cpp,v 1.12 2001-07-19 17:19:33 car Exp $
 //
 
 #include <algorithm>
@@ -314,7 +314,7 @@ BoxList::intersect (const BoxList& b)
 }
 
 BoxList
-BoxLib::complementIn (const Box&     b,
+complementIn (const Box&     b,
               const BoxList& bl)
 {
     BoxList newb(b.ixType());
@@ -434,8 +434,8 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-BoxLib::boxDiff (const Box& b1in,
-		 const Box& b2)
+boxDiff (const Box& b1in,
+         const Box& b2)
 {
    Box b1(b1in);
    BoxList b_list(b1.ixType());
