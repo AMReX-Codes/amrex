@@ -391,7 +391,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor, 0);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir1)
 			);
