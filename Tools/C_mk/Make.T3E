@@ -20,7 +20,7 @@ CXXDEBF += +K0
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
 override XTRADEFS += -DBL_USE_NEW_HFILES
-override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
+override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(PROFILE), TRUE)
