@@ -204,8 +204,8 @@ ifeq ($(ARCH),Linux)
         FFLAGS   += -g -traceback
         F90FLAGS += -check all
         FFLAGS   += -check all
-        F90FLAGS += -check noshape -check nopointer
-        FFLAGS   += -check noshape -check nopointer
+#       F90FLAGS += -check noshape -check nopointer
+#       FFLAGS   += -check noshape -check nopointer
         CFLAGS   += -g -Wcheck
 	LDFLAGS  += -Bstatic
       else
