@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.83 1999-05-10 18:54:07 car Exp $
+// $Id: Amr.cpp,v 1.84 1999-05-10 20:31:14 marc Exp $
 //
 
 #include <TagBox.H>
@@ -1718,7 +1718,7 @@ Amr::bldFineLevels (Real strt_time)
     //
     // Iterate grids to ensure fine grids encompass all interesting gunk.
     //
-    bool grids_the_same = true;
+    bool grids_the_same;
 
     do
     {
@@ -1726,6 +1726,8 @@ Amr::bldFineLevels (Real strt_time)
             grids[i] = amr_level[i].boxArray();
 
         regrid(0,strt_time,true);
+
+        grids_the_same = true;
 
         for (int i = 0; i <= finest_level && grids_the_same; i++)
             if (!(grids[i] == amr_level[i].boxArray()))
