@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.29 1999-02-03 22:50:28 lijewski Exp $
+# $Id: GNUmakefile,v 1.30 1999-02-05 18:54:29 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -81,7 +81,7 @@ endif
 #
 # For 3rd ...
 #
-3RD = 0
+#3RD = 0
 ifdef 3RD
   CXXFLAGS  += --link_command_prefix 3rd
   LIBRARIES += -ldnet_stub
