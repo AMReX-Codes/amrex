@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.90 1999-07-21 21:09:20 sstanley Exp $
+// $Id: Amr.cpp,v 1.91 1999-07-27 17:35:51 marc Exp $
 //
 
 #include <TagBox.H>
@@ -1741,8 +1741,6 @@ Amr::grid_places (int              lbase,
             clist.boxList(new_bx);
 
             new_bx.refine(bf_lev[levc]);
-
-            amr_level[levc].manual_grid_placement(new_bx);
 
             new_bx.minimize();
 
