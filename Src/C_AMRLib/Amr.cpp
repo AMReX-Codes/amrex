@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.119 2001-05-09 22:30:59 lijewski Exp $
+// $Id: Amr.cpp,v 1.120 2001-05-14 17:48:12 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -63,17 +63,6 @@ static const aString CheckPointVersion = "CheckPointVersion_1.0";
 static int regrid_on_restart = 0;
 
 static int plotfile_on_restart = 0;
-//
-// Tar up and then remove checkpoint and plot files -- defaults to false?
-//
-static int tar_and_rm_files = 0;
-//
-// The pid's of the last `tar_and_rm_files' commands for chk and plt files.
-//
-#ifndef WIN32
-static pid_t pid_chk = -1;
-static pid_t pid_plt = -1;
-#endif
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -173,13 +162,6 @@ Amr::Amr ()
 
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("plotfile_on_restart",plotfile_on_restart);
-
-    if (pp.contains("tar_and_rm_files"))
-        //
-        // Only query() if it's in the file.
-        // Otherwise, we could overwrite any non-zero default.
-        //
-        pp.query("tar_and_rm_files",tar_and_rm_files);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -481,19 +463,6 @@ Amr::~Amr ()
         writePlotFile(plot_file_root,level_steps[0]);
 
     levelbld->variableCleanUp();
-
-#ifndef WIN32
-    if (ParallelDescriptor::IOProcessor() && tar_and_rm_files)
-    {
-        //
-        // Wait for the last chk and plt file tar_and_rm processes.
-        //
-        int status;
-
-        if (pid_chk != -1) waitpid(pid_chk, &status, 0);
-        if (pid_plt != -1) waitpid(pid_plt, &status, 0);
-    }
-#endif
 }
 
 void
@@ -649,26 +618,6 @@ Amr::writePlotFile (const aString& root,
     if (ParallelDescriptor::IOProcessor())
     {
         cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
-
-#ifndef WIN32
-        if (tar_and_rm_files)
-        {
-            int status;
-
-            if (pid_plt != -1) waitpid(pid_plt, &status, 0);
-
-            aString cmd;
-
-            cmd += "tar cf ";
-            cmd += pltfile;
-            cmd += ".tar ";
-            cmd += pltfile;
-            cmd += "; rm -rf ";
-            cmd += pltfile;
-
-            pid_plt = Utility::Execute(cmd.c_str());
-        }
-#endif
     }
 }
 
@@ -1137,34 +1086,6 @@ Amr::checkPoint ()
     if (ParallelDescriptor::IOProcessor())
     {
         cout << "checkPoint() time = " << dCheckPointTime << " secs." << endl;
-
-#ifndef WIN32
-        if (tar_and_rm_files)
-        {
-            int status;
-
-            if (pid_chk != -1) waitpid(pid_chk, &status, 0);
-
-            aString cmd;
-
-            cmd += "tar cf ";
-            cmd += ckfile;
-            cmd += ".tar ";
-            cmd += ckfile;
-            //
-            // Stagger rm'ing ckfiles to support restart() and job chaining.
-            //
-            if (!the_previous_ckfile.isNull())
-            {
-                cmd += "; rm -rf ";
-                cmd += the_previous_ckfile;
-            }
-
-            pid_chk = Utility::Execute(cmd.c_str());
-
-            the_previous_ckfile = ckfile;
-        }
-#endif
     }
 }
 
