@@ -49,12 +49,14 @@ else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
   FDEBF += -g
-  FDEBF += -CB -CU
+# FDEBF += -CB
+  FDEBF += -CU
   FOPTF += -g
   FOPTF += -O3
   fC   := $(FC)
   fDEBF += -g
-  fDEBF += -CB -CU
+# fDEBF += -CB
+  fDEBF += -CU
   fOPTF += -g
   fOPTF += -O3
   LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
