@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.15 1998-03-30 21:57:34 lijewski Exp $
+// $Id: StateData.cpp,v 1.16 1998-04-27 19:42:55 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -330,7 +330,7 @@ StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
 void
 StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                             Array<MultiFabId>&      mfid,
-                            BoxList&                unfillableBoxes,
+                            BoxList*                unfillableBoxes,
                             Array<FillBoxId>&       returnedFillBoxIds,
                             const Box&              subbox,
                             Real                    time,
@@ -359,11 +359,20 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
             return;
         }
 
-        ::linInterpAddBox(multiFabCopyDesc,unfillableBoxes,returnedFillBoxIds,
-                          subbox, mfid[MFOLDDATA], mfid[MFNEWDATA],
-                          old_time.start, new_time.start, time,
-                          src_comp, dest_comp, num_comp, extrap);
-   }
+        ::linInterpAddBox(multiFabCopyDesc,
+                          unfillableBoxes,
+                          returnedFillBoxIds,
+                          subbox,
+                          mfid[MFOLDDATA],
+                          mfid[MFNEWDATA],
+                          old_time.start,
+                          new_time.start,
+                          time,
+                          src_comp,
+                          dest_comp,
+                          num_comp,
+                          extrap);
+    }
     else
     {
         if (time > new_time.start-teps && time < new_time.stop+teps)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.25 1998-04-24 16:28:57 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.26 1998-04-27 19:42:55 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -166,10 +166,9 @@ FluxRegister::Reflux (MultiFab&       S,
                     if (ovlp.ok())
                     {
                         Box regBox(bndry[face].box(k));
-                        BoxList unfilledBoxes(regBox.ixType());
                         fillBoxId.push_back(fscd.AddBox(fsid[face],
                                                         regBox,
-                                                        unfilledBoxes,
+                                                        0,
                                                         src_comp,
                                                         dest_comp,
                                                         num_comp));
@@ -220,10 +219,9 @@ FluxRegister::Reflux (MultiFab&       S,
                         if (ovlp.ok())
                         {
                             Box regBox(bndry[face].box(k));
-                            BoxList unfilledBoxes(regBox.ixType());
                             fillBoxId.push_back(fscd.AddBox(fsid[face],
                                                             regBox,
-                                                            unfilledBoxes,
+                                                            0,
                                                             src_comp,
                                                             dest_comp,
                                                             num_comp));
@@ -409,10 +407,9 @@ FluxRegister::Reflux (MultiFab&       S,
                     if (ovlp.ok())
                     {
                         Box regBox(bndry[face].box(k));
-                        BoxList unfilledBoxes(regBox.ixType());
                         fillBoxId.push_back(fscd.AddBox(fsid[face],
                                                         regBox,
-                                                        unfilledBoxes,
+                                                        0,
                                                         src_comp,
                                                         dest_comp,
                                                         num_comp));
@@ -453,10 +450,9 @@ FluxRegister::Reflux (MultiFab&       S,
                         if (ovlp.ok())
                         {
                             Box regBox(bndry[face].box(k));
-                            BoxList unfilledBoxes(regBox.ixType());
                             fillBoxId.push_back(fscd.AddBox(fsid[face],
                                                             regBox,
-                                                            unfilledBoxes,
+                                                            0,
                                                             src_comp,
                                                             dest_comp,
                                                             num_comp));
@@ -614,17 +610,15 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
             if (lobox.ok())
             {
-                BoxList unfilledBoxes(lobox.ixType());  // Unused here.
-
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      mflx.fabbox(k),
-                                                     unfilledBoxes,
+                                                     0,
                                                      0,
                                                      0,
                                                      mflx.nComp()));
                 fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                      area.fabbox(k),
-                                                     unfilledBoxes,
+                                                     0,
                                                      0,
                                                      0,
                                                      area.nComp()));
@@ -633,17 +627,15 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
             if (hibox.ok())
             {
-                BoxList unfilledBoxes(hibox.ixType());  // Unused here.
-
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      mflx.fabbox(k),
-                                                     unfilledBoxes,
+                                                     0,
                                                      0,
                                                      0,
                                                      mflx.nComp()));
                 fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                      area.fabbox(k),
-                                                     unfilledBoxes,
+                                                     0,
                                                      0,
                                                      0,
                                                      area.nComp()));
