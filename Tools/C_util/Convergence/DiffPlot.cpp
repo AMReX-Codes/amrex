@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffPlot.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
+// $Id: DiffPlot.cpp,v 1.5 2000-03-15 00:03:06 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -176,11 +176,11 @@ main (int   argc,
                 FArrayBox tmpFab(dataGrid,1);
 
                 amrDataI.FillVar(&tmpFab, dataGrid,
-                                 finestLevel, derives[iComp], 0);
+                                 iLevel, derives[iComp], 0);
                 dataI[iGrid].copy(tmpFab,0,iComp,1);
 
                 amrDataE.FillVar(&tmpFab, dataGrid,
-                                 finestLevel, derives[iComp], 0);
+                                 iLevel, derives[iComp], 0);
                 dataE[iGrid].copy(tmpFab,0,iComp,1);
 	    }
 
