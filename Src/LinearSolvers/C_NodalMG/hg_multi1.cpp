@@ -820,69 +820,58 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
     }
 
     cen.resize(mglev_max + 1);
-    if (for_fill_sync_reg == 0)
+    for (int mglev = 0; mglev <= mglev_max; mglev++)
     {
-	for (int mglev = 0; mglev <= mglev_max; mglev++)
-	{
-	    cen.set(mglev,
-		    new MultiFab(corr[mglev].boxArray(), 1,
-				 dest[lev_min].nGrow()));
-	    MultiFab& ctmp = cen[mglev];
-	    ctmp.setVal(0.0);
+        if (for_fill_sync_reg == 0 || mglev == mglev_max)
+        {
+            cen.set(mglev, new MultiFab(corr[mglev].boxArray(), 1,
+                    dest[lev_min].nGrow()));
+            MultiFab& ctmp = cen[mglev];
+            ctmp.setVal(0.0);
 
-	    if ( m_stencil == terrain || m_stencil == full)
-	    {
-		for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
-		{
-		    DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
-		    const Box& cenbox = c_mfi->box();
-		    const Box& reg =
-			lev_interface[mglev].part_fine(c_mfi.index());
-		    const Box& sigbox = s_dmfi->box();
-		    if ( m_stencil == terrain )
-		    {
-			FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox),
-					   s_dmfi->dataPtr(), DIMLIST(sigbox),
-					   DIMLIST(reg));
-		    }
-		    else
-		    {
-			FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
-					s_dmfi->dataPtr(), DIMLIST(sigbox),
-					DIMLIST(reg));
-		    }
-		}
-	    }
-	    else
-	    {
-		HG_TEST_NORM(sigma_node[mglev], "buildsigma");
-		for (MultiFabIterator c_mfi(cen[mglev]);
-		     c_mfi.isValid(); ++c_mfi)
-		{
-		    const Box& cenbox = c_mfi->box();
-		    const Box& reg =
-			lev_interface[mglev].part_fine(c_mfi.index());
-		    DependentMultiFabIterator sn_dmfi(
-			c_mfi, sigma_node[mglev]);
-		    const Box& sigbox = sn_dmfi->box();
-		    const int isRZ = getCoordSys();
-		    FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox),
-			       sn_dmfi->dataPtr(), DIMLIST(sigbox),
-			       DIMLIST(reg), &isRZ);
-		}
-	    }
-	    HG_TEST_NORM(ctmp, "buildsigma");
-	    clear_part_interface(ctmp, lev_interface[mglev]);
-	}
-    }
-    else
-    {
-	const int mglev = mglev_max;
-	cen.set(mglev,
-		new MultiFab(corr[mglev].boxArray(), 1,
-			     dest[lev_min].nGrow()));
-	MultiFab& ctmp = cen[mglev];
-	ctmp.setVal(0.0);
+            if ( m_stencil == terrain || m_stencil == full)
+            {
+                for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
+                {
+                    DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
+                    const Box& cenbox = c_mfi->box();
+                    const Box& reg = 
+                                 lev_interface[mglev].part_fine(c_mfi.index());
+                    const Box& sigbox = s_dmfi->box();
+                    if ( m_stencil == terrain )
+                    {
+                        FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox),
+                                           s_dmfi->dataPtr(), DIMLIST(sigbox),
+                                           DIMLIST(reg));
+                    }
+                    else
+                    {
+                        FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
+                                        s_dmfi->dataPtr(), DIMLIST(sigbox),
+                                        DIMLIST(reg));
+                    }
+                }
+            }
+            else
+            {
+                HG_TEST_NORM(sigma_node[mglev], "buildsigma");
+                for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); 
+                                                                       ++c_mfi)
+                {
+                    const Box& cenbox = c_mfi->box();
+                    const Box& reg = 
+                                  lev_interface[mglev].part_fine(c_mfi.index());
+                    DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
+                    const Box& sigbox = sn_dmfi->box();
+                    const int isRZ = getCoordSys();
+                    FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox),
+                               sn_dmfi->dataPtr(), DIMLIST(sigbox),
+                               DIMLIST(reg), &isRZ);
+                }
+            }
+            HG_TEST_NORM(ctmp, "buildsigma");
+            clear_part_interface(ctmp, lev_interface[mglev]);
+        }
     }
     
     if (m_stencil == cross)

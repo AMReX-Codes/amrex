@@ -432,42 +432,6 @@ c-----------------------------------------------------------------------
 
       end
 c-----------------------------------------------------------------------
-c five-point variable stencils
-      subroutine hgcen_no_sigma(
-     & cen, cenl0,cenh0,cenl1,cenh1,
-     & sigx, sigy,
-     &       sbl0,sbh0,sbl1,sbh1,
-     &       regl0,regh0,regl1,regh1,
-     & hx, hy, irz)
-      integer cenl0,cenh0,cenl1,cenh1
-      integer sbl0,sbh0,sbl1,sbh1
-      integer regl0,regh0,regl1,regh1
-      double precision cen(cenl0:cenh0,cenl1:cenh1)
-      double precision sigx(sbl0:sbh0,sbl1:sbh1)
-      double precision sigy(sbl0:sbh0,sbl1:sbh1)
-      double precision hx, hy
-      integer irz
-      double precision hxm2, hym2
-      integer i, j
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      do j = regl1, regh1
-         do i = regl0, regh0
-            cen(i,j) = 2.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     &                                 sigx(i,j-1) + sigx(i,j)) +
-     &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     &                                 sigy(i,j-1) + sigy(i,j)))
-         end do
-         if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
-            i = 0
-            cen(i,j) = 2.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     &                                 sigx(i,j-1) + sigx(i,j)) +
-     &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     &                                 sigy(i,j-1) + sigy(i,j)) * 0.5d0)
-         endif
-      end do
-      end
-c-----------------------------------------------------------------------
       subroutine hgrlxl(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
@@ -716,70 +680,6 @@ c interface to grid at same level:
                if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                wrk(i,j) = aj * betm
             end if
-         end do
-      end if
-      end
-c-----------------------------------------------------------------------
-      subroutine hgcen_old(
-     & cen, cenl0,cenh0,cenl1,cenh1,
-     & signd,
-     &       sbl0,sbh0,sbl1,sbh1,
-     &       regl0,regh0,regl1,regh1,
-     & hx, hy)
-      integer cenl0,cenh0,cenl1,cenh1
-      integer sbl0,sbh0,sbl1,sbh1
-      integer regl0,regh0,regl1,regh1
-      double precision cen(cenl0:cenh0,cenl1:cenh1)
-      double precision signd(sbl0:sbh0,sbl1:sbh1, 2)
-      double precision hx, hy
-      double precision hxm2, hym2
-      integer i, j
-      stop 'no code for hgcen (sigma_node) in 2D'
-      end
-c-----------------------------------------------------------------------
-c nine-point variable stencils
-      subroutine hgcen_full_old(
-     & cen,   cenl0, cenh0, cenl1, cenh1,
-     & sigx, sigy, sbl0, sbh0, sbl1, sbh1,
-     &        regl0, regh0, regl1, regh1,
-     & hx, hy, irz, imax)
-      integer cenl0, cenh0, cenl1, cenh1
-      integer sbl0, sbh0, sbl1, sbh1
-      integer regl0, regh0, regl1, regh1
-      double precision cen(cenl0:cenh0,cenl1:cenh1)
-      double precision sigx(sbl0:sbh0,sbl1:sbh1)
-      double precision sigy(sbl0:sbh0,sbl1:sbh1)
-      double precision hx, hy
-      integer irz, imax
-      double precision hxm2, hym2, facrz, r0, r1
-      integer i, j
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      if (irz .eq. 0) then
-         do j = regl1, regh1
-            do i = regl0, regh0
-               cen(i,j) = 3.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     &                                    sigx(i,j-1) + sigx(i,j)) +
-     &                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     &                                    sigy(i,j-1) + sigy(i,j)))
-            end do
-         end do
-      else
-         facrz = 0.25d0 * hx * hym2
-         do i = regl0, regh0
-            r1 = (i + 0.5d0) * hx
-            r0 = r1 - hx
-            if (i .eq. imax) then
-               r1 = -r0
-            end if
-            do j = regl1, regh1
-               cen(i,j) = 3.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     &                                    sigx(i,j-1) + sigx(i,j)) +
-     &                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     &                                    sigy(i,j-1) + sigy(i,j)) +
-     &                    facrz * ((sigy(i-1,j-1) + sigy(i-1,j)) / r0 -
-     &                             (sigy(i,j-1)   + sigy(i,j))   / r1))
-            end do
          end do
       end if
       end

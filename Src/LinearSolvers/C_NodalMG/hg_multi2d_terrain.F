@@ -299,15 +299,21 @@ c-----------------------------------------------------------------------
       integer regl0, regh0, regl1, regh1
       double precision cen(cenl0:cenh0,cenl1:cenh1)
       double precision sig(sbl0:sbh0,sbl1:sbh1, 3)
+      double precision tmp
       integer i, j
       do j = regl1, regh1
          do i = regl0, regh0
-            cen(i,j) = 6.d0 / (2.d0 * (sig(i-1,j-1,1) + sig(i-1,j,1) +
-     &                                 sig(i,j-1,1) + sig(i,j,1) +
-     &                                 sig(i-1,j-1,2) + sig(i-1,j,2) +
-     &                                 sig(i,j-1,2) + sig(i,j,2)) +
-     &                         3.d0 * (sig(i-1,j,3) - sig(i-1,j-1,3) +
-     &                                 sig(i,j-1,3) - sig(i,j,3)))
+            tmp = (2.d0 * (sig(i-1,j-1,1) + sig(i-1,j,1) +
+     &                     sig(i,j-1,1) + sig(i,j,1) +
+     &                     sig(i-1,j-1,2) + sig(i-1,j,2) +
+     &                     sig(i,j-1,2) + sig(i,j,2)) +
+     &             3.d0 * (sig(i-1,j,3) - sig(i-1,j-1,3) +
+     &                     sig(i,j-1,3) - sig(i,j,3)))
+            if ( tmp .eq. 0.0 ) then
+               cen(i,j) = 0.0D0
+            else
+               cen(i,j) = 6.0D0 / tmp
+            end if
          end do
       end do
 c$$$      write(unit = 10, fmt = *) 'cen - hgcen_full'

@@ -1448,12 +1448,12 @@ c-----------------------------------------------------------------------
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 3)
+      double precision tmp
       integer i, j, k
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               cen(i,j,k) = 36 /
-     &              (4.0D0 * (
+               tmp = (4.0D0 * (
      &              sig(i-1,j-1,k-1,1) + sig(i-1,j-1,k,1) +
      &              sig(i-1,j  ,k-1,1) + sig(i-1,j  ,k,1) +
      &              sig(i  ,j-1,k-1,1) + sig(i  ,j-1,k,1) +
@@ -1466,6 +1466,11 @@ c-----------------------------------------------------------------------
      &              sig(i-1,j  ,k-1,3) + sig(i-1,j  ,k,3) +
      &              sig(i  ,j-1,k-1,3) + sig(i  ,j-1,k,3) +
      &              sig(i  ,j  ,k-1,3) + sig(i  ,j  ,k,3)))
+               if ( tmp .eq. 0.0 ) then
+                  cen(i,j,k) = zero
+               else
+                  cen(i,j,k) = 36 / tmp
+               end if
             end do
          end do
       end do
@@ -1617,11 +1622,18 @@ c-----------------------------------------------------------------------
      &              sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
      &              sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
      &              sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+c
+c NOTE:  The logic below to allow for cen=0, matches a set of logic in 
+c        hgcen where cen is calculated as cen=C/(sum of sigmas).  If the 
+c        sum of the sigmas is zero, then cen is set to zero.  So, the 
+c        logic here allows for the case of zero sigmas by eliminating the 
+c        last term.
+
                if (cen(i,j,k) .ne. 0.0D0) then
                   res(i,j,k) = src(i,j,k)
      &                 - fac * tmp + cor(i,j,k) / cen(i,j,k)
                else
-                  res(i,j,k) = 0.0D0
+                  res(i,j,k) = src(i,j,k) - fac * tmp
                end if
             end do
          end do
