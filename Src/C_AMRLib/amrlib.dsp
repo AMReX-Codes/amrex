@@ -241,18 +241,94 @@ SOURCE=.\MAKESLICE_3D.for
 # Begin Source File
 
 SOURCE=.\FILCC_3D.F
+
+!IF  "$(CFG)" == "amrlib - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\FILCC_3D.F
+InputName=FILCC_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+        ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\FLUXREG_3D.F
+
+!IF  "$(CFG)" == "amrlib - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\FLUXREG_3D.F
+InputName=FLUXREG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+        ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERP_3D.F
+
+!IF  "$(CFG)" == "amrlib - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\INTERP_3D.F
+InputName=INTERP_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+        ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\MAKESLICE_3D.F
+
+!IF  "$(CFG)" == "amrlib - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MAKESLICE_3D.F
+InputName=MAKESLICE_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+        ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Group
 # End Group
