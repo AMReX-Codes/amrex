@@ -1,4 +1,4 @@
-// $Id: DivVis.cpp,v 1.1 1998-03-26 19:15:32 marc Exp $
+// $Id: DivVis.cpp,v 1.2 1998-04-15 21:48:09 marc Exp $
 
 #include <DivVis.H>
 #include <DivVis_F.H>
@@ -10,73 +10,79 @@ Real DivVis::beta_def=1.0;
 
 
 int
-DivVis::numberComponents()
+DivVis::numberComponents ()
 {
-  return BL_SPACEDIM;
+    return BL_SPACEDIM;
 }
 
 int
-DivVis::numberPhases()
+DivVis::numberPhases ()
 {
 #if BL_SPACEDIM==2
-  return 4;
+    return 4;
 #else
-  return 8;
+    return 8;
 #endif
 }
 
-DivVis::DivVis(const BoxArray &_ba, const MCBndryData &_bd,
-                             Real _h)
-    : MCLinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
+DivVis::DivVis (const BndryData& _bd,
+		Real             _h)
+    : MCLinOp(_bd, _h),
+      alpha(alpha_def),
+      beta(beta_def)
 {
-    initCoefficients(_ba);
-    numcomp = numberComponents(); //wyc
-    numphase = numberPhases(); // wyc
+    REAL __h[BL_SPACEDIM];
+    for(int i = 0; i < BL_SPACEDIM; i++)
+    {
+        __h[i] = _h;
+    }
+    initConstruct(__h);
+}
+
+DivVis::DivVis (const BndryData& _bd,
+	        const Real*      _h)
+    : MCLinOp(_bd, _h),
+      alpha(alpha_def),
+      beta(beta_def)
+{
+    initConstruct(_h);
+}
+
+void
+DivVis::initConstruct(const Real* _h)
+{
+    int level = 0;
+    const BoxArray& grids = gbox[level];
+    initCoefficients(gbox[level]);
+    numcomp = numberComponents(); // wyc
+    numphase = numberPhases();    // wyc
     undrrelxr.resize(1);
-    undrrelxr[0] = new BndryRegister(*gbox[0], 1, 0, 0, numcomp);
+    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, numcomp);
     tangderiv.resize(1);
 #if BL_SPACEDIM==2
-    tangderiv[0] = new BndryRegister(*gbox[0], 0, 1, 0, numcomp);
+    tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, numcomp);
 #elif BL_SPACEDIM==3
-    tangderiv[0] = new BndryRegister(*gbox[0], 0, 1, 0, numcomp*(1+3));
+    tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, numcomp*(1+3));
 #else
 # error
 #endif
 }
 
-DivVis::DivVis(const BoxArray &_ba, const MCBndryData &_bd,
-                             const Real* _h)
-    : MCLinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
-{
-    initCoefficients(_ba);
-    numcomp = numberComponents(); //wyc
-    numphase = numberPhases(); // wyc
-    undrrelxr.resize(1);
-    undrrelxr[0] = new BndryRegister(*gbox[0], 1, 0, 0, numcomp);
-    tangderiv.resize(1);
-#if BL_SPACEDIM==2
-    tangderiv[0] = new BndryRegister(*gbox[0], 0, 1, 0, numcomp);
-#elif BL_SPACEDIM==3
-    tangderiv[0] = new BndryRegister(*gbox[0], 0, 1, 0, numcomp*(1+3));
-#else
-# error
-#endif
-}
-
-DivVis::~DivVis()
+DivVis::~DivVis ()
 {
     clearToLevel(-1);
 }
 
 void
-DivVis::setScalars(Real _alpha, Real _beta)
+DivVis::setScalars (Real _alpha,
+		    Real _beta)
 {
     alpha = _alpha;
     beta  = _beta;
 }
 
 void
-DivVis::clearToLevel(int level)
+DivVis::clearToLevel (int level)
 {
     assert(level>=-1);
     for (int i=level+1; i<numLevels(); ++i) {
@@ -88,18 +94,18 @@ DivVis::clearToLevel(int level)
 }
 
 void
-DivVis::prepareForLevel(int level)
+DivVis::prepareForLevel (int level)
 {
     MCLinOp::prepareForLevel(level);
     if (level == 0 ) return;
     prepareForLevel(level-1);
 
-      // If coefficients were marked invalid, or if not yet made, make new ones
-      // (Note: makeCoefficients is a MCLinOp routine, and it allocates AND
-      // fills coefficients.  A more efficient implementation would allocate
-      // and fill in separate steps--we could then use the a_valid bool
-      // along with the length of a_valid to separately determine whether to
-      // fill or allocate the coefficient MultiFabs
+    // If coefficients were marked invalid, or if not yet made, make new ones
+    // (Note: makeCoefficients is a MCLinOp routine, and it allocates AND
+    // fills coefficients.  A more efficient implementation would allocate
+    // and fill in separate steps--we could then use the a_valid bool
+    // along with the length of a_valid to separately determine whether to
+    // fill or allocate the coefficient MultiFabs
     if (level >= a_valid.length() || a_valid[level] == false )  {
 	if (acoefs.length() < level+1) {
 	    acoefs.resize(level+1);
@@ -133,24 +139,34 @@ DivVis::prepareForLevel(int level)
 }
 
 void
-DivVis::initCoefficients(const BoxArray &_ba)
+DivVis::initCoefficients (const BoxArray &_ba)
 {
     int nGrow=0;
+    int level = 0;
     acoefs.resize(1);
     bcoefs.resize(1);
-    acoefs[0] = new MultiFab(_ba, 2, nGrow, Fab_allocate);
-    acoefs[0]->setVal(a_def);
+    // In 2D, need 2 components for "a" to handle r-z properly (will need three
+    //  for r-theta-phi, but allowing only 3D cartesian for now)
+    int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+#ifndef NDEBUG
+    if (BL_SPACEDIM == 3)
+    {
+	assert(geomarray[level].IsCartesian());
+    }
+#endif
+    acoefs[level] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
+    acoefs[level]->setVal(a_def);
     a_valid.resize(1);
-    a_valid[0] = true;
+    a_valid[level] = true;
 
     for(int i = 0; i < BL_SPACEDIM; ++i) {
 	BoxArray edge_boxes(_ba);
 	edge_boxes.surroundingNodes(i);
-	bcoefs[0][i] = new MultiFab(edge_boxes, 1, nGrow, Fab_allocate);
-	bcoefs[0][i]->setVal(b_def);
+	bcoefs[level][i] = new MultiFab(edge_boxes, 1, nGrow, Fab_allocate);
+	bcoefs[level][i]->setVal(b_def);
     }
     b_valid.resize(1);
-    b_valid[0] = true;
+    b_valid[level] = true;
 }
 
 void
@@ -173,11 +189,10 @@ DivVis::aCoefficients(const MultiFab &_a)
 {
     assert( _a.ok() );
     assert( _a.boxArray() == (acoefs[0])->boxArray() );
+    int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+    assert( _a.nComp() == nComp );
     invalidate_a_to_level(0);
-    int ngrd = _a.length();
-    for (int k = 0; k < ngrd; k++) {
-      (*acoefs[0])[k].copy(_a[k],0,0,2);
-    }
+    (*acoefs[0]).copy(_a,0,0,nComp);
     return;
 }
 
@@ -186,11 +201,9 @@ DivVis::bCoefficients(const MultiFab &_b, int dir)
 {
     assert( _b.ok() );
     assert( _b.boxArray() == (bcoefs[0][dir])->boxArray() );
+    assert( _b.nComp() == 1);
     invalidate_b_to_level(0);
-    int ngrd = _b.length();
-    for (int k = 0; k < ngrd; k++) {
-      (*bcoefs[0][dir])[k].copy(_b[k],0,0,1);
-    }
+    (*bcoefs[0][dir]).copy(_b,0,0,1);
     return;
 }
 
@@ -213,7 +226,6 @@ void
 DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 		       int level, int phaseflag)
 {
-    const BoxArray &bxa = *gbox[level];
     OrientationIter oitr;
     const FabSet &fw = (*undrrelxr[level])[oitr()]; 
     const FabSet &tdw = (*tangderiv[level])[oitr()];
@@ -244,8 +256,33 @@ DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
     const MultiFab  &bZ = bCoefficients(2,level);
 #endif
     int nc = solnL.nComp();
-    for(int gn = 0; gn < solnL.length(); ++gn) {
+    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
+	DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
+	DependentMultiFabIterator amfi(solnLmfi,  a);
+	DependentMultiFabIterator bXmfi(solnLmfi, bX);
+	DependentMultiFabIterator bYmfi(solnLmfi, bY);
+#if BL_SPACEDIM > 2
+	DependentMultiFabIterator bZmfi(solnLmfi, bZ);
+#endif    
+	DependentFabSetIterator fwfsi(solnLmfi,  fw);
+	DependentFabSetIterator tdwfsi(solnLmfi, tdw);
+	DependentFabSetIterator fsfsi(solnLmfi,  fs);
+	DependentFabSetIterator tdsfsi(solnLmfi, tds);
+#if BL_SPACEDIM > 2
+	DependentFabSetIterator fbfsi(solnLmfi,  fb);
+	DependentFabSetIterator tdbfsi(solnLmfi, tdb);
+#endif
+	DependentFabSetIterator fefsi(solnLmfi,  fe);
+	DependentFabSetIterator tdefsi(solnLmfi, tde);
+	DependentFabSetIterator fnfsi(solnLmfi,  fn);
+	DependentFabSetIterator tdnfsi(solnLmfi, tdn);
+#if BL_SPACEDIM > 2
+	DependentFabSetIterator ftfsi(solnLmfi,  ft);
+	DependentFabSetIterator tdtfsi(solnLmfi, tdt);
+#endif
+
 	oitr.rewind();
+        int gn = solnLmfi.index();
 	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
 	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
@@ -257,204 +294,188 @@ DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
 #endif
 
-	FArrayBox &s = solnL[gn];
-	Real* sptr = s.dataPtr();
-	const Real* rhsptr = rhsL[gn].dataPtr(); 
-	const Real* aptr = a[gn].dataPtr();  
-	const Real* bXptr = bX[gn].dataPtr(); 
-	const Real* bYptr = bY[gn].dataPtr(); 
-#if BL_SPACEDIM>2
-	const Real* bZptr = bZ[gn].dataPtr(); 
-#endif
-
-	const Real* fnptr = fn[gn].dataPtr();
-	const int* mnptr = mn.dataPtr(); 
-	const Real* feptr = fe[gn].dataPtr();
-	const int* meptr = me.dataPtr(); 
-	const Real* fwptr = fw[gn].dataPtr();
-	const int* mwptr = mw.dataPtr(); 
-	const Real* fsptr = fs[gn].dataPtr();
-	const int* msptr = ms.dataPtr(); 
-#if BL_SPACEDIM>2
-	const Real* ftptr = ft[gn].dataPtr();
-	const int* mtptr = mt.dataPtr(); 
-	const Real* fbptr = fb[gn].dataPtr();
-	const int* mbptr = mb.dataPtr(); 
-#endif
-
-	const Real* tdnptr = tdn[gn].dataPtr();
-	const FArrayBox& tefab = tde[gn];
-	const Real* tdeptr = tefab.dataPtr();
-	const FArrayBox& twfab = tdw[gn];
-	const Real* tdwptr = twfab.dataPtr();
-	const Real* tdsptr = tds[gn].dataPtr();
-#if BL_SPACEDIM>2
-	const Real* tdtptr = tdt[gn].dataPtr();
-	const Real* tdbptr = tdb[gn].dataPtr();
-#endif
-
 	FORT_GSRB(
-	    sptr, 
-            ARLIM(s.loVect()),ARLIM(s.hiVect()),
-	    rhsptr,
-            ARLIM(rhsL[gn].loVect()), ARLIM(rhsL[gn].hiVect()),
+	    solnLmfi().dataPtr(), 
+            ARLIM(solnLmfi().loVect()),ARLIM(solnLmfi().hiVect()),
+	    rhsLmfi().dataPtr(),
+            ARLIM(rhsLmfi().loVect()), ARLIM(rhsLmfi().hiVect()),
 	    &alpha, &beta,
-	    aptr,
-            ARLIM(a[gn].loVect()),    ARLIM(a[gn].hiVect()),
-	    bXptr,
-            ARLIM(bX[gn].loVect()),   ARLIM(bX[gn].hiVect()),
-	    bYptr,
-            ARLIM(bY[gn].loVect()),   ARLIM(bY[gn].hiVect()),
+	    amfi().dataPtr(),
+            ARLIM(amfi().loVect()),    ARLIM(amfi().hiVect()),
+	    bXmfi().dataPtr(),
+            ARLIM(bXmfi().loVect()),   ARLIM(bXmfi().hiVect()),
+	    bYmfi().dataPtr(),
+            ARLIM(bYmfi().loVect()),   ARLIM(bYmfi().hiVect()),
 #if BL_SPACEDIM>2
-	    bZptr,
-            ARLIM(bZ[gn].loVect()),   ARLIM(bZ[gn].hiVect()),
+	    bZmfi().dataPtr(),
+            ARLIM(bZmfi().loVect()),   ARLIM(bZmfi().hiVect()),
 #endif
-	    mnptr,
-            ARLIM(mn.loVect()),   ARLIM(mn.hiVect()),
-	    fnptr,
-            ARLIM(fn[gn].loVect()),   ARLIM(fn[gn].hiVect()),
-	    meptr,
-            ARLIM(me.loVect()),   ARLIM(me.hiVect()),
-	    feptr,
-            ARLIM(fe[gn].loVect()),   ARLIM(fe[gn].hiVect()),
-	    mwptr,
-            ARLIM(mw.loVect()),   ARLIM(mw.hiVect()),
-	    fwptr,
-            ARLIM(fw[gn].loVect()),   ARLIM(fw[gn].hiVect()),
-	    msptr,
-            ARLIM(ms.loVect()),   ARLIM(ms.hiVect()),
-	    fsptr,
-            ARLIM(fs[gn].loVect()),   ARLIM(fs[gn].hiVect()),
+	    mn.dataPtr(),
+	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
+	    fnfsi().dataPtr(),
+            ARLIM(fnfsi().loVect()),   ARLIM(fnfsi().hiVect()),
+	    me.dataPtr(),
+	    ARLIM(me.loVect()),ARLIM(me.hiVect()),
+	    fefsi().dataPtr(),
+            ARLIM(fefsi().loVect()),   ARLIM(fefsi().hiVect()),
+	    mw.dataPtr(),
+	    ARLIM(mw.loVect()),ARLIM(mw.hiVect()),
+	    fwfsi().dataPtr(),
+            ARLIM(fwfsi().loVect()),   ARLIM(fwfsi().hiVect()),
+	    ms.dataPtr(),
+	    ARLIM(ms.loVect()),ARLIM(ms.hiVect()),
+	    fsfsi().dataPtr(),
+            ARLIM(fsfsi().loVect()),   ARLIM(fsfsi().hiVect()),
 #if BL_SPACEDIM>2
-	    mtptr,
-            ARLIM(mt.loVect()),   ARLIM(mt.hiVect()),
-	    ftptr,
-            ARLIM(ft[gn].loVect()),   ARLIM(ft[gn].hiVect()),
-	    mbptr,
-            ARLIM(mb.loVect()),   ARLIM(mb.hiVect()),
-	    fbptr,
-            ARLIM(fb[gn].loVect()),   ARLIM(fb[gn].hiVect()),
+	    mt.dataPtr(),
+	    ARLIM(mt.loVect()),ARLIM(mt.hiVect()),
+	    ftfsi().dataPtr(),
+            ARLIM(ftfsi().loVect()),   ARLIM(ftfsi().hiVect()),
+	    mb.dataPtr(),
+	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
+	    fbfsi().dataPtr(),
+            ARLIM(fbfsi().loVect()),   ARLIM(fbfsi().hiVect()),
 #endif
-	    tdnptr,
-	    ARLIM(tdn[gn].loVect()),ARLIM(tdn[gn].hiVect()),
-	    tdeptr,
-	    ARLIM(tde[gn].loVect()),ARLIM(tde[gn].hiVect()),
-	    tdwptr,
-	    ARLIM(tdw[gn].loVect()),ARLIM(tdw[gn].hiVect()),
-	    tdsptr,
-	    ARLIM(tds[gn].loVect()),ARLIM(tds[gn].hiVect()),
+	    tdnfsi().dataPtr(),
+	    ARLIM(tdnfsi().loVect()),ARLIM(tdnfsi().hiVect()),
+	    tdefsi().dataPtr(),
+	    ARLIM(tdefsi().loVect()),ARLIM(tdefsi().hiVect()),
+	    tdwfsi().dataPtr(),
+	    ARLIM(tdwfsi().loVect()),ARLIM(tdwfsi().hiVect()),
+	    tdsfsi().dataPtr(),
+	    ARLIM(tdsfsi().loVect()),ARLIM(tdsfsi().hiVect()),
 #if BL_SPACEDIM>2
-	    tdtptr,
-	    ARLIM(tdt[gn].loVect()),ARLIM(tdt[gn].hiVect()),
-	    tdbptr,
-	    ARLIM(tdb[gn].loVect()),ARLIM(tdb[gn].hiVect()),
+	    tdtfsi().dataPtr(),
+	    ARLIM(tdtfsi().loVect()),ARLIM(tdtfsi().hiVect()),
+	    tdbfsi().dataPtr(),
+	    ARLIM(tdbfsi().loVect()),ARLIM(tdbfsi().hiVect()),
 #endif
-	    bxa[gn].loVect(), bxa[gn].hiVect(), h[level], nc, phaseflag);
-
+	    solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(),
+	    h[level], nc, phaseflag);
     }
 }
 
 void 
-DivVis::compFlux(MultiFab &xflux, 
-		 MultiFab &yflux, 
+DivVis::compFlux (MultiFab &xflux, 
+		  MultiFab &yflux, 
 #if BL_SPACEDIM>2
-		 MultiFab &zflux, 
+		  MultiFab &zflux, 
 #endif
-		 MultiFab& x)
+		  MultiFab& x)
 {
-  int level = 0;
-  MCBC_Mode bc_mode = MCInhomogeneous_BC;
-  applyBC(x,level,bc_mode);
+    int level = 0;
+    MCBC_Mode bc_mode = MCInhomogeneous_BC;
+    applyBC(x,level,bc_mode);
+    
+    const MultiFab  &a = aCoefficients(level);
+    const MultiFab  &bX = bCoefficients(0,level);
+    const MultiFab  &bY = bCoefficients(1,level);
+#if BL_SPACEDIM>2
+    const MultiFab  &bZ = bCoefficients(2,level);
+#endif
+    OrientationIter oitr;
+    const FabSet &tdw = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet &tds = (*tangderiv[level])[oitr()]; oitr++;
+#if BL_SPACEDIM>2
+    const FabSet &tdb = (*tangderiv[level])[oitr()]; oitr++;
+#endif
+    const FabSet &tde = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet &tdn = (*tangderiv[level])[oitr()]; oitr++;
+#if BL_SPACEDIM>2
+    const FabSet &tdt = (*tangderiv[level])[oitr()]; oitr++;
+#endif
+    int nc = x.nComp();
+    assert( nc == BL_SPACEDIM );
+    assert( nc == xflux.nComp() );
+    assert( nc == yflux.nComp() );
 
-  const BoxArray &bxa = *gbox[level];
-  const MultiFab  &a = aCoefficients(level);
-  const MultiFab  &bX = bCoefficients(0,level);
-  const MultiFab  &bY = bCoefficients(1,level);
-#if BL_SPACEDIM>2
-  const MultiFab  &bZ = bCoefficients(2,level);
-#endif
-  OrientationIter oitr;
-  const FabSet &tdw = (*tangderiv[level])[oitr()]; oitr++;
-  const FabSet &tds = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-  const FabSet &tdb = (*tangderiv[level])[oitr()]; oitr++;
-#endif
-  const FabSet &tde = (*tangderiv[level])[oitr()]; oitr++;
-  const FabSet &tdn = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-  const FabSet &tdt = (*tangderiv[level])[oitr()]; oitr++;
-#endif
-  int nc = x.nComp();
-  assert( nc == BL_SPACEDIM );
-  assert( nc == xflux.nComp() );
-  assert( nc == yflux.nComp() );
 
-  for(int gn = 0; gn < x.length(); ++gn) {
-    oitr.rewind();
-    const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
-    const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
+    for(MultiFabIterator xmfi(x); xmfi.isValid(false); ++xmfi) {
+	DependentMultiFabIterator amfi(xmfi,  a);
+	DependentMultiFabIterator bXmfi(xmfi, bX);
+	DependentMultiFabIterator xfluxmfi(xmfi, xflux);
+	DependentMultiFabIterator bYmfi(xmfi, bY);
+	DependentMultiFabIterator yfluxmfi(xmfi, yflux);
+#if BL_SPACEDIM > 2
+	DependentMultiFabIterator bZmfi(xmfi, bZ);
+	DependentMultiFabIterator zfluxmfi(xmfi, zflux);
+#endif    
+	DependentFabSetIterator tdwfsi(xmfi, tdw);
+	DependentFabSetIterator tdsfsi(xmfi, tds);
+#if BL_SPACEDIM > 2
+	DependentFabSetIterator tdbfsi(xmfi, tdb);
 #endif
-    const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
-    const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
+	DependentFabSetIterator tdefsi(xmfi, tde);
+	DependentFabSetIterator tdnfsi(xmfi, tdn);
+#if BL_SPACEDIM > 2
+	DependentFabSetIterator tdtfsi(xmfi, tdt);
 #endif
-    FORT_DVFLUX(
-		x[gn].dataPtr(), 
-		ARLIM(x[gn].loVect()), ARLIM(x[gn].hiVect()),
-		&alpha, &beta,
-		a[gn].dataPtr(), 
-		ARLIM(a[gn].loVect()), ARLIM(a[gn].hiVect()),
-		bX[gn].dataPtr(), 
-		ARLIM(bX[gn].loVect()), ARLIM(bX[gn].hiVect()),
-		bY[gn].dataPtr(), 
-		ARLIM(bY[gn].loVect()), ARLIM(bY[gn].hiVect()),
+
+	oitr.rewind();
+        int gn = xmfi.index();
+	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
+	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
-		bZ[gn].dataPtr(), 
-		ARLIM(bZ[gn].loVect()), ARLIM(bZ[gn].hiVect()),
+	const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
 #endif
-		xflux[gn].dataPtr(), 
-		ARLIM(xflux[gn].loVect()), ARLIM(xflux[gn].hiVect()),
-		yflux[gn].dataPtr(), 
-		ARLIM(yflux[gn].loVect()), ARLIM(yflux[gn].hiVect()),
+	const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
+	const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
-		yflux[gn].dataPtr(), 
-		ARLIM(yflux[gn].loVect()), ARLIM(yflux[gn].hiVect()),
+	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
 #endif
-		mn.dataPtr(),
-		ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
-		me.dataPtr(),
-		ARLIM(me.loVect()),ARLIM(me.hiVect()),
-		mw.dataPtr(),
-		ARLIM(mw.loVect()),ARLIM(mw.hiVect()),
-		ms.dataPtr(),
-		ARLIM(ms.loVect()),ARLIM(ms.hiVect()),
+	FORT_DVFLUX(
+	    xmfi().dataPtr(), 
+	    ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
+	    &alpha, &beta,
+	    amfi().dataPtr(), 
+	    ARLIM(amfi().loVect()), ARLIM(amfi().hiVect()),
+	    bXmfi().dataPtr(), 
+	    ARLIM(bXmfi().loVect()), ARLIM(bXmfi().hiVect()),
+	    bYmfi().dataPtr(), 
+	    ARLIM(bYmfi().loVect()), ARLIM(bYmfi().hiVect()),
 #if BL_SPACEDIM>2
-		mt.dataPtr(),
-		ARLIM(mt.loVect()),ARLIM(mt.hiVect()),
-		mb.dataPtr(),
-		ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
+	    bZmfi().dataPtr(), 
+	    ARLIM(bZmfi().loVect()), ARLIM(bZmfi().hiVect()),
 #endif
-		tdn[gn].dataPtr(),
-		ARLIM(tdn[gn].loVect()),ARLIM(tdn[gn].hiVect()),
-		tde[gn].dataPtr(),
-		ARLIM(tde[gn].loVect()),ARLIM(tde[gn].hiVect()),
-		tdw[gn].dataPtr(),
-		ARLIM(tdw[gn].loVect()),ARLIM(tdw[gn].hiVect()),
-		tds[gn].dataPtr(),
-		ARLIM(tds[gn].loVect()),ARLIM(tds[gn].hiVect()),
+	    xfluxmfi().dataPtr(), 
+	    ARLIM(xfluxmfi().loVect()), ARLIM(xfluxmfi().hiVect()),
+	    yfluxmfi().dataPtr(), 
+	    ARLIM(yfluxmfi().loVect()), ARLIM(yfluxmfi().hiVect()),
 #if BL_SPACEDIM>2
-		tdt[gn].dataPtr(),
-		ARLIM(tdt[gn].loVect()),ARLIM(tdt[gn].hiVect()),
-		tdb[gn].dataPtr(),
-		ARLIM(tdb[gn].loVect()),ARLIM(tdb[gn].hiVect()),
+	    yfluxmfi().dataPtr(), 
+	    ARLIM(yfluxmfi().loVect()), ARLIM(yfluxmfi().hiVect()),
 #endif
-		bxa[gn].loVect(), bxa[gn].hiVect(), 
-		h[level]
-		);
-  }
+	    mn.dataPtr(),
+	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
+	    me.dataPtr(),
+	    ARLIM(me.loVect()),ARLIM(me.hiVect()),
+	    mw.dataPtr(),
+	    ARLIM(mw.loVect()),ARLIM(mw.hiVect()),
+	    ms.dataPtr(),
+	    ARLIM(ms.loVect()),ARLIM(ms.hiVect()),
+#if BL_SPACEDIM>2
+	    mt.dataPtr(),
+	    ARLIM(mt.loVect()),ARLIM(mt.hiVect()),
+	    mb.dataPtr(),
+	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
+#endif
+	    tdnfsi().dataPtr(),
+	    ARLIM(tdnfsi().loVect()),ARLIM(tdnfsi().hiVect()),
+	    tdefsi().dataPtr(),
+	    ARLIM(tdefsi().loVect()),ARLIM(tdefsi().hiVect()),
+	    tdwfsi().dataPtr(),
+	    ARLIM(tdwfsi().loVect()),ARLIM(tdwfsi().hiVect()),
+	    tdsfsi().dataPtr(),
+	    ARLIM(tdsfsi().loVect()),ARLIM(tdsfsi().hiVect()),
+#if BL_SPACEDIM>2
+	    tdtfsi().dataPtr(),
+	    ARLIM(tdtfsi().loVect()),ARLIM(tdtfsi().hiVect()),
+	    tdbfsi().dataPtr(),
+	    ARLIM(tdbfsi().loVect()),ARLIM(tdbfsi().hiVect()),
+#endif
+	    xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
+	    h[level]);
+    }
 }
 
 
@@ -462,7 +483,6 @@ DivVis::compFlux(MultiFab &xflux,
 void
 DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
 {
-    const BoxArray &bxa = *gbox[level];
     const MultiFab  &a = aCoefficients(level);
     const MultiFab  &bX = bCoefficients(0,level);
     const MultiFab  &bY = bCoefficients(1,level);
@@ -481,34 +501,55 @@ DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
     const FabSet &tdt = (*tangderiv[level])[oitr()]; oitr++;
 #endif
     int nc = y.nComp();
-    for(int gn = 0; gn < y.length(); ++gn) {
-      oitr.rewind();
-      const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
-      const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-      const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
+    // HACK: Cast away const for compatibility with BoxLib constructors
+    for(MultiFabIterator xmfi((MultiFab&)x); xmfi.isValid(false); ++xmfi) {
+        DependentMultiFabIterator ymfi(xmfi,  y);
+        DependentMultiFabIterator amfi(xmfi,  a);
+        DependentMultiFabIterator bXmfi(xmfi, bX);
+        DependentMultiFabIterator bYmfi(xmfi, bY);
+#if BL_SPACEDIM > 2
+        DependentMultiFabIterator bZmfi(xmfi, bZ);
 #endif
-      const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
-      const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
+	
+        DependentFabSetIterator tdwfsi(xmfi, tdw);
+        DependentFabSetIterator tdsfsi(xmfi, tds);
+#if BL_SPACEDIM > 2
+        DependentFabSetIterator tdbfsi(xmfi, tdb);
+#endif
+        DependentFabSetIterator tdefsi(xmfi, tde);
+        DependentFabSetIterator tdnfsi(xmfi, tdn);
+#if BL_SPACEDIM > 2
+        DependentFabSetIterator tdtfsi(xmfi, tdt);
+#endif
+
+        oitr.rewind();
+        int gn = xmfi.index();
+	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
+	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
-      const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
+	const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
+#endif
+	const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
+	const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
+#if BL_SPACEDIM>2
+	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
 #endif
 	FORT_DVAPPLY(
-	    x[gn].dataPtr(), 
-            ARLIM(x[gn].loVect()), ARLIM(x[gn].hiVect()),
+	    xmfi().dataPtr(), 
+            ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
 	    &alpha, &beta,
-	    a[gn].dataPtr(), 
-            ARLIM(a[gn].loVect()), ARLIM(a[gn].hiVect()),
-	    bX[gn].dataPtr(), 
-            ARLIM(bX[gn].loVect()), ARLIM(bX[gn].hiVect()),
-	    bY[gn].dataPtr(), 
-            ARLIM(bY[gn].loVect()), ARLIM(bY[gn].hiVect()),
+	    amfi().dataPtr(), 
+            ARLIM(amfi().loVect()), ARLIM(amfi().hiVect()),
+	    bXmfi().dataPtr(), 
+            ARLIM(bXmfi().loVect()), ARLIM(bXmfi().hiVect()),
+	    bYmfi().dataPtr(), 
+            ARLIM(bYmfi().loVect()), ARLIM(bYmfi().hiVect()),
 #if BL_SPACEDIM>2
-	    bZ[gn].dataPtr(), 
-            ARLIM(bZ[gn].loVect()), ARLIM(bZ[gn].hiVect()),
+	    bZmfi().dataPtr(), 
+            ARLIM(bZmfi().loVect()), ARLIM(bZmfi().hiVect()),
 #endif
-	    y[gn].dataPtr(), 
-            ARLIM(y[gn].loVect()), ARLIM(y[gn].hiVect()),
+	    ymfi().dataPtr(), 
+            ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),
 	    mn.dataPtr(),
 	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
 	    me.dataPtr(),
@@ -523,21 +564,21 @@ DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
 	    mb.dataPtr(),
 	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
 #endif
-	    tdn[gn].dataPtr(),
-	    ARLIM(tdn[gn].loVect()),ARLIM(tdn[gn].hiVect()),
-	    tde[gn].dataPtr(),
-	    ARLIM(tde[gn].loVect()),ARLIM(tde[gn].hiVect()),
-	    tdw[gn].dataPtr(),
-	    ARLIM(tdw[gn].loVect()),ARLIM(tdw[gn].hiVect()),
-	    tds[gn].dataPtr(),
-	    ARLIM(tds[gn].loVect()),ARLIM(tds[gn].hiVect()),
+	    tdnfsi().dataPtr(),
+	    ARLIM(tdnfsi().loVect()),ARLIM(tdnfsi().hiVect()),
+	    tdefsi().dataPtr(),
+	    ARLIM(tdefsi().loVect()),ARLIM(tdefsi().hiVect()),
+	    tdwfsi().dataPtr(),
+	    ARLIM(tdwfsi().loVect()),ARLIM(tdwfsi().hiVect()),
+	    tdsfsi().dataPtr(),
+	    ARLIM(tdsfsi().loVect()),ARLIM(tdsfsi().hiVect()),
 #if BL_SPACEDIM>2
-	    tdt[gn].dataPtr(),
-	    ARLIM(tdt[gn].loVect()),ARLIM(tdt[gn].hiVect()),
-	    tdb[gn].dataPtr(),
-	    ARLIM(tdb[gn].loVect()),ARLIM(tdb[gn].hiVect()),
+	    tdtfsi().dataPtr(),
+	    ARLIM(tdtfsi().loVect()),ARLIM(tdtfsi().hiVect()),
+	    tdbfsi().dataPtr(),
+	    ARLIM(tdbfsi().loVect()),ARLIM(tdbfsi().hiVect()),
 #endif
-	    bxa[gn].loVect(), bxa[gn].hiVect(), 
+            xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
 	    h[level]
 	    );
     }
