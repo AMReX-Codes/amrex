@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.18 2001-07-23 22:30:23 car Exp $
+// $Id: BoxDomain.H,v 1.19 2001-07-23 23:07:36 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -71,7 +71,7 @@ class BoxDomain
     protected BoxList
 {
 public:
-    typedef BoxList::Iterator Iterator;
+
     typedef BoxList::ConstIterator ConstIterator;
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
@@ -139,6 +139,10 @@ public:
     //
     using BoxList::end;
     //
+    //@ManDoc: Promoted from BoxList
+    //
+    using BoxList::contains;
+    //
     //@ManDoc: Create a BoxList from this BoxDomain.
     //
     BoxList boxList () const;
@@ -151,20 +155,6 @@ public:
     //
     bool operator!= (const BoxDomain& rhs) const;
     //
-    //@ManDoc: True if IntVect is within any of the Boxes in this BoxDomain.
-    //
-    bool contains (const IntVect& v) const;
-
-    /*@ManDoc: True if the Box is within any of the Boxes in this BoxDomain.
-               The Box must also have the same IndexType as those in this
-               BoxDomain.
-    */
-    bool contains (const Box& b) const;
-    //
-    //@ManDoc: True if all Boxes in bl are contained in this BoxDomain.
-    //
-    bool contains (const BoxList& bl) const;
-    //
     //@ManDoc: Applies Box::shift(int,int) to each Box in the BoxDomain.
     //
     BoxDomain& shift (int dir,
@@ -174,7 +164,6 @@ public:
     //
     BoxDomain& shiftHalf (int dir,
                           int num_halfs);
-
     //
     //@ManDoc: Applies Box::shiftHalf(IntVect) to each Box in BoxDomain.
     //
