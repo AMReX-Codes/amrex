@@ -31,9 +31,23 @@ function tar_up_and_rm_files
     fi
   fi
   #
-  # Take all the plt files.
+  # Take all but the final plt file.
+  # We want to ensure they're completely written to disk.
+  # Strip out any tar files that are lying around. 
   #
   pltlist=$(ls -d ${plt_prefix}* 2>/dev/null | grep -v tar)
+
+  if [ "$pltlist" ]
+  then
+    nl=$(echo "$pltlist" | wc -l)
+    nl=$(expr $nl - 1)
+    if [ $nl -eq 0 ]
+    then
+      pltlist=""
+    else
+      pltlist=$(echo "$pltlist" | head -$nl)
+    fi
+  fi
 
   list="$chklist $pltlist"
 
@@ -41,16 +55,9 @@ function tar_up_and_rm_files
   do
     if [ -d ${dir} ]
     then
-      #
-      # If the Header is non-zero sized the chk or plt file is complete.
-      # This relies on the Header being the last file written to disk.
-      #
-      if [ -s ${dir}/Header ]
+      if `tar cf ${dir}.tar ${dir}`
       then
-        if `tar cf ${dir}.tar ${dir}`
-        then
-          rm -rf ${dir}
-        fi
+        rm -rf ${dir}
       fi
     fi
   done
