@@ -177,7 +177,7 @@ bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
     fill_patch();
-    HG_DEBUG_OUT("Fill patch has " << tl.size() << " entries" << endl );
+    // HG_DEBUG_OUT("Fill patch has " << tl.size() << " entries" << endl );
     return !tl.empty();
 }
 
@@ -666,9 +666,9 @@ void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat, const amr_r
 	}
     }
     tl.execute();
-    HG_TEST_NORM( dest, "restrict_level b");
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
     }
+    HG_TEST_NORM( dest, "restrict_level a1");
 }
