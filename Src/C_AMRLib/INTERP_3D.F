@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.14 2002-10-07 20:44:37 almgren Exp $
+c $Id: INTERP_3D.F,v 1.15 2002-10-08 21:33:28 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -477,8 +477,8 @@ c     :::::: helpful statement functions
             do koff = -kst,kst,kst
             do joff = -jst,jst,jst
             do ioff = -ist,ist,ist
-              cmax(i) = max(cmax(i),crse(i+ioff+joff+koff))
-              cmin(i) = min(cmin(i),crse(i+ioff+joff+koff))
+              cmax(i) = max(cmax(i),crse(i+ioff+joff+koff,n))
+              cmin(i) = min(cmin(i),crse(i+ioff+joff+koff,n))
               alpha(i) = 1.d0
             end do
             end do
