@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.49 1999-01-15 21:44:22 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.50 1999-01-20 19:24:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -642,22 +642,6 @@ FillPatchIterator::isValid ()
         StateData&         TheState = amrLevels[l].state[m_stateindex];
         PArray<FArrayBox>& CrseFabs = m_cfab[l];
         const Geometry&    TheGeom  = amrLevels[l].geom;
-        //
-        // Set non-periodic BCs in coarse data -- what we interpolate with.
-        //
-        for (int i = 0; i < CrseFabs.length(); i++)
-        {
-            if (!TheState.getDomain().contains(CrseFabs[i].box()))
-            {
-                TheState.FillBoundary(CrseFabs[i],
-                                      m_time,
-                                      TheGeom.CellSize(),
-                                      TheGeom.ProbDomain(),
-                                      0,
-                                      m_scomp,
-                                      m_ncomp);
-            }
-        }
 
         if (TheGeom.isAnyPeriodic())
         {
@@ -701,6 +685,27 @@ FillPatchIterator::isValid ()
             }
         }
         //
+        // Set non-periodic BCs in coarse data -- what we interpolate with.
+        // This MUST come after the periodic fill mumbo-jumbo.
+        //
+        for (int i = 0; i < CrseFabs.length(); i++)
+        {
+            if (!TheState.getDomain().contains(CrseFabs[i].box()))
+            {
+                TheState.FillBoundary(CrseFabs[i],
+                                      m_time,
+                                      TheGeom.CellSize(),
+                                      TheGeom.ProbDomain(),
+                                      0,
+                                      m_scomp,
+                                      m_ncomp);
+            }
+            //
+            // The coarse FAB had better be completely filled with "good" data.
+            //
+            assert(CrseFabs[i].norm(0,0,m_ncomp) < 3.e30);
+        }
+        //
         // Interpolate up to next level.
         //
         const IntVect&     fine_ratio    = amrLevels[l].fine_ratio;
@@ -737,7 +742,7 @@ FillPatchIterator::isValid ()
             //
             // The coarse FAB had better be completely filled with "good" data.
             //
-            assert(crse_fab.norm(0) < 3.e30);
+            assert(crse_fab.norm(0,0,m_ncomp) < 3.e30);
             //
             // Interpolate up to fine patch.
             //
@@ -827,7 +832,7 @@ FillPatchIterator::isValid ()
     //
     // The final FAB had better be completely filled with "good" data.
     //
-    assert(m_fab.norm(0) < 2.e30);
+    assert(m_fab.norm(0,0,m_ncomp) < 2.e30);
 
     stats.end();
 
