@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.2 1997-09-15 19:40:06 lijewski Exp $
+# $Id: Make.package,v 1.3 1997-09-15 19:45:24 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -10,15 +10,14 @@ endif
 #
 # Utility classes.
 #
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
-C$(BOXLIB_BASE)_sources += BoxLib.cpp
+C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H
+C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp
 
 C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp BArena.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
+C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H ArrayLim.H
 
-C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H
+C$(BOXLIB_BASE)_headers += REAL.H Boolean.H CONSTANTS.H SPACE.H SPACE_F.H
+C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H Misc.H
 
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
@@ -31,16 +30,11 @@ T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
 #
 # Container classes.
 #
-T_headers += Array.H PArray.H List.H Pointers.H
-
-T_sources += Tuple.cpp
-T_headers += Tuple.H
+T_headers += Array.H PArray.H List.H Pointers.H Tuple.H
 
 #
-# max, min, etc.
+# FAB I/O stuff.
 #
-T_headers += Misc.H
-
 C${BOXLIB_BASE}_headers += FabConv.H FPC.H
 C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
 
@@ -57,7 +51,7 @@ C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
 C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
 
 #
-# boxarray relationships.
+# BoxArray relationships.
 #
 C$(BOXLIB_BASE)_sources += BoxAssoc.cpp
 C$(BOXLIB_BASE)_headers += BoxAssoc.H
