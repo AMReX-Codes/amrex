@@ -19,9 +19,9 @@ c Works for CELL- or NODE-based data.
                   do k = regl2, regh2
                      dest(i,j,k,ic) = src(i,j,k,ic)
                   end do
-	         end do
-	      end do
-	   end do
+               end do
+            end do
+         end do
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do ic = 1, ncomp
             do k = regl2, regh2
@@ -29,9 +29,9 @@ c Works for CELL- or NODE-based data.
                   do j = regl1, regh1
                      dest(i,j,k,ic) = src(i,j,k,ic)
                   end do
-	         end do
-	      end do
-	   end do
+               end do
+            end do
+         end do
       else
          do  ic = 1, ncomp
             do  k = regl2, regh2
@@ -39,9 +39,9 @@ c Works for CELL- or NODE-based data.
                   do  i = regl0, regh0
                      dest(i,j,k,ic) = src(i,j,k,ic)
                   end do
-	         end do
-	      end do
-	   end do
+               end do
+            end do
+         end do
       end if
       end
 
@@ -80,10 +80,10 @@ c Works for NODE-based data.
                   do j = regl1, regh1
                      da(regl0+i,j,k,ic) = db(regl0+i,j,k,ic)
                      db(regl0-i,j,k,ic) = da(regl0-i,j,k,ic)
-	            end do
-	         end do
-	      end do
-	   end do
+                  end do
+               end do
+            end do
+         end do
       else if (regl1 .eq. regh1) then
          ial = 0
          iah = 0
@@ -98,13 +98,13 @@ c Works for NODE-based data.
                do k = regl2, regh2
                   do i = regl0 - ial, regh0 + iah
                      da(i,regl1+j,k,ic) = db(i,regl1+j,k,ic)
-	            end do
+                  end do
                   do i = regl0 - ibl, regh0 + ibh
                      db(i,regl1-j,k,ic) = da(i,regl1-j,k,ic)
-	            end do
-	         end do
-	      end do
-	   end do
+                  end do
+               end do
+            end do
+         end do
       else
          ial = 0
          iah = 0
@@ -128,14 +128,14 @@ c Works for NODE-based data.
                   do i = regl0 - ial, regh0 + iah
                      da(i,j,regl2+k,ic) = db(i,j,regl2+k,ic)
                   end do
-	         end do
+               end do
                do  j = regl1 - jbl, regh1 + jbh
                   do  i = regl0 - ibl, regh0 + ibh
                      db(i,j,regl2-k,ic) = da(i,j,regl2-k,ic)
-	            end do
-	         end do
-	      end do
-	   end do
+                  end do
+               end do
+            end do
+         end do
       end if
       end
 
@@ -154,9 +154,9 @@ c Works for NODE-based data.
             do i = 0, nvals1(k) - 1
                dest(dstart(k) + j * dstrd2(k) + i * dstrd1(k)) =
      &          src(sstart(k) + j * sstrd2(k) + i * sstrd1(k))
-	      end do
-	   end do
-	end do
+            end do
+         end do
+      end do
       end
 
 c Works for CELL- or NODE-based data.
@@ -179,25 +179,33 @@ c Works for CELL- or NODE-based data.
          nbuf = kdif - mod(kdif, bufsiz)
          do k = 0, min(bufsiz - 1, kdif)
             buf(k) = 0.d0
-	   end do
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
-               do 20 kk = 0, nbuf, bufsiz
-                  do 20 k = 0, min(bufsiz - 1, kdif - kk)
- 20                  buf(k) = max(buf(k), abs(src(i, j, regl2+kk+k)))
+         end do
+         do j = regl1, regh1
+            do i = regl0, regh0
+               do kk = 0, nbuf, bufsiz
+                  do k = 0, min(bufsiz - 1, kdif - kk)
+                     buf(k) = max(buf(k), abs(src(i, j, regl2+kk+k)))
+                  end do
+               end do
+            end do
+         end do
          do  k = 0, min(bufsiz - 1, kdif)
             retval = max(retval, buf(k))
-	   end do
+         end do
       else if (jdif .gt. idif) then
          nbuf = jdif - mod(jdif, bufsiz)
          do j = 0, min(bufsiz - 1, jdif)
             buf(j) = 0.d0
-	   end do
-         do 50 k = regl2, regh2
-            do 50 i = regl0, regh0
-               do 50 jj = 0, nbuf, bufsiz
-                  do 50 j = 0, min(bufsiz - 1, jdif - jj)
- 50                  buf(j) = max(buf(j), abs(src(i, regl1+jj+j, k)))
+         end do
+         do k = regl2, regh2
+            do i = regl0, regh0
+               do jj = 0, nbuf, bufsiz
+                  do j = 0, min(bufsiz - 1, jdif - jj)
+                     buf(j) = max(buf(j), abs(src(i, regl1+jj+j, k)))
+                  end do
+               end do
+            end do
+         end do
          do j = 0, min(bufsiz - 1, jdif)
             retval = max(retval, buf(j))
          end do
@@ -206,11 +214,15 @@ c Works for CELL- or NODE-based data.
          do i = 0, min(bufsiz - 1, idif)
             buf(i) = 0.d0
          end do
-         do 80 k = regl2, regh2
-            do 80 j = regl1, regh1
-               do 80 ii = 0, nbuf, bufsiz
-                  do 80 i = 0, min(bufsiz - 1, idif - ii)
- 80                  buf(i) = max(buf(i), abs(src(regl0+ii+i, j, k)))
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do ii = 0, nbuf, bufsiz
+                  do i = 0, min(bufsiz - 1, idif - ii)
+                     buf(i) = max(buf(i), abs(src(regl0+ii+i, j, k)))
+                  end do
+               end do
+            end do
+         end do
          do i = 0, min(bufsiz - 1, idif)
             retval = max(retval, buf(i))
          end do
@@ -259,20 +271,29 @@ c Works for CELL-based data.
       integer i, j, k
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &    regh2 - regl2 .gt. regh0 - regl0) then
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
-               do 10 k = regl2, regh2
- 10               sum = sum + v0(i,j,k) * v1(i,j,k)
+         do j = regl1, regh1
+            do i = regl0, regh0
+               do k = regl2, regh2
+                  sum = sum + v0(i,j,k) * v1(i,j,k)
+               end do
+            end do
+         end do
       else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 20 k = regl2, regh2
-            do 20 i = regl0, regh0
-               do 20 j = regl1, regh1
- 20               sum = sum + v0(i,j,k) * v1(i,j,k)
+         do k = regl2, regh2
+            do i = regl0, regh0
+               do j = regl1, regh1
+                  sum = sum + v0(i,j,k) * v1(i,j,k)
+               end do
+            end do
+         end do
       else
-         do 30 k = regl2, regh2
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
- 30               sum = sum + v0(i,j,k) * v1(i,j,k)
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  sum = sum + v0(i,j,k) * v1(i,j,k)
+               end do
+            end do
+         end do
       end if
       end
 
@@ -303,42 +324,42 @@ c Works for CELL- or NODE-based data.
      &                v0(i,regl1,regh2) * v1(i,regl1,regh2) +
      &                v0(i,regh1,regl2) * v1(i,regh1,regl2) +
      &                v0(i,regh1,regh2) * v1(i,regh1,regh2))
-	end do
+      end do
       do j = regl1 + 1, regh1 - 1
           sum = sum + 0.25d0 *
      &               (v0(regl0,j,regl2) * v1(regl0,j,regl2) +
      &                v0(regl0,j,regh2) * v1(regl0,j,regh2) +
      &                v0(regh0,j,regl2) * v1(regh0,j,regl2) +
      &                v0(regh0,j,regh2) * v1(regh0,j,regh2))
-	end do
+      end do
       do k = regl2 + 1, regh2 - 1
           sum = sum + 0.25d0 *
      &               (v0(regl0,regl1,k) * v1(regl0,regl1,k) +
      &                v0(regl0,regh1,k) * v1(regl0,regh1,k) +
      &                v0(regh0,regl1,k) * v1(regh0,regl1,k) +
      &                v0(regh0,regh1,k) * v1(regh0,regh1,k))
-	end do
+      end do
       do j = regl1 + 1, regh1 - 1
          do i = regl0 + 1, regh0 - 1
              sum = sum + 0.5d0 *
      &                  (v0(i,j,regl2) * v1(i,j,regl2) +
      &                   v0(i,j,regh2) * v1(i,j,regh2))
-	   end do
-	end do
+         end do
+      end do
       do k = regl2 + 1, regh2 - 1
          do i = regl0 + 1, regh0 - 1
             sum = sum + 0.5d0 *
      &                  (v0(i,regl1,k) * v1(i,regl1,k) +
      &                   v0(i,regh1,k) * v1(i,regh1,k))
-	   end do
+         end do
       end do
       do k = regl2 + 1, regh2 - 1
          do j = regl1 + 1, regh1 - 1
              sum = sum + 0.5d0 *
      &                  (v0(regl0,j,k) * v1(regl0,j,k) +
      &                   v0(regh0,j,k) * v1(regh0,j,k))
-	   end do
-	end do
+         end do
+      end do
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &    regh2 - regl2 .gt. regh0 - regl0) then
          do  j = regl1 + 1, regh1 - 1
@@ -346,24 +367,24 @@ c Works for CELL- or NODE-based data.
                do  k = regl2 + 1, regh2 - 1
                   sum = sum + v0(i,j,k) * v1(i,j,k)
                end do
-	      end do
-	   end do
+            end do
+         end do
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do  k = regl2 + 1, regh2 - 1
             do  i = regl0 + 1, regh0 - 1
                do j = regl1 + 1, regh1 - 1
                   sum = sum + v0(i,j,k) * v1(i,j,k)
-	         end do
-	      end do
-	   end do
+               end do
+            end do
+         end do
       else
          do  k = regl2 + 1, regh2 - 1
             do  j = regl1 + 1, regh1 - 1
                do  i = regl0 + 1, regh0 - 1
                   sum = sum + v0(i,j,k) * v1(i,j,k)
-	         end do
-	      end do
-	   end do
+               end do
+            end do
+         end do
       end if
       end
 
@@ -382,20 +403,29 @@ c Works for CELL- or NODE-based data.
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k
       if (idir .eq. 0) then
-         do 10 i = regl0, regh0
-            do 10 k = regl2, regh2
-               do 10 j = regl1, regh1
- 10               dest(i,j,k) = src(bbh0-(i-regl0),j,k)
+         do i = regl0, regh0
+            do k = regl2, regh2
+               do j = regl1, regh1
+                  dest(i,j,k) = src(bbh0-(i-regl0),j,k)
+               end do
+            end do
+         end do
       else if (idir .eq. 1) then
-         do 20 j = regl1, regh1
-            do 20 k = regl2, regh2
-               do 20 i = regl0, regh0
- 20               dest(i,j,k) = src(i,bbh1-(j-regl1),k)
+         do j = regl1, regh1
+            do k = regl2, regh2
+               do i = regl0, regh0
+                  dest(i,j,k) = src(i,bbh1-(j-regl1),k)
+               end do
+            end do
+         end do
       else
-         do 30 k = regl2, regh2
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
- 30               dest(i,j,k) = src(i,j,bbh2-(k-regl2))
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k) = src(i,j,bbh2-(k-regl2))
+               end do
+            end do
+         end do
       end if
       end
 
@@ -415,17 +445,23 @@ c Works for CELL- or NODE-based data.
       integer i, j, k
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
-            do 10 j = regl1, regh1
-               do 10 i = regl0, regh0
-                  do 10 k = regl2, regh2
- 10                  dest(i,j,k) = src(bbl0+(i-regl0),
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  do k = regl2, regh2
+                     dest(i,j,k) = src(bbl0+(i-regl0),
      &                                 bbl1+(j-regl1), bbl2+(k-regl2))
+                  end do
+               end do
+            end do
          else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 12 k = regl2, regh2
-               do 12 i = regl0, regh0
-                  do 12 j = regl1, regh1
- 12                  dest(i,j,k) = src(bbl0+(i-regl0),
+            do k = regl2, regh2
+               do i = regl0, regh0
+                  do j = regl1, regh1
+                     dest(i,j,k) = src(bbl0+(i-regl0),
      &                                 bbl1+(j-regl1), bbl2+(k-regl2))
+                  end do
+               end do
+            end do
          else
             do 14 k = regl2, regh2
                do 14 j = regl1, regh1
@@ -1346,8 +1382,9 @@ c Handles any edge geometry except all-coarse or all-fine.
       if (ivect(0) .eq. 0) then
          j = regl1
          k = regl2
-         do 10 i = regl0, regh0
- 10         dest(i,j,k) = 0.d0
+         do i = regl0, regh0
+            dest(i,j,k) = 0.d0
+         end do
 c center gets center plus two edges
          if (integ .eq. 0) then
             center = ir / cube
