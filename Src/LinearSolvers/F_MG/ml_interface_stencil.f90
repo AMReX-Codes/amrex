@@ -124,7 +124,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
   integer :: dm
   integer :: face, dim
   integer :: dir
-  integer :: i, j, n
+  integer :: i, j
 
   real(kind=dp_t), pointer :: rp(:,:,:,:)
   real(kind=dp_t), pointer :: fp(:,:,:,:)
