@@ -37,6 +37,8 @@ else
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
   #override XTRALIBS +=  -lf2c
   override XTRALIBS += -lg2c
+  FDEBF +=   -ffortran-bounds-check -Wimplicit
+  fDEBF +=   -ffortran-bounds-check -Wimplicit
 endif
 endif
 
