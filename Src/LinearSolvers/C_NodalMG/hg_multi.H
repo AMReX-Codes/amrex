@@ -57,19 +57,20 @@ public:
     holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
 	const Box& fdomain,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_fluid_boundary_class& Boundary, int Pcode = 2)
+	const amr_fluid_boundary_class& Boundary, bool use_cache = false, int Pcode = 2)
 	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 	Boundary.pressure(), Pcode),
-	boundary(Boundary), smoother_mode(2), line_solve_dim(-1)
+	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), m_use_cache(use_cache)
     {
 	build_mesh(fdomain);
     }
-    
-    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
-	Real H[], int Lev_min, int Lev_max);
-    void clear();
 protected:
     
+    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
+	Real H[], int Lev_min, int Lev_max, bool use_cache);
+    void clear();
+    
+    bool m_use_cache;
     int smoother_mode;
     int line_solve_dim;
     const amr_fluid_boundary_class& boundary;

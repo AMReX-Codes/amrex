@@ -51,7 +51,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 				PArray<MultiFab>& Source,
 				PArray<MultiFab>& Coarse_source,
 				PArray<MultiFab>& Sigma,
-				Real H[], int Lev_min, int Lev_max)
+				Real H[], int Lev_min, int Lev_max, bool use_cache)
 {
     assert(Dest.length() > Lev_max);
     assert(Dest[Lev_min].nGrow() == 1);
@@ -92,22 +92,23 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     
     corr_scache.resize(mglev_max + 1, 0);
 
-#ifdef HG_USE_CACHE
-    for (int lev = lev_min; lev <= lev_max; lev++) 
+    if ( use_cache )
     {
-	int mglev = ml_index[lev];
-	dest_bcache.set(lev, new copy_cache(dest[lev], lev_interface[mglev], mg_boundary, 1));
+	for (int lev = lev_min; lev <= lev_max; lev++) 
+	{
+	    int mglev = ml_index[lev];
+	    dest_bcache.set(lev, new copy_cache(dest[lev], lev_interface[mglev], mg_boundary, 1));
+	}
+	for (int mglev = 0; mglev <= mglev_max; mglev++) 
+	{
+	    corr_bcache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary, 1));
+	    corr_scache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary));
+	}
+	for (int mglev = 1; mglev <= mglev_max; mglev++) 
+	{
+	    work_bcache.set(mglev, new copy_cache(work[mglev], lev_interface[mglev], mg_boundary, 1));
+	}
     }
-    for (int mglev = 0; mglev <= mglev_max; mglev++) 
-    {
-	corr_bcache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary, 1));
-	corr_scache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary));
-    }
-    for (int mglev = 1; mglev <= mglev_max; mglev++) 
-    {
-	work_bcache.set(mglev, new copy_cache(work[mglev], lev_interface[mglev], mg_boundary, 1));
-    }
-#endif
     build_sigma(Sigma);
     
     alloc_sync_caches();
@@ -127,10 +128,11 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     cgwork.set(7, new MultiFab(mesh0, 1, ib));
     
     cgw1_bcache = 0;
-#ifdef HG_USE_CACHE
-    cgw1_bcache = new copy_cache(cgwork[1], lev_interface[0], mg_boundary, 1);
-#endif
-    
+    if ( use_cache )
+    {
+        cgw1_bcache = new copy_cache(cgwork[1], lev_interface[0], mg_boundary, 1);
+    }
+  
     assert(cgwork[3].nGrow() == ib &&
 	cgwork[4].nGrow() == ib &&
 	cgwork[5].nGrow() == ib);

@@ -3046,7 +3046,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, irat, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -3175,7 +3174,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, irat, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -3471,7 +3469,6 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, irat, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -4101,7 +4098,6 @@ c NODE(EDGE)-based data only.
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & srcx, srcy, srcz,
      & srcl0,srch0,srcl1,srch1,srcl2,srch2)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -4177,7 +4173,6 @@ c     &                                 1.d0 / srcz(i2+1,j2+1,k2+1))
      & mask,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 cor(*)
@@ -4213,7 +4208,6 @@ cdir$ ivdep
      & src, dest,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
@@ -4259,7 +4253,6 @@ cdir$ ivdep
      & src, dest,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 res(*)
@@ -4859,7 +4852,6 @@ c interface to grid at same level:
      & sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -4901,7 +4893,6 @@ c interface to grid at same level:
      & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
@@ -4984,7 +4975,6 @@ cdir$ ivdep
      & sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -5682,7 +5672,6 @@ c Works for NODE-based data.
      & nsets, edge, nvals1, nvals2, dstart, sstart,
      & dstrd1, dstrd2, sstrd1, sstrd2,
      & hx, alpha, rho, it, pcode)
-      implicit real*8(a-h,o-z), integer(i-n)
       real*8 r(0:*), p(0:*), z(0:*)
       real*8 x(0:*), w(0:*), c(0:*), mask(0:*)
       integer ngrids

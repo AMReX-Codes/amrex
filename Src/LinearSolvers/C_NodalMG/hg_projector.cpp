@@ -106,7 +106,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     assert(u[      1      ][Lev_min].nGrow() == 1);
     assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
+    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
     right_hand_side(u, null_amr_real);
     if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) 
     {
@@ -139,7 +139,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     assert(u[      1      ][Lev_min].nGrow() == 1);
     assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
+    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
     sync_right_hand_side(u);
     if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) 
     {
@@ -176,7 +176,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	assert(u[      1      ][Lev_min].nGrow() == 1);
 	assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 	
-	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
+	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
 	if (rhs.length() > 0) 
 	{
 	    if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
@@ -208,7 +208,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	
 	if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
 	{
-	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
+	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
 	    if (singular && make_sparse_node_source_solvable) 
 	    {
 		// Note:  You don't want to do this if rhs is not sparse!
@@ -217,7 +217,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	}
 	else 
 	{
-	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
+	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
 	    // source is set to 0 at this point
 	    right_hand_side((PArray<MultiFab>*)0, rhs);
 	}

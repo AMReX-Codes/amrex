@@ -18,10 +18,10 @@ public:
     holy_grail_amr_projector(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 	const Box& fdomain,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_fluid_boundary_class& Boundary, int Pcode = 2)
+	const amr_fluid_boundary_class& Boundary, bool use_cache, int Pcode = 2)
 	: holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain,
 	Lev_min_min, Lev_min_max, Lev_max_max,
-	Boundary, Pcode),
+	Boundary, use_cache, Pcode),
 	make_sparse_node_source_solvable(false) { }
     
     const Array<BoxArray>& mesh() const
