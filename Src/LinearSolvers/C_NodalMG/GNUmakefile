@@ -8,8 +8,8 @@ COMP      = cxx
 COMP      = KCC
 
 
-USE_MPI=FALSE
 USE_MPI=TRUE
+USE_MPI=FALSE
 
 
 EBASE=proj

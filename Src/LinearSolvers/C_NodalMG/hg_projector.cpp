@@ -782,7 +782,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    FORT_HGEDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-				D_DECL(uf[0]->fab().dataPtr(), uf[0]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
+				D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
 				DIMLIST(creg),
 				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 				t.getVect(), ga.dataPtr());
