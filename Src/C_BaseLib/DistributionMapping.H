@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.11 1998-07-08 16:36:12 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.12 2000-02-28 23:27:00 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -83,13 +83,17 @@ class DistributionMapping
 
     /*@ManDoc: Flush the cache of processor maps.  The processor map cache
                is only flushed manually.  Only call this after a regridding
-               before new MultiFabs are alloced.
+               before new MultiFabs are alloc()d.
     */
     static void FlushCache ();
     //
-    //@ManDoc: The size of the caceh.
+    //@ManDoc: The size of the cache.
     //
     static int CacheSize ();
+    //
+    //@ManDoc: Append the ProcMap to the Cache.  Checks for consistency.
+    //
+    static void AddToCache (const DistributionMapping& dm);
     //
     //@ManDoc: Output some simple cache statistics.
     //
