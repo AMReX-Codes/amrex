@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.80 2001-07-24 18:16:55 lijewski Exp $
+// $Id: VisMF.cpp,v 1.81 2001-07-25 05:22:56 car Exp $
 //
 
 #include <cstdio>
@@ -418,7 +418,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
     int nFabs = 0;
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         nFabs++;
 
@@ -427,12 +427,12 @@ VisMF::Header::Header (const MultiFab& mf,
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
 
-        BL_ASSERT(mfi().box().contains(m_ba[idx]));
+        BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for (long j = 0; j < m_ncomp; j++)
         {
-            m_min[idx][j] = mfi().min(m_ba[idx],j);
-            m_max[idx][j] = mfi().max(m_ba[idx],j);
+            m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
+            m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
         }
     }
 
@@ -444,7 +444,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
             int offset = 0;
 
-            for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
                 const int idx = mfi.index();
 
@@ -538,19 +538,19 @@ VisMF::Header::Header (const MultiFab& mf,
         }
     }
 #else
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int idx = mfi.index();
 
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
 
-        BL_ASSERT(mfi().box().contains(m_ba[idx]));
+        BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for (long j = 0; j < m_ncomp; j++)
         {
-            m_min[idx][j] = mfi().min(m_ba[idx],j);
-            m_max[idx][j] = mfi().max(m_ba[idx],j);
+            m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
+            m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
         }
     }
 #endif /*BL_USE_MPI*/
@@ -619,7 +619,7 @@ VisMF::Write (const MultiFab&    mf,
         BL_ASSERT(hdr.m_ba == mf.boxArray());
         BL_ASSERT(hdr.m_ncomp == mf.nComp());
 
-        for (MultiFabIterator mfi(*the_mf); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*the_mf); mfi.isValid(); ++mfi)
         {
             const int idx = mfi.index();
 
@@ -627,7 +627,7 @@ VisMF::Write (const MultiFab&    mf,
             {
                 const Real val = (hdr.m_min[idx][j] + hdr.m_max[idx][j]) / 2;
 
-                mfi().setComplement(val, hdr.m_ba[idx], j, 1);
+                the_mf->get(mfi).setComplement(val, hdr.m_ba[idx], j, 1);
             }
         }
     }
@@ -657,22 +657,22 @@ VisMF::Write (const MultiFab&    mf,
 
     std::string basename = VisMF::BaseName(FullFileName);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
-        hdr.m_fod[mfi.index()] = VisMF::Write(mfi(),basename,FabFile,bytes);
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
 
 #ifdef BL_USE_MPI
     if (!ParallelDescriptor::IOProcessor())
     {
         int nFabs = 0, idx = 0;
 
-        for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             nFabs++;
 
         if (nFabs)
         {
             Array<long> senddata(nFabs);
 
-            for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
                 senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
 
             BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
@@ -870,7 +870,7 @@ VisMF::Read (MultiFab&          mf,
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
-    for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
