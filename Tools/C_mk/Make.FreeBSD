@@ -1,0 +1,23 @@
+# Make for Linux
+
+FORT_CPP := gcc -E -traditional
+FC       := f77 -fno-second-underscore
+fC       := $(FC)
+
+# default g77 version
+FOPTF += -O
+fOPTF += -O
+FDEBF += -g
+fDEBF += -g
+#DEFINES += -DBL_FORT_USE_UNDERSCORE
+#override XTRALIBS +=  -lf2c
+# LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
+override XTRALIBS += -lg2c
+FDEBF +=   -ffortran-bounds-check 
+# FDEBF += -Wimplicit
+fDEBF +=   -ffortran-bounds-check
+
+CXXPRFF += -pg
+FPRF    += -pg
+
+override XTRALIBS +=   -lm

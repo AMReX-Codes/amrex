@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.32 2002-03-26 22:14:33 car Exp $
+// $Id: BLThread.cpp,v 1.33 2002-04-07 17:00:44 car Exp $
 //
 
 #include <winstd.H>
@@ -12,8 +12,9 @@
 #include <windows.h>
 #else
 #include <unistd.h>
-#include <sys/resource.h>
+#include <sys/types.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #ifdef BL_THREADS
 #include <pthread.h>
 #endif
