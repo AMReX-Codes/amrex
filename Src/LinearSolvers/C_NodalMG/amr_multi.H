@@ -32,12 +32,12 @@ public:
     static void mesh_write(const Array<BoxArray>& m, const Array<Box>& d, ostream& os);
     static void mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os);
     
-    void solve(Real reltol, Real abstol, int i1, int i2, int linesolvdim = -1);
+    void solve(Real reltol, Real abstol, int i1, int i2);
     Real ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine = 0.0);
     void mg_cycle(int mglev, int i1, int i2, bool is_zero);
     Real ml_residual(int mglev, int lev);
 
-    virtual void mg_interpolate_level(int lto, int lfrom) = 0;	// defined
+    virtual void mg_interpolate_level(int lto, int lfrom) = 0;
     virtual void mg_restrict_level(int lto, int lfrom) = 0;
     virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear) = 0;
     virtual void interface_residual(int mglev, int mgc) = 0;

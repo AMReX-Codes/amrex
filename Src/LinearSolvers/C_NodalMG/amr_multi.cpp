@@ -83,7 +83,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     mg_mesh_array.resize(lev_min_max + 1);
     interface_array = new level_interface*[lev_min_max - lev_min_min + 1];
     
-    if (pcode >= 2) 
+    if (pcode >= 2 && ParallelDescriptor::IOProcessor()) 
     {
 	mesh_write(ml_mesh, gen_ratio, fdomain, cout);
     }
@@ -98,7 +98,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 	    assert(mg_mesh[i].ok());
 #endif
 	
-	if (pcode >= 2) 
+	if (pcode >= 2 && ParallelDescriptor::IOProcessor()) 
 	{
 	    mesh_write(mg_mesh, mg_domain, cout);
 	}
@@ -313,10 +313,8 @@ void amr_multigrid::clear()
     mg_mesh.clear();
 }
 
-void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2, int linesolvdim)
+void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 {
-    assert(linesolvdim == -1); // line solves not supported through this arg
-    
     if (lev_max > lev_min)
 	sync_interfaces();
     
@@ -340,7 +338,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2, int linesolv
 	    }
 	}
     }
-    if (pcode >= 1)
+    if (pcode >= 1 && ParallelDescriptor::IOProcessor())
 	cout << "Source norm is " << norm << endl;
     
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol);
@@ -357,7 +355,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2, int linesolv
 	if (it > 100)
 	    BoxLib::Error("amr_multigrid::solve---multigrid iteration failed");
     }
-    if (pcode >= 1)
+    if (pcode >= 1 && ParallelDescriptor::IOProcessor())
 	cout << it << " cycles required" << endl;
     
     //This final restriction not needed unless you want coarse and fine
@@ -381,7 +379,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     // includes restriction from next finer level
     Real res_norm = ml_residual(mglev, lev);
     
-    if (pcode >= 2)
+    if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	cout << "Residual at level " << lev << " is " << res_norm << endl;
     
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
@@ -490,7 +488,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
 	
 	relax(mglev, i1, is_zero);
 	
-	if (pcode >= 4) 
+	if (pcode >= 4  && ParallelDescriptor::IOProcessor()) 
 	{
 	    wtmp.setVal(0.0);
 	    level_residual(wtmp, resid[mglev], ctmp, mglev, true);
@@ -514,28 +512,4 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
 	ctmp.plus(wtmp, 0, 1, 0);
     }
     relax(mglev, i2, false);
-}
-
-// Should include lev_interface points
-void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
-{
-    MultiFab& target = work[lto];
-    IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
-    if (target.nGrow() == 0) 
-    {
-	for (int i = 0; i < target.length(); i++) 
-	{
-	    assert( target[i].box() == target.box(i) );
-	    interpolate_patch(target[i], target[i].box(), 
-		corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
-	}
-    }
-    else 
-    {
-	for (int i = 0; i < target.length(); i++) 
-	{
-	    interpolate_patch(target[i], target.box(i), 
-		corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
-	}
-    }
 }

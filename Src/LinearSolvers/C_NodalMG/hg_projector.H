@@ -77,7 +77,7 @@ public:
 	       PArray<MultiFab>& Coarse_source,
 	       PArray<MultiFab>& Sigma, Real H[], Real tol,
 	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
-    
+
     void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
 	PArray<MultiFab>& Coarse_source,
 	Real H[], Real tol,
@@ -89,7 +89,7 @@ public:
 	PArray<MultiFab>& Coarse_source,
 	PArray<MultiFab>& Sigma, Real H[], Real tol,
 	int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
-    
+
     // This is the do-it-yourself version:  The right hand side for the
     // elliptic solve is specified in rhs.  The resulting potential will
     // be returned in p, and its gradient will be subtracted from u

@@ -447,18 +447,21 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     */
     
     int sum = 0;
-    cout << "Cells by level: ";
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+    if ( ParallelDescriptor::IOProcessor() )
     {
-	int lsum = 0;
-	for (int i = 0; i < m[ilev].length(); i++) 
+	cout << "Cells by level: ";
+	for (int ilev = 0; ilev < m.length(); ilev++) 
 	{
-	    lsum += m[ilev][i].numPts();
+	    int lsum = 0;
+	    for (int i = 0; i < m[ilev].length(); i++) 
+	    {
+		lsum += m[ilev][i].numPts();
+	    }
+	    cout << " " << lsum;
+	    sum += lsum;
 	}
-	cout << " " << lsum;
-	sum += lsum;
+	cout << "\nTotal cells:  " << sum << endl;
     }
-    cout << "\nTotal cells:  " << sum << endl;
     
     double t0, t1, t2, t3;
     
