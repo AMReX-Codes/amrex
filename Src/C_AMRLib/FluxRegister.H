@@ -4,7 +4,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.9 1998-05-08 15:58:50 lijewski Exp $
+// $Id: FluxRegister.H,v 1.10 2000-07-03 22:02:50 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -98,26 +98,6 @@ public:
                 int       src_comp,
                 int       dest_comp,
                 int       num_comp);
-    //
-    //@ManDoc: flx = flx + mult*register/area.
-    //
-    void scaleAddTo (FArrayBox&       flx,
-                     const FArrayBox& area,
-                     int              dir,
-                     Real             mult,
-                     int              src_comp,
-                     int              dest_comp,
-                     int              num_comp);
-    //
-    //@ManDoc: mf = fm + mult*register/area.
-    //
-    void scaleAddTo (MultiFab&       mf,
-                     const MultiFab& area,
-                     int             dir,
-                     Real            mult,
-                     int             src_comp,
-                     int             dest_comp,
-                     int             num_comp);
     //
     //@ManDoc: Initialize flux correction with coarse data.
     //
