@@ -7,7 +7,9 @@ class holy_grail_interpolator_class_not_cross : public bilinear_interpolator_cla
 {
 public:
     holy_grail_interpolator_class_not_cross(Real **Sigptr, const Box& Sigbox)
-	: sigptr(Sigptr), sigbox(Sigbox) { }
+	: sigptr(Sigptr), sigbox(Sigbox) 
+    { 
+    }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 protected:
     Real **sigptr;
@@ -18,7 +20,9 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class
 {
 public:
     holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
-	: sigptr(Sigptr), sigbox(Sigbox) { }
+	: sigptr(Sigptr), sigbox(Sigbox) 
+    { 
+    }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect&) const;
 protected:
     Real *sigptr;
@@ -28,7 +32,10 @@ protected:
 class holy_grail_sigma_restrictor_class : public cell_average_restrictor_class 
 {
 public:
-    holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0), m_hg_terrain(false) { }
+    holy_grail_sigma_restrictor_class() 
+	: cell_average_restrictor_class(0), m_hg_terrain(false) 
+    { 
+    }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 private:
     bool m_hg_terrain;

@@ -48,8 +48,13 @@ class task
 {
 public:
     typedef unsigned int sequence_number;
-    task() : m_sno(~0U), m_started(false) {}
-    virtual ~task() {}
+    task() 
+	: m_sno(~0U), m_started(false) 
+    {
+    }
+    virtual ~task() 
+    {
+    }
     virtual bool ready() = 0;
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -162,7 +167,9 @@ class task_fab : public task
 {
 public:
     task_fab(const MultiFab&t_, int tt_, const Box& region_, int ncomp_)
-	: m_local_target(is_local(t_, tt_)), region(region_), ncomp(ncomp_), target(0) {}
+	: m_local_target(is_local(t_, tt_)), region(region_), ncomp(ncomp_), target(0) 
+    {
+    }
     virtual ~task_fab()
     {
 	delete target;

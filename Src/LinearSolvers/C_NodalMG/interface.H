@@ -27,7 +27,10 @@ public:
 	FACEDIM = BL_SPACEDIM-1
     };
     
-    level_interface() : status(-1) { }
+    level_interface() 
+	: status(-1) 
+    { 
+    }
     ~level_interface();
     // a pseudo constructor.
     void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
