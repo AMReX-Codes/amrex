@@ -1,11 +1,12 @@
 
 //
-// $Id: StateData.cpp,v 1.34 2002-08-21 20:12:40 car Exp $
+// $Id: StateData.cpp,v 1.35 2002-10-09 21:43:20 car Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 
+#include <Profiler.H>
 #include <RealBox.H>
 #include <StateData.H>
 #include <StateDescriptor.H>
@@ -516,6 +517,7 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
                              int                      num_comp,
                              bool                     extrap)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "linInterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
