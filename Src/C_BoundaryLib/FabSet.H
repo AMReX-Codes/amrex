@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.3 1997-12-11 23:27:00 lijewski Exp $
+// $Id: FabSet.H,v 1.4 1997-12-12 00:15:58 car Exp $
 //
 
 #include <FArrayBox.H>
@@ -330,7 +330,7 @@ private:
     //
     // These are disallowed.
     //
-    FabSetCopyDescriptor ();
+    // FabSetCopyDescriptor ();
     FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
     FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
 };

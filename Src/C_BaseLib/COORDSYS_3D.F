@@ -1,9 +1,10 @@
 #undef  BL_LANG_CC
-#define BL_LANG_FORT
+c#define BL_LANG_FORT
 
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "COORDSYS_F.H"
+#define BL_USE_ARLIM
 #include "DIMS.H"
 
 #define SDIM 3
