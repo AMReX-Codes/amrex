@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.28 1999-10-15 23:44:30 vince Exp $
+# Make.defs $Id: Make.defs,v 1.29 2000-01-10 23:55:15 vince Exp $
 #
 
 #
@@ -35,6 +35,9 @@ ifeq ($(findstring pierre, $(UNAMEN)), pierre)
 endif
 ifeq ($(findstring seymour, $(UNAMEN)), seymour)
     WHICHT3E := NAVO
+endif
+ifeq ($(findstring yukon, $(UNAMEN)), yukon)
+    WHICHT3E := ARSC
 endif
 endif
 endif
