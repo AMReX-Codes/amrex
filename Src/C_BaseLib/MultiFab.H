@@ -4,19 +4,12 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.19 1998-06-15 23:54:24 lijewski Exp $
+// $Id: MultiFab.H,v 1.20 1998-06-16 18:01:13 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
-
-#ifdef BL_USE_NEW_HFILES
-#include <list>
-using std::list;
-#else
-#include <list.h>
-#endif
 
 typedef FabArrayId MultiFabId;
 
@@ -332,102 +325,13 @@ class MultiFab
     void FillBoundary (int src_comp,
                        int num_comp);
     //
-    //@ManDoc: The cached descriptor used by FillPeriodicBoundary(). May be NULL.
+    //@ManDoc: The cached descriptor used by FillPeriodicBoundary().
     //
-    MultiFabCopyDescriptor* getFPBmfcd (int  src_comp,
-                                        int  num_comp,
-                                        bool no_ovlp);
-    //
-    //@ManDoc: Set the cached copy descriptor used by FillPeriodicBoundary().
-    //
-    void setFPBmfcd (int                     src_comp,
-                     int                     num_comp,
-                     bool                    no_ovlp,
-                     MultiFabCopyDescriptor* mfcd);
-    //
-    //@ManDoc: Flush the cache of SI information.
-    //
-    static void FlushSICache ();
-    //
-    //@ManDoc: The size of the SI cache.
-    //
-    static int SICacheSize ();
-
+    MultiFabCopyDescriptor& theFPBmfcd (int   src_comp,
+                                        int   num_comp,
+                                        bool  no_ovlp,
+                                        bool& buildit);
 private:
-    //
-    // Holds single grid intersection record.
-    //
-    struct SIRec
-    {
-	SIRec ()
-            :
-            m_i(-1),
-            m_j(-1) {}
-
-	SIRec (int        i,
-               int        j,
-               const Box& bx)
-	    :
-            m_i(i),
-            m_j(j),
-            m_bx(bx)
-        {
-            assert(i >= 0);
-            assert(j >= 0);
-        }
-
-        int       m_i;
-	int       m_j;
-	Box       m_bx;
-	FillBoxId m_fbid;
-    };
-    //
-    // Used in caching self-intersection info for FillBoundary().
-    //
-    struct SI
-    {
-        SI ()
-            :
-            m_scomp(-1),
-            m_ncomp(-1),
-            m_ngrow(-1) {}
-
-        SI (const BoxArray& ba,
-            int             scomp,
-            int             ncomp,
-            int             ngrow)
-            :
-            m_ba(ba),
-            m_scomp(scomp),
-            m_ncomp(ncomp),
-            m_ngrow(ngrow)
-        {
-            assert(ncomp > 0);
-            assert(scomp >= 0);
-            assert(ngrow >= 0);
-        }
-
-        ~SI () {}
-
-        bool operator== (const SI& rhs) const
-        {
-            return
-                m_scomp == rhs.m_scomp &&
-                m_ncomp == rhs.m_ncomp &&
-                m_ngrow == rhs.m_ngrow &&
-                m_ba == rhs.m_ba;
-        }
-
-        vector<SIRec> m_sirec;
-        BoxArray      m_ba;
-        int           m_scomp;
-        int           m_ncomp;
-        int           m_ngrow;
-    };
-    //
-    // A useful typedef.
-    //
-    typedef list<SI> SIList;
     //
     // These are disabled.
     //
@@ -436,10 +340,6 @@ private:
     //
     // FillBoundary() Helper functions.
     //
-    vector<SIRec>& theFBsirec () const;
-
-    vector<SIRec>& buildFBsirec (const SI& si) const;
-
     void buildFBmfcd (int src_comp,
                       int num_comp);
 
@@ -449,16 +349,13 @@ private:
     // Some additional cached data.
     //
     MultiFabCopyDescriptor* m_FB_mfcd;    /* Hack for FillBoundary */
+    vector<FillBoxId>*      m_FB_fbid;    /* Hack for FillBoundary */
     int                     m_FB_scomp;   /* Hack for FillBoundary */
     int                     m_FB_ncomp;   /* Hack for FillBoundary */
     MultiFabCopyDescriptor* m_FPB_mfcd;   /* Hack for FillPeriodicBoundary */
     int                     m_FPB_scomp;  /* Hack for FillPeriodicBoundary */
     int                     m_FPB_ncomp;  /* Hack for FillPeriodicBoundary */
     bool                    m_FPB_noovlp; /* Hack for FillPeriodicBoundary */
-    //
-    // Cache of grid self-intersection info used by FillBoundary().
-    //
-    static SIList m_SICache;
 };
 
 class ConstMultiFabIterator;
@@ -633,8 +530,8 @@ MultiFabCopyDescriptor&
 MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
 {
-    assert(src_comp >= 0);
     assert(num_comp > 0);
+    assert(src_comp >= 0);
 
     if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
     {
@@ -645,79 +542,40 @@ MultiFab::theFBmfcd (int src_comp,
 }
 
 inline
-MultiFabCopyDescriptor*
-MultiFab::getFPBmfcd (int  src_comp,
-                      int  num_comp,
-                      bool no_ovlp)
+MultiFabCopyDescriptor&
+MultiFab::theFPBmfcd (int   src_comp,
+                      int   num_comp,
+                      bool  no_ovlp,
+                      bool& buildit)
 {
     assert(src_comp >= 0);
     assert(num_comp > 0);
+
+    buildit = false;
 
     if (!(m_FPB_scomp == src_comp &&
           m_FPB_ncomp == num_comp &&
           m_FPB_noovlp == no_ovlp))
     {
-        //
-        // Null it out so it'll be rebuilt.
-        //
-        delete m_FPB_mfcd;
+        m_FPB_scomp  = src_comp;
+        m_FPB_ncomp  = num_comp;
+        m_FPB_noovlp = no_ovlp;
 
-        m_FPB_mfcd   = 0;
-        m_FPB_scomp  = -1;
-        m_FPB_ncomp  = -1;
-        m_FPB_noovlp = false;
-    }
-
-    return m_FPB_mfcd;
-}
-
-inline
-void
-MultiFab::setFPBmfcd (int                     src_comp,
-                      int                     num_comp,
-                      bool                    no_ovlp,
-                      MultiFabCopyDescriptor* mfcd)
-{
-    assert(num_comp > 0);
-    assert(!(mfcd == 0));
-    assert(src_comp >= 0);
-    
-    delete m_FPB_mfcd;
-
-    m_FPB_mfcd   = mfcd;
-    m_FPB_scomp  = src_comp;
-    m_FPB_ncomp  = num_comp;
-    m_FPB_noovlp = no_ovlp;
-}
-
-inline
-int
-MultiFab::SICacheSize ()
-{
-    return m_SICache.size();
-}
-
-inline
-vector<MultiFab::SIRec>&
-MultiFab::theFBsirec () const
-{
-    //
-    // We assume `m_FB_scomp' & `m_FB_ncomp' have already been set.
-    //
-    assert(m_FB_ncomp > 0);
-    assert(m_FB_scomp >= 0);
-
-    const SI si(boxArray(), m_FB_scomp, m_FB_ncomp, nGrow());
-    
-    for (SIList::iterator it = m_SICache.begin(); it != m_SICache.end(); ++it)
-    {
-        if (*it == si)
+        if (m_FPB_mfcd == 0)
         {
-            return (*it).m_sirec;
+            m_FPB_mfcd = new MultiFabCopyDescriptor;
         }
+        else
+        {
+            m_FPB_mfcd->clear();
+        }
+        //
+        // Tell FillPeriodicBoundary to build it.
+        //
+        buildit = true;
     }
 
-    return buildFBsirec(si);
+    return *m_FPB_mfcd;
 }
 
 inline
