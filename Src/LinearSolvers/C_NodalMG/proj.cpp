@@ -34,6 +34,10 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 
 void driver(const char* filename);
 
+int pcode = 4;
+int nrep  = 1;
+Real tol = 2.e-10;
+
 int main(int argc, char **argv)
 {
 #ifndef WIN32
@@ -66,6 +70,9 @@ int main(int argc, char **argv)
 	::sleep(slp);
     }
 #endif
+    pp.query("nrep", nrep);
+    pp.query("pcode", pcode);
+    pp.query("tol", tol);
     cout << setprecision(15);
 
     int num = pp.countname("file");
@@ -503,16 +510,16 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     
 #ifdef UNICOS
     //int pcode = 1, nrep = 8;
-    int pcode = 1, nrep = 1;
-    Real tol = 1.e-6;
+    // int pcode = 1, nrep = 1;
+    // Real tol = 1.e-6;
     //Real tol = 2.e-10;
 #else
-    int pcode = 4, nrep = 1;
+    // int pcode = 4, nrep = 1;
     //Real tol = 1.e-14;
     //int pcode = 1, nrep = 3;
     //Real tol = 1.e-6;
     // for vd tests in May, and most code validation tests:
-    Real tol = 2.e-10;
+    // Real tol = 2.e-10;
     //Real tol = 5.e-9;
 #endif
     t0 = Utility::second();
