@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.25 1999-03-11 17:56:58 lijewski Exp $
+// $Id: Utility.H,v 1.26 1999-08-25 18:03:58 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -296,7 +296,7 @@ public:
   be called in C++ code as abcxyz\_.
 */
 #define BL_FORT_USE_UNDERSCORE 1
-#endif /*BL_LANG_CC*/
+#endif /*BL_FORT_USE_UNDERSCORE*/
 
 #ifdef BL_FORT_USE_UPPERCASE
 #undef BL_FORT_USE_UPPERCASE
@@ -311,6 +311,19 @@ public:
 */
 #define BL_FORT_USE_UPPERCASE 1
 #endif /*BL_FORT_USE_UPPERCASE*/
+
+#ifdef BL_FORT_USE_LOWERCASE
+#undef BL_FORT_USE_LOWERCASE
+/*@ManDoc:
+  The macro BL\_FORT\_USE\_LOWERCASE indicates that C++ code should call
+  Fortran routines using lowercase letters for all the letters in the
+  routine.  This is set automatically by the make subsystem.  
+
+  For example, if the Fortran routine is named abcxyx, then it will
+  be called in C++ code as abcxyx.
+*/
+#define BL_FORT_USE_LOWERCASE 1
+#endif /*BL_FORT_USE_LOWERCASE*/
 
 /*@ManDoc:
   BL\_IGNORE\_MAX is a macro that expands to the literal value 100000.  It is

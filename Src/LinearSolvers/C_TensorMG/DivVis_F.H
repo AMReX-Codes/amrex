@@ -31,7 +31,7 @@
 
 #if (BL_SPACEDIM == 2)
 
-# ifdef BL_FORT_USE_UPPERCASE
+# if defined(BL_FORT_USE_UPPERCASE)
 #  define FORT_DVAPPLY          DVAPPLY2D
 #  define FORT_DVFLUX           DVFLUX2D
 #  define FORT_GSRB             GSRBVISC2D
@@ -40,9 +40,16 @@
 #  define FORT_AVERAGECC        MCAVERAGECC2DGEN
 #  define FORT_AVERAGEEC        MCAVERAGEEC2DGEN
 #  define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC2DGEN
-# endif
-
-# ifdef BL_FORT_USE_UNDERSCORE
+# elif defined(BL_FORT_USE_LOWERCASE)
+#  define FORT_DVAPPLY          dvapply2d
+#  define FORT_DVFLUX           dvflux2d
+#  define FORT_GSRB             gsrbvisc2d
+#  define FORT_APPLYBC          mcapplybc2dgen
+#  define FORT_RESIDL           mcresid2dgen
+#  define FORT_AVERAGECC        mcaveragecc2dgen
+#  define FORT_AVERAGEEC        mcaverageec2dgen
+#  define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen
+# elif defined(BL_FORT_USE_UNDERSCORE)
 #  define FORT_DVAPPLY          dvapply2d_
 #  define FORT_DVFLUX           dvflux2d_
 #  define FORT_GSRB             gsrbvisc2d_
@@ -55,7 +62,7 @@
 
 #else
 
-# ifdef BL_FORT_USE_UPPERCASE
+# if defined(BL_FORT_USE_UPPERCASE)
 #  define FORT_DVAPPLY          DVAPPLY3D
 #  define FORT_DVFLUX           DVFLUX3D
 #  define FORT_GSRB             GSRBVISC3D
@@ -64,9 +71,16 @@
 #  define FORT_AVERAGECC        MCAVERAGECC3DGEN
 #  define FORT_AVERAGEEC        MCAVERAGEEC3DGEN
 #  define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC3DGEN
-# endif
-
-# ifdef BL_FORT_USE_UNDERSCORE
+# elif defined(BL_FORT_USE_LOWERCASE)
+#  define FORT_DVAPPLY          dvapply3d
+#  define FORT_DVFLUX           dvflux3d
+#  define FORT_GSRB             gsrbvisc3d
+#  define FORT_APPLYBC          mcapplybc3dgen
+#  define FORT_RESIDL           mcresid3dgen
+#  define FORT_AVERAGECC        mcaveragecc3dgen
+#  define FORT_AVERAGEEC        mcaverageec3dgen
+#  define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen
+# elif defined(BL_FORT_USE_UNDERSCORE)
 #  define FORT_DVAPPLY          dvapply3d_
 #  define FORT_DVFLUX           dvflux3d_
 #  define FORT_GSRB             gsrbvisc3d_

@@ -2,7 +2,7 @@
 #define _INTERPBNDRY_F_H_
 
 /*
-** $Id: INTERPBNDRYDATA_F.H,v 1.1 1998-03-24 07:06:07 almgren Exp $
+** $Id: INTERPBNDRYDATA_F.H,v 1.2 1999-08-25 18:04:09 propp Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -19,7 +19,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_BDINTERPXLO  BDINTRPXLO
 #    define FORT_BDINTERPXHI  BDINTRPXHI
 #    if (BL_SPACEDIM > 1)
@@ -30,7 +30,18 @@
 #    define FORT_BDINTERPZLO  BDINTRPZLO
 #    define FORT_BDINTERPZHI  BDINTRPZHI
 #    endif
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_BDINTERPXLO  bdintrpxlo
+#    define FORT_BDINTERPXHI  bdintrpxhi
+#    if (BL_SPACEDIM > 1)
+#    define FORT_BDINTERPYLO  bdintrpylo
+#    define FORT_BDINTERPYHI  bdintrpyhi
+#    endif
+#    if (BL_SPACEDIM > 2)
+#    define FORT_BDINTERPZLO  bdintrpzlo
+#    define FORT_BDINTERPZHI  bdintrpzhi
+#    endif
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_BDINTERPXLO  bdintrpxlo_
 #    define FORT_BDINTERPXHI  bdintrpxhi_
 #    if (BL_SPACEDIM > 1)

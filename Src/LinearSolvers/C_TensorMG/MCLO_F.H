@@ -25,13 +25,17 @@
 #if defined(BL_LANG_CC)
 
 #if (BL_SPACEDIM == 2)
-#ifdef BL_FORT_USE_UPPERCASE
+#if defined(BL_FORT_USE_UPPERCASE)
 #define FORT_AVERAGECC MCAVERAGECC2DGEN
 #define FORT_AVERAGEEC MCAVERAGEEC2DGEN
 #define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC2DGEN
 #define FORT_RESIDL    MCRESID2DGEN
-#endif
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGECC mcaveragecc2dgen
+#define FORT_AVERAGEEC mcaverageec2dgen
+#define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen
+#define FORT_RESIDL    mcresid2dgen
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_AVERAGECC mcaveragecc2dgen_
 #define FORT_AVERAGEEC mcaverageec2dgen_
 #define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen_
@@ -40,13 +44,17 @@
 #endif
 
 #if (BL_SPACEDIM == 3)
-#ifdef BL_FORT_USE_UPPERCASE
+#if defined(BL_FORT_USE_UPPERCASE)
 #define FORT_AVERAGECC MCAVERAGECC3DGEN
 #define FORT_AVERAGEEC MCAVERAGEEC3DGEN
 #define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC3DGEN
 #define FORT_RESIDL    MCRESID3DGEN
-#endif
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGECC mcaveragecc3dgen
+#define FORT_AVERAGEEC mcaverageec3dgen
+#define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen
+#define FORT_RESIDL    mcresid3dgen
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_AVERAGECC mcaveragecc3dgen_
 #define FORT_AVERAGEEC mcaverageec3dgen_
 #define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen_

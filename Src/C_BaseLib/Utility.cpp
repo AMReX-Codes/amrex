@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.33 1999-07-14 19:20:44 lijewski Exp $
+// $Id: Utility.cpp,v 1.34 1999-08-25 18:03:59 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -467,7 +467,7 @@ main ()
 //
 // Fortran entry point for Utility::Random().
 //
-#ifdef BL_FORT_USE_UPPERCASE
+#if defined(BL_FORT_USE_UPPERCASE)
 
 extern "C" void BLUTILRAND (Real* rn);
 
@@ -478,10 +478,7 @@ BLUTILRAND (Real* rn)
     *rn = Utility::Random();
 }
 
-#else
-
-#ifdef BL_AIX
-// AIX does not use the trailing underbar
+#elif defined(BL_FORT_USE_LOWERCASE)
 extern "C" void blutilrand (Real* rn);
 
 void
@@ -491,7 +488,7 @@ blutilrand (Real* rn)
     *rn = Utility::Random();
 }
 
-#else
+#elif defined(BL_FORT_USE_UNDERSCORE)
 extern "C" void blutilrand_ (Real* rn);
 
 void
@@ -500,8 +497,6 @@ blutilrand_ (Real* rn)
     BL_ASSERT(rn != 0);
     *rn = Utility::Random();
 }
-
-#endif /*BL_AIX*/
-#endif /*BL_FORT_USE_UPPERCASE*/
+#endif 
 
 

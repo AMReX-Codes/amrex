@@ -21,7 +21,7 @@
 #endif
 
 #ifdef BL_LANG_CC
-#  ifdef BL_FORT_USE_UPPERCASE
+#  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_BDINTERPXLO  MCBDINTRPXLO
 #    define FORT_BDINTERPXHI  MCBDINTRPXHI
 #    define FORT_BDIDERIVXLO  MCBDIDERIVXLO
@@ -38,7 +38,24 @@
 #    define FORT_BDIDERIVZLO  MCBDIDERIVZLO
 #    define FORT_BDIDERIVZHI  MCBDIDERIVZHI
 #    endif
-#  else
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_BDINTERPXLO  mcbdintrpxlo
+#    define FORT_BDINTERPXHI  mcbdintrpxhi
+#    define FORT_BDIDERIVXLO  mcbdiderivxlo
+#    define FORT_BDIDERIVXHI  mcbdiderivxhi
+#    if (BL_SPACEDIM > 1)
+#    define FORT_BDINTERPYLO  mcbdintrpylo
+#    define FORT_BDINTERPYHI  mcbdintrpyhi
+#    define FORT_BDIDERIVYLO  mcbdiderivylo
+#    define FORT_BDIDERIVYHI  mcbdiderivyhi
+#    endif
+#    if (BL_SPACEDIM > 2)
+#    define FORT_BDINTERPZLO  mcbdintrpzlo
+#    define FORT_BDINTERPZHI  mcbdintrpzhi
+#    define FORT_BDIDERIVZLO  mcbdiderivzlo
+#    define FORT_BDIDERIVZHI  mcbdiderivzhi
+#    endif
+#  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_BDINTERPXLO  mcbdintrpxlo_
 #    define FORT_BDINTERPXHI  mcbdintrpxhi_
 #    define FORT_BDIDERIVXLO  mcbdiderivxlo_
