@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.16 1997-11-11 19:20:07 lijewski Exp $
+// $Id: VisMF.cpp,v 1.17 1997-11-11 21:02:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -475,7 +475,21 @@ void
 VisMF::WriteOneFilePerFab (const MultiFab& mf,
                            const aString&  mf_name)
 {
+    //
+    // Structure we use to pass FabOnDisk data to the IOProcessor.
+    //
+    // The variable length part of the message is name of the on-disk FAB.
+    //
+    struct
+    {
+        int  m_index; // Index of the FAB.
+    }
+    msg_hdr;
+
     VisMF::Header hdr(mf, VisMF::OneFilePerFab);
+
+    int msg_hdr_size = sizeof(msg_hdr);
+    PD::SetMessageHeaderSize(msg_hdr_size);
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -487,6 +501,34 @@ VisMF::WriteOneFilePerFab (const MultiFab& mf,
         ofstream FabFile(FabFileName.c_str());
 
         hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
+
+        assert(hdr.m_fod[mfi.index()].m_head == 0);
+
+        if (!PD::IOProcessor())
+        {
+            msg_hdr.m_index = mfi.index();
+
+            PD::SendData(PD::IOProcessor(),
+                         &msg_hdr,
+                         FabFileName.c_str(),
+                         FabFileName.length()+1); // Include NULL in MSG.
+        }
+    }
+
+    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+    {
+        assert(PD::IOProcessor());
+
+        char* fab_name = new char[len];
+        if (fab_name == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+        PD::ReceiveData(fab_name, len);
+
+        hdr.m_fod[msg_hdr.m_index].m_head = 0;
+        hdr.m_fod[msg_hdr.m_index].m_name = fab_name;
+
+        delete [] fab_name;
     }
 
     VisMF::WriteHeader(mf_name, hdr);
