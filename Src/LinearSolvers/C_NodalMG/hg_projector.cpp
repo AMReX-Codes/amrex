@@ -1075,8 +1075,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGDDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
-			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
+			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
+			D_DECL(uf[0]->dataPtr(), uf[1]->dataPtr(), wf[2]->dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&jdir, &isRZ);
