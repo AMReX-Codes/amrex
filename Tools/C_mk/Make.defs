@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.22 1999-01-04 18:28:45 marc Exp $
+# Make.defs $Id: Make.defs,v 1.23 1999-05-24 17:51:57 car Exp $
 #
 
 #
@@ -254,7 +254,7 @@ includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 
 CPPFLAGS	+= $(DEFINES) $(includes)
 
-libraries	= $(LIBRARIES) $(XTRALIBS)
+libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		= $(addprefix -L, $(LIBRARY_LOCATIONS))
 

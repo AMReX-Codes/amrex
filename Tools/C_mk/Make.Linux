@@ -1,26 +1,28 @@
 # Make for Linux
 
 ifeq ($(COMP),KCC)
-CXX      = KCC
-CXXOPTF += -O3 +K3 -g3
-CXXDEBF += +K0
-FULLWARN := --strict_warnings
-override XTRADEFS += -DBL_USE_NEW_HFILES
+  CXX      = KCC
+  CXXOPTF += -O3 +K3 -g3
+  CXXDEBF += +K0
+  FULLWARN := --strict_warnings
+  override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 CPP    := gcc -E -x c++
 FC  := g77 -fno-second-underscore
 
 ifeq ($(FCOMP),Absoft)
-FC  := f77 -f -B108
-FC  := f90 -en -B108 -YEXT_NAMES=LCS
-override XTRALIBS += -L/usr/absoft/lib -lfio -lf77math
-#override FORTLINK := LOWERCASE
+  FC  := f77 -f -B108
+  FC  := f90 -B108 -YEXT_NAMES=LCS
+  LIBRARY_LOCATIONS += /usr/absoft/lib
+  override XTRALIBS += -lfio -lf77math
+  #override FORTLINK := LOWERCASE
 else
-#DEFINES += -DBL_FORT_USE_UNDERSCORE
-#override XTRALIBS +=  -lf2c
-override XTRALIBS += -lg2c
-override XTRALIBS +=   -lm
+  #DEFINES += -DBL_FORT_USE_UNDERSCORE
+  #override XTRALIBS +=  -lf2c
+  override XTRALIBS += -lg2c
 endif
+
+override XTRALIBS +=   -lm
 
 FDEBF += -g
