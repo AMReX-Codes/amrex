@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.4 1997-11-26 20:41:43 lijewski Exp $
+// $Id: Cluster.cpp,v 1.5 1997-11-26 20:51:37 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -11,14 +11,14 @@ enum CutStatus{ hole_cut=0, steep_cut, bisect_cut, invalid_cut };
 static int findCut(const int *hist, int lo, int hi, CutStatus &status);
 
 // ------------------------------------------------------------
-CLUSTER::CLUSTER(Array<IntVect> *a) 
+Cluster::Cluster(Array<IntVect> *a) 
     : ar(a)
 {
     minBox();
 }
 
 // ------------------------------------------------------------
-CLUSTER::~CLUSTER()
+Cluster::~Cluster()
 {
     delete ar;
 }
@@ -26,7 +26,7 @@ CLUSTER::~CLUSTER()
 // ------------------------------------------------------------
 // construct new cluster by removing all points from c
 // that lie in box b.  
-CLUSTER::CLUSTER(CLUSTER &c,const Box& b) 
+Cluster::Cluster(Cluster &c,const Box& b) 
     : ar(0)
 {
     assert( b.ok() );
@@ -90,7 +90,7 @@ CLUSTER::CLUSTER(CLUSTER &c,const Box& b)
 // construct new cluster by removing all points from c
 // that lie in box b.  
 void
-CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
+Cluster::distribute(ClusterList &clst, const BoxDomain &bd)
 {
     assert( bd.ok() );
     assert( ok() );
@@ -98,7 +98,7 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
    
     BoxDomainIterator bdi(bd);
     while (bdi && ok()) {
-	CLUSTER *c = new CLUSTER(*this,bdi());
+	Cluster *c = new Cluster(*this,bdi());
     if (c == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
 	if (c->ok()) {
@@ -112,7 +112,7 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
 
 // ------------------------------------------------------------
 int
-CLUSTER::numTag(const Box& b)
+Cluster::numTag(const Box& b)
 {
     int cnt = 0;
     int i;
@@ -125,7 +125,7 @@ CLUSTER::numTag(const Box& b)
 
 // ------------------------------------------------------------
 void
-CLUSTER::minBox()
+Cluster::minBox()
 {
     int len = ar->length();
     if (len == 0) {
@@ -144,8 +144,8 @@ CLUSTER::minBox()
 }
 
 // ------------------------------------------------------------
-CLUSTER* 
-CLUSTER::chop()
+Cluster* 
+Cluster::chop()
 {
     int npts = ar->length();
     assert(npts > 1);
@@ -229,7 +229,7 @@ CLUSTER::chop()
     ar = alo;
     minBox();
 
-    CLUSTER* result = new CLUSTER(ahi);
+    Cluster* result = new Cluster(ahi);
     if (result == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
 
@@ -307,7 +307,7 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
 // ------------------------------------------------------------------
 ClusterList::ClusterList(Array<IntVect> *pts)
 {
-    CLUSTER *c = new CLUSTER(pts);
+    Cluster *c = new Cluster(pts);
     if (c == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
     lst.append(c);
@@ -316,9 +316,9 @@ ClusterList::ClusterList(Array<IntVect> *pts)
 // ------------------------------------------------------------------
 ClusterList::~ClusterList()
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER *c = cli();
+	Cluster *c = cli();
 	delete c;
 	++cli;
     }
@@ -330,7 +330,7 @@ ClusterList::boxArray()
 {
     int len = lst.length();
     BoxArray ba(len);
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     int i;
     for(i = 0; i < len; i++) {
 	ba.set(i,(*cli++)->box());
@@ -345,7 +345,7 @@ ClusterList::boxArray(BoxArray &ba)
     ba.clear();
     int len = lst.length();
     ba.resize(len);
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     int i;
     for(i = 0; i < len; i++) {
 	ba.set(i,(*cli++)->box());
@@ -357,7 +357,7 @@ BoxList
 ClusterList::boxList()
 {
     BoxList blst;
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
 	blst.append((*cli++)->box());
     }
@@ -369,7 +369,7 @@ void
 ClusterList::boxList(BoxList &blst)
 {
     blst.clear();
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
 	blst.append((*cli++)->box());
     }
@@ -379,11 +379,11 @@ ClusterList::boxList(BoxList &blst)
 void
 ClusterList::chop(Real eff)
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER& c = *(cli());
+	Cluster& c = *(cli());
 	if (c.eff() < eff) {
-	    CLUSTER *tmp = c.chop();
+	    Cluster *tmp = c.chop();
 	    lst.append(tmp);
 	} else {
 	    ++cli;
@@ -395,9 +395,9 @@ ClusterList::chop(Real eff)
 void
 ClusterList::intersect(const BoxDomain& dom)
 {
-    ListIterator<CLUSTER*> cli(lst);
+    ListIterator<Cluster*> cli(lst);
     while (cli) {
-	CLUSTER* c = cli();
+	Cluster* c = cli();
 	const Box& cbox = c->box();
 	if (dom.contains(cbox)) {
 	    ++cli;

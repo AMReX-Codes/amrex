@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.12 1997-11-26 19:18:46 lijewski Exp $
+// $Id: Amr.cpp,v 1.13 1997-11-26 20:51:36 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1495,7 +1495,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 	    clist.chop(grid_eff);
 	    clist.intersect(p_n[levc]);
             //
-            // Efficient properly nested CLUSTERs have been constructed
+            // Efficient properly nested Clusters have been constructed
             // now generate list of grids at level levf.
             //
 	    BoxList new_bx;

@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.3 1997-11-26 19:18:48 lijewski Exp $
+// $Id: Cluster.H,v 1.4 1997-11-26 20:51:36 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -19,17 +19,17 @@
 #endif
 
 #if (BL_SPACEDIM==1)
-#define CLUSTER	Cluster1d
+#define Cluster	Cluster1d
 #elif (BL_SPACEDIM==2)
-#define CLUSTER	Cluster2d
+#define Cluster	Cluster2d
 #elif (BL_SPACEDIM==3)
-#define CLUSTER	Cluster3d
+#define Cluster	Cluster3d
 #endif
 
 class ClusterList;
 
 /// Utility class for tagging error cells
-class CLUSTER
+class Cluster
 {
 
 /*  This class is basically a fortran array of INTEGERSs.
@@ -44,18 +44,18 @@ public:
 /// administrative functions
 
 /// construct invalid Cluster
-    CLUSTER() : ar(0) {}
+    Cluster() : ar(0) {}
 
 //  construct a cluster from an array of IntVectS
 //  NOTE: Cluster object takes over memory management of array
-    CLUSTER(Array<IntVect> *a);
+    Cluster(Array<IntVect> *a);
 
 //  construct new cluster by removing all points from c
 //  that lie in box b.  Cluster c is modified and may become invalid.
-    CLUSTER(CLUSTER &c,const Box& b);
+    Cluster(Cluster &c,const Box& b);
 
 //  destructor
-    ~CLUSTER();
+    ~Cluster();
 
 //  return minimal box containing all tagged points
     const Box& box() const {return bx;}
@@ -81,7 +81,7 @@ public:
     plane.  One cluster is returned as a new object the other
     is the modified calling object. */
 
-    CLUSTER* chop();
+    Cluster* chop();
 
 /*  constructs a list of cluster objects obtained by intersecting
     this cluster with each box in bl.  The list is retruned in the
@@ -105,18 +105,18 @@ protected:
     void minBox();
 
 private:
-    CLUSTER(const CLUSTER&);
-    CLUSTER& operator=(const CLUSTER&);
+    Cluster(const Cluster&);
+    Cluster& operator=(const Cluster&);
 
 };
 
 // --------------------------------------------------------------
-/// Container class for CLUSTER
+/// Container class for Cluster
 class ClusterList 
 {
 
 protected:
-    List<CLUSTER*> lst;
+    List<Cluster*> lst;
     
 public:
 //  constructor
@@ -132,7 +132,7 @@ public:
     int length() const { return lst.length(); };
 
 //  add cluster to end of list
-    void append(CLUSTER* c) { lst.append(c); };
+    void append(Cluster* c) { lst.append(c); };
 
 //  return array of boxes corresponding to clusters
     BoxArray boxArray();
