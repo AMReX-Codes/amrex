@@ -4,16 +4,8 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.10 1997-11-10 21:17:10 lijewski Exp $
+// $Id: VisMF.H,v 1.11 1997-11-10 21:29:48 lijewski Exp $
 //
-
-#ifdef BL_USE_NEW_HFILES
-#include <iostream>
-using std::ostream;
-using std::istream;
-#else
-#include <iostream.h>
-#endif
 
 #include <MultiFab.H>
 

@@ -1,8 +1,17 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.10 1997-11-10 21:17:11 lijewski Exp $
+// $Id: VisMF.cpp,v 1.11 1997-11-10 21:29:48 lijewski Exp $
 //
+
+#ifdef BL_USE_NEW_HFILES
+#include <fstream>
+using std::ios;
+using std::ifstream;
+using std::ofstream;
+#else
+#include <fstream.h>
+#endif
 
 #include <VisMF.H>
 
