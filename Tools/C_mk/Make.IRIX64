@@ -38,18 +38,25 @@ endif
 
 ifeq ($(WHICHIRIX64), ESCHER)
   FC     = f90 -64
+  fC     = $(FC)
   FOPTF += -O2 -OPT:Olimit=4800
+  fOPTF += -O2 -OPT:Olimit=4800
 else
   ifeq ($(WHICHIRIX64), MAHLER)
     FC     = f90 -r8 -IPA
+    fC     = $(FC)
     FOPTF += -Ofast=ip30 -OPT:Olimit=4800
+    fOPTF += -Ofast=ip30 -OPT:Olimit=4800
   else
     FC     = f77 -64
+    fC     = $(FC)
     FOPTF += -g3  -Ofast=ip27
+    fOPTF += -g3  -Ofast=ip27
   endif
 endif
 
 FDEBF += -g
+fDEBF += -g
 
 COPTF += -O
 CDEBF += -g
