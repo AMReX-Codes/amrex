@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.54 1999-03-05 23:18:38 almgren Exp $
+// $Id: AmrLevel.cpp,v 1.55 1999-03-10 16:54:15 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -735,6 +735,13 @@ FillPatchIterator::isValid ()
                   fDesc.getBCs(),
                   bcr);
             //
+            // Overwrite boundary cells with preferred data (use grid index < 0
+            //   to indicate that this fab is not to be associated with the grid 
+            //   index at that level
+            //
+            amrLevels[l].set_preferred_boundary_values(m_fab,m_stateindex,-1,
+                                                       m_scomp,0,m_ncomp,m_time);
+            
             // The coarse FAB had better be completely filled with "good" data.
             //
             assert(crse_fab.norm(0,0,m_ncomp) < 3.e30);
@@ -824,6 +831,11 @@ FillPatchIterator::isValid ()
                                m_scomp,
                                m_ncomp);
     }
+    //
+    // Call hack to touch up fillPatched data
+    //
+    m_amrlevel.set_preferred_boundary_values(m_fab,m_stateindex,currentIndex,
+                                             m_scomp,0,m_ncomp,m_time);
     //
     // The final FAB had better be completely filled with "good" data.
     //
