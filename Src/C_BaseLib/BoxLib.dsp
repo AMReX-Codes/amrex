@@ -44,7 +44,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /nologo /warn:nofileopt
 # ADD F90 /compile_only /iface:cref /libs:dll /nologo /threads /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_LIB /D" /YX /FD _MBCS" /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "_MBCS" /D "BL_LANG_CC" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "NDEBUG" /D "_LIB" /D "BL_LANG_CC" /D "WIN32" /D "_MBCS" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_USE_FLOAT" /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
@@ -70,7 +70,7 @@ LIB32=link.exe -lib
 # ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /iface:cref /libs:dll /nologo /threads /warn:argument_checking /warn:declarations /warn:nofileopt
 # SUBTRACT F90 /traceback
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_LIB" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "_LIB" /D "BL_LANG_CC" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_USE_FLOAT" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "_LIB" /D "BL_LANG_CC" /D "_DEBUG" /D "BL_PROFILING" /D "BL_USE_FLOAT" /D "WIN32" /D "_MBCS" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
