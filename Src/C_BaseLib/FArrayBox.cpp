@@ -1,13 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.13 1998-02-18 21:31:13 vince Exp $
+// $Id: FArrayBox.cpp,v 1.14 1998-04-22 19:39:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
+#include <cfloat>
 #include <cmath>
 #include <cstring>
 using std::cin;
@@ -20,6 +21,7 @@ using std::ios;
 #include <stdlib.h>
 #include <iostream.h>
 #include <iomanip.h>
+#include <float.h>
 #include <math.h>
 #include <string.h>
 #endif
@@ -179,6 +181,16 @@ FArrayBox::FArrayBox (const Box& b,
 {
     if (!FArrayBox::Initialized)
         FArrayBox::init();
+    //
+    // For debugging purposes.
+    //
+#if !defined(NDEBUG) && defined(BL_OSF1)
+#ifdef BL_USE_DOUBLE
+    setVal(DBL_QNAN);
+#else
+    setVal(FLT_QNAN);
+#endif
+#endif
 }
 
 void
