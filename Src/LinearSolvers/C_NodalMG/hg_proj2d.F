@@ -405,9 +405,9 @@ c This should only occur with a corner at the outer boundary:
                   rfac1p = hx / (6.d0 * hy * (r + m * hx))
                   src(i,j) = src(i,j) - fac1 *
      &              (idir * (rfac1m * vf(i-m,juf) 
-     &			- rfac0m * vf(i-m-1,juf) +
+     &                  - rfac0m * vf(i-m-1,juf) +
      &                       rfac1p * vf(i+m,juf) 
-     &			- rfac0p * vf(i+m-1,juf)))
+     &                  - rfac0p * vf(i+m-1,juf)))
                end do
             else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
@@ -423,9 +423,9 @@ c This should only occur with a corner at the outer boundary:
                rfac1p = -rfac0m
                src(i,j) = src(i,j) - fac1 *
      &              (idir * (rfac1m * vf(i-m,juf) 
-     &			- rfac0m * vf(i-m-1,juf) +
+     &            - rfac0m * vf(i-m-1,juf) +
      &                       rfac1p * vf(i+m,juf) 
-     &			- rfac0p * vf(i+m-1,juf)))
+     &                     - rfac0p * vf(i+m-1,juf)))
             end if
          end do
       end if

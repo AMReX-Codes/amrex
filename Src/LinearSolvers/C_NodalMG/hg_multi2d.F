@@ -64,16 +64,16 @@ c Note---assumes fdst linearly interpolated from cdst along edge
                tmp = hxm2 *
      &           ((sigmaf(is,j-n-1) + sigmaf(is,j-n)) *
      &             (fdst(i+idir,j-n) - fdst(i,j-n)) +
-     &		  (sigmaf(is,j+n-1) + sigmaf(is,j+n)) *
+     &           (sigmaf(is,j+n-1) + sigmaf(is,j+n)) *
      &             (fdst(i+idir,j+n) - fdst(i,j+n)))
                res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     &		 (sigmaf(is,j-n-1) *
+     &            (sigmaf(is,j-n-1) *
      &             (fdst(i,j-n-1) - fdst(i,j-n)) +
-     &		  sigmaf(is,j-n) *
+     &             sigmaf(is,j-n) *
      &             (fdst(i,j-n+1) - fdst(i,j-n)) +
-     &		  sigmaf(is,j+n-1) *
+     &             sigmaf(is,j+n-1) *
      &             (fdst(i,j+n-1) - fdst(i,j+n)) +
-     &		  sigmaf(is,j+n) *
+     &             sigmaf(is,j+n) *
      &             (fdst(i,j+n+1) - fdst(i,j+n))))
             end do
          end do
@@ -112,18 +112,18 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             if (m .eq. 0) fac1 = 0.5d0 * fac1
             do i = ir*regl0, ir*regh0, ir
                tmp = hxm2 *
-     &		 (sigmaf(i-m-1,js) *
+     &             (sigmaf(i-m-1,js) *
      &             (fdst(i-m-1,j) - fdst(i-m,j)) +
-     &		  sigmaf(i-m,js) *
+     &              sigmaf(i-m,js) *
      &             (fdst(i-m+1,j) - fdst(i-m,j)) +
-     &		  sigmaf(i+m-1,js) *
+     &              sigmaf(i+m-1,js) *
      &             (fdst(i+m-1,j) - fdst(i+m,j)) +
-     &		  sigmaf(i+m,js) *
+     &              sigmaf(i+m,js) *
      &             (fdst(i+m+1,j) - fdst(i+m,j)))
                res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
      &             (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     &		  (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
+     &              (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
      &             (fdst(i+m,j+idir) - fdst(i+m,j))))
             end do
          end do
@@ -156,7 +156,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       double precision hx, hy
       integer ir, jr, ga(0:1,0:1), idd
       double precision hxm2, hym2, hxm2c, hym2c, sum, center, 
-     &	ffac, cfac, fac, fac1
+     &   ffac, cfac, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
       hxm2c = 1.d0 / (ir * ir * hx * hx)
       hym2c = 1.d0 / (jr * jr * hy * hy)
@@ -263,7 +263,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision hx, hy
       integer ir, jr, idim, idir, irz, imax
       double precision hxm2, hym2, fac0, fac1, r, rfac,
-     &		rfac0, rfac1, tmp
+     &      rfac0, rfac1, tmp
       double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, is, js, m, n
       if (idim .eq. 0) then
@@ -323,26 +323,26 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &           (sigmaf(is,j-n-1) *
      &             (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
      &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     &		  sigmaf(is,j-n) *
+     &              sigmaf(is,j-n) *
      &             (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
      &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     &		  sigmaf(is,j+n-1) *
+     &              sigmaf(is,j+n-1) *
      &             (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
      &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
-     &		  sigmaf(is,j+n) *
+     &              sigmaf(is,j+n) *
      &             (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
      &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
                res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     &		 (sigmaf(is,j-n-1) *
+     &             (sigmaf(is,j-n-1) *
      &             (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) +
      &              2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     &		  sigmaf(is,j-n) *
+     &              sigmaf(is,j-n) *
      &             (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
      &              2.d0 * (fdst(i,j-n+1) - fdst(i,j-n))) +
-     &		  sigmaf(is,j+n-1) *
+     &              sigmaf(is,j+n-1) *
      &             (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) +
      &              2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     &		  sigmaf(is,j+n) *
+     &              sigmaf(is,j+n) *
      &             (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
      &              2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
             end do
@@ -416,29 +416,29 @@ c This should only occur with a corner at the outer boundary:
             if (m .eq. 0) fac1 = 0.5d0 * fac1
             do i = ir*regl0, ir*regh0, ir
                tmp = hxm2 *
-     &		 (sigmaf(i-m-1,js) *
+     &             (sigmaf(i-m-1,js) *
      &             (fdst(i-m-1,j+idir) - fdst(i-m,j+idir) +
      &              2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
-     &		  sigmaf(i-m,js) *
+     &              sigmaf(i-m,js) *
      &             (fdst(i-m+1,j+idir) - fdst(i-m,j+idir) +
      &              2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))) +
-     &		  sigmaf(i+m-1,js) *
+     &              sigmaf(i+m-1,js) *
      &             (fdst(i+m-1,j+idir) - fdst(i+m,j+idir) +
      &              2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
-     &		  sigmaf(i+m,js) *
+     &              sigmaf(i+m,js) *
      &             (fdst(i+m+1,j+idir) - fdst(i+m,j+idir) +
      &              2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))))
                res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &           (sigmaf(i-m-1,js) *
      &             (fdst(i-m-1,j+idir) - fdst(i-m-1,j) +
      &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     &		  sigmaf(i-m,js) *
+     &              sigmaf(i-m,js) *
      &             (fdst(i-m+1,j+idir) - fdst(i-m+1,j) +
      &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     &		  sigmaf(i+m-1,js) *
+     &              sigmaf(i+m-1,js) *
      &             (fdst(i+m-1,j+idir) - fdst(i+m-1,j) +
      &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j))) +
-     &		  sigmaf(i+m,js) *
+     &              sigmaf(i+m,js) *
      &             (fdst(i+m+1,j+idir) - fdst(i+m+1,j) +
      &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j)))))
             end do
@@ -473,7 +473,7 @@ c This should only occur with a corner at the outer boundary:
      &           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
      &           (fdst(i+m,j+idir) - fdst(i+m,j)))
             end if
-	   end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -503,7 +503,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision hx, hy
       integer ir, jr, idir, jdir, irz, idd
       double precision hxm2, hym2, fac0, fac1, r, rfac,
-     &		rfac0, rfac1, tmp
+     &      rfac0, rfac1, tmp
       double precision rfac0p, rfac1p
       integer i, j, is, js, m, n
       i = regl0
@@ -589,7 +589,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &     (sigmaf(i+m-1,js) *
      &       (fdst(i+m-1,j+jdir) - fdst(i+m-1,j) +
      &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
-     &	    sigmaf(i+m,js) *
+     &          sigmaf(i+m,js) *
      &       (fdst(i+m+1,j+jdir) - fdst(i+m+1,j) +
      &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j)))))
          if (irz .eq. 1) then
@@ -615,7 +615,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &     (sigmaf(is,j+n-1) *
      &       (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) + 
      &        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     &	    sigmaf(is,j+n) *
+     &          sigmaf(is,j+n) *
      &       (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
      &        2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
          if (irz .eq. 1) then
@@ -654,7 +654,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision hx, hy
       integer ir, jr, idir, jdir, irz, idd
       double precision hxm2, hym2, fac0, fac1, r, rfac,
-     &		rfac0, rfac1, tmp
+     &            rfac0, rfac1, tmp
       double precision rfac0m, rfac1m
       integer i, j, is, js, m, n
       i = regl0
@@ -740,7 +740,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &     (sigmaf(i-m-1,js) *
      &       (fdst(i-m-1,j+jdir) - fdst(i-m-1,j) +
      &        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j))) +
-     &	    sigmaf(i-m,js) *
+     &          sigmaf(i-m,js) *
      &       (fdst(i-m+1,j+jdir) - fdst(i-m+1,j) +
      &        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j)))))
          if (irz .eq. 1) then
@@ -766,7 +766,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &     (sigmaf(is,j-n-1) *
      &       (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) + 
      &        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     &	    sigmaf(is,j-n) *
+     &          sigmaf(is,j-n) *
      &       (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
      &        2.d0 * (fdst(i,j-n+1) - fdst(i,j-n)))))
          if (irz .eq. 1) then
@@ -907,7 +907,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac1p = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
      &       ((rfac0m * sigmaf(i-m-1,js-jdir) 
-     &			- rfac1m * sigmaf(i-m,js-jdir)) *
+     &                  - rfac1m * sigmaf(i-m,js-jdir)) *
      &         (fdst(i-m,j-jdir) - fdst(i-m,j)) +
      &        (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
      &          (fdst(i+m,j+jdir) - fdst(i+m,j)))
@@ -948,9 +948,9 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac1 = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
      &       (rfac0 * (sigmaf(i-1,j-n-1) *
-     &				(fdst(i,j-n-1) - fdst(i,j-n)) +
+     &                     (fdst(i,j-n-1) - fdst(i,j-n)) +
      &                 sigmaf(i-1,j-n)   * 
-     &				(fdst(i,j-n+1) - fdst(i,j-n))) -
+     &                        (fdst(i,j-n+1) - fdst(i,j-n))) -
      &        rfac1 * (sigmaf(i,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
      &                 sigmaf(i,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
          end if
@@ -1025,35 +1025,35 @@ c-----------------------------------------------------------------------
      &            sigmaf(is,j-n-1,1) *
      &             (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
      &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     &		  sigmaf(is,j-n,1) *
+     &              sigmaf(is,j-n,1) *
      &             (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
      &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     &		  sigmaf(is,j+n-1,1) *
+     &              sigmaf(is,j+n-1,1) *
      &             (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
      &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
-     &		  sigmaf(is,j+n,1) *
+     &              sigmaf(is,j+n,1) *
      &             (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
      &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n)))
                res(i,j) = res(i,j) - fac1 * (tmp +
-     &		  sigmaf(is,j-n-1,2) *
+     &              sigmaf(is,j-n-1,2) *
      &             (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) +
      &              2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     &		  sigmaf(is,j-n,2) *
+     &              sigmaf(is,j-n,2) *
      &             (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
      &              2.d0 * (fdst(i,j-n+1) - fdst(i,j-n))) +
-     &		  sigmaf(is,j+n-1,2) *
+     &              sigmaf(is,j+n-1,2) *
      &             (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) +
      &              2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     &		  sigmaf(is,j+n,2) *
+     &              sigmaf(is,j+n,2) *
      &             (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
      &              2.d0 * (fdst(i,j+n+1) - fdst(i,j+n))) -
-     &		  3.d0 * (sigmaf(is,j-n-(i-is),3) *
+     &              3.d0 * (sigmaf(is,j-n-(i-is),3) *
      &             (fdst(i+idir,j-n+idir) - fdst(i+idir,j-n)) -
-     &		          sigmaf(is,j-n-(1-(i-is)),3) *
+     &                      sigmaf(is,j-n-(1-(i-is)),3) *
      &             (fdst(i+idir,j-n-idir) - fdst(i+idir,j-n)) +
-     &		          sigmaf(is,j+n-(i-is),3) *
+     &                      sigmaf(is,j+n-(i-is),3) *
      &             (fdst(i+idir,j+n+idir) - fdst(i+idir,j+n)) -
-     &		          sigmaf(is,j+n-(1-(i-is)),3) *
+     &                      sigmaf(is,j+n-(1-(i-is)),3) *
      &             (fdst(i+idir,j+n-idir) - fdst(i+idir,j+n))))
             end do
          end do
@@ -1096,38 +1096,38 @@ c-----------------------------------------------------------------------
             if (m .eq. 0) fac1 = 0.5d0 * fac1
             do i = ir*regl0, ir*regh0, ir
                tmp =
-     &		  sigmaf(i-m-1,js,1) *
+     &              sigmaf(i-m-1,js,1) *
      &             (fdst(i-m-1,j+idir) - fdst(i-m,j+idir) +
      &              2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
-     &		  sigmaf(i-m,js,1) *
+     &              sigmaf(i-m,js,1) *
      &             (fdst(i-m+1,j+idir) - fdst(i-m,j+idir) +
      &              2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))) +
-     &		  sigmaf(i+m-1,js,1) *
+     &              sigmaf(i+m-1,js,1) *
      &             (fdst(i+m-1,j+idir) - fdst(i+m,j+idir) +
      &              2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
-     &		  sigmaf(i+m,js,1) *
+     &              sigmaf(i+m,js,1) *
      &             (fdst(i+m+1,j+idir) - fdst(i+m,j+idir) +
      &              2.d0 * (fdst(i+m+1,j) - fdst(i+m,j)))
                res(i,j) = res(i,j) - fac1 * (tmp +
      &            sigmaf(i-m-1,js,2) *
      &             (fdst(i-m-1,j+idir) - fdst(i-m-1,j) +
      &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     &		  sigmaf(i-m,js,2) *
+     &              sigmaf(i-m,js,2) *
      &             (fdst(i-m+1,j+idir) - fdst(i-m+1,j) +
      &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     &		  sigmaf(i+m-1,js,2) *
+     &              sigmaf(i+m-1,js,2) *
      &             (fdst(i+m-1,j+idir) - fdst(i+m-1,j) +
      &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j))) +
-     &		  sigmaf(i+m,js,2) *
+     &              sigmaf(i+m,js,2) *
      &             (fdst(i+m+1,j+idir) - fdst(i+m+1,j) +
      &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j))) -
-     &		  3.d0 * (sigmaf(i-m-(j-js),js,3) *
+     &              3.d0 * (sigmaf(i-m-(j-js),js,3) *
      &             (fdst(i-m+idir,j+idir) - fdst(i-m,j+idir)) -
-     &		          sigmaf(i-m-(1-(j-js)),js,3) *
+     &                      sigmaf(i-m-(1-(j-js)),js,3) *
      &             (fdst(i-m-idir,j+idir) - fdst(i-m,j+idir)) +
-     &		          sigmaf(i+m-(j-js),js,3) *
+     &                      sigmaf(i+m-(j-js),js,3) *
      &             (fdst(i+m+idir,j+idir) - fdst(i+m,j+idir)) -
-     &		          sigmaf(i+m-(1-(j-js)),js,3) *
+     &                      sigmaf(i+m-(1-(j-js)),js,3) *
      &             (fdst(i+m-idir,j+idir) - fdst(i+m,j+idir))))
             end do
          end do
@@ -1540,7 +1540,7 @@ c back substitution loop:
                   jw = j - regl1
                   cor(i,j) = cor(i,j) - wrk(jw + 1) * cor(i,j+1)
                end do
-	      end do
+            end do
          end do
       else
          STOP "Line solve implemented in Dimension 1"
@@ -2384,10 +2384,10 @@ c update neumann bdys:
                   cor(i,regh1+1) = cor(i,regh1-1)
                end if
             end do
-	      end do
+            end do
          else
             print *, "Line solve not implemented in dimension", lsd
-		stop
+            stop
          end if
       else
          STOP "Line solve not implemented for rz: Using Gauss-Seidel 
