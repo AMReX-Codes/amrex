@@ -267,8 +267,8 @@ bool task_copy::depends_on_q(const task* t1) const
     if ( const task_copy* t1tc = dynamic_cast<const task_copy*>(t1) )
     {
 	if ( m_sgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_bx) ) return true;
-	if ( m_dgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_bx) ) return true;
-	if ( m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_sbx) ) return true;
+	if ( m_dgrid == t1tc->m_dgrid && m_bx.intersects(t1tc->m_bx) ) return true;
+	if ( m_sgrid == t1tc->m_sgrid && m_sbx.intersects(t1tc->m_sbx) ) return true;
 	if ( m_dgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_sbx) ) return true;
     }
     return false;
