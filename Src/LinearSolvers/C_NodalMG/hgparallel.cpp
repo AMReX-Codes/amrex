@@ -48,6 +48,8 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     else if ( is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
 	tmp->copy(m_smf[m_sgrid], m_sbx);
 	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
 	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
