@@ -30,7 +30,7 @@ ifeq ($(USE_HYPRE),TRUE)
   HYPRE_DIR := $(PBOXLIB_HOME)/hypre
   LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
   INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
-  INCLUDE_LOCATIONS += $(HYPRE_DIR)/mglib_interface
+  INCLUDE_LOCATIONS += $(HYPRE_DIR)/HypreABec
   LIBRARIES +=  -lHYPRE_ls			\
 	 -lHYPRE_mv				\
 	 -lHYPRE_parcsr_ls			\
@@ -43,7 +43,7 @@ ifeq ($(USE_HYPRE),TRUE)
 	 -lHYPRE_seq_mv				\
 	 -lHYPRE_utilities
   CPPFLAGS += -DMG_USE_HYPRE
-  include $(HYPRE_DIR)/mglib_interface/Make.package
+  include $(HYPRE_DIR)/HypreABec/Make.package
 endif
 
 include $(PBOXLIB_HOME)/bndrylib/Make.package
@@ -94,6 +94,19 @@ ifeq ($(MACHINE),OSF1)
   endif
 endif
 
+STRICTLY=TRUE
+ifeq ($(STRICTLY),TRUE)
+  ifeq ($(COMP),KCC)
+    CXXFLAGS += --strict
+    CPPFLAGS += -D__KAI_STRICT
+    CXXFLAGS += --display_error_number
+    CXXFLAGS +=  --diag_suppress 450
+  endif
+  ifeq ($(COMP),g++)
+    #CXXFLAGS += -Wall
+  endif
+endif
+
 CXXFLAGS +=
 CXXOPTF +=
 CXXDEBF +=
@@ -103,8 +116,8 @@ COPTF +=
 CDEBF +=
 
 ifeq ($(USE_HYPRE), TRUE)
-  vpath %.cpp : . $(HYPRE_DIR)/mglib_interface $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
-  vpath %.F   : . $(HYPRE_DIR)/mglib_interface $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
+  vpath %.cpp : . $(HYPRE_DIR)/HypreABec $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
+  vpath %.F   : . $(HYPRE_DIR)/HypreABec $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
 else
   vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
   vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib

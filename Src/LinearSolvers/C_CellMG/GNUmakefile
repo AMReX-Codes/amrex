@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.7 1999-05-24 18:11:45 car Exp $
+# $Id: GNUmakefile,v 1.8 2000-06-01 20:59:38 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -23,9 +23,6 @@ include $(TOP)/mk/Make.defs Make.package
 
 INCLUDE_LOCATIONS += $(TOP)/include
 
-ifeq ($(KCC_VERSION),3.3)
-CXXFLAGS += --one_instantiation_per_object
-endif
 #
 # Libraries to close against.
 #
