@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.164 2002-11-14 21:13:08 lijewski Exp $
+// $Id: FabArray.H,v 1.165 2002-12-03 00:02:42 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -431,9 +431,11 @@ public:
 
     void operator= (const Array<CommData>& rhs);
 
-    bool isValid () const;
+    bool isValid () const { return m_valid; }
 
-    const Array<CommData>& theCommData () const;
+    Array<CommData>& theCommData () { return m_commdata; }
+
+    const Array<CommData>& theCommData () const { return m_commdata; }
 
 private:
 
@@ -445,11 +447,16 @@ class FabArrayId
 {
 public:
 
-    explicit FabArrayId (int newid = -1);
+    explicit FabArrayId (int newid = -1)
+        :
+        fabArrayId(newid) {}
 
-    int Id () const;
+    int Id () const { return fabArrayId; }
 
-    bool operator== (const FabArrayId& rhs) const;
+    bool operator== (const FabArrayId& rhs) const
+    {
+        return fabArrayId == rhs.fabArrayId;
+    }
 
 private:
 
@@ -692,13 +699,6 @@ const Box&
 FillBoxId::box () const
 {
     return m_fillBox;
-}
-
-inline
-int
-FabArrayId::Id () const
-{
-    return fabArrayId;
 }
 
 template <class FAB>

@@ -134,26 +134,3 @@ CommDataCache::operator= (const Array<CommData>& rhs)
     m_commdata = rhs;
     m_valid    = true;
 }
-
-bool
-CommDataCache::isValid () const
-{
-    return m_valid;
-}
-
-const Array<CommData>&
-CommDataCache::theCommData () const
-{
-    return m_commdata;
-}
-
-FabArrayId::FabArrayId  (int newid)
-    :
-    fabArrayId(newid)
-{}
-
-bool
-FabArrayId::operator== (const FabArrayId& rhs) const
-{
-    return fabArrayId == rhs.fabArrayId;
-}
