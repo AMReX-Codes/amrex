@@ -1,6 +1,6 @@
 
 //
-// $Id: VisMF.cpp,v 1.68 2000-10-02 20:52:39 lijewski Exp $
+// $Id: VisMF.cpp,v 1.69 2000-10-27 00:50:18 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -438,7 +438,9 @@ VisMF::WriteHeader (const aString& mf_name,
 
         ofstream MFHdrFile;
 
+#ifdef BL_USE_SETBUF
         MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
 
@@ -524,7 +526,9 @@ VisMF::Write (const MultiFab& mf,
 
         ofstream FabFile;
 
+#ifdef BL_USE_SETBUF
         FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
 #ifdef BL_USE_NEW_HFILES
         FabFile.open(FullFileName.c_str(), ios::out|ios::trunc|ios::binary);
@@ -682,7 +686,9 @@ VisMF::VisMF (const aString& mf_name)
 
     ifstream ifs;
 
+#ifdef BL_USE_SETBUF
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
     ifs.open(FullHdrFileName.c_str(), ios::in);
 
@@ -725,7 +731,9 @@ VisMF::readFAB (int                  idx,
 
     ifstream ifs;
 
+#ifdef BL_USE_SETBUF
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
 #ifdef BL_USE_NEW_HFILES
     ifs.open(FullFileName.c_str(), ios::in|ios::binary);
@@ -765,7 +773,9 @@ VisMF::Read (MultiFab&      mf,
 
         ifstream ifs;
 
+#ifdef BL_USE_SETBUF
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
         ifs.open(FullHdrFileName.c_str(), ios::in);
 
