@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.4 1997-11-18 00:04:49 lijewski Exp $
+// $Id: BoxList.cpp,v 1.5 1999-04-26 20:09:11 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -108,7 +108,9 @@ BoxList::intersect (const Box& b)
             ++bli;
         }
         else
+        {
             lbox.remove(bli);
+        }
     }
     return *this;
 }
@@ -130,7 +132,9 @@ complementIn (const Box&     b,
                 newb.lbox.remove(newbli);
             }
             else
+            {
                 ++newbli;
+            }
         }
     }
     return newb;
@@ -153,7 +157,9 @@ BoxList::complementIn (const Box&     b,
                 lbox.remove(newbli);
             }
             else
+            {
                 ++newbli;
+            }
         }
     }
     return *this;
@@ -239,15 +245,19 @@ boxDiff (const Box& b1in,
    if (!b2.contains(b1))
    {
        if (!b1.intersects(b2))
+       {
            b_list.append(b1);
+       }
        else
        {
            const int* b2lo = b2.loVect();
            const int* b2hi = b2.hiVect();
-           for (int i = 0; i < SpaceDim; i++)
+
+           for (int i = 0; i < BL_SPACEDIM; i++)
            {
-               const int *b1lo = b1.loVect();
-               const int *b1hi = b1.hiVect();
+               const int* b1lo = b1.loVect();
+               const int* b1hi = b1.hiVect();
+
                if ((b1lo[i] < b2lo[i]) && (b2lo[i] <= b1hi[i]))
                {
                    Box bn(b1);
@@ -277,14 +287,14 @@ BoxList::simplify ()
     // Try to merge adjacent boxes.
     //
     int count = 0;
-    int lo[SpaceDim];
-    int hi[SpaceDim];
+    int lo[BL_SPACEDIM];
+    int hi[BL_SPACEDIM];
 
     for (BoxListIterator bla(*this); bla; )
     {
-        const int *alo = bla().loVect();
-        const int *ahi = bla().hiVect();
-        int found_match = false;
+        const int* alo   = bla().loVect();
+        const int* ahi   = bla().hiVect();
+        bool       match = false;
         BoxListIterator blb(bla);
         ++blb;
         while (blb)
@@ -296,9 +306,9 @@ BoxList::simplify ()
             // They must have equal extents in all index direciton
             // except possibly one and must abutt in that direction.
             //
-            int canjoin = true;
-            int joincnt = 0;
-            for (int i = 0; i < SpaceDim; i++)
+            bool canjoin = true;
+            int  joincnt = 0;
+            for (int i = 0; i < BL_SPACEDIM; i++)
             {
                 if (alo[i]==blo[i] && ahi[i]==bhi[i])
                 {
@@ -332,19 +342,21 @@ BoxList::simplify ()
                 lbox[blb].setBig(IntVect(hi));
                 lbox.remove(bla);
                 count++;
-                found_match = true;
+                match = true;
                 break;
             }
             else
+            {
                 //
                 // No match found, try next element.
                 //
                 ++blb;
+            }
         }
         //
         // If a match was found, a was already advanced in the list.
         //
-        if (!found_match)
+        if (!match)
             ++bla;
     }
     return count;
@@ -374,34 +386,34 @@ BoxList::minimalBox () const
 }
 
 BoxList&
-BoxList::maxSize (int block_size)
+BoxList::maxSize (const IntVect& chunk)
 {
     for (BoxListIterator bli(*this); bli; ++bli)
     {
-        const IntVect& ivlen = bli().length();
-        const int* len       = ivlen.getVect();
-        for (int i = 0; i < SpaceDim; i++)
+        const int* len = bli().length().getVect();
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            if (len[i] > block_size)
+            if (len[i] > chunk[i])
             {
                 //
                 // Reduce by powers of 2.
                 //
                 int ratio = 1;
-                int bs    = block_size;
+                int bs    = chunk[i];
                 int nlen  = len[i];
-                while ((bs%2==0) && (nlen%2==0))
+                while ((bs%2 == 0) && (nlen%2 == 0))
                 {
                     ratio *= 2;
-                    bs /=2;
-                    nlen /=2;
+                    bs    /= 2;
+                    nlen  /= 2;
                 }
                 //
                 // Determine number and size of (coarsened) cuts.
                 //
-                int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                int size   = nlen/numblk;
-                int extra  = nlen%numblk;
+                const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
+                const int size   = nlen/numblk;
+                const int extra  = nlen%numblk;
                 //
                 // Number of cuts = number of blocks - 1.
                 //
@@ -410,14 +422,13 @@ BoxList::maxSize (int block_size)
                     //
                     // Compute size of this chunk, expand by power of 2.
                     //
-                    int ksize = (k < extra) ? size+1 : size;
-                    ksize *= ratio;
+                    const int ksize = (k < extra ? size+1 : size) * ratio;
                     //
                     // Chop from high end.
                     //
-                    IntVect iv = bli().bigEnd();
-                    int pos    = iv[i] - ksize + 1;
-                    append(lbox[bli].chop(i,pos)); // FIXME FIXME FIXME
+                    const int pos = bli().bigEnd(i) - ksize + 1;
+
+                    append(lbox[bli].chop(i,pos));
                 }
             }
         }
@@ -428,6 +439,12 @@ BoxList::maxSize (int block_size)
         //
     }
     return *this;
+}
+
+BoxList&
+BoxList::maxSize (int chunk)
+{
+    return maxSize(IntVect(D_DECL(chunk,chunk,chunk)));
 }
 
 BoxList&
@@ -502,3 +519,5 @@ BoxList::operator== (const BoxList& rhs) const
     }
     return rc;
 }
+
+

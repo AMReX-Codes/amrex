@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.8 1999-02-10 21:09:56 lijewski Exp $
+// $Id: BoxList.H,v 1.9 1999-04-26 20:09:11 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -224,6 +224,11 @@ public:
                length <= chunk.
     */
     BoxList& maxSize (int chunk);
+
+    /*@ManDoc: Forces each Box in the BoxList to have dimth side of 
+               length <= chunk[dim].
+    */
+    BoxList& maxSize (const IntVect& chunk);
     //
     //@ManDoc: Returns smallest Box that contains all Boxes in this BoxList.
     //
