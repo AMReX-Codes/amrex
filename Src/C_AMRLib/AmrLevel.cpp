@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.45 1998-12-02 17:52:55 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.46 1998-12-02 18:36:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -513,14 +513,11 @@ FillPatchIterator::Initialize (int           boxGrow,
 
                     fineDestBox.refine(m_ratio[level]);
 
-                    assert(m_ba[ibox].contains(fineDestBox) || is_periodic);
-
                     Box crse_box = fineDestBox;
 
                     if (level != m_amrlevel.level)
                     {
-                        crse_box = m_map[level]->CoarseBox(fineDestBox,
-                                                           m_ratio[level]);
+                        crse_box = m_map[level]->CoarseBox(fineDestBox,m_ratio[level]);
                     }
                     m_finebox[ibox][level][iBLI] = fineDestBox;
 
@@ -552,15 +549,13 @@ FillPatchIterator::Initialize (int           boxGrow,
                 // Populate `unfilledThisLevel' from `unfillableThisLevel'.
                 //
                 for (BoxListIterator bli(unfillableThisLevel); bli; ++bli)
-                {
                     unfilledThisLevel.push_back(bli());
-                }
+
                 Box coarseLocalMFBox = ::coarsen(m_ba[ibox],m_ratio[level]);
 
                 if (!is_periodic)
-                {
                     Intersect(unfilledThisLevel,coarseLocalMFBox);
-                }
+
                 Coarsen(unfilledThisLevel,amrLevels[level].crse_ratio);
 
                 if (level == 0)
