@@ -487,7 +487,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
             if (for_fill_sync_reg == 0 || mglev == mglev_max)
             {
 		sigma.set(mglev, new MultiFab(mg_mesh[mglev], ncomp, 1));
-		sigma[mglev].setVal(1.0e20);
+		sigma[mglev].setVal(1.0e200);
 		int lev;
 		if ((lev = get_amr_level(mglev)) >= 0)
 		{
@@ -586,7 +586,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    for (int mglev = 0; mglev < mglev_max; mglev++)
 	    {
 		MultiFab& target = sigma_split[mglev];
-		target.setVal(1.0e20);
+		target.setVal(1.0e200);
 		int lev;
 		if ((lev = get_amr_level(mglev)) >= 0)
 		{
@@ -602,7 +602,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 		}
 	    }
 	}
-	sigma[mglev_max].setVal(1.0e20);
+	sigma[mglev_max].setVal(1.0e200);
 	HG_TEST_NORM(sigma[mglev_max], "build_sigma aa1");
 	HG_TEST_NORM(Sigma[  lev_max], "build_sigma aa10");
 
@@ -703,7 +703,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 		    BoxArray mesh = mg_mesh[mglev];
 		    mesh.convert(IndexType(IntVect::TheNodeVector()));
 		    sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
-		    sigma_node[mglev].setVal(1.0e20);
+		    sigma_node[mglev].setVal(1.0e200);
 	      }
 	    }
 
