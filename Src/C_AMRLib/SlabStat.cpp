@@ -1,5 +1,5 @@
 //
-// $Id: SlabStat.cpp,v 1.12 2001-08-01 21:50:46 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.13 2001-08-02 16:04:11 car Exp $
 //
 
 #include <AmrLevel.H>
@@ -162,7 +162,7 @@ Boxes (const std::string& file,
 
             for (int i = 0; i < N; i++)
             {
-                is >> bx; STRIP; bl.append(bx);
+                is >> bx; STRIP; bl.push_back(bx);
             }
 
             (dflt ? ba_dflt : ba_name) = BoxArray(bl);

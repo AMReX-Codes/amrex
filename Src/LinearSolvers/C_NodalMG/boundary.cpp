@@ -1370,7 +1370,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, -b.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
@@ -1378,7 +1378,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, d.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
@@ -1386,7 +1386,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, -b.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(-2);
 		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
@@ -1402,7 +1402,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, b.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
@@ -1410,7 +1410,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, -d.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
@@ -1418,7 +1418,7 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 	    {
 		Box bn = b;
 		bn.shift(i, b.length(i));
-		bl.append(bn);
+		bl.push_back(bn);
 		il.push_back(-2);
 		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
