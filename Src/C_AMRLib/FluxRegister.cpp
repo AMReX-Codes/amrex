@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.64 2001-08-23 20:07:43 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.65 2001-09-07 23:06:44 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -8,6 +8,7 @@
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
+#include <Thread.H>
 #include <ccse-mpi.H>
 
 #include <vector>
@@ -705,6 +706,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 static Array<int>              CIMsgs;
 static std::vector<FabComTag>  CITags;
 static std::vector<FArrayBox*> CIFabs;
+static Mutex                   CIMutex;
 
 static
 void
@@ -731,8 +733,6 @@ DoIt (Orientation        face,
 #ifdef BL_USE_MPI
     else
     {
-        BL_ASSERT(CIMsgs.size() == ParallelDescriptor::NProcs());
-
         FabComTag tag;
 
         tag.toProc   = dMap[k];
@@ -747,8 +747,13 @@ DoIt (Orientation        face,
         fab->copy(flux, bx, srccomp, bx, 0, numcomp);
         fab->mult(mult, bx, 0, numcomp);
 
+        Lock<Mutex> lock(CIMutex);
+
         CITags.push_back(tag);
         CIFabs.push_back(fab);
+
+        if (CIMsgs.size() == 0)
+            CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
 
         CIMsgs[dMap[k]]++;
     }
@@ -767,9 +772,6 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    if (CIMsgs.size() == 0)
-        CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
 
     for (int k = 0; k < grids.size(); k++)
     {
