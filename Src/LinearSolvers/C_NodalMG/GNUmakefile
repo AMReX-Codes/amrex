@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.28 1999-01-29 00:20:27 car Exp $
+# $Id: GNUmakefile,v 1.29 1999-02-03 22:50:28 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -26,8 +26,6 @@ ifneq ($(EBASE),proj)
   override EBASE = 
   override LBASE = proj
 endif
-
-
 #
 # Where libraries and include files will be installed.
 #
@@ -80,20 +78,33 @@ ifeq ($(USE_MPI), TRUE)
     LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
   endif
 endif
- 
+#
 # For 3rd ...
- 
-#3RD = 1
+#
+3RD = 0
 ifdef 3RD
-  CXXFLAGS += --link_command_prefix 3rd
+  CXXFLAGS  += --link_command_prefix 3rd
   LIBRARIES += -ldnet_stub
-  FDEBF += -automatic
+  FDEBF     += -automatic
 endif
-FDEBF += -u
 
- 
+ifeq ($(MACHINE),T3E)
+  #
+  # Turn off warning about double precision constants.
+  #
+  FOPTF += -M 1110
+  FDEBF += -M 1110
+endif
+
+ifeq ($(MACHINE),OSF1)
+  #
+  # Warn about unused variables.
+  #
+  FDEBF += -u
+endif
+#
 # Lower optimization level for this big file
- 
+#
 o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
