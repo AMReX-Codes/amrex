@@ -122,5 +122,5 @@ CopyFile["DV_2D.mF", "dog.mf"];
 Splice["dog.mf"];
 DeleteFile["DV_2D.F"];
 CopyFile["dog.f", "DV_2D.F"];
-<< "!touch DV_2D.F"
+SetFileDate["DV_2D.F"];
 *)
