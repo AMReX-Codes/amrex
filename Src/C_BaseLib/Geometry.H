@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.33 1999-05-10 18:54:09 car Exp $
+// $Id: Geometry.H,v 1.34 2000-05-31 20:35:25 car Exp $
 //
 
 #include <CoordSys.H>
@@ -133,7 +133,7 @@ public:
     //
     //@ManDoc: What's period in specified direction?
     //
-    int period (int dir);
+    int period (int dir) const;
 
     /*@ManDoc: Compute Array of shifts which will translate src so that it will
                intersect target with non-zero intersection.  the array will be
@@ -381,7 +381,7 @@ Geometry::isAnyPeriodic ()
 
 inline
 int
-Geometry::period (int dir)
+Geometry::period (int dir) const
 {
     BL_ASSERT(is_periodic[dir]);
     return domain.length(dir);
