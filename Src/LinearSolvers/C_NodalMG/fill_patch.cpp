@@ -1,5 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
+#include <RunStats.H>
+
 #include "fill_patch.H"
 
 #if defined( BL_FORT_USE_UNDERSCORE )
@@ -178,17 +180,23 @@ task_bdy_fill::startup ()
     {
         if (m_fab != 0)
         {
+            static RunStats stats("hg_irecv");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
+            stats.start();
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
+            stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (m_fab == 0 && is_local(m_smf, m_sgrid)) 
         {
+            static RunStats stats("hg_isend");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
             tmp->copy(m_smf[m_sgrid], m_bx);
+            stats.start();
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
+            stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -211,23 +219,27 @@ task_bdy_fill::ready ()
     if (m_local) return true;
 
 #ifdef BL_USE_MPI
-    int flag;
+    static RunStats stats("hg_test");
+    int flag, res;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    int res = MPI_Test(&m_request, &flag, &status);
-    if (res != 0)
+    stats.start();
+    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
 	ParallelDescriptor::Abort(res);
+    stats.end();
     if (flag)
     {
 	BL_ASSERT(m_request == MPI_REQUEST_NULL);
 	if (m_fab)
 	{
+#ifndef NDEBUG
 	    int count;
 	    BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
 	    BL_ASSERT(status.MPI_TAG    == m_sno);
 	    if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
 		ParallelDescriptor::Abort(res);
 	    BL_ASSERT(count == tmp->box().numPts()*tmp->nComp());
+#endif
 	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
 	}
 	return true;
@@ -876,19 +888,25 @@ task_restric_fill::startup ()
     {
         if (is_local(m_d, m_dgrid))
         {
+            static RunStats stats("hg_irecv");
             Box rbx = m_restric.rebox(m_box, m_rat);
             m_tmp = new FArrayBox(rbx, m_r.nComp());
+            stats.start();
             int res = MPI_Irecv(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_r, m_rgrid), m_sno, HG::mpi_comm, &m_request);
+            stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_r, m_rgrid))
         {
+            static RunStats stats("hg_isend");
             Box rbx = m_restric.rebox(m_box, m_rat);
             m_tmp = new FArrayBox(rbx, m_r.nComp());
             m_tmp->copy(m_r[m_rgrid], rbx);
+            stats.start();
             int res = MPI_Isend(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_d,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
+            stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -911,11 +929,13 @@ task_restric_fill::ready ()
     if (m_local) return true;
 
 #ifdef BL_USE_MPI
-    int flag;
+    static RunStats stats("hg_test");
+    int flag, res;
     MPI_Status status;
-    int res = MPI_Test(&m_request, &flag, &status);
-    if (res != 0)
+    stats.start();
+    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
 	ParallelDescriptor::Abort(res);
+    stats.end();
     if (flag)
     {
 	if (is_local(m_d, m_dgrid))
