@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.4 1998-06-11 00:06:16 lijewski Exp $
+// $Id: LinOp.cpp,v 1.5 1998-06-13 15:50:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,15 +28,6 @@ int LinOp::def_maxorder = 2;
 //
 const int LinOp_grow = 1;
 #endif
-
-//
-// LinOp::preComputePeriodicInfo precomputes some intersection information
-// assuming that Periodic_BC_grow cells are important enough to be included in
-// the fix-up after the MultiFab::FillBoundary() call in LinOp::applyBC.  Since
-// LinOp::applyBC is presently the only member requiring ghostcells,
-// Periodic_BC_grow is set to its maximum requirement.
-//
-const int Periodic_BC_grow = 1;
 
 void
 LinOp::initialize ()
@@ -98,8 +89,6 @@ LinOp::LinOp (const LinOp& _lp,
     gbox[0] = _lp.boxArray(level);
     geomarray.resize(1);
     geomarray[0] = bgb.getGeom();
-    m_pirmmap.resize(1);
-    m_pirmmap[0] = _lp.m_pirmmap[level];
     h.resize(1);
     assert(_lp.numLevels() > level);
     h[0] = _lp.h[level];
@@ -120,7 +109,6 @@ LinOp::initConstruct (const Real* _h)
     gbox[level] = bgb.boxes();
     geomarray.resize(1);
     geomarray[level] = bgb.getGeom();
-    preComputePeriodicInfo(level);
     h.resize(1);
     maxorder = def_maxorder;
 
@@ -203,7 +191,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Do periodic fixup.
     //
-    geomarray[level].FillPeriodicFabArray(inout, m_pirmmap[level], 0, nc);
+    geomarray[level].FillPeriodicBoundary(inout, 0, nc);
     //
     // Fill boundary cells.
     //
@@ -304,18 +292,6 @@ LinOp::norm (const MultiFab& in,
 }
 
 void
-LinOp::preComputePeriodicInfo (int level)
-{
-    assert(geomarray.size() > level);
-    assert(gbox.size() > level);
-    assert(m_pirmmap.size() == level);
-
-    m_pirmmap.resize(level+1);
-    m_pirmmap[level] = geomarray[level].computePIRMMapForMultiFab(gbox[level],
-                                                                  Periodic_BC_grow);
-}
-
-void
 LinOp::prepareForLevel (int level)
 {
     if (level == 0)
@@ -342,10 +318,6 @@ LinOp::prepareForLevel (int level)
     gbox.resize(level+1);
     gbox[level] = gbox[level-1];
     gbox[level].coarsen(2);
-    //
-    // Add a set of periodic intersections to the new coarser level.
-    //
-    preComputePeriodicInfo(level);
     //
     // Add the BndryRegister of relax values to the new coarser level.
     //
@@ -534,33 +506,6 @@ operator << (std::ostream& os,
 	os << "Harmonic average? " << (lp.harmavg == 1 ? "yes" : "no") << endl;
 	os << "Verbosity: " << lp.verbose << endl;
 	os << "Max Order: " << lp.maxorder << endl;
-    }
-
-    bool PIRMs = lp.m_pirmmap[0].size() != 0;
-    if (ParallelDescriptor::IOProcessor())
-    {
-	os << "Periodic Intersection Boxes:";
-	if (! PIRMs)
-	    os << " (empty)";
-	os << endl;
-    }
-    if (PIRMs)
-    {
-	for (int level = 0; level < lp.h.size(); ++level)
-	{
-	    if (ParallelDescriptor::IOProcessor())
-		os << "level = " << level << endl;
-	    ParallelDescriptor::Synchronize();
-	    for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
-	    {
-		if (nproc == ParallelDescriptor::MyProc())
-		{
-		    os << "Processor " << nproc << endl;
-		    os << lp.m_pirmmap[level] << endl;
-		}
-		ParallelDescriptor::Synchronize();
-	    }
-	}
     }
 
     if (ParallelDescriptor::IOProcessor())
