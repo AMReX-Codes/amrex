@@ -267,7 +267,7 @@ print *, 'fine_flux = ', fine_flux
              res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
           end do
           !   Lo j side
-       else if (face == -2) then
+       else if (face == -1) then
           j = lo(2)
           do i = lo(1),hi(1)
              crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
