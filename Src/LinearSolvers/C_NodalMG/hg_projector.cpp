@@ -89,11 +89,13 @@ public:
 	: f(f_), s(s_), S(S_), igrid(igrid_), tf(tf_), creg(creg_), rat(rat_), idim(idim_), idir(idir_) {}
     virtual bool ready()
     {
-	throw "FIXME task_fecavg::ready"; return false;
+	throw "FIXME task_fecavg::ready"; /*NOTREACHED*/
+	return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_fecavg::init"; return false;
+	throw "FIXME task_fecavg::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     FECFUNC f;
@@ -114,11 +116,13 @@ public:
 	: f(f_), s(s_), igrid(igrid_), Sfp(Sfp_), Scp(Scp_), creg(creg_), rat(rat_), t(t_), ga(ga_) {}
     virtual bool ready()
     {
-	throw "FIXME task_faecavg_2::ready"; return false;
+	throw "FIXME task_faecavg_2::ready"; /*NOTREACHED*/
+	return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_fecavg_2::init"; return false;
+	throw "FIXME task_fecavg_2::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     FECFUNC f;
@@ -148,11 +152,13 @@ public:
     }
     virtual bool ready()
     {
-	throw "FIXME task_fecdiv::ready"; return false;
+	throw "FIXME task_fecdiv::ready"; /*NOTREACHED*/
+	return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_fecdiv::init"; return false;
+	throw "FIXME task_fecdiv::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     FECDIV f;
@@ -183,7 +189,7 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_fecdiv_2::init"; 
+	throw "FIXME task_fecdiv_2::init"; /*NOTREACHED*/
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    ufp[i]->init(sno, comm);
@@ -192,7 +198,8 @@ public:
     }
     virtual bool ready()
     {
-	throw "FIXME task_fecdiv_2::ready"; return false;
+	throw "FIXME task_fecdiv_2::ready"; /*NOTREACHED*/
+	return false;
     }
 private:
     FECDIV f;

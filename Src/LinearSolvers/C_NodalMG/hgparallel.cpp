@@ -180,7 +180,8 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    throw "FIXME task_copy_local::ready"; return m_local;
+    throw "FIXME task_copy_local::ready"; /*NOTREACHED*/
+    return m_local;
 }
 
 bool task_copy_local::depends_on_q(const task* t1) const
@@ -324,6 +325,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    throw "FIXME task_fab_get::ready"; return true;
+    throw "FIXME task_fab_get::ready"; /*NOTREACHED*/
+    return true;
 }
-

@@ -106,7 +106,8 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_copy_local::init"; return false;
+	throw "FIXME task_copy_local::init"; /*NOTREACHED*/
+	return false;
     }
     virtual bool depends_on_q(const task* t) const;
 private:
@@ -136,7 +137,8 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_fab_get::init"; return false;
+	throw "FIXME task_fab_get::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     const MultiFab& s;
@@ -203,7 +205,7 @@ public:
 	: m(m_), jgrid(jgrid_), igrid(igrid_), freg(freg_), t(t_) {}
     virtual bool ready()
     {
-	throw "FIXME task_copy_link::ready";
+	throw "FIXME task_copy_link::ready"; /*NOTREACHED*/
 	if ( t.ready() )
 	{
 	    m[jgrid].copy(m[igrid], freg);
@@ -213,7 +215,8 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_copy_link::init"; return false;
+	throw "FIXME task_copy_link::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     MultiFab& m;
