@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.22 2001-12-04 21:28:17 car Exp $
+# $Id: Make.OSF1,v 1.23 2002-03-21 00:41:08 vince Exp $
 #
 
 #
@@ -9,6 +9,13 @@
 SHELL := /bin/ksh
 
 UNAMER := $(shell uname -r)
+UNAMEN := $(shell uname -n)
+ifeq ($(MACHINE), OSF1)
+  ifeq ($(findstring opal, $(UNAMEN)), opal)
+    WHICHOSFMACH := opal
+  endif
+endif
+
 #
 # We'd also like to distinguish between OSF1 versions 3 and 4
 #
@@ -51,6 +58,9 @@ ifeq ($(COMP),KCC)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
   else
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
+  endif
+  ifeq ($(WHICHOSFMACH),opal)
+    CXXFLAGS += -ieee
   endif
   #
   # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
