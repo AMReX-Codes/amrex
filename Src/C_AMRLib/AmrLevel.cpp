@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.35 1998-06-30 15:11:21 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.36 1998-06-30 23:43:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -663,10 +663,9 @@ FillPatchIterator::Initialize (int           boxGrow,
     m_dcomp      = dest_comp;
     m_ncomp      = ncomp;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
     Array<IntVect> pshifts(27);
 
+    const int         MyProc    = ParallelDescriptor::MyProc();
     PArray<AmrLevel>& amrLevels = m_amrlevel.parent->getAmrLevels();
 
     m_ratio[m_amrlevel.level] = IntVect::TheUnitVector();
@@ -674,7 +673,6 @@ FillPatchIterator::Initialize (int           boxGrow,
     {
         m_ratio[level] = m_ratio[level+1] * amrLevels[level+1].crse_ratio;
     }
-
     for (int level = 0; level <= m_amrlevel.level; ++level)
     {
         StateData& state            = amrLevels[level].state[m_stateindex];
@@ -684,14 +682,10 @@ FillPatchIterator::Initialize (int           boxGrow,
         if (m_map[level] == 0)
             m_map[level] = desc.interp();
     }
-
     for (int i = 0; i < m_ba.length(); ++i)
     {
         if (m_leveldata.ProcessorMap()[i] == MyProc)
         {
-            //
-            // Local.
-            //
             m_ba.set(i, m_leveldata.boxArray()[i]);
             m_fbid[i].resize(m_amrlevel.level + 1);
             m_finebox[i].resize(m_amrlevel.level + 1);
@@ -710,9 +704,6 @@ FillPatchIterator::Initialize (int           boxGrow,
     for (int ibox = 0; ibox < m_ba.length(); ++ibox)
     {
         if (m_leveldata.ProcessorMap()[ibox] != MyProc)
-            //
-            // Not local.
-            //
             continue;
 
         unfilledThisLevel.clear();
@@ -738,17 +729,17 @@ FillPatchIterator::Initialize (int           boxGrow,
 
                 for (int i = 0; i < unfilledThisLevel.size(); i++)
                 {
-                    const Box& box = unfilledThisLevel[i];
+                    assert(unfilledThisLevel[i].ok());
 
-                    assert(box.ok());
-
-                    if (!currentPDomain.contains(box))
+                    if (!currentPDomain.contains(unfilledThisLevel[i]))
                     {
                         amrLevels[level].geom.periodicShift(currentPDomain,
-                                                            box, pshifts);
+                                                            unfilledThisLevel[i],
+                                                            pshifts);
+
                         for (int iiv = 0; iiv < pshifts.length(); iiv++)
                         {
-                            Box shbox(box);
+                            Box shbox(unfilledThisLevel[i]);
                             shbox.shift(pshifts[iiv]);
                             shbox &= currentPDomain;
                             assert(shbox.ok());
@@ -761,7 +752,6 @@ FillPatchIterator::Initialize (int           boxGrow,
                     unfilledThisLevel.push_back(tempUnfilledBoxes[i]);
                 }
             }
-
             m_fbid[ibox][level].resize(unfilledThisLevel.size());
             m_finebox[ibox][level].resize(unfilledThisLevel.size());
 
@@ -769,35 +759,37 @@ FillPatchIterator::Initialize (int           boxGrow,
 
             for (int i = 0; i < unfilledThisLevel.size(); i++)
             {
-                const Box& box = unfilledThisLevel[i];
+                assert(unfilledThisLevel[i].ok());
 
-                assert(box.ok());
-
-                if (box.intersects(currentPDomain))
+                if (unfilledThisLevel[i].intersects(currentPDomain))
                 {
-                    Box fineTruncDestBox = box & currentPDomain;
+                    Box fineDestBox = unfilledThisLevel[i] & currentPDomain;
 
-                    fineTruncDestBox.refine(m_ratio[level]);
+                    fineDestBox.refine(m_ratio[level]);
 
-                    Box crse_box = fineTruncDestBox;
+                    if (fineDestBox.intersects(m_ba[ibox]))
+                    {
+                        fineDestBox &= m_ba[ibox];
+                    }
+                    else
+                    {
+                        assert(is_periodic);
+                    }
+                    Box crse_box = fineDestBox;
 
                     if (level != m_amrlevel.level)
                     {
-                        crse_box = m_map[level]->CoarseBox(fineTruncDestBox,
+                        crse_box = m_map[level]->CoarseBox(fineDestBox,
                                                            m_ratio[level]);
                     }
-                    m_finebox[ibox][level][iBLI] = fineTruncDestBox;
+                    m_finebox[ibox][level][iBLI] = fineDestBox;
 
-                    if (!is_periodic)
-                    {
-                        assert(m_ba[ibox].intersects(fineTruncDestBox));
-                    }
                     BoxList tempUnfillableBoxes(boxType);
 
                     currentState.linInterpAddBox(m_mfcd,
                                                  m_mfid[level],
                                                  &tempUnfillableBoxes,
-                                                 m_fbid[ibox][level][iBLI],
+                                                 m_fbid[ibox][level][iBLI++],
                                                  crse_box,
                                                  m_time,
                                                  m_scomp,
@@ -805,11 +797,8 @@ FillPatchIterator::Initialize (int           boxGrow,
                                                  m_ncomp);
 
                     unfillableThisLevel.join(tempUnfillableBoxes);
-
-                    ++iBLI;
                 }
             }
-
             unfilledThisLevel.clear();
             unfillableThisLevel.intersect(currentPDomain);
 
@@ -868,15 +857,15 @@ FillPatchIterator::isValid (bool bDoSync)
 
     stats.start();
 
-    Array<BCRec>      bcr(m_ncomp);
-    Array<IntVect>    pshifts(27);
+    Array<BCRec>   bcr(m_ncomp);
+    Array<IntVect> pshifts(27);
 
-    const int         MyProc     = ParallelDescriptor::MyProc();
-    PArray<AmrLevel>& amrLevels  = m_amrlevel.parent->getAmrLevels();
-    Box               destBox    = ::grow(validbox(),m_growsize);
-    const StateDescriptor& fDesc = m_amrlevel.desc_lst[m_stateindex];
-    StateData& fState            = m_amrlevel.state[m_stateindex];
-    const Box& fDomain           = fState.getDomain();
+    const int              MyProc    = ParallelDescriptor::MyProc();
+    PArray<AmrLevel>&      amrLevels = m_amrlevel.parent->getAmrLevels();
+    const Box&             destBox   = m_ba[index()];
+    const StateDescriptor& fDesc     = m_amrlevel.desc_lst[m_stateindex];
+    StateData&             fState    = m_amrlevel.state[m_stateindex];
+    const Box&             fDomain   = fState.getDomain();
 
     m_fab.resize(destBox, m_ncomp);
     m_fab.setVal(1.e30);
@@ -916,12 +905,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                           0,
                                           m_ncomp);
             }
-            Box iSectDest = m_finebox[currentIndex][level][iBox];
-
-            if (!is_periodic)
-            {
-                iSectDest &= m_fab.box();
-            }
+            Box iSectDest               = m_finebox[currentIndex][level][iBox];
             const BoxArray& filledBoxes = m_fbid[currentIndex][level][iBox][0].FilledBoxes();
             BoxArray fboxes             = filledBoxes;
             FArrayBox* cpFromFab        = 0;
