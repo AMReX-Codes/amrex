@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.61 2002-11-26 22:37:40 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.62 2002-12-10 20:31:14 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -454,12 +454,12 @@ top:
 
 static bool verbose = false;
 
-static
-int
-HeaviestCPU (const std::vector<long>& percpu)
-{
-  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
-}
+//static
+//int
+//HeaviestCPU (const std::vector<long>& percpu)
+//{
+//  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
+//}
 
 static
 void
@@ -469,7 +469,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
              std::vector<long>&                                        percpu,
              bool&                                                     swapped)
 {
-    int Hvy = HeaviestCPU(percpu);
+//    int Hvy = HeaviestCPU(percpu);
 
     for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
          it != samesize.end();
@@ -496,7 +496,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 //
                 // Only swaps between CPU of highest latency to another.
                 //
-                if (procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
+//                if (procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
                 //
                 // Will swapping these boxes decrease latency?
                 //
@@ -558,7 +558,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 {
                     swapped = true;
 
-                    Hvy = HeaviestCPU(percpu);
+//                    Hvy = HeaviestCPU(percpu);
 
                     if (verbose)
                         std::cout << "Swapping " << *lit1 << " & " << *lit2 << "\n";
