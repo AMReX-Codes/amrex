@@ -1369,7 +1369,6 @@ c NODE-based data, factor of 2 only.
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
           do jc = bbl1, bbh1-1
-do jc = bbl1, bbh1-1
 cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
