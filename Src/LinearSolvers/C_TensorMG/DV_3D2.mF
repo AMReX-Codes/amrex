@@ -220,17 +220,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
             enddo
          enddo
@@ -272,17 +272,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dudzw,i-1+half,j,k,dudz,dudzalt,tranderiv,1,3,indexcond,maskray] *>
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
             enddo
          enddo
@@ -324,17 +324,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
             enddo
          enddo
@@ -376,17 +376,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
          enddo
       enddo
@@ -428,17 +428,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
          enddo
       enddo
@@ -480,17 +480,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
             enddo
       enddo
 
@@ -531,17 +531,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
             enddo
       enddo
 
@@ -581,17 +581,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
             enddo
 
@@ -629,17 +629,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
             enddo
 
 
@@ -677,17 +677,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
          enddo
 
@@ -725,17 +725,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
          enddo
 c ::: case 11, bottom-north edge 
@@ -772,17 +772,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
             enddo
 
@@ -820,17 +820,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
             enddo
 
@@ -869,17 +869,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
          enddo
 
@@ -919,17 +919,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranderiv,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
          enddo
 
@@ -969,17 +969,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
       enddo
 
@@ -1018,17 +1018,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
       enddo
 
@@ -1066,17 +1066,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
       enddo
 
 
@@ -1114,17 +1114,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskray] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
       enddo
 
 
@@ -1177,29 +1177,29 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
 
 
@@ -1247,25 +1247,25 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
 
 c ::: case 21, top-south-east corner
@@ -1312,25 +1312,25 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
 
 c ::: case 22, top-south-west corner
@@ -1372,21 +1372,21 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskt  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
-              zflux(i,j,k+1,1)=<*FA[hy*hx*tauxz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,2)=<*FA[hy*hx*tauyz[i,j,k+half]//. standardrepl] *>
-              zflux(i,j,k+1,3)=<*FA[hy*hx*tauzz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,1)=<*FA[tauxz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,2)=<*FA[tauyz[i,j,k+half]//. standardrepl] *>
+              zflux(i,j,k+1,3)=<*FA[tauzz[i,j,k+half]//. standardrepl] *>
 
 c ::: case 23, bottom-north-east corner
 c ::: <* indexcond = Function[{i,j,k},(k<0||j>0||i>0)] ; *>
@@ -1432,25 +1432,25 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
 c ::: case 24, bottom-north-west corner
 c ::: <* indexcond = Function[{i,j,k},(k<0||j>0||i<0)] ; *>
@@ -1491,21 +1491,21 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzn,i,j  +half,k,dvdz,dvdzalt,trandern ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              yflux(i,j+1,k,1)=<*FA[hx*hz*tauxy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,2)=<*FA[hx*hz*tauyy[i,j+half,k]//. standardrepl] *>
-              yflux(i,j+1,k,3)=<*FA[hx*hz*tauyz[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,1)=<*FA[tauxy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,2)=<*FA[tauyy[i,j+half,k]//. standardrepl] *>
+              yflux(i,j+1,k,3)=<*FA[tauyz[i,j+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
 
 c ::: case 25, bottom-south-east corner
@@ -1547,21 +1547,21 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              xflux(i+1,j,k,1)=<*FA[hy*hz*tauxx[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,2)=<*FA[hy*hz*tauxy[i+half,j,k]//. standardrepl] *>
-              xflux(i+1,j,k,3)=<*FA[hy*hz*tauxz[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,1)=<*FA[tauxx[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,2)=<*FA[tauxy[i+half,j,k]//. standardrepl] *>
+              xflux(i+1,j,k,3)=<*FA[tauxz[i+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
 c ::: case 26, bottom-south-west corner
 c ::: <* indexcond = Function[{i,j,k},(k<0||j<0||i<0)] ; *>
@@ -1596,17 +1596,17 @@ c     ::: get expressions for tangential derivatives
 <*altgen[dvdzs,i,j-1+half,k,dvdz,dvdzalt,tranders ,2,3,indexcond,maskb  ] *>
 
 c     :::  evaluate expression
-              xflux(i,j,k,1)=<*FA[hy*hz*tauxx[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,2)=<*FA[hy*hz*tauxy[i-1+half,j,k]//. standardrepl] *>
-              xflux(i,j,k,3)=<*FA[hy*hz*tauxz[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,1)=<*FA[tauxx[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,2)=<*FA[tauxy[i-1+half,j,k]//. standardrepl] *>
+              xflux(i,j,k,3)=<*FA[tauxz[i-1+half,j,k]//. standardrepl] *>
               
-              yflux(i,j,k,1)=<*FA[hx*hz*tauxy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,2)=<*FA[hx*hz*tauyy[i,j-1+half,k]//. standardrepl] *>
-              yflux(i,j,k,3)=<*FA[hx*hz*tauyz[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,1)=<*FA[tauxy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,2)=<*FA[tauyy[i,j-1+half,k]//. standardrepl] *>
+              yflux(i,j,k,3)=<*FA[tauyz[i,j-1+half,k]//. standardrepl] *>
 
-              zflux(i,j,k,1)=<*FA[hy*hx*tauxz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,2)=<*FA[hy*hx*tauyz[i,j,k-1+half]//. standardrepl] *>
-              zflux(i,j,k,3)=<*FA[hy*hx*tauzz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,1)=<*FA[tauxz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,2)=<*FA[tauyz[i,j,k-1+half]//. standardrepl] *>
+              zflux(i,j,k,3)=<*FA[tauzz[i,j,k-1+half]//. standardrepl] *>
 
 
 

@@ -515,10 +515,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
          enddo
       enddo
 
@@ -543,10 +543,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxn = trandern(i,j+1,2)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*hx*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*hx*muY(i,1 + j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
+            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
          enddo
 
 c ::: case 2b south side
@@ -569,10 +569,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxs = tranders(i,j-1,2)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
          enddo
 
 
@@ -596,10 +596,10 @@ c     :::  get expressions for appropriate derivatives
             endif
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
       enddo
 
 c ::: case 2d: east side story
@@ -622,10 +622,10 @@ c     :::  get expressions for appropriate derivatives
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i+1,j,1) = 2*dudxe*hy*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*hy*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
+            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
+            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
          enddo
 
 c ::: case 3a: north-east corner
@@ -658,14 +658,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*hy*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*hy*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*hx*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*hx*muY(i,1 + j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
+            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
+            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
 
 c ::: case 3b: south-east corner, plus i, minus j, plus i, plus j
 c ::: Null
@@ -696,14 +696,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*hy*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*hy*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*hx*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*hx*muY(i,1 + j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
+            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
+            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
 
 c ::: case 3c: south-west corner, minus i, minus j
 c ::: Null
@@ -734,14 +734,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*hy*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*hy*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*hx*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*hx*muY(i,1 + j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
+            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
+            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
 
 c ::: case 3d: north-west corner, minus i, plus j
 c ::: Null
@@ -772,14 +772,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*hy*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*hy*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*hy*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*hy*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*hx*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*hx*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*hx*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*hx*muY(i,1 + j)
+            xflux(i,j,1) = 2*dudxw*muX(i,j)
+            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
+            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
+            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
+            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
+            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
+            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
 
 
 
