@@ -32,8 +32,8 @@ CEXE_headers += CONSTANTS.H UseCount.H
 CEXE_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 CEXE_headers += DistributionMapping.H ParallelDescriptor.H
 
-CEXE_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
-CEXE_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
+CEXE_sources += FabConv.cpp FPC.cpp FArrayBox.cpp
+CEXE_headers += FabConv.H FPC.H FArrayBox.H
 
 CEXE_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
 CEXE_headers += Box.H IntVect.H IndexType.H Orientation.H
