@@ -203,6 +203,7 @@ void task_copy_local::startup()
     {
 	m_local = true;
     }
+#if 0
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
@@ -225,6 +226,7 @@ void task_copy_local::startup()
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
+#endif
     else
     {
 	BoxLib::Error("task_copy::ready: Can't be here");
