@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.15 2001-07-23 17:39:00 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.16 2001-07-23 19:33:36 car Exp $
 //
 
 #include <winstd.H>
@@ -510,12 +510,13 @@ int Profiler::Tag::next_itag = 0;
 
 namespace
 {
-ThreadSpecificData<int> tt_i;
-Mutex tt_mutex;
-std::vector<ThreadTimerTree*> tt_data;
+    ThreadSpecificData<int> tt_i;
+    Mutex tt_mutex;
+    std::vector<ThreadTimerTree*> tt_data;
 
-std::string filename("bl_prof");
-bool mma = false;
+    bool verbose = false;
+    std::string filename("bl_prof");
+    bool mma = false;
 }
 
 Profiler::Tag::Tag(const std::string& tag_)
@@ -544,6 +545,16 @@ Profiler::Tag::name() const
 void
 Profiler::Initialize(int& argc, char**& argv)
 {
+    ParmParse pp("profiler");
+    pp.query("filename", filename);
+    pp.query("mma", mma);
+    pp.query("verbose", verbose);
+    if ( verbose )
+    {
+	std::cout << "profiler.filename" << filename << std::endl;
+	std::cout << "profiler.mma" << mma << std::endl;
+	std::cout << "profiler.verbose" << verbose << std::endl;
+    }
 }
 
 std::string

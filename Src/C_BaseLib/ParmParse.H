@@ -2,9 +2,10 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.16 2001-07-23 17:55:33 lijewski Exp $
+// $Id: ParmParse.H,v 1.17 2001-07-23 19:33:37 car Exp $
 //
 
+#include <string>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
@@ -246,51 +247,35 @@ class ParmParse
 {
 public:
 
-    /*@ManDoc: Construct an initial ParmParse object from the argc and argv
-               passed in to main().  An error will be signalled if another
-               ParmParse object currently exists.  If parfile is specified,
-               read the parameters in from that file first and then append
-               those derived from argv to the table.  If prefix is specified,
-               load this string as the code prefix for this particular
-               ParmParse object.
-    */
-    ParmParse (int         argc,
-               char**      argv,
-               const char* prefix  = 0,
-               const char* parfile = 0);
-
     /*@ManDoc: Construct an additional ParmParse object sharing the same
                internal table as any other such objects in existence.  If
                prefix is specified, load this string as the code prefix
                for this particular ParmParse object.
     */
+    
     explicit ParmParse (const char* prefix = 0);
-
-    /*@ManDoc: The destructor.  The internal static table will only be deleted
-               if there are no other ParmParse objects in existence.
-    */
-    ~ParmParse();
+    
     //
     //@ManDoc: Returns true if name is in table.
     //
-    bool contains (const char* name);
+    bool contains (const char* name) const;
 
     /*@ManDoc: Returns the number of values associated with nth occurence of
                name (prepended with the prefix) in the table.  n == -1 implies
                the last occurence.
     */
     int countval (const char* name,
-                  int         n = -1);
+                  int         n = -1) const;
 
     /*@ManDoc: Returns the number of times the given name (prepended with
                prefix) appears in the table.
     */
-    int countname (const char* name);
+    int countname (const char* name) const;
 
     /*@ManDoc: Returns the number of times the given name (prepended with
                prefix) appears in the table.
     */
-    int countname (const std::string& name);
+    int countname (const std::string& name) const;
     //
     //@ManDoc: Write the contents of the table in ASCII to the ostream.
     //
@@ -309,13 +294,13 @@ public:
     void getkth (const char* name,
                  int         k,
                  bool&        ref,
-                 int         ival=0);
+                 int         ival=0) const;
     //
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
               bool&        ref,
-              int         ival=0);
+              int         ival=0) const;
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
                of name.  If successful, it returns 1 and stores the value in
@@ -326,13 +311,13 @@ public:
     int querykth (const char* name,
                   int         k,
                   bool&       ref,
-                  int         ival=0);
+                  int         ival=0) const;
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
                bool&        ref,
-               int         ival=0);
+               int         ival=0) const;
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to an int and stored
@@ -345,13 +330,13 @@ public:
     void getkth (const char* name,
                  int         k,
                  int&        ref,
-                 int         ival=0);
-    //
+                 int         ival=0) const;
+
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
               int&        ref,
-              int         ival=0);
+              int         ival=0) const;
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
                of name.  If successful, it returns 1 and stores the value in
@@ -362,13 +347,13 @@ public:
     int querykth (const char* name,
                   int         k,
                   int&        ref,
-                  int         ival=0);
+                  int         ival=0) const;
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
                int&        ref,
-               int         ival=0);
+               int         ival=0) const;
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to a float and stored
@@ -381,13 +366,13 @@ public:
     void getkth (const char* name,
                  int         k,
                  float&      ref,
-                 int         ival=0);
+                 int         ival=0) const;
     //
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
               float&      ref,
-              int         ival=0);
+              int         ival=0) const;
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
                of name.  If successful, it returns 1 and stores the value in
@@ -398,13 +383,13 @@ public:
     int querykth (const char* name,
                   int         k,
                   float&      ref,
-                  int         ival=0);
+                  int         ival=0) const;
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
                float&      ref,
-               int         ival=0);
+               int         ival=0) const;
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to a double and stored
@@ -417,13 +402,13 @@ public:
     void getkth (const char* name,
                  int         k,
                  double&     ref,
-                 int         ival=0);
+                 int         ival=0) const;
     //
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
               double&     ref,
-              int         ival=0);
+              int         ival=0) const;
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
                of name.  If successful, it returns 1 and stores the value in
@@ -434,13 +419,13 @@ public:
     int querykth (const char* name,
                   int         k,
                   double&     ref,
-                  int         ival=0);
+                  int         ival=0) const;
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
                double&     ref,
-               int         ival=0);
+               int         ival=0) const;
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to a std::string and stored
@@ -453,13 +438,13 @@ public:
     void getkth (const char* name,
                  int         k,
                  std::string&    ref,
-                 int         ival=0);
+                 int         ival=0) const;
     //
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
               std::string&    ref,
-              int         ival=0);
+              int         ival=0) const;
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
                of name.  If successful, it returns 1 and stores the value in
@@ -470,13 +455,13 @@ public:
     int querykth (const char* name,
                   int         k,
                   std::string&   ref,
-                  int         ival=0);
+                  int         ival=0) const;
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
                std::string&    ref,
-               int         ival=0);
+               int         ival=0) const;
 
     /*@ManDoc: Gets an Array<int> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an int
@@ -493,14 +478,14 @@ public:
                     int         k,
                     Array<int>& ref,
                     int         start_ix,
-                    int         num_val);
+                    int         num_val) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char* name,
                  Array<int>& ref,
                  int         start_ix,
-                 int         num_val);
+                 int         num_val) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
@@ -508,14 +493,14 @@ public:
                      int         k,
                      Array<int>& ref,
                      int         start_ix,
-                     int         num_val);
+                     int         num_val) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char* name,
                   Array<int>& ref,
                   int         start_ix,
-                  int         num_val);
+                  int         num_val) const;
 
     /*@ManDoc: Gets an Array<float> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a float
@@ -532,14 +517,14 @@ public:
                     int           k,
                     Array<float>& ref,
                     int           start_ix,
-                    int           num_val);
+                    int           num_val) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*   name,
                  Array<float>& ref,
                  int           start_ix,
-                 int           num_val);
+                 int           num_val) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
@@ -547,14 +532,14 @@ public:
                      int           k,
                      Array<float>& ref,
                      int           start_ix,
-                     int           num_val);
+                     int           num_val) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*   name,
                   Array<float>& ref,
                   int           start_ix,
-                  int           num_val);
+                  int           num_val) const;
 
     /*@ManDoc: Gets an Array<double> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a double
@@ -571,14 +556,14 @@ public:
                     int            k,
                     Array<double>& ref,
                     int            start_ix,
-                    int            num_val);
+                    int            num_val) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*    name,
                  Array<double>& ref,
                  int            start_ix,
-                 int            num_val);
+                 int            num_val) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
@@ -586,14 +571,14 @@ public:
                      int            k,
                      Array<double>& ref,
                      int            start_ix,
-                     int            num_val);
+                     int            num_val) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*    name,
                   Array<double>& ref,
                   int            start_ix,
-                  int            num_val);
+                  int            num_val) const;
 
     /*@ManDoc: Gets an Array<std::string> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
@@ -610,14 +595,14 @@ public:
                     int             k,
                     Array<std::string>& ref,
                     int             start_ix,
-                    int             num_val);
+                    int             num_val) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
                  Array<std::string>& ref,
                  int             start_ix,
-                 int             num_val);
+                 int             num_val) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
@@ -625,20 +610,37 @@ public:
                      int             k,
                      Array<std::string>& ref,
                      int             start_ix,
-                     int             num_val);
+                     int             num_val) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
                   Array<std::string>& ref,
                   int             start_ix,
-                  int             num_val);
+                  int             num_val) const;
+
+    /*@ManDoc: Construct an initial ParmParse object from the argc and argv
+               passed in to main().  An error will be signalled if another
+               ParmParse object currently exists.  If parfile is specified,
+               read the parameters in from that file first and then append
+               those derived from argv to the table.  If prefix is specified,
+               load this string as the code prefix for this particular
+               ParmParse object.
+    */
+    static void Initialize(int         argc,
+			   char**      argv,
+			   const char* parfile);
+
+
+    /*@ManDoc: The destructor.  The internal static table will only be deleted
+               if there are no other ParmParse objects in existence.
+    */
+    static void Finalize();
 private:
     //
     // Prefix used in keyword search.
     //
     std::string thePrefix;
-
 };
 
 #endif /*BL_PARMPARSE_H*/
