@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.25 2001-07-17 23:02:27 lijewski Exp $
+// $Id: RunStats.cpp,v 1.26 2001-07-17 23:14:13 car Exp $
 //
 
 #include <algorithm>
@@ -24,6 +24,18 @@ Array<long>        RunStats::TheCells;
 Array<Real>        RunStats::TheNumPts;
 List<RunStatsData> RunStats::TheStats;
 bool               RunStats::Initialized = false;
+
+int
+RunStats::isOn () const
+{
+    return gentry->is_on && entry->is_on;
+}
+
+long
+RunStats::getCells (int lev)
+{
+    return TheCells[lev];
+}
 
 void
 RunStats::init ()
