@@ -133,10 +133,10 @@ contains
 
     else if (mg_restriction_mode == 1) then
 
-       fac0 = 1.d0 
+       fac0 = 1.0_dp_t
        do m = 0, ir(1)-1
          fac = (ir(1)-m) * fac0
-         if (m .eq. 0) fac = HALF * fac
+         if (m == 0) fac = HALF * fac
          do i = lo(1),hi(1)
            ifine = i*ir(1)
            if (.not.bc_dirichlet(mm_fine(ifine),1,0)) &
@@ -146,10 +146,10 @@ contains
 
     else 
 
-       fac0 = 1.d0 
+       fac0 = 1.0_dp_t
        do m = 0, ir(1)-1
          fac = (ir(1)-m) * fac0
-         if (m .eq. 0) fac = HALF * fac
+         if (m == 0) fac = HALF * fac
          do i = lo(1),hi(1)
            ifine = i*ir(1)
            if (.not.bc_dirichlet(mm_fine(ifine),1,0)) then
@@ -226,10 +226,10 @@ contains
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
        do n = 0, ir(2)-1
          fac1 = (ir(2)-n) * fac0
-         if (n .eq. 0) fac1 = HALF * fac1
+         if (n == 0) fac1 = HALF * fac1
          do m = 0, ir(1)-1
             fac = (ir(1)-m) * fac1
-            if (m .eq. 0) fac = HALF * fac
+            if (m == 0) fac = HALF * fac
             do j = lo(2),hi(2)
                jfine = j*ir(2)
                do i = lo(1),hi(1)
@@ -254,10 +254,10 @@ contains
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
        do n = 0, ir(2)-1
          fac1 = (ir(2)-n) * fac0
-         if (n .eq. 0) fac1 = HALF * fac1
+         if (n == 0) fac1 = HALF * fac1
          do m = 0, ir(1)-1
             fac = (ir(1)-m) * fac1
-            if (m .eq. 0) fac = HALF * fac
+            if (m == 0) fac = HALF * fac
             do j = lo(2),hi(2)
               jfine = j*ir(2)
               do i = lo(1),hi(1)
@@ -375,13 +375,13 @@ contains
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
        do l = 0, ir(3)-1
          fac2 = (ir(3)-l) * fac0
-         if (l .eq. 0) fac2 = HALF * fac2
+         if (l == 0) fac2 = HALF * fac2
          do n = 0, ir(2)-1
            fac1 = (ir(2)-n) * fac2
-           if (n .eq. 0) fac1 = HALF * fac1
+           if (n == 0) fac1 = HALF * fac1
            do m = 0, ir(1)-1
              fac = (ir(1)-m) * fac1
-             if (m .eq. 0) fac = HALF * fac
+             if (m == 0) fac = HALF * fac
              do k = lo(3),hi(3)
                kfine = k*ir(3)
                do j = lo(2),hi(2)
@@ -414,13 +414,13 @@ contains
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
        do l = 0, ir(3)-1
          fac2 = (ir(3)-l) * fac0
-         if (l .eq. 0) fac2 = HALF * fac2
+         if (l == 0) fac2 = HALF * fac2
          do n = 0, ir(2)-1
            fac1 = (ir(2)-n) * fac2
-           if (n .eq. 0) fac1 = HALF * fac1
+           if (n == 0) fac1 = HALF * fac1
            do m = 0, ir(1)-1
              fac = (ir(1)-m) * fac1
-             if (m .eq. 0) fac = HALF * fac
+             if (m == 0) fac = HALF * fac
              do k = lo(3),hi(3)
                kfine = k*ir(3)
                do j = lo(2),hi(2)

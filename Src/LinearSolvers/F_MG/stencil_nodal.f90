@@ -87,15 +87,15 @@ contains
        ss(i,2) = -sg(i-1)*f1
     end do
 
-    if (face_type(1) .eq. BC_NEU) then
+    if (face_type(1) == BC_NEU) then
        mm( 1) = ibset(mm(1),BC_BIT(BC_NEU,1,-1))
-    else if (face_type(1) .eq. BC_DIR) then
+    else if (face_type(1) == BC_DIR) then
        mm( 1) = ibset(mm(1),BC_BIT(BC_DIR,1,0))
     end if
 
-    if (face_type(2) .eq. BC_NEU) then
+    if (face_type(2) == BC_NEU) then
        mm(nx) = ibset(mm(1),BC_BIT(BC_NEU,1,+1))
-    else if (face_type(2) .eq. BC_DIR) then
+    else if (face_type(2) == BC_DIR) then
        mm(nx) = ibset(mm(1),BC_BIT(BC_DIR,1,0))
     end if
 
@@ -126,24 +126,24 @@ contains
     ny = size(ss,dim=2)
 
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
-    if (face_type(2,1) .eq. BC_NEU) &
+    if (face_type(2,1) == BC_NEU) &
         mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_NEU,2,-1))
-    if (face_type(2,1) .eq. BC_DIR) &
+    if (face_type(2,1) == BC_DIR) &
         mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,2) .eq. BC_NEU) &
+    if (face_type(2,2) == BC_NEU) &
         mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_NEU,2,+1))
-    if (face_type(2,2) .eq. BC_DIR) &
+    if (face_type(2,2) == BC_DIR) &
         mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(1,1) .eq. BC_NEU) &
+    if (face_type(1,1) == BC_NEU) &
         mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_NEU,1,-1))
-    if (face_type(1,1) .eq. BC_DIR) &
+    if (face_type(1,1) == BC_DIR) &
         mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_DIR,1,0))
     
-    if (face_type(1,2) .eq. BC_NEU) &
+    if (face_type(1,2) == BC_NEU) &
         mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_NEU,1,+1))
-    if (face_type(1,2) .eq. BC_DIR) &
+    if (face_type(1,2) == BC_DIR) &
         mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_DIR,1,0))
 
     ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
@@ -159,29 +159,29 @@ contains
           do ii = 1, ba%nboxes
              bx1 = ba%bxs(ii)
              if (box_contains(pd,bx1)) then
-               if (ib .eq. -1 .and. jb .eq. 0) then
+               if (ib == -1 .and. jb == 0) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                    mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
                  end do
-               else if (ib .eq. 1 .and. jb .eq.  0) then
+               else if (ib == 1 .and. jb ==  0) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                    mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_DIR,1,0))
                  end do
-               else if (ib .eq. 0 .and. jb .eq. -1) then
+               else if (ib == 0 .and. jb == -1) then
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,1) = ibset(mm(i,1),BC_BIT(BC_DIR,1,0))
                  end do
-               else if (ib .eq. 0 .and. jb .eq.  1) then
+               else if (ib == 0 .and. jb ==  1) then
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_DIR,1,0))
                  end do
-               else if (ib .eq. -1 .and. jb .eq. -1) then
+               else if (ib == -1 .and. jb == -1) then
                    mm(1,1) = ibset(mm(1,1),BC_BIT(BC_DIR,1,0))
-               else if (ib .eq. -1 .and. jb .eq. +1) then
+               else if (ib == -1 .and. jb == +1) then
                    mm(1,ny) = ibset(mm(1,ny),BC_BIT(BC_DIR,1,0))
-               else if (ib .eq. +1 .and. jb .eq. -1) then
+               else if (ib == +1 .and. jb == -1) then
                    mm(nx,1) = ibset(mm(nx,1),BC_BIT(BC_DIR,1,0))
-               else if (ib .eq. +1 .and. jb .eq. +1) then
+               else if (ib == +1 .and. jb == +1) then
                    mm(nx,ny) = ibset(mm(nx,ny),BC_BIT(BC_DIR,1,0))
                end if
              end if
@@ -202,19 +202,19 @@ contains
     end do
 
 !   Note: we do the corners *after* each of the edge has been done.
-    if (face_type(1,1) .eq. BC_NEU) then
+    if (face_type(1,1) == BC_NEU) then
        sg(0, 0) = sg(1, 0)
        sg(0,ny) = sg(1,ny)
     end if
-    if (face_type(1,2) .eq. BC_NEU) then
+    if (face_type(1,2) == BC_NEU) then
        sg(nx, 0) = sg(nx-1,0)
        sg(nx,ny) = sg(nx-1,ny)
     end if
-    if (face_type(2,1) .eq. BC_NEU) then
+    if (face_type(2,1) == BC_NEU) then
        sg( 0,0) = sg( 0,1)
        sg(nx,0) = sg(nx,1)
     end if
-    if (face_type(2,2) .eq. BC_NEU) then
+    if (face_type(2,2) == BC_NEU) then
        sg( 0,ny) = sg( 0,ny-1)
        sg(nx,ny) = sg(nx,ny-1)
     end if
@@ -278,34 +278,34 @@ contains
 !   END STENCIL
 
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
-    if (face_type(1,1) .eq. BC_NEU) &
+    if (face_type(1,1) == BC_NEU) &
        mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_NEU,1,-1))
-    if (face_type(1,1) .eq. BC_DIR) &
+    if (face_type(1,1) == BC_DIR) &
        mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(1,2) .eq. BC_NEU) &
+    if (face_type(1,2) == BC_NEU) &
        mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_NEU,1,+1))
-    if (face_type(1,2) .eq. BC_DIR) &
+    if (face_type(1,2) == BC_DIR) &
        mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,1) .eq. BC_NEU) &
+    if (face_type(2,1) == BC_NEU) &
        mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_NEU,2,-1))
-    if (face_type(2,1) .eq. BC_DIR) &
+    if (face_type(2,1) == BC_DIR) &
        mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,2) .eq. BC_NEU) &
+    if (face_type(2,2) == BC_NEU) &
        mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_NEU,2,+1))
-    if (face_type(2,2) .eq. BC_DIR) &
+    if (face_type(2,2) == BC_DIR) &
        mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(3,1) .eq. BC_NEU) &
+    if (face_type(3,1) == BC_NEU) &
        mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_NEU,3,-1))
-    if (face_type(3,1) .eq. BC_DIR) &
+    if (face_type(3,1) == BC_DIR) &
        mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(3,2) .eq. BC_NEU) &
+    if (face_type(3,2) == BC_NEU) &
        mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_NEU,3,+1))
-    if (face_type(3,2) .eq. BC_DIR) &
+    if (face_type(3,2) == BC_DIR) &
        mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_DIR,1,0))
 
     ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
@@ -320,37 +320,37 @@ contains
           do ii = 1, ba%nboxes
              bx1 = ba%bxs(ii)
              if (box_contains(pd,bx1)) then
-               if (ib .eq. 1 .and. jb .eq. -1) then
+               if (ib == 1 .and. jb == -1) then
                  do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                    mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
-               else if (ib .eq. 1 .and. jb .eq.  1) then
+               else if (ib == 1 .and. jb ==  1) then
                  do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                    mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
-               else if (ib .eq. 2 .and. jb .eq. -1) then
+               else if (ib == 2 .and. jb == -1) then
                  do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,1,k) = ibset(mm(i,1,k),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
-               else if (ib .eq. 2 .and. jb .eq.  1) then
+               else if (ib == 2 .and. jb ==  1) then
                  do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
-               else if (ib .eq. 3 .and. jb .eq. -1) then
+               else if (ib == 3 .and. jb == -1) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
                  end do
                  end do
-               else if (ib .eq. 3 .and. jb .eq.  1) then
+               else if (ib == 3 .and. jb ==  1) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                  do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
                    mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
@@ -705,14 +705,14 @@ contains
 
             j = (jc-lod(2))*ratio(2) + n
             if (j < ny) then
-               if (jc.eq.lod(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
+               if (jc==lod(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
             end if
 
             j = (jc-lod(2))*ratio(2) - n
             if (j > 0) then
-               if (jc.eq.hid(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
+               if (jc==hid(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
             end if
@@ -738,25 +738,25 @@ contains
                j = (jc-lod(2))*ratio(2)
                jbot = j-n
                jtop = j+n
-               if (j.eq.0  .and. bc_neumann(mm(i,j),2,-1)) jbot = jtop 
-               if (j.eq.ny .and. bc_neumann(mm(i,j),2,+1)) jtop = jbot 
+               if (j==0  .and. bc_neumann(mm(i,j),2,-1)) jbot = jtop 
+               if (j==ny .and. bc_neumann(mm(i,j),2,+1)) jtop = jbot 
      
-               if (j.eq.0 .and. .not. bc_neumann(mm(i,j),2,-1)) then
+               if (j==0 .and. .not. bc_neumann(mm(i,j),2,-1)) then
 
-                  if (n.eq.0 .and. .not.bc_dirichlet(mm(ioff,j),1,0)) then
+                  if (n==0 .and. .not.bc_dirichlet(mm(ioff,j),1,0)) then
 
                     dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
 
-                  else if (n.eq.0 .and. bc_dirichlet(mm(ioff,j),1,0)) then
+                  else if (n==0 .and. bc_dirichlet(mm(ioff,j),1,0)) then
                   else
                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jtop)
                   end if
-               else if (j.eq.ny .and. .not. bc_neumann(mm(i,j),2,+1)) then
-                  if (n.eq.0 .and. .not.bc_dirichlet(mm(ioff,j),1,0)) then
+               else if (j==ny .and. .not. bc_neumann(mm(i,j),2,+1)) then
+                  if (n==0 .and. .not.bc_dirichlet(mm(ioff,j),1,0)) then
 
                     dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
 
-                  else if (n.eq.0 .and. bc_dirichlet(mm(ioff,j),1,0)) then
+                  else if (n==0 .and. bc_dirichlet(mm(ioff,j),1,0)) then
                   else
                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jbot)
                   end if
@@ -799,7 +799,7 @@ contains
 
             else if (i < nx) then
 
-               if (ic.eq.lod(1).and.n>0.and..not.bc_dirichlet(mm(i,j),1,0)) &
+               if (ic==lod(1).and.n>0.and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
 
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
@@ -813,7 +813,7 @@ contains
 
             else if (i > 0) then
 
-               if (ic.eq.hid(1).and.n>0.and..not.bc_dirichlet(mm(i,j),1,0)) &
+               if (ic==hid(1).and.n>0.and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
 
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
@@ -840,24 +840,24 @@ contains
                i = (ic-lod(1))*ratio(1)
                ileft = i-n
                irght = i+n
-               if (i.eq.0  .and. bc_neumann(mm(i,j),1,-1)) ileft = irght 
-               if (i.eq.nx .and. bc_neumann(mm(i,j),1,+1)) irght = ileft 
+               if (i==0  .and. bc_neumann(mm(i,j),1,-1)) ileft = irght 
+               if (i==nx .and. bc_neumann(mm(i,j),1,+1)) irght = ileft 
 
-               if (i.eq.0 .and. .not. bc_neumann(mm(i,j),1,-1)) then
-                  if (n.eq.0 .and. .not.bc_dirichlet(mm(i,joff),1,0)) then
+               if (i==0 .and. .not. bc_neumann(mm(i,j),1,-1)) then
+                  if (n==0 .and. .not.bc_dirichlet(mm(i,joff),1,0)) then
 
                     dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
 
-                  else if (n.eq.0 .and. bc_dirichlet(mm(i,joff),1,0)) then
+                  else if (n==0 .and. bc_dirichlet(mm(i,joff),1,0)) then
                   else
                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(irght,joff)
                   end if
-               else if (i.eq.nx .and. .not. bc_neumann(mm(i,j),1,+1)) then
-                  if (n.eq.0 .and. .not.bc_dirichlet(mm(i,joff),1,0)) then
+               else if (i==nx .and. .not. bc_neumann(mm(i,j),1,+1)) then
+                  if (n==0 .and. .not.bc_dirichlet(mm(i,joff),1,0)) then
 
                     dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
 
-                  else if (n.eq.0 .and. bc_dirichlet(mm(i,joff),1,0)) then
+                  else if (n==0 .and. bc_dirichlet(mm(i,joff),1,0)) then
                   else
                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ileft,joff)
                   end if
@@ -921,7 +921,7 @@ contains
       end if
 
       ic = lod(1)
-      fac0 = 1.d0 / (ratio(2)*ratio(3))
+      fac0 = 1.0_dp_t / (ratio(2)*ratio(3))
 
 !     First average along the coarse-fine face.
       do kc = lod(3),hid(3)
@@ -977,7 +977,7 @@ contains
       k = 0
       if (.not. bc_neumann(mm(i,j,k),2,-1) .and. &
           .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       jc = hid(2)
       kc = lod(3)
@@ -985,7 +985,7 @@ contains
       k = 0
       if (.not. bc_neumann(mm(i,j,k),2,+1) .and. &
           .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       jc = lod(2)
       kc = hid(3)
@@ -993,7 +993,7 @@ contains
       k = nz
       if (.not. bc_neumann(mm(i,j,k),2,-1) .and. &
           .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       jc = hid(2)
       kc = hid(3)
@@ -1001,7 +1001,7 @@ contains
       k = nz
       if (.not. bc_neumann(mm(i,j,k),2,+1) .and. &
           .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       j = 0
       do kc = lod(3),hid(3)
@@ -1032,14 +1032,14 @@ contains
       ic = lod(1)
       do l = 0, ratio(3)-1
         fac2 = (ratio(3)-l) * fac0
-        if (l .eq. 0) fac2 = HALF * fac2
+        if (l == 0) fac2 = HALF * fac2
         do n = 0, ratio(2)-1
           fac1 = (ratio(2)-n) * fac2
-          if (n .eq. 0) fac1 = HALF * fac1
+          if (n == 0) fac1 = HALF * fac1
           do m = 1, ratio(1)-1
             ioff = i+isign*m
             fac = (ratio(1)-m) * fac1
-            if (m .eq. 0) fac = HALF * fac
+            if (m == 0) fac = HALF * fac
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do jc = lod(2),hid(2)
@@ -1048,30 +1048,30 @@ contains
                 jbot = j-n
                 kup  = k+l
                 kdwn = k-l
-                if (j.eq.0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
-                if (j.eq.ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
-                if (k.eq.0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
-                if (k.eq.nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
+                if (j==ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
+                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
+                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
 
-                if ( ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                       (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
-                     ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                       (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0 / 3.d0
-                else if ( ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                            (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
+                if ( ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                       (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
+                     ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                       (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                            (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
                           .not. &
-                          ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                            (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0  / 2.d0
+                          ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                            (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
                 else if ( .not. &
-                          ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                            (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
-                          ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                            (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0 / 2.d0
+                          ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                            (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
+                          ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                            (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
                 else
-                   corner_fac = 1.d0
+                   corner_fac = 1.0_dp_t
                 end if
 
                 if ( (j-n >  0 .or. bc_neumann(mm(i,j,k),2,-1)) .and. &
@@ -1126,7 +1126,7 @@ contains
          isign = -1
       end if
       jc = lod(2)
-      fac0 = 1.d0 / (ratio(1)*ratio(3))
+      fac0 = 1.0_dp_t / (ratio(1)*ratio(3))
 
 !     First average along the coarse-fine face.
       do kc = lod(3),hid(3)
@@ -1182,7 +1182,7 @@ contains
       k = 0
       if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
           .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = hid(1)
       kc = lod(3)
@@ -1190,7 +1190,7 @@ contains
       k = 0
       if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
           .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = lod(1)
       kc = hid(3)
@@ -1198,7 +1198,7 @@ contains
       k = nz
       if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
           .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = hid(1)
       kc = hid(3)
@@ -1206,7 +1206,7 @@ contains
       k = nz
       if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
           .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       i = 0
       do kc = lod(3),hid(3)
@@ -1237,14 +1237,14 @@ contains
       jc = lod(2)
       do l = 0, ratio(3)-1
         fac2 = (ratio(3)-l) * fac0
-        if (l .eq. 0) fac2 = HALF * fac2
+        if (l == 0) fac2 = HALF * fac2
         do n = 0, ratio(1)-1
           fac1 = (ratio(1)-n) * fac2
-          if (n .eq. 0) fac1 = HALF * fac1
+          if (n == 0) fac1 = HALF * fac1
           do m = 1, ratio(2)-1
             joff = j+isign*m
             fac = (ratio(2)-m) * fac1
-            if (m .eq. 0) fac = HALF * fac
+            if (m == 0) fac = HALF * fac
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do ic = lod(1),hid(1)
@@ -1253,30 +1253,30 @@ contains
                 ileft = i-n
                 kup  = k+l
                 kdwn = k-l
-                if (i.eq.0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
-                if (i.eq.nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
-                if (k.eq.0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
-                if (k.eq.nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
+                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
 
-                if ( ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                       (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
-                     ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                       (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0 / 3.d0
-                else if ( ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                            (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                if ( ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                       (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                     ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                       (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                            (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
                           .not. &
-                          ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                            (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0  / 2.d0
+                          ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                            (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
                 else if ( .not. &
-                          ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                            (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
-                          ( (kc.eq.lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
-                            (kc.eq.hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
-                   corner_fac = 1.d0 / 2.d0
+                          ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                            (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                          ( (kc==lod(3) .and. .not. bc_neumann(mm(i,j,k),3,-1)) .or. &
+                            (kc==hid(3) .and. .not. bc_neumann(mm(i,j,k),3,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
                 else
-                   corner_fac = 1.d0
+                   corner_fac = 1.0_dp_t
                 end if
 
                 if ( (i-n >  0 .or. bc_neumann(mm(i,j,k),1,-1)) .and. &
@@ -1331,7 +1331,7 @@ contains
          isign = -1
       end if
       kc = lod(3)
-      fac0 = 1.d0 / (ratio(1)*ratio(2))
+      fac0 = 1.0_dp_t / (ratio(1)*ratio(2))
 
 !     First average along the coarse-fine face.
       do jc = lod(2),hid(2)
@@ -1387,7 +1387,7 @@ contains
       j = 0
       if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
           .not. bc_neumann(mm(i,j,k),2,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = hid(1)
       jc = lod(2)
@@ -1395,7 +1395,7 @@ contains
       j = 0
       if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
           .not. bc_neumann(mm(i,j,k),2,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = lod(1)
       jc = hid(2)
@@ -1403,7 +1403,7 @@ contains
       j = ny
       if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
           .not. bc_neumann(mm(i,j,k),2,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       ic = hid(1)
       jc = hid(2)
@@ -1411,7 +1411,7 @@ contains
       j = ny
       if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
           .not. bc_neumann(mm(i,j,k),2,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25d0 * res(i,j,k) / 3.d0
+         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
 
       i = 0
       do jc = lod(2),hid(2)
@@ -1442,14 +1442,14 @@ contains
       kc = lod(3)
       do l = 0, ratio(2)-1
         fac2 = (ratio(2)-l) * fac0
-        if (l .eq. 0) fac2 = HALF * fac2
+        if (l == 0) fac2 = HALF * fac2
         do n = 0, ratio(1)-1
           fac1 = (ratio(1)-n) * fac2
-          if (n .eq. 0) fac1 = HALF * fac1
+          if (n == 0) fac1 = HALF * fac1
           do m = 1, ratio(3)-1
             koff = k+isign*m
             fac = (ratio(3)-m) * fac1
-            if (m .eq. 0) fac = HALF * fac
+            if (m == 0) fac = HALF * fac
             do jc = lod(2),hid(2)
               j = (jc-lod(2))*ratio(2)
               do ic = lod(1),hid(1)
@@ -1458,29 +1458,29 @@ contains
                 ileft = i-n
                 jbot  = j+l
                 jtop  = j-l
-                if (i.eq.0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
-                if (i.eq.nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
-                if (j.eq.0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
-                if (j.eq.ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop  = jbot
-                if ( ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                       (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
-                     ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                       (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
-                   corner_fac = 1.d0 / 3.d0
-                else if ( ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                            (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
+                if (j==ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop  = jbot
+                if ( ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                       (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                     ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                       (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                            (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
                           .not. &
-                          ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                            (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
-                   corner_fac = 1.d0  / 2.d0
+                          ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                            (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
                 else if ( .not. &
-                          ( (ic.eq.lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
-                            (ic.eq.hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
-                          ( (jc.eq.lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
-                            (jc.eq.hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
-                   corner_fac = 1.d0 / 2.d0
+                          ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
+                            (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
+                          ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
+                            (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
                 else
-                   corner_fac = 1.d0
+                   corner_fac = 1.0_dp_t
                 end if
 
                 if ( (i-n >  0 .or. bc_neumann(mm(i,j,k),1,-1)) .and. &
