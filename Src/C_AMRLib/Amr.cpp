@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.80 1999-04-27 18:24:46 lijewski Exp $
+// $Id: Amr.cpp,v 1.81 1999-05-07 20:39:40 marc Exp $
 //
 
 #include <TagBox.H>
@@ -1651,13 +1651,15 @@ Amr::grid_places (int              lbase,
             BoxList new_bx;
             clist.boxList(new_bx);
 
-            new_bx.minimize();
+            new_bx.refine(bf_lev[levc]);
 
-            IntVect lratio = ref_ratio[levc]*bf_lev[levc];
+            amr_level[levc].manual_grid_placement(new_bx);
+
+            new_bx.minimize();
 
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
-              largest_grid_size[n] = max_grid_size / lratio[n];
+              largest_grid_size[n] = max_grid_size / ref_ratio[levc][n];
             //
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
@@ -1665,7 +1667,7 @@ Amr::grid_places (int              lbase,
             //
             // Refine up to levf.
             //
-            new_bx.refine(lratio);
+            new_bx.refine(ref_ratio[levc]);
 
             if (!new_bx.isDisjoint())
             {

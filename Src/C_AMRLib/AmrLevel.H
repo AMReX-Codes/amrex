@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.29 1999-03-11 17:48:07 marc Exp $
+// $Id: AmrLevel.H,v 1.30 1999-05-07 20:39:40 marc Exp $
 //
 
 #include <REAL.H>
@@ -332,6 +332,11 @@ public:
                                                int        dst_comp,
                                                int        num_comp,
                                                Real       time) const {}
+    //
+    //@ManDoc: Called in grid_places after boxes created via error tagging routines
+    //         (to allow grid placement via methods other than error tagging)
+    //
+    virtual void manual_grid_placement(BoxList& boxes) {}
 
 protected:
     //
