@@ -1,8 +1,8 @@
-#ifndef _BL3_WORKQUEUE_H_
-#define _BL3_WORKQUEUE_H_
+#ifndef _BL_WORKQUEUE_H_
+#define _BL_WORKQUEUE_H_
 
 //
-// $Id: WorkQueue.H,v 1.2 2001-07-21 00:33:15 car Exp $
+// $Id: WorkQueue.H,v 1.3 2001-07-23 19:34:23 lijewski Exp $
 //
 
 #include <Thread.H>
@@ -60,4 +60,4 @@ public:
     virtual ~task();
 };
 
-#endif
+#endif /*_BL_WORKQUEUE_H_*/
