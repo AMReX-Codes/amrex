@@ -200,26 +200,37 @@ void task_list::execute()
 #endif
     }
     int live_tasks = 0;
+restart:
     while ( !tasks.empty() )
     {
-	task::task_proxy t = tasks.front(); tasks.pop_front();
-	if ( verbose ) t->hint();
-	if ( ! t->depend_ready() ) goto restart;
-	if ( ! t->is_started() )
-	{
-	    if ( live_tasks > HG::max_live_tasks) goto restart;
-	    if ( ! t->startup() )
-	    {
-		t.set_finished(); continue;
-	    }
-	    live_tasks++;
-	}
-	else if ( t->ready() )
-	{
-	    t.set_finished(); live_tasks--; continue;
-	}
-    restart:
-        tasks.push_back(t);
+        list<task::task_proxy>::iterator tli = tasks.begin();
+        while (tli != tasks.end())
+        {
+            task::task_proxy t = *tli;
+            if ( verbose ) t->hint();
+            if ( ! t->depend_ready() ) continue;
+            if ( ! t->is_started() )
+            {
+                if ( live_tasks > HG::max_live_tasks) goto restart;
+                if ( ! t->startup() )
+                {
+                    t.set_finished();
+                    list<task::task_proxy>::iterator tmp = tli++;
+                    tasks.erase(tmp);
+                    continue;
+                }
+                live_tasks++;
+            }
+            else if ( t->ready() )
+            {
+                t.set_finished();
+                live_tasks--;
+                list<task::task_proxy>::iterator tmp = tli++;
+                tasks.erase(tmp);
+                continue;
+            }
+            ++tli;
+        }
     }
     assert(live_tasks == 0);
     seq_no = 1;
