@@ -1,9 +1,9 @@
 #include <FabArray.H>
 
-FabArrayBase::FabArrayBase()
+FabArrayBase::FabArrayBase ()
 {}
 
-FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow)
+FabArrayBase::FabArrayBase (const BoxArray& bxs, int nvar, int ngrow)
     :
     boxarray(bxs),
     distributionMap(boxarray, ParallelDescriptor::NProcsCFD()),
@@ -11,7 +11,10 @@ FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow)
     n_comp(nvar)
 {}
 
-FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow, const DistributionMapping& map)
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            int                        nvar,
+                            int                        ngrow,
+                            const DistributionMapping& map)
     :
     boxarray(bxs),
     distributionMap(map),
@@ -19,7 +22,7 @@ FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow, const Distr
     n_comp(nvar)
 {}
 
-FabArrayBase::~FabArrayBase()
+FabArrayBase::~FabArrayBase ()
 {}
 
 int
@@ -153,8 +156,7 @@ FillBoxId::FillBoxId ()
     :
     m_fillBoxId(-1),
     m_fabIndex(-1)
-{
-}
+{}
 
 FillBoxId::FillBoxId (int        newid,
 		      const Box& fillbox)
@@ -162,8 +164,7 @@ FillBoxId::FillBoxId (int        newid,
     m_fillBox(fillbox),
     m_fillBoxId(newid),
     m_fabIndex(-1)
-{
-}
+{}
 
 int
 FillBoxId::Id () const
@@ -196,8 +197,7 @@ FillBoxId::box () const
 CommDataCache::CommDataCache ()
     :
     m_valid(false)
-{
-}
+{}
 
 void
 CommDataCache::operator= (const Array<CommData>& rhs)

@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.21 2001-07-26 20:08:44 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.22 2001-07-31 17:56:26 lijewski Exp $
 //
 #include <vector>
 
@@ -106,13 +106,6 @@ class DistributionMapping
 
     void RoundRobinProcessorMap (int nboxes, int nprocs);
     void KnapSackProcessorMap   (const std::vector<long>& boxes, int nprocs);
-
-private:
-    //
-    // Two ways to create the processor map.
-    //
-    void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
-    void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -121,7 +114,17 @@ private:
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
     //
-    static void init ();
+    static void Initialize ();
+
+    static void Finalize ();
+
+private:
+    //
+    // Two ways to create the processor map.
+    //
+    void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
+    void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
+
     //
     // Our cache of processor maps.
     //

@@ -1,7 +1,6 @@
 //
-// $Id: FArrayBox.cpp,v 1.41 2001-07-24 18:12:35 car Exp $
+// $Id: FArrayBox.cpp,v 1.42 2001-07-31 17:56:26 lijewski Exp $
 //
-
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -147,13 +146,12 @@ FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
 FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
-{
-}
+{}
 
-FArrayBox::FArrayBox(const FArrayBox& fab)
-    : BaseFab<Real>(fab)
-{
-}
+FArrayBox::FArrayBox (const FArrayBox& fab)
+    :
+    BaseFab<Real>(fab)
+{}
 
 FArrayBox&
 FArrayBox::operator=(const FArrayBox& fab)
@@ -306,29 +304,29 @@ Real FArrayBox::initval =
 bool
 FArrayBox::set_do_initval (bool tf)
 {
-  bool o_tf = do_initval;
-  do_initval = tf;
-  return o_tf;
+    bool o_tf = do_initval;
+    do_initval = tf;
+    return o_tf;
 }
 
 bool
 FArrayBox::get_do_initval ()
 {
-  return do_initval;
+    return do_initval;
 }
 
 Real
 FArrayBox::set_initval (Real iv)
 {
-  Real o_iv = initval;
-  initval = iv;
-  return o_iv;
+    Real o_iv = initval;
+    initval = iv;
+    return o_iv;
 }
 
 Real
 FArrayBox::get_initval ()
 {
-  return initval;
+    return initval;
 }
 
 void
@@ -411,8 +409,7 @@ FArrayBox::Initialize ()
 
 void
 FArrayBox::Finalize ()
-{
-}
+{}
 
 
 Real
@@ -975,151 +972,6 @@ FABio_binary::skip (std::istream& is,
     if (is.fail())
         BoxLib::Error("FABio_binary::skip(..., int nCompToSkip) failed");
 }
-
-void
-printRange (std::ostream&    os,
-            const FArrayBox& fab,
-            const Box&       reg,
-            int              comp,
-            int              ncomp)
-{
-    if (!reg.ok() || comp < 0 || comp+ncomp > fab.nComp())
-    {
-        os << "printRange(): bad indices:"
-           <<  reg
-           << ' '
-           << comp
-           << ' '
-           << ncomp
-           << '\n';
-        return;
-    }
-    if (!fab.box().contains(reg))
-    {
-        os << "printRange(): indices outside FAB:"
-           << reg
-           << '\n'
-           << fab.box()
-           << '\n';
-        return;
-    }
-
-    IntVect low = reg.smallEnd();
-    IntVect hi  = reg.bigEnd();
-
-    int old_prec = os.precision(8);
-    for (IntVect point = low; point <= hi; reg.next(point))
-    {
-        os << point;
-        for (int k = comp; k < comp+ncomp; k++)
-        {
-            os << std::setw(15) << fab(point,k);
-            if (k < comp+ncomp-1)
-                if ((k-comp)%4 == 3)
-                    os << "\n\t";
-        }
-        os << '\n';
-    }
-    os << std::setprecision(old_prec) << '\n';
-
-    if (os.fail())
-        BoxLib::Error("printRange() failed");
-}
-
-#if (BL_SPACEDIM==1)
-void
-printRange (std::ostream&    os,
-            const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              comp,
-            int              ncomp)
-{
-    printRange(os,
-               fab,
-               Box(IntVect(ilo), IntVect(ihi), IntVect(fab.box().type())),
-               comp,
-               ncomp);
-}
-
-void
-printRange (const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              comp,
-            int              ncomp)
-{
-    printRange(std::cout,fab,ilo,ihi,comp,ncomp);
-}
-
-#elif (BL_SPACEDIM==2)
-
-void
-printRange (std::ostream&    os,
-            const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              jlo,
-            int              jhi,
-            int              comp,
-            int              ncomp)
-{
-    IntVect low(ilo,jlo);
-    IntVect hi(ihi,jhi);
-    IntVect typ(fab.box().type());
-    Box reg(low,hi,typ);
-    printRange(os,fab,reg,comp,ncomp);
-}
-
-void
-printRange (const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              jlo,
-            int              jhi,
-            int              comp,
-            int              ncomp)
-{
-    printRange(std::cout,fab,ilo,ihi,jlo,jhi,comp,ncomp);
-}
-
-#elif   (BL_SPACEDIM==3)
-void
-printRange (std::ostream&    os,
-            const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              jlo,
-            int              jhi,
-            int              klo,
-            int              khi,
-            int              comp,
-            int              ncomp)
-{
-    
-    printRange(os,
-               fab,
-               Box(IntVect(ilo,jlo,klo),
-                   IntVect(ihi,jhi,khi),
-                   IntVect(fab.box().type())),
-               comp,
-               ncomp);
-}
-
-void
-printRange (const FArrayBox& fab,
-            int              ilo,
-            int              ihi,
-            int              jlo,
-            int              jhi,
-            int              klo,
-            int              khi,
-            int              comp,
-            int              ncomp)
-{
-    printRange(std::cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,ncomp);
-}
-#endif
 
 std::ostream&
 operator<< (std::ostream&    os,

@@ -1,7 +1,6 @@
 //
-// $Id: DistributionMapping.cpp,v 1.53 2001-07-26 20:08:44 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.54 2001-07-31 17:56:26 lijewski Exp $
 //
-
 #include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
@@ -83,7 +82,7 @@ DistributionMapping::operator!= (const DistributionMapping& rhs) const
 }
 
 void
-DistributionMapping::init ()
+DistributionMapping::Initialize ()
 {
     DistributionMapping::m_Initialized = true;
         
@@ -109,6 +108,10 @@ DistributionMapping::init ()
         }
     }
 }
+
+void
+DistributionMapping::Finalize ()
+{}
 
 //
 // Our cache of processor maps.
@@ -143,27 +146,18 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 }
 
 DistributionMapping::DistributionMapping ()
-{
-    if (!m_Initialized)
-        DistributionMapping::init();
-}
+{}
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
     m_procmap(boxes.size()+1)
 {
-    if (!m_Initialized)
-        DistributionMapping::init();
-
     define(boxes,nprocs);
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
 {
-    if (!m_Initialized)
-        DistributionMapping::init();
-
     const Array<int>& pmap_1 = d1.ProcessorMap();
     const Array<int>& pmap_2 = d2.ProcessorMap();
 

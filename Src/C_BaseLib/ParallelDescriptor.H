@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.67 2001-07-26 20:08:45 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.68 2001-07-31 17:56:27 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -25,24 +25,8 @@ struct FabComTag
     int procThatNeedsData;
     int procThatHasData;
     Box box;
-    //
-    // A default constructor -- to quiet 3rd.
-    //
-    FabComTag ()
-    {
-        fromProc          = 0;
-        toProc            = 0;
-        fabIndex          = 0;
-        fineIndex         = 0;
-        srcComp           = 0;
-        destComp          = 0;
-        nComp             = 0;
-        face              = 0;
-        fabArrayId        = 0;
-        fillBoxId         = 0;
-        procThatNeedsData = 0;
-        procThatHasData   = 0;
-    }
+
+    FabComTag ();
 };
 
 //
@@ -150,19 +134,19 @@ namespace ParallelDescriptor
     class Message
     {
     public:
-	Message();
-	Message(MPI_Request req_, MPI_Datatype type_);
-	Message(MPI_Status stat_, MPI_Datatype type_);
-	void wait();
-	bool test();
-	size_t count() const;
-	int tag() const;
-	int pid() const;
-	MPI_Datatype type() const;
+	Message ();
+	Message (MPI_Request req_, MPI_Datatype type_);
+	Message (MPI_Status stat_, MPI_Datatype type_);
+	void wait ();
+	bool test ();
+	size_t count () const;
+	int tag () const;
+	int pid () const;
+	MPI_Datatype type () const;
     private:
-	bool m_finished;
-	MPI_Datatype m_type;
-	MPI_Request m_req;
+	bool               m_finished;
+	MPI_Datatype       m_type;
+	MPI_Request        m_req;
 	mutable MPI_Status m_stat;
     };
 
@@ -211,7 +195,7 @@ namespace ParallelDescriptor
     //
     //@ManDoc: ErrorString return string associated with error internal error condition
     //
-    const char* ErrorString(int errcode);
+    const char* ErrorString (int errcode);
     //
     //@ManDoc: Returns wall-clock seconds since start of execution.
     //

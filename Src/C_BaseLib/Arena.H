@@ -1,10 +1,8 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
-
 //
-// $Id: Arena.H,v 1.11 2001-07-19 16:57:30 lijewski Exp $
+// $Id: Arena.H,v 1.12 2001-07-31 17:56:24 lijewski Exp $
 //
-
 #include <cstddef>
 
 //

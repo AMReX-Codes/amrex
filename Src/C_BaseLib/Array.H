@@ -1,10 +1,9 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 //
-// $Id: Array.H,v 1.27 2001-07-26 20:08:43 lijewski Exp $
+// $Id: Array.H,v 1.28 2001-07-31 17:56:24 lijewski Exp $
 //
 #include <cstddef>
-#include <iostream>
 #include <vector>
 
 #include <BLassert.H>

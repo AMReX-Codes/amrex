@@ -1,8 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
-
 //
-// $Id: MultiFab.H,v 1.41 2001-07-31 15:03:43 lijewski Exp $
+// $Id: MultiFab.H,v 1.42 2001-07-31 17:56:27 lijewski Exp $
 //
 #include <winstd.H>
 
