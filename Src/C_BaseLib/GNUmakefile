@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.7 1998-03-26 22:24:16 marc Exp $
+# $Id: GNUmakefile,v 1.8 1998-05-01 18:23:58 car Exp $
 #
 
 #
@@ -83,6 +83,8 @@ all: $(optionsLib)
 install: all
 
 include ../mk/Make.rules
+
+CPPFLAGS += -DBL_USE_NEW_HFILES
 
 #
 # Temp stuff for doing html docs.
