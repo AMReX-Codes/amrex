@@ -39,10 +39,15 @@ class task
 {
 public:
     typedef unsigned int sequence_number;
-    task() : m_sno(~0U) {}
+    task() : m_sno(~0U), m_started(false) {}
     virtual ~task() {}
     virtual bool ready() = 0;
-    virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
+    virtual bool init(sequence_number sno, MPI_Comm comm)
+    {
+	m_sno  = sno;
+	m_comm = comm;
+	return false;
+    }
     virtual void hint() const { };
     void set_sequence_number(sequence_number sno)
     {
@@ -64,6 +69,8 @@ public:
 protected:
     sequence_number m_sno;
     list< task** > dependencies;
+    bool m_started;
+    MPI_Comm m_comm;
 };
 
 class task_copy : public task
