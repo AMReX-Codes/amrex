@@ -21,39 +21,39 @@ class amr_restrictor_class {
  public:
   amr_restrictor_class() { }
   virtual ~amr_restrictor_class() { }
-  virtual Box box(const Box&, int) const
+  virtual Box box(const Box&, const IntVect&) const
     { BoxLib::Error("amr_restrictor_class::box---Restriction function not defined.");
       return Box(); }
   virtual void fill(Fab&, const Box&,
-	            Fab&, int) const
+	            Fab&, const IntVect&) const
     { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
   virtual void interface(Fab&, const Box&, MultiFab&,
 			 const copy_cache*, const level_interface&,
-			 const amr_boundary_class&, int) const { }
+			 const amr_boundary_class&, const IntVect&) const { }
 };
 
 class cell_average_restrictor_class : public amr_restrictor_class {
  public:
   cell_average_restrictor_class() { }
-  Box box(const Box& fb, int rat) const;
+  Box box(const Box& fb, const IntVect& rat) const;
   void fill(Fab& patch, const Box& region,
-	    Fab& fgr, int rat) const;
+	    Fab& fgr, const IntVect& rat) const;
 };
 
 class injection_restrictor_class : public amr_restrictor_class {
  public:
   injection_restrictor_class() { }
-  Box box(const Box& fb, int rat) const;
+  Box box(const Box& fb, const IntVect& rat) const;
   void fill(Fab& patch, const Box& region,
-	    Fab& fgr, int rat) const;
+	    Fab& fgr, const IntVect& rat) const;
 };
 
 class default_restrictor_class : public amr_restrictor_class {
  public:
   default_restrictor_class() { }
-  Box box(const Box& fb, int rat) const;
+  Box box(const Box& fb, const IntVect& rat) const;
   void fill(Fab& patch, const Box& region,
-	    Fab& fgr, int rat) const;
+	    Fab& fgr, const IntVect& rat) const;
 };
 
 // Vanilla bilinear (full-weighting) restrictor class.
@@ -62,13 +62,13 @@ class default_restrictor_class : public amr_restrictor_class {
 class bilinear_restrictor_class : public amr_restrictor_class {
  public:
   bilinear_restrictor_class() { }
-  Box box(const Box& fb, int rat) const;
+  Box box(const Box& fb, const IntVect& rat) const;
   void fill(Fab& patch, const Box& region,
-	    Fab& fgr, int rat) const;
+	    Fab& fgr, const IntVect& rat) const;
   void interface(Fab& patch, const Box& region,
 	         MultiFab& fine, const copy_cache*,
 		 const level_interface& interface,
-		 const amr_boundary_class& bdy, int rat) const;
+		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
 // Restricts all interfaces, uses data at coarse points
@@ -80,7 +80,7 @@ class bilinear_restrictor_coarse_class
   void interface(Fab& patch, const Box& region,
 	         MultiFab& fine, const copy_cache*,
 		 const level_interface& interface,
-		 const amr_boundary_class& bdy, int rat) const;
+		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
 const amr_restrictor_class error_restrictor;

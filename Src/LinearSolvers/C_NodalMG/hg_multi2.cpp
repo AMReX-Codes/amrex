@@ -24,79 +24,79 @@ extern "C" {
 #elif (BL_SPACEDIM == 2)
 #  ifdef CROSS_STENCIL
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
+#    ifdef CONSTANT
+		   intS, Real&, const int&,
 #    else
-		   intS, Real&,
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #    endif
-		   int&, int&, int&);
+		   int&, int&);
   void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
+#    ifdef CONSTANT
+		   intS, Real&, const int&,
 #    else
-		   intS, Real&,
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #    endif
-		   int&, const int*);
+		   const int*);
 #  else
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   int&, int&, int&, const int&, const int&
-#    else
+#    ifdef CONSTANT
 		   intS, Real&,
-		   int&, int&, int&
+		   const int&, int&, int&
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS,
+		   intRS, int&, int&, const int&, const int&
 #    endif
 		   );
   void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   int&, int&, int&, const int&
-#    else
+#    ifdef CONSTANT
 		   intS, Real&,
-		   int&, int&, int&
+		   const int&, int&, int&
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS,
+		   intRS, int&, int&, const int&
 #    endif
 		   );
   void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   int&, int&, int&, const int&
-#    else
+#    ifdef CONSTANT
 		   intS, Real&,
-		   int&, int&, int&
+		   const int&, int&, int&
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS,
+		   intRS, int&, int&, const int&
 #    endif
 		   );
   void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#    ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
-		   int&, int&, const int&
-#    else
+#    ifdef CONSTANT
 		   intS, Real&,
-		   int&, int&
+		   const int&, int&
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS,
+		   intRS, int&, const int&
 #    endif
 		   );
 #  endif
 #elif (BL_SPACEDIM == 3)
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
+#  ifdef CONSTANT
+		   intS, Real&, const int&,
 #  else
-		   intS, Real&,
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   int&, int&, int&);
+		   int&, int&);
   void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
+#  ifdef CONSTANT
+		   intS, Real&, const int&,
 #  else
-		   intS, Real&,
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   int&, const int*, const int*);
+		   const int*, const int*);
   void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifndef CONSTANT
-		   Real*, intS, Real*, intS, intS, RealRS,
+#  ifdef CONSTANT
+		   intS, Real&, const int&,
 #  else
-		   intS, Real&,
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #  endif
-		   int&, const int*);
+		   const int*);
 #endif
 }
 
@@ -283,7 +283,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 
   DECLARE_GEOMETRY_TYPES;
 
-  int rat = gen_ratio[lev-1][0];
+  const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
 
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
@@ -338,7 +338,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     IntVect t = interface[mglev].face(iface).type();
     creg = interface[mglev].node_face(iface);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
   }
 
 #if (BL_SPACEDIM == 3)
@@ -395,7 +395,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       eres_flag[lev][iedge] = 0;
     }
     creg = interface[mglev].node_edge(iedge);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
   }
 
 #endif
@@ -467,7 +467,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 
   DECLARE_GEOMETRY_TYPES;
 
-  int rat = gen_ratio[lev-1][0];
+  const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
 
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
@@ -510,18 +510,18 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		dimlist(creg),
 #ifdef CONSTANT
 		hx,
-		rat, idim, idir
+		rat[0], idim, idir
 #elif (BL_SPACEDIM == 2)
 		hx, hy,
 #  ifdef CROSS_STENCIL
-		rat, idim, idir
+		rat[0], rat[1], idim, idir
 #  else
-		rat, idim, idir,
+		rat[0], rat[1], idim, idir,
 		IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #  endif
 #else
 		hx, hy, hz,
-		rat, idim, idir
+		rat[0], rat[1], rat[2], idim, idir
 #endif
 		);
   }
@@ -573,11 +573,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
 		  dimlist(creg),
 #ifdef CONSTANT
-                  hx,
+                  hx, rat[0],
 #else
-		  hx, hy, hz,
+		  hx, hy, hz, rat[0], rat[1], rat[2],
 #endif
-		  rat, t.getVect(), ga);
+		  t.getVect(), ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].node_edge(iedge);
       for (i = 1; i < N_EDGE_GRIDS; i++) {
@@ -631,13 +631,13 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
 		  dimlist(creg),
 #ifdef CONSTANT
-                  hx,
+                  hx, rat[0],
 #elif (BL_SPACEDIM == 2)
-		  hx, hy,
+		  hx, hy, rat[0], rat[1],
 #else
-		  hx, hy, hz,
+		  hx, hy, hz, rat[0], rat[1], rat[2],
 #endif
-		  rat, ga);
+		  ga);
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       for (i = 1; i < N_CORNER_GRIDS; i++) {
@@ -696,12 +696,13 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx,
-                  rat, idim, idir);
+                  rat[0], idim, idir
 #else
                   hx, hy,
-                  rat, idim, idir,
-		  IsRZ(), mg_domain[mglevc].bigEnd(0) + 1);
+                  rat[0], rat[1], idim, idir,
+		  IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #endif
+		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       for (i = 1; i < N_CORNER_GRIDS; i++) {
@@ -742,10 +743,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx,
-                  rat, idir0, idir1
+                  rat[0], idir0, idir1
 #else
                   hx, hy,
-                  rat, idir0, idir1, IsRZ()
+                  rat[0], rat[1], idir0, idir1, IsRZ()
 #endif
 		  );
     }
@@ -783,10 +784,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx,
-                  rat, jdir
+                  rat[0], jdir
 #else
                   hx, hy,
-                  rat, jdir, IsRZ()
+                  rat[0], rat[1], jdir, IsRZ()
 #endif
 		  );
       // fill in the grids on the other sides, if any
@@ -831,10 +832,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx,
-                  rat, idir0, idir1
+                  rat[0], idir0, idir1
 #else
                   hx, hy,
-                  rat, idir0, idir1, IsRZ()
+                  rat[0], rat[1], idir0, idir1, IsRZ()
 #endif
 		  );
       // fill in the grids on the other sides, if any

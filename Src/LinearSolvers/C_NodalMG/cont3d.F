@@ -44,10 +44,11 @@ c Routines to cut slice:
 c Begin full 3D version:
 
       subroutine cont3d(a,mlo,mhi,nlo,nhi,olo,ohi,
-     @  ilo,ihi,jlo,jhi,klo,khi,sig,xo,yo,zo,theta,phi,value,ifail)
+     @  ilo,ihi,jlo,jhi,klo,khi,rx,ry,rz,
+     @  xo,yo,zo,theta,phi,value,ifail)
       implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
-      integer sig
+      integer rx, ry, rz
       parameter(pi=3.14159265358979323846d0)
       ifail=0
       ct = cos(theta*pi/180)
@@ -56,21 +57,23 @@ c Begin full 3D version:
       sp = sin(phi*pi/180)
       ctsp = ct * sp
       stsp = st * sp
-      h = 1.d0 / sig
+      hx = 1.d0 / rx
+      hy = 1.d0 / ry
+      hz = 1.d0 / rz
       do 10 k=klo,khi
-         zp = k * h - zo
+         zp = k * hz - zo
          do 10 j=jlo,jhi-1
-            yp = j * h - yo
+            yp = j * hy - yo
             do 10 i=ilo,ihi-1
-               xp = i * h - xo
+               xp = i * hx - xo
                xlb = xp * ct - yp * st
-               xlt = xlb - st * h
-               xrb = xlb + ct * h
-               xrt = xrb - st * h
+               xlt = xlb - st * hy
+               xrb = xlb + ct * hx
+               xrt = xrb - st * hy
                ylb = xp * stsp + yp * ctsp + zp * cp
-               ylt = ylb + ctsp * h
-               yrb = ylb + stsp * h
-               yrt = yrb + ctsp * h
+               ylt = ylb + ctsp * hy
+               yrb = ylb + stsp * hx
+               yrt = yrb + ctsp * hy
                lb=a(i,j,k)
                lt=a(i,j+1,k)
                rb=a(i+1,j,k)
@@ -79,19 +82,19 @@ c Begin full 3D version:
      @                   lb,lt,rb,rt,value,ifail)
  10            continue
       do 20 j=jlo,jhi
-         yp = j * h - yo
+         yp = j * hy - yo
          do 20 k=klo,khi-1
-            zp = k * h - zo
+            zp = k * hz - zo
             do 20 i=ilo,ihi-1
-               xp = i * h - xo
+               xp = i * hx - xo
                xlb = xp * ct - yp * st
                xlt = xlb
-               xrb = xlb + ct * h
+               xrb = xlb + ct * hx
                xrt = xrb
                ylb = xp * stsp + yp * ctsp + zp * cp
-               ylt = ylb + cp * h
-               yrb = ylb + stsp * h
-               yrt = yrb + cp * h
+               ylt = ylb + cp * hz
+               yrb = ylb + stsp * hx
+               yrt = yrb + cp * hz
                lb=a(i,j,k)
                lt=a(i,j,k+1)
                rb=a(i+1,j,k)
@@ -100,19 +103,19 @@ c Begin full 3D version:
      @                   lb,lt,rb,rt,value,ifail)
  20            continue
       do 30 i=ilo,ihi
-         xp = i * h - xo
+         xp = i * hx - xo
          do 30 k=klo,khi-1
-            zp = k * h - zo
+            zp = k * hz - zo
             do 30 j=jlo,jhi-1
-               yp = j * h - yo
+               yp = j * hy - yo
                xlb = xp * ct - yp * st
                xlt = xlb
-               xrb = xlb - st * h
+               xrb = xlb - st * hy
                xrt = xrb
                ylb = xp * stsp + yp * ctsp + zp * cp
-               ylt = ylb + cp * h
-               yrb = ylb + ctsp * h
-               yrt = yrb + cp * h
+               ylt = ylb + cp * hz
+               yrb = ylb + ctsp * hy
+               yrt = yrb + cp * hz
                lb=a(i,j,k)
                lt=a(i,j,k+1)
                rb=a(i,j+1,k)

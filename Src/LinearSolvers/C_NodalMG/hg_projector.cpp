@@ -41,37 +41,37 @@ extern "C" {
   void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS,
 		  const int&, const int&);
   void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS,
-		   intS, RealRS, int&, int&, int&, const int&, const int&);
+		   intS, RealRS, intRS, int&, int&, const int&, const int&);
   void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-		   intS, Real&, Real&, int&, int&, int&, const int&);
+		   intS, Real&, Real&, intRS, int&, int&, const int&);
   void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-		   intS, Real&, Real&, int&, int&, int&, const int&);
+		   intS, Real&, Real&, intRS, int&, int&, const int&);
   void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-		   intS, Real&, Real&, int&, int&, const int&);
+		   intS, Real&, Real&, intRS, int&, const int&);
   void FORT_HGAVG(Real*, intS, Real*, intS, intS,
                   const Real&, const int&, const int&);
   void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-		   intS, int&, int&, int&,
+		   intS, intRS, int&, int&,
                    const Real&, const int&, const int&);
   void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-		   intS, int&, const int*,
+		   intS, intRS, const int*,
                    const Real&, const int&, const int&);
 #  elif (BL_SPACEDIM == 3)
   void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS);
   void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS);
   void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS,
-		   intS, RealRS, int&, int&, int&);
+		   intS, RealRS, intRS, int&, int&);
   void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS,
-		   intS, RealRS, int&, const int*, const int*);
+		   intS, RealRS, intRS, const int*, const int*);
   void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS,
-		   intS, RealRS, int&, const int*);
+		   intS, RealRS, intRS, const int*);
   void FORT_HGAVG(Real*, intS, Real*, intS, intS);
   void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-		   intS, int&, int&, int&);
+		   intS, intRS, int&, int&);
   void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS,
-		   intS, int&, const int*, const int*);
+		   intS, intRS, const int*, const int*);
   void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-		   intS, int&, const int*);
+		   intS, intRS, const int*);
 #  endif
 #endif
 }
@@ -100,7 +100,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
   assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 
   alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
-  divergence_source(u);
+  right_hand_side(u, null_amr_real);
   if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) {
     sparse_node_source_adjustment(coarse_source);
   }
@@ -167,9 +167,9 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 
     alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
-    divergence_source(u);
     if (rhs.length() > 0) {
       if (type(rhs[Lev_min]) == nodevect) {
+	right_hand_side(u, null_amr_real);
 	for (int lev = Lev_min; lev <= Lev_max; lev++)
 	  source[lev].plus(rhs[lev], 0, 1, 0);
 	if (singular && make_sparse_node_source_solvable) {
@@ -178,8 +178,11 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
       }
       else {
 	assert(rhs[Lev_min].nGrow() == 1);
-	cell_based_source(rhs);
+	right_hand_side(u, rhs);
       }
+    }
+    else {
+      right_hand_side(u, null_amr_real);
     }
   }
   else {
@@ -195,7 +198,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     else {
       alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
       // source is set to 0 at this point
-      cell_based_source(rhs);
+      right_hand_side((PArray<MultiFab>*)0, rhs);
     }
   }
   if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) {
@@ -249,6 +252,38 @@ void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>&
   }
 }
 
+// This is a combination routine which combines sources from a divergence
+// and from a cell-based right hand side S in the proper sequence.  The
+// key feature is that both "grid" routines must be called before starting
+// the interface calculation, since they trash some interface points.
+
+void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u,
+					       PArray<MultiFab>& S)
+{
+  if (u) {
+    grid_divergence(u);
+  }
+  if (S.length() > 0) {
+    grid_average(S);
+  }
+
+  int lev;
+  for (lev = lev_min; lev <= lev_max; lev++) {
+    int mglev = ml_index[lev];
+
+    clear_part_interface(source[lev], interface[mglev]);
+
+    if (lev > lev_min) {
+      if (u) {
+	interface_divergence(u, lev);
+      }
+      if (S.length() > 0) {
+	interface_average(S, lev);
+      }
+    }
+  }
+}
+
 // Averages cell-based S onto node-based source conservatively
 // across the composite mesh.  S must be passed in with a one
 // cell wide border.  At inflow boundaries border values should
@@ -260,7 +295,9 @@ void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>&
 // to 0 to maximum precision.  (It is assumed that any additional
 // contribution to the right hand side will also integrate to 0.)
 
-void holy_grail_amr_projector::cell_based_source(PArray<MultiFab>& S)
+// This is an incomplete routine---interface_average must also be called.
+
+void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 {
   assert(S[lev_min].nGrow() == 1);
 
@@ -268,8 +305,7 @@ void holy_grail_amr_projector::cell_based_source(PArray<MultiFab>& S)
   if (singular) {
     Real adjust = 0.0;
     for (lev = lev_max; lev > lev_min; lev--) {
-      int rat = gen_ratio[lev-1][0];
-      restrict_level(S[lev-1], 0, S[lev], rat);
+      restrict_level(S[lev-1], 0, S[lev], gen_ratio[lev-1]);
     }
     for (igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) {
       adjust += S[lev_min][igrid].sum(S[lev_min].box(igrid), 0);
@@ -305,11 +341,73 @@ void holy_grail_amr_projector::cell_based_source(PArray<MultiFab>& S)
 		 csptr, dimlist(fbox), dimlist(freg));
 #endif
     }
+  }
+}
 
-    clear_part_interface(source[lev], interface[mglev]);
+// This is an incomplete routine---interface_divergence must also be called.
 
-    if (lev > lev_min)
-      interface_average(S, lev);
+void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
+{ 
+  int lev;
+  for (lev = lev_min; lev <= lev_max; lev++) {
+    int mglev = ml_index[lev];
+    Real hx = h[mglev][0];
+    Real hy = h[mglev][1];
+#if (BL_SPACEDIM == 3)
+    Real hz = h[mglev][2];
+#endif
+    int igrid, i;
+
+    for (i = 0; i < BL_SPACEDIM; i++) {
+      fill_borders(u[i][lev], 0, interface[mglev], boundary.velocity(i));
+    }
+
+    for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) {
+      const Box& sbox = source[lev][igrid].box();
+      const Box& fbox = u[0][lev][igrid].box();
+      const Box& freg = interface[mglev].part_fine(igrid);
+      Real *const sptr = source[lev][igrid].dataPtr();
+      Real *const u0ptr = u[0][lev][igrid].dataPtr();
+      Real *const u1ptr = u[1][lev][igrid].dataPtr();
+#if (BL_SPACEDIM == 2)
+      FORT_HGDIV(sptr, dimlist(sbox),
+		 u0ptr, u1ptr, dimlist(fbox), dimlist(freg), hx, hy,
+		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1);
+#else
+      Real *const u2ptr = u[2][lev][igrid].dataPtr();
+      FORT_HGDIV(sptr, dimlist(sbox),
+		 u0ptr, u1ptr, u2ptr, dimlist(fbox), dimlist(freg),
+		 hx, hy, hz);
+#endif
+    }
+  }
+}
+
+// Obsolete:
+void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
+{ 
+  int lev;
+  for (lev = lev_min; lev <= lev_max; lev++) {
+    source[lev].setVal(0.0);
+  }
+
+  int mglev0 = ml_index[lev_min];
+  interface_divergence(u, lev_min+1);
+
+  if (singular) {
+    int mglev1 = ml_index[lev_min+1];
+    restrict_level(source[lev_min], 0, source[lev_min+1],
+		   gen_ratio[lev_min], 0,
+		   bilinear_restrictor_coarse,
+		   interface[mglev1], mg_boundary);
+    work[mglev0].setVal(1.0);
+    Real adjustment = inner_product(source[lev_min], work[mglev0]) /
+      mg_domain[ml_index[lev_min]].volume();
+    if (pcode >= 2)
+      cout << "Solvability adjustment is " << adjustment << endl;
+    for (lev = lev_min; lev <= lev_max; lev++) {
+      source[lev].plus(-adjustment, 0);
+    }
   }
 }
 
@@ -322,7 +420,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 
   DECLARE_GEOMETRY_TYPES;
 
-  int rat = gen_ratio[lev-1][0];
+  const IntVect& rat = gen_ratio[lev-1];
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
     // find a fine grid touching this face
     igrid = interface[mglev].fgrid(iface, 0);
@@ -340,9 +438,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     Box cbox = interface[mglev].face(iface);
     IntVect t = cbox.type();
     if (idir > 0)
-      cbox.growLo(idim, rat);
+      cbox.growLo(idim, rat[idim]);
     else
-      cbox.growHi(idim, rat);
+      cbox.growHi(idim, rat[idim]);
     cbox.convert(cellvect).coarsen(rat);
     Fab *Scp;
     jgrid = find_patch(cbox, S[lev-1]);
@@ -356,20 +454,20 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     Fab& Sc = *Scp;
     Box creg = interface[mglev].node_face(iface);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     Real *const sptr = source[lev][igrid].dataPtr();
     Real *const Sfptr = S[lev][igrid].dataPtr();
 #if (BL_SPACEDIM == 2)
     FORT_HGFAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),
 		Sfptr, dimlist(fbox), dimlist(creg),
-		rat, idim, idir,
+		rat[0], rat[1], idim, idir,
 		hx, IsRZ(), mg_domain[mgc].bigEnd(0) + 1);
 #else
     FORT_HGFAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),
 		Sfptr, dimlist(fbox), dimlist(creg),
-		rat, idim, idir);
+		rat[0], rat[1], rat[2], idim, idir);
 #endif
     if (jgrid < 0) {
       delete Scp;
@@ -414,12 +512,12 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     fill_patch(Sf, S[lev], interface[mglev], boundary.scalar(),
 	       0, 1, iedge);
     Box creg = interface[mglev].node_edge(iedge);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     interface[mglev].geo_array(ga, 1, iedge);
     FORT_HGEAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),
 		Sf.dataPtr(), dimlist(fbox),
-		dimlist(creg), rat, t.getVect(), ga);
+		dimlist(creg), rat[0], rat[1], rat[2], t.getVect(), ga);
     if (jgrid < 0) {
       delete Scp;
     }
@@ -473,13 +571,13 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     FORT_HGCAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),
 		Sf.dataPtr(), dimlist(fbox),
-		dimlist(creg), rat, ga,
+		dimlist(creg), rat[0], rat[1], ga,
 		hx, IsRZ(), mg_domain[mgc].bigEnd(0) + 1);
 #else
     FORT_HGCAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),
 		Sf.dataPtr(), dimlist(fbox),
-		dimlist(creg), rat, ga);
+		dimlist(creg), rat[0], rat[1], rat[2], ga);
 #endif
     if (jgrid < 0) {
       delete Scp;
@@ -490,75 +588,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
       jgrid = interface[mglev].cgrid(icor, i);
       if (jgrid >= 0 && jgrid != igrid)
 	internal_copy(source[lev], jgrid, igrid, freg);
-    }
-  }
-}
-
-void holy_grail_amr_projector::divergence_source(PArray<MultiFab>* u)
-{ 
-  int lev;
-  for (lev = lev_min; lev <= lev_max; lev++) {
-    int mglev = ml_index[lev];
-    Real hx = h[mglev][0];
-    Real hy = h[mglev][1];
-#if (BL_SPACEDIM == 3)
-    Real hz = h[mglev][2];
-#endif
-    int igrid, i;
-
-    for (i = 0; i < BL_SPACEDIM; i++) {
-      fill_borders(u[i][lev], 0, interface[mglev], boundary.velocity(i));
-    }
-
-    for (igrid = 0; igrid < ml_mesh[lev].length(); igrid++) {
-      const Box& sbox = source[lev][igrid].box();
-      const Box& fbox = u[0][lev][igrid].box();
-      const Box& freg = interface[mglev].part_fine(igrid);
-      Real *const sptr = source[lev][igrid].dataPtr();
-      Real *const u0ptr = u[0][lev][igrid].dataPtr();
-      Real *const u1ptr = u[1][lev][igrid].dataPtr();
-#if (BL_SPACEDIM == 2)
-      FORT_HGDIV(sptr, dimlist(sbox),
-		 u0ptr, u1ptr, dimlist(fbox), dimlist(freg), hx, hy,
-		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1);
-#else
-      Real *const u2ptr = u[2][lev][igrid].dataPtr();
-      FORT_HGDIV(sptr, dimlist(sbox),
-		 u0ptr, u1ptr, u2ptr, dimlist(fbox), dimlist(freg),
-		 hx, hy, hz);
-#endif
-    }
-
-    clear_part_interface(source[lev], interface[mglev]);
-
-    if (lev > lev_min)
-      interface_divergence(u, lev);
-  }
-}
-
-void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
-{ 
-  int lev;
-  for (lev = lev_min; lev <= lev_max; lev++) {
-    source[lev].setVal(0.0);
-  }
-
-  int mglev0 = ml_index[lev_min];
-  interface_divergence(u, lev_min+1);
-
-  if (singular) {
-    int mglev1 = ml_index[lev_min+1];
-    restrict_level(source[lev_min], 0, source[lev_min+1],
-		   gen_ratio[lev_min][0], 0,
-		   bilinear_restrictor_coarse,
-		   interface[mglev1], mg_boundary);
-    work[mglev0].setVal(1.0);
-    Real adjustment = inner_product(source[lev_min], work[mglev0]) /
-      mg_domain[ml_index[lev_min]].volume();
-    if (pcode >= 2)
-      cout << "Solvability adjustment is " << adjustment << endl;
-    for (lev = lev_min; lev <= lev_max; lev++) {
-      source[lev].plus(-adjustment, 0);
     }
   }
 }
@@ -577,7 +606,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 
   DECLARE_GEOMETRY_TYPES;
 
-  int rat = gen_ratio[lev-1][0];
+  const IntVect& rat = gen_ratio[lev-1];
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
     // find a fine grid touching this face
     igrid = interface[mglev].fgrid(iface, 0);
@@ -595,9 +624,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     Box cbox = interface[mglev].face(iface);
     IntVect t = cbox.type();
     if (idir > 0)
-      cbox.growLo(idim, rat);
+      cbox.growLo(idim, rat[idim]);
     else
-      cbox.growHi(idim, rat);
+      cbox.growHi(idim, rat[idim]);
     cbox.convert(cellvect).coarsen(rat);
     Fab *ucp, *vcp;
     jgrid = find_patch(cbox, u[0][lev-1]);
@@ -626,7 +655,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     Fab& wc = *wcp;
 #endif
     Box creg = interface[mglev].node_face(iface);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     Real *const sptr = source[lev][igrid].dataPtr();
     Real *const u0ptr = u[0][lev][igrid].dataPtr();
     Real *const u1ptr = u[1][lev][igrid].dataPtr();
@@ -634,14 +663,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     FORT_HGFDIV(sptr, dimlist(sbox),
 		uc.dataPtr(), vc.dataPtr(), dimlist(cbox),
 		u0ptr, u1ptr, dimlist(fbox), dimlist(creg),
-		hx, hy, rat, idim, idir,
+		hx, hy, rat[0], rat[1], idim, idir,
 		IsRZ(), mg_domain[mgc].bigEnd(0) + 1);
 #else
     Real *const u2ptr = u[2][lev][igrid].dataPtr();
     FORT_HGFDIV(sptr, dimlist(sbox),
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), dimlist(cbox),
 		u0ptr, u1ptr, u2ptr, dimlist(fbox), dimlist(creg),
-		hx, hy, hz, rat, idim, idir);
+		hx, hy, hz, rat[0], rat[1], rat[2], idim, idir);
     if (jgrid < 0) {
       delete wcp;
     }
@@ -702,12 +731,13 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     fill_patch(wf, u[2][lev], interface[mglev], boundary.velocity(2),
 	       0, 1, iedge);
     Box creg = interface[mglev].node_edge(iedge);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     interface[mglev].geo_array(ga, 1, iedge);
     FORT_HGEDIV(sptr, dimlist(sbox),
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), dimlist(cbox),
 		uf.dataPtr(), vf.dataPtr(), wf.dataPtr(), dimlist(fbox),
-		dimlist(creg), hx, hy, hz, rat, t.getVect(), ga);
+		dimlist(creg), hx, hy, hz, rat[0], rat[1], rat[2],
+		t.getVect(), ga);
     if (jgrid < 0) {
       delete ucp;
       delete vcp;
@@ -772,7 +802,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     FORT_HGCDIV(sptr, dimlist(sbox),
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), dimlist(cbox),
 		uf.dataPtr(), vf.dataPtr(), wf.dataPtr(), dimlist(fbox),
-		dimlist(creg), hx, hy, hz, rat, ga);
+		dimlist(creg), hx, hy, hz, rat[0], rat[1], rat[2], ga);
     if (jgrid < 0) {
       delete ucp;
       delete vcp;
@@ -807,14 +837,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       const Box& sbox = source[lev][igrid].box();
       Box cbox = interface[mglev].corner(icor);
       Box fbox = interface[mglev].corner(icor);
-      cbox.grow(1 - idim, rat);
-      fbox.grow(1 - idim, rat);
+      cbox.grow(1 - idim, rat[1-idim]);
+      fbox.grow(1 - idim, rat[1-idim]);
       if (idir > 0) {
-	cbox.growLo(idim, rat);
+	cbox.growLo(idim, rat[idim]);
 	fbox.growHi(idim, 1);
       }
       else {
-	cbox.growHi(idim, rat);
+	cbox.growHi(idim, rat[idim]);
 	fbox.growLo(idim, 1);
       }
       cbox.convert(cellvect).coarsen(rat);
@@ -846,7 +876,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 		  uc.dataPtr(), vc.dataPtr(), dimlist(cbox),
 		  uf.dataPtr(), vf.dataPtr(), dimlist(fbox),
 		  dimlist(creg), hx, hy,
-		  rat, idim, idir,
+		  rat[0], rat[1], idim, idir,
 		  IsRZ(), mg_domain[mgc].bigEnd(0) + 1);
       if (jgrid < 0) {
 	delete ucp;
@@ -892,7 +922,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
 		  uc.dataPtr(), vc.dataPtr(), dimlist(cbox),
 		  u0ptr, u1ptr,
 		  dimlist(fbox), dimlist(creg),
-		  hx, hy, rat, idir0, idir1, IsRZ());
+		  hx, hy, rat[0], rat[1], idir0, idir1, IsRZ());
       if (jgrid < 0) {
 	delete ucp;
 	delete vcp;
@@ -932,7 +962,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       FORT_HGDDIV(sptr, dimlist(sbox),
 		  uc.dataPtr(), vc.dataPtr(), dimlist(cbox),
 		  uf.dataPtr(), vf.dataPtr(), dimlist(fbox),
-		  dimlist(creg), hx, hy, rat, jdir, IsRZ());
+		  dimlist(creg), hx, hy, rat[0], rat[1], jdir, IsRZ());
       if (jgrid < 0) {
 	delete ucp;
 	delete vcp;
@@ -953,13 +983,13 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       cbox.grow(rat).convert(cellvect).coarsen(rat);
       fbox.grow(1).convert(cellvect);
       if ((geo & XL) == XL)
-	fbox.growHi(0, rat-1);
+	fbox.growHi(0, rat[0]-1);
       else
-	fbox.growLo(0, rat-1);
+	fbox.growLo(0, rat[0]-1);
       if ((geo & YL) == YL)
-	fbox.growHi(1, rat-1);
+	fbox.growHi(1, rat[1]-1);
       else
-	fbox.growLo(1, rat-1);
+	fbox.growLo(1, rat[1]-1);
       Fab uf(fbox), vf(fbox);
       fill_patch(uf, u[0][lev], interface[mglev], boundary.velocity(0),
 		 0, 0, icor);
@@ -1004,7 +1034,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
       FORT_HGIDIV(sptr, dimlist(sbox),
 		  uc.dataPtr(), vc.dataPtr(), dimlist(cbox),
 		  uf.dataPtr(), vf.dataPtr(), dimlist(fbox),
-		  dimlist(creg), hx, hy, rat, idir0, idir1, IsRZ());
+		  dimlist(creg), hx, hy, rat[0], rat[1], idir0, idir1, IsRZ());
       if (jgrid < 0) {
 	delete ucp;
 	delete vcp;
@@ -1062,7 +1092,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 
     sync_periodic_interfaces();
     for (lev = lev_max; lev > lev_min; lev--) {
-      int rat = gen_ratio[lev-1][0];
+      const IntVect& rat = gen_ratio[lev-1];
       restrict_level(dest[lev-1], 0, dest[lev], rat,
 		     dest_bcache[lev], injection_restrictor);
       for (i = 0; i < BL_SPACEDIM; i++) {
@@ -1073,8 +1103,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
   else {
     sync_periodic_interfaces();
     for (lev = lev_max; lev > lev_min; lev--) {
-      int rat = gen_ratio[lev-1][0];
-      restrict_level(dest[lev-1], 0, dest[lev], rat,
+      restrict_level(dest[lev-1], 0, dest[lev], gen_ratio[lev-1],
 		     dest_bcache[lev], injection_restrictor);
     }
   }

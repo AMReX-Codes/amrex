@@ -18,20 +18,20 @@ class amr_interpolator_class {
  public:
   amr_interpolator_class() { }
   virtual ~amr_interpolator_class() { }
-  virtual Box box(const Box&, int) const
+  virtual Box box(const Box&, const IntVect&) const
     { BoxLib::Error("amr_interpolator_class::box---Interpolation function not defined.");
       return Box(); }
   virtual void fill(Fab&, const Box&,
-		    Fab&, const Box&, int) const
+		    Fab&, const Box&, const IntVect&) const
     { BoxLib::Error("amr_interpolator_class::box---Interpolation function not defined."); }
 };
 
 class bilinear_interpolator_class : public amr_interpolator_class {
  public:
   bilinear_interpolator_class() { }
-  Box box(const Box&, int) const;
+  Box box(const Box&, const IntVect&) const;
   void fill(Fab&, const Box&,
-	    Fab&, const Box&, int) const;
+	    Fab&, const Box&, const IntVect&) const;
 };
 
 const amr_interpolator_class error_interpolator;

@@ -34,24 +34,27 @@ typedef FArrayBox Fab;
 #define BOX_NODE IndexType::NODE
 #define BOX_CELL IndexType::CELL
 
-#define ZEROV      IntVect::TheZeroVector()
-#define UNITV      IntVect::TheUnitVector()
+#define zerovect   IntVect::TheZeroVector()
+#define unitvect   IntVect::TheUnitVector()
 #define nodevect   IntVect::TheNodeVector()
 #define cellvect   IntVect::TheCellVector()
 
 #if (BL_SPACEDIM == 1)
-#  define intS const int&, const int&
+#  define intRS const int&
+#  define intS  const int&, const int&
 #  define dimlist(a) a.smallEnd(0), a.bigEnd(0)
 #  define RealRS const Real&
 #  define RealPS Real*
 #elif (BL_SPACEDIM == 2)
-#  define intS const int&, const int&, const int&, const int&
+#  define intRS const int&, const int&
+#  define intS  const int&, const int&, const int&, const int&
 #  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1)
 #  define RealRS const Real&, const Real&
 #  define RealPS Real*, Real*
 #elif (BL_SPACEDIM == 3)
-#  define intS const int&, const int&, const int&, const int&, \
-               const int&, const int&
+#  define intRS const int&, const int&, const int&
+#  define intS  const int&, const int&, const int&, const int&, \
+                const int&, const int&
 #  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), \
                      a.smallEnd(2), a.bigEnd(2)
 #  define RealRS const Real&, const Real&, const Real&

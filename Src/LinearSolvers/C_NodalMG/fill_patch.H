@@ -179,13 +179,13 @@ inline void fill_borders(MultiFab& r,
 void clear_part_interface(MultiFab& r, const level_interface& interface);
 
 void interpolate_patch(Fab& patch, const Box& region,
-		       MultiFab& r, int rat,
+		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp = bilinear_interpolator,
 		       const level_interface& interface = null_level_interface,
 		       amr_boundary bdy = error_boundary);
 inline
 void interpolate_patch(Fab& patch,
-		       MultiFab& r, int rat,
+		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp = bilinear_interpolator,
 		       const level_interface& interface = null_level_interface,
 		       amr_boundary bdy = error_boundary)
@@ -194,13 +194,15 @@ void interpolate_patch(Fab& patch,
 }
 
 void restrict_patch(Fab& patch, const Box& region,
-		    MultiFab& r, int rat, const copy_cache* border_cache = 0,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary);
 inline
 void restrict_patch(Fab& patch,
-		    MultiFab& r, int rat, const copy_cache* border_cache = 0,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary)
@@ -210,13 +212,15 @@ void restrict_patch(Fab& patch,
 }
 
 void restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, int rat, const copy_cache* border_cache = 0,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary);
 inline
 void restrict_level(MultiFab& dest,
-		    MultiFab& r, int rat, const copy_cache* border_cache = 0,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary)

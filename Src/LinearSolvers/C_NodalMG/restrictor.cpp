@@ -25,22 +25,22 @@
 #endif
 
 extern "C" {
-  void FACRST1(Real*, intS, intS, Real*, intS, const int&);
-  void FANRST1(Real*, intS, intS, Real*, intS, const int&);
-  void FANRST2(Real*, intS, intS, Real*, intS, const int&);
+  void FACRST1(Real*, intS, intS, Real*, intS, intRS);
+  void FANRST1(Real*, intS, intS, Real*, intS, intRS);
+  void FANRST2(Real*, intS, intS, Real*, intS, intRS);
   void FANFR2(Real*, intS, intS, Real*, intS,
-	      const int&, const int&, const int&);
+	      intRS, const int&, const int&);
   void FANER2(Real*, intS, intS, Real*, intS,
-	      const int&, const int*, const int*);
-  void FANCR2(Real*, intS, intS, Real*, intS, const int&, const int*);
+	      intRS, const int*, const int*);
+  void FANCR2(Real*, intS, intS, Real*, intS, intRS, const int*);
   void FANOR2(Real*, intS, intS, Real*, intS,
-	      const int&, const int&, const int&);
+	      intRS, const int&, const int&);
   void FANIR2(Real*, intS, intS, Real*, intS,
-	      const int&, const int&, const int&);
-  void FANDR2(Real*, intS, intS, Real*, intS, const int&, const int&);
+	      intRS, const int&, const int&);
+  void FANDR2(Real*, intS, intS, Real*, intS, intRS, const int&);
 }
 
-Box cell_average_restrictor_class::box(const Box& fb, int rat) const
+Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
   Box retbox(fb);
   return retbox.coarsen(rat);
@@ -49,19 +49,20 @@ Box cell_average_restrictor_class::box(const Box& fb, int rat) const
 void cell_average_restrictor_class::fill(Fab& patch,
 					 const Box& region,
 					 Fab& fgr,
-					 int rat) const
+					 const IntVect& rat) const
 {
   if (patch.box().cellCentered()) {
     for (int i = 0; i < patch.nVar(); i++) {
       FACRST1(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      fgr.dataPtr(i), dimlist(fgr.box()), rat);
+	      fgr.dataPtr(i), dimlist(fgr.box()),
+	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
   else
     BoxLib::Error("cell_average_restrictor_class::fill---Average restriction only defined for CELL-based data");
 }
 
-Box injection_restrictor_class::box(const Box& fb, int rat) const
+Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
   Box retbox(fb);
   return retbox.coarsen(rat);
@@ -70,19 +71,20 @@ Box injection_restrictor_class::box(const Box& fb, int rat) const
 void injection_restrictor_class::fill(Fab& patch,
 				      const Box& region,
 				      Fab& fgr,
-				      int rat) const
+				      const IntVect& rat) const
 {
   if (patch.box().type() == nodevect) {
     for (int i = 0; i < patch.nVar(); i++) {
       FANRST1(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      fgr.dataPtr(i), dimlist(fgr.box()), rat);
+	      fgr.dataPtr(i), dimlist(fgr.box()),
+	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
   else
     BoxLib::Error("injection_restrictor_class::fill---Injection only defined for NODE-based data");
 }
 
-Box default_restrictor_class::box(const Box& fb, int rat) const
+Box default_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
   Box retbox(fb);
   return retbox.coarsen(rat);
@@ -91,7 +93,7 @@ Box default_restrictor_class::box(const Box& fb, int rat) const
 void default_restrictor_class::fill(Fab& patch,
 				    const Box& region,
 				    Fab& fgr,
-				    int rat) const
+				    const IntVect& rat) const
 {
   if (patch.box().cellCentered())
     cell_average_restrictor.fill(patch, region, fgr, rat);
@@ -101,7 +103,7 @@ void default_restrictor_class::fill(Fab& patch,
     BoxLib::Error("default_restrictor_class::fill---No default restriction defined for mixed data");
 }
 
-Box bilinear_restrictor_class::box(const Box& fb, int rat) const
+Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
   Box retbox(fb);
   return retbox.coarsen(rat).grow(-1);
@@ -110,12 +112,13 @@ Box bilinear_restrictor_class::box(const Box& fb, int rat) const
 void bilinear_restrictor_class::fill(Fab& patch,
 				     const Box& region,
 				     Fab& fgr,
-				     int rat) const
+				     const IntVect& rat) const
 {
   if (patch.box().type() == nodevect) {
     for (int i = 0; i < patch.nVar(); i++) {
       FANRST2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      fgr.dataPtr(i), dimlist(fgr.box()), rat);
+	      fgr.dataPtr(i), dimlist(fgr.box()),
+	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
   else
@@ -128,7 +131,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 					  const copy_cache* border_cache,
 					  const level_interface& interface,
 					  amr_boundary bdy,
-					  int rat) const
+					  const IntVect& rat) const
 {
   if (patch.box().type() != nodevect)
     BoxLib::Error("bilinear_restrictor_coarse_class::interface---bilinear restriction only defined for NODE-based data");
@@ -138,7 +141,13 @@ void bilinear_restrictor_class::interface(Fab& patch,
   Box regplus = grow(region,1);
   const Box& pb = patch.box();
 
-  if (fine.nGrow() < rat - 1) {
+  int ratmax = rat[0];
+  ratmax = (rat[1] > ratmax ? rat[1] : ratmax);
+#if (BL_SPACEDIM == 3)
+  ratmax = (rat[2] > ratmax ? rat[2] : ratmax);
+#endif
+
+  if (fine.nGrow() < ratmax - 1) {
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       if (interface.fgeo(iface) == ALL && interface.fflag(iface) == 0) {
 	// fine grid on both sides
@@ -149,13 +158,14 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine face by one coarse cell past coarse face:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - UNITV);
-	  Fab fgr(grow(refine(cbox, rat), rat - 1), patch.nVar());
+	  cbox.grow(t - unitvect);
+	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nVar());
 	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fb), rat);
+		    fgr.dataPtr(i), dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -171,13 +181,14 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine edge by one coarse cell past coarse edge:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - UNITV);
-	  Fab fgr(grow(refine(cbox, rat), rat - 1), patch.nVar());
+	  cbox.grow(t - unitvect);
+	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nVar());
 	  fill_patch(fgr, fine, interface, bdy, 0, 1, iedge);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fb), rat);
+		    fgr.dataPtr(i), dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -189,19 +200,20 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	Box cbox = interface.corner(icor);
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) {
-	  Fab fgr(grow(refine(cbox, rat), rat - 1), patch.nVar());
+	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nVar());
 	  fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fb), rat);
+		    fgr.dataPtr(i), dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
     }
   }
   else {
-    fill_borders(fine, border_cache, interface, bdy, rat - 1);
+    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       if (interface.fgeo(iface) == ALL && interface.fflag(iface) == 0) {
 	// fine grid on both sides
@@ -212,7 +224,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine face by one coarse cell past coarse face:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - UNITV);
+	  cbox.grow(t - unitvect);
 	  int igrid = interface.fgrid(iface, 0);
 	  if (igrid < 0)
 	    igrid = interface.fgrid(iface, 1);
@@ -220,7 +232,8 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fptr, dimlist(fb), rat);
+		    fptr, dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -236,7 +249,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine edge by one coarse cell past coarse edge:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - UNITV);
+	  cbox.grow(t - unitvect);
 	  int igrid = interface.egrid(iedge, 0);
 	  for (int itmp = 1; igrid < 0; itmp++)
 	    igrid = interface.egrid(iedge, itmp);
@@ -244,7 +257,8 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fptr, dimlist(fb), rat);
+		    fptr, dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -263,7 +277,8 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fptr, dimlist(fb), rat);
+		    fptr, dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -279,7 +294,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 						 const level_interface&
 						   interface,
 						 amr_boundary bdy,
-						 int rat) const
+						 const IntVect& rat) const
 {
   if (patch.box().type() != nodevect)
     BoxLib::Error("bilinear_restrictor_coarse_class::interface---bilinear restriction only defined for NODE-based data");
@@ -289,8 +304,14 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
   Box regplus = grow(region,1);
   const Box& pb = patch.box();
 
-  if (fine.nGrow() >= rat - 1)
-    fill_borders(fine, border_cache, interface, bdy, rat - 1);
+  int ratmax = rat[0];
+  ratmax = (rat[1] > ratmax ? rat[1] : ratmax);
+#if (BL_SPACEDIM == 3)
+  ratmax = (rat[2] > ratmax ? rat[2] : ratmax);
+#endif
+
+  if (fine.nGrow() >= ratmax - 1)
+    fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
 
   for (int iface = 0; iface < interface.nfaces(); iface++) {
     if (interface.fflag(iface) == 1)
@@ -303,9 +324,9 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
       // This extends fine face by one coarse cell past coarse face:
       cbox &= regplus;
       int idim = interface.fdim(iface);
-      cbox.grow(t - UNITV);
+      cbox.grow(t - unitvect);
       if (geo == ALL) { // fine grid on both sides
-	if (fine.nGrow() >= rat - 1) {
+	if (fine.nGrow() >= ratmax - 1) {
 	  int igrid = interface.fgrid(iface, 0);
 	  if (igrid < 0)
 	    igrid = interface.fgrid(iface, 1);
@@ -313,16 +334,18 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fptr, dimlist(fb), rat);
+		    fptr, dimlist(fb),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
 	else {
-	  Box fbox = grow(refine(cbox, rat), rat - 1);
+	  Box fbox = grow(refine(cbox, rat), rat - unitvect);
 	  Fab fgr(fbox, patch.nVar());
 	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fbox), rat);
+		    fgr.dataPtr(i), dimlist(fbox),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
       }
@@ -335,21 +358,23 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  const Box& fb = fine[igrid].box();
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		   fine[igrid].dataPtr(i), dimlist(fb), rat, idim, idir);
+		   fine[igrid].dataPtr(i), dimlist(fb),
+		   D_DECL(rat[0], rat[1], rat[2]), idim, idir);
 	  }
 	}
 	else {
 	  // A virtual fine grid is on the other side of the boundary.
-	  Box fbox = refine(cbox, rat).grow(rat - 1);
+	  Box fbox = refine(cbox, rat).grow(rat - unitvect);
 	  if (geo & LOW)
-	    fbox.growHi(idim, 1 - rat);
+	    fbox.growHi(idim, 1 - rat[idim]);
 	  else
-	    fbox.growLo(idim, 1 - rat);
+	    fbox.growLo(idim, 1 - rat[idim]);
 	  Fab fgr(fbox, patch.nVar());
 	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		   fgr.dataPtr(i), dimlist(fbox), rat, idim, idir);
+		   fgr.dataPtr(i), dimlist(fbox),
+		   D_DECL(rat[0], rat[1], rat[2]), idim, idir);
 	  }
 	}
       }
@@ -365,7 +390,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     cbox.coarsen(rat);
     if (region.intersects(cbox)) {
       unsigned geo = interface.cgeo(icor);
-      if (geo == ALL && fine.nGrow() >= rat - 1) { // fine grid on all sides
+      if (geo == ALL && fine.nGrow() >= ratmax - 1) { // fine grid on all sides
 	int igrid = interface.cgrid(icor, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.cgrid(icor, itmp);
@@ -373,7 +398,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		  fptr, dimlist(fb), rat);
+		  fptr, dimlist(fb),
+		  D_DECL(rat[0], rat[1], rat[2]));
 	}
       }
       else if (geo == ALL) { // fine grid on all sides
@@ -382,23 +408,25 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	const Box& fb = fgr.box();
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		  fgr.dataPtr(i), dimlist(fb), rat);
+		  fgr.dataPtr(i), dimlist(fb),
+		  D_DECL(rat[0], rat[1], rat[2]));
 	}
       }
       else if (geo == XL || geo == XH || geo == YL || geo == YH) {
 	// fine grid on two adjacent sides
 	int idim = (geo == XL || geo == XH) ? 0 : 1;
 	int idir = (geo & LL) ? -1 : 1;
-	Box fbox = refine(cbox, rat).grow(1 - idim, rat);
+	Box fbox = refine(cbox, rat).grow(1 - idim, rat[1-idim]);
 	if (geo & LL)
-	  fbox.growLo(idim, rat);
+	  fbox.growLo(idim, rat[idim]);
 	else
-	  fbox.growHi(idim, rat);
+	  fbox.growHi(idim, rat[idim]);
 	Fab fgr(fbox, patch.nVar());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		 fgr.dataPtr(i), dimlist(fbox), rat, idim, idir);
+		 fgr.dataPtr(i), dimlist(fbox),
+		 D_DECL(rat[0], rat[1], rat[2]), idim, idir);
 	}
       }
       else if (geo == LL || geo == HL || geo == LH || geo == HH) {
@@ -406,26 +434,27 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	Box fbox = refine(cbox, rat);
 	int idir0, idir1;
 	if (geo & XL) {
-	  fbox.growLo(0, rat);
+	  fbox.growLo(0, rat[0]);
 	  idir0 = -1;
 	}
 	else {
-	  fbox.growHi(0, rat);
+	  fbox.growHi(0, rat[0]);
 	  idir0 = 1;
 	}
 	if (geo & YL) {
-	  fbox.growLo(1, rat);
+	  fbox.growLo(1, rat[1]);
 	  idir1 = -1;
 	}
 	else {
-	  fbox.growHi(1, rat);
+	  fbox.growHi(1, rat[1]);
 	  idir1 = 1;
 	}
 	Fab fgr(fbox, patch.nVar());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANOR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		 fgr.dataPtr(i), dimlist(fbox), rat, idir0, idir1);
+		 fgr.dataPtr(i), dimlist(fbox),
+		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1);
 	}
       }
       else if (geo == (LL | HH) || geo == (LH | HL)) {
@@ -436,7 +465,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANDR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		 fgr.dataPtr(i), dimlist(fbox), rat, idir1);
+		 fgr.dataPtr(i), dimlist(fbox),
+		 D_DECL(rat[0], rat[1], rat[2]), idir1);
 	}
       }
       else {
@@ -448,7 +478,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANIR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		 fgr.dataPtr(i), dimlist(fbox), rat, idir0, idir1);
+		 fgr.dataPtr(i), dimlist(fbox),
+		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1);
 	}
       }
     }
@@ -467,9 +498,9 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     if (region.intersects(cbox)) {
       // This extends fine edge by one coarse cell past coarse face:
       cbox &= regplus;
-      cbox.grow(t - UNITV);
+      cbox.grow(t - unitvect);
       unsigned geo = interface.egeo(iedge);
-      if (geo == ALL && fine.nGrow() >= rat - 1) {
+      if (geo == ALL && fine.nGrow() >= ratmax - 1) {
 	int igrid = interface.egrid(iedge, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.egrid(iedge, itmp);
@@ -477,24 +508,27 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		  fptr, dimlist(fb), rat);
+		  fptr, dimlist(fb),
+		  D_DECL(rat[0], rat[1], rat[2]));
 	}
       }
       else {
-	Box fbox = grow(refine(cbox, rat), rat - 1);
+	Box fbox = grow(refine(cbox, rat), rat - unitvect);
 	Fab fgr(fbox, patch.nVar());
 	fill_patch(fgr, fine, interface, bdy, 0, 1, iedge);
 	if (geo == ALL) { // fine grid on all sides
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fbox), rat);
+		    fgr.dataPtr(i), dimlist(fbox),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
 	else {
 	  interface.geo_array(ga, 1, iedge);
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANER2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		   fgr.dataPtr(i), dimlist(fbox), rat, t.getVect(), ga);
+		   fgr.dataPtr(i), dimlist(fbox),
+		   D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga);
 	  }
 	}
       }
@@ -508,7 +542,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     cbox.coarsen(rat);
     if (region.intersects(cbox)) {
       unsigned geo = interface.cgeo(icor);
-      if (geo == ALL && fine.nGrow() >= rat - 1) {
+      if (geo == ALL && fine.nGrow() >= ratmax - 1) {
 	int igrid = interface.cgrid(icor, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.cgrid(icor, itmp);
@@ -516,24 +550,27 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		  fptr, dimlist(fb), rat);
+		  fptr, dimlist(fb),
+		  D_DECL(rat[0], rat[1], rat[2]));
 	}
       }
       else {
-	Box fbox = grow(refine(cbox, rat), rat - 1);
+	Box fbox = grow(refine(cbox, rat), rat - unitvect);
 	Fab fgr(fbox, patch.nVar());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	if (geo == ALL) { // fine grid on all sides
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		    fgr.dataPtr(i), dimlist(fbox), rat);
+		    fgr.dataPtr(i), dimlist(fbox),
+		    D_DECL(rat[0], rat[1], rat[2]));
 	  }
 	}
 	else {
 	  interface.geo_array(ga, 0, icor);
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANCR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
-		   fgr.dataPtr(i), dimlist(fbox), rat, ga);
+		   fgr.dataPtr(i), dimlist(fbox),
+		   D_DECL(rat[0], rat[1], rat[2]), ga);
 	  }
 	}
       }

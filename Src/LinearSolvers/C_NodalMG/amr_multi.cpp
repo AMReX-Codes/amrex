@@ -16,7 +16,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
     is >> b >> igrid;
     d.set(ilev, b);
     if (ilev > 0) {
-      r.set(ilev-1, (d[ilev].bigEnd() + 1) / (d[ilev-1].bigEnd() + 1));
+      r.set(ilev-1, d[ilev].length() / d[ilev-1].length());
     }
     m[ilev].resize(igrid);
     for (igrid = 0; igrid < m[ilev].length(); igrid++) {
@@ -229,9 +229,9 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   work.resize(mglev_max + 1);
   save.resize(lev_max + 1);
 
-  dest_bcache.resize(lev_max + 1, 0);
-  corr_bcache.resize(mglev_max + 1, 0);
-  work_bcache.resize(mglev_max + 1, 0);
+  dest_bcache.resize(lev_max + 1, (copy_cache*)0);
+  corr_bcache.resize(mglev_max + 1, (copy_cache*)0);
+  work_bcache.resize(mglev_max + 1, (copy_cache*)0);
 
   for (i = 0; i <= mglev_max; i++) {
     BoxArray mesh = mg_mesh[i];
@@ -255,7 +255,9 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
 
   for (i = lev_min + 1; i <= lev_max - 1; i++) {
     save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
+  }
 
+  for (i = lev_min; i <= lev_max; i++) {
     // if a cache is desired, it should be created by the derived class:
     dest_bcache.set(i, 0);
   }
@@ -463,7 +465,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   MultiFab& target = work[lto];
-  int rat = mg_domain[lto].length(0) / mg_domain[lfrom].length(0);
+  const IntVect& rat = mg_domain[lto].length() / mg_domain[lfrom].length();
   if (target.nGrow() == 0) {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], corr[lfrom], rat,
@@ -480,7 +482,7 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 
 void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
-  int rat = mg_domain[lfrom].length(0) / mg_domain[lto].length(0);
+  const IntVect& rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (type(resid[lto]) == cellvect) {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   cell_average_restrictor);

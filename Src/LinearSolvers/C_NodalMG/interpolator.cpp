@@ -10,11 +10,12 @@
 #endif
 
 extern "C" {
-  void FACINT2(Real*, intS, intS, Real*, intS, intS, const int&);
-  void FANINT2(Real*, intS, intS, Real*, intS, intS, const int&);
+  void FACINT2(Real*, intS, intS, Real*, intS, intS, intRS);
+  void FANINT2(Real*, intS, intS, Real*, intS, intS, intRS);
 }
 
-Box bilinear_interpolator_class::box(const Box& region, int rat) const
+Box bilinear_interpolator_class::box(const Box& region,
+				     const IntVect& rat) const
 {
   if (region.cellCentered()) {
     return grow(coarsen(region, rat), 1);
@@ -31,12 +32,14 @@ Box bilinear_interpolator_class::box(const Box& region, int rat) const
 void bilinear_interpolator_class::fill(Fab& patch,
 				       const Box& region,
 				       Fab& cgr,
-				       const Box& cb, int rat) const
+				       const Box& cb,
+				       const IntVect& rat) const
 {
   if (patch.box().cellCentered()) {
     for (int i = 0; i < patch.nVar(); i++) {
       FACINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb), rat);
+	      cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
   else if (patch.box().type() == nodevect) {
@@ -44,14 +47,16 @@ void bilinear_interpolator_class::fill(Fab& patch,
     if (eregion == region) {
       for (int i = 0; i < patch.nVar(); i++) {
 	FANINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb), rat);
+		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+		D_DECL(rat[0], rat[1], rat[2]));
       }
     }
     else {
       Fab epatch(eregion, patch.nVar());
       for (int i = 0; i < patch.nVar(); i++) {
 	FANINT2(epatch.dataPtr(i), dimlist(epatch.box()), dimlist(eregion),
-		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb), rat);
+		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
+		D_DECL(rat[0], rat[1], rat[2]));
       }
       patch.copy(epatch,region);
     }

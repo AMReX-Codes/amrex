@@ -88,6 +88,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m)
     //u[0][1][0](IntVect(20,90)) = 1.0;
     //u[0][1][0](IntVect(50,50)) = 1.0;
     //u[0][1][0](IntVect(22,12)) = 1.0;
+    u[0][0][0](IntVect(12,12)) = 3.0;
 /*
     if (m[0].domain().length(0) == 32)
       u[0][1][0](IntVect(30,30)) = 1.0;
@@ -142,6 +143,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m)
       //u[0][1][igrid](m[1][igrid].smallEnd() + Iv(2,2,2)) = 3.0;
       u[0][1][igrid](m[1][igrid].smallEnd() + Iv(ioff,ioff,ioff)) = 3.0;
     }
+    u[0][0][0](IntVect(1,1,1)) = 3.0;
   }
   else if (m.length() == 3) {
     int ioff = 2;
@@ -225,8 +227,8 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #  endif
   //bc[0][0] = inflow;
   //bc[0][1] = outflow;
-  //bc[0][0] = periodic;
-  //bc[0][1] = periodic;
+  bc[0][0] = periodic;
+  bc[0][1] = periodic;
   bc[0][0] = refWall;
   bc[0][1] = refWall;
   //bc[1][0] = periodic;
@@ -394,7 +396,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #if (BL_SPACEDIM == 2)
   //proj.SetRZ();
 #endif
-  proj.line_solve_dim = 1;
+  proj.line_solve_dim = BL_SPACEDIM - 1;
 
   if (m.length() == 1) {
     t1 = clock();
@@ -419,14 +421,15 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     cout << setprecision(6);
   }
   else if (m.length() == 2) {
+    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
     t1 = clock();
     cout << "First time is " << t1 - t0 << endl;
     for (i = 0; i < p.length(); i++)
       p[i].setVal(0.0);
     t1 = clock();
-    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
-    //proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
+    //proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
+    proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
     for (i = 1; i < nrep; i++) {
       init(u, p, m);
       proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
@@ -434,6 +437,15 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     t2 = clock();
     cout << "Second time is " << t2 - t1 << endl;
     cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
+/*
+    for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) {
+      cout << p[1][0](Iv(0, i)) << endl;
+    }
+    proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
+    for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) {
+      cout << p[1][0](Iv(0, i)) << endl;
+    }
+*/
   }
   else {
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);

@@ -411,21 +411,21 @@ c CELL-based data only.
       subroutine acint2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ dims(bb), irat)
+     @ dims(bb), ir, jr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
-      integer irat
+      integer ir, jr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       do 10 j = regl1, regh1
-         jc = j/irat
-         yoff = (mod(j,irat) + 0.5) / irat - 0.5
+         jc = j/jr
+         yoff = (mod(j,jr) + 0.5) / jr - 0.5
          do 10 i = regl0, regh0
-            ic = i/irat
-            xoff = (mod(i,irat) + 0.5) / irat - 0.5
+            ic = i/ir
+            xoff = (mod(i,ir) + 0.5) / ir - 0.5
             sy = 0.5 * (src(ic,jc+1) - src(ic,jc-1))
             sx = 0.5 * (src(ic+1,jc) - src(ic-1,jc))
  10         dest(i,j) = src(ic,jc) + xoff * sx + yoff * sy
@@ -435,63 +435,67 @@ c NODE-based data only.
       subroutine anint2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ dims(bb), irat)
+     @ dims(bb), ir, jr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer dims(bb)
-      integer irat
+      integer ir, jr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       do 10 jc = bbl1, bbh1
          do 10 ic = bbl0, bbh0
- 10         dest(ic*irat,jc*irat) = src(ic,jc)
-      if (irat .eq. 2) then
+ 10         dest(ir*ic,jr*jc) = src(ic,jc)
+      if (jr .eq. 2) then
          do 20 jc = bbl1, bbh1-1
             do 20 ic = bbl0, bbh0
- 20            dest(2*ic,2*jc+1) = 0.5d0 * (src(ic,jc) +
-     @                                      src(ic,jc+1))
+ 20            dest(ir*ic,2*jc+1) = 0.5d0 * (src(ic,jc) +
+     @                                       src(ic,jc+1))
+      else if (jr .eq. 4) then
+         do 120 jc = bbl1, bbh1-1
+cdir$ ivdep
+            do 120 ic = bbl0, bbh0
+               dest(ir*ic,4*jc+2) = 0.5d0 *
+     @            (src(ic,jc) + src(ic,jc+1))
+               dest(ir*ic,4*jc+1) = 0.5d0 *
+     @            (dest(ir*ic,4*jc)   + dest(ir*ic,4*jc+2))
+ 120           dest(ir*ic,4*jc+3) = 0.5d0 *
+     @            (dest(ir*ic,4*jc+2) + dest(ir*ic,4*jc+4))
+      else if (jr .ne. 1) then
+         do 220 m = 1, jr-1
+            q = dble(m)/jr
+            p = 1.0 - q
+            do 220 jc = bbl1, bbh1-1
+               do 220 ic = bbl0, bbh0
+ 220              dest(ir*ic,jr*jc+m) = p * src(ic,jc) +
+     @                                  q * src(ic,jc+1)
+      endif
+      if (ir .eq. 2) then
          do 30 ic = bbl0, bbh0-1
 cdir$ ivdep
             do 30 j = regl1, regh1
  30            dest(2*ic+1,j) = 0.5d0 * (dest(2*ic,j) +
      @                                   dest(2*ic+2,j))
-      else if (irat .eq. 4) then
-         do 120 jc = bbl1, bbh1-1
-cdir$ ivdep
-            do 120 ic = bbl0, bbh0
-               dest(4*ic,4*jc+2) = 0.5d0 *
-     @            (src(ic,jc) + src(ic,jc+1))
-               dest(4*ic,4*jc+1) = 0.5d0 *
-     @            (dest(4*ic,4*jc) + dest(4*ic,4*jc+2))
- 120           dest(4*ic,4*jc+3) = 0.5d0 *
-     @            (dest(4*ic,4*jc+2) + dest(4*ic,4*jc+4))
+      else if (ir .eq. 4) then
          do 130 ic = bbl0, bbh0-1
 cdir$ ivdep
             do 130 j = regl1, regh1
                dest(4*ic+2,j) = 0.5d0 *
-     @            (dest(4*ic,j) + dest(4*ic+4,j))
+     @            (dest(4*ic,j)   + dest(4*ic+4,j))
                dest(4*ic+1,j) = 0.5d0 *
-     @            (dest(4*ic,j) + dest(4*ic+2,j))
+     @            (dest(4*ic,j)   + dest(4*ic+2,j))
  130           dest(4*ic+3,j) = 0.5d0 *
      @            (dest(4*ic+2,j) + dest(4*ic+4,j))
-      else
-         do 220 m = 1, irat-1
-            q = dble(m)/irat
-            p = 1.0 - q
-            do 220 jc = bbl1, bbh1-1
-               do 220 ic = bbl0, bbh0
- 220              dest(ic*irat,jc*irat+m) = p * src(ic,jc) +
-     @                                      q * src(ic,jc+1)
-         do 230 m = 1, irat-1
-            q = dble(m)/irat
+      else if (ir .ne. 1) then
+         do 230 m = 1, ir-1
+            q = dble(m)/ir
             p = 1.0 - q
             do 230 ic = bbl0, bbh0-1
 cdir$ ivdep
                do 230 j = regl1, regh1
- 230              dest(ic*irat+m,j) = p * dest(ic*irat,j) +
-     @                                q * dest((ic+1)*irat,j)
+ 230              dest(ir*ic+m,j) = p * dest(ir*ic,j) +
+     @                              q * dest(ir*(ic+1),j)
       endif
       end
 
@@ -499,23 +503,23 @@ c CELL-based data only.
       subroutine acrst1(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat)
+     @ ir, jr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat
+      integer ir, jr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
  10         dest(i,j) = 0.d0
-      do 20 n = 0, irat-1
-         do 20 m = 0, irat-1
+      do 20 n = 0, jr-1
+         do 20 m = 0, ir-1
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
- 20               dest(i,j) = dest(i,j) + src(i*irat+m,j*irat+n)
-      fac = 1.d0 / (irat*irat)
+ 20               dest(i,j) = dest(i,j) + src(i*ir+m,j*jr+n)
+      fac = 1.d0 / (ir*jr)
       do 30 j = regl1, regh1
          do 30 i = regl0, regh0
  30         dest(i,j) = dest(i,j) * fac
@@ -525,17 +529,17 @@ c NODE-based data only.
       subroutine anrst1(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat)
+     @ ir, jr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat
+      integer ir, jr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
- 10         dest(i,j) = src(i*irat,j*irat)
+ 10         dest(i,j) = src(i*ir,j*jr)
       end
 
 #define RESTR4 0.0625d0 * src(4*i,4*j) + \
@@ -566,64 +570,41 @@ c fine region by at least one coarse cell on all sides.
       subroutine anrst2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat)
+     @ ir, jr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat
+      integer ir, jr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
-#if 0
-      restr4() = 0.0625d0 * src(4*i,4*j) +
-     @  0.046875d0  * (src(4*i,4*j-1) + src(4*i,4*j+1) +
-     @                 src(4*i-1,4*j) + src(4*i+1,4*j)) +
-     @  0.03125d0   * (src(4*i,4*j-2) + src(4*i,4*j+2) +
-     @                 src(4*i-2,4*j) + src(4*i+2,4*j)) +
-     @  0.015625d0  * (src(4*i,4*j-3) + src(4*i,4*j+3) + src(4*i-3,4*j) +
-     @                 src(4*i+3,4*j) + src(4*i-2,4*j-2) + src(4*i-2,4*j+2) +
-     @                 src(4*i+2,4*j-2) + src(4*i+2,4*j+2)) +
-     @  0.03515625d0* (src(4*i-1,4*j-1) + src(4*i-1,4*j+1) +
-     @                 src(4*i+1,4*j-1) + src(4*i+1,4*j+1)) +
-     @  0.0234375d0 * (src(4*i-2,4*j-1) + src(4*i-2,4*j+1) + src(4*i-1,4*j-2) +
-     @                 src(4*i-1,4*j+2) + src(4*i+1,4*j-2) + src(4*i+1,4*j+2) +
-     @                 src(4*i+2,4*j-1) + src(4*i+2,4*j+1)) +
-     @  0.01171875d0* (src(4*i-3,4*j-1) + src(4*i-3,4*j+1) + src(4*i-1,4*j-3) +
-     @                 src(4*i-1,4*j+3) + src(4*i+1,4*j-3) + src(4*i+1,4*j+3) +
-     @                 src(4*i+3,4*j-1) + src(4*i+3,4*j+1)) +
-     @  0.0078125d0 * (src(4*i-3,4*j-2) + src(4*i-3,4*j+2) + src(4*i-2,4*j-3) +
-     @                 src(4*i-2,4*j+3) + src(4*i+2,4*j-3) + src(4*i+2,4*j+3) +
-     @                 src(4*i+3,4*j-2) + src(4*i+3,4*j+2)) +
-     @  0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
-     @                 src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
-#endif
-      if (irat .eq. 2) then
+      if (ir .eq. 2 .and. jr .eq. 2) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j) = 0.25d0   *  src(i*irat,j*irat) +
-     @                        0.125d0  * (src(i*irat,j*irat-1) +
-     @                                    src(i*irat,j*irat+1) +
-     @                                    src(i*irat-1,j*irat) +
-     @                                    src(i*irat+1,j*irat)) +
-     @                        0.0625d0 * (src(i*irat-1,j*irat-1) +
-     @                                    src(i*irat-1,j*irat+1) +
-     @                                    src(i*irat+1,j*irat-1) +
-     @                                    src(i*irat+1,j*irat+1))
+ 10               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
+     @                        0.125d0  * (src(i*ir,j*jr-1) +
+     @                                    src(i*ir,j*jr+1) +
+     @                                    src(i*ir-1,j*jr) +
+     @                                    src(i*ir+1,j*jr)) +
+     @                        0.0625d0 * (src(i*ir-1,j*jr-1) +
+     @                                    src(i*ir-1,j*jr+1) +
+     @                                    src(i*ir+1,j*jr-1) +
+     @                                    src(i*ir+1,j*jr+1))
          else
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
- 20               dest(i,j) = 0.25d0   *  src(i*irat,j*irat) +
-     @                        0.125d0  * (src(i*irat,j*irat-1) +
-     @                                    src(i*irat,j*irat+1) +
-     @                                    src(i*irat-1,j*irat) +
-     @                                    src(i*irat+1,j*irat)) +
-     @                        0.0625d0 * (src(i*irat-1,j*irat-1) +
-     @                                    src(i*irat-1,j*irat+1) +
-     @                                    src(i*irat+1,j*irat-1) +
-     @                                    src(i*irat+1,j*irat+1))
+ 20               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
+     @                        0.125d0  * (src(i*ir,j*jr-1) +
+     @                                    src(i*ir,j*jr+1) +
+     @                                    src(i*ir-1,j*jr) +
+     @                                    src(i*ir+1,j*jr)) +
+     @                        0.0625d0 * (src(i*ir-1,j*jr-1) +
+     @                                    src(i*ir-1,j*jr+1) +
+     @                                    src(i*ir+1,j*jr-1) +
+     @                                    src(i*ir+1,j*jr+1))
          endif
-      else if (irat .eq. 4) then
+      else if (ir .eq. 4 .and. jr .eq. 4) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 110 i = regl0, regh0
                do 110 j = regl1, regh1
@@ -638,38 +619,38 @@ c fine region by at least one coarse cell on all sides.
             do 210 i = regl0, regh0
                do 210 j = regl1, regh1
  210              dest(i,j) = 0.d0
-            fac0 = 1.d0 / (irat**4)
-            do 220 n = 0, irat-1
-               fac1 = (irat-n) * fac0
+            fac0 = 1.d0 / (ir*ir * jr*jr)
+            do 220 n = 0, jr-1
+               fac1 = (jr-n) * fac0
                if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 220 m = 0, irat-1
-                  fac = (irat-m) * fac1
+               do 220 m = 0, ir-1
+                  fac = (ir-m) * fac1
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do 220 i = regl0, regh0
                      do 220 j = regl1, regh1
  220                    dest(i,j) = dest(i,j) +
-     @                              fac * (src(i*irat-m,j*irat-n)+
-     @                                     src(i*irat-m,j*irat+n)+
-     @                                     src(i*irat+m,j*irat-n)+
-     @                                     src(i*irat+m,j*irat+n))
+     @                              fac * (src(i*ir-m,j*jr-n)+
+     @                                     src(i*ir-m,j*jr+n)+
+     @                                     src(i*ir+m,j*jr-n)+
+     @                                     src(i*ir+m,j*jr+n))
          else
             do 230 j = regl1, regh1
                do 230 i = regl0, regh0
  230              dest(i,j) = 0.d0
-            fac0 = 1.d0 / (irat**4)
-            do 240 n = 0, irat-1
-               fac1 = (irat-n) * fac0
+            fac0 = 1.d0 / (ir*ir * jr*jr)
+            do 240 n = 0, jr-1
+               fac1 = (jr-n) * fac0
                if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 240 m = 0, irat-1
-                  fac = (irat-m) * fac1
+               do 240 m = 0, ir-1
+                  fac = (ir-m) * fac1
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do 240 j = regl1, regh1
                      do 240 i = regl0, regh0
  240                    dest(i,j) = dest(i,j) +
-     @                              fac * (src(i*irat-m,j*irat-n)+
-     @                                     src(i*irat-m,j*irat+n)+
-     @                                     src(i*irat+m,j*irat-n)+
-     @                                     src(i*irat+m,j*irat+n))
+     @                              fac * (src(i*ir-m,j*jr-n)+
+     @                                     src(i*ir-m,j*jr+n)+
+     @                                     src(i*ir+m,j*jr-n)+
+     @                                     src(i*ir+m,j*jr+n))
          endif
       endif
       end
@@ -679,40 +660,40 @@ c Fills coarse region defined by reg.
       subroutine anfr2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat, idim, idir)
+     @ ir, jr, idim, idir)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat, idim, idir
+      integer ir, jr, idim, idir
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       if (idim .eq. 0) then
          i = regl0
          do 10 j = regl1, regh1
- 10         dest(i,j) = src(i*irat,j*irat) * (0.5d0 + 0.5d0 / irat)
-         fac0 = 1.d0 / (irat**4)
-         do 20 n = 0, irat-1
-            fac1 = (irat-n) * fac0
+ 10         dest(i,j) = src(i*ir,j*jr) * (0.5d0 + 0.5d0 / ir)
+         fac0 = 1.d0 / (ir*ir * jr*jr)
+         do 20 n = 0, jr-1
+            fac1 = (jr-n) * fac0
             if (n .eq. 0) fac1 = 0.5d0 * fac1
-            do 20 m = idir, idir*(irat-1), idir
-               fac = (irat-abs(m)) * fac1
+            do 20 m = idir, idir*(ir-1), idir
+               fac = (ir-abs(m)) * fac1
                do 20 j = regl1, regh1
- 20               dest(i,j) = dest(i,j) + fac * (src(i*irat+m,j*irat-n)+
-     @                                           src(i*irat+m,j*irat+n))
+ 20               dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr-n)+
+     @                                           src(i*ir+m,j*jr+n))
       else
          j = regl1
          do 30 i = regl0, regh0
- 30         dest(i,j) = src(i*irat,j*irat) * (0.5d0 + 0.5d0 / irat)
-         fac0 = 1.d0 / (irat**4)
-         do 40 n = idir, idir*(irat-1), idir
-            fac1 = (irat-abs(n)) * fac0
-            do 40 m = 0, irat-1
-               fac = (irat-m) * fac1
+ 30         dest(i,j) = src(i*ir,j*jr) * (0.5d0 + 0.5d0 / jr)
+         fac0 = 1.d0 / (ir*ir * jr*jr)
+         do 40 n = idir, idir*(jr-1), idir
+            fac1 = (jr-abs(n)) * fac0
+            do 40 m = 0, ir-1
+               fac = (ir-m) * fac1
                if (m .eq. 0) fac = 0.5d0 * fac
                do 40 i = regl0, regh0
- 40               dest(i,j) = dest(i,j) + fac * (src(i*irat-m,j*irat+n)+
-     @                                           src(i*irat+m,j*irat+n))
+ 40               dest(i,j) = dest(i,j) + fac * (src(i*ir-m,j*jr+n)+
+     @                                           src(i*ir+m,j*jr+n))
       endif
       end
 
@@ -721,24 +702,24 @@ c Fills coarse point defined by reg.
       subroutine anor2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat, idir0, idir1)
+     @ ir, jr, idir0, idir1)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat, idir0, idir1
+      integer ir, jr, idir0, idir1
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       i = regl0
       j = regl1
-      dest(i,j) = src(i*irat,j*irat) * (0.75d0 + 0.5d0 / irat -
-     @                                  0.25d0 / (irat*irat))
-      fac0 = 1.d0 / (irat**4)
-      do 20 n = idir1, idir1*(irat-1), idir1
-         fac1 = (irat-abs(n)) * fac0
-         do 20 m = idir0, idir0*(irat-1), idir0
-            fac = (irat-abs(m)) * fac1
- 20         dest(i,j) = dest(i,j) + fac * src(i*irat+m,j*irat+n)
+      dest(i,j) = src(i*ir,j*jr) * (0.75d0 + 0.25d0 / ir + 0.25d0 / jr -
+     @                              0.25d0 / (ir*jr))
+      fac0 = 1.d0 / (ir*ir * jr*jr)
+      do 20 n = idir1, idir1*(jr-1), idir1
+         fac1 = (jr-abs(n)) * fac0
+         do 20 m = idir0, idir0*(ir-1), idir0
+            fac = (ir-abs(m)) * fac1
+ 20         dest(i,j) = dest(i,j) + fac * src(i*ir+m,j*jr+n)
       end
 
 c NODE-based data only.
@@ -746,30 +727,32 @@ c Fills coarse point defined by reg.
       subroutine anir2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat, idir0, idir1)
+     @ ir, jr, idir0, idir1)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat, idir0, idir1
+      integer ir, jr, idir0, idir1
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       i = regl0
       j = regl1
-      dest(i,j) = src(i*irat,j*irat) * (0.25d0 + 0.5d0 / irat +
-     @                                  0.25d0 / (irat*irat))
-      fac0 = 1.d0 / (irat**4)
-      do 20 n = idir1, idir1*(irat-1), idir1
-         fac1 = (irat-abs(n)) * fac0
-         m = idir0 * idir1 * n
-         fac = irat * fac1
-         dest(i,j) = dest(i,j) + fac * (src(i*irat+m,j*irat) +
-     @                                  src(i*irat,j*irat+n))
-         do 20 m = idir0, idir0*(irat-1), idir0
-            fac = (irat-abs(m)) * fac1
- 20         dest(i,j) = dest(i,j) + fac * (src(i*irat+m,j*irat+n) +
-     @                                     src(i*irat-m,j*irat+n) +
-     @                                     src(i*irat+m,j*irat-n))
+      dest(i,j) = src(i*ir,j*jr) * (0.25d0 + 0.25d0 / ir + 0.25d0 / jr +
+     @                              0.25d0 / (ir*jr))
+      fac0 = 1.d0 / (ir*ir * jr*jr)
+      do 10 m = idir0, idir0*(ir-1), idir0
+         fac1 = (ir-abs(m)) * fac0
+         fac = jr * fac1
+ 10      dest(i,j) = dest(i,j) + fac * src(i*ir+m,j*jr)
+      do 20 n = idir1, idir1*(jr-1), idir1
+         fac1 = (jr-abs(n)) * fac0
+         fac = ir * fac1
+         dest(i,j) = dest(i,j) + fac * src(i*ir,j*jr+n)
+         do 20 m = idir0, idir0*(ir-1), idir0
+            fac = (ir-abs(m)) * fac1
+ 20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
+     @                                     src(i*ir-m,j*jr+n) +
+     @                                     src(i*ir+m,j*jr-n))
       end
 
 c NODE-based data only.
@@ -777,23 +760,23 @@ c Fills coarse point defined by reg.
       subroutine andr2(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ irat, idir1)
+     @ ir, jr, idir1)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer irat, idir1
+      integer ir, jr, idir1
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       i = regl0
       j = regl1
-      dest(i,j) = src(i*irat,j*irat) * (0.5d0 + 1.d0 / irat -
-     @                                  0.5d0 / (irat*irat))
-      fac0 = 1.d0 / (irat**4)
-      do 20 n = idir1, idir1*(irat-1), idir1
-         fac1 = (irat-abs(n)) * fac0
-         do 20 m = 1, irat-1
-            fac = (irat-m) * fac1
- 20         dest(i,j) = dest(i,j) + fac * (src(i*irat+m,j*irat+n) +
-     @                                     src(i*irat-m,j*irat-n))
+      dest(i,j) = src(i*ir,j*jr) * (0.5d0 + 0.5d0 / ir + 0.5d0 / jr -
+     @                              0.5d0 / (ir*jr))
+      fac0 = 1.d0 / (ir*ir * jr*jr)
+      do 20 n = idir1, idir1*(jr-1), idir1
+         fac1 = (jr-abs(n)) * fac0
+         do 20 m = 1, ir-1
+            fac = (ir-m) * fac1
+ 20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
+     @                                     src(i*ir-m,j*jr-n))
       end

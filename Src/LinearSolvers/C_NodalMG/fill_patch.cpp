@@ -339,7 +339,7 @@ int fill_patch(Fab& patch, const Box& region,
 
   Box tdomain = interface.domain();
   tdomain.convert(type(patch));
-  Box idomain = grow(tdomain, ZEROV - type(r));
+  Box idomain = grow(tdomain, zerovect - type(r));
 
   if ((flags & 1) == 0) {
     if (idim == -1 || (flags & 2)) {
@@ -502,7 +502,7 @@ int fill_patch(Fab& patch,
   if (!region.sameType(patch.box()))
     BoxLib::Error("fill_patch---incompatible patch");
 
-  Box idomain = grow(tdomain(), ZEROV - type());
+  Box idomain = grow(tdomain(), zerovect - type());
 
   if (igrid < 0 && (flags & 1) == 0 && idomain.contains(region)) {
     fill_patch_blindly(patch, region, flags);
@@ -835,7 +835,7 @@ void clear_part_interface(MultiFab& r, const level_interface& interface)
 }
 
 void interpolate_patch(Fab& patch, const Box& region,
-		       MultiFab& r, int rat,
+		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp,
 		       const level_interface& interface,
 		       amr_boundary bdy)
@@ -855,7 +855,8 @@ void interpolate_patch(Fab& patch, const Box& region,
 }
 
 void restrict_patch(Fab& patch, const Box& region,
-		    MultiFab& r, int rat, const copy_cache* border_cache,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache,
 		    amr_restrictor restric,
 		    const level_interface& interface,
 		    amr_boundary bdy)
@@ -883,7 +884,8 @@ void restrict_patch(Fab& patch, const Box& region,
 }
 
 void restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, int rat, const copy_cache* border_cache,
+		    MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache,
 		    amr_restrictor restric,
 		    const level_interface& interface,
 		    amr_boundary bdy)

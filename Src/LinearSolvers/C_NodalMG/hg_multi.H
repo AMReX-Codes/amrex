@@ -23,7 +23,7 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class {
   holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(Fab& patch, const Box& region,
-	    Fab& cgr, const Box& cb, int rat) const;
+	    Fab& cgr, const Box& cb, const IntVect& rat) const;
 };
 
 #  else
@@ -36,7 +36,7 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class {
   holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(Fab& patch, const Box& region,
-	    Fab& cgr, const Box& cb, int rat) const;
+	    Fab& cgr, const Box& cb, const IntVect&) const;
 };
 
 #  endif
@@ -46,7 +46,7 @@ class holy_grail_sigma_restrictor_class :
  public:
   holy_grail_sigma_restrictor_class() { }
   void fill(Fab& patch, const Box& region,
-	    Fab& fgr, int rat) const;
+	    Fab& fgr, const IntVect& rat) const;
 };
 
 const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;

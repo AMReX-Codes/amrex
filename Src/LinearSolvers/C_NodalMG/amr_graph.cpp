@@ -30,7 +30,8 @@ extern "C" void FCONT3D(const Real*,
 			const int&, const int&, const int&, const int&,
 			const int&, const int&, const int&, const int&,
 			const int&,
-			const int&, const int&, const int&, const int&,
+			const int&, const int&, const int&,
+			const int&, const int&, const int&,
 			Real&, Real&, Real&, Real&, Real&, Real&, const int&);
 
 extern "C" void FGETSL0(const Real*,
@@ -69,7 +70,8 @@ void set_graphics_knobs(Real Theta, Real Phi)
 
 #if (BL_SPACEDIM == 1)
 
-void real_coords(const IntVect& iv, const IntVect& type, int ratio, Real& x)
+void real_coords(const IntVect& iv, const IntVect& type, const IntVect& ratio,
+		 Real& x)
 {
   if (type[0] == BOX_NODE) {
     x = iv[0];
@@ -82,13 +84,12 @@ void real_coords(const IntVect& iv, const IntVect& type, int ratio, Real& x)
     exit(1);
   }
 
-  x /= ratio;
+  x /= ratio[0];
 }
 
-void real_coords(const Box& b, int ratio, Real& x0, Real& x1)
+void real_coords(const Box& b, const IntVect& ratio, Real& x0, Real& x1)
 {
-  if (!b.ok())
-    cerr << "real_coords():  invalid box" << endl;
+  assert(b.ok());
 
   real_coords(b.smallEnd(), b.type(), ratio, x0);
   real_coords(b.bigEnd(),   b.type(), ratio, x1);
@@ -96,7 +97,7 @@ void real_coords(const Box& b, int ratio, Real& x0, Real& x1)
 
 #elif (BL_SPACEDIM == 2)
 
-void real_coords(const IntVect& iv, const IntVect& type, int ratio,
+void real_coords(const IntVect& iv, const IntVect& type, const IntVect& ratio,
 		 Real& x, Real& y)
 {
   if (type[0] == BOX_NODE) {
@@ -120,15 +121,14 @@ void real_coords(const IntVect& iv, const IntVect& type, int ratio,
     cerr << "real_coords():  invalid type" << endl;
     exit(1);
   }
-  x /= ratio;
-  y /= ratio;
+  x /= ratio[0];
+  y /= ratio[1];
 }
 
-void real_coords(const Box& b, int ratio,
+void real_coords(const Box& b, const IntVect& ratio,
 		 Real& x0, Real& x1, Real& y0, Real& y1)
 {
-  if (!b.ok())
-    cerr << "real_coords():  invalid box" << endl;
+  assert(b.ok());
 
   real_coords(b.smallEnd(), b.type(), ratio, x0, y0);
   real_coords(b.bigEnd(),   b.type(), ratio, x1, y1);
@@ -136,7 +136,7 @@ void real_coords(const Box& b, int ratio,
 
 #elif (BL_SPACEDIM == 3)
 
-void real_coords(const IntVect& iv, const IntVect& type, int ratio,
+void real_coords(const IntVect& iv, const IntVect& type, const IntVect& ratio,
 		 Real& x, Real& y, Real& z)
 {
   if (type[0] == BOX_NODE) {
@@ -171,16 +171,15 @@ void real_coords(const IntVect& iv, const IntVect& type, int ratio,
     cerr << "real_coords():  invalid type" << endl;
     exit(1);
   }
-  x /= ratio;
-  y /= ratio;
-  z /= ratio;
+  x /= ratio[0];
+  y /= ratio[1];
+  z /= ratio[2];
 }
 
-void real_coords(const Box& b, int ratio,
+void real_coords(const Box& b, const IntVect& ratio,
 		 Real& x0, Real& x1, Real& y0, Real& y1, Real& z0, Real& z1)
 {
-  if (!b.ok())
-    cerr << "real_coords():  invalid box" << endl;
+  assert(b.ok());
 
   real_coords(b.smallEnd(), b.type(), ratio, x0, y0, z0);
   real_coords(b.bigEnd(),   b.type(), ratio, x1, y1, z1);
@@ -188,7 +187,7 @@ void real_coords(const Box& b, int ratio,
 
 #endif
 
-void fit(Box b, int ratio, Real margin)
+void fit(Box b, const IntVect& ratio, Real margin)
 {
   b.convert(nodevect);
 #if (BL_SPACEDIM == 2)
@@ -206,7 +205,7 @@ void fit(Box b, int ratio, Real margin)
 #endif
 }
 
-void plot(Box b, int ratio)
+void plot(Box b, const IntVect& ratio)
 {
   b.convert(nodevect);
 #if (BL_SPACEDIM == 2)
@@ -272,7 +271,7 @@ void plot(Box b, int ratio)
 #endif
 }
 
-void plot(const BoxArray& mesh, int ratio)
+void plot(const BoxArray& mesh, const IntVect& ratio)
 {
   gflush(0);
   for (int i = 0; i < mesh.length(); i++)
@@ -282,8 +281,9 @@ void plot(const BoxArray& mesh, int ratio)
 
 void plot(const Array<BoxArray>& mesh, const Array<IntVect>& gen_ratio)
 {
-  for (int i = 0; i < mesh.length(); i++) {
-    plot(mesh[i], (i == 0 ? 1 : gen_ratio[i-1][0]));
+  plot(mesh[0], unitvect);
+  for (int i = 1; i < mesh.length(); i++) {
+    plot(mesh[i], gen_ratio[i-1]);
   }
 }
 
@@ -355,7 +355,8 @@ static int best_match(const BoxArray& a, const Box& region, int& igrid)
 // side1 is unobscured---function returns 0, side1 unchanged, side2 trashed.
 // side1 is partially obscured---function returns 2, side1 and side2
 // contain smaller boxes appropriate for recursive descent.
-static int mask_box(Box& side1, Box& side2, const BoxArray& mask, int mrat)
+static int mask_box(Box& side1, Box& side2,
+		    const BoxArray& mask, const IntVect& mrat)
 {
   int igrid;
   side2 = side1;
@@ -369,10 +370,10 @@ static int mask_box(Box& side1, Box& side2, const BoxArray& mask, int mrat)
   return retval;
 }
 
-void contour(const Fab& r, Box subbox, int ratio,
+void contour(const Fab& r, Box subbox, const IntVect& ratio,
 	     Real value, int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   if (!r.box().sameType(subbox)) {
     subbox.convert(r.box().type());
@@ -416,9 +417,9 @@ void contour(const Fab& r, Box subbox, int ratio,
 	  x0, x1, y0, y1,
 	  1, value, ifail);
 #else
-  Real xoff = xo - 0.5 * (subbox.type(0) == BOX_CELL) / ratio;
-  Real yoff = yo - 0.5 * (subbox.type(1) == BOX_CELL) / ratio;
-  Real zoff = zo - 0.5 * (subbox.type(2) == BOX_CELL) / ratio;
+  Real xoff = xo - 0.5 * (subbox.type(0) == BOX_CELL) / ratio[0];
+  Real yoff = yo - 0.5 * (subbox.type(1) == BOX_CELL) / ratio[1];
+  Real zoff = zo - 0.5 * (subbox.type(2) == BOX_CELL) / ratio[2];
   FCONT3D(r.dataPtr(),
 	  r.box().smallEnd(0), r.box().bigEnd(0),
 	  r.box().smallEnd(1), r.box().bigEnd(1),
@@ -426,16 +427,17 @@ void contour(const Fab& r, Box subbox, int ratio,
 	  subbox.smallEnd(0), subbox.bigEnd(0),
 	  subbox.smallEnd(1), subbox.bigEnd(1),
 	  subbox.smallEnd(2), subbox.bigEnd(2),
-	  ratio, xoff, yoff, zoff, theta, phi, value, ifail);
+	  ratio[0], ratio[1], ratio[2], xoff, yoff, zoff,
+	  theta, phi, value, ifail);
 #endif
   color(red, green, blue);
   gflush(1);
 }
 
-void contour(MultiFab& r, int ratio, Real value,
+void contour(MultiFab& r, const IntVect& ratio, Real value,
 	     int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   if (cflag) {
     if (domain.ok()) {
@@ -458,27 +460,27 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio, Real value,
   int i;
   if (cflag) {
     if (domain0.ok()) {
-      fit(domain0, 1);
+      fit(domain0, unitvect);
     }
     newpage();
     for (i = 0; i < r.length(); i++)
       plot(r[i].boxArray());
   }
 
-  int ratio = 1;
+  IntVect ratio = unitvect;
   for (i = 0; i < r.length() - 1; i++) {
     contour(r[i], ratio, value, 0, null_Box,
-	    set_contour_color, r[i+1].boxArray(), gen_ratio[i][0]);
-    ratio *= gen_ratio[i][0];
+	    set_contour_color, r[i+1].boxArray(), gen_ratio[i]);
+    ratio *= gen_ratio[i];
   }
   i = r.length() - 1;
   contour(r[i], ratio, value, 0, null_Box, set_contour_color);
 }
 
-void contour(const Fab& r, Box subbox, int ratio,
+void contour(const Fab& r, Box subbox, const IntVect& ratio,
 	     int nval, Real value[], int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   if (!r.box().sameType(subbox)) {
     subbox.convert(r.box().type());
@@ -515,10 +517,10 @@ void contour(const Fab& r, Box subbox, int ratio,
   color(red, green, blue);
 }
 
-void contour(MultiFab& r, int ratio, int nval, Real value[],
+void contour(MultiFab& r, const IntVect& ratio, int nval, Real value[],
 	     int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   if (cflag) {
     if (domain.ok()) {
@@ -539,36 +541,37 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio,
 	     int cflag, const Box& domain0,
 	     void (*set_contour_color)(int,int))
 {
-  int i, ratio;
+  int i;
+  IntVect ratio;
   if (cflag) {
     if (domain0.ok()) {
-      fit(domain0, 1);
+      fit(domain0, unitvect);
     }
     newpage();
-    ratio = 1;
+    ratio = unitvect;
     for (i = 0; i < r.length(); i++) {
       if (i > 0)
-	ratio *= gen_ratio[i-1][0];
+	ratio *= gen_ratio[i-1];
       plot(r[i].boxArray(), ratio);
     }
   }
 
-  ratio = 1;
+  ratio = unitvect;
   for (i = 0; i < r.length() - 1; i++) {
     contour(r[i], ratio, nval, value, 0, null_Box,
-	    set_contour_color, r[i+1].boxArray(), gen_ratio[i][0]);
-    ratio *= gen_ratio[i][0];
+	    set_contour_color, r[i+1].boxArray(), gen_ratio[i]);
+    ratio *= gen_ratio[i];
   }
   i = r.length() - 1;
   contour(r[i], ratio, nval, value, 0, null_Box, set_contour_color);
 }
 
-void contour(const Fab& r, Box subbox, int ratio,
+void contour(const Fab& r, Box subbox, const IntVect& ratio,
 	     int nval, int flag,
 	     Real a, Real b, Real p,
 	     int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   if (!r.box().sameType(subbox)) {
     subbox.convert(r.box().type());
@@ -603,11 +606,11 @@ void contour(const Fab& r, Box subbox, int ratio,
   delete [] value;
 }
 
-void contour(MultiFab& r, int ratio, int nval, int flag,
+void contour(MultiFab& r, const IntVect& ratio, int nval, int flag,
 	     Real a, Real b, Real p,
 	     int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
-	     const BoxArray& mask, int mrat)
+	     const BoxArray& mask, const IntVect& mrat)
 {
   Real *value = new Real[nval];
   if (flag == 0 || flag == 1) {
@@ -674,7 +677,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio,
 
 #if (BL_SPACEDIM == 3)
 
-void fit_slice(Box b, int idim, int ratio, Real margin)
+void fit_slice(Box b, int idim, const IntVect& ratio, Real margin)
 {
   b.convert(nodevect);
   Real x0, x1, y0, y1, z0, z1;
@@ -687,7 +690,7 @@ void fit_slice(Box b, int idim, int ratio, Real margin)
     fitbox(x0, x1, y0, y1, margin);
 }
 
-void plot_slice(Box b, int idim, int ratio)
+void plot_slice(Box b, int idim, const IntVect& ratio)
 {
   b.convert(nodevect);
   Real x0, x1, y0, y1, z0, z1;
@@ -700,7 +703,7 @@ void plot_slice(Box b, int idim, int ratio)
     mkbox(x0, x1, y0, y1);
 }
 
-void slice(const Fab& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, const IntVect& ratio,
 	   int idim, int islice,
 	   Real value, int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -790,7 +793,7 @@ void slice(const Fab& r, Box subbox, int ratio,
   gflush(1);
 }
 
-void slice(const Fab& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
 	   int nval, Real value[], int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -888,7 +891,7 @@ void slice(const Fab& r, Box subbox, int ratio,
   gflush(1);
 }
 
-void slice(const Fab& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
 	   int nval, int flag,
 	   Real a, Real b, Real p,

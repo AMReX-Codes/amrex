@@ -9,14 +9,14 @@ extern PArray<MultiFab> null_amr_real;
 
 class holy_grail_amr_projector : public holy_grail_amr_multigrid {
  protected:
-  void divergence_source(PArray<MultiFab>* u);
+  void right_hand_side(PArray<MultiFab>* u, PArray<MultiFab>& S);
+  void grid_average(PArray<MultiFab>& S);
+  void grid_divergence(PArray<MultiFab>* u);
   void sync_right_hand_side(PArray<MultiFab>* u);
+  void interface_average(PArray<MultiFab>& S, int lev);
   void interface_divergence(PArray<MultiFab>* u, int lev);
   void form_solution_vector(PArray<MultiFab>* u,
 			    PArray<MultiFab>& sigma_in);
-
-  void cell_based_source(PArray<MultiFab>& S);
-  void interface_average(PArray<MultiFab>& S, int lev);
 
   void sparse_node_source_adjustment(PArray<MultiFab>& sparse_source);
 
@@ -119,15 +119,17 @@ class holy_grail_amr_projector : public holy_grail_amr_multigrid {
   // that it integrates to 0 to maximum precision.
 
   void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
+		      PArray<MultiFab>& rhs,
 		      PArray<MultiFab>& Coarse_source,
-		      PArray<MultiFab>& rhs, int use_u, Real H[], Real tol,
+		      int use_u, Real H[], Real tol,
 		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) {
-    manual_project(u, p, Coarse_source, rhs, null_amr_real,
+    manual_project(u, p, rhs, Coarse_source, null_amr_real,
 		   use_u, H, tol, Lev_min, Lev_max, scale);
   }
   void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
+		      PArray<MultiFab>& rhs,
 		      PArray<MultiFab>& Coarse_source,
-		      PArray<MultiFab>& rhs, PArray<MultiFab>& Sigma,
+		      PArray<MultiFab>& Sigma,
 		      int use_u, Real H[], Real tol,
 		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 

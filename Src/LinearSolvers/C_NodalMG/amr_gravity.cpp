@@ -157,7 +157,7 @@ void amr_gravity_module::interface_average(const amr_real& Source, int lev)
 					   boundary.scalar());
     cbox = Sc.box();
     Box creg = interface[mglev].node_face(iface);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     Real *const sptr = source.dataPtr(lev, igrid);
     Real *const Sfptr = Source.dataPtr(lev, igrid);
     FORT_GVFAVG(sptr, dimlist(sbox),
@@ -196,7 +196,7 @@ void amr_gravity_module::interface_average(const amr_real& Source, int lev)
     Source[lev].fill_patch(Sf, interface[mglev], boundary.scalar(),
 			   0, 1, iedge);
     Box creg = interface[mglev].node_edge(iedge);
-    creg.coarsen(rat).grow(t - UNITV);
+    creg.coarsen(rat).grow(t - unitvect);
     interface[mglev].geo_array(ga, 1, iedge);
     FORT_GVEAVG(sptr, dimlist(sbox),
 		Sc.dataPtr(), dimlist(cbox),

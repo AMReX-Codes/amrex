@@ -86,7 +86,7 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
-     @ hx, hy, irat, idim, idir, irz, imax)
+     @ hx, hy, ir, jr, idim, idir, irz, imax)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
@@ -98,45 +98,47 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 uf(dimdec(f))
       real*8 vf(dimdec(f))
       real*8 hx, hy
-      integer irat, idim, idir, irz, imax
-      hxm1 = 1.d0 / hx
-      hym1 = 1.d0 / hy
-      fac0 = 1.d0 / (irat+1)
+      integer ir, jr, idim, idir, irz, imax
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
             iuc = i - 1
-            iuf = i * irat
+            iuf = i * ir
          else
             iuc = i
-            iuf = i * irat - 1
+            iuf = i * ir - 1
          endif
+         fac0 = ir / (ir + 1.d0)
+         hxm1 = 1.d0 / (ir * hx)
+         hym1 = 1.d0 / (jr * hy)
          do 10 j = cregl1, cregh1
- 10         src(i*irat,j*irat) = fac0 *
+ 10         src(i*ir,j*jr) = fac0 *
      @        (hym1 * (vc(iuc,j) - vc(iuc,j-1)) -
      @         hxm1 * idir * (uc(iuc,j) + uc(iuc,j-1)))
          if (irz .eq. 1) then
-            r = (iuc + 0.5d0) * (hx * irat)
-            rfac = hx / (6.d0 * hy * r)
+            r = (iuc + 0.5d0) * (hx * ir)
+            rfac = (ir * hx) / (6.d0 * jr * hy * r)
             do 20 j = cregl1, cregh1
- 20            src(i*irat,j*irat) = src(i*irat,j*irat) + irat * fac0 *
+ 20            src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @           (rfac * idir * (vc(iuc,j) - vc(iuc,j-1)))
             r = (iuf + 0.5d0) * hx
             rfac = hx / (6.d0 * hy * r)
          endif
-         fac0 = fac0 / (irat*irat)
-         i = i * irat
-         do 50 n = 0, irat-1
-            fac1 = (irat-n) * fac0
+         fac0 = fac0 / (ir * jr * jr)
+         hxm1 = ir * hxm1
+         hym1 = jr * hym1
+         i = i * ir
+         do 50 n = 0, jr-1
+            fac1 = (jr-n) * fac0
             if (n .eq. 0) fac1 = 0.5d0 * fac1
-            do 30 j = irat*cregl1, irat*cregh1, irat
+            do 30 j = jr*cregl1, jr*cregh1, jr
  30            src(i,j) = src(i,j) + fac1 *
      @           (hxm1 * idir * (uf(iuf,j-n) + uf(iuf,j-n-1) +
      @                           uf(iuf,j+n) + uf(iuf,j+n-1)) +
      @            hym1 * (vf(iuf,j-n) - vf(iuf,j-n-1) +
      @                    vf(iuf,j+n) - vf(iuf,j+n-1)))
             if (irz .eq. 1) then
-               do 40 j = irat*cregl1, irat*cregh1, irat
+               do 40 j = jr*cregl1, jr*cregh1, jr
  40               src(i,j) = src(i,j) - fac1 *
      @              (rfac * idir * (vf(iuf,j-n) - vf(iuf,j-n-1) +
      @                              vf(iuf,j+n) - vf(iuf,j+n-1)))
@@ -146,44 +148,49 @@ c Note---only generates values at coarse points along edge of fine grid
          j = cregl1
          if (idir .eq. 1) then
             juc = j - 1
-            juf = j * irat
+            juf = j * jr
          else
             juc = j
-            juf = j * irat - 1
+            juf = j * jr - 1
          endif
+         fac0 = jr / (jr + 1.d0)
+         hxm1 = 1.d0 / (ir * hx)
+         hym1 = 1.d0 / (jr * hy)
          do 60 i = cregl0, cregh0
- 60         src(i*irat,j*irat) = fac0 *
+ 60         src(i*ir,j*jr) = fac0 *
      @        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
      @         hym1 * idir * (vc(i,juc) + vc(i-1,juc)))
          if (irz .eq. 1 .and. cregh0 .lt. imax) then
             do 70 i = cregl0, cregh0
-               r = (i + 0.5d0) * (hx * irat)
-               rfac0 = hx / (6.d0 * hy * (r - hx * irat))
-               rfac1 = hx / (6.d0 * hy * r)
- 70            src(i*irat,j*irat) = src(i*irat,j*irat) + irat * fac0 *
+               r = (i + 0.5d0) * (hx * ir)
+               rfac0 = (ir * hx) / (6.d0 * jr * hy * (r - hx * ir))
+               rfac1 = (ir * hx) / (6.d0 * jr * hy * r)
+ 70            src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @           (idir * (rfac1 * vc(i,juc) - rfac0 * vc(i-1,juc)))
          else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
             i = cregh0
-            r = (i - 0.5d0) * (hx * irat)
-            rfac0 = hx / (6.d0 * hy * r)
+            r = (i - 0.5d0) * (hx * ir)
+            rfac0 = (ir * hx) / (6.d0 * jr * hy * r)
             rfac1 = -rfac0
-            src(i*irat,j*irat) = src(i*irat,j*irat) + irat * fac0 *
+            src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @           (idir * (rfac1 * vc(i,juc) - rfac0 * vc(i-1,juc)))
          endif
-         fac0 = fac0 / (irat*irat)
-         j = j * irat
-         do 100 m = 0, irat-1
-            fac1 = (irat-m) * fac0
+         fac0 = fac0 / (ir * ir * jr)
+         hxm1 = ir * hxm1
+         hym1 = jr * hym1
+         j = j * jr
+         do 100 m = 0, ir-1
+            fac1 = (ir-m) * fac0
             if (m .eq. 0) fac1 = 0.5d0 * fac1
-            do 80 i = irat*cregl0, irat*cregh0, irat
+            do 80 i = ir*cregl0, ir*cregh0, ir
  80            src(i,j) = src(i,j) + fac1 *
      @           (hxm1 * (uf(i-m,juf) - uf(i-m-1,juf) +
      @                    uf(i+m,juf) - uf(i+m-1,juf)) +
      @            hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
      @                           vf(i+m,juf) + vf(i+m-1,juf)))
             if (irz .eq. 1 .and. cregh0 .lt. imax) then
-               do 90 i = irat*cregl0, irat*cregh0, irat
+               do 90 i = ir*cregl0, ir*cregh0, ir
                   r = (i + 0.5d0) * hx
                   rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
                   rfac1m = hx / (6.d0 * hy * (r - m * hx))
@@ -194,7 +201,7 @@ c This should only occur with a corner at the outer boundary:
      @                       rfac1p * vf(i+m,juf) - rfac0p * vf(i+m-1,juf)))
             else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
-               i = irat*cregh0
+               i = ir*cregh0
                r = (i + 0.5d0) * hx
                rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
                if (m .eq. 0) then
@@ -217,7 +224,7 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
-     @ hx, hy, irat, idir, jdir, irz)
+     @ hx, hy, ir, jr, idir, jdir, irz)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
@@ -229,42 +236,44 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 uf(dimdec(f))
       real*8 vf(dimdec(f))
       real*8 hx, hy
-      integer irat, idir, jdir, irz
-      hxm1 = 1.d0 / hx
-      hym1 = 1.d0 / hy
-      fac0 = dble(irat) / ((1.5d0*irat+1.d0)*irat-0.5d0)
+      integer ir, jr, idir, jdir, irz
+      fac0 = (ir * jr) / (1.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr - 0.5d0)
+      hxm1 = 1.d0 / (ir * hx)
+      hym1 = 1.d0 / (jr * hy)
       i = cregl0
       j = cregl1
       if (idir .eq. 1) then
          iuc = i - 1
-         iuf = i * irat
+         iuf = i * ir
       else
          iuc = i
-         iuf = i * irat - 1
+         iuf = i * ir - 1
       endif
       if (jdir .eq. 1) then
          juc = j - 1
-         juf = j * irat
+         juf = j * jr
       else
          juc = j
-         juf = j * irat - 1
+         juf = j * jr - 1
       endif
-      src(i*irat,j*irat) = fac0 *
+      src(i*ir,j*jr) = fac0 *
      @  (hxm1 * idir * (uc(iuc+idir,juc) - uc(iuc,juc) -
      @                  uc(iuc,juc+jdir)) +
      @   hym1 * jdir * (vc(iuc,juc+jdir) - vc(iuc,juc) -
      @                  vc(iuc+idir,juc)))
       if (irz .eq. 1) then
-         r = (iuc + 0.5d0) * (hx * irat)
-         rfac0 = hx / (6.d0 * hy * (r + idir * hx * irat))
-         rfac1 = hx / (6.d0 * hy * r)
-         src(i*irat,j*irat) = src(i*irat,j*irat) + irat * fac0 *
+         r = (iuc + 0.5d0) * (hx * ir)
+         rfac0 = (ir * hx) / (6.d0 * jr * hy * (r + idir * hx * ir))
+         rfac1 = (ir * hx) / (6.d0 * jr * hy * r)
+         src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @     (idir * jdir * (rfac1 * (vc(iuc,juc+jdir) - vc(iuc,juc)) +
      @                     rfac0 *  vc(iuc+idir,juc)))
       endif
-      fac0 = fac0 / irat
-      i = i * irat
-      j = j * irat
+      i = i * ir
+      j = j * jr
+      fac0 = fac0 / (ir * jr)
+      hxm1 = ir * hxm1
+      hym1 = jr * hym1
       src(i,j) = src(i,j) + fac0 *
      @  (hxm1 * idir * uf(iuf,juf) + hym1 * jdir * vf(iuf,juf))
       if (irz .eq. 1) then
@@ -273,26 +282,34 @@ c Note---only generates values at coarse points along edge of fine grid
          src(i,j) = src(i,j) - fac0 *
      @     (idir * jdir * rfac * vf(iuf,juf))
       endif
-      fac0 = fac0 / irat
-      do 10 n = jdir, jdir*(irat-1), jdir
-         fac1 = (irat-abs(n)) * fac0
-         m = idir*abs(n)
+      fac0 = fac0 / ir
+      do 10 m = idir, idir*(ir-1), idir
+         fac1 = (ir-abs(m)) * fac0
          src(i,j) = src(i,j) + fac1 *
-     @     (hxm1 * idir * (uf(iuf,juf+n) + uf(iuf,juf+n-jdir) +
-     @                     uf(iuf+m,juf) - uf(iuf+m-idir,juf)) +
-     @      hym1 * jdir * (vf(iuf+m,juf) + vf(iuf+m-idir,juf) +
-     @                     vf(iuf,juf+n) - vf(iuf,juf+n-jdir)))
+     @     (hxm1 * idir * (uf(iuf+m,juf) - uf(iuf+m-idir,juf)) +
+     @      hym1 * jdir * (vf(iuf+m,juf) + vf(iuf+m-idir,juf)))
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
-            rfac1  = hx / (6.d0 * hy * r)
             rfac0p = hx / (6.d0 * hy * (r + (m - idir) * hx))
             rfac1p = hx / (6.d0 * hy * (r + m * hx))
             src(i,j) = src(i,j) - fac1 *
      @        (idir * jdir * (rfac1p * vf(iuf+m,juf) -
-     @                        rfac0p * vf(iuf+m-idir,juf) +
-     @                        rfac1 * (vf(iuf,juf+n) - vf(iuf,juf+n-jdir))))
+     @                        rfac0p * vf(iuf+m-idir,juf)))
          endif
  10      continue
+      fac0 = ir * fac0 / jr
+      do 20 n = jdir, jdir*(jr-1), jdir
+         fac1 = (jr-abs(n)) * fac0
+         src(i,j) = src(i,j) + fac1 *
+     @     (hxm1 * idir * (uf(iuf,juf+n) + uf(iuf,juf+n-jdir)) +
+     @      hym1 * jdir * (vf(iuf,juf+n) - vf(iuf,juf+n-jdir)))
+         if (irz .eq. 1) then
+            r = (iuf + 0.5d0) * hx
+            rfac1  = hx / (6.d0 * hy * r)
+            src(i,j) = src(i,j) - fac1 *
+     @        idir * jdir * rfac1 * (vf(iuf,juf+n) - vf(iuf,juf+n-jdir))
+         endif
+ 20      continue
       end
 
 c Note---only generates values at coarse points along edge of fine grid
@@ -300,7 +317,7 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
-     @ hx, hy, irat, idir, jdir, irz)
+     @ hx, hy, ir, jr, idir, jdir, irz)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
@@ -312,37 +329,39 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 uf(dimdec(f))
       real*8 vf(dimdec(f))
       real*8 hx, hy
-      integer irat, idir, jdir, irz
-      hxm1 = 1.d0 / hx
-      hym1 = 1.d0 / hy
-      fac0 = dble(irat) / ((0.5d0*irat+1.d0)*irat+0.5d0)
+      integer ir, jr, idir, jdir, irz
+      fac0 = (ir * jr) / (0.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr + 0.5d0)
+      hxm1 = 1.d0 / (ir * hx)
+      hym1 = 1.d0 / (jr * hy)
       i = cregl0
       j = cregl1
       if (idir .eq. 1) then
          iuc = i - 1
-         iuf = i * irat
+         iuf = i * ir
       else
          iuc = i
-         iuf = i * irat - 1
+         iuf = i * ir - 1
       endif
       if (jdir .eq. 1) then
          juc = j - 1
-         juf = j * irat
+         juf = j * jr
       else
          juc = j
-         juf = j * irat - 1
+         juf = j * jr - 1
       endif
-      src(i*irat,j*irat) = -fac0 *
+      src(i*ir,j*jr) = -fac0 *
      @  (hxm1 * idir * uc(iuc,juc) + hym1 * jdir * vc(iuc,juc))
       if (irz .eq. 1) then
-         r = (iuc + 0.5d0) * (hx * irat)
-         rfac = hx / (6.d0 * hy * r)
-         src(i*irat,j*irat) = src(i*irat,j*irat) - irat * fac0 *
+         r = (iuc + 0.5d0) * (hx * ir)
+         rfac = (ir * hx) / (6.d0 * jr * hy * r)
+         src(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
      @     (idir * jdir * rfac * vc(iuc,juc))
       endif
-      fac0 = fac0 / irat
-      i = i * irat
-      j = j * irat
+      i = i * ir
+      j = j * jr
+      fac0 = fac0 / (ir * jr)
+      hxm1 = ir * hxm1
+      hym1 = jr * hym1
       src(i,j) = src(i,j) + fac0 *
      @  (hxm1 * idir * (uf(iuf,juf) - uf(iuf-idir,juf) +
      @                  uf(iuf,juf-jdir)) +
@@ -356,26 +375,34 @@ c Note---only generates values at coarse points along edge of fine grid
      @     (idir * jdir * (rfac1 * (vf(iuf,juf-jdir) - vf(iuf,juf)) +
      @                     rfac0 *  vf(iuf-idir,juf)))
       endif
-      fac0 = fac0 / irat
-      do 10 n = jdir, jdir*(irat-1), jdir
-         fac1 = (irat-abs(n)) * fac0
-         m = idir*abs(n)
+      fac0 = fac0 / ir
+      do 10 m = idir, idir*(ir-1), idir
+         fac1 = (ir-abs(m)) * fac0
          src(i,j) = src(i,j) + fac1 *
-     @     (hxm1 * idir * (uf(iuf,juf-n) + uf(iuf,juf-n-jdir) +
-     @                     uf(iuf-m,juf) - uf(iuf-m-idir,juf)) +
-     @      hym1 * jdir * (vf(iuf-m,juf) + vf(iuf-m-idir,juf) +
-     @                     vf(iuf,juf-n) - vf(iuf,juf-n-jdir)))
+     @     (hxm1 * idir * (uf(iuf-m,juf) - uf(iuf-m-idir,juf)) +
+     @      hym1 * jdir * (vf(iuf-m,juf) + vf(iuf-m-idir,juf)))
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
             rfac0m = hx / (6.d0 * hy * (r - (m + idir) * hx))
             rfac1m = hx / (6.d0 * hy * (r - m * hx))
-            rfac1  = hx / (6.d0 * hy * r)
             src(i,j) = src(i,j) - fac1 *
      @        (idir * jdir * (rfac1m * vf(iuf-m,juf) -
-     @                        rfac0m * vf(iuf-m-idir,juf) +
-     @                        rfac1 * (vf(iuf,juf-n) - vf(iuf,juf-n-jdir))))
+     @                        rfac0m * vf(iuf-m-idir,juf)))
          endif
  10      continue
+      fac0 = ir * fac0 / jr
+      do 20 n = jdir, jdir*(jr-1), jdir
+         fac1 = (jr-abs(n)) * fac0
+         src(i,j) = src(i,j) + fac1 *
+     @     (hxm1 * idir * (uf(iuf,juf-n) + uf(iuf,juf-n-jdir)) +
+     @      hym1 * jdir * (vf(iuf,juf-n) - vf(iuf,juf-n-jdir)))
+         if (irz .eq. 1) then
+            r = (iuf + 0.5d0) * hx
+            rfac1  = hx / (6.d0 * hy * r)
+            src(i,j) = src(i,j) - fac1 *
+     @        idir * jdir * rfac1 * (vf(iuf,juf-n) - vf(iuf,juf-n-jdir))
+         endif
+ 20      continue
       end
 
 c Note---only generates values at coarse points along edge of fine grid
@@ -383,7 +410,7 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
-     @ hx, hy, irat, jdir, irz)
+     @ hx, hy, ir, jr, jdir, irz)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
@@ -395,33 +422,35 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 uf(dimdec(f))
       real*8 vf(dimdec(f))
       real*8 hx, hy
-      integer irat, jdir, irz
-      hxm1 = 1.d0 / hx
-      hym1 = 1.d0 / hy
-      fac0 = dble(irat) / ((irat+2.d0)*irat-1.d0)
+      integer ir, jr, jdir, irz
+      fac0 = (ir * jr) / (ir*jr + ir + jr - 1.d0)
+      hxm1 = 1.d0 / (ir * hx)
+      hym1 = 1.d0 / (jr * hy)
       i = cregl0
       j = cregl1
       if (jdir .eq. 1) then
          juc = j
-         juf = j * irat
+         juf = j * jr
       else
          juc = j - 1
-         juf = j * irat - 1
+         juf = j * jr - 1
       endif
-      src(i*irat,j*irat) = fac0 *
+      src(i*ir,j*jr) = fac0 *
      @  (hxm1 * (uc(i,juc-jdir) - uc(i-1,juc)) +
      @   hym1 * jdir * (vc(i-1,juc) - vc(i,juc-jdir)))
       if (irz .eq. 1) then
-         r = (i + 0.5d0) * (hx * irat)
-         rfac0 = hx / (6.d0 * hy * (r - hx * irat))
-         rfac1 = hx / (6.d0 * hy * r)
-         src(i*irat,j*irat) = src(i*irat,j*irat) + irat * fac0 *
+         r = (i + 0.5d0) * (hx * ir)
+         rfac0 = (ir * hx) / (6.d0 * jr * hy * (r - hx * ir))
+         rfac1 = (ir * hx) / (6.d0 * jr * hy * r)
+         src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @     (jdir * (rfac1 * vc(i,juc-jdir) +
      @              rfac0 * vc(i-1,juc)))
       endif
-      fac0 = fac0 / irat
-      i = i * irat
-      j = j * irat
+      i = i * ir
+      j = j * jr
+      fac0 = fac0 / (ir * jr)
+      hxm1 = ir * hxm1
+      hym1 = jr * hym1
       src(i,j) = src(i,j) + fac0 *
      @  (hxm1 * (uf(i,juf) - uf(i-1,juf-jdir)) +
      @   hym1 * jdir * (vf(i,juf) - vf(i-1,juf-jdir)))
@@ -433,34 +462,42 @@ c Note---only generates values at coarse points along edge of fine grid
      @     (jdir * (rfac1 * vf(i,juf) +
      @              rfac0 * vf(i-1,juf-jdir)))
       endif
-      fac0 = fac0 / irat
-      do 10 n = jdir, jdir*(irat-1), jdir
-         fac1 = (irat-abs(n)) * fac0
-         m = abs(n)
+      fac0 = fac0 / ir
+      do 10 m = 1, ir-1
+         fac1 = (ir-m) * fac0
          src(i,j) = src(i,j) + fac1 *
-     @     (hxm1 * (uf(i,juf+n) + uf(i,juf+n-jdir) -
-     @              uf(i-1,juf-n) - uf(i-1,juf-n-jdir) +
-     @              uf(i+m,juf) - uf(i+m-1,juf) +
+     @     (hxm1 * (uf(i+m,juf) - uf(i+m-1,juf) +
      @              uf(i-m,juf-jdir) - uf(i-m-1,juf-jdir)) +
-     @      hym1 * jdir * (vf(i,juf+n) - vf(i,juf+n-jdir) +
-     @                     vf(i-1,juf-n) - vf(i-1,juf-n-jdir) +
-     @                     vf(i+m,juf) + vf(i+m-1,juf) -
+     @      hym1 * jdir * (vf(i+m,juf) + vf(i+m-1,juf) -
      @                     vf(i-m,juf-jdir) - vf(i-m-1,juf-jdir)))
          if (irz .eq. 1) then
             r = (i + 0.5d0) * hx
             rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
             rfac1m = hx / (6.d0 * hy * (r - m * hx))
-            rfac0  = hx / (6.d0 * hy * (r - hx))
-            rfac1  = hx / (6.d0 * hy * r)
             rfac0p = hx / (6.d0 * hy * (r + (m - 1) * hx))
             rfac1p = hx / (6.d0 * hy * (r + m * hx))
             src(i,j) = src(i,j) - fac1 *
      @        (jdir * (rfac1p * vf(i+m,juf) -
-     @                 rfac0p * vf(i+m-1,juf) +
-     @                 rfac1 * (vf(i,juf+n) - vf(i,juf+n-jdir)) -
-     @                 rfac0 * (vf(i-1,juf-n) - vf(i-1,juf-n-jdir)) -
+     @                 rfac0p * vf(i+m-1,juf) -
      @                 rfac1m * vf(i-m,juf-jdir) +
      @                 rfac0m * vf(i-m-1,juf-jdir)))
          endif
  10      continue
+      fac0 = ir * fac0 / jr
+      do 20 n = jdir, jdir*(jr-1), jdir
+         fac1 = (jr-abs(n)) * fac0
+         src(i,j) = src(i,j) + fac1 *
+     @     (hxm1 * (uf(i,juf+n) + uf(i,juf+n-jdir) -
+     @              uf(i-1,juf-n) - uf(i-1,juf-n-jdir)) +
+     @      hym1 * jdir * (vf(i,juf+n) - vf(i,juf+n-jdir) +
+     @                     vf(i-1,juf-n) - vf(i-1,juf-n-jdir)))
+         if (irz .eq. 1) then
+            r = (i + 0.5d0) * hx
+            rfac0  = hx / (6.d0 * hy * (r - hx))
+            rfac1  = hx / (6.d0 * hy * r)
+            src(i,j) = src(i,j) - fac1 *
+     @        (jdir * (rfac1 * (vf(i,juf+n) - vf(i,juf+n-jdir)) -
+     @                 rfac0 * (vf(i-1,juf-n) - vf(i-1,juf-n-jdir))))
+         endif
+ 20      continue
       end

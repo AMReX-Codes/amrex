@@ -196,7 +196,7 @@ void mixed_boundary_class::fill(Fab& patch,
 {
   Box tdomain = domain;
   tdomain.convert(type(src));
-  Box idomain = grow(tdomain, ZEROV - type(src));
+  Box idomain = grow(tdomain, zerovect - type(src));
   Box image = region;
   int refarray[BL_SPACEDIM], negflag = 1;
   int idir = 0;

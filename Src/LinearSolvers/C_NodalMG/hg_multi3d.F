@@ -20,7 +20,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmaf, dims(sf),
      @ sigmac, dims(sc),
      @ dims(reg),
-     @ hx, hy, hz, irat, idim, idir)
+     @ hx, hy, hz, ir, jr, kr, idim, idir)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
@@ -36,11 +36,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 sigmaf(dimdec(sf))
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy, hz
-      integer irat, idim, idir
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      hzm2 = 1.d0 / (hz*hz)
-      fac0 = 0.5d0 / (irat*irat+irat)
+      integer ir, jr, kr, idim, idir
       if (idim .eq. 0) then
          i = regl0
          if (idir .eq. 1) then
@@ -48,10 +44,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             is = i
          endif
+         fac0 = 0.5d0 * ir / (ir + 1.d0)
+         hxm2 = 1.d0 / (ir * ir * hx * hx)
+         hym2 = 1.d0 / (jr * jr * hy * hy)
+         hzm2 = 1.d0 / (kr * kr * hz * hz)
          do 10 k = regl2, regh2
             do 10 j = regl1, regh1
- 10            res(i*irat,j*irat,k*irat) =
-     @           src(i*irat,j*irat,k*irat) - fac0 *
+ 10            res(i*ir,j*jr,k*kr) =
+     @           src(i*ir,j*jr,k*kr) - fac0 *
      @             (hxm2 *
      @               ((sigmac(is,j-1,k-1) + sigmac(is,j-1,k) +
      @                 sigmac(is,j,k-1)   + sigmac(is,j,k)) *
@@ -66,21 +66,24 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                 (cdst(i,j,k-1) - cdst(i,j,k)) +
      @                (sigmac(is,j-1,k) + sigmac(is,j,k)) *
      @                 (cdst(i,j,k+1) - cdst(i,j,k))))
-         fac0 = fac0 / (irat*irat*irat)
-         i = i * irat
+         fac0 = fac0 / (ir * jr * kr * jr * kr)
+         hxm2 = ir * ir * hxm2
+         hym2 = jr * jr * hym2
+         hzm2 = kr * kr * hzm2
+         i = i * ir
          if (idir .eq. 1) then
             is = i
          else
             is = i - 1
          endif
-         do 20 l = 0, irat-1
-            fac2 = (irat-l) * fac0
+         do 20 l = 0, kr-1
+            fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
-            do 20 n = 0, irat-1
-               fac1 = (irat-n) * fac2
+            do 20 n = 0, jr-1
+               fac1 = (jr-n) * fac2
                if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 20 k = irat*regl2, irat*regh2, irat
-                  do 20 j = irat*regl1, irat*regh1, irat
+               do 20 k = kr*regl2, kr*regh2, kr
+                  do 20 j = jr*regl1, jr*regh1, jr
                      tmp = hxm2 *
      @                 ((sigmaf(is,j-n-1,k-l-1) + sigmaf(is,j-n-1,k-l) +
      @                   sigmaf(is,j-n,k-l-1) + sigmaf(is,j-n,k-l)) *
@@ -135,10 +138,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             js = j
          endif
+         fac0 = 0.5d0 * jr / (jr + 1.d0)
+         hxm2 = 1.d0 / (ir * ir * hx * hx)
+         hym2 = 1.d0 / (jr * jr * hy * hy)
+         hzm2 = 1.d0 / (kr * kr * hz * hz)
          do 30 k = regl2, regh2
             do 30 i = regl0, regh0
- 30            res(i*irat,j*irat,k*irat) =
-     @           src(i*irat,j*irat,k*irat) - fac0 *
+ 30            res(i*ir,j*jr,k*kr) =
+     @           src(i*ir,j*jr,k*kr) - fac0 *
      @             (hxm2 *
      @               ((sigmac(i-1,js,k-1) + sigmac(i-1,js,k)) *
      @                 (cdst(i-1,j,k) - cdst(i,j,k)) +
@@ -153,21 +160,24 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                 (cdst(i,j,k-1) - cdst(i,j,k)) +
      @                (sigmac(i-1,js,k) + sigmac(i,js,k)) *
      @                 (cdst(i,j,k+1) - cdst(i,j,k))))
-         fac0 = fac0 / (irat*irat*irat)
-         j = j * irat
+         fac0 = fac0 / (ir * jr * kr * ir * kr)
+         hxm2 = ir * ir * hxm2
+         hym2 = jr * jr * hym2
+         hzm2 = kr * kr * hzm2
+         j = j * jr
          if (idir .eq. 1) then
             js = j
          else
             js = j - 1
          endif
-         do 40 l = 0, irat-1
-            fac2 = (irat-l) * fac0
+         do 40 l = 0, kr-1
+            fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
-            do 40 m = 0, irat-1
-               fac1 = (irat-m) * fac2
+            do 40 m = 0, ir-1
+               fac1 = (ir-m) * fac2
                if (m .eq. 0) fac1 = 0.5d0 * fac1
-               do 40 k = irat*regl2, irat*regh2, irat
-                  do 40 i = irat*regl0, irat*regh0, irat
+               do 40 k = kr*regl2, kr*regh2, kr
+                  do 40 i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
      @                 ((sigmaf(i-m-1,js,k-l-1) + sigmaf(i-m-1,js,k-l)) *
      @                   (fdst(i-m-1,j,k-l) - fdst(i-m,j,k-l)) +
@@ -222,10 +232,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             ks = k
          endif
+         fac0 = 0.5d0 * kr / (kr + 1.d0)
+         hxm2 = 1.d0 / (ir * ir * hx * hx)
+         hym2 = 1.d0 / (jr * jr * hy * hy)
+         hzm2 = 1.d0 / (kr * kr * hz * hz)
          do 50 j = regl1, regh1
             do 50 i = regl0, regh0
- 50            res(i*irat,j*irat,k*irat) =
-     @           src(i*irat,j*irat,k*irat) - fac0 *
+ 50            res(i*ir,j*jr,k*kr) =
+     @           src(i*ir,j*jr,k*kr) - fac0 *
      @             (hxm2 *
      @               ((sigmac(i-1,j-1,ks) + sigmac(i-1,j,ks)) *
      @                 (cdst(i-1,j,k) - cdst(i,j,k)) +
@@ -240,21 +254,24 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @               ((sigmac(i-1,j-1,ks) + sigmac(i-1,j,ks) +
      @                 sigmac(i,j-1,ks)   + sigmac(i,j,ks)) *
      @                 (cdst(i,j,k-idir) - cdst(i,j,k))))
-         fac0 = fac0 / (irat*irat*irat)
-         k = k * irat
+         fac0 = fac0 / (ir * jr * kr * ir * jr)
+         hxm2 = ir * ir * hxm2
+         hym2 = jr * jr * hym2
+         hzm2 = kr * kr * hzm2
+         k = k * kr
          if (idir .eq. 1) then
             ks = k
          else
             ks = k - 1
          endif
-         do 60 n = 0, irat-1
-            fac2 = (irat-n) * fac0
+         do 60 n = 0, jr-1
+            fac2 = (jr-n) * fac0
             if (n .eq. 0) fac2 = 0.5d0 * fac2
-            do 60 m = 0, irat-1
-               fac1 = (irat-m) * fac2
+            do 60 m = 0, ir-1
+               fac1 = (ir-m) * fac2
                if (m .eq. 0) fac1 = 0.5d0 * fac1
-               do 60 j = irat*regl1, irat*regh1, irat
-                  do 60 i = irat*regl0, irat*regh0, irat
+               do 60 j = jr*regl1, jr*regh1, jr
+                  do 60 i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
      @                 ((sigmaf(i-m-1,j-n-1,ks) + sigmaf(i-m-1,j-n,ks)) *
      @                   (fdst(i-m-1,j-n,k) - fdst(i-m,j-n,k)) +
@@ -313,7 +330,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmaf, dims(sf),
      @ sigmac, dims(sc),
      @ dims(reg),
-     @ hx, hy, hz, irat, ivect, ga)
+     @ hx, hy, hz, ir, jr, kr, ivect, ga)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
@@ -329,38 +346,39 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 sigmaf(dimdec(sf))
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy, hz
-      integer irat, ivect(0:2), ga(0:1,0:1,0:1)
-      r2 = irat * irat
-      rm1 = 1.d0 / irat
-      rm2 = rm1 * rm1
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      hzm2 = 1.d0 / (hz*hz)
+      integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
+      r3 = ir * jr * kr
+      hxm2c = 1.d0 / (ir * ir * hx * hx)
+      hym2c = 1.d0 / (jr * jr * hy * hy)
+      hzm2c = 1.d0 / (kr * kr * hz * hz)
+      hxm2 = ir * ir * hxm2c
+      hym2 = jr * jr * hym2c
+      hzm2 = kr * kr * hzm2c
       ic = regl0
       jc = regl1
       kc = regl2
-      if = ic * irat
-      jf = jc * irat
-      kf = kc * irat
+      if = ic * ir
+      jf = jc * jr
+      kf = kc * kr
       center = 0.d0
       if (ivect(0) .eq. 0) then
-         do 10 if = irat*regl0, irat*regh0, irat
+         do 10 if = ir*regl0, ir*regh0, ir
  10         res(if,jf,kf) = 0.d0
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = rm2
-         ffac = 1.d0
-         cfac = r2
+         fac0 = 1.d0 / ir
+         ffac = ir
+         cfac = r3
          do 40 ki = 0, 1
             kdir = 2 * ki - 1
             do 40 ji = 0, 1
                jdir = 2 * ji - 1
                if (ga(0,ji,ki) .eq. 1) then
                   center = center + ffac
-                  do 20 m = 0, irat-1
-                     fac = (irat-m) * fac0
+                  do 20 m = 0, ir-1
+                     fac = (ir-m) * fac0
                      if (m .eq. 0) fac = 0.5d0 * fac
-                     do 20 if = irat*regl0, irat*regh0, irat
+                     do 20 if = ir*regl0, ir*regh0, ir
                         tmp = hxm2 *
      @                    (sigmaf(if-m-1,jf+ji-1,kf+ki-1) *
      @                      (fdst(if-m-1,jf,kf) - fdst(if-m,jf,kf)) +
@@ -387,34 +405,34 @@ c each quadrant is two octants and their share of the two central edges
                else
                   center = center + cfac
                   do 30 ic = regl0, regh0
-                     if = ic * irat
- 30                  res(if,jf,kf) = res(if,jf,kf) +
-     @                 sigmac(ic-1,jc+ji-1,kc+ki-1) *
-     @                   (hxm2 * (cdst(ic-1,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))) +
+                     if = ic * ir
+ 30                  res(if,jf,kf) = res(if,jf,kf) + r3 *
+     @                (sigmac(ic-1,jc+ji-1,kc+ki-1) *
+     @                   (hxm2c * (cdst(ic-1,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))) +
      @                 sigmac(ic,jc+ji-1,kc+ki-1) *
-     @                   (hxm2 * (cdst(ic+1,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc)))
+     @                   (hxm2c * (cdst(ic+1,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))))
                endif
  40            continue
 c faces
 c each face is two faces and two sides of an edge
-         fac0 = rm1 * rm2
-         ffac = irat - 1
          do 70 ki = 0, 1
             kdir = 2 * ki - 1
             do 70 ji = 0, 1
                jdir = 2 * ji - 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
+                  fac0 = 1.d0 / (ir * jr)
+                  ffac = ir * (jr - 1)
                   center = center + ffac
-                  do 50 n = jdir, jdir*(irat-1), jdir
-                     fac1 = (irat-abs(n)) * fac0
-                     do 50 m = 0, irat-1
-                        fac = (irat-m) * fac1
+                  do 50 n = jdir, jdir*(jr-1), jdir
+                     fac1 = (jr-abs(n)) * fac0
+                     do 50 m = 0, ir-1
+                        fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5d0 * fac
-                        do 50 if = irat*regl0, irat*regh0, irat
+                        do 50 if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      @       ((sigmaf(if-m-1,jf+n-1,kf+ki-1) + sigmaf(if-m-1,jf+n,kf+ki-1)) *
      @         (fdst(if-m-1,jf+n,kf) - fdst(if-m,jf+n,kf)) +
@@ -442,13 +460,15 @@ c each face is two faces and two sides of an edge
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                endif
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
+                  fac0 = 1.d0 / (ir * kr)
+                  ffac = ir * (kr - 1)
                   center = center + ffac
-                  do 60 l = kdir, kdir*(irat-1), kdir
-                     fac1 = (irat-abs(l)) * fac0
-                     do 60 m = 0, irat-1
-                        fac = (irat-m) * fac1
+                  do 60 l = kdir, kdir*(kr-1), kdir
+                     fac1 = (kr-abs(l)) * fac0
+                     do 60 m = 0, ir-1
+                        fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5d0 * fac
-                        do 60 if = irat*regl0, irat*regh0, irat
+                        do 60 if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      @       ((sigmaf(if-m-1,jf+ji-1,kf+l-1) + sigmaf(if-m-1,jf+ji-1,kf+l)) *
      @         (fdst(if-m-1,jf,kf+l) - fdst(if-m,jf,kf+l)) +
@@ -477,26 +497,26 @@ c each face is two faces and two sides of an edge
                endif
  70            continue
 c weighting
-         do 80 if = irat*regl0, irat*regh0, irat
+         do 80 if = ir*regl0, ir*regh0, ir
  80         res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       else if (ivect(1) .eq. 0) then
-         do 110 jf = irat*regl1, irat*regh1, irat
+         do 110 jf = jr*regl1, jr*regh1, jr
  110        res(if,jf,kf) = 0.d0
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = rm2
-         ffac = 1.d0
-         cfac = r2
+         fac0 = 1.d0 / jr
+         ffac = jr
+         cfac = r3
          do 140 ki = 0, 1
             kdir = 2 * ki - 1
             do 140 ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,0,ki) .eq. 1) then
                   center = center + ffac
-                  do 120 n = 0, irat-1
-                     fac = (irat-n) * fac0
+                  do 120 n = 0, jr-1
+                     fac = (jr-n) * fac0
                      if (n .eq. 0) fac = 0.5d0 * fac
-                     do 120 jf = irat*regl1, irat*regh1, irat
+                     do 120 jf = jr*regl1, jr*regh1, jr
                         tmp = hxm2 *
      @                    ((sigmaf(if+ii-1,jf-n-1,kf+ki-1) +
      @                      sigmaf(if+ii-1,jf-n,kf+ki-1)) *
@@ -523,34 +543,34 @@ c each quadrant is two octants and their share of the two central edges
                else
                   center = center + cfac
                   do 130 jc = regl1, regh1
-                     jf = jc * irat
- 130                 res(if,jf,kf) = res(if,jf,kf) +
-     @                 sigmac(ic+ii-1,jc-1,kc+ki-1) *
-     @                   (hxm2 * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc-1,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))) +
+                     jf = jc * jr
+ 130                 res(if,jf,kf) = res(if,jf,kf) + r3 *
+     @                (sigmac(ic+ii-1,jc-1,kc+ki-1) *
+     @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc-1,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))) +
      @                 sigmac(ic+ii-1,jc,kc+ki-1) *
-     @                   (hxm2 * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc+1,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc)))
+     @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc+1,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))))
                endif
  140           continue
 c faces
 c each face is two faces and two sides of an edge
-         fac0 = rm1 * rm2
-         ffac = irat - 1
          do 170 ki = 0, 1
             kdir = 2 * ki - 1
             do 170 ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
+                  fac0 = 1.d0 / (ir * jr)
+                  ffac = jr * (ir - 1)
                   center = center + ffac
-                  do 150 n = 0, irat-1
-                     fac1 = (irat-n) * fac0
+                  do 150 n = 0, jr-1
+                     fac1 = (jr-n) * fac0
                      if (n .eq. 0) fac1 = 0.5d0 * fac1
-                     do 150 m = idir, idir*(irat-1), idir
-                        fac = (irat-abs(m)) * fac1
-                        do 150 jf = irat*regl1, irat*regh1, irat
+                     do 150 m = idir, idir*(ir-1), idir
+                        fac = (ir-abs(m)) * fac1
+                        do 150 jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      @       ((sigmaf(if+m-1,jf-n-1,kf+ki-1) + sigmaf(if+m-1,jf-n,kf+ki-1)) *
      @         (fdst(if+m-1,jf-n,kf) - fdst(if+m,jf-n,kf)) +
@@ -578,13 +598,15 @@ c each face is two faces and two sides of an edge
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                endif
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
+                  fac0 = 1.d0 / (jr * kr)
+                  ffac = jr * (kr - 1)
                   center = center + ffac
-                  do 160 l = kdir, kdir*(irat-1), kdir
-                     fac1 = (irat-abs(l)) * fac0
-                     do 160 n = 0, irat-1
-                        fac = (irat-n) * fac1
+                  do 160 l = kdir, kdir*(kr-1), kdir
+                     fac1 = (kr-abs(l)) * fac0
+                     do 160 n = 0, jr-1
+                        fac = (jr-n) * fac1
                         if (n .eq. 0) fac = 0.5d0 * fac
-                        do 160 jf = irat*regl1, irat*regh1, irat
+                        do 160 jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      @       ((sigmaf(if+ii-1,jf-n-1,kf+l-1) + sigmaf(if+ii-1,jf-n-1,kf+l) +
      @         sigmaf(if+ii-1,jf-n,kf+l-1) + sigmaf(if+ii-1,jf-n,kf+l)) *
@@ -613,26 +635,26 @@ c each face is two faces and two sides of an edge
                endif
  170           continue
 c weighting
-         do 180 jf = irat*regl1, irat*regh1, irat
+         do 180 jf = jr*regl1, jr*regh1, jr
  180        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       else
-         do 210 kf = irat*regl2, irat*regh2, irat
+         do 210 kf = kr*regl2, kr*regh2, kr
  210        res(if,jf,kf) = 0.d0
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = rm2
-         ffac = 1.d0
-         cfac = r2
+         fac0 = 1.d0 / kr
+         ffac = kr
+         cfac = r3
          do 240 ji = 0, 1
             jdir = 2 * ji - 1
             do 240 ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,0) .eq. 1) then
                   center = center + ffac
-                  do 220 l = 0, irat-1
-                     fac = (irat-l) * fac0
+                  do 220 l = 0, kr-1
+                     fac = (kr-l) * fac0
                      if (l .eq. 0) fac = 0.5d0 * fac
-                     do 220 kf = irat*regl2, irat*regh2, irat
+                     do 220 kf = kr*regl2, kr*regh2, kr
                         tmp = hxm2 *
      @                    ((sigmaf(if+ii-1,jf+ji-1,kf-l-1) +
      @                      sigmaf(if+ii-1,jf+ji-1,kf-l)) *
@@ -659,34 +681,34 @@ c each quadrant is two octants and their share of the two central edges
                else
                   center = center + cfac
                   do 230 kc = regl2, regh2
-                     kf = kc * irat
- 230                 res(if,jf,kf) = res(if,jf,kf) +
-     @                 sigmac(ic+ii-1,jc+ji-1,kc-1) *
-     @                   (hxm2 * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc-1) - cdst(ic,jc,kc))) +
+                     kf = kc * kr
+ 230                 res(if,jf,kf) = res(if,jf,kf) + r3 *
+     @                (sigmac(ic+ii-1,jc+ji-1,kc-1) *
+     @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc-1) - cdst(ic,jc,kc))) +
      @                 sigmac(ic+ii-1,jc+ji-1,kc) *
-     @                   (hxm2 * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
-     @                    hym2 * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
-     @                    hzm2 * (cdst(ic,jc,kc+1) - cdst(ic,jc,kc)))
+     @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
+     @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
+     @                    hzm2c * (cdst(ic,jc,kc+1) - cdst(ic,jc,kc))))
                endif
  240           continue
 c faces
 c each face is two faces and two sides of an edge
-         fac0 = rm1 * rm2
-         ffac = irat - 1
          do 270 ji = 0, 1
             jdir = 2 * ji - 1
             do 270 ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
+                  fac0 = 1.d0 / (ir * kr)
+                  ffac = kr * (ir - 1)
                   center = center + ffac
-                  do 250 l = 0, irat-1
-                     fac1 = (irat-l) * fac0
+                  do 250 l = 0, kr-1
+                     fac1 = (kr-l) * fac0
                      if (l .eq. 0) fac1 = 0.5d0 * fac1
-                     do 250 m = idir, idir*(irat-1), idir
-                        fac = (irat-abs(m)) * fac1
-                        do 250 kf = irat*regl2, irat*regh2, irat
+                     do 250 m = idir, idir*(ir-1), idir
+                        fac = (ir-abs(m)) * fac1
+                        do 250 kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      @       ((sigmaf(if+m-1,jf+ji-1,kf-l-1) + sigmaf(if+m-1,jf+ji-1,kf-l)) *
      @         (fdst(if+m-1,jf,kf-l) - fdst(if+m,jf,kf-l)) +
@@ -714,13 +736,15 @@ c each face is two faces and two sides of an edge
      @         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                endif
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
+                  fac0 = 1.d0 / (jr * kr)
+                  ffac = kr * (jr - 1)
                   center = center + ffac
-                  do 260 l = 0, irat-1
-                     fac1 = (irat-l) * fac0
+                  do 260 l = 0, kr-1
+                     fac1 = (kr-l) * fac0
                      if (l .eq. 0) fac1 = 0.5d0 * fac1
-                     do 260 n = jdir, jdir*(irat-1), jdir
-                        fac = (irat-abs(n)) * fac1
-                        do 260 kf = irat*regl2, irat*regh2, irat
+                     do 260 n = jdir, jdir*(jr-1), jdir
+                        fac = (jr-abs(n)) * fac1
+                        do 260 kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      @       ((sigmaf(if+ii-1,jf+n-1,kf-l-1) + sigmaf(if+ii-1,jf+n-1,kf-l) +
      @         sigmaf(if+ii-1,jf+n,kf-l-1) + sigmaf(if+ii-1,jf+n,kf-l)) *
@@ -749,7 +773,7 @@ c each face is two faces and two sides of an edge
                endif
  270           continue
 c weighting
-         do 280 kf = irat*regl2, irat*regh2, irat
+         do 280 kf = kr*regl2, kr*regh2, kr
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       endif
       end
@@ -762,7 +786,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @ sigmaf, dims(sf),
      @ sigmac, dims(sc),
      @ dims(reg),
-     @ hx, hy, hz, irat, ga)
+     @ hx, hy, hz, ir, jr, kr, ga)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(src)
@@ -778,25 +802,26 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 sigmaf(dimdec(sf))
       real*8 sigmac(dimdec(sc))
       real*8 hx, hy, hz
-      integer irat, ga(0:1,0:1,0:1)
-      r2 = irat * irat
-      rm1 = 1.d0 / irat
-      rm2 = rm1 * rm1
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      hzm2 = 1.d0 / (hz*hz)
+      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      r3 = ir * jr * kr
+      hxm2c = 1.d0 / (ir * ir * hx * hx)
+      hym2c = 1.d0 / (jr * jr * hy * hy)
+      hzm2c = 1.d0 / (kr * kr * hz * hz)
+      hxm2 = ir * ir * hxm2c
+      hym2 = jr * jr * hym2c
+      hzm2 = kr * kr * hzm2c
       ic = regl0
       jc = regl1
       kc = regl2
-      if = ic * irat
-      jf = jc * irat
-      kf = kc * irat
+      if = ic * ir
+      jf = jc * jr
+      kf = kc * kr
       sum = 0.d0
       center = 0.d0
 c octants
-      fac = rm1
-      ffac = 0.5d0 * rm1
-      cfac = 0.5d0 * r2
+      fac = 1.d0
+      ffac = 0.5d0
+      cfac = 0.5d0 * r3
       do 10 ki = 0, 1
          kdir = 2 * ki - 1
          do 10 ji = 0, 1
@@ -811,15 +836,13 @@ c octants
      @               hzm2 * (fdst(if,jf,kf+kdir) - fdst(if,jf,kf)))
                else
                   center = center + cfac
-                  sum = sum + sigmac(ic+ii-1,jc+ji-1,kc+ki-1) *
-     @              (hxm2 * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
-     @               hym2 * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
-     @               hzm2 * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc)))
+                  sum = sum + r3 * sigmac(ic+ii-1,jc+ji-1,kc+ki-1) *
+     @              (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
+     @               hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
+     @               hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc)))
                endif
  10            continue
 c faces
-      fac2 = rm1 * rm2
-      ffac = 0.5d0 * (irat-1) * (irat-1) * rm1
       do 50 ki = 0, 1
          kdir = 2 * ki - 1
          do 50 ji = 0, 1
@@ -827,11 +850,13 @@ c faces
             do 50 ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,ki) - ga(ii,ji,1-ki) .eq. 1) then
+                  fac2 = 1.d0 / (ir * jr)
+                  ffac = 0.5d0 * (ir-1) * (jr-1)
                   center = center + ffac
-                  do 20 n = jdir, jdir*(irat-1), jdir
-                     fac1 = (irat-abs(n)) * fac2
-                     do 20 m = idir, idir*(irat-1), idir
-                        fac = (irat-abs(m)) * fac1
+                  do 20 n = jdir, jdir*(jr-1), jdir
+                     fac1 = (jr-abs(n)) * fac2
+                     do 20 m = idir, idir*(ir-1), idir
+                        fac = (ir-abs(m)) * fac1
  20                     sum = sum + fac *
      @                    (hxm2 *
      @       ((sigmaf(if+m-1,jf+n-1,kf+ki-1) + sigmaf(if+m-1,jf+n,kf+ki-1)) *
@@ -849,11 +874,13 @@ c faces
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                endif
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
+                  fac2 = 1.d0 / (ir * kr)
+                  ffac = 0.5d0 * (ir-1) * (kr-1)
                   center = center + ffac
-                  do 30 l = kdir, kdir*(irat-1), kdir
-                     fac1 = (irat-abs(l)) * fac2
-                     do 30 m = idir, idir*(irat-1), idir
-                        fac = (irat-abs(m)) * fac1
+                  do 30 l = kdir, kdir*(kr-1), kdir
+                     fac1 = (kr-abs(l)) * fac2
+                     do 30 m = idir, idir*(ir-1), idir
+                        fac = (ir-abs(m)) * fac1
  30                     sum = sum + fac *
      @                    (hxm2 *
      @       ((sigmaf(if+m-1,jf+ji-1,kf+l-1) + sigmaf(if+m-1,jf+ji-1,kf+l)) *
@@ -871,11 +898,13 @@ c faces
      @         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                endif
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
+                  fac2 = 1.d0 / (jr * kr)
+                  ffac = 0.5d0 * (jr-1) * (kr-1)
                   center = center + ffac
-                  do 40 l = kdir, kdir*(irat-1), kdir
-                     fac1 = (irat-abs(l)) * fac2
-                     do 40 n = jdir, jdir*(irat-1), jdir
-                        fac = (irat-abs(n)) * fac1
+                  do 40 l = kdir, kdir*(kr-1), kdir
+                     fac1 = (kr-abs(l)) * fac2
+                     do 40 n = jdir, jdir*(jr-1), jdir
+                        fac = (jr-abs(n)) * fac1
  40                     sum = sum + fac *
      @                    (hxm2 *
      @       ((sigmaf(if+ii-1,jf+n-1,kf+l-1) + sigmaf(if+ii-1,jf+n-1,kf+l) +
@@ -894,8 +923,6 @@ c faces
             endif
  50         continue
 c edges
-      fac1 = rm2
-      ffac = 0.5d0 * (irat-1) * rm1
       do 90 ki = 0, 1
          kdir = 2 * ki - 1
          do 90 ji = 0, 1
@@ -905,9 +932,11 @@ c edges
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
      @             .eq. 1) then
+                  fac1 = 1.d0 / ir
+                  ffac = 0.5d0 * (ir-1)
                   center = center + ffac
-                  do 60 m = idir, idir*(irat-1), idir
-                     fac = (irat-abs(m)) * fac1
+                  do 60 m = idir, idir*(ir-1), idir
+                     fac = (ir-abs(m)) * fac1
  60                  sum = sum + fac *
      @                    (hxm2 *
      @       (sigmaf(if+m-1,jf+ji-1,kf+ki-1) *
@@ -924,9 +953,11 @@ c edges
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
+                  fac1 = 1.d0 / jr
+                  ffac = 0.5d0 * (jr-1)
                   center = center + ffac
-                  do 70 n = jdir, jdir*(irat-1), jdir
-                     fac = (irat-abs(n)) * fac1
+                  do 70 n = jdir, jdir*(jr-1), jdir
+                     fac = (jr-abs(n)) * fac1
  70                  sum = sum + fac *
      @                    (hxm2 *
      @       (sigmaf(if+ii-1,jf+n-1,kf+ki-1) + sigmaf(if+ii-1,jf+n,kf+ki-1)) *
@@ -943,9 +974,11 @@ c edges
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
+                  fac1 = 1.d0 / kr
+                  ffac = 0.5d0 * (kr-1)
                   center = center + ffac
-                  do 80 l = kdir, kdir*(irat-1), kdir
-                     fac = (irat-abs(l)) * fac1
+                  do 80 l = kdir, kdir*(kr-1), kdir
+                     fac = (kr-abs(l)) * fac1
  80                  sum = sum + fac *
      @                    (hxm2 *
      @       (sigmaf(if+ii-1,jf+ji-1,kf+l-1) + sigmaf(if+ii-1,jf+ji-1,kf+l)) *
@@ -1548,13 +1581,14 @@ c NODE-based data, factor of 2 only.
      @ dims(sb),
      @ src,
      @ dims(src),
-     @ dims(bb))
+     @ dims(bb), ir, jr, kr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sb)
       integer dims(src)
       integer dims(bb)
+      integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 sigx(dimdec(sb))
       real*8 sigy(dimdec(sb))
@@ -1563,62 +1597,69 @@ c NODE-based data, factor of 2 only.
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
- 10            dest(2*ic,2*jc,2*kc) = src(ic,jc,kc)
-      do 20 kc = bbl2, bbh2
-         do 20 jc = bbl1, bbh1
-            do 20 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
- 20            dest(i+1,j,k) = ((sigx(i,j-1,k-1) + sigx(i,j-1,k) +
-     @                           sigx(i,j,k-1) + sigx(i,j,k)) *
-     @                          src(ic,jc,kc) +
-     @                          (sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
-     @                           sigx(i+1,j,k-1) + sigx(i+1,j,k)) *
-     @                          src(ic+1,jc,kc)) /
-     @                          (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
-     @                           sigx(i,j,k-1) + sigx(i,j,k) +
-     @                           sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
-     @                           sigx(i+1,j,k-1) + sigx(i+1,j,k))
-      do 30 kc = bbl2, bbh2
-         do 30 jc = bbl1, bbh1-1
-            do 30 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
- 30            dest(i,j+1,k) = ((sigy(i-1,j,k-1) + sigy(i-1,j,k) +
-     @                           sigy(i,j,k-1) + sigy(i,j,k)) *
-     @                          src(ic,jc,kc) +
-     @                          (sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
-     @                           sigy(i,j+1,k-1) + sigy(i,j+1,k)) *
-     @                          src(ic,jc+1,kc)) /
-     @                          (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
-     @                           sigy(i,j,k-1) + sigy(i,j,k) +
-     @                           sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
-     @                           sigy(i,j+1,k-1) + sigy(i,j+1,k))
-      do 40 kc = bbl2, bbh2-1
-         do 40 jc = bbl1, bbh1
-            do 40 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
- 40            dest(i,j,k+1) = ((sigz(i-1,j-1,k) + sigz(i-1,j,k) +
-     @                           sigz(i,j-1,k) + sigz(i,j,k)) *
-     @                          src(ic,jc,kc) +
-     @                          (sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
-     @                           sigz(i,j-1,k+1) + sigz(i,j,k+1)) *
-     @                          src(ic,jc,kc+1)) /
-     @                          (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
-     @                           sigz(i,j-1,k) + sigz(i,j,k) +
-     @                           sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
-     @                           sigz(i,j-1,k+1) + sigz(i,j,k+1))
-      do 50 kc = bbl2, bbh2
-         do 50 jc = bbl1, bbh1-1
+ 10            dest(ir*ic,jr*jc,kr*kc) = src(ic,jc,kc)
+      if (ir .eq. 2) then
+         do 20 kc = bbl2, bbh2
+            do 20 jc = bbl1, bbh1
+               do 20 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+ 20               dest(i+1,j,k) = ((sigx(i,j-1,k-1) + sigx(i,j-1,k) +
+     @                              sigx(i,j,k-1) + sigx(i,j,k)) *
+     @                             src(ic,jc,kc) +
+     @                             (sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
+     @                              sigx(i+1,j,k-1) + sigx(i+1,j,k)) *
+     @                             src(ic+1,jc,kc)) /
+     @                             (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
+     @                              sigx(i,j,k-1) + sigx(i,j,k) +
+     @                              sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
+     @                              sigx(i+1,j,k-1) + sigx(i+1,j,k))
+      endif
+      if (jr .eq. 2) then
+         do 30 kc = bbl2, bbh2
+            do 30 jc = bbl1, bbh1-1
+               do 30 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+ 30               dest(i,j+1,k) = ((sigy(i-1,j,k-1) + sigy(i-1,j,k) +
+     @                              sigy(i,j,k-1) + sigy(i,j,k)) *
+     @                             src(ic,jc,kc) +
+     @                             (sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
+     @                              sigy(i,j+1,k-1) + sigy(i,j+1,k)) *
+     @                             src(ic,jc+1,kc)) /
+     @                             (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
+     @                              sigy(i,j,k-1) + sigy(i,j,k) +
+     @                              sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
+     @                              sigy(i,j+1,k-1) + sigy(i,j+1,k))
+      endif
+      if (kr .eq. 2) then
+         do 40 kc = bbl2, bbh2-1
+            do 40 jc = bbl1, bbh1
+               do 40 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+ 40               dest(i,j,k+1) = ((sigz(i-1,j-1,k) + sigz(i-1,j,k) +
+     @                              sigz(i,j-1,k) + sigz(i,j,k)) *
+     @                             src(ic,jc,kc) +
+     @                             (sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
+     @                              sigz(i,j-1,k+1) + sigz(i,j,k+1)) *
+     @                             src(ic,jc,kc+1)) /
+     @                             (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
+     @                              sigz(i,j-1,k) + sigz(i,j,k) +
+     @                              sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
+     @                              sigz(i,j-1,k+1) + sigz(i,j,k+1))
+      endif
+      if (ir .eq. 2 .and. jr .eq. 2) then
+         do 50 kc = bbl2, bbh2
+            do 50 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 50 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 50 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  50            dest(i+1,j+1,k) = ((sigx(i,j,k-1) + sigx(i,j,k) +
      @                             sigx(i,j+1,k-1) + sigx(i,j+1,k)) *
      @                            dest(i,j+1,k) +
@@ -1639,13 +1680,15 @@ cdir$ ivdep
      @                            sigy(i+1,j,k-1) + sigy(i+1,j,k) +
      @                            sigy(i,j+1,k-1) + sigy(i,j+1,k) +
      @                            sigy(i+1,j+1,k-1) + sigy(i+1,j+1,k))
-      do 60 kc = bbl2, bbh2-1
-         do 60 jc = bbl1, bbh1
+      endif
+      if (ir .eq. 2 .and. kr .eq. 2) then
+         do 60 kc = bbl2, bbh2-1
+            do 60 jc = bbl1, bbh1
 cdir$ ivdep
-            do 60 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 60 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  60            dest(i+1,j,k+1) = ((sigx(i,j-1,k) + sigx(i,j-1,k+1) +
      @                             sigx(i,j,k) + sigx(i,j,k+1)) *
      @                            dest(i,j,k+1) +
@@ -1666,13 +1709,15 @@ cdir$ ivdep
      @                            sigz(i+1,j-1,k) + sigz(i+1,j,k) +
      @                            sigz(i,j-1,k+1) + sigz(i,j,k+1) +
      @                            sigz(i+1,j-1,k+1) + sigz(i+1,j,k+1))
-      do 70 kc = bbl2, bbh2-1
-         do 70 jc = bbl1, bbh1-1
+      endif
+      if (jr .eq. 2 .and. kr .eq. 2) then
+         do 70 kc = bbl2, bbh2-1
+            do 70 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 70 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 70 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  70            dest(i,j+1,k+1) = ((sigy(i-1,j,k) + sigy(i-1,j,k+1) +
      @                             sigy(i,j,k) + sigy(i,j,k+1)) *
      @                            dest(i,j,k+1) +
@@ -1693,13 +1738,15 @@ cdir$ ivdep
      @                            sigz(i,j,k) + sigz(i,j+1,k) +
      @                            sigz(i-1,j,k+1) + sigz(i-1,j+1,k+1) +
      @                            sigz(i,j,k+1) + sigz(i,j+1,k+1))
-      do 80 kc = bbl2, bbh2-1
-         do 80 jc = bbl1, bbh1-1
+      endif
+      if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
+         do 80 kc = bbl2, bbh2-1
+            do 80 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 80 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 80 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
                dest(i+1,j+1,k+1) = ((sigx(i,j,k) + sigx(i,j,k+1) +
      @                               sigx(i,j+1,k) + sigx(i,j+1,k+1)) *
      @                              dest(i,j+1,k+1) +
@@ -1731,6 +1778,7 @@ cdir$ ivdep
      @                              sigz(i+1,j,k) + sigz(i+1,j+1,k) +
      @                              sigz(i,j,k+1) + sigz(i,j+1,k+1) +
      @                              sigz(i+1,j,k+1) + sigz(i+1,j+1,k+1))
+      endif
       end
 
 #  else
@@ -1743,93 +1791,107 @@ c NODE-based data, factor of 2 only.
      @ dims(sn),
      @ src,
      @ dims(src),
-     @ dims(bb))
+     @ dims(bb), ir, jr, kr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sn)
       integer dims(src)
       integer dims(bb)
+      integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 signd(dimdec(sn), 3)
       real*8 src(dimdec(src))
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
- 10            dest(2*ic,2*jc,2*kc) = src(ic,jc,kc)
-      do 20 kc = bbl2, bbh2
-         do 20 jc = bbl1, bbh1
-            do 20 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+ 10            dest(ir*ic,jr*jc,kr*kc) = src(ic,jc,kc)
+      if (ir .eq. 2) then
+         do 20 kc = bbl2, bbh2
+            do 20 jc = bbl1, bbh1
+               do 20 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  20            dest(i+1,j,k) = (signd(i,j,k,1)   * src(ic,jc,kc) +
      @                          signd(i+1,j,k,1) * src(ic+1,jc,kc)) /
      @                         (signd(i,j,k,1) + signd(i+1,j,k,1))
-      do 30 kc = bbl2, bbh2
-         do 30 jc = bbl1, bbh1-1
-            do 30 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+      endif
+      if (jr .eq. 2) then
+         do 30 kc = bbl2, bbh2
+            do 30 jc = bbl1, bbh1-1
+               do 30 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  30            dest(i,j+1,k) = (signd(i,j,k,2)   * src(ic,jc,kc) +
      @                          signd(i,j+1,k,2) * src(ic,jc+1,kc)) /
      @                         (signd(i,j,k,2) + signd(i,j+1,k,2))
-      do 40 kc = bbl2, bbh2-1
-         do 40 jc = bbl1, bbh1
-            do 40 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+      endif
+      if (kr .eq. 2) then
+         do 40 kc = bbl2, bbh2-1
+            do 40 jc = bbl1, bbh1
+               do 40 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  40            dest(i,j,k+1) = (signd(i,j,k,3)   * src(ic,jc,kc) +
      @                          signd(i,j,k+1,3) * src(ic,jc,kc+1)) /
      @                         (signd(i,j,k,3) + signd(i,j,k+1,3))
-      do 50 kc = bbl2, bbh2
-         do 50 jc = bbl1, bbh1-1
+      endif
+      if (ir .eq. 2 .and. jr .eq. 2) then
+         do 50 kc = bbl2, bbh2
+            do 50 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 50 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 50 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  50            dest(i+1,j+1,k) = (signd(i,j+1,k,1)   * dest(i,j+1,k) +
      @                            signd(i+1,j+1,k,1) * dest(i+2,j+1,k) +
      @                            signd(i+1,j,k,2)   * dest(i+1,j,k) +
      @                            signd(i+1,j+1,k,2) * dest(i+1,j+2,k)) /
      @                           (signd(i,j+1,k,1) + signd(i+1,j+1,k,1) +
      @                            signd(i+1,j,k,2) + signd(i+1,j+1,k,2))
-      do 60 kc = bbl2, bbh2-1
-         do 60 jc = bbl1, bbh1
+      endif
+      if (ir .eq. 2 .and. kr .eq. 2) then
+         do 60 kc = bbl2, bbh2-1
+            do 60 jc = bbl1, bbh1
 cdir$ ivdep
-            do 60 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 60 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  60            dest(i+1,j,k+1) = (signd(i,j,k+1,1)   * dest(i,j,k+1) +
      @                            signd(i+1,j,k+1,1) * dest(i+2,j,k+1) +
      @                            signd(i+1,j,k,3)   * dest(i+1,j,k) +
      @                            signd(i+1,j,k+1,3) * dest(i+1,j,k+2)) /
      @                           (signd(i,j,k+1,1) + signd(i+1,j,k+1,1) +
      @                            signd(i+1,j,k,3) + signd(i+1,j,k+1,3))
-      do 70 kc = bbl2, bbh2-1
-         do 70 jc = bbl1, bbh1-1
+      endif
+      if (jr .eq. 2 .and. kr .eq. 2) then
+         do 70 kc = bbl2, bbh2-1
+            do 70 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 70 ic = bbl0, bbh0
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 70 ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  70            dest(i,j+1,k+1) = (signd(i,j,k+1,2)   * dest(i,j,k+1) +
      @                            signd(i,j+1,k+1,2) * dest(i,j+2,k+1) +
      @                            signd(i,j+1,k,3)   * dest(i,j+1,k) +
      @                            signd(i,j+1,k+1,3) * dest(i,j+1,k+2)) /
      @                           (signd(i,j,k+1,2) + signd(i,j+1,k+1,2) +
      @                            signd(i,j+1,k,3) + signd(i,j+1,k+1,3))
-      do 80 kc = bbl2, bbh2-1
-         do 80 jc = bbl1, bbh1-1
+      endif
+      if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
+         do 80 kc = bbl2, bbh2-1
+            do 80 jc = bbl1, bbh1-1
 cdir$ ivdep
-            do 80 ic = bbl0, bbh0-1
-               i = 2 * ic
-               j = 2 * jc
-               k = 2 * kc
+               do 80 ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
  80            dest(i+1,j+1,k+1) = (signd(i,j+1,k+1,1)   * dest(i,j+1,k+1) +
      @                              signd(i+1,j+1,k+1,1) * dest(i+2,j+1,k+1) +
      @                              signd(i+1,j,k+1,2)   * dest(i+1,j,k+1) +
@@ -1839,6 +1901,7 @@ cdir$ ivdep
      @                             (signd(i,j+1,k+1,1) + signd(i+1,j+1,k+1,1) +
      @                              signd(i+1,j,k+1,2) + signd(i+1,j+1,k+1,2) +
      @                              signd(i+1,j+1,k,3) + signd(i+1,j+1,k+1,3))
+      endif
       end
 
 #  endif
@@ -1850,72 +1913,144 @@ c CELL-based data only.
      @ dims(dest),
      @ dims(reg),
      @ srcx, srcy, srcz,
-     @ dims(src))
+     @ dims(src), ir, jr, kr)
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
+      integer ir, jr, kr
       real*8 destx(dimdec(dest))
       real*8 desty(dimdec(dest))
       real*8 destz(dimdec(dest))
       real*8 srcx(dimdec(src))
       real*8 srcy(dimdec(src))
       real*8 srcz(dimdec(src))
-      do 10 k = regl2, regh2
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
-               i2 = 2 * i
-               j2 = 2 * j
-               k2 = 2 * k
-c               destx(i,j,k) = 0.5d0 / (1.d0 / srcx(i2,j2,k2) +
-c     @                                 1.d0 / srcx(i2+1,j2,k2)) +
-c     @                        0.5d0 / (1.d0 / srcx(i2,j2,k2+1) +
-c     @                                 1.d0 / srcx(i2+1,j2,k2+1)) +
-c     @                        0.5d0 / (1.d0 / srcx(i2,j2+1,k2) +
-c     @                                 1.d0 / srcx(i2+1,j2+1,k2)) +
-c     @                        0.5d0 / (1.d0 / srcx(i2,j2+1,k2+1) +
-c     @                                 1.d0 / srcx(i2+1,j2+1,k2+1))
-c               desty(i,j,k) = 0.5d0 / (1.d0 / srcy(i2,j2,k2) +
-c     @                                 1.d0 / srcy(i2,j2+1,k2)) +
-c     @                        0.5d0 / (1.d0 / srcy(i2,j2,k2+1) +
-c     @                                 1.d0 / srcy(i2,j2+1,k2+1)) +
-c     @                        0.5d0 / (1.d0 / srcy(i2+1,j2,k2) +
-c     @                                 1.d0 / srcy(i2+1,j2+1,k2)) +
-c     @                        0.5d0 / (1.d0 / srcy(i2+1,j2,k2+1) +
-c     @                                 1.d0 / srcy(i2+1,j2+1,k2+1))
-c               destz(i,j,k) = 0.5d0 / (1.d0 / srcz(i2,j2,k2) +
-c     @                                 1.d0 / srcz(i2,j2,k2+1)) +
-c     @                        0.5d0 / (1.d0 / srcz(i2+1,j2,k2) +
-c     @                                 1.d0 / srcz(i2+1,j2,k2+1)) +
-c     @                        0.5d0 / (1.d0 / srcz(i2,j2+1,k2) +
-c     @                                 1.d0 / srcz(i2,j2+1,k2+1)) +
-c     @                        0.5d0 / (1.d0 / srcz(i2+1,j2+1,k2) +
-c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
-               destx(i,j,k) = 0.5d0 / (1.d0 / (srcx(i2,j2,k2) +
-     @                                         srcx(i2,j2,k2+1) +
-     @                                         srcx(i2,j2+1,k2) +
-     @                                         srcx(i2,j2+1,k2+1)) +
-     @                                 1.d0 / (srcx(i2+1,j2,k2) +
-     @                                         srcx(i2+1,j2,k2+1) +
-     @                                         srcx(i2+1,j2+1,k2) +
-     @                                         srcx(i2+1,j2+1,k2+1)))
-               desty(i,j,k) = 0.5d0 / (1.d0 / (srcy(i2,j2,k2) +
-     @                                         srcy(i2,j2,k2+1) +
-     @                                         srcy(i2+1,j2,k2) +
-     @                                         srcy(i2+1,j2,k2+1)) +
-     @                                 1.d0 / (srcy(i2,j2+1,k2) +
-     @                                         srcy(i2,j2+1,k2+1) +
-     @                                         srcy(i2+1,j2+1,k2) +
-     @                                         srcy(i2+1,j2+1,k2+1)))
-               destz(i,j,k) = 0.5d0 / (1.d0 / (srcz(i2,j2,k2) +
-     @                                         srcz(i2,j2+1,k2) +
-     @                                         srcz(i2+1,j2,k2) +
-     @                                         srcz(i2+1,j2+1,k2)) +
-     @                                 1.d0 / (srcz(i2,j2,k2+1) +
-     @                                         srcz(i2,j2+1,k2+1) +
-     @                                         srcz(i2+1,j2,k2+1) +
-     @                                         srcz(i2+1,j2+1,k2+1)))
- 10         continue
+      if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
+         do 10 k = regl2, regh2
+            do 10 j = regl1, regh1
+               do 10 i = regl0, regh0
+                  i2 = 2 * i
+                  j2 = 2 * j
+                  k2 = 2 * k
+                  destx(i,j,k) = 0.5d0 / (1.d0 / (srcx(i2,j2,k2) +
+     @                                            srcx(i2,j2,k2+1) +
+     @                                            srcx(i2,j2+1,k2) +
+     @                                            srcx(i2,j2+1,k2+1)) +
+     @                                    1.d0 / (srcx(i2+1,j2,k2) +
+     @                                            srcx(i2+1,j2,k2+1) +
+     @                                            srcx(i2+1,j2+1,k2) +
+     @                                            srcx(i2+1,j2+1,k2+1)))
+                  desty(i,j,k) = 0.5d0 / (1.d0 / (srcy(i2,j2,k2) +
+     @                                            srcy(i2,j2,k2+1) +
+     @                                            srcy(i2+1,j2,k2) +
+     @                                            srcy(i2+1,j2,k2+1)) +
+     @                                    1.d0 / (srcy(i2,j2+1,k2) +
+     @                                            srcy(i2,j2+1,k2+1) +
+     @                                            srcy(i2+1,j2+1,k2) +
+     @                                            srcy(i2+1,j2+1,k2+1)))
+                  destz(i,j,k) = 0.5d0 / (1.d0 / (srcz(i2,j2,k2) +
+     @                                            srcz(i2,j2+1,k2) +
+     @                                            srcz(i2+1,j2,k2) +
+     @                                            srcz(i2+1,j2+1,k2)) +
+     @                                    1.d0 / (srcz(i2,j2,k2+1) +
+     @                                            srcz(i2,j2+1,k2+1) +
+     @                                            srcz(i2+1,j2,k2+1) +
+     @                                            srcz(i2+1,j2+1,k2+1)))
+ 10               continue
+      else if (ir .eq. 2 .and. jr .eq. 2) then
+         do 20 k = regl2, regh2
+            do 20 j = regl1, regh1
+               do 20 i = regl0, regh0
+                  i2 = 2 * i
+                  j2 = 2 * j
+                  destx(i,j,k) = 1.d0 / (1.d0 / (srcx(i2,j2,k) +
+     @                                           srcx(i2,j2+1,k)) +
+     @                                   1.d0 / (srcx(i2+1,j2,k) +
+     @                                           srcx(i2+1,j2+1,k)))
+                  desty(i,j,k) = 1.d0 / (1.d0 / (srcy(i2,j2,k) +
+     @                                           srcy(i2+1,j2,k)) +
+     @                                   1.d0 / (srcy(i2,j2+1,k) +
+     @                                           srcy(i2+1,j2+1,k)))
+                  destz(i,j,k) = 0.25d0 * (srcz(i2,j2,k) +
+     @                                     srcz(i2,j2+1,k) +
+     @                                     srcz(i2+1,j2,k) +
+     @                                     srcz(i2+1,j2+1,k))
+ 20               continue
+      else if (ir .eq. 2 .and. kr .eq. 2) then
+         do 30 k = regl2, regh2
+            do 30 j = regl1, regh1
+               do 30 i = regl0, regh0
+                  i2 = 2 * i
+                  k2 = 2 * k
+                  destx(i,j,k) = 1.d0 / (1.d0 / (srcx(i2,j,k2) +
+     @                                           srcx(i2,j,k2+1)) +
+     @                                   1.d0 / (srcx(i2+1,j,k2) +
+     @                                           srcx(i2+1,j,k2+1)))
+                  desty(i,j,k) = 0.25d0 * (srcy(i2,j,k2) +
+     @                                     srcy(i2,j,k2+1) +
+     @                                     srcy(i2+1,j,k2) +
+     @                                     srcy(i2+1,j,k2+1))
+                  destz(i,j,k) = 1.d0 / (1.d0 / (srcz(i2,j,k2) +
+     @                                           srcz(i2+1,j,k2)) +
+     @                                   1.d0 / (srcz(i2,j,k2+1) +
+     @                                           srcz(i2+1,j,k2+1)))
+ 30               continue
+      else if (jr .eq. 2 .and. kr .eq. 2) then
+         do 40 k = regl2, regh2
+            do 40 j = regl1, regh1
+               do 40 i = regl0, regh0
+                  j2 = 2 * j
+                  k2 = 2 * k
+                  destx(i,j,k) = 0.25d0 * (srcx(i,j2,k2) +
+     @                                     srcx(i,j2,k2+1) +
+     @                                     srcx(i,j2+1,k2) +
+     @                                     srcx(i,j2+1,k2+1))
+                  desty(i,j,k) = 1.d0 / (1.d0 / (srcy(i,j2,k2) +
+     @                                           srcy(i,j2,k2+1)) +
+     @                                   1.d0 / (srcy(i,j2+1,k2) +
+     @                                           srcy(i,j2+1,k2+1)))
+                  destz(i,j,k) = 1.d0 / (1.d0 / (srcz(i,j2,k2) +
+     @                                           srcz(i,j2+1,k2)) +
+     @                                   1.d0 / (srcz(i,j2,k2+1) +
+     @                                           srcz(i,j2+1,k2+1)))
+ 40               continue
+      else if (ir .eq. 2) then
+         do 50 k = regl2, regh2
+            do 50 j = regl1, regh1
+               do 50 i = regl0, regh0
+                  i2 = 2 * i
+                  destx(i,j,k) = 2.d0 / (1.d0 / srcx(i2,j,k) +
+     @                                   1.d0 / srcx(i2+1,j,k))
+                  desty(i,j,k) = 0.5d0 * (srcy(i2,j,k) +
+     @                                    srcy(i2+1,j,k))
+                  destz(i,j,k) = 0.5d0 * (srcz(i2,j,k) +
+     @                                    srcz(i2+1,j,k))
+ 50               continue
+      else if (jr .eq. 2) then
+         do 60 k = regl2, regh2
+            do 60 j = regl1, regh1
+               do 60 i = regl0, regh0
+                  j2 = 2 * j
+                  destx(i,j,k) = 0.5d0 * (srcx(i,j2,k) +
+     @                                    srcx(i,j2+1,k))
+                  desty(i,j,k) = 2.d0 / (1.d0 / srcy(i,j2,k) +
+     @                                   1.d0 / srcy(i,j2+1,k))
+                  destz(i,j,k) = 0.5d0 * (srcz(i,j2,k) +
+     @                                    srcz(i,j2+1,k))
+ 60               continue
+      else if (kr .eq. 2) then
+         do 70 k = regl2, regh2
+            do 70 j = regl1, regh1
+               do 70 i = regl0, regh0
+                  k2 = 2 * k
+                  destx(i,j,k) = 0.5d0 * (srcx(i,j,k2) +
+     @                                    srcx(i,j,k2+1))
+                  desty(i,j,k) = 0.5d0 * (srcy(i,j,k2) +
+     @                                    srcy(i,j,k2+1))
+                  destz(i,j,k) = 2.d0 / (1.d0 / srcz(i,j,k2) +
+     @                                   1.d0 / srcz(i,j,k2+1))
+ 70               continue
+      endif
       end
 
 #  else
@@ -1936,6 +2071,8 @@ c NODE(EDGE)-based data only.
       real*8 srcx(dimdec(src))
       real*8 srcy(dimdec(src))
       real*8 srcz(dimdec(src))
+      print *, "Warning:  Don't use this routine.  Not modified for "
+      print *, "          IntVect refinement ratios"
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
