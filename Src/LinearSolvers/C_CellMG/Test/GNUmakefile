@@ -7,8 +7,8 @@ DIM	= 3
 DIM	= 2
 COMP = g++
 COMP = KCC
-USE_MPI=FALSE
 USE_MPI=TRUE
+USE_MPI=FALSE
 USE_THREADS=TRUE
 USE_THREADS=FALSE
 NAMESPACE=FALSE
@@ -19,8 +19,8 @@ USE_ARRAYVIEW = FALSE
 USE_HYPRE=TRUE
 USE_HYPRE=FALSE
 
-USE_BL3 = FALSE
 USE_BL3 = TRUE
+USE_BL3 = FALSE
 
 PBOXLIB_HOME := ../..
 
@@ -71,6 +71,7 @@ vpathdir += $(PBOXLIB_HOME)/mglib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
 vpathdir += $(PBOXLIB_HOME)/util
 
+
 # We need these from amrlib 
 
 CEXE_sources += BCRec.cpp 
@@ -95,9 +96,12 @@ ifeq ($(USE_BL3),TRUE)
   CEXE_headers += WorkQueue.H Threads.H Timer.H
   CEXE_sources += BL3WorkQueue.cpp BL3Thread.cpp BL3Utility.cpp 
   CEXE_sources += BL3Error.cpp BL3Profiler.cpp 
-  CEXE_sources += BL3Parallel.cpp
+  CEXE_sources += BL3Parallel.cpp BL3BoxLib3.cpp
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
   vpathdir += $(PBOXLIB_HOME)/BoxLib3
+  ifeq ($(COMP),g++)
+    INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib3/std
+  endif
 endif
 
 ifeq ($(DEBUG),TRUE)
