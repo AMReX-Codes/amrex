@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.24 1997-12-17 23:05:19 lijewski Exp $
+// $Id: FabArray.H,v 1.25 1998-02-03 19:33:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1018,7 +1018,8 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 {
-    if (farray.boxarray == boxarray)
+    if (DistributionMap().ProcessorMap() ==
+        farray.DistributionMap().ProcessorMap())
     {
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
@@ -1185,9 +1186,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    num_comp,
                        int                    nghost)
 {
-    assert(src.boxarray == boxarray);
     assert(nghost <= n_grow);
     assert(nghost <= src.n_grow);
+    assert(DistributionMap().ProcessorMap() == src.DistributionMap().ProcessorMap());
 
     int myproc = ParallelDescriptor::MyProc();
 
