@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.26 2001-08-06 19:40:27 car Exp $
+// $Id: BoxList.cpp,v 1.27 2004-04-30 21:11:23 vince Exp $
 //
 #include <winstd.H>
 
@@ -218,7 +218,7 @@ BoxList::intersect (const Box& b)
 BoxList&
 BoxList::intersect (const BoxList& b)
 {
-    BoxList bl;
+    BoxList bl(b.ixType());
 
     for (iterator lhs = begin(); lhs != end(); ++lhs)
     {
