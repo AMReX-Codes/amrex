@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.22 1998-06-14 22:05:38 lijewski Exp $
+// $Id: Geometry.cpp,v 1.23 1998-06-15 20:06:34 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,9 +15,9 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-const int MaxCacheSize = 50;
+const int MaxFPBCacheSize = 25;
 
-list<Geometry::FPB> Geometry::m_Cache;
+Geometry::FPBList Geometry::m_FPBCache;
 
 ostream&
 operator<< (ostream&        os,
@@ -43,12 +43,15 @@ ostream&
 operator << (ostream&               os,
 	     const Geometry::PIRec& pir)
 {
-    os << "  From (Box "
+    os << "mfi: "
+       << pir.mfid
+       << " from (Box "
        << pir.srcId
        << ") "
        << pir.srcBox
        << " to "
        << pir.dstBox;
+
     return os;
 }
 
@@ -56,70 +59,41 @@ ostream&
 operator<< (ostream&                 os,
 	    const Geometry::PIRMMap& pirm)
 {
-    if (pirm.size() > 0)
+    for (int i = 0; i < pirm.size(); i++)
     {
-	Geometry::PIRMMap::const_iterator it = pirm.begin();
-	Geometry::PIRMMap::key_type key = (*it).first;
-	os << "Key: " << key << '\n';
-	for ( ; it != pirm.end(); ++it )
-	{
-	    Geometry::PIRMMap::key_type key1 = (*it).first;
-	    if (key != key1)
-	    {
-		key = key1;
-		os << "Key: " << key << '\n';
-	    }
-	    os << (*it).second << '\n';
-	}   
+        os << pirm[i] << '\n';
     }
     return os;
-}
-
-bool
-Geometry::FPB::operator== (const FPB& rhs) const
-{
-    return m_ba == rhs.m_ba &&
-        m_scomp == rhs.m_scomp &&
-        m_ncomp == rhs.m_ncomp &&
-        m_ngrow == rhs.m_ngrow &&
-        m_noovlp == rhs.m_noovlp;
 }
 
 void
 Geometry::FlushPIRMCache ()
 {
-    list<Geometry::FPB>::iterator it = m_Cache.begin();
-
-    for ( ; it != m_Cache.end(); ++it)
-    {
-        delete (*it).m_pirm;
-    }
-    m_Cache.clear();
+    m_FPBCache.clear();
 }
 
 Geometry::PIRMMap&
 Geometry::buildPIRMMap (const BoxArray& grids,
-                        int             src_comp,
-                        int             num_comp,
                         int             nGrow,
                         bool            no_ovlp) const
 {
     assert(isAnyPeriodic());
 
-    if (m_Cache.size() == MaxCacheSize)
+    if (m_FPBCache.size() == MaxFPBCacheSize)
     {
-        delete m_Cache.back().m_pirm;
-        m_Cache.pop_back();
+        m_FPBCache.pop_back();
     }
     //
     // Add new FPBs to the front of the cache.
     //
-    m_Cache.push_front(FPB(new PIRMMap,grids,src_comp,num_comp,nGrow,no_ovlp));
-
-    PIRMMap& pirm = *m_Cache.front().m_pirm;
+    m_FPBCache.push_front(FPB(grids,nGrow,no_ovlp));
     //
-    // Make a junk multifab to access its iterator.
-    // Don't allocate any mem for it.
+    // We'll populate a temporary PIRMMap and then assign to `m_pirm'.
+    // The cached PIRMMap will be optimally sized by the assignment statement.
+    //
+    PIRMMap tmp_pirm;
+    //
+    // Make a junk multifab for its iterator.  Don't allocate any mem for it.
     //
     MultiFab mf(grids, 1, nGrow, Fab_noallocate);
 
@@ -152,7 +126,6 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                 }
             }
         }
-
         bool doit = false;
 
         if (dest.ixType().cellCentered())
@@ -182,43 +155,55 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                     Box dstBox = srcBox;
                     dstBox.shift(-pshifts[iiv]);
 
-                    pirm.insert(PIRMMap::value_type(mfi.index(),
-                                                    PIRec(j,dstBox,srcBox)));
+                    tmp_pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
                 }
             }
         }
     }
 
-    return pirm;
+    m_FPBCache.front().m_pirm = tmp_pirm;
+
+    return m_FPBCache.front().m_pirm;
 }
 
-Geometry::PIRMMap&
-Geometry::getPIRMMap (const BoxArray& grids,
-                      int             src_comp,
-                      int             num_comp,
-                      int             nGrow,
-                      bool            no_ovlp) const
+MultiFabCopyDescriptor&
+Geometry::theFPBmfcd (MultiFab& mf,
+                      int       src_comp,
+                      int       num_comp,
+                      bool      no_ovlp,
+                      PIRMMap&  pirm) const
 {
-    assert(isAnyPeriodic());
-    //
-    // Have we already made one with appropriate characteristics?
-    //
-    const FPB fpb(grids,src_comp,num_comp,nGrow,no_ovlp);
-    //
-    // Search from the front to the back ...
-    //
-    list<Geometry::FPB>::iterator it = m_Cache.begin();
+    MultiFabCopyDescriptor* mfcd = mf.getFPBmfcd(src_comp,num_comp,no_ovlp);
 
-    for ( ; it != m_Cache.end(); ++it)
+    if (!(mfcd == 0))
     {
-        if ((*it) == fpb)
-        {
-            return *(*it).m_pirm;
-        }
+        return *mfcd;
     }
 
-    return buildPIRMMap(grids,src_comp,num_comp,nGrow,no_ovlp);
+    mfcd = new MultiFabCopyDescriptor;
 
+    mf.setFPBmfcd(src_comp,num_comp,no_ovlp,mfcd);
+    //
+    // Fill intersection list.
+    //
+    MultiFabId mfid = mfcd->RegisterMultiFab(&mf);
+
+    assert(mfid == MultiFabId(0));
+    //
+    // Register boxes in copy descriptor.
+    //
+    for (int i = 0; i < pirm.size(); i++)
+    {
+        pirm[i].fbid = mfcd->AddBox(mfid,
+                                    pirm[i].srcBox,
+                                    0,
+                                    pirm[i].srcId,
+                                    src_comp,
+                                    src_comp,
+                                    num_comp);
+    }
+
+    return *mfcd;
 }
 
 void
@@ -230,20 +215,15 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     if (!isAnyPeriodic())
         return;
 
-    RunStats fpb_stats("fill_periodic_bndry");
+    RunStats stats("fill_periodic_bndry");
 
-    fpb_stats.start();
+    stats.start();
 
-    PIRMMap& pirm = getPIRMMap(mf.boxArray(),
-                               src_comp,
-                               num_comp,
-                               mf.nGrow(),
-                               no_ovlp);
-
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(*this,
-                                                 src_comp,
-                                                 num_comp,
-                                                 no_ovlp);
+    PIRMMap& pirm = getPIRMMap(mf.boxArray(),mf.nGrow(),no_ovlp);
+    //
+    // Get cached MultiFabCopyDescriptor.
+    //
+    MultiFabCopyDescriptor& mfcd = theFPBmfcd(mf,src_comp,num_comp,no_ovlp,pirm);
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //
@@ -251,27 +231,21 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     const MultiFabId TheFPBMultiFabId(0);
 
-    typedef PIRMMap::iterator PIRMMapIt;
-    //
-    // Loop over my receiving fabs, copy periodic regions from buffered data.
-    //
-    for (MultiFabIterator mfi(mf); mfi.isValid(false); ++mfi)
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    for (int i = 0; i < pirm.size(); i++)
     {
-        pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(mfi.index());
-        //
-	// For each PIRec on this fab box ...
-        //
-	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
-	{
-	    const FillBoxId& fbid = (*p_it).second.fbid;
+        assert(mf.ProcessorMap()[pirm[i].mfid] == MyProc);
 
-	    assert(fbid.box() == (*p_it).second.srcBox);
+        assert(pirm[i].fbid.box() == pirm[i].srcBox);
 
-	    mfcd.FillFab(TheFPBMultiFabId, fbid, mfi(), (*p_it).second.dstBox);
-        }
+        mfcd.FillFab(TheFPBMultiFabId,
+                     pirm[i].fbid,
+                     mf[pirm[i].mfid],
+                     pirm[i].dstBox);
     }
 
-    fpb_stats.end();
+    stats.end();
 }
 
 Geometry::Geometry () {}

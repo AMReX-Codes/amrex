@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.16 1998-06-14 06:10:40 lijewski Exp $
+// $Id: Geometry.H,v 1.17 1998-06-15 20:06:33 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -13,13 +13,10 @@
 
 #ifdef BL_USE_NEW_HFILES
 #include <list>
-#include <map>
 using std::ostream;
 using std::list;
-using std::multimap;
 #else
 #include <list.h>
-#include <map.h>
 #endif
 
 //
@@ -170,34 +167,36 @@ public:
     //
     // Src/dest box pairs to copy for periodic.
     //
-    class PIRec
+    struct PIRec
     {
-    public:
 	PIRec ()
             :
+            mfid(-1),
             srcId(-1) {}
-	PIRec (int        _srcId,
+
+	PIRec (int        _mfid,
+               int        _srcId,
                const Box& _srcBox,
                const Box& _dstBox)
 	    :
+            mfid(_mfid),
             srcId(_srcId),
             srcBox(_srcBox),
             dstBox(_dstBox) {}
 
+        int       mfid;
 	int       srcId;
 	Box       srcBox;
 	Box       dstBox;
 	FillBoxId fbid;
-#ifdef __GNUG__
-	bool operator== (const PIRec& rhs) const { return true; }
-#endif
+
 	friend ostream& operator<< (ostream&      os,
                                     const PIRec&  pir);
     };
     //
     //@ManDoc: Handy typedef.
     //
-    typedef multimap<int,PIRec> PIRMMap;
+    typedef vector<PIRec> PIRMMap;
     //
     //@ManDoc: Handy output function.
     //
@@ -208,98 +207,76 @@ public:
     //
     static void FlushPIRMCache ();
     //
-    //@ManDoc: The size of the cache.
+    //@ManDoc: The size of the PIRM cache.
     //
     static int PIRMCacheSize ();
 
-    /*@ManDoc: Compute periodic intersection records for data into each
-               fab on this proc.  It's an error to call this if
-               !isAnyPeriodic().  The map is cached internally.
-    */
-    PIRMMap& getPIRMMap (const BoxArray& grids,
-                         int             src_comp,
-                         int             num_comp,
-                         int             nGrow,
-                         bool            no_ovlp) const;
 protected:
     //
-    // Used in caching FillPeriodicBoundary information.
+    // Used in caching PIRMMaps.
     //
     struct FPB
     {
         FPB ()
             :
-            m_pirm(0),
-            m_scomp(-1),
-            m_ncomp(-1),
             m_ngrow(-1),
             m_noovlp(false) {}
 
         FPB (const BoxArray& ba,
-             int             scomp,
-             int             ncomp,
              int             ngrow,
              bool            noovlp)
             :
-            m_pirm(0),
             m_ba(ba),
-            m_scomp(scomp),
-            m_ncomp(ncomp),
             m_ngrow(ngrow),
             m_noovlp(true)
         {
             assert(ngrow >= 0);
         }
 
-        FPB (PIRMMap*        pirm,
-             const BoxArray& ba,
-             int             scomp,
-             int             ncomp,
-             int             ngrow,
-             bool            noovlp)
-            :
-            m_pirm(pirm),
-            m_ba(ba),
-            m_scomp(scomp),
-            m_ncomp(ncomp),
-            m_ngrow(ngrow),
-            m_noovlp(true)
+        ~FPB () { }
+
+        bool operator== (const FPB& rhs) const
         {
-            assert(scomp >=0);
-            assert(ncomp > 0);
-            assert(ngrow >= 0);
-            assert(!(pirm == 0));
+            return m_ba == rhs.m_ba &&
+                m_ngrow == rhs.m_ngrow &&
+                m_noovlp == rhs.m_noovlp;
         }
 
-        ~FPB () { /* Don't delete m_pirm in destructor! */ }
-
-        bool operator== (const FPB& rhs) const;
-
-        PIRMMap* m_pirm;
+        PIRMMap  m_pirm;
         BoxArray m_ba;
-        int      m_scomp;
-        int      m_ncomp;
         int      m_ngrow;
         bool     m_noovlp;
     };
+    //
+    // A useful typedef.
+    //
+    typedef list<FPB> FPBList;
     //
     // Helper functions.
     //
     void read_params ();
     //
-    // Helper function for getPIRMMap().
+    // Helper functions for FillPeriodicBoundary(). 
     //
+    PIRMMap& getPIRMMap (const BoxArray& grids,
+                         int             nGrow,
+                         bool            no_ovlp) const;
+
     PIRMMap& buildPIRMMap (const BoxArray& grids,
-                           int             src_comp,
-                           int             num_comp,
                            int             nGrow,
                            bool            no_ovlp) const;
+
+    MultiFabCopyDescriptor& theFPBmfcd (MultiFab& mf,
+                                        int       src_comp,
+                                        int       num_comp,
+                                        bool      no_ovlp,
+                                        PIRMMap&  pirm) const;
     //
     // Static data.
     //
-    static bool      is_periodic[BL_SPACEDIM]; // 0 means not periodic
-    static RealBox   prob_domain;
-    static list<FPB> m_Cache;
+    static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static RealBox prob_domain;
+    static FPBList m_FPBCache;
     //
     // Non-static data.
     //
@@ -406,7 +383,34 @@ inline
 int
 Geometry::PIRMCacheSize ()
 {
-    return m_Cache.size();
+    return m_FPBCache.size();
+}
+
+inline
+Geometry::PIRMMap&
+Geometry::getPIRMMap (const BoxArray& grids,
+                      int             nGrow,
+                      bool            no_ovlp) const
+{
+    assert(isAnyPeriodic());
+    //
+    // Have we already made one with appropriate characteristics?
+    //
+    const FPB fpb(grids,nGrow,no_ovlp);
+    //
+    // Search from the front to the back ...
+    //
+    FPBList::iterator it = m_FPBCache.begin();
+
+    for ( ; it != m_FPBCache.end(); ++it)
+    {
+        if (*it == fpb)
+        {
+            return (*it).m_pirm;
+        }
+    }
+
+    return buildPIRMMap(grids,nGrow,no_ovlp);
 }
 
 #endif /*_GEOMETRY_H_*/

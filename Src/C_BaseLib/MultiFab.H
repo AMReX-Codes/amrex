@@ -4,22 +4,16 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.17 1998-06-14 06:10:58 lijewski Exp $
+// $Id: MultiFab.H,v 1.18 1998-06-15 20:06:16 lijewski Exp $
 //
 
 #include <Assert.H>
-
 #include <FArrayBox.H>
 #include <FabArray.H>
 
 typedef FabArrayId MultiFabId;
 
 class MultiFabCopyDescriptor;
-
-//
-// Forward declaration.
-//
-class Geometry;
 
 //
 //@Man:
@@ -330,19 +324,19 @@ class MultiFab
     */
     void FillBoundary (int src_comp,
                        int num_comp);
-
     //
-    //@ManDoc: The cached copy descriptor used by FillBoundary.
+    //@ManDoc: The cached descriptor used by FillPeriodicBoundary(). May be NULL.
     //
-    MultiFabCopyDescriptor& theFBmfcd (int src_comp,
-                                       int num_comp);
+    MultiFabCopyDescriptor* getFPBmfcd (int  src_comp,
+                                        int  num_comp,
+                                        bool no_ovlp);
     //
-    //@ManDoc: The cached copy descriptor used by FillPeriodicBoundary.
+    //@ManDoc: Set the cached copy descriptor used by FillPeriodicBoundary().
     //
-    MultiFabCopyDescriptor& theFPBmfcd (const Geometry& geom,
-                                        int             src_comp,
-                                        int             num_comp,
-                                        bool            no_ovlp);
+    void setFPBmfcd (int                     src_comp,
+                     int                     num_comp,
+                     bool                    no_ovlp,
+                     MultiFabCopyDescriptor* mfcd);
 private:
     //
     // These are disabled.
@@ -356,23 +350,20 @@ private:
 
     void buildFBmfcd (int src_comp,
                       int num_comp);
-    //
-    // FillPeriodic helper function.
-    //
-    void buildFPBmfcd (const Geometry& geom,
-                       int             src_comp,
-                       int             num_comp,
-                       bool            no_ovlp);
+
+    MultiFabCopyDescriptor& theFBmfcd (int src_comp,
+                                       int num_comp);
     //
     // Some additional cached data.
     //
-    MultiFabCopyDescriptor* m_FB_mfcd;   /* Hack for FillBoundary */
-    vector<FillBoxId>*      m_FB_fbid;   /* Hack for FillBoundary */
-    int                     m_FB_scomp;  /* Hack for FillBoundary */
-    int                     m_FB_ncomp;  /* Hack for FillBoundary */
-    MultiFabCopyDescriptor* m_FPB_mfcd;  /* Hack for FillPeriodicBoundary */
-    int                     m_FPB_scomp; /* Hack for FillPeriodicBoundary */
-    int                     m_FPB_ncomp; /* Hack for FillPeriodicBoundary */
+    MultiFabCopyDescriptor* m_FB_mfcd;    /* Hack for FillBoundary */
+    vector<FillBoxId>*      m_FB_fbid;    /* Hack for FillBoundary */
+    int                     m_FB_scomp;   /* Hack for FillBoundary */
+    int                     m_FB_ncomp;   /* Hack for FillBoundary */
+    MultiFabCopyDescriptor* m_FPB_mfcd;   /* Hack for FillPeriodicBoundary */
+    int                     m_FPB_scomp;  /* Hack for FillPeriodicBoundary */
+    int                     m_FPB_ncomp;  /* Hack for FillPeriodicBoundary */
+    bool                    m_FPB_noovlp; /* Hack for FillPeriodicBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -568,21 +559,49 @@ MultiFab::theFBmfcd (int src_comp,
 }
 
 inline
-MultiFabCopyDescriptor&
-MultiFab::theFPBmfcd (const Geometry& geom,
-                      int             src_comp,
-                      int             num_comp,
-                      bool            no_ovlp)
+MultiFabCopyDescriptor*
+MultiFab::getFPBmfcd (int  src_comp,
+                      int  num_comp,
+                      bool no_ovlp)
 {
     assert(src_comp >= 0);
     assert(num_comp > 0);
 
-    if (!(m_FPB_scomp == src_comp && m_FPB_ncomp == num_comp))
+    if (!(m_FPB_scomp == src_comp &&
+          m_FPB_ncomp == num_comp &&
+          m_FPB_noovlp == no_ovlp))
     {
-        buildFPBmfcd(geom,src_comp,num_comp,no_ovlp);
+        //
+        // Null it out so it'll be rebuilt.
+        //
+        delete m_FPB_mfcd;
+
+        m_FPB_mfcd   = 0;
+        m_FPB_scomp  = -1;
+        m_FPB_ncomp  = -1;
+        m_FPB_noovlp = false;
     }
 
-    return *m_FPB_mfcd;
+    return m_FPB_mfcd;
+}
+
+inline
+void
+MultiFab::setFPBmfcd (int                     src_comp,
+                      int                     num_comp,
+                      bool                    no_ovlp,
+                      MultiFabCopyDescriptor* mfcd)
+{
+    assert(num_comp > 0);
+    assert(!(mfcd == 0));
+    assert(src_comp >= 0);
+    
+    delete m_FPB_mfcd;
+
+    m_FPB_mfcd   = mfcd;
+    m_FPB_scomp  = src_comp;
+    m_FPB_ncomp  = num_comp;
+    m_FPB_noovlp = no_ovlp;
 }
 
 inline
