@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.51 1999-01-21 20:27:05 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.52 1999-01-21 22:03:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -842,10 +842,10 @@ FillPatchIterator::isValid ()
 FillPatchIterator::~FillPatchIterator () {}
 
 void
-AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
+AmrLevel::FillCoarsePatch (MultiFab&     mf,
                            int           dcomp,
                            Real          time,
-                           int           state_indx,
+                           int           state_idx,
                            int           scomp,
                            int           ncomp,
                            bool          do_ghost_cells,
@@ -855,55 +855,53 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     // Must fill this region on crse level and interpolate.
     //
     assert(level != 0);
-    assert(ncomp <= (mfdest.nComp()-dcomp));
-    assert((0 <= state_indx) && (state_indx < desc_lst.length()));
+    assert(ncomp <= (mf.nComp()-dcomp));
+    assert(0 <= state_idx && state_idx < desc_lst.length());
 
-    const StateDescriptor& desc        = desc_lst[state_indx];
+    Array<BCRec>           bcr(ncomp);
+    const StateDescriptor& desc        = desc_lst[state_idx];
     Interpolater*          map         = mapper == 0 ? desc.interp() : mapper;
     const RealBox&         prob_domain = geom.ProbDomain();
-    const Box&             p_domain    = state[state_indx].getDomain();
+    const Box&             pdomain     = state[state_idx].getDomain();
+    const BoxArray&        mf_BA       = mf.boxArray();
     AmrLevel&              crse_lev    = parent->getLevel(level-1);
 
     assert(desc.inRange(scomp, ncomp));
     //
     // Build a properly coarsened boxarray.
     //
-    BoxArray crse_regBoxArray(mfdest.boxArray().length());
+    BoxArray crse_BA(mf_BA.length());
 
-    for (int ibox = 0; ibox < crse_regBoxArray.length(); ++ibox)
+    for (int i = 0; i < crse_BA.length(); ++i)
     {
-        Box dbox = mfdest.fabbox(ibox) & p_domain;
+        Box dbox = do_ghost_cells ? mf.fabbox(i) & pdomain : mf_BA[i];
 
         assert(dbox.ixType() == desc.getType());
         //
         // Coarsen unfilled region and widen by interpolater stencil width.
         //
-        crse_regBoxArray.set(ibox,map->CoarseBox(dbox,crse_ratio));
+        crse_BA.set(i,map->CoarseBox(dbox,crse_ratio));
     }
 
-    Array<BCRec> bcr(ncomp);
+    MultiFab crse_mf(crse_BA,ncomp,0,Fab_noallocate);
 
-    MultiFab mf(crse_regBoxArray, ncomp, 0, Fab_noallocate);
-
-    FillPatchIterator fpi(crse_lev,mf,0,time,state_indx,scomp,ncomp,mapper);
+    FillPatchIterator fpi(crse_lev,crse_mf,0,time,state_idx,scomp,ncomp,mapper);
 
     for ( ; fpi.isValid(); ++fpi)
     {
-        DependentMultiFabIterator mfdest_mfi(fpi, mfdest);
+        DependentMultiFabIterator mfi(fpi,mf);
 
-        assert(mfdest_mfi.fabbox() == mfdest_mfi().box());
-
-        Box dbox = mfdest_mfi().box() & p_domain;
+        Box dbox = do_ghost_cells ? mfi().box() & pdomain : mf_BA[fpi.index()];
         //
         // Get bndry conditions for this patch.
         //
-        setBC(dbox,p_domain,scomp,0,ncomp,desc.getBCs(),bcr);
+        setBC(dbox,pdomain,scomp,0,ncomp,desc.getBCs(),bcr);
         //
         // Interpolate up to fine patch.
         //
         map->interp(fpi(),
                     0,
-                    mfdest_mfi(),
+                    mfi(),
                     dcomp,
                     ncomp,
                     dbox,
@@ -913,17 +911,17 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
                     bcr);
     }
 
-    if (do_ghost_cells && mfdest.nGrow() > 0)
+    if (do_ghost_cells && mf.nGrow() > 0)
     {
-        mfdest.FillBoundary(dcomp,ncomp);
+        mf.FillBoundary(dcomp,ncomp);
 
-        geom.FillPeriodicBoundary(mfdest,dcomp,ncomp,false,false);
+        geom.FillPeriodicBoundary(mf,dcomp,ncomp,false,false);
 
-        for (MultiFabIterator mfi(mfdest); mfi.isValid(); ++mfi)
+        for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
-            if (!p_domain.contains(mfi().box()))
+            if (!pdomain.contains(mfi().box()))
             {
-                state[state_indx].FillBoundary(mfi(),
+                state[state_idx].FillBoundary(mfi(),
                                                time,
                                                geom.CellSize(),
                                                prob_domain,
