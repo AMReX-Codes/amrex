@@ -1,5 +1,5 @@
 #!/usr/local/gnu/bin/perl
-# "$Id: strip72,v 1.3 1998-11-07 01:14:42 marc Exp $"
+# "$Id: strip72,v 1.4 1998-11-07 01:45:11 marc Exp $"
 # -------------------------------------------------------------------------
 # This PERL script will act as a filter for FORTRAN code.
 # It will:
@@ -307,8 +307,8 @@ sub chop_line {
    chop($_line);
    $_line =~ s/^.{5}\s*//;    # find possible label and leading white space
    $indent1 = $&;             # string containing label and white space
-   $indent2 = $&;             # string containing continuation and white space
-   substr($indent2,0,6) = "     %";
+#   $indent2 = $&;             # string containing continuation and white space
+   $indent2 = "     %";       # hardwire removal of white space : MSD-11-06-98
    $i_len = length($indent1);    # length of leading white space
 
    # try stripping multiple white space, see if that solves problem
