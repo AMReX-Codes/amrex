@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.65 2003-03-06 23:57:38 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.66 2003-03-07 16:59:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -19,6 +19,7 @@
 #include <numeric>
 
 static int verbose = 0;
+static double max_efficiency = .95;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
 //
@@ -89,6 +90,8 @@ DistributionMapping::Initialize ()
     ParmParse pp("DistributionMapping");
 
     pp.query("verbose", verbose);
+
+    pp.query("efficiency", max_efficiency);
 
     std::string theStrategy;
 
@@ -377,7 +380,11 @@ knapsack (const std::vector<long>& pts, int nprocs)
         sum_weight += wgt;
         max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
+
+    double efficiency = sum_weight/(nprocs*max_weight);
+
 top:
+
     std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
 
     WeightedBoxList wbl_top = *it_top;
@@ -385,6 +392,9 @@ top:
     // For each ball in the heaviest box.
     //
     std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
+
+    if (efficiency > max_efficiency) goto bottom;
+
     for ( ; it_wb != wbl_top.end(); ++it_wb )
     {
         //
@@ -430,23 +440,17 @@ top:
                     tmp.sort();
                     wblqg.merge(tmp);
                     max_weight = (*wblqg.begin()).weight();
-                    //
-                    //efficiency = sum_weight/(nprocs*max_weight);
-                    //cout << "Efficiency = " << efficiency << '\n';
-                    //cout << "max_weight = " << max_weight << '\n';
-                    //
+                    efficiency = sum_weight/(nprocs*max_weight);
                     goto top;
                 }
             }
         }
     }
 
+ bottom:
+
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Knapsack: Volumetric Efficiency = "
-                  << sum_weight/(nprocs*max_weight)
-                  << '\n';
-    }
+        std::cout << "knapsack: efficiency = " << efficiency << std::endl;
     //
     // Here I am "load-balanced".
     //
