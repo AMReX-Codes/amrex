@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.31 2000-03-27 20:23:19 marc Exp $
+# Make.defs $Id: Make.defs,v 1.32 2000-06-01 23:10:36 car Exp $
 #
 
 #
@@ -102,27 +102,39 @@ ifeq ($(MACHINE), HP-UX)
 endif
 
 ifndef PRECISION
-    PRECISION	= DOUBLE
+  PRECISION	= DOUBLE
 endif
 
 ifndef DEBUG
-    DEBUG	= TRUE
+  DEBUG	= TRUE
 endif
 
 ifndef PROFILE
-    PROFILE	= FALSE
+  PROFILE	= FALSE
 endif
 
 ifndef DIM
-    DIM		= 2
+  DIM		= 2
 endif
 
 ifndef COMP
-    COMP	= CC
+  COMP	= CC
 endif
 
 ifndef NAMESPACE
-    NAMESPACE   = FALSE
+  NAMESPACE   = FALSE
+endif
+
+ifndef USE_THREADS
+  USE_THREADS  = FALSE
+endif
+
+ifndef USE_MPI
+  USE_MPI  = FALSE
+endif
+
+ifndef STRICTLY
+  STRICTLY    = FALSE
 endif
 
 #
@@ -196,33 +208,42 @@ endif
 ifeq ($(findstring KCC, $(COMP)),KCC)
     __kcc_version := $(shell					\
 		echo 'int i;' > _X.cpp;				\
-		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep KAI;	\
+		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep 'KAI C';	\
 		/bin/rm -f _X.cpp _X.o)
-  KCC_MAJOR_VERSION=3
 ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
-    KCC_VERSION=3.1
-    KCC_MINOR_VERSION=1
+    KCC_VERSION:=3.1
+    KCC_MAJOR_VERSION:=3
+    KCC_MINOR_VERSION:=1
     CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.2, $(__kcc_version)), KAI C++ 3.2)
-    KCC_VERSION=3.2
-    KCC_MINOR_VERSION=2
+    KCC_VERSION:=3.2
+    KCC_MINOR_VERSION:=2
     CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.3, $(__kcc_version)), KAI C++ 3.3)
-    KCC_VERSION=3.3
-    KCC_MINOR_VERSION=3
+    KCC_VERSION:=3.3
+    KCC_MAJOR_VERSION:=3
+    KCC_MINOR_VERSION:=3
     CLOSELIB := TRUE
     CXXLIBFLAGS = --one_per
 endif
 ifeq ($(findstring KAI C++ 3.4, $(__kcc_version)), KAI C++ 3.4)
-    KCC_VERSION=3.4
-    KCC_MINOR_VERSION=4
+    KCC_VERSION:=3.4
+    KCC_MAJOR_VERSION:=3
+    KCC_MINOR_VERSION:=4
     CLOSELIB := TRUE
     CXXLIBFLAGS = --one_per
 endif
-  DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
-  DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
+ifeq ($(findstring KAI C++ 4.0, $(__kcc_version)), KAI C++ 4.0)
+    KCC_VERSION:=4.0
+    KCC_MINOR_VERSION:=0
+    KCC_MAJOR_VERSION=4
+    CLOSELIB := TRUE
+    CXXLIBFLAGS = --one_per
+endif
+    DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
+    DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
 endif
 
 include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
@@ -259,8 +280,34 @@ endif
 
 ifeq ($(NAMESPACE),FALSE)
     CPPFLAGS  += -UBL_NAMESPACE
+    NamespaceSuffix :=
 else
     CPPFLAGS  += -DBL_NAMESPACE='BoxLib2'
+    NamespaceSuffix := .NS
+endif
+
+ifeq ($(USE_THREADS),TRUE)
+    ifeq ($(COMP),KCC)
+        CXXFLAGS+=--thread_safe
+    endif
+    ifeq ($(COMP),g++)
+        CPPFLAGS+=-D_THREAD_SAFE
+    endif
+    ThreadsSuffix := .TS
+else
+    ThreadsSuffix :=
+endif
+
+ifeq ($(STRICTLY),TRUE)
+    ifeq ($(COMP),KCC)
+        CXXFLAGS += --strict
+        CPPFLAGS += -D__KAI_STRICT
+        CXXFLAGS += --display_error_number
+        CXXFLAGS +=  --diag_suppress 450
+    endif
+    ifeq ($(COMP),g++)
+        CXXFLAGS += -Wall
+    endif
 endif
 
 ifeq ($(PRECISION),FLOAT)
@@ -311,7 +358,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadSuffix)$(NamespaceSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib, \
