@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.23 1998-05-04 21:24:57 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.24 1998-06-13 21:00:35 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -98,7 +98,7 @@ DistributionMapping::init ()
 //
 // Our cache of processor maps.
 //
-List< Array<int> > DistributionMapping::m_Cache;
+vector< Array<int> > DistributionMapping::m_Cache;
 
 bool
 DistributionMapping::GetMap (int             nprocs,
@@ -106,14 +106,14 @@ DistributionMapping::GetMap (int             nprocs,
                              Array<int>&     procmap)
 {
     assert(procmap.length() == boxes.length());
-
-    ListIterator< Array<int> > li(DistributionMapping::m_Cache);
-
-    for ( ; li; ++li)
+    //
+    // Search from back to front ...
+    //
+    for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (li().length() == boxes.length())
+        if (m_Cache[i].length() == boxes.length())
         {
-            const Array<int>& cached_procmap = li();
+            const Array<int>& cached_procmap = m_Cache[i];
 
             for (int i = 0; i < boxes.length(); i++)
             {
@@ -170,9 +170,9 @@ DistributionMapping::define (int             nprocs,
         {
             (this->*m_BuildMap)(nprocs, boxes);
             //
-            // We always prepend new processor maps.
+            // We always append new processor maps.
             //
-            DistributionMapping::m_Cache.prepend(m_procmap);
+            DistributionMapping::m_Cache.push_back(m_procmap);
         }
     }
 
@@ -246,19 +246,17 @@ void
 DistributionMapping::CacheStats (ostream& os)
 {
     os << "The DistributionMapping cache contains "
-       << DistributionMapping::m_Cache.length()
+       << DistributionMapping::m_Cache.size()
        << " Processor Map(s):\n";
 
-    if (!DistributionMapping::m_Cache.isEmpty())
+    if (!DistributionMapping::m_Cache.empty())
     {
-        ListIterator< Array<int> > li(DistributionMapping::m_Cache);
-
-        for (int i = 0; li; ++li, ++i)
+        for (int i = 0; i < m_Cache.size(); i++)
         {
             os << "\tMap #"
                << i
                << " is of length "
-               << li().length()
+               << m_Cache[i].length()
                << '\n';
         }
         os << '\n';
