@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.18 1997-12-17 18:09:33 lijewski Exp $
+// $Id: Utility.cpp,v 1.19 1998-02-12 17:32:10 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -246,7 +246,7 @@ Utility::CreateDirectory (const aString& path,
         // No slashes in the path.
         //
 #ifdef WIN32
-        return _mkdir(path.c_str()) < 0 && errno != EACCES ? false : true;
+        return _mkdir(path.c_str()) < 0 && errno != EEXIST ? false : true;
 #else
         return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
 #endif
@@ -273,7 +273,7 @@ Utility::CreateDirectory (const aString& path,
                 if ((slash = strchr(slash+1, '/')) != 0)
                     *slash = 0;
 #ifdef WIN32
-                if (_mkdir(dir) < 0 && errno != EACCES )
+                if (_mkdir(dir) < 0 && errno != EEXIST )
 #else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif
@@ -291,7 +291,7 @@ Utility::CreateDirectory (const aString& path,
             {
                 *slash = 0;
 #ifdef WIN32
-                if (_mkdir(dir) < 0 && errno != EACCES )
+                if (_mkdir(dir) < 0 && errno != EEXIST )
 #else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif
@@ -300,7 +300,7 @@ Utility::CreateDirectory (const aString& path,
             } while ((slash = strchr(slash+1, '/')) != 0);
 
 #ifdef WIN32
-            if (_mkdir(dir) < 0 && errno != EACCES)
+            if (_mkdir(dir) < 0 && errno != EEXIST)
 #else
             if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif
