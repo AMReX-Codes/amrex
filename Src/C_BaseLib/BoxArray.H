@@ -1,10 +1,8 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
-
 //
-// $Id: BoxArray.H,v 1.26 2001-07-26 20:08:43 lijewski Exp $
+// $Id: BoxArray.H,v 1.27 2001-07-31 17:56:25 lijewski Exp $
 //
-
 #include <cstddef>
 
 #include <IndexType.H>

@@ -1,7 +1,6 @@
 //
-// $Id: VisMF.cpp,v 1.82 2001-07-25 23:36:17 lijewski Exp $
+// $Id: VisMF.cpp,v 1.83 2001-07-31 17:56:27 lijewski Exp $
 //
-
 #include <cstdio>
 #include <fstream>
 
@@ -217,6 +216,14 @@ operator>> (std::istream&  is,
 
     return is;
 }
+
+VisMF::FabOnDisk::FabOnDisk () {}
+
+VisMF::FabOnDisk::FabOnDisk (const std::string& name, long offset)
+    :
+    m_name(name),
+    m_head(offset)
+{}
 
 int
 VisMF::nComp () const

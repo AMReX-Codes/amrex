@@ -1,7 +1,6 @@
 //
-// $Id: Box.cpp,v 1.19 2001-07-26 20:08:43 lijewski Exp $
+// $Id: Box.cpp,v 1.20 2001-07-31 17:56:25 lijewski Exp $
 //
-
 #include <iostream>
 #include <limits>
 
@@ -21,14 +20,14 @@ Box::Box (const Box& b)
     smallend(b.smallend),
     bigend(b.bigend),
     btype(b.btype)
-{ }
+{}
 
 Box::Box ()
     :
     smallend(IntVect::TheUnitVector()),
     bigend(IntVect::TheZeroVector()),
     btype()
-{ }
+{}
 
 Box::Box (const IntVect& small,
           const int*     vec_len)
@@ -37,7 +36,7 @@ Box::Box (const IntVect& small,
     bigend(D_DECL(small[0]+vec_len[0]-1,
                   small[1]+vec_len[1]-1,
                   small[2]+vec_len[2]-1))
-{ }
+{}
 
 Box::Box (const IntVect&   small,
           const IntVect&   big,
@@ -46,14 +45,14 @@ Box::Box (const IntVect&   small,
     smallend(small),
     bigend(big),
     btype(t)
-{ }
+{}
 
 Box::Box (const IntVect& small,
           const IntVect& big)
     :
     smallend(small),
     bigend(big)
-{ }
+{}
 
 Box::Box (const IntVect& small,
           const IntVect& big,

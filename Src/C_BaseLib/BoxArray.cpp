@@ -1,6 +1,7 @@
 //
-// $Id: BoxArray.cpp,v 1.26 2001-07-25 23:36:16 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.27 2001-07-31 17:56:25 lijewski Exp $
 //
+#include <iostream>
 
 #include <BLassert.H>
 #include <BoxArray.H>

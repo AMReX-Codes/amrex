@@ -1,10 +1,8 @@
 #ifndef BL_BARENA_H
 #define BL_BARENA_H
-
 //
-// $Id: BArena.H,v 1.9 2001-07-19 16:57:30 lijewski Exp $
+// $Id: BArena.H,v 1.10 2001-07-31 17:56:24 lijewski Exp $
 //
-
 #include <Arena.H>
 
 //

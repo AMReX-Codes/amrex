@@ -1,11 +1,26 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.83 2001-07-24 18:16:54 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.84 2001-07-31 17:56:27 lijewski Exp $
 //
-
 #include <cstdio>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
+
+FabComTag::FabComTag ()
+{
+    fromProc          = 0;
+    toProc            = 0;
+    fabIndex          = 0;
+    fineIndex         = 0;
+    srcComp           = 0;
+    destComp          = 0;
+    nComp             = 0;
+    face              = 0;
+    fabArrayId        = 0;
+    fillBoxId         = 0;
+    procThatNeedsData = 0;
+    procThatHasData   = 0;
+}
 
 //
 // Definition of non-inline members of CommData.
@@ -191,7 +206,10 @@ operator<< (std::ostream&          os,
 namespace
 {
     const char*
-    the_message_string(const char* file, int line, const char* call, int status)
+    the_message_string (const char* file,
+                        int         line,
+                        const char* call,
+                        int         status)
     {
 	//
 	// Should be large enough.
@@ -216,7 +234,7 @@ namespace
 namespace ParallelDescriptor
 {
     void
-    MPI_Error(const char* file, int line, const char* str, int rc)
+    MPI_Error (const char* file, int line, const char* str, int rc)
     {
 	BoxLib::Error(the_message_string(file, line, str, rc));
     }
@@ -228,7 +246,6 @@ void
 ParallelDescriptor::Abort ()
 {
 #ifdef WIN32
-    // if ( m_nProcs <= 1 ) throw;
     throw;
 #endif
     MPI_Abort(Communicator(), -1);
@@ -240,7 +257,8 @@ ParallelDescriptor::Abort (int errorcode)
     BoxLib::Abort(ErrorString(errorcode));
 }
 
-const char* ParallelDescriptor::ErrorString (int errorcode)
+const char*
+ParallelDescriptor::ErrorString (int errorcode)
 {
     BL_ASSERT(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
 
@@ -255,29 +273,35 @@ const char* ParallelDescriptor::ErrorString (int errorcode)
     return msg;
 }
 
-ParallelDescriptor::Message::Message()
-    : m_finished(true), m_type(MPI_DATATYPE_NULL), m_req(MPI_REQUEST_NULL)
-{
-}
+ParallelDescriptor::Message::Message ()
+    :
+    m_finished(true),
+    m_type(MPI_DATATYPE_NULL),
+    m_req(MPI_REQUEST_NULL)
+{}
 
-ParallelDescriptor::Message::Message(MPI_Request req_, MPI_Datatype type_)
-    : m_finished(false), m_type(type_), m_req(req_)
-{
-}
+ParallelDescriptor::Message::Message (MPI_Request req_, MPI_Datatype type_)
+    :
+    m_finished(false),
+    m_type(type_),
+    m_req(req_)
+{}
 
-ParallelDescriptor::Message::Message(MPI_Status stat_, MPI_Datatype type_)
-    : m_finished(true), m_type(type_), m_req(MPI_REQUEST_NULL), m_stat(stat_)
-{
-}
+ParallelDescriptor::Message::Message (MPI_Status stat_, MPI_Datatype type_)
+    :
+    m_finished(true),
+    m_type(type_),
+    m_req(MPI_REQUEST_NULL), m_stat(stat_)
+{}
 
 void
-ParallelDescriptor::Message::wait()
+ParallelDescriptor::Message::wait ()
 {
     BL_MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
 }
 
 bool
-ParallelDescriptor::Message::test()
+ParallelDescriptor::Message::test ()
 {
     int flag;
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
@@ -286,21 +310,21 @@ ParallelDescriptor::Message::test()
 }
 
 int
-ParallelDescriptor::Message::tag() const
+ParallelDescriptor::Message::tag () const
 {
     if ( !m_finished ) BoxLib::Error("Message::tag: Not Finished!");
     return m_stat.MPI_TAG;
 }
 
 int
-ParallelDescriptor::Message::pid() const
+ParallelDescriptor::Message::pid () const
 {
     if ( !m_finished ) BoxLib::Error("Message::pid: Not Finished!");
     return m_stat.MPI_SOURCE;
 }
 
 size_t
-ParallelDescriptor::Message::count() const
+ParallelDescriptor::Message::count () const
 {
     if ( m_type == MPI_DATATYPE_NULL ) BoxLib::Error("Message::count: Bad Type!");
     if ( !m_finished ) BoxLib::Error("Message::count: Not Finished!");
@@ -310,7 +334,7 @@ ParallelDescriptor::Message::count() const
 }
 
 MPI_Datatype
-ParallelDescriptor::Message::type() const
+ParallelDescriptor::Message::type () const
 {
     return m_type;
 }
@@ -386,8 +410,8 @@ ParallelDescriptor::Barrier ()
 }
 
 void
-ParallelDescriptor::util::DoAllReduceReal (Real& r,
-                                     MPI_Op   op)
+ParallelDescriptor::util::DoAllReduceReal (Real&  r,
+                                           MPI_Op op)
 {
     Real recv;
 
@@ -402,9 +426,9 @@ ParallelDescriptor::util::DoAllReduceReal (Real& r,
 }
 
 void
-ParallelDescriptor::util::DoReduceReal (Real& r,
-                                  MPI_Op   op,
-                                  int   cpu)
+ParallelDescriptor::util::DoReduceReal (Real&  r,
+                                        MPI_Op op,
+                                        int    cpu)
 {
     Real recv;
 
@@ -457,8 +481,8 @@ ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLong (long& r,
-                                     MPI_Op   op)
+ParallelDescriptor::util::DoAllReduceLong (long&  r,
+                                           MPI_Op op)
 {
     long recv;
 
@@ -472,9 +496,9 @@ ParallelDescriptor::util::DoAllReduceLong (long& r,
 }
 
 void
-ParallelDescriptor::util::DoReduceLong (long& r,
-                                  MPI_Op   op,
-                                  int   cpu)
+ParallelDescriptor::util::DoReduceLong (long&  r,
+                                        MPI_Op op,
+                                        int    cpu)
 {
     long recv;
 
@@ -539,8 +563,8 @@ ParallelDescriptor::ReduceLongMin (long& r, int cpu)
 }
 
 void
-ParallelDescriptor::util::DoAllReduceInt (int& r,
-                                    MPI_Op  op)
+ParallelDescriptor::util::DoAllReduceInt (int&   r,
+                                          MPI_Op op)
 {
     int recv;
 
@@ -555,9 +579,9 @@ ParallelDescriptor::util::DoAllReduceInt (int& r,
 }
 
 void
-ParallelDescriptor::util::DoReduceInt (int& r,
-                                 MPI_Op  op,
-                                 int  cpu)
+ParallelDescriptor::util::DoReduceInt (int&   r,
+                                       MPI_Op op,
+                                       int    cpu)
 {
     int recv;
 
@@ -683,135 +707,134 @@ ParallelDescriptor::Gather (Real* sendbuf,
 			    typ,
 			    root,
 			    Communicator()));
-
 }
 
 MPI_Op
-ParallelDescriptor::Max::op()
+ParallelDescriptor::Max::op ()
 {
     return  MPI_MAX;
 }
 
 MPI_Op
-ParallelDescriptor::Min::op()
+ParallelDescriptor::Min::op ()
 {
     return  MPI_MIN;
 }
 
 MPI_Op
-ParallelDescriptor::Sum::op()
+ParallelDescriptor::Sum::op ()
 {
     return  MPI_SUM;
 }
 
 MPI_Op
-ParallelDescriptor::Prod::op()
+ParallelDescriptor::Prod::op ()
 {
     return  MPI_PROD;
 }
 
 MPI_Op
-ParallelDescriptor::Logical_And::op()
+ParallelDescriptor::Logical_And::op ()
 {
     return  MPI_LAND;
 }
 
 MPI_Op
-ParallelDescriptor::Boolean_And::op()
+ParallelDescriptor::Boolean_And::op ()
 {
     return  MPI_BAND;
 }
 
 MPI_Op
-ParallelDescriptor::Logical_Or::op()
+ParallelDescriptor::Logical_Or::op ()
 {
     return  MPI_LOR;
 }
 
 MPI_Op
-ParallelDescriptor::Boolean_Or::op()
+ParallelDescriptor::Boolean_Or::op ()
 {
     return  MPI_BOR;
 }
 
 MPI_Op
-ParallelDescriptor::Logical_XOr::op()
+ParallelDescriptor::Logical_XOr::op ()
 {
     return  MPI_LXOR;
 }
 
 MPI_Op
-ParallelDescriptor::Boolean_XOr::op()
+ParallelDescriptor::Boolean_XOr::op ()
 {
     return  MPI_BXOR;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<char>::type()
+ParallelDescriptor::Mpi_typemap<char>::type ()
 {
     return  MPI_CHAR;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<short>::type()
+ParallelDescriptor::Mpi_typemap<short>::type ()
 {
     return  MPI_SHORT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<int>::type()
+ParallelDescriptor::Mpi_typemap<int>::type ()
 {
     return  MPI_INT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<long>::type()
+ParallelDescriptor::Mpi_typemap<long>::type ()
 {
     return  MPI_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned char>::type()
+ParallelDescriptor::Mpi_typemap<unsigned char>::type ()
 {
     return  MPI_UNSIGNED_CHAR;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned short>::type()
+ParallelDescriptor::Mpi_typemap<unsigned short>::type ()
 {
     return  MPI_UNSIGNED_SHORT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned int>::type()
+ParallelDescriptor::Mpi_typemap<unsigned int>::type ()
 {
     return  MPI_UNSIGNED;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<unsigned long>::type()
+ParallelDescriptor::Mpi_typemap<unsigned long>::type ()
 {
     return  MPI_UNSIGNED_LONG;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<float>::type()
+ParallelDescriptor::Mpi_typemap<float>::type ()
 {
     return  MPI_FLOAT;
 }
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<double>::type()
+ParallelDescriptor::Mpi_typemap<double>::type ()
 {
     return  MPI_DOUBLE;
 }
@@ -842,18 +865,17 @@ ParallelDescriptor::Gather (Real* sendbuf,
 }
 
 
-ParallelDescriptor::Message::Message()
-    : m_finished(true)
-{
-}
+ParallelDescriptor::Message::Message ()
+    :
+    m_finished(true)
+{}
 
 void
-ParallelDescriptor::Message::wait()
-{
-}
+ParallelDescriptor::Message::wait ()
+{}
 
 bool
-ParallelDescriptor::Message::test()
+ParallelDescriptor::Message::test ()
 {
     return m_finished;
 }
@@ -994,4 +1016,3 @@ FORT_BL_PD_ABORT ()
 {
     ParallelDescriptor::Abort();
 }
-

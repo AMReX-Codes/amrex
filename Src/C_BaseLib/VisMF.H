@@ -1,7 +1,7 @@
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
 //
-// $Id: VisMF.H,v 1.50 2001-07-26 20:08:47 lijewski Exp $
+// $Id: VisMF.H,v 1.51 2001-07-31 17:56:27 lijewski Exp $
 //
 #include <MultiFab.H>
 
@@ -34,18 +34,16 @@ public:
         //
         //@ManDoc: The default constructor -- null out all fields.
         //
-        FabOnDisk () {}
+        FabOnDisk ();
         //
         //@ManDoc: Constructor that sets the two values.
         //
-        FabOnDisk (const std::string& name, long offset)
-            :
-            m_name(name), m_head(offset) {}
+        FabOnDisk (const std::string& name, long offset);
         //
         // The two data values in a FabOnDisk structure.
         //
-        std::string m_name;  // The name of file containing the FAB.
-        long    m_head;  // Offset to start of FAB in file.
+        std::string m_name; // The name of file containing the FAB.
+        long    m_head;     // Offset to start of FAB in file.
         //
         // Prefixed to lines of FabOnDisk I/O.
         //
@@ -133,16 +131,16 @@ public:
                one-half the average of the min and max over the valid region
                of each contained FAB.
      */
-    static long Write (const MultiFab& mf,
-                       const std::string&  name,
-                       VisMF::How      how = OneFilePerCPU,
-                       bool            set_ghost = false);
+    static long Write (const MultiFab&    mf,
+                       const std::string& name,
+                       VisMF::How         how = OneFilePerCPU,
+                       bool               set_ghost = false);
 
     /*@ManDoc: Read a MultiFab from disk written using VisMF::Write().
                The MultiFab `mf' must have been defined using the default
                constructor.
     */
-    static void Read (MultiFab&      mf,
+    static void Read (MultiFab&          mf,
                       const std::string& name);
     //
     //@ManDoc: We try to do I/O with buffers of this size.
@@ -167,7 +165,7 @@ public:
     //
     //@ManDoc: Read the entire fab (all components).
     //
-    FArrayBox* readFAB (int            fabIndex,
+    FArrayBox* readFAB (int                fabIndex,
                         const std::string& mfName);
     //
     //@ManDoc: Read the specified fab component.
@@ -182,23 +180,23 @@ private:
     VisMF (const VisMF&);
     VisMF& operator= (const VisMF&);
 
-    static FabOnDisk Write (const FArrayBox& fab,
-                            const std::string&   filename,
-                            std::ostream&    os,
-                            long&            bytes);
+    static FabOnDisk Write (const FArrayBox&   fab,
+                            const std::string& filename,
+                            std::ostream&      os,
+                            long&              bytes);
 
     static long WriteHeader (const std::string& mf_name,
-                             VisMF::Header& hdr);
+                             VisMF::Header&     hdr);
 
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.
     // Otherwise read just that component.
     //
-    static FArrayBox* readFAB (int            fabIndex,
+    static FArrayBox* readFAB (int                fabIndex,
                                const std::string& mf_name,
-                               const Header&  hdr,
-			       int            ncomp = -1);
+                               const Header&      hdr,
+			       int                ncomp = -1);
 
     static std::string DirName (const std::string& filename);
 
@@ -224,32 +222,26 @@ private:
     //
     mutable Array< Array<FArrayBox*> > m_pa;
 };
-
 //
 // Write a FabOnDisk to an ostream in ASCII.
 //
 std::ostream& operator<< (std::ostream& os, const VisMF::FabOnDisk& fod);
-
 //
 // Read a FabOnDisk from an istream.
 //
 std::istream& operator>> (std::istream& is, VisMF::FabOnDisk& fod);
-
 //
 // Write an Array<FabOnDisk> to an ostream in ASCII.
 //
 std::ostream& operator<< (std::ostream& os, const Array<VisMF::FabOnDisk>& fa);
-
 //
 // Read an Array<FabOnDisk> from an istream.
 //
 std::istream& operator>> (std::istream& is, Array<VisMF::FabOnDisk>& fa);
-
 //
 // Write a VisMF::Header to an ostream in ASCII.
 //
 std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
-
 //
 // Read a VisMF::Header from an istream.
 //

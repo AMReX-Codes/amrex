@@ -1,7 +1,6 @@
 //
-// $Id: IndexType.cpp,v 1.10 2001-07-19 16:57:33 lijewski Exp $
+// $Id: IndexType.cpp,v 1.11 2001-07-31 17:56:27 lijewski Exp $
 //
-
 #include <iostream>
 #include <iomanip>
 
@@ -14,11 +13,13 @@ IndexType::mask (int k)
 }
 
 IndexType::IndexType ()
-    : itype(0)
+    :
+    itype(0)
 {}
 
 IndexType::IndexType (const IndexType& bt)
-    : itype(bt.itype)
+    :
+    itype(bt.itype)
 {}
 
 IndexType& IndexType::operator= (const IndexType& bt)

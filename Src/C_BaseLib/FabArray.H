@@ -1,10 +1,8 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
-
 //
-// $Id: FabArray.H,v 1.147 2001-07-31 15:03:42 lijewski Exp $
+// $Id: FabArray.H,v 1.148 2001-07-31 17:56:26 lijewski Exp $
 //
-
 #include <cstring>
 #include <limits>
 #include <map>
@@ -1463,7 +1461,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             Snds = *snd_cache;
         }
         else
+        {
             *snd_cache = Snds;
+        }
     }
 
     for (int i = 0; i < NProcs; i++)
@@ -1566,7 +1566,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             recv_cd = cd_cache->theCommData();
         }
         else
+        {
             *cd_cache = recv_cd;
+        }
     }
     //
     // Post one receive for data being requested by other CPUs.

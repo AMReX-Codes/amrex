@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.24 2001-07-26 20:08:44 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.25 2001-07-31 17:56:25 lijewski Exp $
 //
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +10,7 @@
 
 #include <BoxLib.H>
 #include <BLVERSION.H>
+#include <DistributionMapping.H>
 #include <FArrayBox.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
@@ -160,7 +161,7 @@ namespace
 }
 
 void
-BoxLib::Initialize(int& argc, char**& argv)
+BoxLib::Initialize (int& argc, char**& argv)
 {
     static Profiler::Tag bl_prf_tag("BoxLib");
 
@@ -195,13 +196,16 @@ BoxLib::Initialize(int& argc, char**& argv)
 
     FArrayBox::Initialize();
 
+    DistributionMapping::Initialize();
+
     std::cout << std::setprecision(10);
 }
 
 void
-BoxLib::Finalize()
+BoxLib::Finalize ()
 {
     bl_prf->stop();
+    DistributionMapping::Finalize();
     FArrayBox::Finalize();
     Profiler::Finalize();
     ParmParse::Finalize();
