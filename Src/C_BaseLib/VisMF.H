@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.26 1997-11-22 17:52:06 lijewski Exp $
+// $Id: VisMF.H,v 1.27 1997-11-23 18:19:59 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -116,8 +116,9 @@ public:
     const FArrayBox& operator[] (int i) const;
     //
     // Write a MultiFab to disk in a "smart" way.
+    // Returns the total # of bytes written (on this processor).
     //
-    static void Write (const MultiFab& mf,
+    static long Write (const MultiFab& mf,
                        const aString&  name,
                        VisMF::How      how);
     //
@@ -143,10 +144,6 @@ public:
     //
     typedef Array<Setbuf_Char_Type> IO_Buffer;
     //
-    // The # of bytes written to disk in VisMF routines.
-    //
-    static double TheBytesWrittenToDisk ();
-    //
     // The file offset of the passed ostream.
     //
     static long FileOffset (ostream& os);
@@ -162,9 +159,10 @@ private:
     //
     static FabOnDisk Write (const FArrayBox& fab,
                             const aString&   filename,
-                            ostream&         os);
+                            ostream&         os,
+                            long&            bytes);
 
-    static void WriteHeader (const aString& mf_name,
+    static long WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
 
     static FArrayBox* readFAB (int i, const Header& hdr);
@@ -176,10 +174,6 @@ private:
     // The suffix appended to files containing MultiFabs.
     //
     static const aString MultiFabHdrFileSuffix;
-    //
-    // Accumulates the # of bytes written to disk in VisMF routines.
-    //
-    static double BytesWrittenToDisk;
     //
     // The VisMF header as read from disk.
     //

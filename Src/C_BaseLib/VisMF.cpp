@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.34 1997-11-22 17:52:07 lijewski Exp $
+// $Id: VisMF.cpp,v 1.35 1997-11-23 18:19:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,14 +22,6 @@ const aString VisMF::FabFileSuffix("_D_");
 const aString VisMF::MultiFabHdrFileSuffix("_H");
 
 const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
-
-double VisMF::BytesWrittenToDisk;
-
-double
-VisMF::TheBytesWrittenToDisk ()
-{
-    return VisMF::BytesWrittenToDisk;
-}
 
 ostream&
 operator<< (ostream&                os,
@@ -233,7 +225,8 @@ operator>> (istream&       is,
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
-              ostream&         os)
+              ostream&         os,
+              long&            bytes)
 {
     VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
 
@@ -241,7 +234,7 @@ VisMF::Write (const FArrayBox& fab,
     //
     // Add in the number of bytes in the FAB including the FAB header.
     //
-    VisMF::BytesWrittenToDisk += (VisMF::FileOffset(os) - fab_on_disk.m_head);
+    bytes += (VisMF::FileOffset(os) - fab_on_disk.m_head);
     
     return fab_on_disk;
 }
@@ -355,10 +348,11 @@ VisMF::Header::Header (const MultiFab& mf,
     }
 }
 
-void
+long
 VisMF::WriteHeader (const aString& mf_name,
                     VisMF::Header& hdr)
 {
+    long bytes = 0;
     //
     // When running in parallel only one processor should do this I/O.
     //
@@ -385,18 +379,20 @@ VisMF::WriteHeader (const aString& mf_name,
         //
         // Add in the number of bytes written out in the Header.
         //
-        VisMF::BytesWrittenToDisk += VisMF::FileOffset(MFHdrFile);
+        bytes += VisMF::FileOffset(MFHdrFile);
     }
+    return bytes;
 }
 
-void
+long
 VisMF::Write (const MultiFab& mf,
               const aString&  mf_name,
               VisMF::How      how)
 {
+    long bytes = 0;
     //
     // Structure we use to pass FabOnDisk data to the IOProcessor.
-    // The variable length part of the message is name of the on-disk FAB.
+    // The variable length part of the message is the name of the on-disk FAB.
     //
     struct
     {
@@ -437,12 +433,14 @@ VisMF::Write (const MultiFab& mf,
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
-            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
+            int idx = mfi.index();
+
+            hdr.m_fod[idx] = VisMF::Write(mfi(), FabFileName, FabFile, bytes);
 
             if (!ParallelDescriptor::IOProcessor())
             {
-                msg_hdr.m_index = mfi.index();
-                msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
+                msg_hdr.m_index = idx;
+                msg_hdr.m_head  = hdr.m_fod[idx].m_head;
 
                 ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
                                              &msg_hdr,
@@ -477,14 +475,16 @@ VisMF::Write (const MultiFab& mf,
             if (!FabFile.good())
                 Utility::FileOpenFailed(FabFileName);
 
-            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
+            int idx = mfi.index();
 
-            assert(hdr.m_fod[mfi.index()].m_head == 0);
+            hdr.m_fod[idx] = VisMF::Write(mfi(), FabFileName, FabFile, bytes);
+
+            assert(hdr.m_fod[idx].m_head == 0);
 
             if (!ParallelDescriptor::IOProcessor())
             {
                 msg_hdr.m_head  = 0;
-                msg_hdr.m_index = mfi.index();
+                msg_hdr.m_index = idx;
 
                 ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
                                              &msg_hdr,
@@ -517,7 +517,9 @@ VisMF::Write (const MultiFab& mf,
         delete [] fab_name;
     }
 
-    VisMF::WriteHeader(mf_name, hdr);
+    bytes += VisMF::WriteHeader(mf_name, hdr);
+
+    return bytes;
 }
 
 VisMF::VisMF (const aString& mf_name)
