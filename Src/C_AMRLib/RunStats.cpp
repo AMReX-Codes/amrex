@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.14 1997-11-26 04:21:47 lijewski Exp $
+// $Id: RunStats.cpp,v 1.15 1997-11-28 16:45:13 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -144,29 +144,16 @@ RunStats::Print (ostream&            os,
 {
     int old_prec = os.precision(4);
 
-    os << "State " << data.name << " time:  " << data.run_time << "  (";
-
-    if (tot_run_time)
-    {
-       os << 100*(data.run_time/tot_run_time);
-    }
-    else
-    {
-        os << "XXXXXX";
-    }
- 
-    os << "%)  " << data.run_wtime << "  (";
-
-    if (tot_run_wtime)
-    {
-        os << 100*(data.run_wtime/tot_run_wtime);
-    }
-    else
-    {
-        os << "XXXXXX";
-    }
-
-    os << ")%\n";
+    os << "State "
+       << data.name
+       << " time:  "
+       << data.run_time
+       << "  ("
+       << 100*(data.run_time/tot_run_time)
+       << "%)  "
+       << data.run_wtime
+       << "  ("
+       << 100*(data.run_wtime/tot_run_wtime) << ")%\n";
 
     os.precision(old_prec);
 }
@@ -179,6 +166,8 @@ RunStats::report (ostream& os)
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
+
+    assert(rwtime > 0);
 
     ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
     RunStats::DiskBytes += Incremental_Byte_Count;
@@ -331,12 +320,16 @@ RunStats::dumpStats (ofstream& os)
 	long nlev = RunStats::TheNumPts.length();
         os << nlev;
 	for (int i = 0; i < nlev; i++)
+        {
 	    os << ' ' << RunStats::TheNumPts[i];
+        }
         os << '\n';
         nlev = RunStats::TheCells.length();
         os << nlev;
 	for (int i = 0; i < nlev; i++)
+        {
 	    os << ' ' << RunStats::TheCells[i];
+        }
 	os << ")\n";
     }
 }
