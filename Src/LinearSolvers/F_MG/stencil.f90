@@ -650,6 +650,10 @@ contains
        call bl_error("STENCIL_EXTRAP_BC: extrap_max_order < 1: ", st%extrap_max_order)
     end if
 
+    if ( st%type /= ST_CROSS ) then
+       call bl_error("ST_EXTRAP_BC: not yet")
+    end if
+
     do i = 1, uu%nboxes
        if ( multifab_remote(uu, i) ) cycle
        up => dataptr(uu, i)

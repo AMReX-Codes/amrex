@@ -28,7 +28,7 @@ contains
     integer, intent(in), optional :: max_level
     real(kind=dp_t), pointer :: cb(:,:,:,:)
     integer :: level
-    integer :: i, rr, j, n
+    integer :: i, rr(2), j, n
     integer :: ii, jj
     integer :: iii, jjj
     integer :: ir, jr
@@ -57,10 +57,10 @@ contains
           do n = 1, nc
              do jj = lo(2), hi(2)
                 do ii = lo(1), hi(1)
-                   do jjj = 0, rr - 1
-                      jr = jj*rr + jjj
-                      do iii = 0, rr - 1
-                         ir = ii*rr + iii
+                   do jjj = 0, rr(2) - 1
+                      jr = jj*rr(2) + jjj
+                      do iii = 0, rr(1) - 1
+                         ir = ii*rr(1) + iii
                          f_fab(ir, jr, n) = cb(ii, jj, 1, n)
                       end do
                    end do
@@ -80,7 +80,7 @@ contains
     integer, intent(in), optional :: max_level
     integer :: level
     real(kind=dp_t), pointer :: cb(:,:,:,:)
-    integer :: i, rr, j, n
+    integer :: i, rr(3), j, n
     integer :: ii, jj, kk
     integer :: iii, jjj, kkk
     integer :: ir, jr, kr
@@ -110,12 +110,12 @@ contains
              do kk = lo(3), hi(3)
                 do jj = lo(2), hi(2)
                    do ii = lo(1), hi(1)
-                      do kkk = 0, rr - 1
-                         kr = kk*rr + kkk
-                         do jjj = 0, rr - 1
-                            jr = jj*rr + jjj
-                            do iii = 0, rr - 1
-                               ir = ii*rr + iii
+                      do kkk = 0, rr(3) - 1
+                         kr = kk*rr(3) + kkk
+                         do jjj = 0, rr(2) - 1
+                            jr = jj*rr(2) + jjj
+                            do iii = 0, rr(1) - 1
+                               ir = ii*rr(1) + iii
                                f_fab(ir, jr, kr, n) = cb(ii, jj, kk, n)
                             end do
                          end do
@@ -142,7 +142,7 @@ contains
     integer, intent(in), optional :: max_level
     integer :: level
     real(kind=dp_t), pointer :: cb(:,:,:,:)
-    integer :: i, rr, j, ii, jj, iii, jjj, n, ir, jr
+    integer :: i, rr(2), j, ii, jj, iii, jjj, n, ir, jr
     integer :: lo(2), hi(2)
 
     ! probably should put in some error checking here to make sure that
@@ -169,11 +169,11 @@ contains
              do ii = lo(1), hi(1)
                 ! scale this patch up by rr to match the 
                 ! resolution of f_fab
-                do jjj = 0, rr - 1
-                   jr = jj*rr + jjj
+                do jjj = 0, rr(2) - 1
+                   jr = jj*rr(2) + jjj
                    if (jr < tlo(2) .or. jr > thi(2)) cycle
-                   do iii = 0, rr - 1
-                      ir = ii*rr + iii
+                   do iii = 0, rr(1) - 1
+                      ir = ii*rr(1) + iii
                       if (ir < tlo(1) .or. ir > thi(1)) cycle
                       if ( .not. associated(cb) ) then
                          call fab_bind_comp_vec(pf, i, j, comps)
@@ -199,7 +199,7 @@ contains
     integer, intent(in), optional :: max_level
     integer :: level
     real(kind=dp_t), pointer :: cb(:,:,:,:)
-    integer :: i, rr, j, ii, jj, kk, iii, jjj, kkk, n, ir, jr, kr
+    integer :: i, rr(3), j, ii, jj, kk, iii, jjj, kkk, n, ir, jr, kr
     integer :: lo(3), hi(3)
 
     ! probably should put in some error checking here to make sure that
@@ -227,14 +227,14 @@ contains
                 do ii = lo(1), hi(1)
                    ! scale this patch up by rr to match the 
                    ! resolution of f_fab
-                   do kkk = 0, rr-1
-                      kr = kk*rr + kkk
+                   do kkk = 0, rr(3)-1
+                      kr = kk*rr(3) + kkk
                       if ( kr < tlo(3) .or. kr > thi(3) ) cycle
-                      do jjj = 0, rr - 1
-                         jr = jj*rr + jjj
+                      do jjj = 0, rr(2) - 1
+                         jr = jj*rr(2) + jjj
                          if (jr < tlo(2) .or. jr > thi(2)) cycle
-                         do iii = 0, rr - 1
-                            ir = ii*rr + iii
+                         do iii = 0, rr(1) - 1
+                            ir = ii*rr(1) + iii
                             if (ir < tlo(1) .or. ir > thi(1)) cycle
                             if ( .not. associated(cb) ) then
                                call fab_bind_comp_vec(pf, i, j, comps)

@@ -52,7 +52,7 @@ module plotfile_module
      type(plotfile_grid), pointer :: grids(:) => Null()
      integer :: flevel = 0
      real(kind=dp_t) :: tm
-     integer, pointer :: refrat(:) => Null()
+     integer, pointer :: refrat(:,:) => Null()
      real(kind=dp_t), pointer :: phi(:)
      real(kind=dp_t), pointer :: plo(:)
   end type plotfile
@@ -96,17 +96,17 @@ contains
   function plotfile_refrat_n(pf, n) result(r)
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n
-    integer :: r
+    integer :: r(pf%dim)
     if ( n < 1 .or. n >= pf%flevel) &
          call bl_error("PLOTFILE_REFRAT_N: out of bounds: ", n)
-    r = pf%refrat(n)
+    r = pf%refrat(n,:)
   end function plotfile_refrat_n
 
   function plotfile_refrat(pf) result(r)
     type(plotfile), intent(in) :: pf
     integer :: n
-    integer :: r(pf%flevel-1)
-    r = (/(pf%refrat(n),n=1,pf%flevel-1)/)
+    integer :: r(pf%flevel-1,pf%dim)
+    r = pf%refrat
   end function plotfile_refrat
 
   function plotfile_time(pf) result(r)
@@ -213,10 +213,10 @@ contains
          file = trim(pf%root) // "/" // "Header", &
          status = 'old', action = 'read')
     read(unit=lun,fmt='(a)') str
-    if ( str == 'NavierStokes-V1.1' ) then
-       call build_ns_plotfile
-    else if ( str == '&PLOTFILE' ) then
+    if ( str == '&PLOTFILE' ) then
        call build_pf
+    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
+       call build_ns_plotfile
     else
        call bl_error('BUILD_PLOTIFILE: Header has improper magic string', str)
     end if
@@ -226,11 +226,12 @@ contains
 
     !! This one will use namelist I/O to read the header information
     subroutine build_pf
+      call bl_error("PLOTFILE_BUILD: not implemented")
     end subroutine build_pf
 
     ! NavierStokes-V1.1 Plotfile Formats
     ! Record
-    !     : c : NavierStokes-V1.1
+    !     : c : NavierStokes-V1.1/HyperClaw-V1.1
     !     : c : Numbers of fields = n
     !    n: i : Field Names
     !     : i : Dimension = dm
@@ -302,8 +303,11 @@ contains
       allocate(pf%grids(pf%flevel), pf%plo(pf%dim), pf%phi(pf%dim))
 
       read(unit=lun, fmt=*) pf%plo, pf%phi
-      allocate(pf%refrat(pf%flevel-1))
-      read(unit=lun, fmt=*) pf%refrat
+      !! Not make this really work correctly, I need to see if these are
+      !! IntVects here.  I have no examples of this.
+      allocate(pf%refrat(pf%flevel-1,1:pf%dim))
+      read(unit=lun, fmt=*) pf%refrat(:,1)
+      pf%refrat(:,2:pf%dim) = spread(pf%refrat(:,1), dim=2, ncopies=pf%dim-1)
 
       do i = 1, pf%flevel
          call box_read(pf%grids(i)%pdbx, unit)

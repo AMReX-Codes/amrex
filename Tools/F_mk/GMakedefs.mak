@@ -192,6 +192,8 @@ ifeq ($(ARCH),Linux)
       ifdef PROF
         F90FLAGS += -pg
       endif
+      # F90FLAGS += -stand f95
+      # FFLAGS += -stand f95
     endif
     ifeq ($(_comp),Intel7)
       ifdef NDEBUG
