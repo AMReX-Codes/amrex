@@ -48,6 +48,22 @@ public:
     // Free up allocated memory.
     //
     virtual void free (void* ap);
+    //
+    // Mirror the C calloc() function.
+    //
+    // Returns zero'd memory of size nmemb*size.
+    //
+    // This is here so that we can implement malloc(3) and family.
+    // Meer user's shouldn't use this function.
+    //
+    void* calloc (size_t nmemb, size_t size);
+    //
+    // Mirror the C realloc() function.
+    //
+    // This is here so that we can implement malloc(3) and family.
+    // Meer user's shouldn't use this function.
+    //
+    void* realloc (void* ptr, size_t size);
 
 protected:
 

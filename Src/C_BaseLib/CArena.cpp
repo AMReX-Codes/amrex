@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.9 1998-02-09 22:45:58 lijewski Exp $
+// $Id: CArena.cpp,v 1.10 1998-02-12 18:13:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <fstream>
 #include <utility>
+#include <cstring>
 using std::ofstream;
 using std::ios;
 using std::setw;
@@ -23,6 +24,7 @@ using std::pair;
 #if !((defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__))
 #include <utility.h>
 #endif
+#include <string.h>
 #endif
 
 #include <CArena.H>
@@ -207,3 +209,64 @@ CArena::free (void* vp)
         m_freelist.erase(hi_it);
     }
 }
+
+void*
+CArena::calloc (size_t nmemb,
+                size_t size)
+{
+    assert(!(size == 0));
+    assert(!(nmemb == 0));
+
+    void* vp = CArena::alloc(nmemb*size);
+
+    memset(vp, 0, nmemb*size);
+
+    return vp;
+}
+
+void*
+CArena::realloc (void*  ptr,
+                 size_t size)
+{
+    if (ptr == 0)
+    {
+        assert(!(size == 0));
+
+        return CArena::alloc(size);
+    }
+    else
+    {
+        if (size == 0)
+        {
+            CArena::free(ptr);
+        }
+        else
+        {
+            //
+            // It had better be in the busy list.
+            //
+            NL::iterator busy_it = m_busylist.find(Node(ptr,0));
+
+            assert(!(busy_it == m_busylist.end()));
+
+            assert(m_freelist.find(*busy_it) == m_freelist.end());
+
+            if (size > (*busy_it).size())
+            {
+                //
+                // If the new size is larger than old allocate new chunk.
+                //
+                void* vp = CArena::alloc(size);
+
+                memcpy(vp, ptr, (*busy_it).size());
+
+                CArena::free(ptr);
+
+                ptr = vp;
+            }
+        }
+
+        return ptr;
+    }
+}
+
