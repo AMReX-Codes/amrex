@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.9 2000-04-05 18:22:03 sstanley Exp $
+c $Id: INTERP_3D.F,v 1.10 2000-06-02 17:09:16 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -111,7 +111,6 @@ c
             jlo = max(ARG_L2(fb),jstrtFine) - jstrtFine
             jhi = min(ARG_H2(fb),jstopFine) - jstrtFine
 
-
 c
 c           ::::: compute slopes :::::
 c
@@ -203,7 +202,6 @@ c     ::::: end of do n
 #undef  SLYZ
 #undef  SLXYZ
 
-      return
       end
 
 
@@ -418,7 +416,6 @@ c ::: local var
       integer islo, jslo, kslo
       integer icc, istart, iend
       integer ilo, ihi, jlo, jhi, klo, khi
-      integer lenx, leny, lenz, maxlen
       logical xok, yok, zok
 
 c     :::::: helpful statement functions
@@ -457,35 +454,15 @@ c     :::::: helpful statement functions
       islo = cb_l1-1
       jslo = cb_l2-1
       kslo = cb_l3-1
-      lenx = fb_h1-fb_l1+1
-      leny = fb_h2-fb_l2+1
-      lenz = fb_h3-fb_l3+1
-      maxlen = max(lenx,leny,lenz)
-      if (maxlen .eq. lenx) then
-          do i = fb_l1, fb_h1 
-              fn = i-fslo(1)+1
-              ic = IX_PROJ(i,lratiox)
-              fcen = half*(fvcx(i)+fvcx(i+1))
-              ccen = half*(cvcx(ic)+cvcx(ic+1))
-              voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-	  end do
-      else if (maxlen .eq. leny) then
-          do j = fb_l2, fb_h2 
-              fn = j-fslo(2)+1
-              jc = IX_PROJ(j,lratioy)
-              fcen = half*(fvcy(j)+fvcy(j+1))
-              ccen = half*(cvcy(jc)+cvcy(jc+1))
-              voff(fn) = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-	  end do
-      else
-          do k = fb_l3, fb_h3 
-              fn = k-fslo(3)+1
-              kc = IX_PROJ(k,lratioz)
-              fcen = half*(fvcz(k)+fvcz(k+1))
-              ccen = half*(cvcz(kc)+cvcz(kc+1))
-              voff(fn) = (fcen-ccen)/(cvcz(kc+1)-cvcz(kc))
-          end do
-      end if
+
+      do i = fb_l1, fb_h1 
+         fn = i-fslo(1)+1
+         ic = IX_PROJ(i,lratiox)
+         fcen = half*(fvcx(i)+fvcx(i+1))
+         ccen = half*(cvcx(ic)+cvcx(ic+1))
+         voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
+      end do
+
       do 100 n = 1, nvar 
 
 c ::: ::::: compute slopes in x direction
@@ -666,145 +643,52 @@ c ::: ::::: compute slopes in z direction
              end if
 	  end if
 
-          if (maxlen .eq. lenx) then
-              do 200 kc = cb_l3, cb_h3 
-                  do 250 jc = cb_l2, cb_h2 
+          do 200 kc = cb_l3, cb_h3 
+             do 250 jc = cb_l2, cb_h2 
 
-c :::                 ::::: strip out fine grid slope vectors
-                      do ioff = 1, lratiox
-		          icc = sloc(cb_l1,jc,kc)
-                          istart = ioff
-                          iend = ioff + (ncbx-1)*lratiox
-                          do fn = istart, iend, lratiox 
-                              fslope(fn,1) = cslope(icc,1)
-                              fslope(fn,2) = cslope(icc,2)
-                              fslope(fn,3) = cslope(icc,3)
-                              fdat(fn) = crse(icc,n)
-                              icc = icc + ist
-			  end do
-		      end do
+c :::           ::::: strip out fine grid slope vectors
+                do ioff = 1, lratiox
+                   icc = sloc(cb_l1,jc,kc)
+                   istart = ioff
+                   iend = ioff + (ncbx-1)*lratiox
+                   do fn = istart, iend, lratiox 
+                      fslope(fn,1) = cslope(icc,1)
+                      fslope(fn,2) = cslope(icc,2)
+                      fslope(fn,3) = cslope(icc,3)
+                      fdat(fn) = crse(icc,n)
+                      icc = icc + ist
+                   end do
+                end do
 
-c :::                 ::::: interpolate to fine grid
-		      jj = lratioy*jc
-		      jlo = max(jj,fb_l2) - jj
-		      jhi = min(jj+lratioy-1,fb_h2) - jj
-		      kk = lratioz*kc
-		      klo = max(kk,fb_l3) - kk
-		      khi = min(kk+lratioz-1,fb_h3) - kk
-		      do koff = klo, khi
-                          k = lratioz*kc + koff
-                          fcen = half*(fvcz(k) +fvcz(k+1))
-                          ccen = half*(cvcz(kc)+cvcz(kc+1))
-                          zoff = (fcen-ccen)/(cvcz(kc+1)-cvcz(kc))
-			  do joff = jlo, jhi
-                              j = lratioy*jc + joff
-                              fcen = half*(fvcy(j) +fvcy(j+1))
-                              ccen = half*(cvcy(jc)+cvcy(jc+1))
-                              yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-                              do i = fb_l1, fb_h1
-                                 fn = i-fslo(1)+1
-                                 fine(i,j,k,n) = fdat(fn) + 
-     $                                        voff(fn)*fslope(fn,1)+
-     $				              yoff*fslope(fn,2)+
-     $					      zoff*fslope(fn,3)
-			      end do
-			  end do
-		      end do
-250               continue
-200           continue
-          else if (maxlen .eq. leny) then
-              do 300 kc = cb_l3, cb_h3 
-                  do 350 ic = cb_l1, cb_h1 
-
-c :::                 ::::: strip out fine grid slope vectors
-                      do joff = 1, lratioy
-		          icc = sloc(ic,cb_l2,kc)
-                          istart = joff
-                          iend = joff + (ncby-1)*lratioy
-                          do fn = istart, iend, lratioy 
-                              fslope(fn,1) = cslope(icc,1)
-                              fslope(fn,2) = cslope(icc,2)
-                              fslope(fn,3) = cslope(icc,3)
-                              fdat(fn) = crse(icc,n)
-                              icc = icc + jst
-                          end do
+c :::           ::::: interpolate to fine grid
+                jj = lratioy*jc
+                jlo = max(jj,fb_l2) - jj
+                jhi = min(jj+lratioy-1,fb_h2) - jj
+                kk = lratioz*kc
+                klo = max(kk,fb_l3) - kk
+                khi = min(kk+lratioz-1,fb_h3) - kk
+                do koff = klo, khi
+                   k = lratioz*kc + koff
+                   fcen = half*(fvcz(k) +fvcz(k+1))
+                   ccen = half*(cvcz(kc)+cvcz(kc+1))
+                   zoff = (fcen-ccen)/(cvcz(kc+1)-cvcz(kc))
+                   do joff = jlo, jhi
+                      j = lratioy*jc + joff
+                      fcen = half*(fvcy(j) +fvcy(j+1))
+                      ccen = half*(cvcy(jc)+cvcy(jc+1))
+                      yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
+                      do i = fb_l1, fb_h1
+                         fn = i-fslo(1)+1
+                         fine(i,j,k,n) = fdat(fn) + 
+     $                        voff(fn)*fslope(fn,1)+
+     $                        yoff*fslope(fn,2)+
+     $                        zoff*fslope(fn,3)
                       end do
+                   end do
+                end do
+250          continue
+200       continue
 
-c :::                 ::::: interpolate to fine grid
-		      ii = lratiox*ic
-		      ilo = max(ii,fb_l1) - ii
-		      ihi = min(ii+lratiox-1,fb_h1) - ii
-		      kk = lratioz*kc
-		      klo = max(kk,fb_l3) - kk
-		      khi = min(kk+lratioz-1,fb_h3) - kk
-                      do koff = klo, khi
-                          k = lratioz*kc + koff
-                          fcen = half*(fvcz(k) +fvcz(k+1))
-                          ccen = half*(cvcz(kc)+cvcz(kc+1))
-                          zoff = (fcen-ccen)/(cvcz(kc+1)-cvcz(kc))
-                          do ioff = ilo, ihi
-                              i = lratiox*ic + ioff
-                              fcen = half*(fvcx(i) +fvcx(i+1))
-                              ccen = half*(cvcx(ic)+cvcx(ic+1))
-                              xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-                              do j = fb_l2, fb_h2 
-                                  fn = j-fslo(2)+1
-                                  fine(i,j,k,n) = fdat(fn) +
-     $	  			               xoff*fslope(fn,1)+
-     $                                         voff(fn)*fslope(fn,2)+
-     $                                         zoff*fslope(fn,3)
-                              end do
-			  end do
-		      end do
-350               continue
-300           continue
-          else
-              do 400 jc = cb_l2, cb_h2
-                  do 450 ic = cb_l1, cb_h1 
-
-c :::                 ::::: strip out fine grid slope vectors
-                      do koff = 1, lratioz
-		          icc = sloc(ic,jc,cb_l3)
-                          istart = koff
-                          iend = koff + (ncbz-1)*lratioz
-                          do fn = istart, iend, lratioz 
-                              fslope(fn,1) = cslope(icc,1)
-                              fslope(fn,2) = cslope(icc,2)
-                              fslope(fn,3) = cslope(icc,3)
-                              fdat(fn) = crse(icc,n)
-                              icc = icc + kst
-                          end do
-                      end do
-
-c :::                 ::::: interpolate to fine grid
-		      ii  = lratiox*ic
-		      ilo = max(ii,fb_l1) - ii
-		      ihi = min(ii+lratiox-1,fb_h1) - ii
-		      jj  = lratioy*jc
-		      jlo = max(jj,fb_l2) - jj
-		      jhi = min(jj+lratioy-1,fb_h2) - jj
-                      do joff = jlo, jhi
-                          j = lratioy*jc + joff
-                          fcen = half*(fvcy(j) +fvcy(j+1))
-                          ccen = half*(cvcy(jc)+cvcy(jc+1))
-                          yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-                          do ioff = ilo, ihi
-                              i = lratiox*ic + ioff
-                              fcen = half*(fvcx(i) +fvcx(i+1))
-                              ccen = half*(cvcx(ic)+cvcx(ic+1))
-                              xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-                              do k = fb_l3, fb_h3
-                                  fn = k-fslo(3)+1
-                                  fine(i,j,k,n) = fdat(fn) + 
-     $                                         xoff*fslope(fn,1) +
-     $				               yoff*fslope(fn,2) + 
-     $                                         voff(fn)*fslope(fn,3)
-			      end do
-			  end do
-		      end do
-450               continue
-400           continue
-          end if
 100   continue
 
       end

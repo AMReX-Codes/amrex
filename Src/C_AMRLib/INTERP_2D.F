@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.9 2000-04-05 18:22:02 sstanley Exp $
+c $Id: INTERP_2D.F,v 1.10 2000-06-02 17:09:16 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -152,7 +152,6 @@ c     ::::: end of do n
 #undef  SLY
 #undef  SLXY
 
-      return
       end
 
 
@@ -247,7 +246,6 @@ c ::: stuff into output array
          end do
       end do
 
-      return
       end
 
 #undef  SLX
@@ -409,7 +407,6 @@ c ::: local var
       integer ncsx, ncsy
       integer islo, jslo
       integer icc, istart, iend
-      integer lenx, leny, maxlen
       logical xok, yok
 
       ncbx = cb_h1-cb_l1+1
@@ -422,27 +419,14 @@ c ::: local var
       jst = ncsx
       islo = cb_l1-1
       jslo = cb_l2-1
-      lenx = fb_h1-fb_l1+1
-      leny = fb_h2-fb_l2+1
-      maxlen = max(lenx,leny)
-      if (maxlen .eq. lenx) then
-         do i = fb_l1, fb_h1 
-          fn = i-fslo(1)+1
-          ic = IX_PROJ(i,lratiox)
-          fcen = half*(fvcx(i)+fvcx(i+1))
-          ccen = half*(cvcx(ic)+cvcx(ic+1))
-          voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-        end do   
-      else
-        do j = fb_l2, fb_h2 
-          fn = j-fslo(2)+1
-          jc = IX_PROJ(j,lratioy)
-          fcen = half*(fvcy(j)+fvcy(j+1))
-          ccen = half*(cvcy(jc)+cvcy(jc+1))
-          voff(fn) = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-        end do   
-      end if
 
+      do i = fb_l1, fb_h1 
+         fn = i-fslo(1)+1
+         ic = IX_PROJ(i,lratiox)
+         fcen = half*(fvcx(i)+fvcx(i+1))
+         ccen = half*(cvcx(ic)+cvcx(ic+1))
+         voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
+      end do
 
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
@@ -571,80 +555,37 @@ c ::: ::::: compute slopes in y direction
             end if
          end if
 
-        if (maxlen .eq. lenx) then
-          do 360 jc = cb_l2, cb_h2 
+         do 360 jc = cb_l2, cb_h2 
 c           ::::: strip out a fine grid slope vector
             do 370 ioff = 1, lratiox 
-              icc = clo + ist + jst*(jc-jslo)
-              istart = ioff
-              iend = ioff + (ncbx-1)*lratiox
-              do 380 fn = istart, iend, lratiox 
-                fslope(fn,1) = cslope(icc,1)
-                fslope(fn,2) = cslope(icc,2)
-                fdat(fn) = crse(icc,n)
-                icc = icc + ist
-380           continue
+               icc = clo + ist + jst*(jc-jslo)
+               istart = ioff
+               iend = ioff + (ncbx-1)*lratiox
+               do 380 fn = istart, iend, lratiox 
+                  fslope(fn,1) = cslope(icc,1)
+                  fslope(fn,2) = cslope(icc,2)
+                  fdat(fn) = crse(icc,n)
+                  icc = icc + ist
+380            continue
 370         continue
 
             do 390 joff = 0, lratioy-1 
-              j = lratioy*jc + joff
-              if (j .lt. fb_l2) then
-                goto 390
-              end if
-              if (j .gt. fb_h2) then
-                goto 391
-              end if
-              fcen = half*(fvcy(j)+fvcy(j+1))
-              ccen = half*(cvcy(jc)+cvcy(jc+1))
-              yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
+               j = lratioy*jc + joff
+               if ((j.lt.fb_l2).or.(j.gt.fb_h2)) goto 390
+               fcen = half*(fvcy(j)+fvcy(j+1))
+               ccen = half*(cvcy(jc)+cvcy(jc+1))
+               yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
 
-              do 400 i = fb_l1, fb_h1 
-                fn = i-fslo(1)+1
-                fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
-     &                                 +     yoff*fslope(fn,2)
-400           continue
+               do 400 i = fb_l1, fb_h1 
+                  fn = i-fslo(1)+1
+                  fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
+     &                                   +     yoff*fslope(fn,2)
+400            continue
 390         continue
-391         continue
-360       continue
-        else
-          do 410 ic = cb_l1, cb_h1 
-c           ::::: strip out a fine grid slope vector
-            do 420 joff = 1, lratioy 
-              icc = clo + ist*(ic-islo) + jst
-              istart = joff
-              iend = joff + (ncby-1)*lratioy
-              do 430 fn = istart, iend, lratioy 
-                fslope(fn,1) = cslope(icc,1)
-                fslope(fn,2) = cslope(icc,2)
-                fdat(fn) = crse(icc,n)
-                icc = icc + jst
-430           continue
-420         continue
+360      continue
 
-            do 440 ioff = 0, lratiox-1 
-              i = lratiox*ic + ioff
-              if (i .lt. fb_l1) then
-                goto 440
-              end if
-              if (i .gt. fb_h1) then
-                goto 441
-              end if
-              fcen = half*(fvcx(i)+fvcx(i+1))
-              ccen = half*(cvcx(ic)+cvcx(ic+1))
-              xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-
-              do 450 j = fb_l2, fb_h2 
-                fn = j-fslo(2)+1
-                fine(i,j,n) = fdat(fn) +     xoff*fslope(fn,1)
-     &                                 + voff(fn)*fslope(fn,2)
-450           continue
-440         continue
-441         continue
-410       continue
-        end if
 290   continue
 
-      return
       end
 c ::: 
 c ::: --------------------------------------------------------------
@@ -1119,7 +1060,6 @@ c ... do the interpolation
         end do
 
       end if
-      return
       end
 c ::: 
 c ::: --------------------------------------------------------------
@@ -1167,7 +1107,6 @@ c ::: local var
       integer ncsx, ncsy
       integer islo, jslo
       integer icc, istart, iend
-      integer lenx, leny, maxlen
       logical xok, yok
 
       ncbx = cb_h1-cb_l1+1
@@ -1180,27 +1119,14 @@ c ::: local var
       jst = ncsx
       islo = cb_l1-1
       jslo = cb_l2-1
-      lenx = fb_h1-fb_l1+1
-      leny = fb_h2-fb_l2+1
-      maxlen = max(lenx,leny)
-      if (maxlen .eq. lenx) then
-         do i = fb_l1, fb_h1 
-          fn = i-fslo(1)+1
-          ic = IX_PROJ(i,lratiox)
-          fcen = half*(fvcx(i)+fvcx(i+1))
-          ccen = half*(cvcx(ic)+cvcx(ic+1))
-          voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-        end do   
-      else
-        do j = fb_l2, fb_h2 
-          fn = j-fslo(2)+1
-          jc = IX_PROJ(j,lratioy)
-          fcen = half*(fvcy(j)+fvcy(j+1))
-          ccen = half*(cvcy(jc)+cvcy(jc+1))
-          voff(fn) = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-        end do   
-      end if
 
+      do i = fb_l1, fb_h1 
+         fn = i-fslo(1)+1
+         ic = IX_PROJ(i,lratiox)
+         fcen = half*(fvcx(i)+fvcx(i+1))
+         ccen = half*(cvcx(ic)+cvcx(ic+1))
+         voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
+      end do   
 
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
@@ -1270,92 +1196,43 @@ c ::: ::::: compute slopes in y direction
                end if
             end if
 
-        if (maxlen .eq. lenx) then
-          do 360 jc = cb_l2, cb_h2 
+            do 360 jc = cb_l2, cb_h2 
 c           ::::: strip out a fine grid slope vector
-            do 370 ioff = 1, lratiox 
-              icc = clo + ist + jst*(jc-jslo)
-              istart = ioff
-              iend = ioff + (ncbx-1)*lratiox
-              do 380 fn = istart, iend, lratiox 
-                fslope(fn,1) = cslope(icc,1)
-                fslope(fn,2) = cslope(icc,2)
-                fslope(fn,3) = cslope(icc,3)
-                fslope(fn,4) = cslope(icc,4)
-                fslope(fn,5) = cslope(icc,5)
-                fdat(fn) = crse(icc,n)
-                icc = icc + ist
-380           continue
-370         continue
+               do 370 ioff = 1, lratiox 
+                  icc = clo + ist + jst*(jc-jslo)
+                  istart = ioff
+                  iend = ioff + (ncbx-1)*lratiox
+                  do 380 fn = istart, iend, lratiox 
+                     fslope(fn,1) = cslope(icc,1)
+                     fslope(fn,2) = cslope(icc,2)
+                     fslope(fn,3) = cslope(icc,3)
+                     fslope(fn,4) = cslope(icc,4)
+                     fslope(fn,5) = cslope(icc,5)
+                     fdat(fn) = crse(icc,n)
+                     icc = icc + ist
+380               continue
+370            continue
 
-            do 390 joff = 0, lratioy-1 
-              j = lratioy*jc + joff
-              if (j .lt. fb_l2) then
-                goto 390
-              end if
-              if (j .gt. fb_h2) then
-                goto 391
-              end if
-              fcen = half*(fvcy(j)+fvcy(j+1))
-              ccen = half*(cvcy(jc)+cvcy(jc+1))
-              yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
+               do 390 joff = 0, lratioy-1 
+                  j = lratioy*jc + joff
+                  if ((j.lt.fb_l2).or.(j.gt.fb_h2)) goto 390
+                  fcen = half*(fvcy(j)+fvcy(j+1))
+                  ccen = half*(cvcy(jc)+cvcy(jc+1))
+                  yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
 
-              do 400 i = fb_l1, fb_h1 
-                fn = i-fslo(1)+1
-                fine(i,j,n) = fdat(fn) +          voff(fn)*fslope(fn,1)
-     &                                 + voff(fn)*voff(fn)*fslope(fn,3)
-     &                                 +              yoff*fslope(fn,2)
-     &                                 +         yoff*yoff*fslope(fn,4)
-     &                                 +     voff(fn)*yoff*fslope(fn,5)
-400           continue
-390         continue
-391         continue
-360       continue
-        else
-          do 410 ic = cb_l1, cb_h1 
-c           ::::: strip out a fine grid slope vector
-            do 420 joff = 1, lratioy 
-              icc = clo + ist*(ic-islo) + jst
-              istart = joff
-              iend = joff + (ncby-1)*lratioy
-              do 430 fn = istart, iend, lratioy 
-                fslope(fn,1) = cslope(icc,1)
-                fslope(fn,2) = cslope(icc,2)
-                fslope(fn,3) = cslope(icc,3)
-                fslope(fn,4) = cslope(icc,4)
-                fslope(fn,5) = cslope(icc,5)
-                fdat(fn) = crse(icc,n)
-                icc = icc + jst
-430           continue
-420         continue
+                  do 400 i = fb_l1, fb_h1 
+                     fn = i-fslo(1)+1
+                     fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
+     &                    + voff(fn)*voff(fn)*fslope(fn,3)
+     &                    + yoff*fslope(fn,2)
+     &                    + yoff*yoff*fslope(fn,4)
+     &                    + voff(fn)*yoff*fslope(fn,5)
+400               continue
+390            continue
+360         continue
 
-            do 440 ioff = 0, lratiox-1 
-              i = lratiox*ic + ioff
-              if (i .lt. fb_l1) then
-                goto 440
-              end if
-              if (i .gt. fb_h1) then
-                goto 441
-              end if
-              fcen = half*(fvcx(i)+fvcx(i+1))
-              ccen = half*(cvcx(ic)+cvcx(ic+1))
-              xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-
-              do 450 j = fb_l2, fb_h2 
-                fn = j-fslo(2)+1
-                fine(i,j,n) = fdat(fn) +              xoff*fslope(fn,1)
-     &                                 +         xoff*xoff*fslope(fn,3)
-     &                                 +          voff(fn)*fslope(fn,2)
-     &                                 + voff(fn)*voff(fn)*fslope(fn,4)
-     &                                 +     voff(fn)*xoff*fslope(fn,5)
-450           continue
-440         continue
-441         continue
-410       continue
-        end if
 290   continue
 
-      return
       end
 
 c ::: 
@@ -1437,7 +1314,6 @@ c :::
 	 end do
       end if
 
-      return
       end
 
 
