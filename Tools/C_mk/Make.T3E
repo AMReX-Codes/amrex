@@ -32,7 +32,13 @@ ifeq ($(PROFILE), TRUE)
 #
 # the following is for pat
 #
+ifeq ($(COMP),CC)
 XTRALIBS += -lpat pat.cld
+endif
+ifeq ($(COMP),KCC)
+XTRALIBS += --backend -lpat --backend pat.cld
+endif
+
 endif
 
 FC     = f90 -N 80 -e I
