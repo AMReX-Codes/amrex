@@ -155,7 +155,7 @@ contains
   function eq_i ( s1, s2 ) result(r)
     logical r
     character(len=*), intent(in) :: s1, s2
-    integer i, l1, l2, lc
+    integer :: i, l1, l2, lc
 
     l1 = len ( s1 )
     l2 = len ( s2 )

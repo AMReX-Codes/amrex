@@ -875,7 +875,7 @@ contains
                    uc_xslope(i,j,k,n) = FOURTH * (crse(i+1,j,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i-1,j,k,n) )
                 end do
              end do
-          endif
+          end if
           do k=0, nxc(3) - 1
              do j=0, nxc(2) - 1
                 lc_xslope(i,j,k,n) = uclc_slope(uc_xslope(i,j,k,n),crse,i,j,k,n,dim=1)
@@ -899,7 +899,7 @@ contains
                         + FIVE*crse(i,j,k,n) - SIX*crse(i+1,j,k,n) )
                 end do
              end do
-          endif
+          end if
           do k=0, nxc(3)-1
              do j=0, nxc(2)-1
                 lc_xslope(i,j,k,n) = uclc_slope(uc_xslope(i,j,k,n),crse,i,j,k,n,dim=1)
@@ -931,7 +931,7 @@ contains
                    uc_yslope(i,j,k,n) = FOURTH * (crse(i,j+1,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j-1,k,n) )
                 end do
              end do
-          endif
+          end if
           do k=0, nxc(3)-1
              do i=0, nxc(1)-1
                 lc_yslope(i,j,k,n) = uclc_slope(uc_yslope(i,j,k,n),crse,i,j,k,n,dim=2)
@@ -955,7 +955,7 @@ contains
                         + FIVE*crse(i,j,k,n) - SIX*crse(i,j+1,k,n) )
                 end do
              end do
-          endif
+          end if
           do k=0, nxc(3)-1
              do i=0, nxc(1)-1
                 lc_yslope(i,j,k,n) = uclc_slope(uc_yslope(i,j,k,n),crse,i,j,k,n,dim=2)
@@ -987,7 +987,7 @@ contains
                    uc_zslope(i,j,k,n) = FOURTH * (crse(i,j,k+1,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j,k-1,n) )
                 end do
              end do
-          endif
+          end if
           do j=0, nxc(2)-1
              do i=0, nxc(1)-1
                 lc_zslope(i,j,k,n) = uclc_slope(uc_zslope(i,j,k,n),crse,i,j,k,n,dim=3)
@@ -1011,7 +1011,7 @@ contains
                         + FIVE*crse(i,j,k,n) - SIX*crse(i,j,k+1,n) )
                 end do
              end do
-          endif
+          end if
           do j=0, nxc(2)-1
              do i=0, nxc(1)-1
                 lc_zslope(i,j,k,n) = uclc_slope(uc_zslope(i,j,k,n),crse,i,j,k,n,dim=3)
@@ -1096,12 +1096,12 @@ contains
                            .and. (abs(orig_corr_fact) > 1.e-10*abs(crse(ic,jc,kc,n)))) then
                          corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                          alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
-                      endif
+                      end if
                       if ((fine(i,j,k,n)  <  cmin(ic,jc,kc,n)) &
                            .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,jc,kc,n)))) then
                          corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                          alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
-                      endif
+                      end if
 
                    end do
                 end do
@@ -1299,9 +1299,9 @@ contains
 
                          fine(ilo:ihi,jlo:jhi,klo:khi,n) = fine(ilo:ihi,jlo:jhi,klo:khi,n) + posVal
 
-                      endif
+                      end if
 
-                   endif
+                   end if
 
                    if (crseTot  >  ZERO .and. crseTot  <  abs(sumN)) then
 
@@ -1318,7 +1318,7 @@ contains
                          fine(ilo:ihi,jlo:jhi,klo:khi,n) = ZERO
                       end where
 
-                   endif
+                   end if
 
                    if (crseTot  <  ZERO .and. abs(crseTot)  >  sumP) then
                       ! Here we don't have enough positive states to absorb all the
@@ -1330,7 +1330,7 @@ contains
 
                       fine(ilo:ihi,jlo:jhi,klo:khi,n) = negVal - fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
 
-                   endif
+                   end if
 
                    if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  >  ZERO) then
                       ! Here we have enough positive states to absorb all the
@@ -1346,7 +1346,7 @@ contains
                          fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       end where
 
-                   endif
+                   end if
 
                    if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  <= ZERO) then
                       ! Here we have enough positive states to absorb all the
@@ -1363,7 +1363,7 @@ contains
                          fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       end where
 
-                   endif
+                   end if
 
                    sum_fine_new = sum(fine(ilo:ihi,jlo:jhi,klo:khi,n))
 
@@ -1382,9 +1382,9 @@ contains
                             end do
                          end do
                       end do
-                   endif
+                   end if
 
-                endif
+                end if
 
              end do
 
