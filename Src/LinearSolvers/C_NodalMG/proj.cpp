@@ -314,8 +314,10 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 #else
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	bc[i][0] = refWall;
-	bc[i][1] = refWall;
+	//bc[i][0] = refWall;
+	//bc[i][1] = refWall;
+	bc[i][0] = periodic;
+	bc[i][1] = periodic;
     }
 #endif
     
