@@ -60,12 +60,19 @@ writePlotFile (const aString&  dir,
     // Faked data
     //
     const int NUM_STATE = mf.nComp();
-    const aString name("blank");
     const Real cumTime = 0.0;
     const Real curTime = cumTime;
     const int finestLevel = 1;
     Array< Box > domain(finestLevel+1);
-    Box tmpb = geom.Domain();
+    const IndexType& ixType = mf.boxArray()[0].ixType();
+    if (ixType != IndexType::TheCellType())
+	BoxLib::Error("writePlotfile unable to handle non cell-centered data for now");
+    Box tmpb = Box(geom.Domain()).convert(ixType);
+    Array<int> corr(BL_SPACEDIM);
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+	corr[d] = (ixType.ixType(d) == IndexType::CELL ? 1 : 0);
+    }
     for (int M = 0; M < finestLevel; M++)
     {
 	tmpb.coarsen(refRatio);
@@ -96,9 +103,9 @@ writePlotFile (const aString&  dir,
 		grid_loc[j][L] = RealBox(D_DECL( dx[j][0]*bx.smallEnd(0),
 						 dx[j][1]*bx.smallEnd(1),
 						 dx[j][2]*bx.smallEnd(2) ),
-					 D_DECL( dx[j][0]*(bx.bigEnd(0)+1),
-						 dx[j][1]*(bx.bigEnd(1)+1),
-						 dx[j][2]*(bx.bigEnd(2)+1) ));
+					 D_DECL( dx[j][0]*(bx.bigEnd(0)+corr[0]),
+						 dx[j][1]*(bx.bigEnd(1)+corr[1]),
+						 dx[j][2]*(bx.bigEnd(2)+corr[2]) ));
 	    }
 	}	    
     }
@@ -145,63 +152,62 @@ writePlotFile (const aString&  dir,
 	    // The first thing we write out is the plot file type.
 	    //
 	    os << thePlotFileType() << '\n';
-	    //
-	    // Only write out velocity and scalar data.
-	    //
+	    // Number of components, and names
 	    int n_var = NUM_STATE;
 	    os << n_var << '\n';
-	    //const StateDescriptor& d_cell = desc_lst[State_Type];
-	    //for (n = 0; n < NUM_STATE; n++) os << d_cell.name(n) << '\n';
-	    for (n = 0; n < NUM_STATE; n++) os << name << '\n';
+	    for (n = 0; n < NUM_STATE; n++)
+	    {
+		char buff[64];
+		sprintf(buff, "state_%d", n);
+		os << buff << '\n';
+	    }
+	    // dimensionality
 	    os << BL_SPACEDIM << '\n';
-	    //os << parent->cumTime() << '\n';
+	    // time
 	    os << cumTime << '\n';
-	    //int f_lev = parent->finestLevel();
-	    int f_lev = finestLevel;
-	    os << f_lev << '\n';
+	    // finest amr level
+	    os << finestLevel << '\n';
+	    // prob domain
 	    for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbLo(i) << ' ';
 	    os << '\n';
 	    for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbHi(i) << ' ';
 	    os << '\n';
-	    //for (i = 0; i < f_lev; i++) os << parent->refRatio(i) << ' ';
-	    for (i = 0; i < f_lev; i++) os << refRatio << ' ';
+	    // refinement ratio
+	    for (i = 0; i < finestLevel; i++) os << refRatio << ' ';
 	    os << '\n';
-	    //for (i = 0; i <= f_lev; i++) os << parent->Geom(i).Domain() << ' ';
-	    for (i = 0; i <= f_lev; i++) os << domain[i] << ' ';
+	    // int domain
+	    for (i = 0; i <= finestLevel; i++) os << domain[i] << ' ';
 	    os << '\n';
-	    //for (i = 0; i <= f_lev; i++) os << parent->levelSteps(i) << ' ';
-	    for (i = 0; i <= f_lev; i++) os << levelSteps << ' ';
+	    // level steps
+	    for (i = 0; i <= finestLevel; i++) os << levelSteps << ' ';
 	    os << '\n';
-	    for (i = 0; i <= f_lev; i++)
+	    for (i = 0; i <= finestLevel; i++)
 	    {
-		//const Real* dx_lev = parent->Geom(i).CellSize();
+		// cell size
 		const Real* dx_lev = dx[i].dataPtr();
 		for (int k = 0; k < BL_SPACEDIM; k++) os << dx_lev[k] << ' ';
 		os << '\n';
 	    }
-	    //os << (int) CoordSys::Coord() << '\n';
+	    // coordinate system
 	    os << Coord << '\n';
 	    os << "0\n"; // The bndry data.
 	}
 	//
 	// Now write state data.
 	//
-	//int ngrds          = grids.length();
 	int ngrds          = (level==0 ? 1 : grids.length());
-	//Real cur_time      = state[State_Type].curTime();
 	Real cur_time      = curTime;
-	//MultiFab& cell_dat = state[State_Type].newData();
 	const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
 	    
 	os << level << ' ' << ngrds << ' ' << cur_time << '\n';
-	//os << parent->levelSteps(level) << '\n';
+	// level steps
 	os << levelSteps << '\n';
 	
 	for (i = 0; i < cell_dat.boxArray().length(); ++i)
 	{
 	    for (n = 0; n < BL_SPACEDIM; n++)
-		//os << grid_loc[i].lo(n) << ' ' << grid_loc[i].hi(n) << '\n';
-		os << grid_loc[level][i].lo(n) << ' ' << grid_loc[level][i].hi(n) << '\n';
+		// lo/hi position of this grid
+		os <<grid_loc[level][i].lo(n) << ' ' << grid_loc[level][i].hi(n) << '\n';
 	}
 	
 	//
@@ -277,7 +283,6 @@ writePlotFile (const char*     name,
     {
         RunStats write_pltfile_stats("write_pltfile", k);
         write_pltfile_stats.start();
-        //writePlotFile(pltfile, HeaderFile);
         writePlotFile(pltfile, HeaderFile, k, mf, geom, refRatio, bgVal);
         write_pltfile_stats.end();
     }
