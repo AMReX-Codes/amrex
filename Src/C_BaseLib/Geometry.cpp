@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.5 1998-04-27 16:31:43 lijewski Exp $
+// $Id: Geometry.cpp,v 1.6 1998-04-27 19:43:20 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -135,9 +135,13 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     // Register boxes in copy decriptor (should be no unfilled boxes when finished)
     for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
     {
-	(*p_it).second.fbid = 
-	    facd.AddBox(faid, (*p_it).second.srcBox, unfilledBoxes,
-			(*p_it).second.srcId, sComp, sComp, nComp);
+	(*p_it).second.fbid = facd.AddBox(faid,
+                                          (*p_it).second.srcBox,
+                                          &unfilledBoxes,
+                                          (*p_it).second.srcId,
+                                          sComp,
+                                          sComp,
+                                          nComp);
     }
     assert(unfilledBoxes.length() == 0);
 

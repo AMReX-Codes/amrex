@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.8 1998-04-16 00:12:29 lijewski Exp $
+// $Id: FabSet.cpp,v 1.9 1998-04-27 19:43:19 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -104,11 +104,9 @@ FabSet::copyFrom (const MultiFab& src,
 
             if (ovlp.ok())
             {
-                BoxList unfilledBoxes(ovlp.ixType());  // Unused here.
-
                 fillBoxIdList.push_back(fscd.AddBox(srcmfid,
                                                     src.fabbox(s),
-                                                    unfilledBoxes,
+                                                    0,
                                                     src_comp,
                                                     dest_comp,
                                                     num_comp,
@@ -170,11 +168,9 @@ FabSet::plusFrom (const MultiFab& src,
 
             if (ovlp.ok())
             {
-                BoxList unfilledBoxes(ovlp.ixType()); // Unused here.
-
                 fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,
                                                     ovlp,
-                                                    unfilledBoxes,
+                                                    0,
                                                     0,
                                                     0,
                                                     num_comp));
@@ -289,18 +285,16 @@ FabSet::linComb (Real            a,
 
             if (ovlp.ok())
             {
-                BoxList unfilledBoxes(ovlp.ixType()); // Unused here.
-
                 fillBoxIdList_mfa.push_back(mfcd.AddBox(mfid_mfa,
                                                         mfa.fabbox(grd),
-                                                        unfilledBoxes,
+                                                        0,
                                                         0,
                                                         0,
                                                         num_comp,
                                                         false));
                 fillBoxIdList_mfb.push_back(mfcd.AddBox(mfid_mfb,
                                                         mfb.fabbox(grd),
-                                                        unfilledBoxes,
+                                                        0,
                                                         0,
                                                         0,
                                                         num_comp,
