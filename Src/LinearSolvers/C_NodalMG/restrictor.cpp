@@ -46,14 +46,34 @@ typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&,
 
 struct task_restriction_fill : public task
 {
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_)
+	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_) {}
     virtual bool ready();
 private:
     task_fab* tf;
-    const RESTFUN* func;
-    const int* integrate;
-    const int* arg1;
-    const int* arg2;
+    MultiFab& m;
+    int ind;
+    const Box pb;
+    const Box cbox;
+    const IntVect rat;
+    const RESTFUN ref;
+    const int integrate;
+    Array<int> arg1;
+    Array<int> arg2;
 };
+
+bool
+task_restriction_fill::ready()
+{
+    tf->ready();
+    const Box fb = tf->fab().box();
+    (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
+	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, 0, 0);
+			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
+			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
+
+    return true;
+}
 
 Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
@@ -189,8 +209,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		// my argument list stuff
 		RESTFUN ref;
 		task_fab* tfab;
-		int* arg1 = 0;
-		int* arg2 = 0;
 		// This extends fine face by one coarse cell past coarse face:
 		cbox &= regplus;
 		int idim = lev_interface.fdim(iface);
@@ -231,8 +249,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			const Box& fb = fine[igrid].box();
 			ref = &FORT_FANFR2;
 			tfab = new task_fab_get(fine, igrid, fb);
-			arg1 = &idim;
-			arg2 = &idir;
 			//FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
@@ -252,7 +268,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
 		}
-		tl.add_task(new task_restriction_fill(dest, jgrid, pb, cbox, tfab, rat, &integrate, arg1, arg2));
+		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	
@@ -366,7 +382,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		   //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
-		tl.add_task(new taskasdfasdfas);
+		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, &integrate));
 	    }
 	}
 	
@@ -414,12 +430,12 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(1, iedge);
-			ref = &FORT_FANRST2;
+			ref = &FORT_FANER2;
 			// FORT_FANER2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, t.getVect(), ga.dataPtr());
 		    }
 		}
-		tl.add_task(new tartat);
+		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
@@ -465,7 +481,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, ga.dataPtr(), 0);
 		    }
 		}
-		tl.add_task(new asdfasdfasf);
+		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 #endif
