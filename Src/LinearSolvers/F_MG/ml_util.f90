@@ -2,7 +2,13 @@ module ml_util_module
 
   use stencil_module
   use mg_module
+
   implicit none
+
+  private
+
+  public :: ml_fill_fluxes
+  public :: ml_fine_contrib
 
 contains
 
@@ -43,8 +49,6 @@ contains
   end subroutine ml_fill_fluxes
 
   subroutine ml_fine_contrib(mgt, ss, flux, uu, res, mm, ratio, crse_domain, side)
-    use stencil_module
-    use mg_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss

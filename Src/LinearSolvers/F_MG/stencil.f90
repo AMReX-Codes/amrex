@@ -605,33 +605,35 @@ contains
     logical, intent(in), optional :: legacy
     integer :: un
     un = unit_stdout(unit)
-    call unit_skip(un, skip)
-    write(unit=un, fmt='("STENCIL ", i1)', advance = 'NO') 
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
-    else
-       write(unit=un, fmt='()')
-    end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') st%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NS      = ",i2)') st%ns
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" TYPE    = ",i2)') st%type
-    if ( st%extrap_bc) then
+    if ( parallel_IOProcessor() ) then
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" EXTRAP_BC")')
+       write(unit=un, fmt='("STENCIL ", i1)', advance = 'NO') 
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
        call unit_skip(un, skip)
-       write(unit=un, fmt='("   ORDER = ",i2)') st%extrap_max_order
+       write(unit=un, fmt='(" DIM     = ",i2)') st%dim
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NS      = ",i2)') st%ns
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" TYPE    = ",i2)') st%type
+       if ( st%extrap_bc) then
+          call unit_skip(un, skip)
+          write(unit=un, fmt='(" EXTRAP_BC")')
+          call unit_skip(un, skip)
+          write(unit=un, fmt='("   ORDER = ",i2)') st%extrap_max_order
+       end if
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" SKWD    = ",i10,"/",i10  )') count(st%skewed), size(st%skewed)
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" XA      = ",3(ES20.10,1x))') st%xa
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" XB      = ",3(ES20.10,1x))') st%xb
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" DH      = ",3(ES20.10,1x))') st%dh
     end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" SKWD    = ",i10,"/",i10  )') count(st%skewed), size(st%skewed)
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" XA      = ",3(ES20.10,1x))') st%xa
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" XB      = ",3(ES20.10,1x))') st%xb
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DH      = ",3(ES20.10,1x))') st%dh
   end subroutine stencil_print
 
   subroutine stencil_extrap_bc(st, uu)

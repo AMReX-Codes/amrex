@@ -12,6 +12,8 @@ module itsol_module
   real(dp_t), private, parameter :: ZERO = 0.0_dp_t
 
   private :: itsol_defect
+  private :: itsol_precon
+  private :: itsol_precon_st
 
 contains
 
@@ -25,7 +27,7 @@ contains
         (norm <= epsilon(Anorm)*Anorm)
   end function itsol_converged
 
-  subroutine stencil_apply(aa, rr, uu, mm)
+  subroutine itsol_stencil_apply(aa, rr, uu, mm)
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
@@ -34,8 +36,9 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer i, n
+    integer :: i, n
     logical :: nodal_flag
+
     call multifab_fill_boundary(uu)
 
     nodal_flag = nodal_q(uu)
@@ -76,17 +79,17 @@ contains
        end do
     end do
 
-  end subroutine stencil_apply
+  end subroutine itsol_stencil_apply
 
   subroutine itsol_defect(aa, rr, rh, uu, mm)
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in) :: rh, aa
     type(imultifab), intent(in) :: mm
-    call stencil_apply(aa, rr, uu, mm)
+    call itsol_stencil_apply(aa, rr, uu, mm)
     call saxpy(rr, rh, -1.0_dp_t, rr)
   end subroutine itsol_defect
 
-  subroutine BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
+  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
     integer, intent(in) :: max_iter
     type(imultifab), intent(in) :: mm
     type(multifab), intent(inout) :: uu
@@ -170,8 +173,8 @@ contains
           call saxpy(pp, -omega, vv)
           call saxpy(pp, rr, beta, pp)
        end if
-       call precon(aa, ph, pp, mm)
-       call stencil_apply(aa, vv, ph, mm); cnt = cnt + 1
+       call itsol_precon(aa, ph, pp, mm)
+       call itsol_stencil_apply(aa, vv, ph, mm); cnt = cnt + 1
        alpha = rho/dot(rt, vv)
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
@@ -182,8 +185,8 @@ contains
           end if
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
-       call precon(aa, sh, ss, mm)
-       call stencil_apply(aa, tt, sh, mm); cnt = cnt + 1
+       call itsol_precon(aa, sh, ss, mm)
+       call itsol_stencil_apply(aa, tt, sh, mm); cnt = cnt + 1
 
        omega = dot(tt,ss)/dot(tt,tt)
        call saxpy(uu, omega, sh)
@@ -222,9 +225,9 @@ contains
        end if
     end if
 
-  end subroutine BiCGStab_solve
+  end subroutine itsol_BiCGStab_solve
 
-  subroutine CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
+  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
     integer, intent(in) :: max_iter, verbose
     integer, intent(out), optional :: stat
 
@@ -237,9 +240,9 @@ contains
     type(multifab) :: rr, zz, pp, qq
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm
     type(layout) :: la
-    integer i, ng_for_res
+    integer :: i, ng_for_res
     logical :: nodal_solve
-    integer cnt
+    integer :: cnt
 
     real(dp_t) :: rho_hg, rho_orig
 
@@ -278,7 +281,7 @@ contains
     if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) goto 100
 
     do i = 1, max_iter
-       call precon(aa, zz, rr, mm)
+       call itsol_precon(aa, zz, rr, mm)
        rho = dot(rr, zz)
        if ( i == 1 ) then
           call copy(pp, zz)
@@ -295,7 +298,7 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
+       call itsol_stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
        alpha = rho/dot(pp, qq)
        call saxpy(uu,   alpha, pp)
        call saxpy(rr, - alpha, qq)
@@ -307,7 +310,7 @@ contains
        end if
        if ( .false. .and. nodal_solve ) then
           ! HACK, ONLY NEED THIS TO MATCH THE HGPROJ STOPPING CRITERION
-          call precon(aa, zz, rr, mm)
+          call itsol_precon(aa, zz, rr, mm)
           rho_hg = dot(rr, zz)
           if (rho_hg < rho_orig*eps) exit
        else
@@ -336,9 +339,9 @@ contains
        end if
     end if
 
-  end subroutine CG_SOLVE
+  end subroutine itsol_CG_Solve
 
-  subroutine precon(aa, uu, rh, mm, method)
+  subroutine itsol_precon(aa, uu, rh, mm, method)
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
@@ -393,7 +396,7 @@ contains
       real(kind=dp_t), intent(in)  :: a(:,0:)
       real(kind=dp_t), intent(inout) :: u(1-ng:)
       real(kind=dp_t), intent(in)  :: r(:)
-      integer i, nx
+      integer :: i, nx
       nx = size(a,dim=1)
       do i = 1, nx
          u(i) = r(i)/a(i,0)
@@ -404,7 +407,7 @@ contains
       real(kind=dp_t), intent(in)  :: a(:,:,0:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(:,:)
-      integer i, j, nx, ny
+      integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
       !$OMP PARALLEL DO PRIVATE(j,i)
@@ -440,7 +443,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:)
       integer, intent(in)  :: mm(:)
-      integer i, nx
+      integer :: i, nx
       nx = size(a,dim=1)
       do i = 1, nx
          if (.not. bc_dirichlet(mm(i),1,0)) &
@@ -453,7 +456,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:,0:)
       integer, intent(in)  :: mm(:,:)
-      integer i, j, nx, ny
+      integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
       !$OMP PARALLEL DO PRIVATE(j,i)
@@ -472,7 +475,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
       integer, intent(in)  :: mm(:,:,:)
-      integer i, j, k, nx, ny, nz
+      integer :: i, j, k, nx, ny, nz
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
@@ -488,9 +491,9 @@ contains
       end do
       !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
-  end subroutine precon
+  end subroutine itsol_precon
 
-  subroutine BiCGStab_solve_st(st, uu, rh, eps, max_iter, verbose, stat)
+  subroutine itsol_BiCGStab_solve_st(st, uu, rh, eps, max_iter, verbose, stat)
     integer, intent(in) :: max_iter
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: uu
@@ -573,7 +576,7 @@ contains
           call saxpy(pp, -omega, vv)
           call saxpy(pp, rr, beta, pp)
        end if
-       call precon_st(st, ph, pp)
+       call itsol_precon_st(st, ph, pp)
        call stencil_apply_st(st, vv, ph); cnt = cnt + 1
        alpha = rho/dot(rt, vv)
        call saxpy(uu, alpha, ph)
@@ -585,7 +588,7 @@ contains
           end if
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
-       call precon_st(st, sh, ss)
+       call itsol_precon_st(st, sh, ss)
        call stencil_apply_st(st, tt, sh); cnt = cnt + 1
 
        omega = dot(tt,ss)/dot(tt,tt)
@@ -625,9 +628,9 @@ contains
        end if
     end if
 
-  end subroutine BiCGStab_solve_st
+  end subroutine itsol_BiCGStab_solve_st
 
-  subroutine CG_Solve_st(st, uu, rh, eps, max_iter, verbose, stat)
+  subroutine itsol_CG_Solve_st(st, uu, rh, eps, max_iter, verbose, stat)
     type(stencil), intent(in) :: st
     integer, intent(in) :: max_iter, verbose
     integer, intent(out), optional :: stat
@@ -639,9 +642,9 @@ contains
     type(multifab) :: rr, zz, pp, qq
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm
     type(layout) :: la
-    integer i, ng_for_res
+    integer :: i, ng_for_res
     logical :: nodal_solve
-    integer cnt
+    integer :: cnt
 
     real(dp_t) :: rho_hg, rho_orig
 
@@ -680,7 +683,7 @@ contains
     if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) goto 100
 
     do i = 1, max_iter
-       call precon_st(st, zz, rr)
+       call itsol_precon_st(st, zz, rr)
        rho = dot(rr, zz)
        if ( i == 1 ) then
           call copy(pp, zz)
@@ -709,7 +712,7 @@ contains
        end if
        if ( .false. .and. nodal_solve ) then
           ! HACK, ONLY NEED THIS TO MATCH THE HGPROJ STOPPING CRITERION
-          call precon_st(st, zz, rr)
+          call itsol_precon_st(st, zz, rr)
           rho_hg = dot(rr, zz)
           if (rho_hg < rho_orig*eps) exit
        else
@@ -738,9 +741,9 @@ contains
        end if
     end if
 
-  end subroutine CG_SOLVE_ST
+  end subroutine itsol_CG_Solve_st
 
-  subroutine precon_st(st, uu, rh, method)
+  subroutine itsol_precon_st(st, uu, rh, method)
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
@@ -797,7 +800,7 @@ contains
       real(kind=dp_t), intent(in)  :: a(:,0:)
       real(kind=dp_t), intent(inout) :: u(1-ng:)
       real(kind=dp_t), intent(in)  :: r(:)
-      integer i, nx
+      integer :: i, nx
       nx = size(a,dim=1)
       do i = 1, nx
          u(i) = r(i)/a(i,0)
@@ -808,7 +811,7 @@ contains
       real(kind=dp_t), intent(in)  :: a(:,:,0:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(:,:)
-      integer i, j, nx, ny
+      integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
       !$OMP PARALLEL DO PRIVATE(j,i)
@@ -824,7 +827,7 @@ contains
       real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(:,:,:)
-      integer i, j, k, nx, ny, nz
+      integer :: i, j, k, nx, ny, nz
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
@@ -844,7 +847,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:)
       integer, intent(in)  :: mm(:)
-      integer i, nx
+      integer :: i, nx
       nx = size(a,dim=1)
       do i = 1, nx
          if (.not. bc_dirichlet(mm(i),1,0)) &
@@ -857,7 +860,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:,0:)
       integer, intent(in)  :: mm(:,:)
-      integer i, j, nx, ny
+      integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
       !$OMP PARALLEL DO PRIVATE(j,i)
@@ -876,7 +879,7 @@ contains
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
       integer, intent(in)  :: mm(:,:,:)
-      integer i, j, k, nx, ny, nz
+      integer :: i, j, k, nx, ny, nz
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
@@ -892,7 +895,7 @@ contains
       end do
       !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
-  end subroutine precon_st
+  end subroutine itsol_precon_st
 
 end module itsol_module
 

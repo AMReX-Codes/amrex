@@ -373,11 +373,13 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
-       call bicgstab_solve(ss, uu, rh, mm, &
-                           mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
+       call itsol_bicgstab_solve(&
+            ss, uu, rh, mm, &
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
     case (2)
-       call cg_solve(ss, uu, rh, mm, &
-                     mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
+       call itsol_cg_solve(&
+            ss, uu, rh, mm, &
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
        do i = 1, 2
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
@@ -413,7 +415,7 @@ contains
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
 
-    call stencil_apply(ss, dd, uu, mm)
+    call itsol_stencil_apply(ss, dd, uu, mm)
 
     call saxpy(dd, ff, -1.0_dp_t, dd)
 
@@ -732,8 +734,8 @@ contains
     integer, intent(in) :: nu1, nu2
     integer, intent(inout) :: gamma
     integer, intent(in) :: cyc
-    integer i
-    logical do_diag
+    integer :: i
+    logical :: do_diag
     real(dp_t) :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
@@ -824,7 +826,7 @@ contains
     integer, intent(in) :: nu1, nu2
     integer, intent(inout) :: gamma
     integer, intent(in) :: cyc
-    integer i
+    integer :: i
 
     call timer_start(mgt%tm(lev))
 

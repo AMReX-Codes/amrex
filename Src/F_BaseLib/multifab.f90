@@ -251,11 +251,53 @@ module multifab_module
   integer, allocatable, save, private  :: g_snd_i(:), g_rcv_i(:)
   logical, allocatable, save, private  :: g_snd_l(:), g_rcv_l(:)
 
-  logical, private :: d_fancy = .true.
-  logical, private :: i_fancy = .true.
-  logical, private :: l_fancy = .true.
+  logical, private :: d_fb_fancy = .true.
+  logical, private :: i_fb_fancy = .true.
+  logical, private :: l_fb_fancy = .true.
+
+  logical, private :: d_fb_async = .false.
+  logical, private :: i_fb_async = .false.
+  logical, private :: l_fb_async = .false.
 
 contains
+
+  subroutine multifab_get_behavior(fb_async, fb_fancy)
+    logical, intent(out), optional :: fb_async
+    logical, intent(out), optional :: fb_fancy
+    if ( present(fb_async) ) fb_async = d_fb_async
+    if ( present(fb_fancy) ) fb_fancy = d_fb_fancy
+  end subroutine multifab_get_behavior
+  subroutine imultifab_get_behavior(fb_async, fb_fancy)
+    logical, intent(out), optional :: fb_async
+    logical, intent(out), optional :: fb_fancy
+    if ( present(fb_async) ) fb_async = i_fb_async
+    if ( present(fb_fancy) ) fb_fancy = i_fb_fancy
+  end subroutine imultifab_get_behavior
+  subroutine lmultifab_get_behavior(fb_async, fb_fancy)
+    logical, intent(out), optional :: fb_async
+    logical, intent(out), optional :: fb_fancy
+    if ( present(fb_async) ) fb_async = l_fb_async
+    if ( present(fb_fancy) ) fb_fancy = l_fb_fancy
+  end subroutine lmultifab_get_behavior
+
+  subroutine multifab_set_behavior(fb_async, fb_fancy)
+    logical, intent(in), optional :: fb_async
+    logical, intent(in), optional :: fb_fancy
+    if ( present(fb_async) ) d_fb_async = fb_async
+    if ( present(fb_fancy) ) d_fb_fancy = fb_fancy
+  end subroutine multifab_set_behavior
+  subroutine imultifab_set_behavior(fb_async, fb_fancy)
+    logical, intent(in), optional :: fb_async
+    logical, intent(in), optional :: fb_fancy
+    if ( present(fb_async) ) i_fb_async = fb_async
+    if ( present(fb_fancy) ) i_fb_fancy = fb_fancy
+  end subroutine imultifab_set_behavior
+  subroutine lmultifab_set_behavior(fb_async, fb_fancy)
+    logical, intent(in), optional :: fb_async
+    logical, intent(in), optional :: fb_fancy
+    if ( present(fb_async) ) l_fb_async = fb_async
+    if ( present(fb_fancy) ) l_fb_fancy = fb_fancy
+  end subroutine lmultifab_set_behavior
 
   subroutine multifab_die_die(mf,mf1)
     type(multifab), intent(in) :: mf1
@@ -1143,15 +1185,18 @@ contains
     end do
   end subroutine imultifab_debug_fill
 
-  subroutine multifab_fill_boundary(mf, ng)
+  subroutine multifab_fill_boundary(mf, ng, nocomm)
     type(multifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
-    integer lng
+    logical, intent(in), optional :: nocomm
+    integer :: lng
+    logical :: lnocomm 
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
 
-    if ( d_fancy ) then
+    if ( d_fb_fancy ) then
        call fancy()
     else
        call easy()
@@ -1180,14 +1225,16 @@ contains
                         p1 => dataptr(mf, i, abx)
                         p2 => dataptr(mf, j, abx)
                         p1 = p2
-                     else if ( local(mf, j) ) then ! must send
-                        p2 => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(p2, proc, tag)
-                     else if ( local(mf, i) ) then  ! must recv
-                        p1 => dataptr(mf, i, abx)
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(p1, proc, tag)
+                     else if ( .not. lnocomm ) then
+                        if ( local(mf, j) ) then ! must send
+                           p2 => dataptr(mf, j, abx)
+                           proc = get_proc(mf%la, i)
+                           call parallel_send(p2, proc, tag)
+                        else if ( local(mf, i) ) then  ! must recv
+                           p1 => dataptr(mf, i, abx)
+                           proc = get_proc(mf%la,j)
+                           call parallel_recv(p1, proc, tag)
+                        end if
                      end if
                   end if
                end do
@@ -1207,7 +1254,6 @@ contains
       integer, parameter :: tag = 1102
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
-      logical, parameter :: async = .True.
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
 !call boxassoc_print(bxasc, unit = 1)
@@ -1226,6 +1272,8 @@ contains
          p1 = p2
       end do
       !$OMP END PARALLEL DO
+
+      if ( lnocomm ) return
       
       if ( bxasc%r_con%svol > 0 ) then
          if ( allocated(g_snd_d) ) then
@@ -1258,7 +1306,7 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      if ( async ) then
+      if ( d_fb_async ) then
          do i = 1, bxasc%r_con%nrp
             rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
                  nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
@@ -1286,21 +1334,24 @@ contains
               g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
               sh)
       end do
-      if ( async) call parallel_wait(sst)
+      if ( d_fb_async) call parallel_wait(sst)
 
     end subroutine fancy
 
   end subroutine multifab_fill_boundary
-  subroutine imultifab_fill_boundary(mf, ng)
+  subroutine imultifab_fill_boundary(mf, ng, nocomm)
     type(imultifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
-    integer lng
+    logical, intent(in), optional :: nocomm
+    integer :: lng
+    logical :: lnocomm
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
     if ( lng > mf%ng ) &
          call bl_error("IMULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
 
-    if ( i_fancy ) then
+    if ( i_fb_fancy ) then
        call fancy()
     else
        call easy()
@@ -1329,14 +1380,16 @@ contains
                         p1 => dataptr(mf, i, abx)
                         p2 => dataptr(mf, j, abx)
                         p1 = p2
-                     else if ( local(mf, j) ) then ! must send
-                        p2 => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(p2, proc, tag)
-                     else if ( local(mf, i) ) then  ! must recv
-                        p1 => dataptr(mf, i, abx)
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(p1, proc, tag)
+                     else if ( .not. lnocomm ) then
+                        if ( local(mf, j) ) then ! must send
+                           p2 => dataptr(mf, j, abx)
+                           proc = get_proc(mf%la, i)
+                           call parallel_send(p2, proc, tag)
+                        else if ( local(mf, i) ) then  ! must recv
+                           p1 => dataptr(mf, i, abx)
+                           proc = get_proc(mf%la,j)
+                           call parallel_recv(p1, proc, tag)
+                        end if
                      end if
                   end if
                end do
@@ -1356,7 +1409,6 @@ contains
       integer, parameter :: tag = 1102
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
-      logical, parameter :: async = .True.
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
 
@@ -1369,6 +1421,8 @@ contains
          p2 => dataptr(mf%fbs(jj), sbx)
          p1 = p2
       end do
+
+      if ( lnocomm ) return
       
       if ( bxasc%r_con%svol > 0 ) then
          if ( allocated(g_snd_i) ) then
@@ -1401,7 +1455,7 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      if ( async ) then
+      if ( i_fb_async ) then
          do i = 1, bxasc%r_con%nrp
             rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
                  nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
@@ -1429,21 +1483,24 @@ contains
               g_rcv_i(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
               sh)
       end do
-      if ( async) call parallel_wait(sst)
+      if ( i_fb_async) call parallel_wait(sst)
 
     end subroutine fancy
 
   end subroutine imultifab_fill_boundary
-  subroutine lmultifab_fill_boundary(mf, ng)
+  subroutine lmultifab_fill_boundary(mf, ng, nocomm)
     type(lmultifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
-    integer lng
+    logical, intent(in), optional :: nocomm
+    integer :: lng
+    logical :: lnocomm
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng = mf%ng; if ( present(ng) ) lng = ng
     if ( lng > mf%ng ) &
          call bl_error("LMULTIFAB_FILL_BOUNDARY: ng too large", ng)
     if ( lng < 1 ) return
 
-    if ( l_fancy ) then
+    if ( l_fb_fancy ) then
        call fancy()
     else
        call easy()
@@ -1472,15 +1529,17 @@ contains
                         p1 => dataptr(mf, i, abx)
                         p2 => dataptr(mf, j, abx)
                         p1 = p2
-                     else if ( local(mf, j) ) then ! must send
-                        p2 => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(p2, proc, tag)
-                     else if ( local(mf, i) ) then  ! must recv
-                        p1 => dataptr(mf, i, abx)
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(p1, proc, tag)
-                     end if
+                     else if ( .not. lnocomm ) then
+                        if ( local(mf, j) ) then ! must send
+                           p2 => dataptr(mf, j, abx)
+                           proc = get_proc(mf%la, i)
+                           call parallel_send(p2, proc, tag)
+                        else if ( local(mf, i) ) then  ! must recv
+                           p1 => dataptr(mf, i, abx)
+                           proc = get_proc(mf%la,j)
+                           call parallel_recv(p1, proc, tag)
+                        end if
+                     end  if
                   end if
                end do
             end do
@@ -1499,7 +1558,6 @@ contains
       integer, parameter :: tag = 1102
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
-      logical, parameter :: async = .True.
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
 
@@ -1512,6 +1570,8 @@ contains
          p2 => dataptr(mf%fbs(jj), sbx)
          p1 = p2
       end do
+
+      if ( lnocomm ) return
       
       if ( bxasc%r_con%svol > 0 ) then
          if ( allocated(g_snd_l) ) then
@@ -1544,7 +1604,7 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      if ( async ) then
+      if ( l_fb_async ) then
          do i = 1, bxasc%r_con%nrp
             rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
                  nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
@@ -1572,7 +1632,7 @@ contains
               g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
               sh)
       end do
-      if ( async) call parallel_wait(sst)
+      if ( l_fb_async) call parallel_wait(sst)
 
     end subroutine fancy
 

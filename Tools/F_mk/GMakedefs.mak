@@ -86,8 +86,8 @@ ifeq ($(ARCH),Linux)
     FC := g95
     F90 := g95
     CC := gcc
-    F90FLAGS += -Wstd=f95
-    FFLAGS   += -Wstd=f95
+    F90FLAGS += -std=f95
+    FFLAGS   += -std=f95
     F90FLAGS += -fmod=$(mdir) -I $(mdir)
     FFLAGS   += -fmod=$(mdir) -I $(mdir)
     ifdef NDEBUG
