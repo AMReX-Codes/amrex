@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.39 1999-05-10 18:54:20 car Exp $
+// $Id: DistributionMapping.cpp,v 1.40 2000-02-28 23:27:00 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -209,6 +209,31 @@ void
 DistributionMapping::FlushCache ()
 {
     DistributionMapping::m_Cache.clear();
+}
+
+void
+DistributionMapping::AddToCache (const DistributionMapping& dm)
+{
+    bool              doit = true;
+    const Array<int>& pmap = dm.ProcessorMap();
+
+    if (pmap.length() > 0)
+    {
+        BL_ASSERT(pmap[pmap.length()-1] == ParallelDescriptor::MyProc());
+
+        for (int i = 0; i < m_Cache.size(); i++)
+        {
+            if (pmap.length() == m_Cache[i].length())
+            {
+                BL_ASSERT(pmap == m_Cache[i]);
+
+                doit = false;
+            }
+        }
+
+        if (doit)
+            m_Cache.push_back(pmap);
+    }
 }
 
 void
