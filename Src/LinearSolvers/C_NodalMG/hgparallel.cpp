@@ -209,7 +209,7 @@ void task_list::execute()
 		}
 	    }
 	    assert(t->is_started());
-	    if ( /* t->depend_ready() && */ t->ready() )
+	    if ( t->ready() )
 	    {
 		t.set_finished();
 		continue;
@@ -219,7 +219,7 @@ void task_list::execute()
 #ifdef HG_DEBUG
 	if ( l_progress-- < 0 )
 	{
-	    BoxLib::Error("task_list::execute(): No Progress");
+	    // BoxLib::Error("task_list::execute(): No Progress");
 	}
 #endif
     }
