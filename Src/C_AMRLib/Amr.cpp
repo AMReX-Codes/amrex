@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.126 2001-08-22 20:18:14 lijewski Exp $
+// $Id: Amr.cpp,v 1.127 2001-09-13 23:09:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1278,6 +1278,15 @@ Amr::timeStep (int  level,
 
     level_steps[level]++;
     level_count[level]++;
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Advanced "
+                  << amr_level[level].countCells()
+                  << " cells at level "
+                  << level
+                  << std::endl;
+    }
 
     station.report(time+dt_level[level],level,amr_level[level]);
 
