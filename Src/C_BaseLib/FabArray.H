@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.101 1999-05-10 18:54:21 car Exp $
+// $Id: FabArray.H,v 1.102 1999-05-11 17:42:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -327,29 +327,13 @@ public:
     //
     void setFab (int  K,
                  FAB* elem);
-
-    /*@ManDoc: Removes the Kth FAB from the FabArray and returns it to the
-               caller.  It leaves the Kth element undefined.  It is the
-               callers responsibility to delete the pointer when no
-               longer needed.  Use this at your own peril; it breaks
-               the parallel paradigm.
-    */
-    FAB* remove (int K);
-
-    /*@ManDoc: Delete the Kth element in the FabArray only if the array is
-               managed.  It leaves the Kth element in the FabArray undefined
-               for both managed and unmanaged FabArrays.   Use this at your
-               own peril; it breaks the parallel paradigm.
-    */
-    void clear (int K);
-
-    /*@ManDoc: Releases FAB memory in the FabArray.
-    */
+    //
+    //@ManDoc: Releases FAB memory in the FabArray.
+    //
     void clear ();
-
-    /*@ManDoc: Set all components in the valid region of each FAB in the
-               FabArray to val.
-    */
+    //
+    //@ManDoc: Set all components in the valid region of each FAB to val.
+    //
     void setVal (T val);
 
     /*@ManDoc: Set the value of num\_comp components in the valid region of
@@ -1012,22 +996,6 @@ int
 FabArray<T,FAB>::nComp () const
 {
     return n_comp;
-}
-
-template <class T, class FAB>
-inline
-FAB*
-FabArray<T,FAB>::remove (int K)
-{
-    return fabparray.remove(K);
-}
-
-template <class T, class FAB>
-inline
-void
-FabArray<T,FAB>::clear (int K)
-{
-    fabparray.clear(K);
 }
 
 template <class T, class FAB>
