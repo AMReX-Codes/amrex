@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.19 1998-06-18 04:12:41 lijewski Exp $
+// $Id: Geometry.H,v 1.20 1998-07-08 22:26:37 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -266,11 +266,13 @@ protected:
     //
     PIRMMap& getPIRMMap (MultiFab&  mf,
                          bool       no_ovlp,
-                         const FPB& fpb) const;
+                         const FPB& fpb,
+                         bool       build_mfcd) const;
 
     PIRMMap& buildPIRMMap (MultiFab&  mf,
                            bool       no_ovlp,
-                           const FPB& fpb) const;
+                           const FPB& fpb,
+                           bool       build_mfcd) const;
     //
     // Static data.
     //
@@ -390,7 +392,8 @@ inline
 Geometry::PIRMMap&
 Geometry::getPIRMMap (MultiFab&  mf,
                       bool       no_ovlp,
-                      const FPB& fpb) const
+                      const FPB& fpb,
+                      bool       build_mfcd) const
 {
     assert(isAnyPeriodic());
     //
@@ -408,7 +411,7 @@ Geometry::getPIRMMap (MultiFab&  mf,
         }
     }
 
-    return buildPIRMMap(mf,no_ovlp,fpb);
+    return buildPIRMMap(mf,no_ovlp,fpb,build_mfcd);
 }
 
 #endif /*_GEOMETRY_H_*/
