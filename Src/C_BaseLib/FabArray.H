@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.91 1999-03-17 21:57:45 lijewski Exp $
+// $Id: FabArray.H,v 1.92 1999-03-18 22:12:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -267,9 +267,22 @@ public:
     void setFab (int  K,
                  FAB* elem);
 
+    /*@ManDoc: Removes the Kth FAB from the FabArray and returns it to the
+               caller.  It leaves the Kth element undefined.  It is the
+               callers responsibility to delete the pointer when no
+               longer needed.  Use this at your own peril; it breaks
+               the parallel paradigm.
+    */
+    FAB* remove (int K);
+
     /*@ManDoc: Delete the Kth element in the FabArray only if the array is
                managed.  It leaves the Kth element in the FabArray undefined
-               for both managed and unmanaged FabArrays.
+               for both managed and unmanaged FabArrays.   Use this at your
+               own peril; it breaks the parallel paradigm.
+    */
+    void clear (int K);
+
+    /*@ManDoc: Releases FAB memory in the FabArray.
     */
     void clear ();
 
@@ -930,6 +943,22 @@ int
 FabArray<T,FAB>::nComp () const
 {
     return n_comp;
+}
+
+template <class T, class FAB>
+inline
+FAB*
+FabArray<T,FAB>::remove (int K)
+{
+    return fabparray.remove(K);
+}
+
+template <class T, class FAB>
+inline
+void
+FabArray<T,FAB>::clear (int K)
+{
+    fabparray.clear(K);
 }
 
 template <class T, class FAB>
