@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.9 1998-11-07 02:51:08 lijewski Exp $
+// $Id: LinOp.cpp,v 1.10 1999-02-17 21:44:17 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,8 @@ int LinOp::def_harmavg  = 0;
 int LinOp::def_verbose  = 0;
 int LinOp::def_maxorder = 2;
 
+static int AlternateApplyBC = false;
+
 #ifndef NDEBUG
 //
 // LinOp::applyBC fills LinOp_grow ghost cells with data expected in
@@ -39,6 +41,10 @@ LinOp::initialize ()
     pp.query("harmavg", def_harmavg);
     pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
+    pp.query("alternateApplyBC", AlternateApplyBC);
+
+if (AlternateApplyBC)
+    cout << "*** AlternateApplyBC !!!" << endl;
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
@@ -274,10 +280,19 @@ LinOp::smooth (MultiFab&       solnL,
                int             level,
                LinOp::BC_Mode  bc_mode)
 {
-    for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
+    if (!AlternateApplyBC)
+    {
+        for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
+        {
+            applyBC(solnL, level, bc_mode);
+            Fsmooth(solnL, rhsL, level, redBlackFlag);
+        }
+    }
+    else
     {
         applyBC(solnL, level, bc_mode);
-        Fsmooth(solnL, rhsL, level, redBlackFlag);
+        for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
+            Fsmooth(solnL, rhsL, level, redBlackFlag);
     }
 }
 
