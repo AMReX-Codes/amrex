@@ -537,6 +537,8 @@ int holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh,
 {
   int retval = 1;
   for (int i = 0; i < BL_SPACEDIM; i++) {
+    retval &= ((domain.smallEnd(i)&1) == 0);
+    retval &= ((domain.bigEnd(i)&1)   == 1);
     retval &= (domain.length(i) >= 4);
     for (int igrid = 0; igrid < mesh.length(); igrid++) {
       retval &= ((mesh[igrid].smallEnd(i)&1) == 0 &&
