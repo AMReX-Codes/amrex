@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.15 2000-04-24 17:52:33 car Exp $
+// $Id: BoxArray.H,v 1.16 2000-06-02 22:37:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -32,6 +32,7 @@ class BoxArray;
 BoxArray boxComplement (const Box& b1in, const Box& b2);
 BoxArray complementIn (const Box& b, const BoxArray& ba);
 BoxArray intersect (const BoxArray& ba, const Box& b);
+BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
 //
 //@Man:
@@ -262,6 +263,11 @@ public:
     //
     friend BoxArray intersect (const BoxArray& ba,
                                const Box&      b);
+    //
+    //@ManDoc: Makes a BoxArray from the intersection of two BoxArrays.
+    //
+    friend BoxArray intersect (const BoxArray& lhs,
+                               const BoxArray& rhs);
 
     void reserve (long _truesize);
 

@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.15 2000-04-24 17:52:33 car Exp $
+// $Id: BoxList.H,v 1.16 2000-06-02 22:37:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -176,6 +176,11 @@ public:
                Box b.
     */
     BoxList& intersect (const Box& b);
+
+    /*@ManDoc: Modify this BoxList to contain only its intersection with
+               BoxList b.
+    */
+    BoxList& intersect (const BoxList& b);
     //
     //@ManDoc: Remove the Box from this BoxList.
     //
@@ -283,6 +288,11 @@ public:
     //
     friend BoxList intersect (const BoxList& bl,
                               const Box&     b);
+    //
+    //@ManDoc: Returns a BoxList defining the intersection of bl with br.
+    //
+    friend BoxList intersect (const BoxList& bl,
+                              const BoxList& br);
 
     /*@ManDoc: Returns a new BoxList in which each Box is refined by the
                given ratio.
@@ -511,6 +521,15 @@ intersect (const BoxList& bl,
 {
     BoxList newbl(bl);
     return newbl.intersect(b);
+}
+
+inline
+BoxList
+intersect (const BoxList& bl,
+           const BoxList& br)
+{
+    BoxList newbl(bl);
+    return newbl.intersect(br);
 }
 
 inline
