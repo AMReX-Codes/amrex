@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.56 1999-05-10 17:18:27 car Exp $
+// $Id: AmrLevel.cpp,v 1.57 1999-05-10 18:54:07 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -99,7 +99,7 @@ AmrLevel::restart (Amr&     papa,
     int nstate;
     is >> nstate;
     int ndesc = desc_lst.length();
-    BLassert(nstate == ndesc);
+    BL_ASSERT(nstate == ndesc);
 
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
@@ -529,11 +529,11 @@ FillPatchIterator::Initialize (int           boxGrow,
 
             for (int i = 0; i < CrseBoxes.length(); i++)
             {
-                BLassert(tempUnfillable.isEmpty());
+                BL_ASSERT(tempUnfillable.isEmpty());
 
                 CrseBoxes[i] = crse_boxes[i];
 
-                BLassert(CrseBoxes[i].intersects(thePDomain));
+                BL_ASSERT(CrseBoxes[i].intersects(thePDomain));
 
                 theState.linInterpAddBox(m_mfcd,
                                          m_mfid[l],
@@ -574,7 +574,7 @@ FillPatchIterator::Initialize (int           boxGrow,
 bool
 FillPatchIterator::isValid ()
 {
-    BLassert(m_init);
+    BL_ASSERT(m_init);
 
     if (!MultiFabIterator::isValid())
         return false;
@@ -608,7 +608,7 @@ FillPatchIterator::isValid ()
         {
             const Box& cbox = m_crsebox[currentIndex][l][i];
 
-            BLassert(cbox.ok());
+            BL_ASSERT(cbox.ok());
             //
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
@@ -698,7 +698,7 @@ FillPatchIterator::isValid ()
             //
             // The coarse FAB had better be completely filled with "good" data.
             //
-            BLassert(CrseFabs[i].norm(0,0,m_ncomp) < 3.e30);
+            BL_ASSERT(CrseFabs[i].norm(0,0,m_ncomp) < 3.e30);
         }
         //
         // Interpolate up to next level.
@@ -744,7 +744,7 @@ FillPatchIterator::isValid ()
             
             // The coarse FAB had better be completely filled with "good" data.
             //
-            BLassert(crse_fab.norm(0,0,m_ncomp) < 3.e30);
+            BL_ASSERT(crse_fab.norm(0,0,m_ncomp) < 3.e30);
             //
             // Interpolate up to fine patch.
             //
@@ -782,7 +782,7 @@ FillPatchIterator::isValid ()
     //
     for (int i = 0; i < FinestCrseFabs.length(); i++)
     {
-        BLassert(FineState.getDomain().contains(FinestCrseFabs[i].box()));
+        BL_ASSERT(FineState.getDomain().contains(FinestCrseFabs[i].box()));
 
         m_fab.copy(FinestCrseFabs[i]);
     }
@@ -839,7 +839,7 @@ FillPatchIterator::isValid ()
     //
     // The final FAB had better be completely filled with "good" data.
     //
-    BLassert(m_fab.norm(0,0,m_ncomp) < 2.e30);
+    BL_ASSERT(m_fab.norm(0,0,m_ncomp) < 2.e30);
 
     stats.end();
 
@@ -861,9 +861,9 @@ AmrLevel::FillCoarsePatch (MultiFab&     mf,
     //
     // Must fill this region on crse level and interpolate.
     //
-    BLassert(level != 0);
-    BLassert(ncomp <= (mf.nComp()-dcomp));
-    BLassert(0 <= state_idx && state_idx < desc_lst.length());
+    BL_ASSERT(level != 0);
+    BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
+    BL_ASSERT(0 <= state_idx && state_idx < desc_lst.length());
 
     Array<BCRec>           bcr(ncomp);
     const StateDescriptor& desc        = desc_lst[state_idx];
@@ -873,7 +873,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mf,
     const BoxArray&        mf_BA       = mf.boxArray();
     AmrLevel&              crse_lev    = parent->getLevel(level-1);
 
-    BLassert(desc.inRange(scomp, ncomp));
+    BL_ASSERT(desc.inRange(scomp, ncomp));
     //
     // Build a properly coarsened boxarray.
     //
@@ -883,7 +883,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mf,
     {
         Box dbox = do_ghost_cells ? mf.fabbox(i) & pdomain : mf_BA[i];
 
-        BLassert(dbox.ixType() == desc.getType());
+        BL_ASSERT(dbox.ixType() == desc.getType());
         //
         // Coarsen unfilled region and widen by interpolater stencil width.
         //
@@ -945,7 +945,7 @@ AmrLevel::derive (const aString& name,
                   Real           time,
                   int            ngrow)
 {
-    BLassert(ngrow >= 0);
+    BL_ASSERT(ngrow >= 0);
 
     MultiFab* mf = 0;
 
@@ -960,7 +960,7 @@ AmrLevel::derive (const aString& name,
 
         for ( ; fpi.isValid(); ++fpi)
         {
-            BLassert((*mf)[fpi.index()].box() == fpi().box());
+            BL_ASSERT((*mf)[fpi.index()].box() == fpi().box());
 
             (*mf)[fpi.index()].copy(fpi());
         }

@@ -4,7 +4,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.4 1999-05-10 17:18:45 car Exp $
+// $Id: FabConv.H,v 1.5 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -318,7 +318,7 @@ inline
 const long*
 RealDescriptor::format () const
 {
-    BLassert(fr.length() != 0);
+    BL_ASSERT(fr.length() != 0);
     return fr.dataPtr();
 }
 
@@ -326,7 +326,7 @@ inline
 const Array<long>&
 RealDescriptor::formatarray () const
 {
-    BLassert(fr.length() != 0);
+    BL_ASSERT(fr.length() != 0);
     return fr;
 }
 
@@ -334,7 +334,7 @@ inline
 const int*
 RealDescriptor::order () const
 {
-    BLassert(ord.length() != 0);
+    BL_ASSERT(ord.length() != 0);
     return ord.dataPtr();
 }
 
@@ -342,7 +342,7 @@ inline
 const Array<int>&
 RealDescriptor::orderarray () const
 {
-    BLassert(ord.length() != 0);
+    BL_ASSERT(ord.length() != 0);
     return ord;
 }
 
@@ -350,7 +350,7 @@ inline
 int
 RealDescriptor::numBytes () const
 {
-    BLassert(fr.length() != 0);
+    BL_ASSERT(fr.length() != 0);
     return (fr[0] + 7 ) >> 3;
 }
 

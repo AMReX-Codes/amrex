@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.10 1999-05-10 17:18:27 car Exp $
+// $Id: Cluster.H,v 1.11 1999-05-10 18:54:07 car Exp $
 //
 
 #include <IntVect.H>
@@ -103,7 +103,7 @@ public:
     //
     Real eff () const
     {
-        BLassert(ok());
+        BL_ASSERT(ok());
         return ((Real) numTag())/((Real) m_bx.numPts());
     }
 

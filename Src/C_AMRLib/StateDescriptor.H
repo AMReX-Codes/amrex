@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.12 1999-05-10 17:18:29 car Exp $
+// $Id: StateDescriptor.H,v 1.13 1999-05-10 18:54:08 car Exp $
 //
 
 #include <Array.H>
@@ -75,7 +75,7 @@ public:
                                   const REAL* dx, const REAL* grd_lo,
                                   const REAL* time, const int* bc) const
         {
-            BLassert(m_func != 0);
+            BL_ASSERT(m_func != 0);
             m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
         }
         
@@ -126,7 +126,7 @@ public:
                             const BCRec&     bcr,
                             const BndryFunc& func)
     {
-        BLassert(comp >= 0 && comp < ncomp);
+        BL_ASSERT(comp >= 0 && comp < ncomp);
         bc_func.clear(comp);
         bc_func.set(comp,func.clone());
         bc[comp] = bcr;

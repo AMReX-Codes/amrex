@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.5 1999-05-10 17:18:46 car Exp $
+// $Id: FabConv.cpp,v 1.6 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -535,7 +535,7 @@ PD_fconvert (void*       out,
     expn_max  = (1L << outfor[1]) - 1L;
 
     size_t number = size_t(nitems);
-    BLassert(number == nitems);
+    BL_ASSERT(number == nitems);
     memset(out, 0, number*outbytes);
 
     lout = (char*)out;
@@ -941,7 +941,7 @@ PD_convert (void*                 out,
     {
         char craych;
         int wdsize = 4, conv_typ = 2, stride = 1, offset = 0, len = nitems;
-        BLassert(len == nitems);
+        BL_ASSERT(len == nitems);
         FORT_CRAY2IEG(conv_typ,len,(char*)out,offset,(char*)in,stride,craych);
     }
     else
@@ -956,7 +956,7 @@ PD_convert (void*                 out,
         //
         char craych;
         int wdsize = 8, conv_typ = 8, stride = 1, offset = 0, len = nitems;
-        BLassert(len == nitems);
+        BL_ASSERT(len == nitems);
         FORT_CRAY2IEG(conv_typ,len,(char*)out,offset,(char*)in,stride,craych);
     }
     else
@@ -964,7 +964,7 @@ PD_convert (void*                 out,
     {
         char craych;
         int wdsize = 4, conv_typ = 2, stride = 1, offset = 0, len = nitems;
-        BLassert(len == nitems);
+        BL_ASSERT(len == nitems);
         FORT_IEG2CRAY(conv_typ,len,(char*)in,offset,(char*)out,stride,craych);
     }
     else
@@ -972,7 +972,7 @@ PD_convert (void*                 out,
     {
         char craych;
         int wdsize = 8, conv_typ = 8, stride = 1, offset = 0, len = nitems;
-        BLassert(len == nitems);
+        BL_ASSERT(len == nitems);
         FORT_IEG2CRAY(conv_typ,len,(char*)in,offset,(char*)out,stride,craych);
     }
     else
@@ -981,7 +981,7 @@ PD_convert (void*                 out,
     if (od == id && boffs == 0)
     {
         size_t n = size_t(nitems);
-        BLassert(n == nitems);
+        BL_ASSERT(n == nitems);
         memcpy(out, in, n*od.numBytes());
     }
     else if (od.formatarray() == id.formatarray() && boffs == 0 && !onescmp)

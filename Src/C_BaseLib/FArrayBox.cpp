@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.26 1999-05-10 17:18:45 car Exp $
+// $Id: FArrayBox.cpp,v 1.27 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -150,7 +150,7 @@ FABio::write_header (ostream&         os,
                      const FArrayBox& f,
                      int              nvar) const
 {
-    BLassert(nvar <= f.nComp());
+    BL_ASSERT(nvar <= f.nComp());
     os << f.box() << ' ' << nvar << '\n';
     if (os.fail())
         BoxLib::Error("FABio::write_header() failed");
@@ -380,8 +380,8 @@ FArrayBox::norm (const Box& subbox,
                  int        comp,
                  int        ncomp) const
 {
-    BLassert(p >= 0);
-    BLassert(comp >= 0 && comp+ncomp <= nComp());
+    BL_ASSERT(p >= 0);
+    BL_ASSERT(comp >= 0 && comp+ncomp <= nComp());
 
     Real  nrm    = 0;
     Real* tmp    = 0;
@@ -626,7 +626,7 @@ FArrayBox::writeOn (ostream& os,
                     int      comp,
                     int      num_comp) const
 {
-    BLassert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
+    BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
     fabio->write(os, *this, comp, num_comp);
 }
@@ -645,7 +645,7 @@ FArrayBox::readFrom (istream& is, int compIndex)
 {
     int nCompAvailable;
     FABio* fabrd = FABio::read_header(is, *this, compIndex, nCompAvailable);
-    BLassert(compIndex >= 0 && compIndex < nCompAvailable);
+    BL_ASSERT(compIndex >= 0 && compIndex < nCompAvailable);
 
     fabrd->skip(is, *this, compIndex);  // skip data up to the component we want
     fabrd->read(is, *this);
@@ -675,7 +675,7 @@ FABio_ascii::write (ostream&         os,
                     int              comp,
                     int              num_comp) const
 {
-    BLassert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
+    BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
     const Box& bx = f.box();
 
@@ -756,7 +756,7 @@ FABio_8bit::write (ostream&         os,
                    int              comp,
                    int              num_comp) const
 {
-    BLassert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
+    BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
     const Real eps = 1.0e-8;
     const long siz = f.box().numPts();
@@ -797,7 +797,7 @@ FABio_8bit::read (istream&   is,
     for (int nbytes, k = 0; k < f.nComp(); k++)
     {
         is >> mn >> mx >> nbytes;
-        BLassert(nbytes == siz);
+        BL_ASSERT(nbytes == siz);
         while (is.get() != '\n')
             ;
         is.read((char*)c,siz);
@@ -826,7 +826,7 @@ FABio_8bit::skip (istream&   is,
     for (int nbytes, k = 0; k < f.nComp(); k++)
     {
         is >> mn >> mx >> nbytes;
-        BLassert(nbytes == siz);
+        BL_ASSERT(nbytes == siz);
         while (is.get() != '\n')
             ;
         is.seekg(siz, ios::cur);
@@ -847,7 +847,7 @@ FABio_8bit::skip (istream&   is,
     for (int nbytes, k = 0; k < nCompToSkip; k++)
     {
         is >> mn >> mx >> nbytes;
-        BLassert(nbytes == siz);
+        BL_ASSERT(nbytes == siz);
         while (is.get() != '\n')
             ;
         is.seekg(siz, ios::cur);
@@ -898,7 +898,7 @@ FABio_binary::write (ostream&         os,
                      int              comp,
                      int              num_comp) const
 {
-    BLassert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
+    BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
     const long base_siz  = f.box().numPts();
     const Real* comp_ptr = f.dataPtr(comp);

@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.9 1999-05-10 17:18:46 car Exp $
+// $Id: IntVect.H,v 1.10 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -397,7 +397,7 @@ IntVect::IntVect (const int *a)
 inline
 IntVect::IntVect (const Array<int> &a)
 {
-    BLassert(a.length() == BL_SPACEDIM);
+    BL_ASSERT(a.length() == BL_SPACEDIM);
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
@@ -419,7 +419,7 @@ inline
 int&
 IntVect::operator[] (int i)
 {
-    BLassert(i>=0 && i < BL_SPACEDIM);
+    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
     return vect[i];
 }
 
@@ -427,7 +427,7 @@ inline
 int
 IntVect::operator[] (int i) const
 {
-    BLassert(i>=0 && i < BL_SPACEDIM);
+    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
     return vect[i];
 }
 
@@ -436,7 +436,7 @@ IntVect&
 IntVect::setVal (int i,
                  int val)
 {
-    BLassert(i >=0 && i < BL_SPACEDIM);
+    BL_ASSERT(i >=0 && i < BL_SPACEDIM);
     vect[i] = val;
     return *this;
 }
@@ -695,7 +695,7 @@ IntVect&
 IntVect::reflect (int ref_ix,
                   int idir)
 {
-    BLassert(idir >= 0 && idir < BL_SPACEDIM);
+    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     vect[idir] = -vect[idir] + 2*ref_ix;
     return *this;
 }
@@ -705,7 +705,7 @@ IntVect&
 IntVect::shift (int coord,
                 int s)
 {
-    BLassert(coord >= 0 && coord < BL_SPACEDIM);
+    BL_ASSERT(coord >= 0 && coord < BL_SPACEDIM);
     vect[coord] += s;
     return *this;
 }
@@ -787,7 +787,7 @@ inline
 IntVect
 BASISV (int dir)
 {
-    BLassert(dir >= 0 && dir < BL_SPACEDIM);
+    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
     tmp.vect[dir] = 1;
     return tmp;
@@ -799,7 +799,7 @@ reflect (const IntVect& a,
          int            ref_ix,
          int            idir)
 {
-    BLassert(idir >= 0 && idir < BL_SPACEDIM);
+    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
     b.vect[idir] = -b.vect[idir] + 2*ref_ix;
     return b;
@@ -810,7 +810,7 @@ IntVect
 coarsen (const IntVect& p,
          int            s)
 {
-    BLassert(s > 0);
+    BL_ASSERT(s > 0);
     return IntVect(
         D_DECL((p.vect[0]<0) ? -abs(p.vect[0]+1)/s-1 : p.vect[0]/s ,
                (p.vect[1]<0) ? -abs(p.vect[1]+1)/s-1 : p.vect[1]/s ,
@@ -822,7 +822,7 @@ IntVect
 coarsen (const IntVect& p1,
          const IntVect& p2)
 {
-    BLassert(p2 > IntVect::TheZeroVector());
+    BL_ASSERT(p2 > IntVect::TheZeroVector());
     return IntVect(
         D_DECL(
         (p1.vect[0]<0)?-abs(p1.vect[0]+1)/p2.vect[0]-1:p1.vect[0]/p2.vect[0],
@@ -835,7 +835,7 @@ inline
 IntVect&
 IntVect::coarsen (int s)
 {
-    BLassert(s > 0);
+    BL_ASSERT(s > 0);
     for (int i = 0; i < BL_SPACEDIM; ++i)
         vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
     return *this;
@@ -845,7 +845,7 @@ inline
 IntVect&
 IntVect::coarsen (const IntVect& p)
 {
-    BLassert(p > IntVect::TheZeroVector());
+    BL_ASSERT(p > IntVect::TheZeroVector());
     for (int i = 0; i <BL_SPACEDIM; ++i)
     {
         const int s = p.vect[i];

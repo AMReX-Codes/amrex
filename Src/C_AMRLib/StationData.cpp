@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.9 1999-05-10 17:18:29 car Exp $
+// $Id: StationData.cpp,v 1.10 1999-05-10 18:54:09 car Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
@@ -75,7 +75,7 @@ StationData::init ()
                    m_stn[k].pos[1] = data[1];,
                    m_stn[k].pos[2] = data[2];);
 
-            BLassert(Geometry::ProbDomain().contains(data.dataPtr()));
+            BL_ASSERT(Geometry::ProbDomain().contains(data.dataPtr()));
 
             m_stn[k].id = identifier++;
         }
@@ -110,7 +110,7 @@ StationData::init ()
 
         m_ofile.precision(15);
 
-        BLassert(!m_ofile.bad());
+        BL_ASSERT(!m_ofile.bad());
         //
         // Output the list of stations.
         //
@@ -156,8 +156,8 @@ StationData::report (Real            time,
             {
                 const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
-                BLassert(mf.nComp() > m_ncomp[j]);
-                BLassert(mf.DistributionMap()[m_stn[i].grd] == MyProc);
+                BL_ASSERT(mf.nComp() > m_ncomp[j]);
+                BL_ASSERT(mf.DistributionMap()[m_stn[i].grd] == MyProc);
                 //
                 // Find IntVect so we can index into FAB.
                 // We want to use Geometry::CellIndex().
@@ -194,14 +194,14 @@ StationData::report (Real            time,
 
     m_ofile.flush();
 
-    BLassert(!m_ofile.bad());
+    BL_ASSERT(!m_ofile.bad());
 }
 
 void
 StationData::findGrid (const PArray<AmrLevel>& levels,
                        const Array<Geometry>&  geoms)
 {
-    BLassert(geoms.length() == levels.length());
+    BL_ASSERT(geoms.length() == levels.length());
 
     if (m_stn.length() <= 0)
         return;
@@ -221,7 +221,7 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
         MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
 
-        BLassert(mf.boxArray().length() == boxes.length());
+        BL_ASSERT(mf.boxArray().length() == boxes.length());
 
         for (int i = 0; i < m_stn.length(); i++)
         {

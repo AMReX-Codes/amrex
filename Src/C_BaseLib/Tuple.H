@@ -4,7 +4,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.6 1999-05-10 17:18:47 car Exp $
+// $Id: Tuple.H,v 1.7 1999-05-10 18:54:23 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -93,7 +93,7 @@ inline
 T&
 Tuple<T,N>::operator[] (int i)
 {
-    BLassert(0 <= i && i < N);
+    BL_ASSERT(0 <= i && i < N);
     return vect[i];
 }
 
@@ -102,7 +102,7 @@ inline
 const T&
 Tuple<T,N>::operator[] (int i) const
 {
-    BLassert(0 <= i && i < N);
+    BL_ASSERT(0 <= i && i < N);
     return vect[i];
 }
 
@@ -117,7 +117,7 @@ Tuple<T,N>::operator const T* () const
 template <class T, size_t N>
 Tuple<T,N>::Tuple (const T* v)
 {
-    BLassert(v != 0);
+    BL_ASSERT(v != 0);
     for (size_t i = 0; i < N; ++i)
         vect[i] = v[i];
 }

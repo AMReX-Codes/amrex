@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.47 1999-05-10 17:18:30 car Exp $
+// $Id: Geometry.cpp,v 1.48 1999-05-10 18:54:09 car Exp $
 //
 
 #include <Geometry.H>
@@ -80,7 +80,7 @@ Geometry::FPB&
 Geometry::buildFPB (MultiFab&  mf,
                     const FPB& fpb) const
 {
-    BLassert(isAnyPeriodic());
+    BL_ASSERT(isAnyPeriodic());
 
     m_FPBCache.push_front(fpb);
 
@@ -99,8 +99,8 @@ Geometry::buildFPB (MultiFab&  mf,
     {
         Box dest = mfi().box();
 
-        BLassert(dest == ::grow(mfi.validbox(), mf.nGrow()));
-        BLassert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
+        BL_ASSERT(dest == ::grow(mfi.validbox(), mf.nGrow()));
+        BL_ASSERT(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
         if (fpb.m_no_overlap)
         {
@@ -169,7 +169,7 @@ Geometry::buildFPB (MultiFab&  mf,
             }
         }
 
-        BLassert(cache[DMap[mfi.index()]] == 0);
+        BL_ASSERT(cache[DMap[mfi.index()]] == 0);
     }
 
     return m_FPBCache.front();
@@ -217,9 +217,9 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     for (int i = 0; i < pirm.size(); i++)
     {
-        BLassert(pirm[i].fbid.box() == pirm[i].srcBox);
-        BLassert(pirm[i].srcBox.sameSize(pirm[i].dstBox));
-        BLassert(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
+        BL_ASSERT(pirm[i].fbid.box() == pirm[i].srcBox);
+        BL_ASSERT(pirm[i].srcBox.sameSize(pirm[i].dstBox));
+        BL_ASSERT(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
 
         mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
     }
@@ -265,10 +265,10 @@ Geometry::Setup ()
 
     Array<Real> prob_lo(BL_SPACEDIM);
     pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
-    BLassert(prob_lo.length() == BL_SPACEDIM);
+    BL_ASSERT(prob_lo.length() == BL_SPACEDIM);
     Array<Real> prob_hi(BL_SPACEDIM);
     pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
-    BLassert(prob_lo.length() == BL_SPACEDIM);
+    BL_ASSERT(prob_lo.length() == BL_SPACEDIM);
     prob_domain.setLo(prob_lo);
     prob_domain.setHi(prob_hi);
     //

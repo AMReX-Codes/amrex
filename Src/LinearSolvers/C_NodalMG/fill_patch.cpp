@@ -20,10 +20,10 @@ Real
 inner_product (const MultiFab& r,
                const MultiFab& s)
 {
-    BLassert(r.ok() && s.ok());
-    BLassert(r.nComp() == 1);
-    BLassert(s.nComp() == 1);
-    BLassert(type(r) == type(s));
+    BL_ASSERT(r.ok() && s.ok());
+    BL_ASSERT(r.nComp() == 1);
+    BL_ASSERT(s.nComp() == 1);
+    BL_ASSERT(type(r) == type(s));
     
     Real sum = 0.0;
     
@@ -113,8 +113,8 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 {
     m_bx = ::grow(src_.boxArray()[grid_],src_.nGrow());
 
-    BLassert(m_bdy != 0);
-    BLassert(is_remote(src_, grid_) || m_bx == src_[grid_].box());
+    BL_ASSERT(m_bdy != 0);
+    BL_ASSERT(is_remote(src_, grid_) || m_bx == src_[grid_].box());
 
     if (m_fab != 0 && is_local(m_smf, m_sgrid))
     {
@@ -151,7 +151,7 @@ task_bdy_fill::startup ()
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
             if (res != 0)
                 ParallelDescriptor::Abort(res);
-            BLassert(m_request != MPI_REQUEST_NULL);
+            BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (m_fab == 0 && is_local(m_smf, m_sgrid)) 
         {
@@ -160,7 +160,7 @@ task_bdy_fill::startup ()
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
             if (res != 0)
                 ParallelDescriptor::Abort(res);
-            BLassert(m_request != MPI_REQUEST_NULL);
+            BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
         {
@@ -175,28 +175,28 @@ task_bdy_fill::startup ()
 bool
 task_bdy_fill::ready ()
 {
-    BLassert(is_started());
+    BL_ASSERT(is_started());
 
     if (m_local) return true;
 
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
-    BLassert(m_request != MPI_REQUEST_NULL);
+    BL_ASSERT(m_request != MPI_REQUEST_NULL);
     int res = MPI_Test(&m_request, &flag, &status);
     if (res != 0)
 	ParallelDescriptor::Abort(res);
     if (flag)
     {
-	BLassert(m_request == MPI_REQUEST_NULL);
+	BL_ASSERT(m_request == MPI_REQUEST_NULL);
 	if (m_fab)
 	{
 	    int count;
-	    BLassert(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
-	    BLassert(status.MPI_TAG    == m_sno);
+	    BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
+	    BL_ASSERT(status.MPI_TAG    == m_sno);
 	    if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
 		ParallelDescriptor::Abort(res);
-	    BLassert(count == tmp->box().numPts()*tmp->nComp());
+	    BL_ASSERT(count == tmp->box().numPts()*tmp->nComp());
 	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
 	}
 	return true;
@@ -243,7 +243,7 @@ task_fill_patch::fill_patch_blindly ()
     {
 	if (is_local(r,igrid)) 
 	{
-	    BLassert(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
+	    BL_ASSERT(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
 	}
 	if (r_ba[igrid].contains(region)) 
 	{
@@ -256,7 +256,7 @@ task_fill_patch::fill_patch_blindly ()
     {
 	if (is_local(r,igrid))
 	{
-	    BLassert(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
+	    BL_ASSERT(::grow(r[igrid].box(),-r.nGrow()) == r_ba[igrid]);
 	}
 	if (r_ba[igrid].intersects(region)) 
 	{
@@ -305,16 +305,16 @@ task_fill_patch::fill_patch ()
 
     if (target != 0)
     {
-	BLassert(target->box() == region);
-	BLassert(target->nComp() == r.nComp());
-	BLassert(type(*target) == type(r));
+	BL_ASSERT(target->box() == region);
+	BL_ASSERT(target->nComp() == r.nComp());
+	BL_ASSERT(type(*target) == type(r));
     }
-    BLassert(lev_interface.ok());
-    BLassert(idim >= -1 && idim < BL_SPACEDIM);
+    BL_ASSERT(lev_interface.ok());
+    BL_ASSERT(idim >= -1 && idim < BL_SPACEDIM);
     
     Box tdomain = lev_interface.domain();
     tdomain.convert(region.type());
-    BLassert(target == 0 || type(*target) == region.type());
+    BL_ASSERT(target == 0 || type(*target) == region.type());
     // tdomain.convert(type(*target));
     Box idomain = ::grow(tdomain, IntVect::TheZeroVector() - type(r));
 
@@ -384,7 +384,7 @@ static
 void sync_internal_borders (MultiFab&              r,
                             const level_interface& lev_interface)
 {
-    BLassert(type(r) == IntVect::TheNodeVector());
+    BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     task_list tl;
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
@@ -472,7 +472,7 @@ sync_borders (MultiFab&                 r,
               const amr_boundary_class* bdy)
 {
     sync_internal_borders(r, lev_interface);
-    BLassert(bdy != 0);
+    BL_ASSERT(bdy != 0);
     bdy->sync_borders(r, lev_interface);
 }
 
@@ -510,7 +510,7 @@ w_shift (const Box& bx,
          int        w)
 {
     Box res = bx;
-    BLassert(w == 1 || w == -1);
+    BL_ASSERT(w == 1 || w == -1);
     int i;
     for (i = 0; i < BL_SPACEDIM; ++i)
     {
@@ -525,7 +525,7 @@ w_shift (const Box& bx,
 	    break;
 	}
     }
-    BLassert ( i < BL_SPACEDIM );
+    BL_ASSERT ( i < BL_SPACEDIM );
     return res;
 }
 #endif
@@ -550,11 +550,11 @@ fill_internal_borders (MultiFab&              r,
                        int                    w,
                        bool                   hg_terrain)
 {
-    BLassert(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
+    BL_ASSERT(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
 
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
-    BLassert(w == 1 || w == 0);
+    BL_ASSERT(w == 1 || w == 0);
 
     task_list tl;
     if (type(r) == IntVect::TheNodeVector()) 
@@ -705,7 +705,7 @@ fill_borders (MultiFab&                 r,
     HG_TEST_NORM(r, "fill_borders 0");
     fill_internal_borders(r, lev_interface, w, hg_terrain);
     HG_TEST_NORM(r, "fill_borders 1");
-    BLassert(bdy != 0);
+    BL_ASSERT(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);
     HG_TEST_NORM(r, "fill_borders 2");
 }
@@ -714,8 +714,8 @@ void
 clear_part_interface (MultiFab&              r,
                       const level_interface& lev_interface)
 {
-    BLassert(r.nComp() == 1);
-    BLassert(type(r) == IntVect::TheNodeVector());
+    BL_ASSERT(r.nComp() == 1);
+    BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -727,7 +727,7 @@ clear_part_interface (MultiFab&              r,
 	    const int igrid = lev_interface.aux(i, ibox);
 	    if (igrid < 0  || is_remote(r, igrid))
                 continue;
-	    BLassert(is_local(r, igrid));
+	    BL_ASSERT(is_local(r, igrid));
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
@@ -824,7 +824,7 @@ task_restric_fill::startup ()
             int res = MPI_Irecv(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_r, m_rgrid), m_sno, HG::mpi_comm, &m_request);
             if (res != 0)
                 ParallelDescriptor::Abort(res);
-            BLassert(m_request != MPI_REQUEST_NULL);
+            BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_r, m_rgrid))
         {
@@ -834,7 +834,7 @@ task_restric_fill::startup ()
             int res = MPI_Isend(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_d,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
             if (res != 0)
                 ParallelDescriptor::Abort(res);
-            BLassert(m_request != MPI_REQUEST_NULL);
+            BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
         {
@@ -849,7 +849,7 @@ task_restric_fill::startup ()
 bool
 task_restric_fill::ready ()
 {
-    BLassert(is_started());
+    BL_ASSERT(is_started());
 
     if (m_local) return true;
 
@@ -904,7 +904,7 @@ restrict_level (MultiFab&                   dest,
                 const level_interface&      lev_interface,
                 const amr_boundary_class*   bdy)
 {
-    BLassert(type(dest) == type(r));
+    BL_ASSERT(type(dest) == type(r));
 
     HG_TEST_NORM( dest, "restrict_level a");
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.38 1999-05-10 17:18:44 car Exp $
+// $Id: DistributionMapping.cpp,v 1.39 1999-05-10 18:54:20 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -121,7 +121,7 @@ DistributionMapping::GetMap (int             nprocs,
 {
     const int N = boxes.length();
 
-    BLassert(m_procmap.length() == N+1);
+    BL_ASSERT(m_procmap.length() == N+1);
     //
     // Search from back to front ...
     //
@@ -136,7 +136,7 @@ DistributionMapping::GetMap (int             nprocs,
                 m_procmap[i] = cached_procmap[i];
             }
 
-            BLassert(m_procmap[N] == ParallelDescriptor::MyProc());
+            BL_ASSERT(m_procmap[N] == ParallelDescriptor::MyProc());
 
             return true;
         }
@@ -215,9 +215,9 @@ void
 DistributionMapping::RoundRobinProcessorMap (int             nprocs,
                                              const BoxArray& boxes)
 {
-    BLassert(nprocs > 0);
-    BLassert(boxes.length() > 0);
-    BLassert(m_procmap.length() == boxes.length()+1);
+    BL_ASSERT(nprocs > 0);
+    BL_ASSERT(boxes.length() > 0);
+    BL_ASSERT(m_procmap.length() == boxes.length()+1);
 
     for (int i = 0; i < boxes.length(); i++)
     {
@@ -283,7 +283,7 @@ vector< list<int> >
 knapsack (const vector<long>& pts,
           int                 nprocs)
 {
-    BLassert(nprocs > 0);
+    BL_ASSERT(nprocs > 0);
     //
     // Sort balls by size largest first.
     //
@@ -297,9 +297,9 @@ knapsack (const vector<long>& pts,
     {
         lb.push_back(WeightedBox(i, pts[i]));
     }
-    BLassert(lb.size() == pts.size());
+    BL_ASSERT(lb.size() == pts.size());
     sort(lb.begin(), lb.end());
-    BLassert(lb.size() == pts.size());
+    BL_ASSERT(lb.size() == pts.size());
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
@@ -308,7 +308,7 @@ knapsack (const vector<long>& pts,
     {
         wblq.push(WeightedBoxList());
     }
-    BLassert(wblq.size() == nprocs);
+    BL_ASSERT(wblq.size() == nprocs);
     for (int i = 0; i < pts.size(); ++i)
     {
         WeightedBoxList wbl = wblq.top();
@@ -316,14 +316,14 @@ knapsack (const vector<long>& pts,
         wbl.push_back(lb[i]);
         wblq.push(wbl);
     }
-    BLassert(wblq.size() == nprocs);
+    BL_ASSERT(wblq.size() == nprocs);
     list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
         wblq.pop();
     }
-    BLassert(wblqg.size() == nprocs);
+    BL_ASSERT(wblqg.size() == nprocs);
     wblqg.sort();
     //
     // Compute the max weight and the sum of the weights.
@@ -466,9 +466,9 @@ void
 DistributionMapping::KnapSackProcessorMap (int             nprocs,
                                            const BoxArray& boxes)
 {
-    BLassert(nprocs > 0);
-    BLassert(boxes.length() > 0);
-    BLassert(m_procmap.length() == boxes.length()+1);
+    BL_ASSERT(nprocs > 0);
+    BL_ASSERT(boxes.length() > 0);
+    BL_ASSERT(m_procmap.length() == boxes.length()+1);
 
     if (boxes.length() <= nprocs || nprocs < 2)
     {
@@ -489,7 +489,7 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
 
         vector< list<int> > vec = knapsack(pts, nprocs);
 
-        BLassert(vec.size() == nprocs);
+        BL_ASSERT(vec.size() == nprocs);
 
         list<int>::iterator lit;
 

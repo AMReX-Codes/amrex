@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tFB.cpp,v 1.4 1999-05-10 17:18:49 car Exp $
+// $Id: tFB.cpp,v 1.5 1999-05-10 18:54:24 car Exp $
 //
 // A test program for FillBoundary().
 //
@@ -22,11 +22,11 @@ static
 void
 DumpFirstFab (const MultiFab& mf)
 {
-    BLassert(mf.length() > 1);
+    BL_ASSERT(mf.length() > 1);
 
     if (ParallelDescriptor::IOProcessor())
     {
-        BLassert(mf.DistributionMap()[0] == ParallelDescriptor::MyProc());
+        BL_ASSERT(mf.DistributionMap()[0] == ParallelDescriptor::MyProc());
 
         cout << mf[0] << endl;
     }
@@ -36,7 +36,7 @@ static
 void
 DoIt (MultiFab& mf)
 {
-    BLassert(mf.nComp() >= 2);
+    BL_ASSERT(mf.nComp() >= 2);
 
     mf.setVal(0);
     //

@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.26 1999-05-10 17:18:46 car Exp $
+// $Id: MultiFab.H,v 1.27 1999-05-10 18:54:22 car Exp $
 //
 
 #include <BLassert.H>
@@ -545,8 +545,8 @@ MultiFabCopyDescriptor&
 MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
 {
-    BLassert(num_comp > 0);
-    BLassert(src_comp >= 0);
+    BL_ASSERT(num_comp > 0);
+    BL_ASSERT(src_comp >= 0);
 
     if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
     {
@@ -564,7 +564,7 @@ MultiFab::theFBmfcd (int src_comp,
 
         MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
 
-        BLassert(mfid == MultiFabId(0));
+        BL_ASSERT(mfid == MultiFabId(0));
     }
 
     return *m_FB_mfcd;
@@ -577,8 +577,8 @@ MultiFab::theFPBmfcd (int   src_comp,
                       bool  no_overlap,
                       bool  do_corners)
 {
-    BLassert(src_comp >= 0);
-    BLassert(num_comp > 0);
+    BL_ASSERT(src_comp >= 0);
+    BL_ASSERT(num_comp > 0);
 
     if (!(m_FPB_scomp  == src_comp   &&
           m_FPB_ncomp  == num_comp   &&
@@ -601,7 +601,7 @@ MultiFab::theFPBmfcd (int   src_comp,
 
         MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
 
-        BLassert(mfid == MultiFabId(0));
+        BL_ASSERT(mfid == MultiFabId(0));
     }
 
     return *m_FPB_mfcd;

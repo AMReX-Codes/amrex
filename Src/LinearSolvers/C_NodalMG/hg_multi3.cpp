@@ -83,9 +83,9 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
                                           int       mglev,
                                           bool      iclear)
 {
-    BLassert(mglev >= 0);
-    BLassert(r.boxArray() == s.boxArray());
-    BLassert(r.boxArray() == d.boxArray());
+    BL_ASSERT(mglev >= 0);
+    BL_ASSERT(r.boxArray() == s.boxArray());
+    BL_ASSERT(r.boxArray() == d.boxArray());
 
     HG_TEST_NORM(d, "level_residual a");
     fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_stencil == terrain);
@@ -574,7 +574,7 @@ holy_grail_amr_multigrid::build_line_order (int lsd)
 void
 holy_grail_amr_multigrid::cgsolve (int mglev)
 {
-    BLassert(mglev == 0);
+    BL_ASSERT(mglev == 0);
     
     MultiFab& r = cgwork[0];
     MultiFab& p = cgwork[1];

@@ -4,7 +4,7 @@
 #define _BOUNDCOND_H_
 
 //
-// $Id: BoundCond.H,v 1.4 1999-05-10 17:18:38 car Exp $
+// $Id: BoundCond.H,v 1.5 1999-05-10 18:54:16 car Exp $
 //
 
 #include <BLassert.H>
@@ -36,7 +36,7 @@ public:
     //
     operator int () const
     {
-        BLassert(bctype != -1);
+        BL_ASSERT(bctype != -1);
         return bctype;
     }
     //

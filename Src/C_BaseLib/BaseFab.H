@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.22 1999-05-10 17:18:43 car Exp $
+// $Id: BaseFab.H,v 1.23 1999-05-10 18:54:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -482,7 +482,7 @@ inline
 T*
 BaseFab<T>::dataPtr (int n)
 {
-    BLassert(!(dptr == 0));
+    BL_ASSERT(!(dptr == 0));
     return &dptr[n*numpts];
 }
 
@@ -491,7 +491,7 @@ inline
 const T*
 BaseFab<T>::dataPtr (int n) const
 {
-    BLassert(!(dptr == 0));
+    BL_ASSERT(!(dptr == 0));
     return &dptr[n*numpts];
 }
 
@@ -501,10 +501,10 @@ T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
-    BLassert(n >= 0);
-    BLassert(n < nvar);
-    BLassert(!(dptr == 0));
-    BLassert(domain.contains(p));
+    BL_ASSERT(n >= 0);
+    BL_ASSERT(n < nvar);
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -514,8 +514,8 @@ inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
-    BLassert(!(dptr == 0));
-    BLassert(domain.contains(p));
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -526,10 +526,10 @@ const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
-    BLassert(n >= 0);
-    BLassert(n < nvar);
-    BLassert(!(dptr == 0));
-    BLassert(domain.contains(p));
+    BL_ASSERT(n >= 0);
+    BL_ASSERT(n < nvar);
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -539,8 +539,8 @@ inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
-    BLassert(!(dptr == 0));
-    BLassert(domain.contains(p));
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -556,8 +556,8 @@ BaseFab<T>::getVal  (T*             data,
     const int loc      = domain.index(pos);
     const long size    = domain.numPts();
 
-    BLassert(!(dptr == 0));
-    BLassert(n >= 0 && n + numcomp <= nvar);
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(n >= 0 && n + numcomp <= nvar);
 
     for (int k = 0; k < numcomp; k++)
         data[k] = dptr[loc+(n+k)*size];
@@ -658,11 +658,11 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    BLassert(srcbox.sameSize(destbox));
-    BLassert(src.box().contains(srcbox));
-    BLassert(domain.contains(destbox));
-    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BLassert(destcomp >= 0 && destcomp+numcomp <= nvar);
+    BL_ASSERT(srcbox.sameSize(destbox));
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(domain.contains(destbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
     return *this;
 }
@@ -672,8 +672,8 @@ inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
-    BLassert(nvar <= src.nvar);
-    BLassert(domain.sameType(src.domain));
+    BL_ASSERT(nvar <= src.nvar);
+    BL_ASSERT(domain.sameType(src.domain));
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -687,8 +687,8 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
 {
-    BLassert(nvar <= src.nvar);
-    BLassert(domain.contains(destbox));
+    BL_ASSERT(nvar <= src.nvar);
+    BL_ASSERT(domain.contains(destbox));
     Box overlap(destbox);
     overlap &= src.domain;
     if (overlap.ok())
@@ -704,8 +704,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    BLassert(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    BLassert(destcomp >= 0 && destcomp + numcomp <= nvar);
+    BL_ASSERT(srccomp >= 0 && srccomp + numcomp <= src.nvar);
+    BL_ASSERT(destcomp >= 0 && destcomp + numcomp <= nvar);
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -717,10 +717,10 @@ template <class T>
 void
 BaseFab<T>::define ()
 {
-    BLassert(nvar > 0);
-    BLassert(dptr == 0);
-    BLassert(numpts > 0);
-    BLassert(!(The_FAB_Arena == 0));
+    BL_ASSERT(nvar > 0);
+    BL_ASSERT(dptr == 0);
+    BL_ASSERT(numpts > 0);
+    BL_ASSERT(!(The_FAB_Arena == 0));
 
     truesize = nvar*numpts;
     dptr     = static_cast<T*>(The_FAB_Arena->alloc(truesize*sizeof(T)));
@@ -737,7 +737,7 @@ template <class T>
 void
 BaseFab<T>::undefine ()
 {
-    BLassert(!(The_FAB_Arena == 0));
+    BL_ASSERT(!(The_FAB_Arena == 0));
     //
     // Call T::~T() on the to-be-destroyed memory.
     //
@@ -852,19 +852,19 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               destcomp,
                          int               numcomp)
 {
-    BLassert(src.box().contains(srcbox));
-    BLassert(box().contains(destbox));
-    BLassert(destbox.sameSize(srcbox));
-    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BLassert(destcomp >= 0 && destcomp+numcomp <= nComp());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #if (BL_SPACEDIM == 1)
 {                                                                       
-    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
-    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
+    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    BLassert(srcbox.sameSize(_subbox_)); 
+    BL_ASSERT(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok()) 
     { 
         const int *_th_plo = loVect(); 
@@ -891,11 +891,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                 T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
 #elif (BL_SPACEDIM == 2)
 {                                                                       
-    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    BLassert(srcbox.sameSize(_subbox_)); 
+    BL_ASSERT(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -930,11 +930,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                     T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #elif (BL_SPACEDIM == 3)
 { 
-    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_(box()); 
     _subbox_ &= destbox; 
-    BLassert((srcbox).sameSize(_subbox_)); 
+    BL_ASSERT((srcbox).sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -997,10 +997,10 @@ BaseFab<T>::performCopy (const PointBaseFab<PointDomain,T>& src,
                          int                                destcomp,
                          int                                numcomp)
 {
-    BLassert(box().contains(destbox));
-    BLassert(destbox.sameSize(srcbox));
-    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BLassert(destcomp >= 0 && destcomp+numcomp <= nComp());
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
     destcomp -= srccomp;
     Box bx(domain);
@@ -1024,8 +1024,8 @@ BaseFab<T>::performSetVal (T         val,
                            int        ns,
                            int        num)
 {
-    BLassert(domain.contains(bx));
-    BLassert(ns >= 0 && ns + num <= nvar);
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(ns >= 0 && ns + num <= nvar);
 
     if (bx == domain)
     {

@@ -62,8 +62,8 @@ public:
     const Box& domain () const		     { return dom; }
     const BoxArray& interior_mesh () const   { return im; }
     const BoxArray& exterior_mesh () const   { return em; }
-    int exterior_ref (int igrid) const	     { BLassert(igrid < -1); return grid_ref[-2-igrid]; }
-    int direct_exterior_ref (int igrid)const { BLassert(igrid > -1); return grid_ref[   igrid]; }
+    int exterior_ref (int igrid) const	     { BL_ASSERT(igrid < -1); return grid_ref[-2-igrid]; }
+    int direct_exterior_ref (int igrid)const { BL_ASSERT(igrid > -1); return grid_ref[   igrid]; }
     const Box& part_fine (int i) const	     { return pf[i]; }
     
     Array<int> geo_array (int idim, int i) const;
@@ -130,23 +130,23 @@ private:
 
 inline int level_interface::grid (int idim, int i, int j) const 
 { 
-    BLassert(idim >= 0 && idim <= FACEDIM);
-    BLassert(j >= 0 && i >= 0);
+    BL_ASSERT(idim >= 0 && idim <= FACEDIM);
+    BL_ASSERT(j >= 0 && i >= 0);
     int ret;
     switch(idim) 
     {
-    case FACEDIM: BLassert(j < N_FACE_GRIDS && i < nboxes(FACEDIM)); ret = fgr[i][j]; break;
+    case FACEDIM: BL_ASSERT(j < N_FACE_GRIDS && i < nboxes(FACEDIM)); ret = fgr[i][j]; break;
 #if BL_SPACEDIM == 3
-    case 1      : BLassert(j < N_EDGE_GRIDS && i < nboxes(1)); ret = egr[i][j]; break;
+    case 1      : BL_ASSERT(j < N_EDGE_GRIDS && i < nboxes(1)); ret = egr[i][j]; break;
 #endif
-    case 0      : BLassert(j < N_CORNER_GRIDS && i < nboxes(0)); ret = cgr[i][j]; break;
+    case 0      : BL_ASSERT(j < N_CORNER_GRIDS && i < nboxes(0)); ret = cgr[i][j]; break;
     }
     return ret;
 }
 
 inline int level_interface::ngrids(int idim)
 {
-    BLassert(idim >= 0 && idim <= FACEDIM);
+    BL_ASSERT(idim >= 0 && idim <= FACEDIM);
     int ret;
     switch(idim)
     {

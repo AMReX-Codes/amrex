@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.5 1999-05-10 17:18:46 car Exp $
+// $Id: IndexType.cpp,v 1.6 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -66,9 +66,9 @@ operator>> (istream&   is,
             is.ignore(BL_IGNORE_MAX, ',') >> t2);
     is.ignore(BL_IGNORE_MAX, ')');
     D_TERM(
-        BLassert(t0 == 'C' || t0 == 'N'); t0=='N'?it.set(0):it.unset(0); ,
-        BLassert(t1 == 'C' || t1 == 'N'); t1=='N'?it.set(1):it.unset(1); ,
-        BLassert(t2 == 'C' || t2 == 'N'); t2=='N'?it.set(2):it.unset(2));
+        BL_ASSERT(t0 == 'C' || t0 == 'N'); t0=='N'?it.set(0):it.unset(0); ,
+        BL_ASSERT(t1 == 'C' || t1 == 'N'); t1=='N'?it.set(1):it.unset(1); ,
+        BL_ASSERT(t2 == 'C' || t2 == 'N'); t2=='N'?it.set(2):it.unset(2));
 
     if (is.fail())
         BoxLib::Error("operator>>(ostream&,IndexType&) failed");

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.15 1999-05-10 17:18:47 car Exp $
+// $Id: RunStats.cpp,v 1.16 1999-05-10 18:54:23 car Exp $
 //
 
 #include <Utility.H>
@@ -298,7 +298,7 @@ RunStats::report_names (Array<aString>& stat_names)
         }
     }
 
-    BLassert(ind == nstat);
+    BL_ASSERT(ind == nstat);
 }
 
 void
@@ -342,7 +342,7 @@ RunStats::report_values (const Array<aString>& stat_names,
     for (int i = 0; i < NStats ; i++)
     {
         RunStatsData* e = RunStats::find(stat_names[i], -1);
-        BLassert(e != 0);
+        BL_ASSERT(e != 0);
         stat_time[i]  = e->run_time;
         stat_wtime[i] = e->run_wtime;
     }

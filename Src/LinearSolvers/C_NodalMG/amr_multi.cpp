@@ -149,7 +149,7 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	int nlev = build_down(ml_mesh[lev_max], fdomain, lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
 	for (int i = 0; i < mg_mesh.length(); i++)
-	    BLassert(mg_mesh[i].ok());
+	    BL_ASSERT(mg_mesh[i].ok());
 #endif
 	
 	if (pcode >= 2 && ParallelDescriptor::IOProcessor()) 
@@ -298,13 +298,13 @@ amr_multigrid::alloc (PArray<MultiFab>& Dest,
     lev_min = Lev_min;
     lev_max = Lev_max;
     
-    BLassert(lev_min <= lev_max);
-    BLassert(lev_min >= lev_min_min && lev_min <= lev_min_max && lev_max <= lev_max_max);
+    BL_ASSERT(lev_min <= lev_max);
+    BL_ASSERT(lev_min >= lev_min_min && lev_min <= lev_min_max && lev_max <= lev_max_max);
     
-    BLassert(type(Source[lev_min]) == type(Dest[lev_min]));
+    BL_ASSERT(type(Source[lev_min]) == type(Dest[lev_min]));
 #ifndef NDEBUG
     for (int i = lev_min; i <= lev_max; i++)
-	BLassert(Source[i].boxArray() == Dest[i].boxArray());
+	BL_ASSERT(Source[i].boxArray() == Dest[i].boxArray());
 #endif
     //
     // old version checked that these matched ml_mesh, but that's

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.82 1999-05-10 17:18:27 car Exp $
+// $Id: Amr.cpp,v 1.83 1999-05-10 18:54:07 car Exp $
 //
 
 #include <TagBox.H>
@@ -315,7 +315,7 @@ Amr::Amr ()
     //
     Array<int> n_cell(BL_SPACEDIM);
     pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
-    BLassert(n_cell.length() == BL_SPACEDIM);
+    BL_ASSERT(n_cell.length() == BL_SPACEDIM);
     IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
     hi -= IntVect::TheUnitVector();
     Box index_domain(lo,hi);

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.34 1999-05-10 17:18:30 car Exp $
+// $Id: FabSet.cpp,v 1.35 1999-05-10 18:54:09 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -54,7 +54,7 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              dest_comp,
                   int              num_comp)
 {
-    BLassert(src.box().contains(subbox));
+    BL_ASSERT(src.box().contains(subbox));
 
     for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
@@ -127,10 +127,10 @@ FSRec::FSRec (const BoxArray& src,
     m_dcomp(dcomp),
     m_ncomp(ncomp)
 {
-    BLassert(ngrow >= 0);
-    BLassert(scomp >= 0);
-    BLassert(dcomp >= 0);
-    BLassert(ncomp >  0);
+    BL_ASSERT(ngrow >= 0);
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(dcomp >= 0);
+    BL_ASSERT(ncomp >  0);
 }
 
 inline
@@ -197,10 +197,10 @@ TheFSRec (const MultiFab& src,
           int             dcomp,
           int             ncomp)
 {
-    BLassert(ngrow >= 0);
-    BLassert(scomp >= 0);
-    BLassert(dcomp >= 0);
-    BLassert(ncomp >  0);
+    BL_ASSERT(ngrow >= 0);
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(dcomp >= 0);
+    BL_ASSERT(ncomp >  0);
 
     FSRec rec(src.boxArray(),dst.boxArray(),ngrow,scomp,dcomp,ncomp);
 
@@ -244,10 +244,10 @@ FabSet::DoIt (const MultiFab& src,
               int             ncomp,
               How             how)
 {
-    BLassert(ngrow <= src.nGrow());
-    BLassert((dcomp+ncomp) <= nComp());
-    BLassert((scomp+ncomp) <= src.nComp());
-    BLassert(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
+    BL_ASSERT(ngrow <= src.nGrow());
+    BL_ASSERT((dcomp+ncomp) <= nComp());
+    BL_ASSERT((scomp+ncomp) <= src.nComp());
+    BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
 
     FArrayBox            tmp;
     FabSetCopyDescriptor fscd;
@@ -256,8 +256,8 @@ FabSet::DoIt (const MultiFab& src,
     FSRec&               fsrec  = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
     MultiFabId           mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
 
-    BLassert(fsrec.m_box.size() == fsrec.m_mfidx.size());
-    BLassert(fsrec.m_box.size() == fsrec.m_fsidx.size());
+    BL_ASSERT(fsrec.m_box.size() == fsrec.m_mfidx.size());
+    BL_ASSERT(fsrec.m_box.size() == fsrec.m_fsidx.size());
 
     for (int i = 0; i < fsrec.m_box.size(); i++)
     {
@@ -270,7 +270,7 @@ FabSet::DoIt (const MultiFab& src,
                                     ncomp,
                                     false));
 
-        BLassert(fbids.back().box() == fsrec.m_box[i]);
+        BL_ASSERT(fbids.back().box() == fsrec.m_box[i]);
         //
         // Also save the index of our FAB needing filling.
         //
@@ -281,7 +281,7 @@ FabSet::DoIt (const MultiFab& src,
 
     for (int i = 0; i < fbids.size(); i++)
     {
-        BLassert(DistributionMap()[fbids[i].FabIndex()] == MyProc);
+        BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == MyProc);
 
         if (how == COPYFROM)
         {
@@ -346,13 +346,13 @@ FabSet::linComb (Real          a,
                  int           dcomp,
                  int           ncomp)
 {
-    BLassert(length() == src.length());
+    BL_ASSERT(length() == src.length());
 
     for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         DependentFabSetIterator dfsi(fsi, src);
 
-        BLassert(fsi().box() == dfsi().box());
+        BL_ASSERT(fsi().box() == dfsi().box());
         //
         // WARNING: same fab used as src and dest here.
         //
@@ -382,8 +382,8 @@ FabSet::linComb (Real            a,
                  int             ncomp,
                  int             ngrow)
 {
-    BLassert(ngrow <= mfa.nGrow());
-    BLassert(ngrow <= mfb.nGrow());
+    BL_ASSERT(ngrow <= mfa.nGrow());
+    BL_ASSERT(ngrow <= mfb.nGrow());
 
     static RunStats stats("fabset_lincomb");
 
@@ -392,7 +392,7 @@ FabSet::linComb (Real            a,
     const BoxArray& bxa = mfa.boxArray();
     const BoxArray& bxb = mfb.boxArray();
 
-    BLassert(bxa == bxb);
+    BL_ASSERT(bxa == bxb);
 
     MultiFabCopyDescriptor mfcd;
 
@@ -418,7 +418,7 @@ FabSet::linComb (Real            a,
                                                 ncomp,
                                                 false));
 
-                BLassert(fbids_mfa.back().box() == ovlp);
+                BL_ASSERT(fbids_mfa.back().box() == ovlp);
                 //
                 // Also save the index of the FAB in the FabSet.
                 //
@@ -433,7 +433,7 @@ FabSet::linComb (Real            a,
                                                 ncomp,
                                                 false));
 
-                BLassert(fbids_mfb.back().box() == ovlp);
+                BL_ASSERT(fbids_mfb.back().box() == ovlp);
             }
         }
     }
@@ -444,7 +444,7 @@ FabSet::linComb (Real            a,
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    BLassert(fbids_mfa.size() == fbids_mfb.size());
+    BL_ASSERT(fbids_mfa.size() == fbids_mfb.size());
 
     for (int i = 0; i < fbids_mfa.size(); i++)
     {
@@ -454,7 +454,7 @@ FabSet::linComb (Real            a,
         mfcd.FillFab(mfid_mfa, fbids_mfa[i], a_fab);
         mfcd.FillFab(mfid_mfb, fbids_mfb[i], b_fab);
 
-        BLassert(DistributionMap()[fbids_mfa[i].FabIndex()] == MyProc);
+        BL_ASSERT(DistributionMap()[fbids_mfa[i].FabIndex()] == MyProc);
 
         (*this)[fbids_mfa[i].FabIndex()].linComb(a_fab,
                                                  fbids_mfa[i].box(),

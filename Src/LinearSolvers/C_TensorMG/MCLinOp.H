@@ -4,7 +4,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.6 1999-05-10 17:18:54 car Exp $
+// $Id: MCLinOp.H,v 1.7 1999-05-10 18:54:27 car Exp $
 //
 
 #include <BLassert.H>
@@ -305,7 +305,7 @@ inline
 void
 MCLinOp::bndryData (const BndryData& bd)
 {
-    BLassert(gbox[0] == bd.boxes());
+    BL_ASSERT(gbox[0] == bd.boxes());
     bgb = bd;
 }
 
@@ -313,7 +313,7 @@ inline
 const BoxArray&
 MCLinOp::boxArray (int level) const
 {
-    BLassert(level < numLevels());
+    BL_ASSERT(level < numLevels());
     return gbox[level];
 }
 
@@ -342,7 +342,7 @@ inline
 int
 MCLinOp::maxOrder (int maxorder_)
 {
-    BLassert(maxorder_ >= 2);
+    BL_ASSERT(maxorder_ >= 2);
     maxorder_ = (maxorder_ < 2 ? 2 : maxorder_ );
     int omaxorder = maxorder;
     maxorder = maxorder_;

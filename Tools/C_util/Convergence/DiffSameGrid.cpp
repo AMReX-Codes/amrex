@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffSameGrid.cpp,v 1.3 1999-05-10 17:18:54 car Exp $
+// $Id: DiffSameGrid.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -131,8 +131,8 @@ main (int   argc,
     //
     // Initial Tests 
     //
-    BLassert(amrDatasHaveSameDerives(amrDataI,amrDataE));
-    BLassert(amrDataI.FinestLevel() == amrDataE.FinestLevel());
+    BL_ASSERT(amrDatasHaveSameDerives(amrDataI,amrDataE));
+    BL_ASSERT(amrDataI.FinestLevel() == amrDataE.FinestLevel());
 
     int nComp          = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
@@ -152,7 +152,7 @@ main (int   argc,
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         const BoxArray& baE = amrDataE.boxArray(iLevel);
 
-        BLassert(baI.length() == baE.length());
+        BL_ASSERT(baI.length() == baE.length());
 
 	error[iLevel] = new MultiFab(baI, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
@@ -162,7 +162,7 @@ main (int   argc,
 
 	for (int iGrid=0; iGrid<baI.length(); ++iGrid)
 	{
-            BLassert (baI[iGrid] == baE[iGrid]);
+            BL_ASSERT (baI[iGrid] == baE[iGrid]);
 
 	    for (int iComp=0; iComp<nComp; ++iComp)
 	    {

@@ -46,13 +46,13 @@ inline IndexType::CellIndex type (const FArrayBox& f, int idir)
 
 inline IntVect type (const FabArray<Real,FArrayBox>& r) 
 {
-    BLassert(r.length() > 0 && r.boxArray().ok());
+    BL_ASSERT(r.length() > 0 && r.boxArray().ok());
     return r.box(0).type();
 }
 
 inline IndexType::CellIndex type (const FabArray<Real,FArrayBox>& r, int idir) 
 {
-    BLassert(r.length() > 0 && r.boxArray().ok());
+    BL_ASSERT(r.length() > 0 && r.boxArray().ok());
     return r.box(0).type(idir);
 }
 
@@ -87,7 +87,7 @@ inline Real mfnorm_2 (const MultiFab& mf)
 inline Real mfnorm (const MultiFab& mf) 
 {
     Real r = 0;
-    BLassert(mf.nComp() == 1);
+    BL_ASSERT(mf.nComp() == 1);
     for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
     {
 	Real s = cmfi->norm(0);

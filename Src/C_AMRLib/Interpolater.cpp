@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.15 1999-05-10 17:18:28 car Exp $
+// $Id: Interpolater.cpp,v 1.16 1999-05-10 18:54:08 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -287,8 +287,8 @@ CellConservative::interp (const FArrayBox& crse,
                           const Geometry&  fine_geom,
                           Array<BCRec>&    bcr)
 {
-    BLassert(bcr.length() >= ncomp);
-    BLassert(fine_geom.Domain().contains(fine_region));
+    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -297,12 +297,12 @@ CellConservative::interp (const FArrayBox& crse,
     Box fslope_bx          = ::refine(crse_bx,ratio);
     Box cslope_bx          = crse_bx;
     cslope_bx.grow(1);
-    BLassert(crse.box().contains(cslope_bx));
+    BL_ASSERT(crse.box().contains(cslope_bx));
     //
     // Alloc temp space for coarse grid slopes.
     //
     long t_long = cslope_bx.numPts();
-    BLassert(t_long < INT_MAX);
+    BL_ASSERT(t_long < INT_MAX);
     int c_len = int(t_long);
     if (slope_len < BL_SPACEDIM*c_len)
     {
@@ -315,7 +315,7 @@ CellConservative::interp (const FArrayBox& crse,
     int hislp = cslope_bx.index(crse_bx.bigEnd());
 
     t_long = cslope_bx.numPts();
-    BLassert(t_long < INT_MAX);
+    BL_ASSERT(t_long < INT_MAX);
     int cslope_vol = int(t_long);
     int clo        = 1 - loslp;
     int chi        = clo + cslope_vol - 1;
@@ -411,8 +411,8 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
                          const Geometry& fine_geom,
                          Array<BCRec>& bcr)
 {
-    BLassert(bcr.length() >= ncomp);
-    BLassert(fine_geom.Domain().contains(fine_region));
+    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -560,8 +560,8 @@ CellQuadratic::interp (const FArrayBox& crse, int crse_comp,
                        const Geometry& fine_geom,
                        Array<BCRec>& bcr)
 {
-    BLassert(bcr.length() >= ncomp);
-    BLassert(fine_geom.Domain().contains(fine_region));
+    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -571,13 +571,13 @@ CellQuadratic::interp (const FArrayBox& crse, int crse_comp,
     Box fslope_bx(::refine(crse_bx,ratio));
     Box cslope_bx(crse_bx);
     cslope_bx.grow(1);
-    BLassert(crse.box().contains(cslope_bx));
+    BL_ASSERT(crse.box().contains(cslope_bx));
     //
     // Alloc temp space for coarse grid slopes: here we use 5 
     // instead of BL_SPACEDIM because of the x^2, y^2 and xy terms
     //
     long t_long = cslope_bx.numPts();
-    BLassert(t_long < INT_MAX);
+    BL_ASSERT(t_long < INT_MAX);
     int c_len = int(t_long);
     if (slope_len < 5*c_len)
     {
@@ -589,7 +589,7 @@ CellQuadratic::interp (const FArrayBox& crse, int crse_comp,
     int hislp = cslope_bx.index(crse_bx.bigEnd());
 
     t_long = cslope_bx.numPts();
-    BLassert(t_long < INT_MAX);
+    BL_ASSERT(t_long < INT_MAX);
     int cslope_vol = int(t_long);
     int clo        = 1 - loslp;
     int chi        = clo + cslope_vol - 1;

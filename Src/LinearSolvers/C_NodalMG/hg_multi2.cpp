@@ -127,7 +127,7 @@ task_fceres_2::task_fceres_2 (FCERES          f_,
 bool
 task_fceres_2::ready ()
 {
-    BLassert(!done);
+    BL_ASSERT(!done);
 
     if (is_local_target()) doit();
 
@@ -137,9 +137,9 @@ task_fceres_2::ready ()
 void
 task_fceres_2::doit ()
 {
-    BLassert(!done);
-    BLassert(is_local_target());
-    BLassert(dependencies.empty());
+    BL_ASSERT(!done);
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(dependencies.empty());
 
     done = true;
 
@@ -234,7 +234,7 @@ task_fceres_4::task_fceres_4 (FCERES            f_,
 bool
 task_fceres_4::ready ()
 {
-    BLassert(!done);
+    BL_ASSERT(!done);
 
     if (is_local_target()) doit();
 
@@ -244,9 +244,9 @@ task_fceres_4::ready ()
 void
 task_fceres_4::doit ()
 {
-    BLassert(!done);
-    BLassert(is_local_target());
-    BLassert(dependencies.empty());
+    BL_ASSERT(!done);
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(dependencies.empty());
 
     done = true;
 
@@ -395,7 +395,7 @@ holy_grail_amr_multigrid::build_sync_cache (int mglev,
 	Box& cbox = fres_cbox[lev][iface];
 	Box& creg = fres_creg[lev][iface];
 	fbox = dest[lev].box(igrid); fbox.grow(dest[lev].nGrow());
-	BLassert(is_remote(dest[lev], igrid) || fbox == dest[lev][igrid].box());
+	BL_ASSERT(is_remote(dest[lev], igrid) || fbox == dest[lev][igrid].box());
 	// fbox = dest[lev][igrid].box();
 	cbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	cbox.coarsen(rat);
@@ -406,7 +406,7 @@ holy_grail_amr_multigrid::build_sync_cache (int mglev,
 	Box& sigmafbox = fres_sfbox[lev][iface];
 	Box& sigmacbox = fres_scbox[lev][iface];
 	sigmafbox = sigma[mglev].box(igrid); sigmafbox.grow(sigma[mglev].nGrow());
-	BLassert( is_remote(sigma[mglev], igrid) || sigmafbox == sigma[mglev][igrid].box());
+	BL_ASSERT( is_remote(sigma[mglev], igrid) || sigmafbox == sigma[mglev][igrid].box());
 	// sigmafbox = sigma[mglev][igrid].box();
 	sigmacbox = cbox;
 	sigmacbox.convert(IntVect::TheCellVector());
