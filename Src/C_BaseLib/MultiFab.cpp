@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.42 1999-05-10 20:44:50 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.43 1999-09-30 14:56:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,40 +52,20 @@ MultiFab::Copy (MultiFab&       dst,
     }
 }
 
-MultiFab::MultiFab ()
-    :
-    m_FB_mfcd(0),
-    m_FB_scomp(-1),
-    m_FB_ncomp(-1),
-    m_FPB_mfcd(0),
-    m_FPB_scomp(-1),
-    m_FPB_ncomp(-1),
-    m_FPB_noovlp(false)
-{}
+MultiFab::MultiFab () {}
 
 MultiFab::MultiFab (const BoxArray& bxs,
                     int             ncomp,
                     int             ngrow,
                     FabAlloc        alloc)
     :
-    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc),
-    m_FB_mfcd(0),
-    m_FB_scomp(-1),
-    m_FB_ncomp(-1),
-    m_FPB_mfcd(0),
-    m_FPB_scomp(-1),
-    m_FPB_ncomp(-1),
-    m_FPB_noovlp(false)
+    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
 
 //
 // This isn't inlined as it's virtual.
 //
-MultiFab::~MultiFab ()
-{
-    delete m_FB_mfcd;
-    delete m_FPB_mfcd;
-}
+MultiFab::~MultiFab () {}
 
 void
 MultiFab::probe (ostream& os,
@@ -714,12 +694,8 @@ TheFBsirec (int             scomp,
     const SI si(mf.boxArray(), scomp, ncomp, mf.nGrow());
     
     for (SIList::iterator it = SICache.begin(); it != SICache.end(); ++it)
-    {
         if (*it == si)
-        {
             return *it;
-        }
-    }
 
     return BuildFBsirec(si,mf);
 }
@@ -732,25 +708,21 @@ MultiFab::FillBoundary (int scomp,
 
     stats.start();
 
-    MultiFabCopyDescriptor& mfcd = theFBmfcd(scomp,ncomp);
-    const MultiFabId        mfid = 0;
-    SI&                     si   = TheFBsirec(scomp,ncomp,*this);
-
-    if (mfcd.nFabComTags() == 0)
+    MultiFabCopyDescriptor mfcd;
+    SI&                    si   = TheFBsirec(scomp,ncomp,*this);
+    const MultiFabId       mfid = mfcd.RegisterMultiFab(this);
+    //
+    // Add boxes we need to collect.
+    //
+    for (int i = 0; i < si.m_sirec.size(); i++)
     {
-        //
-        // Add boxes we need to collect, if we haven't already done so.
-        //
-        for (int i = 0; i < si.m_sirec.size(); i++)
-        {
-            si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
-                                               si.m_sirec[i].m_bx,
-                                               0,
-                                               si.m_sirec[i].m_j,
-                                               scomp,
-                                               scomp,
-                                               ncomp);
-        }
+        si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
+                                           si.m_sirec[i].m_bx,
+                                           0,
+                                           si.m_sirec[i].m_j,
+                                           scomp,
+                                           scomp,
+                                           ncomp);
     }
 
     mfcd.CollectData(&si.m_cache,&si.m_commdata);
