@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 2000-03-29 23:05:54 sstanley Exp $
+# $Id: GNUmakefile,v 1.6 2003-09-08 22:22:38 lijewski Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -11,9 +11,8 @@ PRECISION     = DOUBLE
 DEBUG	      = TRUE
 PROFILE       = FALSE
 DIM	      = 3
-COMP          = KCC
-USE_MPI       = TRUE
-
+COMP          = g++
+USE_MPI       = FALSE
 #
 # Control Make Procedure
 #
@@ -23,7 +22,7 @@ BUILD_INPLACE:=TRUE
 #
 # Base name of the executable.
 #
-EBASE = viewMF
+EBASE = viewMFdiff
 
 include $(TOP)/mk/Make.defs ./Make.package
 
@@ -35,8 +34,8 @@ DEFINES += -DBL_PARALLEL_IO
 # Local INCLUDES
 #
 ifeq ($(BUILD_INPLACE), TRUE)
-  include $(TOP)/pBoxLib_2/Make.package
-  INCLUDE_LOCATIONS += . $(TOP)/pBoxLib_2 $(TOP)/pAmrvis ../
+  include $(TOP)/BoxLib/Make.package
+  INCLUDE_LOCATIONS += . $(TOP)/BoxLib $(TOP)/pAmrvis ../
 else
   INCLUDE_LOCATIONS += . $(TOP)/include $(TOP)/pAmrvis ../
   LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
@@ -81,9 +80,10 @@ LDFLAGS += -non_shared -v
 endif
 
 ifeq ($(BUILD_INPLACE), TRUE)
-  vpath %.F   .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
-  vpath %.H   .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
-  vpath %.cpp .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
+  vpath %.F   .. $(TOP)/pAmrvis $(TOP)/BoxLib
+  vpath %.f   .. $(TOP)/pAmrvis $(TOP)/BoxLib
+  vpath %.H   .. $(TOP)/pAmrvis $(TOP)/BoxLib
+  vpath %.cpp .. $(TOP)/pAmrvis $(TOP)/BoxLib
 else
   vpath %.F   .. $(TOP)/pAmrvis
   vpath %.H   .. $(TOP)/pAmrvis
@@ -105,12 +105,12 @@ endif
 # Build and install all libraries needed in an appropriate order.
 #
 libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/BoxLib; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
 #
 # Cleanup libraries.
 #
 cleanlibs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
+	cd $(TOP)/BoxLib; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) clean
 
 include $(TOP)/mk/Make.rules

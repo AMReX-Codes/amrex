@@ -28,7 +28,7 @@ void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
-    cout << argv[0] << " infile0 infile1 [options] \n\tOptions:" << endl;
+    cout << argv[0] << " iFile0=mf0 iFile1=mf1 [options] \n\tOptions:" << endl;
     cout << "\t   comp0 = Starting component for MultiFab in infile0" << endl
          << "\t           (default is comp0=0)" << endl;
     cout << "\t   comp1 = Starting component for MultiFab in infile1" << endl
@@ -46,34 +46,21 @@ PrintUsage(int argc, char *argv[])
 int main (int   argc,
 	  char* argv[])
 {
-    //
-    // Make sure to catch new failures.
-    //
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
+    BoxLib::Initialize(argc,argv);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
-    
-//
-//  Parse the command line
-//
-    if (argc < 3)
-        PrintUsage(argc,argv);
-
-    if (argv[1][0] == '-')
-    {
-        cerr << "input file must be first argument\n";
-        PrintUsage(argc, argv);
-    }
-
-    ParmParse pp(argc-3,argv+3);
+    ParmParse pp;
     
     if (pp.contains("help"))
         PrintUsage(argc, argv);
     
-    const aString iFile0 = argv[1];
-    const aString iFile1 = argv[2];
+    std::string iFile0;
+    std::string iFile1;
+
+    pp.query("iFile0", iFile0);
+    pp.query("iFile1", iFile1);
+
+    if (iFile0.empty() || iFile1.empty())
+        PrintUsage(argc, argv);
 
     int comp0 = 0;
     pp.query("comp0", comp0);
@@ -88,7 +75,7 @@ int main (int   argc,
     pp.query("ngrow",ngrow);
     BL_ASSERT(ngrow>=0);
 
-    aString outfile;
+    std::string outfile;
     pp.query("outfile",outfile);
 
 //
@@ -106,18 +93,18 @@ int main (int   argc,
         // For this, assume no grow cells
         //
         BoxList common_bl;
-        for (int i=0; i<mf0.boxArray().length(); ++i)
-            common_bl.join(BoxList(::intersect(mf1.boxArray(), mf0.boxArray()[i])));
+        for (int i=0; i<mf0.boxArray().size(); ++i)
+            common_bl.join(BoxList(BoxLib::intersect(mf1.boxArray(), mf0.boxArray()[i])));
         compBoxes = BoxArray(common_bl);
     }
     
-    if (ngrow != Min(ngrow,mf0.nGrow()))
+    if (ngrow != std::min(ngrow,mf0.nGrow()))
     {
         BoxLib::Warning("Shrinking ngrow to that available in mfab0");
         ngrow = mf0.nGrow();
     }
 
-    if (ngrow != Min(ngrow,mf1.nGrow()))
+    if (ngrow != std::min(ngrow,mf1.nGrow()))
     {
         BoxLib::Warning("Shrinking ngrow to that available in mfab1");
         ngrow = mf1.nGrow();
@@ -142,23 +129,23 @@ int main (int   argc,
     // Result may have different processor mapping than src mfabs
     // I think that means you got to things in the following way
     //
-    PArray<FArrayBox> fabs(compBoxes.length(),PArrayManage);
-    for (int i=0; i<fabs.length(); ++i)
+    PArray<FArrayBox> fabs(compBoxes.size(),PArrayManage);
+    for (int i=0; i<fabs.size(); ++i)
     {
         fabs.set(i,new FArrayBox(compBoxes[i],nComp));
         fabs[i].setVal(0.0);
     
-        for (MultiFabIterator mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
+        for (MFIter mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
         {
-            const Box box = ::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box box = BoxLib::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
-                fabs[i].copy(mf0_mfi(),box,comp0,box,0,nComp);
+                fabs[i].copy(mf0[mf0_mfi],box,comp0,box,0,nComp);
         }
-        for (MultiFabIterator mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
+        for (MFIter mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
         {
-            const Box box = ::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box box = BoxLib::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
-                fabs[i].minus(mf1_mfi(),box,box,comp1,0,nComp);
+                fabs[i].minus(mf1[mf1_mfi],box,box,comp1,0,nComp);
         }
     }
 
@@ -166,9 +153,9 @@ int main (int   argc,
     // Get the result into a viewable MultiFab
     //
     MultiFab diffmfab(compBoxes,nComp,ngrow,Fab_allocate);
-    for (MultiFabIterator mfi(diffmfab); mfi.isValid(); ++mfi)
-        for (int i=0; i<fabs.length(); ++i)
-            mfi().copy(fabs[i]);
+    for (MFIter mfi(diffmfab); mfi.isValid(); ++mfi)
+        for (int i=0; i<fabs.size(); ++i)
+            diffmfab[mfi].copy(fabs[i]);
 
     Real norm0 = MFNorm(diffmfab, 0, 0, nComp, ngrow);
     Real norm1 = MFNorm(diffmfab, 1, 0, nComp, ngrow);
@@ -180,7 +167,7 @@ int main (int   argc,
 	     << norm0 << ", " << norm1 << ", " << norm2 << endl;
     }
     
-    if (!outfile.isNull())
+    if (!outfile.empty())
     {
 	writeMF(&diffmfab,outfile.c_str());
 	return 1;
@@ -197,5 +184,7 @@ int main (int   argc,
 	    return ArrayViewMultiFab(&diffmfab);
 	}
     }
+
+    BoxLib::Finalize();
 }
 

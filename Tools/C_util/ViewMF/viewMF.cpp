@@ -39,15 +39,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    //
-    // Make sure to catch new failures.
-    //
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
-
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
+    BoxLib::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -60,12 +52,12 @@ main (int   argc,
         PrintUsage(argc, argv);
     }
 
-    ParmParse pp(argc-2,argv+2);
+    ParmParse pp;
     
     if (pp.contains("help"))
         PrintUsage(argc, argv);
     
-    aString iFile = argv[1];
+    std::string iFile = argv[1];
     
     bool ascii = false;
     if (pp.contains("ascii"))
@@ -78,19 +70,21 @@ main (int   argc,
     
     int ngrow = mf.nGrow();
     pp.query("ngrow",ngrow);
-    ngrow = Min(ngrow,mf.nGrow());
+    ngrow = std::min(ngrow,mf.nGrow());
     
     MultiFab tmp(mf.boxArray(),mf.nComp(),ngrow,Fab_allocate);
     MultiFab::Copy(tmp,mf,0,0,mf.nComp(),ngrow);
     if (ascii)
     {
-        for (MultiFabIterator mfi(tmp); mfi.isValid(); ++mfi)
+        for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
         {
             cout << "FAB: " << mfi.index() << endl;
-            cout << mfi() << endl;
+            cout << tmp[mfi] << endl;
         }
         return true;
     }
+
+    BoxLib::Finalize();
     
     return ArrayViewMultiFab(&tmp);
 }

@@ -42,30 +42,30 @@ MFNorm (const MultiFab& mfab,
     Real myNorm = 0;
     if ( exponent == 0 )
     {
-        for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
+        for ( MFIter mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
-            myNorm = Max(myNorm, mftmpmfi().norm(0, 0, numComp));
+            mftmp[mftmpmfi].abs(boxes[mftmpmfi.index()], 0, numComp);
+            myNorm = std::max(myNorm, mftmp[mftmpmfi].norm(0, 0, numComp));
         }
 	ParallelDescriptor::ReduceRealMax(myNorm);
 
     } else if ( exponent == 1 )
     {
-        for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
+        for ( MFIter mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
+            mftmp[mftmpmfi].abs(boxes[mftmpmfi.index()], 0, numComp);
 
-            myNorm += mftmpmfi().norm(1, 0, numComp);
+            myNorm += mftmp[mftmpmfi].norm(1, 0, numComp);
         }
 	ParallelDescriptor::ReduceRealSum(myNorm);
 
     } else if ( exponent == 2 )
     {
-        for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
+        for ( MFIter mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
+            mftmp[mftmpmfi].abs(boxes[mftmpmfi.index()], 0, numComp);
 
-            myNorm += pow(mftmpmfi().norm(2, 0, numComp), 2);
+            myNorm += pow(mftmp[mftmpmfi].norm(2, 0, numComp), 2);
         }
 	ParallelDescriptor::ReduceRealSum(myNorm);
         myNorm = sqrt( myNorm );
