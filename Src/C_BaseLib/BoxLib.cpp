@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.4 1997-09-24 22:06:43 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.5 1997-11-13 18:45:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,6 +19,7 @@ using std::cerr;
 
 #include <BoxLib.H>
 #include <BLVERSION.H>
+#include <ParallelDescriptor.H>
 
 //
 // The definition of our NULL string used as default argument.
@@ -45,6 +46,7 @@ __TIME__;
 #undef bl_str
 #undef bl_xstr
 
+
 //
 // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
 // to ensure that when writing the message to stderr, that no additional
@@ -55,12 +57,13 @@ static
 void
 write_to_stderr_without_buffering (const char* str)
 {
+    //
+    // Flush all buffers.
+    //
+    fflush(NULL);
+
     if (str)
     {
-        //
-        // Flush all buffers.
-        //
-        fflush(NULL);
         //
         // Add some `!'s and a newline to the string.
         //
@@ -74,14 +77,22 @@ void
 BoxLib::Error (const char* msg)
 {
     write_to_stderr_without_buffering(msg);
+#ifdef BL_USE_BSP
+    ParallelDescriptor::Abort(BoxLib::nullString);
+#else
     abort();
+#endif
 }
 
 void
 BoxLib::Abort (const char* msg)
 {
     write_to_stderr_without_buffering(msg);
+#ifdef BL_USE_BSP
+    ParallelDescriptor::Abort(BoxLib::nullString);
+#else
     abort();
+#endif
 }
 
 void

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.22 1997-11-13 16:34:00 lijewski Exp $
+// $Id: VisMF.cpp,v 1.23 1997-11-13 18:45:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -40,7 +40,7 @@ operator<< (ostream&                os,
     os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
     if (!os.good())
-        ParallelDescriptor::Abort("Write of VisMF::FabOnDisk failed");
+        BoxLib::Error("Write of VisMF::FabOnDisk failed");
 
     return os;
 }
@@ -62,7 +62,7 @@ operator>> (istream&          is,
     is >> fod.m_head;
 
     if (!is.good())
-        ParallelDescriptor::Abort("Read of VisMF::FabOnDisk failed");
+        BoxLib::Error("Read of VisMF::FabOnDisk failed");
 
     return is;
 }
@@ -81,7 +81,7 @@ operator<< (ostream&                       os,
     }
 
     if (!os.good())
-        ParallelDescriptor::Abort("Write of Array<VisMF::FabOnDisk> failed");
+        BoxLib::Error("Write of Array<VisMF::FabOnDisk> failed");
 
     return os;
 }
@@ -104,7 +104,7 @@ operator>> (istream&                 is,
     }
 
     if (!is.good())
-        ParallelDescriptor::Abort("Read of Array<VisMF::FabOnDisk> failed");
+        BoxLib::Error("Read of Array<VisMF::FabOnDisk> failed");
 
     return is;
 }
@@ -130,7 +130,7 @@ operator<< (ostream&                    os,
     }
 
     if (!os.good())
-        ParallelDescriptor::Abort("Write of Array<Array<Real>> failed");
+        BoxLib::Error("Write of Array<Array<Real>> failed");
 
     return os;
 }
@@ -167,7 +167,7 @@ operator>> (istream&              is,
     }
 
     if (!is.good())
-        ParallelDescriptor::Abort("Read of Array<Array<Real>> failed");
+        BoxLib::Error("Read of Array<Array<Real>> failed");
 
     return is;
 }
@@ -195,7 +195,7 @@ operator<< (ostream&             os,
     os.precision(old_prec);
 
     if (!os.good())
-        ParallelDescriptor::Abort("Write of VisMF::Header failed");
+        BoxLib::Error("Write of VisMF::Header failed");
 
     return os;
 }
@@ -217,7 +217,7 @@ operator>> (istream&       is,
     case VisMF::OneFilePerFab:
         hd.m_how = VisMF::OneFilePerFab; break;
     default:
-        ParallelDescriptor::Abort("Bad case in switch");
+        BoxLib::Error("Bad case in switch");
     }
     GetTheChar(is, '\n');
 
@@ -246,7 +246,7 @@ operator>> (istream&       is,
     assert(hd.m_ba.length() == hd.m_max.length());
 
     if (!is.good())
-        ParallelDescriptor::Abort("Read of VisMF::Header failed");
+        BoxLib::Error("Read of VisMF::Header failed");
 
     return is;
 }
@@ -493,7 +493,7 @@ VisMF::Write (const MultiFab& mf,
         {
             aString msg("Couldn't open file: ");
             msg += FabFileName;
-            ParallelDescriptor::Abort(msg.c_str());
+            BoxLib::Error(msg.c_str());
         }
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
@@ -534,7 +534,7 @@ VisMF::Write (const MultiFab& mf,
             {
                 aString msg("Couldn't open file: ");
                 msg += FabFileName;
-                ParallelDescriptor::Abort(msg.c_str());
+                BoxLib::Error(msg.c_str());
             }
 
             hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
@@ -555,7 +555,7 @@ VisMF::Write (const MultiFab& mf,
     }
     break;
     default:
-        ParallelDescriptor::Abort("Bad case in switch");
+        BoxLib::Error("Bad case in switch");
     }
 
     for (int len; PD::GetMessageHeader(len, &msg_hdr); )
@@ -598,7 +598,7 @@ VisMF::VisMF (const aString& mf_name)
     {
         aString msg("Couldn't open file: ");
         msg += file;
-        ParallelDescriptor::Abort(msg.c_str());
+        BoxLib::Error(msg.c_str());
     }
 
     ifs >> m_hdr;
@@ -637,7 +637,7 @@ VisMF::readFAB (int i) const
     {
         aString msg("Couldn't open file: ");
         msg += file;
-        ParallelDescriptor::Abort(msg.c_str());
+        BoxLib::Error(msg.c_str());
     }
 
     if (m_hdr.m_fod[i].m_head)

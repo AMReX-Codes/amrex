@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.2 1997-09-15 19:40:05 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.3 1997-11-13 18:45:15 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -63,13 +63,13 @@ DistributionMapping::CreateProcessorMap ()
         }
         break;
     case RANDOM:
-        ParallelDescriptor::Abort("RANDOM not implemented");
+        BoxLib::Error("RANDOM not implemented");
         break;
     case SIZEBALANCED:
-        ParallelDescriptor::Abort("SIZEBALANCED not implemented");
+        BoxLib::Error("SIZEBALANCED not implemented");
         break;
     default:
-        ParallelDescriptor::Abort("Bad DistributionStrategy");
+        BoxLib::Error("Bad DistributionStrategy");
     }
 }
 
@@ -94,7 +94,7 @@ operator<< (ostream&                   os,
     os << ')' << '\n';
 
     if (os.fail())
-        ParallelDescriptor::Abort("operator<<(ostream &, DistributionMapping &) failed");
+        BoxLib::Error("operator<<(ostream &, DistributionMapping &) failed");
 
     return os;
 }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.5 1997-09-24 22:06:45 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.6 1997-11-13 18:45:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -44,7 +44,7 @@ operator<< (ostream&        os,
             const MultiFab& mf)
 {
     cerr << "Error:  MultiFab operator<< not implemented for parallel\n";
-    ParallelDescriptor::Abort("MultiFab operator<<");
+    BoxLib::Error("MultiFab operator<<");
 
     os << "(MultiFab "
        << mf.length() <<  ' '
@@ -519,7 +519,7 @@ linInterp (FArrayBox&      dest,
         const int sc = 0;
 
         cerr << "Error in MultiFab::linInterp 1:  fix for parallel\n";
-        ParallelDescriptor::Abort("Error: MultiFab::linInterp 1:  fix parallel.");
+        BoxLib::Error("Error: MultiFab::linInterp 1:  fix parallel.");
 
         for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
         {
@@ -571,7 +571,7 @@ linInterp (FArrayBox&      dest,
 
         if (ParallelDescriptor::NProcs() > 1)
         {
-            ParallelDescriptor::Abort("MultiFab::linInterp 2 not implemented in parallel.");
+            BoxLib::Error("MultiFab::linInterp 2 not implemented in parallel.");
         }
         else
         {
