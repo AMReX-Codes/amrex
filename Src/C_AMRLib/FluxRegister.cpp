@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.24 1998-04-24 00:11:38 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.25 1998-04-24 16:28:57 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -797,7 +797,7 @@ DoIt (Orientation        face,
 
         ParallelDescriptor::SendData(dMap[k],
                                      &tag,
-                                     fabCom->dataPtr(),
+                                     fabCom.dataPtr(),
                                      bx.numPts() * numcomp * sizeof(Real));
 #endif /*BL_USE_MPI*/
     }
