@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.7 1997-11-08 01:42:02 jbb Exp $
+// $Id: Utility.H,v 1.8 1997-11-12 21:57:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,6 +17,7 @@ using std::endl;
 #include <iostream.h>
 #endif
 
+#include <aString.H>
 #include <Boolean.H>
 #include <REAL.H>
 
@@ -138,6 +139,21 @@ public:
     {
         result = arg1 && arg2;
     }
+    //
+    // Creates the specified directories.  `path' may be either a full pathname
+    // or a relative pathname.  It will create all the directories in the
+    // pathname, if they don't already exist, so that on successful return the
+    // pathname refers to an existing directory.  Returns true or false
+    // depending upon whether or not all it was successful.  Also returns
+    // if `path' is NULL or "/".  `mode' is the mode passed to mkdir() for
+    // any directories that must be created.
+    //
+    // For example, if it is passed the string "/a/b/c/d/e/f/g", it
+    // will return successfully when all the directories in the pathname
+    // exist; i.e. when the full pathname is a valid directory.
+    //
+    static bool CreateDirectory (const aString& path,
+                                 mode_t         mode);
 };
 
 //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.3 1997-11-11 21:04:54 vince Exp $
+// $Id: Utility.cpp,v 1.4 1997-11-12 21:57:28 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,6 +13,9 @@
 #include <string.h>
 #include <ctype.h>
 #endif
+
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <REAL.H>
 #include <Misc.H>
@@ -164,6 +167,83 @@ Utility::is_integer (const char* str)
         for (int i = 0; i < len; i++)
             if (!isdigit(str[i]))
                 return false;
+        return true;
+    }
+}
+
+//
+// Creates the specified directories.  `path' may be either a full pathname
+// or a relative pathname.  It will create all the directories in the
+// pathname, if they don't already exist, so that on successful return the
+// pathname refers to an existing directory.  Returns true or false
+// depending upon whether or not all it was successful.  Also returns
+// true if `path' is NULL.  `mode' is the mode passed to mkdir() for
+// any directories that must be created.
+//
+// For example, if it is passed the string "/a/b/c/d/e/f/g", it
+// will return successfully when all the directories in the pathname
+// exist; i.e. when the full pathname is a valid directory.
+//
+
+bool
+Utility::CreateDirectory (const aString& path,
+                          mode_t         mode)
+{
+    if (path.length() == 0 || path == "/")
+        return true;
+
+    if (strchr(path.c_str(), '/') == 0)
+    {
+        //
+        // No slashes in the path.
+        //
+        return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
+    }
+    else
+    {
+        //
+        // Make copy of the directory pathname so we can write to it.
+        //
+        char* dir = new char[path.length() + 1];
+        if (dir == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        (void) strcpy(dir, path.c_str());
+
+        char* slash = strchr(dir, '/');
+
+        if (dir[0] == '/')
+        {
+            //
+            // Got a full pathname.
+            //
+            do
+            {
+                if (*(slash+1) == 0)
+                    break;
+                if ((slash = strchr(slash+1, '/')) != 0)
+                    *slash = 0;
+                if (mkdir(dir, mode) < 0 && errno != EEXIST)
+                    return false;
+                if (slash)
+                    *slash = '/';
+            } while (slash);
+        }
+        else
+        {
+            //
+            // Got a relative pathname.
+            //
+            do
+            {
+                *slash = 0;
+                if (mkdir(dir, mode) < 0 && errno != EEXIST)
+                    return false;
+                *slash = '/';
+            } while ((slash = strchr(slash+1, '/')) != 0);
+        }
+
+        delete [] dir;
+
         return true;
     }
 }
