@@ -1,30 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.28 1998-04-17 22:22:07 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.29 1998-04-19 03:46:41 lijewski Exp $
 //
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
-
-#if defined(BL_USE_BSP)
-
-#include "bsp.h"
-
-//
-// Type of function pointer required by bsp_fold().
-//
-typedef void (*VFVVVI)(void*,void*,void*,int*);
-
-#ifdef FIXBSPLIBLEVEL1HEADER
-extern "C"
-{
-  extern void bsp_fold (VFVVVI,void*,void*,int);
-  extern void bsp_fold_cpp (VFVVVI,void*,void*,int,int,char*);
-}
-#endif /*FIXBSPLIBLEVEL1HEADER*/
-
-#include "bsp_level1.h"
 
 //
 // Definition of non-inline members of CommData.
@@ -68,6 +49,26 @@ CommData::CommData (int        face,
     for (int i = 0; i < BL_SPACEDIM; i++)
         m_data[7+2*BL_SPACEDIM+i] = typ[i];
 }
+
+#if defined(BL_USE_BSP)
+
+#include "bsp.h"
+
+//
+// Type of function pointer required by bsp_fold().
+//
+typedef void (*VFVVVI)(void*,void*,void*,int*);
+
+#ifdef FIXBSPLIBLEVEL1HEADER
+extern "C"
+{
+  extern void bsp_fold (VFVVVI,void*,void*,int);
+  extern void bsp_fold_cpp (VFVVVI,void*,void*,int,int,char*);
+}
+#endif /*FIXBSPLIBLEVEL1HEADER*/
+
+#include "bsp_level1.h"
+
 
 void
 ParallelDescriptor::StartParallel (int nprocs, int*, char***)
@@ -154,7 +155,7 @@ void
 ParallelDescriptor::SetMessageHeaderSize (int messageHeaderSize)
 {
     bsp_set_tag_size(&messageHeaderSize);
-} 
+}
 
 bool
 ParallelDescriptor::GetMessageHeader (int&  dataSize,
@@ -459,6 +460,12 @@ ParallelDescriptor::Barrier ()
 }
 
 void ParallelDescriptor::Synchronize () {}
+
+void ParallelDescriptor::ShareVar (const void*, int) {}
+
+void ParallelDescriptor::UnshareVar (const void*) {}
+
+void ParallelDescriptor::SetMessageHeaderSize (int) {}
 
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
