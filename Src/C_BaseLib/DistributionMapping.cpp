@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.59 2002-10-06 18:02:43 car Exp $
+// $Id: DistributionMapping.cpp,v 1.60 2002-10-31 18:09:00 car Exp $
 //
 #include <winstd.H>
 
@@ -30,12 +30,6 @@ const Array<int>&
 DistributionMapping::ProcessorMap () const
 {
     return m_procmap;
-}
-
-int
-DistributionMapping::operator[] (int index) const
-{
-    return m_procmap[index];
 }
 
 DistributionMapping::Strategy

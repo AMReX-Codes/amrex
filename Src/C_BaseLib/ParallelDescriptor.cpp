@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.95 2002-03-26 20:04:06 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.96 2002-10-31 18:09:00 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -64,20 +64,6 @@ namespace ParallelDescriptor
 }
 
 int
-ParallelDescriptor::MyProc ()
-{
-    BL_ASSERT(m_MyId != -1);
-    return m_MyId;
-}
-
-int
-ParallelDescriptor::NProcs ()
-{
-    BL_ASSERT(m_nProcs != -1);
-    return m_nProcs;
-}
-
-int
 ParallelDescriptor::NProcsCFD ()
 {
     if (m_nProcsCFD == -1)
@@ -86,25 +72,6 @@ ParallelDescriptor::NProcsCFD ()
     BL_ASSERT(m_nProcsCFD != -1);
 
     return m_nProcsCFD;
-}
-
-bool
-ParallelDescriptor::IOProcessor ()
-{
-    BL_ASSERT(m_MyId != -1);
-    return m_MyId == ioProcessor;
-}
-
-int
-ParallelDescriptor::IOProcessorNumber ()
-{
-    return ioProcessor;
-}
-
-MPI_Comm
-ParallelDescriptor::Communicator ()
-{
-    return m_comm;
 }
 
 CommData::CommData ()

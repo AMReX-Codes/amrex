@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.22 2001-07-31 17:56:26 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.23 2002-10-31 18:09:00 car Exp $
 //
 #include <vector>
 
@@ -160,6 +160,13 @@ private:
     //
     Array<int> m_procmap;
 };
+
+inline
+int
+DistributionMapping::operator[] (int index) const
+{
+    return m_procmap[index];
+}
 
 //
 // Our output operator.
