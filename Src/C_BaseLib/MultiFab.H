@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.29 1999-08-02 19:22:17 sstanley Exp $
+// $Id: MultiFab.H,v 1.30 1999-09-30 14:56:19 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -356,13 +356,6 @@ class MultiFab
     void FillBoundary (int src_comp,
                        int num_comp);
     //
-    //@ManDoc: The cached descriptor used by FillPeriodicBoundary().
-    //
-    MultiFabCopyDescriptor& theFPBmfcd (int   src_comp,
-                                        int   num_comp,
-                                        bool  no_overlap,
-                                        bool  do_corners);
-    //
     //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
     //
     static void FlushSICache ();
@@ -386,22 +379,6 @@ private:
     //
     MultiFab (const MultiFab& rhs);
     MultiFab& operator= (const MultiFab& rhs);
-    //
-    // Build and register the MFCD.  Guarantee the Register() MultiFabId == 0.
-    //
-    MultiFabCopyDescriptor& theFBmfcd (int src_comp,
-                                       int num_comp);
-    //
-    // Some additional cached data.
-    //
-    MultiFabCopyDescriptor* m_FB_mfcd;    /* Hack for FillBoundary */
-    int                     m_FB_scomp;   /* Hack for FillBoundary */
-    int                     m_FB_ncomp;   /* Hack for FillBoundary */
-    MultiFabCopyDescriptor* m_FPB_mfcd;   /* Hack for FillPeriodicBoundary */
-    int                     m_FPB_scomp;  /* Hack for FillPeriodicBoundary */
-    int                     m_FPB_ncomp;  /* Hack for FillPeriodicBoundary */
-    bool                    m_FPB_noovlp; /* Hack for FillPeriodicBoundary */
-    bool                    m_FPB_docrns; /* Hack for FillPeriodicBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -570,73 +547,6 @@ class MultiFabCopyDescriptor
 //
 // Inlines.
 //
-
-inline
-MultiFabCopyDescriptor&
-MultiFab::theFBmfcd (int src_comp,
-                     int num_comp)
-{
-    BL_ASSERT(num_comp > 0);
-    BL_ASSERT(src_comp >= 0);
-
-    if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
-    {
-        m_FB_scomp = src_comp;
-        m_FB_ncomp = num_comp;
-
-        if (m_FB_mfcd == 0)
-        {
-            m_FB_mfcd = new MultiFabCopyDescriptor;
-        }
-        else
-        {
-            m_FB_mfcd->clear();
-        }
-
-        MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
-
-        BL_ASSERT(mfid == MultiFabId(0));
-    }
-
-    return *m_FB_mfcd;
-}
-
-inline
-MultiFabCopyDescriptor&
-MultiFab::theFPBmfcd (int   src_comp,
-                      int   num_comp,
-                      bool  no_overlap,
-                      bool  do_corners)
-{
-    BL_ASSERT(src_comp >= 0);
-    BL_ASSERT(num_comp > 0);
-
-    if (!(m_FPB_scomp  == src_comp   &&
-          m_FPB_ncomp  == num_comp   &&
-          m_FPB_noovlp == no_overlap &&
-          m_FPB_docrns == do_corners))
-    {
-        m_FPB_scomp  = src_comp;
-        m_FPB_ncomp  = num_comp;
-        m_FPB_noovlp = no_overlap;
-        m_FPB_docrns = do_corners;
-
-        if (m_FPB_mfcd == 0)
-        {
-            m_FPB_mfcd = new MultiFabCopyDescriptor;
-        }
-        else
-        {
-            m_FPB_mfcd->clear();
-        }
-
-        MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
-
-        BL_ASSERT(mfid == MultiFabId(0));
-    }
-
-    return *m_FPB_mfcd;
-}
 
 inline
 void
