@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.7 1997-12-09 23:29:59 lijewski Exp $
+// $Id: FArrayBox.H,v 1.8 1997-12-14 01:05:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,6 +20,9 @@ using std::endl;
 #include <Pointers.H>
 #include <Box.H>
 #include <BaseFab.H>
+#include <ArithFab.H>
+#include <NormedFab.H>
+#include <OrderedFab.H>
 #include <REAL.H>
 #include <SPACE.H>
 
@@ -208,7 +211,9 @@ public:
 
 class FArrayBox
     :
-    public BaseFab<Real>
+    public ArithFab<Real>, 
+    public OrderedFab<Real>,
+    public NormedFab<Real>
 {
     //
     // FABio is a friend of ours.

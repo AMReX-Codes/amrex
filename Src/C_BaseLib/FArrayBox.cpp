@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.8 1997-12-11 23:25:42 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.9 1997-12-14 01:05:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,11 +24,16 @@ using std::ios;
 #include <string.h>
 #endif
 
+#include <Misc.H>
 #include <FArrayBox.H>
 #include <FabConv.H>
 #include <ParmParse.H>
 #include <FabConv.H>
 #include <FPC.H>
+
+#include <Assert.H>
+#include <BoxLib.H>
+#include <Looping.H>
 #include <Utility.H>
 
 #if defined(BL_ARCH_CRAY)
@@ -196,7 +201,6 @@ FArrayBox::setFormat (FABio::Format fmt)
         cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         BoxLib::Abort();
     }
-
     setFABio(fio);
 }
 
@@ -279,7 +283,6 @@ FArrayBox::init ()
             cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
             BoxLib::Abort();
         }
-
         setFABio(fio);
     }
     //
@@ -315,7 +318,7 @@ FArrayBox::norm (const Box& subbox,
     int tmplen = 0;
     Real nrm = 0;
     if (p == 0 || p == 1)
-        nrm = BaseFab<Real>::norm(subbox, p, comp, numcomp);
+        nrm = NormedFab<Real>::norm(subbox, p, comp, numcomp);
     else if (p == 2)
     {
         ForAllThisCPencil(Real,subbox,comp,numcomp)
@@ -527,7 +530,7 @@ FABio_ascii::read (istream&   is,
         is >> q;
         if (p != q)
         {
-          cerr << "Error:  read IntVect " << q << "  should be " << p << '\n';
+          cerr << "Error: read IntVect " << q << "  should be " << p << '\n';
           BoxLib::Error("FABio_ascii::read() bad IntVect");
         }
         for (int k = 0; k < f.nComp(); k++)
@@ -602,6 +605,7 @@ FABio_8bit::read (istream&   is,
 {
     long siz         = f.box().numPts();
     unsigned char* c = new unsigned char[siz];
+
     Real mn, mx;
     for (int nbytes, k = 0; k < f.nComp(); k++)
     {
