@@ -1,0 +1,57 @@
+
+ifeq ($(LBASE),proj)
+
+CLIB_sources += cache.C interface.C boundary.C interpolator.C restrictor.C \
+       		fill_patch.C amr_graph.C amr_multi.C \
+		hg_multi1.C hg_multi2.C hg_multi3.C \
+		hg_projector.C
+CLIB_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
+                fill_patch.H amr_graph.H amr_multi.H hg_multi.H hg_projector.H
+
+FLIB_sources += cont$(DIM)d.F amr_real$(DIM)d.F \
+                hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+FLIB_headers +=
+
+endif
+
+ifeq ($(LBASE),ell)
+
+CLIB_sources += amr_multi.C \
+		hg_multi1.C hg_multi2.C hg_multi3.C \
+		hg_elliptic.C amr_gravity.C
+CLIB_headers += amr_multi.H hg_multi.H hg_elliptic.H amr_gravity.H
+
+FLIB_sources += hg_multi$(DIM)d.F amr_grav$(DIM)d.F
+FLIB_headers +=
+
+endif
+
+ifeq ($(EBASE),driver)
+
+CEXE_sources += driver.C
+CEXE_headers +=
+
+FEXE_sources +=
+FEXE_headers +=
+
+endif
+
+ifeq ($(EBASE),proj)
+
+CEXE_sources += proj.C
+CEXE_headers +=
+
+FEXE_sources +=
+FEXE_headers +=
+
+endif
+
+ifeq ($(EBASE),poisson)
+
+CEXE_sources += poisson.C
+CEXE_headers +=
+
+FEXE_sources +=
+FEXE_headers +=
+
+endif
