@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.34 1998-05-26 22:58:40 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.35 1998-05-28 21:32:03 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -255,11 +255,10 @@ FluxRegister::Reflux (MultiFab&       S,
                     // face of the exterior coarse grid cell updated.
                     // Adjust sign of scale accordingly.
                     //
-                    Box ovlp = mfi.validbox() & fine_face;
-
-                    if (ovlp.ok())
+                    if (fine_face.intersects(mfi.validbox()))
                     {
-                        Real mult      = fi().isLow() ? -scale : scale;
+                        Box ovlp  = mfi.validbox() & fine_face;
+                        Real mult = fi().isLow() ? -scale : scale;
                         assert(!(fillBoxIdIter == fillBoxId.end()));
                         const FillBoxId& fbid = *fillBoxIdIter++;
                         reg.resize(fbid.box(), num_comp);
@@ -312,11 +311,10 @@ FluxRegister::Reflux (MultiFab&       S,
                         // face of the exterior crarse grid cell updated.
                         // Adjust sign of scale accordingly.
                         //
-                        Box ovlp = sftbox & fine_face;
-
-                        if (ovlp.ok())
+                        if (fine_face.intersects(sftbox))
                         {
-                            Real mult      = (fi().isLow() ? -scale : scale);
+                            Box ovlp  = sftbox & fine_face;
+                            Real mult = (fi().isLow() ? -scale : scale);
                             assert(!(fillBoxIdIter == fillBoxId.end()));
                             const FillBoxId& fbid = *fillBoxIdIter++;
                             assert(bndry[fi()].box(k) == fbid.box());
@@ -561,10 +559,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int k = 0; k < mflx.boxArray().length(); k++)
         {
-            Box lobox = mfi_bndry_lo.fabbox() & mflx.boxArray()[k];
-
-            if (lobox.ok())
+            if (mfi_bndry_lo.fabbox().intersects(mflx.boxArray()[k]))
             {
+                Box lobox = mfi_bndry_lo.fabbox() & mflx.boxArray()[k];
+
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      lobox,
                                                      0,
@@ -580,10 +578,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      1));
             }
-            Box hibox = mfi_bndry_hi.fabbox() & mflx.boxArray()[k];
-
-            if (hibox.ok())
+            if (mfi_bndry_hi.fabbox().intersects(mflx.boxArray()[k]))
             {
+                Box hibox = mfi_bndry_hi.fabbox() & mflx.boxArray()[k];
+
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      hibox,
                                                      0,
@@ -617,10 +615,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int k = 0; k < mflx.boxArray().length(); k++)
         {
-            Box lobox = mfi_bndry_lo.fabbox() & mflx.boxArray()[k];
-
-            if (lobox.ok())
+            if (mfi_bndry_lo.fabbox().intersects(mflx.boxArray()[k]))
             {
+                Box lobox = mfi_bndry_lo.fabbox() & mflx.boxArray()[k];
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
                 const FillBoxId& fbid_mflx = *fbidli_mflx++;
                 mflx_fab.resize(fbid_mflx.box(), numcomp);
@@ -647,10 +644,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                               area_dat,ARLIM(alo),ARLIM(ahi),
                               lo,hi,&numcomp,&dir,&mult);
             }
-            Box hibox = mfi_bndry_hi.fabbox() & mflx.boxArray()[k];
-
-            if (hibox.ok())
+            if (mfi_bndry_hi.fabbox().intersects(mflx.boxArray()[k]))
             {
+                Box hibox = mfi_bndry_hi.fabbox() & mflx.boxArray()[k];
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
                 const FillBoxId& fbid_mflx = *fbidli_mflx++;
                 mflx_fab.resize(fbid_mflx.box(), numcomp);
@@ -774,20 +770,18 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int k = 0; k < grids.length(); k++)
     {
-        Orientation lo(dir,Orientation::low);
+        const Orientation lo(dir,Orientation::low);
 
-        Box lobox = bndry[lo].box(k) & subbox;
-
-        if (lobox.ok())
+        if (subbox.intersects(bndry[lo].box(k)))
         {
+            Box lobox = bndry[lo].box(k) & subbox;
             DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult);
         }
-        Orientation hi(dir,Orientation::high);
+        const Orientation hi(dir,Orientation::high);
 
-        Box hibox = bndry[hi].box(k) & subbox;
-
-        if (hibox.ok())
+        if (subbox.intersects(bndry[hi].box(k)))
         {
+            Box hibox = bndry[hi].box(k) & subbox;
             DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult);
         }
     }

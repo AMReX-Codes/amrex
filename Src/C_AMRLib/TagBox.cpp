@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.37 1998-05-26 22:58:40 lijewski Exp $
+// $Id: TagBox.cpp,v 1.38 1998-05-28 21:32:04 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -295,10 +295,9 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    Box bx = domain & src.domain;
-
-    if (bx.ok())
+    if (domain.intersects(src.domain))
     {
+        Box bx          = domain & src.domain;
         const int* dlo  = domain.loVect();
         const int* dlen = domain.length().getVect();
         const int* slo  = src.domain.loVect();
@@ -467,17 +466,21 @@ TagBoxArray::mergeUnique ()
 
         for (int isrc = idest + 1; isrc < fabparray.length(); ++isrc)
         {
-            Box ovlp = boxarray[idest] & boxarray[isrc];
-
-            if (ovlp.ok())
+            if (boxarray[idest].intersects(boxarray[isrc]))
             {
-                tbmd.overlapBox     = ovlp;
+                tbmd.overlapBox     = boxarray[idest] & boxarray[isrc];
                 tbmd.mergeIndexSrc  = isrc;
                 tbmd.mergeIndexDest = idest;
                 tbmd.nOverlap       = nOverlap++;
                 tbmd.destLocal      = destLocal;
                 if (destLocal)
-                    tbmd.fillBoxId = facd.AddBox(faid,ovlp,0,isrc,0,0,1);
+                    tbmd.fillBoxId = facd.AddBox(faid,
+                                                 tbmd.overlapBox,
+                                                 0,
+                                                 isrc,
+                                                 0,
+                                                 0,
+                                                 1);
                 tbmdList.push_back(tbmd);
                 if (destLocal)
                     tbmd.fillBoxId = FillBoxId(); // Clear out for later reuse.
@@ -502,10 +505,10 @@ TagBoxArray::mergeUnique ()
 
             for (int j = 0; j < tbmdList.size(); j++)
             {
-                Box ovlpBox = src.box() & tbmdList[j].overlapBox;
-
-                if (ovlpBox.ok() && tbmdList[j].mergeIndexSrc == desc.mergeIndexSrc)
+                if (src.box().intersects(tbmdList[j].overlapBox) &&
+                    tbmdList[j].mergeIndexSrc == desc.mergeIndexSrc)
                 {
+                    Box ovlpBox = src.box() & tbmdList[j].overlapBox;
                     if (tbmdList[j].nOverlap < i)
                         src.setVal(TagBox::CLEAR, ovlpBox, 0);
                     tbmdClear.fabIndex = desc.mergeIndexSrc;
@@ -652,10 +655,9 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 {
                     if (distributionMap[j] == MyProc)
                     {
-                        Box intbox = fabparray[j].box() & shiftbox;
-
-                        if (intbox.ok())
+                        if (shiftbox.intersects(fabparray[j].box()))
                         {
+                            Box intbox = fabparray[j].box() & shiftbox;
                             fillBoxId.push_back(facd.AddBox(faid,
                                                             intbox,
                                                             0,
@@ -699,9 +701,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                         //
                         // Local dest fab.
                         //
-                        Box intbox = fabparray[j].box() & shiftbox;
-
-                        if (intbox.ok())
+                        if (shiftbox.intersects(fabparray[j].box()))
                         {
                             const FillBoxId& fillboxid = fillBoxId[iFillBox++];
                             src.resize(fillboxid.box(), n_comp);
@@ -883,11 +883,9 @@ TagBoxArray::setVal (BoxDomain&     bd,
     {
         for (BoxDomainIterator bdi(bd); bdi; ++bdi)
         {
-            Box bx = fai.validbox() & bdi();
-
-            if (bx.ok())
+            if (fai.validbox().intersects(bdi()))
             {
-                fai().setVal(val,bx,0);
+                fai().setVal(val,fai.validbox() & bdi(),0);
             }
         }
     }
@@ -901,11 +899,9 @@ TagBoxArray::setVal (BoxArray&      ba,
     {
         for (int j = 0; j < ba.length(); j++)
         {
-            Box bx = fai.validbox() & ba[j];
-
-            if (bx.ok())
+            if (fai.validbox().intersects(ba[j]))
             {
-                fai().setVal(val,bx,0);
+                fai().setVal(val,fai.validbox() & ba[j],0);
             }
         }
     } 
