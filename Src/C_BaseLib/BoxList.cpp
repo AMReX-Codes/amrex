@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.12 2001-07-19 17:19:33 car Exp $
+// $Id: BoxList.cpp,v 1.14 2001-07-19 19:02:42 lijewski Exp $
 //
 
 #include <algorithm>
@@ -85,7 +85,7 @@ BoxList::isNotEmpty () const
 bool
 BoxList::contains (const Box& b) const
 {
-    BoxList bnew = ::complementIn(b,*this);
+    BoxList bnew = BoxLib::complementIn(b,*this);
 
     return bnew.isEmpty();
 }
@@ -314,20 +314,20 @@ BoxList::intersect (const BoxList& b)
 }
 
 BoxList
-complementIn (const Box&     b,
-              const BoxList& bl)
+BoxLib::complementIn (const Box&     b,
+                      const BoxList& bl)
 {
     BoxList newb(b.ixType());
     newb.append(b);
-    for (ListIterator<Box> bli(bl.lbox); bli && newb.isNotEmpty(); ++bli)
+    for (BoxListIterator bli(bl); bli && newb.isNotEmpty(); ++bli)
     {
-        for (ListIterator<Box> newbli(newb.lbox); newbli; )
+        for (BoxListIterator newbli(newb); newbli; )
         {
             if (newbli().intersects(bli()))
             {
-                BoxList tm = boxDiff(newbli(), bli());
-                newb.lbox.catenate(tm.lbox);
-                newb.lbox.remove(newbli);
+                BoxList tm = BoxLib::boxDiff(newbli(), bli());
+                newb.catenate(tm);
+                newb.remove(newbli);
             }
             else
             {
@@ -350,7 +350,7 @@ BoxList::complementIn (const Box&     b,
         {
             if (newbli().intersects(bli()))
             {
-                BoxList tm = boxDiff(newbli(), bli());
+                BoxList tm = BoxLib::boxDiff(newbli(), bli());
                 lbox.catenate(tm.lbox);
                 lbox.remove(newbli);
             }
@@ -434,8 +434,8 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-boxDiff (const Box& b1in,
-         const Box& b2)
+BoxLib::boxDiff (const Box& b1in,
+		 const Box& b2)
 {
    Box b1(b1in);
    BoxList b_list(b1.ixType());
@@ -691,7 +691,7 @@ operator<< (std::ostream&  os,
             const BoxList& blist)
 {
     BoxListIterator bli(blist);
-    os << "(BoxList " << blist.length() << ' ' << blist.btype << '\n';
+    os << "(BoxList " << blist.length() << ' ' << blist.ixType() << '\n';
     for (int count = 1; bli; ++bli, ++count)
         os << count << " : " << bli() << '\n';
     os << ')' << '\n';

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.125 2001-07-19 17:51:48 lijewski Exp $
+// $Id: FabArray.H,v 1.126 2001-07-19 19:02:42 lijewski Exp $
 //
 
 #include <climits>
@@ -1060,7 +1060,7 @@ FabArray<T,FAB>::ok () const
     {
         if (fabparray.defined(fai.index()))
         {
-            if (fai().box() != ::grow(box(fai.index()),n_grow))
+            if (fai().box() != BoxLib::grow(box(fai.index()),n_grow))
                 isok = 0;
         }
         else
@@ -1134,7 +1134,7 @@ FabArray<T,FAB>::AllocFabs ()
 {
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-        Box tmp = ::grow(fai.validbox(), n_grow);
+        Box tmp = BoxLib::grow(fai.validbox(), n_grow);
 
         fabparray.set(fai.index(), new FAB(tmp, n_comp));
     }
@@ -1524,7 +1524,7 @@ FabArray<T,FAB>::setVal (T   val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-        fai().setVal(val,::grow(fai.validbox(),nghost), comp, ncomp);
+        fai().setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
     }
 }
 
@@ -1541,7 +1541,7 @@ FabArray<T,FAB>::setVal (T          val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-        Box b = ::grow(fai.validbox(),nghost) & region;
+        Box b = BoxLib::grow(fai.validbox(),nghost) & region;
 
         if (b.ok())
             fai().setVal(val, b, comp, ncomp);

@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.10 2001-07-19 16:51:23 car Exp $
+// $Id: IntVect.cpp,v 1.11 2001-07-19 19:02:43 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -343,22 +343,22 @@ IntVect::diagShift (int s)
 }
 
 IntVect
-BoxLib::operator+ (int            s,
-		   const IntVect& p)
+operator+ (int            s,
+           const IntVect& p)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
-BoxLib::operator- (int            s,
-		   const IntVect& p)
+operator- (int            s,
+           const IntVect& p)
 {
     return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 
 IntVect
-BoxLib::operator* (int            s,
-		   const IntVect& p)
+operator* (int            s,
+           const IntVect& p)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
@@ -397,7 +397,7 @@ BoxLib::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
-    tmp.vect[dir] = 1;
+    tmp[dir] = 1;
     return tmp;
 }
 
@@ -408,7 +408,7 @@ BoxLib::reflect (const IntVect& a,
 {
     BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
-    b.vect[idir] = -b.vect[idir] + 2*ref_ix;
+    b[idir] = -b[idir] + 2*ref_ix;
     return b;
 }
 
@@ -418,9 +418,9 @@ BoxLib::coarsen (const IntVect& p,
 {
     BL_ASSERT(s > 0);
     return IntVect(
-        D_DECL((p.vect[0]<0) ? -abs(p.vect[0]+1)/s-1 : p.vect[0]/s ,
-               (p.vect[1]<0) ? -abs(p.vect[1]+1)/s-1 : p.vect[1]/s ,
-               (p.vect[2]<0) ? -abs(p.vect[2]+1)/s-1 : p.vect[2]/s ));
+        D_DECL((p[0]<0) ? -abs(p[0]+1)/s-1 : p[0]/s ,
+               (p[1]<0) ? -abs(p[1]+1)/s-1 : p[1]/s ,
+               (p[2]<0) ? -abs(p[2]+1)/s-1 : p[2]/s ));
 }
 
 IntVect
@@ -428,12 +428,10 @@ BoxLib::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
     BL_ASSERT(p2 > IntVect::TheZeroVector());
-    return IntVect(
-        D_DECL(
-	    (p1.vect[0]<0)?-abs(p1.vect[0]+1)/p2.vect[0]-1:p1.vect[0]/p2.vect[0],
-	    (p1.vect[1]<0)?-abs(p1.vect[1]+1)/p2.vect[1]-1:p1.vect[1]/p2.vect[1],
-	    (p1.vect[2]<0)?-abs(p1.vect[2]+1)/p2.vect[2]-1:p1.vect[2]/p2.vect[2])
-	);
+    return IntVect( D_DECL(
+        (p1[0]<0)?-abs(p1[0]+1)/p2[0]-1:p1[0]/p2[0],
+        (p1[1]<0)?-abs(p1[1]+1)/p2[1]-1:p1[1]/p2[1],
+        (p1[2]<0)?-abs(p1[2]+1)/p2[2]-1:p1[2]/p2[2]) );
 }
 
 IntVect&
@@ -463,8 +461,8 @@ IntVect::coarsen (const IntVect& p)
 //
 
 std::ostream&
-BoxLib::operator<< (std::ostream&  os,
-		    const IntVect& p)
+operator<< (std::ostream&  os,
+            const IntVect& p)
 {
     os << D_TERM( '(' << p[0] , <<
                   ',' << p[1] , <<
@@ -480,8 +478,8 @@ BoxLib::operator<< (std::ostream&  os,
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-BoxLib::operator>> (std::istream& is,
-		    IntVect&      p)
+operator>> (std::istream& is,
+            IntVect&      p)
 {
     is >> std::ws;
     char c;

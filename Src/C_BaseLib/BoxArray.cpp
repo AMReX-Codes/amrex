@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.20 2001-07-19 17:23:41 car Exp $
+// $Id: BoxArray.cpp,v 1.21 2001-07-19 19:02:42 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -321,7 +321,7 @@ BoxArray::contains (const IntVect& v) const
 bool
 BoxArray::contains (const Box& b) const
 {
-    BoxArray bnew = ::complementIn(b, *this);
+    BoxArray bnew = BoxLib::complementIn(b, *this);
 
     return bnew.length() == 0;
 }
@@ -475,28 +475,22 @@ std::ostream&
 operator<< (std::ostream&   os,
             const BoxArray& ba)
 {
-    return ba.print(os);
-}
-
-std::ostream&
-BoxArray::print (std::ostream& os) const
-{
     //
     // TODO -- completely remove the fiction of a hash value.
     //
     os << "(BoxArray maxbox("
-       << m_ref->m_abox.length()
+       << ba.length()
        << ")\n       m_ref->m_hash_sig("
        << 0
        << ")\n       ";
 
-    for (int i = 0; i < m_ref->m_abox.length(); ++i)
-        os << m_ref->m_abox[i] << ' ';
+    for (int i = 0; i < ba.length(); ++i)
+        os << ba[i] << ' ';
 
     os << ")\n";
 
     if (os.fail())
-        BoxLib::Error("BoxArray::print(ostream& os) failed");
+        BoxLib::Error("operator<<(ostream& os,const BoxArray&) failed");
 
     return os;
 }
@@ -528,26 +522,26 @@ BoxArray
 BoxLib::boxComplement (const Box& b1in,
 		       const Box& b2)
 {
-    return BoxArray(::boxDiff(b1in, b2));
+    return BoxArray(BoxLib::boxDiff(b1in, b2));
 }
 
 BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
-    return BoxArray(::complementIn(b, ba.boxList()));
+    return BoxArray(BoxLib::complementIn(b, ba.boxList()));
 }
 
 BoxArray
 BoxLib::intersect (const BoxArray& ba,
 		   const Box&      b)
 {
-    return BoxArray(::intersect(ba.boxList(), b));
+    return BoxArray(BoxLib::intersect(ba.boxList(), b));
 }
 
 BoxArray
 BoxLib::intersect (const BoxArray& lhs,
 		   const BoxArray& rhs)
 {
-    return BoxArray(::intersect(lhs.boxList(), rhs.boxList()));
+    return BoxArray(BoxLib::intersect(lhs.boxList(), rhs.boxList()));
 }

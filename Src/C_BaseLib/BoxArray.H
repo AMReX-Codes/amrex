@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.21 2001-07-19 17:19:32 car Exp $
+// $Id: BoxArray.H,v 1.22 2001-07-19 19:02:42 lijewski Exp $
 //
 
 #include <cstddef>
@@ -261,10 +261,6 @@ public:
     void reserve (long _truesize);
 
 protected:
-    //
-    // Helper for ASCII stream output.
-    //
-    std::ostream& print (std::ostream& os) const;
 
     class Ref
     {

@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.9 2001-07-19 17:23:41 car Exp $
+// $Id: BoxDomain.cpp,v 1.10 2001-07-19 19:02:42 lijewski Exp $
 //
 
 #include <BoxDomain.H>
@@ -180,7 +180,7 @@ BoxDomain::add (const Box& b)
                 // part of it that is outside bln and collect
                 // those boxes in the tmp list.
                 //
-                BoxList tmpbl(boxDiff(ci(), bli()));
+                BoxList tmpbl(BoxLib::boxDiff(ci(), bli()));
                 tmp.catenate(tmpbl.listBox());
                 check.remove(ci);
             }
@@ -215,7 +215,7 @@ BoxDomain::rmBox (const Box& b)
     {
         if (bli().intersects(b))
         {
-            BoxList tmpbl(boxDiff(bli(),b));
+            BoxList tmpbl(BoxLib::boxDiff(bli(),b));
             tmp.catenate(tmpbl.listBox());
             lbox.remove(bli);
         }
@@ -281,7 +281,7 @@ std::ostream&
 operator<< (std::ostream&    os,
             const BoxDomain& bd)
 {
-    os << "(BoxDomain " << BoxList(bd) << ")" << std::flush;
+    os << "(BoxDomain " << bd.boxList() << ")" << std::flush;
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,BoxDomain&) failed");
     return os;
