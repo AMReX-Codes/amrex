@@ -68,11 +68,11 @@ module layout_module
   end type boxinters
 
   type boxassoc
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: grwth = 0
-     logical, pointer :: nodal(:) => Null()
-     logical :: cross = .false.
+     integer :: dim = 0         ! spatial dimension 1, 2, or 3
+     integer :: nboxes = 0      ! number of boxes
+     integer :: grwth = 0       ! growth factor
+     logical, pointer :: nodal(:) => Null() ! nodal flag
+     logical :: cross = .false. ! cross/full stencil?
      !! integer :: grwth(MAX_SPACEDIM, 2) = 0
      type(boxinters), pointer :: bis(:) => Null()
      type(local_conn)  :: l_con
@@ -85,12 +85,14 @@ module layout_module
      type(layout_rep), pointer :: lap => Null()
   end type layout
 
+  !! Defines the box distribution and box connectivity
+  !! of a boxarray
   type layout_rep
-     integer :: dim = 0
+     integer :: dim = 0         ! spatial dimension 1, 2, or 3
      integer :: id  = 0
      integer :: nboxes = 0
-     type(box) :: pd            ! Problem Domain ? periodic mask
-     logical, pointer  :: pmask(:) => Null()
+     type(box) :: pd            ! Problem Domain 
+     logical, pointer  :: pmask(:) => Null() ! periodic mask
      integer, pointer, dimension(:) :: prc => Null()
      type(boxarray) :: bxa
      type(boxassoc), pointer :: bxasc => Null()
@@ -101,6 +103,11 @@ module layout_module
      integer :: nlocal_boxes = 0
   end type layout_rep
 
+  !! A layout that is derived by coarsening an existing layout,
+  !! The processor distribution and the number of boxes will be
+  !! the same as for the parent layout.  The intent is to be used
+  !! in multigrid solvers that keep coarsened grids on the same
+  !! processor as their parent in the hierarchy.
   type coarsened_layout
      integer :: dim = 0
      integer, pointer :: crse(:) => Null()
