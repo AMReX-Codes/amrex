@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.2 2000-03-01 15:43:34 lijewski Exp $
+// $Id: SlabStat.H,v 1.3 2000-03-29 21:42:38 lijewski Exp $
 //
 
 #include <ArrayLim.H>
@@ -88,7 +88,7 @@ public:
 
 protected:
     //
-    // Constructor.
+    // A Constructor.
     //
     SlabStatRec (const aString&  name,
                  int             ncomp,
@@ -96,6 +96,15 @@ protected:
                  int             ngrow,
                  int             level,
                  const BoxArray& boxes,
+                 SlabStatFunc    func);
+    //
+    // Another Constructor.
+    //
+    SlabStatRec (const aString&  name,
+                 int             ncomp,
+                 Array<aString>& vars,
+                 int             ngrow,
+                 int             level,
                  SlabStatFunc    func);
     //
     // Destructor.
@@ -181,6 +190,18 @@ public:
               SlabStatFunc    func)
     {
         m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,level,boxes,func));
+    }
+    //
+    //@ManDoc: Another way to add an entry to the list of SlabStats.
+    //
+    void add (const aString&  name,
+              int             ncomp,
+              Array<aString>& vars,
+              int             ngrow,
+              int             level,
+              SlabStatFunc    func)
+    {
+        m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,level,func));
     }
     //
     //@ManDoc: Update the statistics in the list.
