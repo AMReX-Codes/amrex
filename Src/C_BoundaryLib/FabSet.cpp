@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.31 1999-04-08 17:01:45 lijewski Exp $
+// $Id: FabSet.cpp,v 1.32 1999-04-08 20:22:43 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -90,8 +90,11 @@ struct FSRec
     bool operator== (const FSRec& rhs) const;
     bool operator!= (const FSRec& rhs) const { return !operator==(rhs); }
 
-    Array<int>    m_snds;     // Snds cache for CollectData().
-    CommDataCache m_commdata; // CommData cache for CollectData().
+    vector<Box>   m_box;
+    vector<int>   m_mfidx;
+    vector<int>   m_fsidx;
+    Array<int>    m_snds;
+    CommDataCache m_commdata;
     BoxArray      m_src;
     BoxArray      m_dst;
     int           m_ngrow;
@@ -130,6 +133,9 @@ FSRec::FSRec (const BoxArray& src,
 
 FSRec::FSRec (const FSRec& rhs)
     :
+    m_box(rhs.m_box),
+    m_mfidx(rhs.m_mfidx),
+    m_fsidx(rhs.m_fsidx),
     m_snds(rhs.m_snds),
     m_commdata(rhs.m_commdata),
     m_src(rhs.m_src),
@@ -146,12 +152,12 @@ bool
 FSRec::operator== (const FSRec& rhs) const
 {
     return
+        m_src   == rhs.m_src   &&
+        m_dst   == rhs.m_dst   &&
         m_ngrow == rhs.m_ngrow &&
         m_scomp == rhs.m_scomp &&
         m_dcomp == rhs.m_dcomp &&
-        m_ncomp == rhs.m_ncomp &&
-        m_src   == rhs.m_src   &&
-        m_dst   == rhs.m_dst;
+        m_ncomp == rhs.m_ncomp;
 }
 
 //
@@ -187,14 +193,33 @@ TheFSRec (const MultiFab& src,
     FSRec rec(src.boxArray(),dst.boxArray(),ngrow,scomp,dcomp,ncomp);
 
     for (FSRecList::iterator it = TheCache.begin(); it != TheCache.end(); ++it)
-    {
         if (*it == rec)
-        {
             return *it;
-        }
-    }
 
     TheCache.push_front(rec);
+    //
+    // Calculate and cache intersection info.
+    //
+    for (ConstFabSetIterator fsi(dst); fsi.isValid(); ++fsi)
+    {
+        for (int i = 0; i < src.length(); i++)
+        {
+            Box ovlp = fsi().box() & ::grow(src.boxArray()[i],ngrow);
+
+            if (ovlp.ok())
+            {
+                TheCache.front().m_box.push_back(ovlp);
+                //
+                // Maintain parallel array of indices into MultiFab.
+                //
+                TheCache.front().m_mfidx.push_back(i);
+                //
+                // Maintain parallel array of indices into FabSet.
+                //
+                TheCache.front().m_fsidx.push_back(fsi.index());
+            }
+        }
+    }
 
     return TheCache.front();
 }
@@ -216,36 +241,31 @@ FabSet::DoIt (const MultiFab& src,
     FabSetCopyDescriptor fscd;
     vector<FillBoxId>    fbids;
     const int            MyProc = ParallelDescriptor::MyProc();
+    FSRec&               fsrec  = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
     MultiFabId           mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
-    FSRec&               rec    = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
 
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    assert(fsrec.m_box.size() == fsrec.m_mfidx.size());
+    assert(fsrec.m_box.size() == fsrec.m_fsidx.size());
+
+    for (int i = 0; i < fsrec.m_box.size(); i++)
     {
-       for (int i = 0; i < src.length(); i++)
-       {
-           Box ovlp = fsi().box() & ::grow(src.boxArray()[i],ngrow);
+        fbids.push_back(fscd.AddBox(mfid,
+                                    fsrec.m_box[i],
+                                    0,
+                                    fsrec.m_mfidx[i],
+                                    scomp,
+                                    how == COPYFROM ? dcomp : 0,
+                                    ncomp,
+                                    false));
 
-            if (ovlp.ok())
-            {
-                fbids.push_back(fscd.AddBox(mfid,
-                                            ovlp,
-                                            0,
-                                            i,
-                                            scomp,
-                                            how == COPYFROM ? dcomp : 0,
-                                            ncomp,
-                                            false));
-
-                assert(fbids.back().box() == ovlp);
-                //
-                // Also save the index of our FAB needing filling.
-                //
-                fbids.back().FabIndex(fsi.index());
-            }
-        }
+        assert(fbids.back().box() == fsrec.m_box[i]);
+        //
+        // Also save the index of our FAB needing filling.
+        //
+        fbids.back().FabIndex(fsrec.m_fsidx[i]);
     }
 
-    fscd.CollectData(&rec.m_snds,&rec.m_commdata);
+    fscd.CollectData(&fsrec.m_snds, &fsrec.m_commdata);
 
     for (int i = 0; i < fbids.size(); i++)
     {
