@@ -2,6 +2,9 @@ Wrappergen
 Written by Ed Karrels
 Copyright Argonne National Laboratory, 1994
 
+Changes by C Rendleman
+LBNL 2001
+
 
 Function prototype file
 -----------------------
@@ -66,7 +69,7 @@ So, doing the following should give you a valid prototype file:
 
   make write_proto
   write_proto mpifn proto ../../src/*/*.c
-  patch < proto_patch
+#  patch < proto_patch
   mv proto mpi_proto
 
 Hopefully, you won't have to worry about this, though.
