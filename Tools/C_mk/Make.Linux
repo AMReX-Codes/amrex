@@ -3,6 +3,10 @@
 ifeq ($(COMP),PathScale)
   CXX = pathCC
   CC  = pathcc
+  ifeq ($(USE_MPI),TRUE)
+    CXX = mpiCC
+#    CC  = pathcc
+  endif
   CXXOPTF += -O3 -OPT:Olimit=20000
   CXXDEBF += -O0 -OPT:Olimit=0
 else
