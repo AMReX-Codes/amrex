@@ -580,6 +580,7 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     }
     else 
     {
+	assert("fill_internal_borders: This is never called" == 0);
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -633,6 +634,7 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const amr_boundary_class* bdy)
 {
     assert(region.sameType(patch.box()));
+    assert(bdy == 0);
     
     const Box cb = interp.box(region, rat);
     const int igrid = find_patch(cb, r, 0);
@@ -645,30 +647,6 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
     else 
     {
 	interp.fill(patch, region, r[igrid], cb, rat);
-    }
-}
-
-// Should include lev_interface points
-void interpolate_level(MultiFab& target, 
-		       const MultiFab& r, const IntVect& rat,
-		       const amr_interpolator_class& interp,
-		       const level_interface& lev_interface,
-		       const amr_boundary_class* bdy)
-{
-    if (target.nGrow() == 0) 
-    {
-	for (int i = 0; i < target.length(); i++) 
-	{
-	    assert( target[i].box() == target.box(i) );
-	    interpolate_patch(target[i], target[i].box(), r, rat, interp, lev_interface, bdy);
-	}
-    }
-    else 
-    {
-	for (int i = 0; i < target.length(); i++) 
-	{
-	    interpolate_patch(target[i], target.box(i), r, rat, interp, lev_interface, bdy);
-	}
     }
 }
 

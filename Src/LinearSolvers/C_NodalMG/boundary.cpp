@@ -27,32 +27,32 @@ extern "C"
     void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*);
 }
 
-#if 0
-Box amr_boundary_class::box(const Box& region, const Box& domain, int idir) const
+
+void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
+				       int*& grid_ref,
+				       const BoxArray& interior_mesh,
+				       const Box& domain) const
 {
-    const int idim = abs(idir) - 1;
-    Box retbox(region);
-    if (idir < 0) 
+    BoxList bl;
+    List<int> il;
+    const Box& d = domain;
+    for (int igrid = 0; igrid < interior_mesh.length(); igrid++) 
     {
-	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
-	else
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
+	check_against_boundary(bl, il, interior_mesh[igrid], igrid, d, 0);
     }
-    else if (idir > 0) 
+    exterior_mesh.define(bl);
+    bl.clear();
+    
+    assert(il.length() == exterior_mesh.length());
+    
+    grid_ref = new int[exterior_mesh.length()];
+    ListIterator<int> in(il);
+    for (int igrid = 0; in; in++, igrid++) 
     {
-	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
-	else
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
+	grid_ref[igrid] = in();
     }
-    else 
-    {
-	BoxLib::Error("amr_boundary_class::box---undefined boundary direction");
-    }
-    return retbox;
+    il.clear();
 }
-#endif
 
 Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) const
 {
@@ -717,58 +717,6 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
   }
 }
 
-
-void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
-				       int*& grid_ref,
-				       const BoxArray& interior_mesh,
-				       const Box& domain) const
-{
-    BoxList bl;
-    List<int> il;
-    const Box& d = domain;
-    for (int igrid = 0; igrid < interior_mesh.length(); igrid++) 
-    {
-	check_against_boundary(bl, il, interior_mesh[igrid], igrid, d, 0);
-    }
-    exterior_mesh.define(bl);
-    bl.clear();
-    
-    if (il.length() != exterior_mesh.length())
-	BoxLib::Error("amr_boundary_class::boundary_mesh---List<int> wrong length");
-    
-    grid_ref = new int[exterior_mesh.length()];
-    ListIterator<int> in(il);
-    for (int igrid = 0; in; in++, igrid++) 
-    {
-	grid_ref[igrid] = in();
-    }
-    il.clear();
-}
-
-#if 0
-void amr_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
-						const Box& b, int ib,
-						const Box& d, int dim1) const
-{
-    for (int i = dim1; i < BL_SPACEDIM; i++) 
-    {
-	if (b.smallEnd(i) == d.smallEnd(i)) 
-	{
-	    Box bn = adjCellLo(b,i);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-	if (b.bigEnd(i) == d.bigEnd(i)) 
-	{
-	    Box bn = adjCellHi(b,i);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-    }
-}
-#endif
 
 void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
 						  const Box& b, int ib,
