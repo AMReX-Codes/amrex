@@ -62,6 +62,7 @@ main(int argc, char **argv)
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
+    BoxLib::initialize_floating_point_hardware();
     if ( argc < 2 ) BoxLib::Error("expected inputs file");
     ParmParse pp(argc-2,argv+2, 0, argv[1]);
 
