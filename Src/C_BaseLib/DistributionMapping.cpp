@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.15 1997-11-28 18:30:25 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.16 1997-12-01 18:23:11 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -22,10 +22,18 @@ using namespace std;
 #include <iostream.h>
 #include <stdlib.h>
 #include <vector.h>
+#if defined(BL_T3E) && !defined(__KCC)
+#include <stack.h>
+#else
 #include <queue.h>
+#endif
 #include <list.h>
+#if defined(BL_T3E) && !defined(__KCC)
+#include <algo.h>
+#else
 #include <algorithm.h>
 #endif
+#endif /*BL_USE_NEW_HFILES*/
 
 //
 // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
