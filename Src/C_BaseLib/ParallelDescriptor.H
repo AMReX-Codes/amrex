@@ -3,7 +3,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.51 2001-01-25 23:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.52 2001-03-22 22:58:40 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -319,7 +319,11 @@ class ParallelDescriptor
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
-  static MPI_Comm Communicator ();
+    static MPI_Comm Communicator ();
+    //
+    //@ManDoc: Returns sequential message sequence numbers in range 1000-9000.
+    //
+    static int SeqNum ();
 
   private:
     //
