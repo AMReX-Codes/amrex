@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1998-11-18 20:34:50 lijewski Exp $
+# $Id: GNUmakefile,v 1.3 1998-12-02 00:09:07 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -28,18 +28,18 @@ include $(TOP)/mk/Make.defs ./Make.package
 
 INCLUDE_LOCATIONS += $(TOP)/include
 
-ifeq ($(USE_MPI), TRUE)
-LIBRARIES += -lmpi
-ifeq ($(MACHINE), OSF1)
+ifeq ($(USE_MPI),TRUE)
+ifeq ($(MACHINE),OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
+endif
+ifeq ($(MACHINE),AIX)
+INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
 endif
 endif
 
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
-
 #
 # Libraries to close against.
 #
@@ -64,19 +64,8 @@ LDFLAGS += --link_command_prefix 3rd
 LDFLAGS += -non_shared -v
 endif
 
-CXXFLAGS +=
-CXXOPTF  +=
-CXXDEBF  +=
-
-CFLAGS +=
-COPTF  +=
-CDEBF  +=
-
 FOPTF = -fast
 
 all: $(optionsLib)
-
-godzillaLink:
-	rsh godzilla 'cd $(PWD); make $(executable)
 
 include $(TOP)/mk/Make.rules
