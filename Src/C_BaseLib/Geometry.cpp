@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.14 1998-05-26 22:58:17 lijewski Exp $
+// $Id: Geometry.cpp,v 1.15 1998-06-10 18:23:01 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -170,6 +170,8 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 				int                       sComp,
 				int                       nComp) const
 {
+    if (!isAnyPeriodic())
+        return;
     //
     // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
     // local fab id, contains srcBox/dstBox pairs to copy valid data from
