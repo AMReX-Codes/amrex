@@ -76,7 +76,7 @@ c-----------------------------------------------------------------------
 C
       CALL blstr2int(istr, NSTR, str)
 	CALL bl_pp_get_string_cpp(ierr, ipp, istr, NSTR, ostr, NSTR)
-	IF ( ierr ) THEN
+	IF ( ierr .ne. 0 ) THEN
 	    CALL blint2str(ostr, iostr, NSTR)
       END IF
       END
