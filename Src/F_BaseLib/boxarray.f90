@@ -574,6 +574,7 @@ contains
     call boxarray_boundary_n_d_f(bao, baa, n, dim, face)
     call boxarray_destroy(baa)
   end subroutine boxarray_box_boundary_n_d_f
+
   subroutine boxarray_box_boundary_n(bao, bx, n)
     type(boxarray), intent(out) :: bao
     type(box), intent(in)  :: bx
@@ -627,12 +628,11 @@ contains
   subroutine boxarray_boundary_n(bao, ba, n)
     type(boxarray), intent(out) :: bao
     type(boxarray), intent(in)  :: ba
-    integer, intent(in) :: n
+    integer,        intent(in)  :: n
     call boxarray_build_copy(bao, ba)
     call boxarray_grow(bao, n)
     call boxarray_diff(bao, ba)
   end subroutine boxarray_boundary_n
-
   function boxarray_nboxes(ba) result(r)
     type(boxarray), intent(in) :: ba
     integer :: r
@@ -1267,5 +1267,26 @@ contains
     call destroy(tbl)
     call destroy(bl)
   end subroutine boxarray_decompose
+
+  subroutine boxarray_box_corners(ba, bx, ng)
+    type(boxarray), intent(out) :: ba
+    type(box),      intent(in)  :: bx
+    integer,        intent(in)  :: ng
+    integer                     :: i
+    integer                     :: len(1:bx%dim)
+    type(boxarray)              :: tba
+
+    if (ng < 0) call bl_error("BOXARRAY_BOX_CORNERS: ng must be >= 0!")
+
+    call boxarray_build_bx(ba, grow(bx, ng))
+    len = 0
+    do i = 1, bx%dim
+       len(i) = ng
+       call boxarray_build_bx(tba, grow(bx, len))
+       call boxarray_diff(ba, tba)
+       call destroy(tba)
+       len(i) = 0
+    end do
+  end subroutine boxarray_box_corners
 
 end module boxarray_module
