@@ -634,7 +634,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	ParallelDescriptor::ReduceRealSum(rho);
 	if (pcode >= 3  && ParallelDescriptor::IOProcessor())
 	{
-	    cout << "HG: " << i << " " << rho << endl;
+	    cout << "HG: cgsolve iter(" << i << ") rho=" << rho << endl;
 	}
 	if (rho <= tol)
 	    break;
