@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.71 2001-10-23 17:31:02 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.72 2002-11-14 07:08:32 marc Exp $
 //
 #include <winstd.H>
 
@@ -565,7 +565,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         int             srccomp,
                         int             destcomp,
                         int             numcomp,
-                        Real            mult)
+                        Real            mult,
+                        FrOp            op)
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -658,7 +659,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    FArrayBox mflx_fab, area_fab;
+    FArrayBox mflx_fab, area_fab, tmp_fab;
 
     for (int i = 0; i < fillBoxId_mflx.size(); i++)
     {
@@ -682,21 +683,30 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         BL_ASSERT(fabset.DistributionMap()[fabindex] == MyProc);
 
         FArrayBox&  fab      = fabset[fabindex];
+        tmp_fab.resize(fabset[fabindex].box(),numcomp);
         const int*  flo      = mflx_fab.box().loVect();
         const int*  fhi      = mflx_fab.box().hiVect();
         const Real* flx_dat  = mflx_fab.dataPtr();
         const int*  alo      = area_fab.box().loVect();
         const int*  ahi      = area_fab.box().hiVect();
         const Real* area_dat = area_fab.dataPtr();
-        const int*  rlo      = fab.loVect();
-        const int*  rhi      = fab.hiVect();
-        Real*       lodat    = fab.dataPtr(destcomp);
+        const int*  rlo      = tmp_fab.loVect();
+        const int*  rhi      = tmp_fab.hiVect();
+        Real*       lodat    = tmp_fab.dataPtr();
         const int*  lo       = fbid_mflx.box().loVect();
         const int*  hi       = fbid_mflx.box().hiVect();
         FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
                       flx_dat,ARLIM(flo),ARLIM(fhi),
                       area_dat,ARLIM(alo),ARLIM(ahi),
                       lo,hi,&numcomp,&dir,&mult);
+        if (op == COPY)
+        {
+            fab.copy(tmp_fab,0,destcomp,numcomp);
+        }
+        else
+        {
+            fab.plus(tmp_fab,0,destcomp,numcomp);
+        }
     }
 }
 
@@ -720,7 +730,8 @@ DoIt (Orientation        face,
       int                srccomp,
       int                destcomp,
       int                numcomp,
-      Real               mult)
+      Real               mult,
+      FluxRegister::FrOp op = FluxRegister::COPY)
 {
     const DistributionMapping& dMap = bndry[face].DistributionMap();
 
@@ -767,7 +778,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         int              srccomp,
                         int              destcomp,
                         int              numcomp,
-                        Real             mult)
+                        Real             mult,
+                        FrOp             op)
 {
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
@@ -783,7 +795,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         {
             Box lobox = bndry[lo].box(k) & subbox;
 
-            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult);
+            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,op);
         }
         const Orientation hi(dir,Orientation::high);
 
@@ -791,7 +803,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         {
             Box hibox = bndry[hi].box(k) & subbox;
 
-            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult);
+            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult,op);
         }
     }
 
@@ -799,7 +811,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 }
 
 void
-FluxRegister::CrseInitFinish ()
+FluxRegister::CrseInitFinish (FrOp op)
 {
     if (ParallelDescriptor::NProcs() == 1) return;
 
@@ -1008,12 +1020,24 @@ FluxRegister::CrseInitFinish ()
                     int N = fab.box().numPts() * fab.nComp();
                     BL_ASSERT(N < INT_MAX);
                     memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
-                    bndry[cd.face()][cd.fabindex()].copy(fab,
-                                                         fab.box(),
-                                                         0,
-                                                         fab.box(),
-                                                         cd.srcComp(),
-                                                         cd.nComp());
+                    if (op == COPY)
+                    {
+                        bndry[cd.face()][cd.fabindex()].copy(fab,
+                                                             fab.box(),
+                                                             0,
+                                                             fab.box(),
+                                                             cd.srcComp(),
+                                                             cd.nComp());
+                    }
+                    else
+                    {
+                        bndry[cd.face()][cd.fabindex()].plus(fab,
+                                                             fab.box(),
+                                                             fab.box(),
+                                                             0,
+                                                             cd.srcComp(),
+                                                             cd.nComp());
+                    }
                     dptr += N;
                     Processed++;
                 }

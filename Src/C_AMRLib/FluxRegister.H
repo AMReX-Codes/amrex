@@ -1,7 +1,7 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 //
-// $Id: FluxRegister.H,v 1.12 2001-08-01 21:50:45 lijewski Exp $
+// $Id: FluxRegister.H,v 1.13 2002-11-14 07:08:32 marc Exp $
 //
 #include <BndryRegister.H>
 
@@ -36,6 +36,11 @@ public:
     //@ManDoc: The destructor.
     //
     virtual ~FluxRegister ();
+
+    //
+    //@ManDoc: An enum that says whether to add or copy src data to members.
+    //
+    enum FrOp {COPY = 0, ADD = 1};
 
     /*@ManDoc: Initialize after using default constructor.
                Note that this takes the fine BoxArray.
@@ -103,7 +108,8 @@ public:
                    int             srccomp,
                    int             destcomp,
                    int             numcomp,
-                   Real            mult = -1.0);
+                   Real            mult = -1.0,
+                   FrOp            op = FluxRegister::COPY);
     //
     //@ManDoc: Initialize flux correction with coarse data. 
     //
@@ -113,14 +119,15 @@ public:
                    int              srccomp,
                    int              destcomp,
                    int              numcomp,
-                   Real             mult = -1.0);
+                   Real             mult = -1.0,
+                   FrOp             op = FluxRegister::COPY);
     //
     // This isn't documented  --  it's a parallel feature :-(
     //
     // It MUST be called after all CrseInit()s outside of
     // any implicit or explicit parallel loop.
     //
-    void CrseInitFinish ();
+    void CrseInitFinish (FrOp op = FluxRegister::COPY);
     //
     //@ManDoc: Increment flux correction with fine data.
     //
