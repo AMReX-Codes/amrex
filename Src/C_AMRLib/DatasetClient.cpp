@@ -2,25 +2,33 @@
 //  DatasetClient.C
 // -------------------------------------------------------------------
 // #define _OSF_SOURCE
+
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#else
 #include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <string.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <fcntl.h>
-#include <iostream.h>
 #include <strstream.h>
 #include <unistd.h>
 
-#include "Box.H"
-#include "FArrayBox.H"
-#include "MultiFab.H"
-#include "DatasetClient.H"
+#include <Box.H>
+#include <FArrayBox.H>
+#include <MultiFab.H>
+#include <DatasetClient.H>
 
 const int MAXBUFSIZE  = 1024;
 const int PORTOFFSET  = 5000;
