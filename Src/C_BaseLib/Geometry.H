@@ -4,11 +4,20 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.2 1997-12-11 05:01:09 lijewski Exp $
+// $Id: Geometry.H,v 1.3 1998-04-22 23:39:31 marc Exp $
 //
 
 #include <CoordSys.H>
 #include <RealBox.H>
+#include <MultiFab.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <list>
+#include <map>
+#else
+#include <list.h>
+#include <map.h>
+#endif
 
 //
 // Forward declarations.
@@ -93,6 +102,50 @@ public:
     void periodicShift (const Box&      target,
                         const Box&      src, 
                         Array<IntVect>& out) const;
+    //
+    // Fill ghost cells with periodic data
+    //
+    void FillPeriodicBoundary (MultiFab& mf) const;
+    //
+    // Src/dest box pairs to copy for periodic (PIR=periodic intersection record)
+    //
+    class PIRec
+    {
+    public:
+	PIRec() : srcId(-1) {}
+	PIRec(int _srcId, const Box& _srcBox, const Box& _dstBox)
+	    : srcId(_srcId),
+	      srcBox(_srcBox),
+	      dstBox(_dstBox) {}
+	int srcId;
+	Box srcBox;
+	Box dstBox;
+	FillBoxId fbid;
+#ifdef __GNUG__
+	operator == (const Geometry::PIR& rhs) const;
+#endif
+	friend std::ostream& operator << (std::ostream&           os,
+					  const Geometry::PIRec&  pir);
+    };
+    //
+    // Handy typedef and output function
+    //
+    typedef std::multimap<int,PIRec> PIRMMap;
+    friend std::ostream& operator << (std::ostream&            os,
+				      const Geometry::PIRMMap& pirm);
+    //
+    // Compute periodic intersection records for data into each fab on this proc
+    //
+    PIRMMap computePIRMMapForMultiFab(const BoxArray& grids,
+				      int             nGrow) const;
+    //
+    // Fill peridoc cells in FabArray per PIRMMap
+    //
+    void FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
+			       PIRMMap&                  pirm,
+			       int                       sComp,
+			       int                       nComp) const;
+    
 protected:
     //
     // Helper function.
