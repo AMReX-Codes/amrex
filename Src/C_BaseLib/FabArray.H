@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.104 2000-04-25 16:29:56 car Exp $
+// $Id: FabArray.H,v 1.105 2000-06-01 21:07:51 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1312,7 +1312,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                              1,
                              MPI_INT,
                              i,
-                             MPI_COMM_WORLD)) != MPI_SUCCESS)
+                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     mpi_gath.end();
 
@@ -1345,7 +1345,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                 MPI_INT,
                                 i,
                                 139,
-                                MPI_COMM_WORLD,
+                                ParallelDescriptor::Communicator(),
                                 &req_cd[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
@@ -1394,7 +1394,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                 MPI_INT,
                                 i,
                                 139,
-                                MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
         }
@@ -1434,7 +1434,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                 mpi_data_type(fab_data[i]),
                                 i,
                                 537,
-                                MPI_COMM_WORLD,
+                                ParallelDescriptor::Communicator(),
                                 &req_data[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_recv.end();
@@ -1497,7 +1497,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                 mpi_data_type(data),
                                 i,
                                 537,
-                                MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
 
@@ -1657,7 +1657,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                             overlapBA[i].numPts()*ncomp,
                             mpi_data_type(overlapData[i]->dataPtr()),
                             overlapProc[i],
-                            MPI_COMM_WORLD)) != MPI_SUCCESS)
+                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
     stats.end();
@@ -1855,7 +1855,7 @@ FabArrayIterator<T,FAB>::isValid ()
     if (HG_is_debugging)
     {
 	if (currentIndex < fabArray.length()) return true;
-	int rc = MPI_Barrier(MPI_COMM_WORLD);
+	int rc = MPI_Barrier(ParallelDescriptor::Communicator());
 	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
 	return false;
     }
@@ -2064,7 +2064,7 @@ ConstFabArrayIterator<T,FAB>::isValid () const
     if (HG_is_debugging)
     {
 	if (currentIndex < fabArray.length()) return true;
-	int rc = MPI_Barrier(MPI_COMM_WORLD);
+	int rc = MPI_Barrier(ParallelDescriptor::Communicator());
 	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
 	return false;
     }
@@ -2427,7 +2427,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                  1,
                                  MPI_INT,
                                  i,
-                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                 ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
         mpi_gath.end();
 
@@ -2478,7 +2478,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                     MPI_INT,
                                     i,
                                     471,
-                                    MPI_COMM_WORLD,
+                                    ParallelDescriptor::Communicator(),
                                     &reqs_cd[i])) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
@@ -2529,7 +2529,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                     MPI_INT,
                                     i,
                                     471,
-                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                    ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
                 mpi_send.end();
             }
@@ -2588,7 +2588,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                 mpi_data_type(fab_data[i]),
                                 i,
                                 917,
-                                MPI_COMM_WORLD,
+                                ParallelDescriptor::Communicator(),
                                 &reqs_data[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_recv.end();
@@ -2653,7 +2653,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                 mpi_data_type(data),
                                 i,
                                 917,
-                                MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
 

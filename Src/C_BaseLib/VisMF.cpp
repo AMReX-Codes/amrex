@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.66 2000-05-25 15:40:03 car Exp $
+// $Id: VisMF.cpp,v 1.67 2000-06-01 21:07:52 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -376,7 +376,7 @@ VisMF::Header::Header (const MultiFab& mf,
                                // We use the index as the tag for uniqueness.
                                //
                                idx,
-                               MPI_COMM_WORLD);
+                               ParallelDescriptor::Communicator());
 
             if (!(rc == MPI_SUCCESS))
                 ParallelDescriptor::Abort(rc);
@@ -403,7 +403,7 @@ VisMF::Header::Header (const MultiFab& mf,
                                    //
                                    procmap[idx],
                                    idx,
-                                   MPI_COMM_WORLD,
+                                   ParallelDescriptor::Communicator(),
                                    &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
@@ -557,7 +557,7 @@ VisMF::Write (const MultiFab& mf,
                                    pbuf,
                                    NPBUF,
                                    &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 int len = TheBaseName.length()+1; // Includes the NULL.
@@ -568,7 +568,7 @@ VisMF::Write (const MultiFab& mf,
                                    pbuf,
                                    NPBUF,
                                    &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Pack(const_cast<char*>(TheBaseName.c_str()),
@@ -577,7 +577,7 @@ VisMF::Write (const MultiFab& mf,
                                    pbuf,
                                    NPBUF,
                                    &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Ssend(pbuf,
@@ -588,7 +588,7 @@ VisMF::Write (const MultiFab& mf,
                                     // We use index as the tag for uniqueness.
                                     //
                                     mfi.index(),
-                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                    ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 #endif /*BL_USE_MPI*/
             }
@@ -622,7 +622,7 @@ VisMF::Write (const MultiFab& mf,
                                    //
                                    procmap[idx],
                                    idx,
-                                   MPI_COMM_WORLD,
+                                   ParallelDescriptor::Communicator(),
                                    &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
                 //
@@ -634,7 +634,7 @@ VisMF::Write (const MultiFab& mf,
                                      &msg_hdr.m_head,
                                      1,
                                      MPI_LONG,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Unpack(pbuf,
@@ -643,7 +643,7 @@ VisMF::Write (const MultiFab& mf,
                                      &len,
                                      1,
                                      MPI_INT,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 char* fab_name = new char[len];
@@ -654,7 +654,7 @@ VisMF::Write (const MultiFab& mf,
                                      fab_name,
                                      len,
                                      MPI_CHAR,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
                 
                 hdr.m_fod[idx].m_head = msg_hdr.m_head;

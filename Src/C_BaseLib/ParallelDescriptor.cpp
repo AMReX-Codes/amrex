@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.56 2000-04-24 17:52:37 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.57 2000-06-01 21:07:52 car Exp $
 //
 
 #include <Utility.H>
@@ -115,6 +115,7 @@ static const aString REDUCE("mpi_reduce");
 
 int ParallelDescriptor::m_nProcs = -1;
 int ParallelDescriptor::m_MyId   = -1;
+MPI_Comm ParallelDescriptor::m_comm   = MPI_COMM_WORLD;
 
 void
 ParallelDescriptor::Abort ()
@@ -123,7 +124,7 @@ ParallelDescriptor::Abort ()
     // if ( m_nProcs <= 1 ) throw;
     throw;
 #endif
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    MPI_Abort(Communicator(), -1);
 }
 
 void
@@ -159,15 +160,15 @@ ParallelDescriptor::StartParallel (int*    argc,
     if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
-    if ((rc = MPI_Comm_size(MPI_COMM_WORLD, &m_nProcs)) != MPI_SUCCESS)
+    if ((rc = MPI_Comm_size(Communicator(), &m_nProcs)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
-    if ((rc = MPI_Comm_rank(MPI_COMM_WORLD, &m_MyId)) != MPI_SUCCESS)
+    if ((rc = MPI_Comm_rank(Communicator(), &m_MyId)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
     //
     // Now wait till all other processes are properly started.
     //
-    if ((rc = MPI_Barrier(MPI_COMM_WORLD)) != MPI_SUCCESS)
+    if ((rc = MPI_Barrier(Communicator())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 }
 
@@ -196,7 +197,7 @@ ParallelDescriptor::Barrier ()
 
     mpi_stats.start();
 
-    int rc = MPI_Barrier(MPI_COMM_WORLD);
+    int rc = MPI_Barrier(Communicator());
 
     mpi_stats.end();
 
@@ -219,7 +220,7 @@ ParallelDescriptor::DoAllReduceReal (Real& r,
                            1,
                            mpi_data_type(&recv),
                            op,
-                           MPI_COMM_WORLD);
+                           Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -245,7 +246,7 @@ ParallelDescriptor::DoReduceReal (Real& r,
                         mpi_data_type(&recv),
                         op,
                         cpu,
-                        MPI_COMM_WORLD);
+                        Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -306,7 +307,7 @@ ParallelDescriptor::DoAllReduceLong (long& r,
                            1,
                            MPI_LONG,
                            op,
-                           MPI_COMM_WORLD);
+                           Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -332,7 +333,7 @@ ParallelDescriptor::DoReduceLong (long& r,
                         MPI_LONG,
                         op,
                         cpu,
-                        MPI_COMM_WORLD);
+                        Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -405,7 +406,7 @@ ParallelDescriptor::DoAllReduceInt (int& r,
                            1,
                            MPI_INT,
                            op,
-                           MPI_COMM_WORLD);
+                           Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -431,7 +432,7 @@ ParallelDescriptor::DoReduceInt (int& r,
                         MPI_INT,
                         op,
                         cpu,
-                        MPI_COMM_WORLD);
+                        Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -531,7 +532,7 @@ ParallelDescriptor::Broadcast (int   fromproc,
 
     mpi_stats.start();
 
-    MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, MPI_COMM_WORLD);
+    MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, Communicator());
 
     mpi_stats.end();
 }
@@ -560,7 +561,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                         nsend,
                         typ,
                         root,
-                        MPI_COMM_WORLD);
+                        Communicator());
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
@@ -580,6 +581,7 @@ namespace BL_NAMESPACE
 
 int ParallelDescriptor::m_nProcs = 1;
 int ParallelDescriptor::m_MyId   = 0;
+MPI_Comm ParallelDescriptor::m_comm = 0;
 
 void
 ParallelDescriptor::Gather (Real* sendbuf,
@@ -652,3 +654,62 @@ ParallelDescriptor::second ()
 #endif
 
 #endif
+
+#if  defined(BL_FORT_USE_UPPERCASE)
+#define FORT_BL_PD_BARRIER 	BL_PD_BARRIER
+#define FORT_BL_PD_COMMUNICATOR BL_PD_COMMUNICATOR
+#define FORT_BL_PD_MYPROC 	BL_PD_MYPROC
+#define FORT_BL_PD_NPROCS 	BL_PD_NPROCS
+#define FORT_BL_PD_IOPROC 	BL_PD_IOPROC
+#define FORT_BL_PD_ABORT  	BL_PD_ABORT
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_BL_PD_BARRIER 	bl_pd_barrier
+#define FORT_BL_PD_COMMUNICATOR bl_pd_communicator
+#define FORT_BL_PD_MYPROC 	bl_pd_myproc
+#define FORT_BL_PD_NPROCS 	bl_pd_nprocs
+#define FORT_BL_PD_IOPROC 	bl_pd_ioproc
+#define FORT_BL_PD_ABORT  	bl_pd_abort
+#elif defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_BL_PD_BARRIER 	bl_pd_barrier_
+#define FORT_BL_PD_COMMUNICATOR bl_pd_communicator_
+#define FORT_BL_PD_MYPROC 	bl_pd_myproc_
+#define FORT_BL_PD_NPROCS 	bl_pd_nprocs_
+#define FORT_BL_PD_IOPROC 	bl_pd_ioproc_
+#define FORT_BL_PD_ABORT  	bl_pd_abort_
+#endif
+
+void
+FORT_BL_PD_BARRIER()
+{
+  ParallelDescriptor::Barrier();
+}
+
+void
+FORT_BL_PD_COMMUNICATOR(MPI_Comm* comm)
+{
+  *comm = ParallelDescriptor::Communicator();
+}
+
+void
+FORT_BL_PD_MYPROC(int* myproc)
+{
+  *myproc = ParallelDescriptor::MyProc();
+}
+
+void
+FORT_BL_PD_NPROCS(int* nprocs)
+{
+  *nprocs = ParallelDescriptor::NProcs();
+}
+
+void
+FORT_BL_PD_IOPROC(int* ioproc)
+{
+  *ioproc = ParallelDescriptor::IOProcessorNumber();
+}
+
+void
+FORT_BL_PD_ABORT(int* ioproc)
+{
+  *ioproc = ParallelDescriptor::IOProcessorNumber();
+}

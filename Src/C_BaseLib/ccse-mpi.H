@@ -4,7 +4,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.4 2000-04-24 17:52:38 car Exp $
+// $Id: ccse-mpi.H,v 1.5 2000-06-01 21:07:52 car Exp $
 //
 
 //
@@ -56,6 +56,7 @@ namespace BL_NAMESPACE
 {
 #endif
 typedef int MPI_Op;
+typedef int MPI_Comm;
 #ifdef BL_NAMESPACE
 }
 #ifndef BL_NO_USING_DIRECTIVE

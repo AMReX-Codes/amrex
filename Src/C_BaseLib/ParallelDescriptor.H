@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.48 2000-04-24 17:52:36 car Exp $
+// $Id: ParallelDescriptor.H,v 1.49 2000-06-01 21:07:52 car Exp $
 //
 
 #include <BLassert.H>
@@ -313,6 +313,8 @@ class ParallelDescriptor
                            void* src,
                            void* dest,
                            int   nbytes);
+  //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
+  static MPI_Comm Communicator();
   private:
     //
     // Reduce helper functons.
@@ -331,7 +333,10 @@ class ParallelDescriptor
     // The number of processors.
     //
     static int m_nProcs;
-
+  //
+  // BoxLib's Communicator
+  //
+  static MPI_Comm m_comm;
     enum { ioProcessor = 0 };
 };
 
@@ -368,6 +373,13 @@ int
 ParallelDescriptor::IOProcessorNumber ()
 {
     return ioProcessor;
+}
+
+inline
+MPI_Comm
+ParallelDescriptor::Communicator ()
+{
+    return m_comm;
 }
 
 #ifdef BL_NAMESPACE
