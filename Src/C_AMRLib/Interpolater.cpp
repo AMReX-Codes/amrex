@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.30 2002-11-08 22:00:51 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.31 2003-09-15 21:17:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -20,14 +20,12 @@
 //
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 //
+PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
 CellBilinear              cell_bilinear_interp;
-CellConservative          cell_cons_interp;
 CellQuadratic             quadratic_interp;
-CellConservative          unlimited_cc_interp(0);
-PCInterp                  pc_interp;
 CellConservativeLinear    lincc_interp;
-CellConservativeLinear    nonlincc_interp(0);
+CellConservativeLinear    cell_cons_interp(0);
 CellConservativeProtected protected_interp;
 
 Interpolater::~Interpolater () {}
@@ -189,31 +187,6 @@ CellBilinear::interp (const FArrayBox& crse,
                    slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi);
 }
 
-CellConservative::CellConservative (bool limit)
-{
-    do_limited_slope = limit;
-}
-
-CellConservative::~CellConservative () {}
-
-Box
-CellConservative::CoarseBox (const Box&     fine,
-                             const IntVect& ratio)
-{
-    Box crse = BoxLib::coarsen(fine,ratio);
-    crse.grow(1);
-    return crse;
-}
-
-Box
-CellConservative::CoarseBox (const Box& fine,
-                             int        ratio)
-{
-    Box crse = BoxLib::coarsen(fine,ratio);
-    crse.grow(1);
-    return crse;
-}
-
 static
 Array<int>
 GetBCArray (const Array<BCRec>& bcr)
@@ -231,108 +204,6 @@ GetBCArray (const Array<BCRec>& bcr)
     }
 
     return bc;
-}
-
-void
-CellConservative::interp (const FArrayBox& crse,
-                          int              crse_comp,
-                          FArrayBox&       fine,
-                          int              fine_comp,
-                          int              ncomp,
-                          const Box&       fine_region,
-                          const IntVect &  ratio,
-                          const Geometry&  crse_geom,
-                          const Geometry&  fine_geom,
-                          Array<BCRec>&    bcr)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
-
-    BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
-    //
-    // Make box which is intersection of fine_region and domain of fine.
-    //
-    Box target_fine_region = fine_region & fine.box();
-    Box crse_bx            = BoxLib::coarsen(target_fine_region,ratio);
-    Box fslope_bx          = BoxLib::refine(crse_bx,ratio);
-    Box cslope_bx          = crse_bx;
-    cslope_bx.grow(1);
-    BL_ASSERT(crse.box().contains(cslope_bx));
-    //
-    // Alloc temp space for coarse grid slopes.
-    //
-    long t_long = cslope_bx.numPts();
-    BL_ASSERT(t_long < INT_MAX);
-    int c_len = int(t_long);
-
-    Array<Real> cslope(BL_SPACEDIM*c_len);
-
-//  Introduce these arrays to hold the coarse maxs and mins and the
-//    correction factor alpha.
-    std::vector<Real> cmax(c_len);
-    std::vector<Real> cmin(c_len);
-    std::vector<Real> alpha(c_len);
-
-    int loslp = cslope_bx.index(crse_bx.smallEnd());
-    int hislp = cslope_bx.index(crse_bx.bigEnd());
-
-    t_long = cslope_bx.numPts();
-    BL_ASSERT(t_long < INT_MAX);
-    int cslope_vol = int(t_long);
-    int clo        = 1 - loslp;
-    int chi        = clo + cslope_vol - 1;
-    c_len          = hislp - loslp + 1;
-    //
-    // Alloc temp space for one strip of fine grid slopes.
-    //
-    int dir;
-    int f_len = fslope_bx.longside(dir);
-
-    Array<Real> strip((BL_SPACEDIM+2)*f_len);
-
-    Real* fstrip = strip.dataPtr();
-    Real* foff   = fstrip + f_len;
-    Real* fslope = foff + f_len;
-    //
-    // Get coarse and fine edge-centered volume coordinates.
-    //
-    Array<Real> fvc[BL_SPACEDIM];
-    Array<Real> cvc[BL_SPACEDIM];
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
-        crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
-    }
-    //
-    // Alloc tmp space for slope calc and to allow for vectorization.
-    //
-    Real* fdat        = fine.dataPtr(fine_comp);
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    const int* flo    = fine.loVect();
-    const int* fhi    = fine.hiVect();
-    const int* fblo   = target_fine_region.loVect();
-    const int* fbhi   = target_fine_region.hiVect();
-    const int* cblo   = crse_bx.loVect();
-    const int* cbhi   = crse_bx.hiVect();
-    const int* cflo   = crse.loVect();
-    const int* cfhi   = crse.hiVect();
-    const int* fslo   = fslope_bx.loVect();
-    const int* fshi   = fslope_bx.hiVect();
-    int slope_flag    = (do_limited_slope ? 1 : 0);
-    Array<int> bc     = GetBCArray(bcr);
-    const int* ratioV = ratio.getVect();
-
-    FORT_CCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
-                   ARLIM(fblo), ARLIM(fbhi),
-                   &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   cdat,&clo,&chi,
-                   ARLIM(cblo), ARLIM(cbhi),
-                   fslo,fshi,
-                   cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
-                   bc.dataPtr(), &slope_flag,
-                   D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                   &cmax[0],&cmin[0],&alpha[0]);
 }
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
@@ -413,6 +284,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
     FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
 
+    FArrayBox  cmax(cslope_bx,ncomp);
+    FArrayBox  cmin(cslope_bx,ncomp);
+    FArrayBox alpha(cslope_bx,ncomp);
+
     Real* fdat       = fine.dataPtr(fine_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
@@ -438,6 +313,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     int lin_limit     = (do_linear_limiting ? 1 : 0);
     const int* cvcblo = crse_bx.loVect();
     const int* fvcblo = target_fine_region.loVect();
+    int slope_flag    = 1;
 
     int cvcbhi[BL_SPACEDIM];
     int fvcbhi[BL_SPACEDIM];
@@ -470,10 +346,11 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
                       &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                      bc.dataPtr(), &lin_limit,
+                      bc.dataPtr(), &slope_flag, &lin_limit,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                      D_DECL(voffx,voffy,voffz));
+                      D_DECL(voffx,voffy,voffz),
+                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr());
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
@@ -747,6 +624,10 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
     FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
 
+    FArrayBox  cmax(cslope_bx,ncomp);
+    FArrayBox  cmin(cslope_bx,ncomp);
+    FArrayBox alpha(cslope_bx,ncomp);
+
     Real* fdat       = fine.dataPtr(fine_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
@@ -788,6 +669,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
+    int slope_flag    = 1;
 
 #if (BL_SPACEDIM > 1)
 
@@ -804,10 +686,11 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
                       &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                      bc.dataPtr(), &lin_limit,
+                      bc.dataPtr(), &slope_flag, &lin_limit,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                      D_DECL(voffx,voffy,voffz));
+                      D_DECL(voffx,voffy,voffz),
+                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr());
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
