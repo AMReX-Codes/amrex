@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _HGPARALLEL_H_
 #define _HGPARALLEL_H_
+
+//
+// $Id: hgparallel.h,v 1.68 1999-01-29 19:24:01 lijewski Exp $
+//
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
@@ -400,4 +406,3 @@ private:
 };
 
 #endif /*_HGPARALLEL_H_*/
-

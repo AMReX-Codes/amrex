@@ -1,3 +1,5 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
 
@@ -35,40 +37,51 @@ public:
     };
     
     level_interface() 
-	: status(-1) 
-    { 
-    }
-    ~level_interface();
-    // a pseudo constructor.
-    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
-    // two pseudo copy operators/constructors.
-    void copy(const level_interface& src);
-    void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
-    
-    bool ok() const			    { return (status >= 0); }
-    
-    const Box& domain() const		    { return dom; }
-    const BoxArray& interior_mesh() const   { return im; }
-    const BoxArray& exterior_mesh() const   { return em; }
-    int exterior_ref(int igrid) const	    { assert(igrid < -1); return grid_ref[-2-igrid]; }
-    int direct_exterior_ref(int igrid)const { assert(igrid > -1); return grid_ref[   igrid]; }
-    const Box& part_fine(int i) const	    { return pf[i]; }
-    
-    Array<int> geo_array(int idim, int i) const;
+	:
+        status(-1) 
+    {}
 
-    int grid(int idim, int i, int j)  const;
+    ~level_interface ();
+    //
+    // A pseudo constructor.
+    //
+    void alloc (const BoxArray&           Im,
+                const Box&                Domain,
+                const amr_boundary_class* Bdy);
+    //
+    // Two pseudo copy operators/constructors.
+    //
+    void copy (const level_interface& src);
+    void alloc_coarsened (const BoxArray&           Im,
+                          const amr_boundary_class* Bdy,
+                          const level_interface&    src,
+                          const IntVect&            rat);
+    
+    bool ok () const			     { return (status >= 0); }
+    
+    const Box& domain () const		     { return dom; }
+    const BoxArray& interior_mesh () const   { return im; }
+    const BoxArray& exterior_mesh () const   { return em; }
+    int exterior_ref (int igrid) const	     { assert(igrid < -1); return grid_ref[-2-igrid]; }
+    int direct_exterior_ref (int igrid)const { assert(igrid > -1); return grid_ref[   igrid]; }
+    const Box& part_fine (int i) const	     { return pf[i]; }
+    
+    Array<int> geo_array (int idim, int i) const;
 
-    int fdim(int i) const		    { return fdm[i]; }
+    int grid (int idim, int i, int j)  const;
 
-    int nboxes(int idim) const		    { return nbx[idim]; }
-    const Box& box(int idim, int i) const   { return bx[idim][i]; }
-    const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
-    unsigned int geo(int idim, int i) const { return ge[idim][i]; }
-    unsigned int aux(int idim, int i) const { return ax[idim][i]; }
-    bool flag(int idim, int i) const	    { return flg[idim][i]; }
-    static int ngrids(int idim);
+    int fdim (int i) const		     { return fdm[i]; }
+
+    int nboxes (int idim) const		     { return nbx[idim]; }
+    const Box& box (int idim, int i) const   { return bx[idim][i]; }
+    const Box& node_box (int idim, int i) const { return nodebx[idim][i]; }
+    unsigned int geo (int idim, int i) const { return ge[idim][i]; }
+    unsigned int aux (int idim, int i) const { return ax[idim][i]; }
+    bool flag (int idim, int i) const	     { return flg[idim][i]; }
+    static int ngrids (int idim);
 
 private:
+
 #if (BL_SPACEDIM == 2)
     enum
     { 
@@ -83,6 +96,7 @@ private:
 	N_CORNER_GRIDS = 8
     };
 #endif
+
     int status;				// tells if some arrays are shared
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
@@ -104,14 +118,17 @@ private:
 #endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
     
-    void  add(List<Box>& bl, Box b, int startgrid);
-    void xfer(const List<Box>& bl, int idim);
+    void  add (List<Box>& bl, Box b, int startgrid);
+    void xfer (const List<Box>& bl, int idim);
 private:
-    level_interface(const level_interface&);
-    void operator=(const level_interface&);
+    //
+    // Not defined.
+    //
+    level_interface (const level_interface&);
+    void operator= (const level_interface&);
 };
 
-inline int level_interface::grid(int idim, int i, int j)   const 
+inline int level_interface::grid (int idim, int i, int j) const 
 { 
     assert(idim >= 0 && idim <= FACEDIM);
     assert(j >= 0 && i >= 0);
@@ -141,4 +158,4 @@ inline int level_interface::ngrids(int idim)
     }
     return ret;
 }
-#endif
+#endif /*_INTERFACE_H_*/

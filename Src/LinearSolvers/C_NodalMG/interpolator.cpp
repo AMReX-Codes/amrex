@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "interpolator.H"
 
@@ -15,15 +16,19 @@ extern "C"
     void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
 }
 
-Box bilinear_interpolator_class::box(const Box& region, const IntVect& rat) const
+amr_interpolator_class::~amr_interpolator_class () {}
+
+Box
+bilinear_interpolator_class::box (const Box&     region,
+                                  const IntVect& rat) const
 {
     if (region.cellCentered()) 
     {
-	return grow(coarsen(region, rat), 1);
+	return ::grow(coarsen(region, rat), 1);
     }
     else if (region.type() == IntVect::TheNodeVector()) 
     {
-	return coarsen(region, rat);
+	return ::coarsen(region, rat);
     }
     else 
     {
@@ -32,7 +37,12 @@ Box bilinear_interpolator_class::box(const Box& region, const IntVect& rat) cons
     }
 }
 
-void bilinear_interpolator_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const
+void
+bilinear_interpolator_class::fill (FArrayBox&       patch,
+                                   const Box&       region,
+                                   const FArrayBox& cgr,
+                                   const Box&       cb,
+                                   const IntVect&   rat) const
 {
     if (patch.box().cellCentered()) 
     {
@@ -40,7 +50,8 @@ void bilinear_interpolator_class::fill(FArrayBox& patch, const Box& region, cons
     }
     else if (patch.box().type() == IntVect::TheNodeVector()) 
     {
-	const Box eregion = refine(cb, rat);
+        Box eregion = ::refine(cb, rat);
+
 	if (eregion == region) 
 	{
 	    FORT_FANINT2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
