@@ -1,0 +1,23 @@
+#
+# $Id: Make.package,v 1.1 1998-10-28 22:03:45 lijewski Exp $
+#
+
+MGLIB_BASE=EXE
+ifeq ($(LBASE),mg)
+    MGLIB_BASE=LIB
+endif
+
+C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
+                          InterpBndryData.cpp Laplacian.cpp LinOp.cpp  \
+                          Mask.cpp MultiGrid.cpp
+
+C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
+                          CGSolver.H InterpBndryData.H LO_BCTYPES.H \
+                          Laplacian.H LinOp.H Mask.H MultiGrid.H
+
+F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H LO_F.H \
+                          LP_F.H MG_F.H
+
+F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
+                          INTERPBNDRYDATA_$(DIM)D.F LO_$(DIM)D.F \
+                          LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
