@@ -1,5 +1,5 @@
 //
-// $Id: Specialize.cpp,v 1.4 2000-04-24 17:52:38 car Exp $
+// $Id: Specialize.cpp,v 1.5 2000-06-07 23:18:11 marc Exp $
 //
 
 #ifdef BL_USE_SPECIALIZE
@@ -91,6 +91,8 @@ BaseFab<Real>::performSetVal (Real       val,
                     ARLIM(_th_phi),
                     num);
 }
-#endif /*BL_USE_SPECIALIZE*/
 
 BL_END_NAMESPACE
+
+#endif /*BL_USE_SPECIALIZE*/
+
