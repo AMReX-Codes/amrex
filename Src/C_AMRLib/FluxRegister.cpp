@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.12 1998-04-14 21:01:45 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.13 1998-04-14 23:01:50 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -736,17 +736,43 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         int              numcomp,
                         Real             mult)
 {
+    assert(flux.box().contains(subbox));
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
+    const int MyProc = ParallelDescriptor::MyProc();
+    //
+    // First do local work.
+    //
+    for (int k = 0; k < grids.length(); k++)
+    {
+        Orientation face_lo(dir,Orientation::low);
+        Box lobox = bndry[face_lo].box(k) & subbox;
+        if (lobox.ok())
+        {
+            if (MyProc == bndry[face_lo].DistributionMap()[k])
+            {
+                FArrayBox& loreg = bndry[face_lo][k];
+                loreg.copy(flux, lobox, srccomp, lobox, destcomp, numcomp);
+                loreg.mult(mult, lobox, destcomp, numcomp);
+            }
+        }
+        Orientation face_hi(dir,Orientation::high);
+        Box hibox = bndry[face_hi].box(k) & subbox;
+        if (hibox.ok())
+        {
+            if (MyProc == bndry[face_hi].DistributionMap()[k])
+            {
+                FArrayBox& hireg = bndry[face_hi][k];
+                hireg.copy(flux, hibox, srccomp, hibox, destcomp, numcomp);
+                hireg.mult(mult, hibox, destcomp, numcomp);
+            }
+        }
+    }
+    //
+    // Now do non-local work.
+    //
     FabComTag fabComTag;
-    int         myproc = ParallelDescriptor::MyProc();
-    const Box&  flxbox = flux.box();
-    const int*  flo    = flxbox.loVect();
-    const int*  fhi    = flxbox.hiVect();
-    const Real* flxdat = flux.dataPtr(srccomp);
-
-    assert(flxbox.contains(subbox));
 
     for (int k = 0; k < grids.length(); k++)
     {
@@ -756,29 +782,23 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         {
             const DistributionMapping& dMap = bndry[face_lo].DistributionMap();
 
-            if (myproc == dMap[k])
-            {
-                //
-                // Local
-                //
-                FArrayBox &loreg = bndry[face_lo][k];
-                loreg.copy(flux, lobox, srccomp, lobox, destcomp, numcomp);
-                loreg.mult(mult, lobox, destcomp, numcomp);
-            }
-            else
+            if (!(MyProc == dMap[k]))
             {
                 FArrayBox fabCom(lobox, numcomp);
-                int fabComDestComp = 0;
-                fabCom.copy(flux, lobox, srccomp, lobox, fabComDestComp,numcomp);
-                fabCom.mult(mult, lobox, fabComDestComp, numcomp);
-                fabComTag.fromProc = myproc;
+
+                fabCom.copy(flux, lobox, srccomp, lobox, 0, numcomp);
+                fabCom.mult(mult, lobox, 0, numcomp);
+
+                fabComTag.fromProc = MyProc;
                 fabComTag.toProc   = dMap[k];
                 fabComTag.fabIndex = k;
                 fabComTag.destComp = destcomp;
                 fabComTag.nComp    = fabCom.nComp();
                 fabComTag.box      = fabCom.box();
                 fabComTag.face     = face_lo;
-                ParallelDescriptor::SendData(fabComTag.toProc, &fabComTag,
+
+                ParallelDescriptor::SendData(fabComTag.toProc,
+                                             &fabComTag,
                                              fabCom.dataPtr(),
                                              fabComTag.box.numPts() *
                                              fabComTag.nComp * sizeof(Real));
@@ -790,29 +810,23 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         {
             const DistributionMapping& dMap = bndry[face_hi].DistributionMap();
 
-            if (myproc == dMap[k])
-            {
-                //
-                // Local.
-                //
-                FArrayBox& hireg = bndry[face_hi][k];
-                hireg.copy(flux, hibox, srccomp, hibox, destcomp, numcomp);
-                hireg.mult(mult, hibox, destcomp, numcomp);
-            }
-            else
+            if (!(MyProc == dMap[k]))
             {
                 FArrayBox fabCom(hibox, numcomp);
-                int fabComDestComp = 0;
-                fabCom.copy(flux, hibox, srccomp, hibox, fabComDestComp, numcomp);
-                fabCom.mult(mult, hibox, fabComDestComp, numcomp);
-                fabComTag.fromProc = myproc;
+
+                fabCom.copy(flux, hibox, srccomp, hibox, 0, numcomp);
+                fabCom.mult(mult, hibox, 0, numcomp);
+
+                fabComTag.fromProc = MyProc;
                 fabComTag.toProc   = dMap[k];
                 fabComTag.fabIndex = k;
                 fabComTag.destComp = destcomp;
                 fabComTag.nComp    = fabCom.nComp();
                 fabComTag.box      = fabCom.box();
                 fabComTag.face     = face_hi;
-                ParallelDescriptor::SendData(fabComTag.toProc, &fabComTag,
+
+                ParallelDescriptor::SendData(fabComTag.toProc,
+                                             &fabComTag,
                                              fabCom.dataPtr(),
                                              fabComTag.box.numPts() *
                                              fabComTag.nComp * sizeof(Real));
