@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.98 1999-10-21 17:27:21 lijewski Exp $
+// $Id: Amr.cpp,v 1.99 1999-10-28 21:49:52 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -842,6 +842,11 @@ Amr::initialInit (Real strt_time,
     station.findGrid(amr_level,geom);
 }
 
+//
+// Shared by restart() and checkPoint().
+//
+static aString the_previous_ckfile;
+
 void
 Amr::restart (const aString& filename)
 {
@@ -1003,8 +1008,11 @@ Amr::restart (const aString& filename)
     ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
+    {
         cout << "Restart time = " << dRestartTime << " seconds." << endl;
 
+        the_previous_ckfile = filename;
+    }
 }
 
 void
@@ -1131,10 +1139,18 @@ Amr::checkPoint ()
             cmd += ckfile;
             cmd += ".tar ";
             cmd += ckfile;
-            cmd += "; rm -rf ";
-            cmd += ckfile;
+            //
+            // Stagger rm'ing ckfiles to support restart() and job chaining.
+            //
+            if (!the_previous_ckfile.isNull())
+            {
+                cmd += "; rm -rf ";
+                cmd += the_previous_ckfile;
+            }
 
             pid_chk = DoIt(cmd.c_str());
+
+            the_previous_ckfile = ckfile;
         }
     }
 }
