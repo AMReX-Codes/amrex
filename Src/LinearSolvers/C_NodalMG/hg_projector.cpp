@@ -490,6 +490,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	else 
 	{
 	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
+	    cbox = Scp->fab().box();
+
 	}
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
@@ -549,6 +551,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	else 
 	{
 	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
+	    cbox = Scp->fab().box();
 	}
 	task_fab* Sf = new task_fill_patch(fbox, S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
@@ -603,6 +606,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	else 
 	{
 	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
+	    cbox = Scp->fab().box();
 	}
 	task_fab* Sf = new task_fill_patch(fbox, S[lev], lev_interface[mglev], boundary.scalar(), 0, icor);
 	Box creg = lev_interface[mglev].box(0, icor);
@@ -687,6 +691,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 	    }
+	    cbox = ucp[0]->fab().box();
 	}
 	Real* uptr[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
@@ -769,6 +774,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 	    }
+	    cbox = ucp[0]->fab().box();
 	}
 	task_fab* uf[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
@@ -849,6 +855,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 	    }
+	    cbox = ucp[0]->fab().box();
 	}
 	task_fab* uf[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
@@ -941,6 +948,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		{
 		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 		}
+		cbox = ucp[0]->fab().box();
 	    }
 	    fbox.convert(IntVect::TheCellVector());
 	    task_fab* uf[BL_SPACEDIM];
@@ -996,6 +1004,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		{
 		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 		}
+		cbox = ucp[0]->fab().box();
 	    }
 	    const Box& fbox = u[0][lev][igrid].box();
 	    Box creg = lev_interface[mglev].box(0, icor);
@@ -1035,6 +1044,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		{
     		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 		}
+		cbox = ucp[0]->fab().box();
 	    }
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
@@ -1050,7 +1060,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int isRZ = IsRZ();
 	    FORT_HGDDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), wf[2]->fab().dataPtr()), DIMLIST(fbox),
+			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&jdir, &isRZ);
@@ -1126,6 +1136,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		{
 		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
 		}
+		cbox = ucp[0]->fab().box();
 	    }
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);

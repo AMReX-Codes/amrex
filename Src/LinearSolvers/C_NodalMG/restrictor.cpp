@@ -198,7 +198,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
     if (fine.nGrow() >= ratmax - 1)
 	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
     // PARALLEL
-    int idir;
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {
@@ -258,7 +257,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		}
 		else 
 		{ // fine grid on just one side
-		    idir = (geo & level_interface::LOW) ? -1 : 1;
+		    const int idir = (geo & level_interface::LOW) ? -1 : 1;
 		    const int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
 		    lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
 		    if (igrid >= 0) 
@@ -391,7 +390,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor, 0);
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir1)
 			);

@@ -267,8 +267,9 @@ bool task_fill_patch::ready()
     return true;
 }
 
-const FArrayBox& task_fill_patch::fab() const
+const FArrayBox& task_fill_patch::fab()
 {
+    ready();
     return *target;
 }
 

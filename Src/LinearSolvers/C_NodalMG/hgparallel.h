@@ -31,7 +31,7 @@ public:
 class task_fab : public task
 {
 public:
-    virtual const FArrayBox& fab() const = 0;
+    virtual const FArrayBox& fab() = 0;
 };
 
 class task_copy : public task
@@ -68,7 +68,7 @@ public:
     task_fab_get(const MultiFab& r_, int grid_);
     task_fab_get(const MultiFab& r_, int grid_, const Box& bx);
     virtual ~task_fab_get();
-    virtual const FArrayBox& fab() const;
+    virtual const FArrayBox& fab();
     virtual bool ready();
 private:
     const MultiFab& r;
@@ -87,7 +87,7 @@ public:
     task_fill_patch(const Box& region_, int ncomp_, 
 	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
     virtual ~task_fill_patch();
-    virtual const FArrayBox& fab() const;
+    virtual const FArrayBox& fab();
     virtual bool ready();
 private:
     bool fill_patch_blindly();

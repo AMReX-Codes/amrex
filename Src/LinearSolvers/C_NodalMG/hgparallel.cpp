@@ -59,7 +59,7 @@ task_fab_get::task_fab_get(const MultiFab& r_, int grid_)
 task_fab_get::task_fab_get(const MultiFab& r_, int grid_, const Box& bx_) 
 : r(r_), grid(grid_), bx(bx_) {}
 
-const FArrayBox& task_fab_get::fab() const
+const FArrayBox& task_fab_get::fab()
 {
     return r[grid];
 }
