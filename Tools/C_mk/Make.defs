@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.54 2002-06-18 14:26:24 car Exp $
+# Make.defs $Id: Make.defs,v 1.55 2002-08-16 22:07:07 car Exp $
 #
 
 #
@@ -216,6 +216,12 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 6.0
        ICC_MAJOR_VERSION := 6
        ICC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 7.0, $(__icc_version)), Version 7.0)
+       ICC_VERSION := 7.0
+       ICC_MAJOR_VERSION := 7
+       ICC_MINOR_VERSION := 0
+   endif
    endif
    endif
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
@@ -234,6 +240,12 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 6.0
        IFC_MAJOR_VERSION := 6
        IFC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 7.0, $(__ifc_version)), Version 7.0)
+       IFC_VERSION := 7.0
+       IFC_MAJOR_VERSION := 7
+       IFC_MINOR_VERSION := 0
+   endif
    endif
    endif
 endif
