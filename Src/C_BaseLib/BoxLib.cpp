@@ -1,23 +1,21 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.2 1997-09-18 20:12:45 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.3 1997-09-24 04:24:50 lijewski Exp $
 //
-
-#ifdef _MSC_VER
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+using std::cerr;
+using std::endl;
 #else
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream.h>
 #endif
 
 #include <BoxLib.H>
@@ -91,38 +89,29 @@ void
 BoxLib::Warning (const char* msg)
 {
     if (msg)
+    {
         cerr << msg << '!' << endl;
+    }
 }
-
-//
-// A pre-allocated buffer used by BoxLib::Assert().
-//
-const int DIMENSION = 512;
-static char buf[DIMENSION];
 
 void
 BoxLib::Assert (const char* EX,
                 const char* file,
                 int         line)
 {
-    //
-    // Why declare this static?  Well, the expectation is that by declaring
-    // it static, the space for it'll be pre-allocated, so that when this
-    // function is called, only the appropriate constructor will need to
-    // be called.  This way BoxLib::Assert() should work fine, even when
-    // complaining about running out of memory, or some such nasty situation.
-    //
-    static ostrstream os(buf, DIMENSION);
+    const int DIMENSION = 1024;
 
-    os << "Assertion `"
-       << EX
-       << "' failed, "
-       << "file \""
-       << file
-       << "\", "
-       << "line "
-       << line
-       << ends;
+    char buf[DIMENSION+1];
+
+    sprintf(buf,
+            "Assertion `%s' failed, file \"%s\", line %d",
+            EX,
+            file,
+            line);
+    //
+    // Just to be a little safer :-)
+    //
+    buf[DIMENSION] = 0;
 
     write_to_stderr_without_buffering(buf);
 

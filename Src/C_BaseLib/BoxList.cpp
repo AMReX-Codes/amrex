@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.1 1997-09-12 18:00:05 lijewski Exp $
+// $Id: BoxList.cpp,v 1.2 1997-09-24 04:24:50 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -102,14 +102,6 @@ BoxList::intersect (const Box& b)
         else
             lbox.remove(bli);
     }
-    return *this;
-}
-
-BoxList&
-BoxList::intersect (const BoxList& bl)
-{
-    for (ListIterator<Box> bli(bl.lbox); bli; ++bli)
-        intersect(bli());
     return *this;
 }
 

@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.3 1997-09-18 20:12:46 lijewski Exp $
+// $Id: BoxList.H,v 1.4 1997-09-24 04:24:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -155,11 +155,6 @@ public:
                Box b.
     */
     BoxList& intersect (const Box& b);
-
-    /*@ManDoc: Modify this BoxList to contain only its intersection with
-               BoxList bl.
-    */
-    BoxList& intersect (const BoxList &bl);
     //
     //@ManDoc: Remove the Box from this BoxList.
     //
