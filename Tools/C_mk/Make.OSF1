@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.24 2002-03-27 21:35:59 car Exp $
+# $Id: Make.OSF1,v 1.25 2002-03-27 23:49:07 lijewski Exp $
 #
 
 #
@@ -31,10 +31,8 @@ endif
 ifeq ($(COMP),cxx)
   CXX      := cxx
   FULLWARN := +pp -fullwarn
-  CXXOPTF  += -O3 -fast -Olimit 2400
-  CXXOPTF  += -no_exceptions
-#  CXXOPTF  += -std strict_ansi
-  CXXOPTF  += -model ansi
+#  CXXOPTF  += -O3 -fast -Olimit 2400 -no_exceptions -model ansi
+  CXXOPTF  += -O3 -arch host -Olimit 2400 -no_exceptions -model ansi
   CPPFLAGS += -D__USE_STD_IOSTREAM
   CXXDEBF  += -g
   CXXPRFF  := -p
@@ -56,7 +54,7 @@ ifeq ($(COMP),KCC)
   endif
   CXXPRFF     := -p
   FULLWARN    := --strict_warnings
-  CXXOPTF     += -O3 +K3 -g3 -Olimit 2000
+  CXXOPTF     += -O3 +K3 -g3 -Olimit 2000 --no_exceptions
   CXXDEBF     += +K0
   ifeq ($(WHICHOSF1),V3)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
@@ -88,14 +86,14 @@ FC = f90
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-  FOPTF += -fast -O -tune host
+  FOPTF += -fast -O
   FDEBF += -g -u
-  fOPTF += -fast -O -tune host
+  fOPTF += -fast -O
   fDEBF += -g
 else
-  FOPTF += -fast -O -tune host -fpconstant
+  FOPTF += -fast -O -fpconstant
   FDEBF += -g -u -fpconstant
-  fOPTF += -fast -O -tune host -fpconstant
+  fOPTF += -fast -O -fpconstant
   fDEBF += -g -fpconstant
 endif
 
