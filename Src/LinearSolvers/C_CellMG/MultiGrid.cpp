@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.8 1999-01-22 21:34:16 marc Exp $
+// $Id: MultiGrid.cpp,v 1.9 1999-03-18 00:13:01 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -56,16 +56,16 @@ MultiGrid::initialize ()
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
         cout << "MultiGrid settings...\n";
-        cout << "   def_nu_0 =         " << def_nu_0 << '\n';
-        cout << "   def_nu_1 =         " << def_nu_1 << '\n';
-        cout << "   def_nu_2 =         " << def_nu_2 << '\n';
-        cout << "   def_nu_f =         " << def_nu_f << '\n';
-        cout << "   def_maxiter =      " << def_maxiter << '\n';
-        cout << "   def_usecg =        "  << def_usecg << '\n';
-        cout << "   def_rtol_b =       " << def_rtol_b << '\n';
-        cout << "   def_atol_b =       " << def_atol_b << '\n';
-        cout << "   def_nu_b =         "   << def_nu_b << '\n';
-        cout << "   def_numLevelsMAX = "   << def_numLevelsMAX << '\n';
+        cout << "   def_nu_0 =         " << def_nu_0         << '\n';
+        cout << "   def_nu_1 =         " << def_nu_1         << '\n';
+        cout << "   def_nu_2 =         " << def_nu_2         << '\n';
+        cout << "   def_nu_f =         " << def_nu_f         << '\n';
+        cout << "   def_maxiter =      " << def_maxiter      << '\n';
+        cout << "   def_usecg =        " << def_usecg        << '\n';
+        cout << "   def_rtol_b =       " << def_rtol_b       << '\n';
+        cout << "   def_atol_b =       " << def_atol_b       << '\n';
+        cout << "   def_nu_b =         " << def_nu_b         << '\n';
+        cout << "   def_numLevelsMAX = " << def_numLevelsMAX << '\n';
     }
 }
 
@@ -96,9 +96,9 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 	     << " multigrid levels created for this solve" << '\n';
 	cout << "Grids: " << '\n';
 	BoxArray tmp = Lp.boxArray();
-	for (int i=0; i<numlevels; ++i)
+	for (int i = 0; i < numlevels; ++i)
 	{
-	    if (i>0)
+	    if (i > 0)
 		tmp.coarsen(2);
 	    cout << " Level: " << i << '\n';
 	    for (int k = 0; k < tmp.length(); k++)
@@ -226,8 +226,8 @@ MultiGrid::solve_ (MultiFab&      _sol,
     // if absolute err <= _abs_eps
     //
     long returnVal = 0;
-    Real error0 = errorEstimate(level, bc_mode);
-    Real error  = error0;
+    Real error0    = errorEstimate(level, bc_mode);
+    Real error     = error0;
     if (ParallelDescriptor::IOProcessor() && verbose)
     {
         for (int k=0; k<level; k++)
@@ -395,11 +395,17 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
         CGSolver cg(Lp, use_mg_precond, level);
 	cg.setExpert(true);
         int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
-	if( ret != 0 ){
-	  // cg failure probably indicates loss of precision accident.
-	  // setting solL to 0 should be ok
-	  solL.setVal(0.);
-	  cout << "wyc -- setting coarse corr to zero"<<endl;
+	if (ret != 0)
+        {
+            //
+            // cg failure probably indicates loss of precision accident.
+            // setting solL to 0 should be ok.
+            //
+            solL.setVal(0);
+            if (ParallelDescriptor::IOProcessor() && def_verbose)
+            {
+                cout << "MultiGrid::coarsestSmooth(): setting coarse corr to zero" << endl;
+            }
 	}
         for (int i = 0; i < nu_b; i++)
         {
