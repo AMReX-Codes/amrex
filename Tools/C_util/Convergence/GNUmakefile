@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 1999-06-03 23:38:43 sstanley Exp $
+# $Id: GNUmakefile,v 1.4 1999-06-04 01:03:25 sstanley Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -129,6 +129,10 @@ endif
 all: $(executable)
 
 ifeq ($(MACHINE),T3E)
+ifeq ($(WHICHT3E), NERSC)
+DEFINES += -D_CRAY
+endif
+
 #
 # We don't explicity set the path of the mpi directory on the T3E.
 #
