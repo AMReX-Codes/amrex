@@ -1,13 +1,27 @@
 #include "hgparallel.h"
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
 : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx)
+#ifdef BL_USE_MPI
+, s_tmp(0), d_tmp(0)
+#endif
 {
+#ifdef BL_USE_MPI
+    if ( m_mf.DistributionMap()[m_sgrid] == ParallelDescriptor::MyProc() )
+    {
+	d_tmp = new FArrayBox(bx, m_mf.nComp());
+	MPI_Irecv(d_tmp->dataPtr());
+    }
+    if ( m_mf.DistributionMap()[m_dgrid] == ParallelDescriptor::MyProc() ) 
+    {
+	s_tmp = new FArrayBox(bx, m_mf.nComp());
+	s_tmp->copy(m_smf[m_sgrid]);
+	MPI_Isend(s_tmp->dataPtr(), s_tmp->box().numPts() * s_tmp->nComp(), MPI_DOUBLE );
+    }
+#else
     m_ready = true;
     m_mf[m_dgrid].copy(m_smf[m_sgrid], m_bx);
+#endif
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
@@ -20,10 +34,20 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf
 
 task_copy::~task_copy()
 {
+#ifdef BL_USE_MPI
+    delete s_tmp;
+    delete d_tmp;
+#endif
 }
 
 bool task_copy::ready()
 {
+#ifdef BL_USE_MPI
+    int flag;
+    MPI_Status status;
+    MPI_Test(&m_request, &flag, &status);
+    return flag == 1;
+#endif
     return m_ready;
 }
 
