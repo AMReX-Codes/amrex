@@ -82,9 +82,8 @@ driver(const char *filename)
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	  const Array<IntVect>& ratio)
 {
-    int ilev;
 #if (BL_SPACEDIM == 2)
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
@@ -126,7 +125,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     }
     else 
     {
-	for (ilev = 0; ilev < m.length(); ilev++) 
+	for (int ilev = 0; ilev < m.length(); ilev++) 
 	{
 	    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
 	    {
@@ -145,11 +144,11 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     //u[0][1][0](IntVect(31,31)) = -1.0;
     //u[1][1][0](IntVect(31,30)) = 1.0;
     //u[1][1][0](IntVect(30,31)) = -1.0;
-    for (ilev = 0; ilev < p.length(); ilev++)
+    for (int ilev = 0; ilev < p.length(); ilev++)
 	p[ilev].setVal(0.0);
     //p.initialize(fct);
 #else
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
@@ -187,7 +186,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	    u[0][2][igrid](m[2][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	p[ilev].setVal(0.0);
     }
@@ -273,12 +272,10 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 
 void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
-    int ilev, i;
-    
     // Note:  For terrain problems, h is ignored.
     
     Real h[BL_SPACEDIM];
-    for (i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++)
 	h[i] = 1;
     //h[BL_SPACEDIM-1] = 0.1;
     //h[BL_SPACEDIM-1] = 2.0;
@@ -299,7 +296,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     //bc[1][0] = inflow;
     //bc[1][1] = outflow;
 #else
-    for (i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++) 
     {
 	bc[i][0] = refWall;
 	bc[i][1] = refWall;
@@ -317,18 +314,18 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
     
-    for (i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++)
 	u[i].resize(m.length());
     p.resize(m.length());
     rhoinv.resize(m.length());
     rhs.resize(m.length());
     
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	BoxArray& cmesh = m[ilev];
 	BoxArray nmesh = cmesh;
 	nmesh.convert(IndexType(IntVect::TheNodeVector()));
-	for (i = 0; i < BL_SPACEDIM; i++)
+	for (int i = 0; i < BL_SPACEDIM; i++)
 	    u[i].set(ilev, new MultiFab(cmesh, 1, 1));
 	p.set(ilev, new MultiFab(nmesh, 1, 1));
 #ifdef HG_TERRAIN
@@ -356,7 +353,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // Assume spacing on level 0 already incorporated into values assigned above.
     // (h is ignored.)
     IntVect rat = IntVect::TheUnitVector();
-    for (ilev = 1; ilev < m.length(); ilev++) 
+    for (int ilev = 1; ilev < m.length(); ilev++) 
     {
 	rat *= ratio[ilev-1];
 #  if (BL_SPACEDIM == 2)
@@ -458,10 +455,10 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     
     int sum = 0;
     cout << "Cells by level: ";
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	int lsum = 0;
-	for (i = 0; i < m[ilev].length(); i++) 
+	for (int i = 0; i < m[ilev].length(); i++) 
 	{
 	    lsum += m[ilev][i].numPts();
 	}
@@ -488,8 +485,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #endif
     t0 = Utility::second();
     inviscid_fluid_boundary_class afb(bc);
-    i = m.length() - 1;
-    holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
+    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, pcode);
 #if (BL_SPACEDIM == 2)
 #  ifndef HG_TERRAIN
     rz_adj(u, rhs, rhoinv, m, domain);
@@ -504,7 +500,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     {
 	t1 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol);
-	for (i = 1; i < nrep; i++) 
+	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv, h, tol);
@@ -530,12 +526,12 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
 	t1 = Utility::second();
 	cout << "First time is " << t1 - t0 << endl;
-	for (i = 0; i < p.length(); i++)
+	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
 	t1 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
 	//proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
-	for (i = 1; i < nrep; i++) 
+	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
@@ -560,12 +556,12 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
 	t1 = Utility::second();
 	cout << "First time is " << t1 - t0 << endl;
-	for (i = 0; i < p.length(); i++)
+	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 2);
 	t2 = Utility::second();
 	cout << "Second time is " << t2 - t1 << endl;
-	for (i = 0; i < p.length(); i++)
+	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 2);
 	t3 = Utility::second();
@@ -591,9 +587,9 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     cout << "Total time was  " << t2 - t0 << endl;
     }
     */
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++) 
     {
-	for (i = 0; i < BL_SPACEDIM; i++)
+	for (int i = 0; i < BL_SPACEDIM; i++)
 	    delete u[i].remove(ilev);
 	delete rhoinv.remove(ilev);
 	delete p.remove(ilev);

@@ -411,7 +411,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 #endif
 		
 		// Copy work arrays to following grids:
-		for ( ListIterator<int> j(line_after[lev][igrid]); j; j++) 
+		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
 		    Box b = (freg & corr[mglev].box(j()));
 		    internal_copy(corr[mglev], j(), igrid, b);
@@ -428,8 +428,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		const Box& freg = corr[mglev].box(igrid);
 		
 		// Copy solution array from following grids:
-		ListIterator<int> j(line_after[lev][igrid]);
-		for ( ; j; j++) 
+		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
 		    Box b = (freg & corr[mglev].box(j()));
 		    internal_copy(corr[mglev], igrid, j(), b);
@@ -453,7 +452,7 @@ void holy_grail_amr_multigrid::build_line_order(int lsd)
     
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
-	int i, mglev = ml_index[lev], ngrids = mg_mesh[mglev].length();
+	int mglev = ml_index[lev], ngrids = mg_mesh[mglev].length();
 	
 	line_order[lev].resize(ngrids);
 	line_after[lev].resize(ngrids);
@@ -463,7 +462,7 @@ void holy_grail_amr_multigrid::build_line_order(int lsd)
 	    line_order[lev].set(igrid, igrid);
 	    
 	    // bubble sort, replace with something faster if necessary:
-	    for (i = igrid; i > 0; i--) 
+	    for (int i = igrid; i > 0; i--) 
 	    {
 		if (ml_mesh[lev][line_order[lev][i]].smallEnd(lsd) <
 		    ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) 
@@ -478,7 +477,7 @@ void holy_grail_amr_multigrid::build_line_order(int lsd)
 		}
 	    }
 	    
-	    for (i = 0; i < ngrids; i++) 
+	    for (int i = 0; i < ngrids; i++) 
 	    {
 		if (bdryLo(ml_mesh[lev][i], lsd).intersects
 		    (bdryHi(ml_mesh[lev][igrid], lsd))) 

@@ -150,7 +150,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(src));
     Box image = region;
     int refarray[BL_SPACEDIM], negflag = 1;
-    int idir = 0, idim;
+    int idir = 0;
     
     int negarray[BL_SPACEDIM-1];
     for (int i = 0; i < BL_SPACEDIM - 1; i++) 
@@ -158,7 +158,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	negarray[i] = 1;
     }
     
-    for (idim = 0; idim < BL_SPACEDIM; idim++) 
+    for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
 	refarray[idim] = 0;
 	if (region.bigEnd(idim) < idomain.smallEnd(idim)) 
@@ -277,7 +277,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 		src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
 		DIMLIST(image), refarray);
 	}
-	for (idim = 0; idim < BL_SPACEDIM - 1; idim++) 
+	for (int idim = 0; idim < BL_SPACEDIM - 1; idim++) 
 	{
 	    int i = idim + BL_SPACEDIM;
 	    if (negarray[idim] == 1) 
@@ -1259,11 +1259,10 @@ void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
 				       const BoxArray& interior_mesh,
 				       const Box& domain) const
 {
-    int igrid;
     BoxList bl;
     List<int> il;
     const Box &d = domain;
-    for (igrid = 0; igrid < interior_mesh.length(); igrid++) 
+    for (int igrid = 0; igrid < interior_mesh.length(); igrid++) 
     {
 	check_against_boundary(bl, il, interior_mesh[igrid], igrid, d, 0);
     }
@@ -1275,7 +1274,7 @@ void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
     
     grid_ref = new int[exterior_mesh.length()];
     ListIterator<int> in(il);
-    for (igrid = 0; in; in++, igrid++) 
+    for (int igrid = 0; in; in++, igrid++) 
     {
 	grid_ref[igrid] = in();
     }
@@ -1383,8 +1382,7 @@ void mixed_boundary_class::duplicate(List<Box>& bl, const Box& domain) const
     {
 	if (ptr->bc[i][0] == periodic) 
 	{
-	    ListIterator<Box> bn(bl.last());
-	    for ( ; bn; bn--) 
+	    for ( ListIterator<Box> bn(bl.last()); bn; bn--) 
 	    {
 		if (bn().type(i) == IndexType::NODE) 
 		{

@@ -37,7 +37,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
     if (type(r) == IntVect::TheCellVector()) 
     {
 	// for (igrid = 0; igrid < r.length(); igrid++) {
-	for ( ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) 
+	for (ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) 
 	{
 	    ConstDependentMultiFabIterator scmfi(rcmfi, s);
 	    const Box& rbox = rcmfi->box();
@@ -49,7 +49,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
     else if (type(r) == IntVect::TheNodeVector()) 
     {
 	// for (igrid = 0; igrid < r.length(); igrid++) {
-	for ( ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) 
+	for (ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) 
 	{
 	    ConstDependentMultiFabIterator scmfi(rcmfi, s);
 	    const Box& rbox = rcmfi->box();

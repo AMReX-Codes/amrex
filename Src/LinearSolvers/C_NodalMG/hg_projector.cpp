@@ -398,7 +398,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	}
 	
 	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
-	for ( MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
+	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
 	    DependentMultiFabIterator u_dmfi_0(s_mfi, u[0][lev]);
 	    DependentMultiFabIterator u_dmfi_1(s_mfi, u[1][lev]);
@@ -1159,7 +1159,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].corner(icor);
-	    for (i = 1; i < 4; i++) 
+	    for (int i = 1; i < 4; i++) 
 	    {
 		jgrid = lev_interface[mglev].cgrid(icor, i);
 		if (jgrid >= 0 && jgrid != igrid)

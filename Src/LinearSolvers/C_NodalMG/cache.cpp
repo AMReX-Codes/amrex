@@ -60,7 +60,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
     dstrid = dstart + 2 * nsets;
     sstrid = dstart + 3 * nsets;
     nvals  = dstart + 4 * nsets;
-    for (i = 0; i < nsets; i++)
+    for (int i = 0; i < nsets; i++)
 	nvals[i] = 0;
 #else
     dstart = new int[8 * nsets];

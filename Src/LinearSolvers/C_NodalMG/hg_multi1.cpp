@@ -789,10 +789,9 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 
 void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
-    int igrid;
     fill_borders(work[lfrom], work_bcache[lfrom], lev_interface[lfrom], mg_boundary, -1);
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
-    for (igrid = 0; igrid < resid[lto].length(); igrid++) 
+    for (int igrid = 0; igrid < resid[lto].length(); igrid++) 
     {
 	const Box& fbox = work[lfrom][igrid].box();
 	const Box& cbox = resid[lto][igrid].box();

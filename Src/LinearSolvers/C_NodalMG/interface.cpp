@@ -154,7 +154,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     status = 3;
     
-    int iedge, icor, idim;
+    int idim;
     
     dom = Domain;
     im = Im;
@@ -207,7 +207,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     // Add corners:
     
-    for (iedge = 0; iedge < nbx[1]; iedge++) 
+    for (int iedge = 0; iedge < nbx[1]; iedge++) 
     {
 	IntVect t = bx[1][iedge].type();
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -286,7 +286,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     // initialize edge grid array
     idim = 1;
     egr = new int[nbx[idim]][N_EDGE_GRIDS];
-    for (iedge = 0; iedge < nbx[idim]; iedge++) 
+    for (int iedge = 0; iedge < nbx[idim]; iedge++) 
     {
 	Box b = bx[idim][iedge];
 	IntVect t = b.type();
@@ -346,7 +346,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     // initialize corner grid array
     idim = 0;
     cgr = new int[nbx[idim]][N_CORNER_GRIDS];
-    for (icor = 0; icor < nbx[idim]; icor++) 
+    for (int icor = 0; icor < nbx[idim]; icor++) 
     {
 	Box b = bx[idim][icor];
 #if (BL_SPACEDIM == 3)
@@ -458,7 +458,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
 #if (BL_SPACEDIM == 3)
     ax[1] = new int[nbx[1]];
-    for (iedge = 0; iedge < nbx[1]; iedge++) 
+    for (int iedge = 0; iedge < nbx[1]; iedge++) 
     {
 	ax[1][iedge] = -1;
 	if (ge[1][iedge] != ALL) 
@@ -487,7 +487,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 #endif
     
     ax[0] = new int[nbx[0]];
-    for (icor = 0; icor < nbx[0]; icor++) 
+    for (int icor = 0; icor < nbx[0]; icor++) 
     {
 	ax[0][icor] = -1;
 	if (ge[0][icor] != ALL) 
@@ -510,7 +510,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 			    }
 			}
 #endif
-			for (iedge = 0; iedge < nbx[1]; iedge++) 
+			for (int iedge = 0; iedge < nbx[1]; iedge++) 
 			{
 			    if (ax[1][iedge] == igrid) 
 			    {
