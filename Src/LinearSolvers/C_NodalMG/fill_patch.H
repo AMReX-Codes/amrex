@@ -56,4 +56,9 @@ restrict_level (MultiFab&                   dest,
                 const level_interface&      lev_interface,
                 const amr_boundary*   bdy);
 
+void
+restrict_level (MultiFab&                   dest,
+                MultiFab&                   r,
+                const IntVect&              rat);
+
 #endif /*_FILL_PATCH_H_*/

@@ -59,13 +59,15 @@ extern "C"
 #if (BL_SPACEDIM == 1)
 #error not relevant
 #endif
-    void FORT_HGGRAD_DENSE (RealPS, intS, const Real*, intS, intS, CRealPS);
+    void FORT_HGGRAD_DENSE (RealPS, intS, const Real*, intS, intS, CRealPS,
+			    const int*);
     void FORT_HGGRAD       (RealPS, intS, const Real*, intS, intS, CRealPS,
 			    const int*);
 
     void FORT_HGDIV        (Real*, intS, CRealPS, intS, intS, CRealPS,
 			    const int*, const int*);
-    void FORT_HGDIV_DENSE  (Real*, intS, CRealPS, intS, intS, CRealPS);
+    void FORT_HGDIV_DENSE  (Real*, intS, CRealPS, intS, intS, CRealPS,
+			    const int*, const int*);
 
     void FORT_HGFDIV       (Real*, intS, CRealPS, intS, CRealPS, intS, intS,
 			    CRealPS, intRS,
@@ -1629,7 +1631,7 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u,
 		    sptr, DIMLIST(sbox),
 		    D_DECL(u0ptr, u1ptr, u2ptr),
 		    DIMLIST(fbox), DIMLIST(freg),
-		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), 0, 0);
 	    }
 	    else
 	    {
@@ -2165,7 +2167,7 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>* u,
 			    gp[1].dataPtr(),
 			    gp[2].dataPtr()), DIMLIST(gbox),
 			d_mfi->dataPtr(), DIMLIST(dbox),
-			DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+			DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), 0);
 		}
 		else
 		{

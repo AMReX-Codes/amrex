@@ -4,7 +4,7 @@ c-----------------------------------------------------------------------
      &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
-     & hx, hy, hz)
+     & hx, hy, hz, idummy)
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -13,6 +13,7 @@ c-----------------------------------------------------------------------
       double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
       double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      integer idummy
       integer i, j, k
       do k = fregl2, fregh2
           do j = fregl1, fregh1
@@ -42,7 +43,7 @@ c-----------------------------------------------------------------------
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
-     & hx, hy, hz)
+     & hx, hy, hz, idummy, jdummy)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -52,6 +53,7 @@ c-----------------------------------------------------------------------
       double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision fac
+      integer idummy, jdummy
       integer i, j, k
       fac = 0.25d0
       do k = fregl2, fregh2
@@ -851,7 +853,7 @@ c-----------------------------------------------------------------------
      &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
-     & hx, hy, hz)
+     & hx, hy, hz, idummy)
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -862,6 +864,7 @@ c-----------------------------------------------------------------------
       double precision hx, hy, hz
       double precision hxm1h, hym1h, hzm1h
       integer i, j, k
+      integer idummy
       hxm1h = 0.25d0 / hx
       hym1h = 0.25d0 / hy
       hzm1h = 0.25d0 / hz
@@ -890,7 +893,7 @@ c-----------------------------------------------------------------------
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
-     & hx, hy, hz)
+     & hx, hy, hz, idummy, jdummy)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -900,6 +903,7 @@ c-----------------------------------------------------------------------
       double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision hx, hy, hz
       double precision hxm1, hym1, hzm1, fac
+      integer idummy, jdummy
       integer i, j, k
       hxm1 = 1.0D0 / hx
       hym1 = 1.0D0 / hy

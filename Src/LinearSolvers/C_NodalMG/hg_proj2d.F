@@ -4,7 +4,7 @@ c-----------------------------------------------------------------------
      &     gpl0, gph0, gpl1, gph1,
      & dest, destl0, desth0, destl1, desth1,
      &     fregl0, fregh0, fregl1, fregh1,
-     & hx, hy)
+     & hx, hy, idummy)
       integer gpl0, gph0, gpl1, gph1
       integer destl0, desth0, destl1, desth1
       integer fregl0, fregh0, fregl1, fregh1
@@ -12,6 +12,7 @@ c-----------------------------------------------------------------------
       double precision gpx(gpl0:gph0,gpl1:gph1)
       double precision gpy(gpl0:gph0,gpl1:gph1)
       double precision dest(destl0:desth0,destl1:desth1)
+      integer idummy
       integer i, j
       do j = fregl1, fregh1
          do i = fregl0, fregh0
@@ -28,7 +29,7 @@ c-----------------------------------------------------------------------
      & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     fregl0, fregh0, fregl1, fregh1,
-     & hx, hy)
+     & hx, hy, idummy, jdummy)
       integer srcl0, srch0, srcl1, srch1
       integer fl0, fh0, fl1, fh1
       integer fregl0, fregh0, fregl1, fregh1
@@ -37,6 +38,7 @@ c-----------------------------------------------------------------------
       double precision uf(fl0:fh0,fl1:fh1)
       double precision vf(fl0:fh0,fl1:fh1)
       double precision fac
+      integer idummy, jdummy
       integer i, j
       fac = 0.5d0
       do j = fregl1, fregh1

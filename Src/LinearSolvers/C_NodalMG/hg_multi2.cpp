@@ -480,25 +480,28 @@ holy_grail_amr_multigrid::alloc_sync_caches ()
 	cres_scbox = new Box*[lev_max+1];
     }
 
-    for (int lev = lev_min + 1; lev <= lev_max; ++lev)
+    // This loop kill gcc 2.95.2 under some situations.
+    for (int lev(lev_min + 1); lev <= lev_max; ++lev)
     {
+	fres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
+	fres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
 	fres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
 	fres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
 	fres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-#if (BL_SPACEDIM == 3)
-	eres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-#endif
+
+	cres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
 	cres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
 	cres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
 	cres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	
+#if (BL_SPACEDIM == 3)
+	eres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+	eres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+	eres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+	eres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+	eres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+#endif
 	build_sync_cache(ml_index[lev], lev);
     }
 }

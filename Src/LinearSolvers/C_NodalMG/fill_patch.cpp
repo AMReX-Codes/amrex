@@ -1142,6 +1142,14 @@ task_restric_fill::hint () const
 void
 restrict_level (MultiFab&                   dest,
                 MultiFab&                   r,
+                const IntVect&              rat)
+{
+  restrict_level(dest, r, rat, default_restrictor(), default_level_interface, 0);
+}
+
+void
+restrict_level (MultiFab&                   dest,
+                MultiFab&                   r,
                 const IntVect&              rat,
                 const amr_restrictor& restric,
                 const level_interface&      lev_interface,
