@@ -380,20 +380,13 @@ ifeq ($(ARCH),AIX)
       FFLAGS += -O2
       F90FLAGS += -O2
     else
-      #FFLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3 -qipa -qhot
-      FFLAGS += -O4
-      #FFLAGS += -O2 -qstrict
-      #F90FLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3 -qipa -qhot
-      #F90FLAGS += -O3 -qipa -qhot
-      F90FLAGS += -O4
-      #F90FLAGS += -O2 -qstrict
+      FFLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
+      F90FLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
     endif
   else
-#   FFLAGS += -O0
     FFLAGS += -g
     FFLAGS += -C
     FFLAGS += -qinitauto=FF
-#   F90FLAGS += -O0
     F90FLAGS += -g
     F90FLAGS += -C
     F90FLAGS += -qlanglvl=95std
