@@ -323,6 +323,7 @@ contains
     if ( built_q(mgt%rh1)           ) call destroy(mgt%rh1)
     if ( built_q(mgt%uu1)           ) call destroy(mgt%uu1)
     if ( built_q(mgt%ss1)           ) call destroy(mgt%ss1)
+    if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
   end subroutine mg_tower_destroy
 
   function max_mg_levels(ba, min_size) result(r)
