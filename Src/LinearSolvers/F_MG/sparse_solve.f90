@@ -121,7 +121,7 @@ contains
 
     ngrids = ss%nboxes
 
-    spo%Anorm = stencil_norm(ss)
+    spo%Anorm = my_stencil_norm(ss)
 
     call imultifab_build(spo%index_into_aa,la,1,2)
     call setval(spo%index_into_aa,-1,all=.true.)
@@ -503,6 +503,19 @@ contains
     call ilut_build(spo%smt, spo%sil)
 
   contains
+
+    function my_stencil_norm(ss) result(r)
+      real(dp_t) :: r
+      type(multifab), intent(in) :: ss
+
+      r = -Huge(r)
+      !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r)
+      do i = 1, ss%nboxes
+         sp => dataptr(ss, i)
+         r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
+      end do
+      !$OMP END PARALLEL DO
+    end function my_stencil_norm
 
     function get_max_neighbors_1d(rh) result(r)
       integer :: r
@@ -1592,7 +1605,7 @@ contains
 
     ngrids = ss%nboxes
 
-    spo%Anorm = stencil_norm(ss)
+    spo%Anorm = my_stencil_norm(ss)
 
 !   Build a mask with one ghost cell for use in creating aa
     call imultifab_build(mm_grown,la,1,1,mm%nodal)
@@ -1951,6 +1964,19 @@ contains
     call ilut_build(spo%smt, spo%sil)
 
   contains
+
+    function my_stencil_norm(ss) result(r)
+      real(dp_t) :: r
+      type(multifab), intent(in) :: ss
+
+      r = -Huge(r)
+      !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r)
+      do i = 1, ss%nboxes
+         sp => dataptr(ss, i)
+         r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
+      end do
+      !$OMP END PARALLEL DO
+    end function my_stencil_norm
 
     subroutine create_nodal_aa_1d(sp, mp, aa, ia, ind, inode, iedge)
       real (kind = dp_t), intent(in   ) :: sp(:,0:)
