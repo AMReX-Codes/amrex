@@ -2243,11 +2243,11 @@ contains
                      p1 = p2
                   else if ( local(mf2,j) ) then ! must send
                      p2 => dataptr(mf2, j, abx, src+n)
-                     proc = get_proc(mf2%la, i)
+                     proc = get_proc(mf1%la, i)
                      call parallel_send(p2, proc, tag)
                   else if ( local(mf1,i) ) then ! must recv
                      p1 => dataptr(mf1, i, abx, targ+n)
-                     proc = get_proc(mf1%la, j)
+                     proc = get_proc(mf2%la, j)
                      call parallel_recv(p1, proc, tag)
                   end if
                end if
@@ -2315,11 +2315,11 @@ contains
                      p1 = p2
                   else if ( local(mf2,j) ) then ! must send
                      p2 => dataptr(mf2, j, abx, src + n)
-                     proc = get_proc(mf2%la, i)
+                     proc = get_proc(mf1%la, i)
                      call parallel_send(p2, proc, tag)
                   else if ( local(mf1,i) ) then ! must recv
                      p1 => dataptr(mf1, i, abx, targ + n)
-                     proc = get_proc(mf1%la, j)
+                     proc = get_proc(mf2%la, j)
                      call parallel_recv(p1, proc, tag)
                   end if
                end if
@@ -2381,11 +2381,11 @@ contains
                   p1 = p2
                else if ( local(mf2,j) ) then ! must send
                   p2 => dataptr(mf2, j, abx)
-                  proc = get_proc(mf2%la, i)
+                  proc = get_proc(mf1%la, i)
                   call parallel_send(p2, proc, tag)
                else if ( local(mf1,i) ) then ! must recv
                   p1 => dataptr(mf1, i, abx)
-                  proc = get_proc(mf1%la, j)
+                  proc = get_proc(mf2%la, j)
                   call parallel_recv(p1, proc, tag)
                end if
             end if
@@ -2445,11 +2445,11 @@ contains
                   p1 = p2
                else if ( local(mf2,j) ) then ! must send
                   p2 => dataptr(mf2, j, abx)
-                  proc = get_proc(mf2%la, i)
+                  proc = get_proc(mf1%la, i)
                   call parallel_send(p2, proc, tag)
                else if ( local(mf1,i) ) then ! must recv
                   p1 => dataptr(mf1, i, abx)
-                  proc = get_proc(mf1%la, j)
+                  proc = get_proc(mf2%la, j)
                   call parallel_recv(p1, proc, tag)
                end if
             end if
