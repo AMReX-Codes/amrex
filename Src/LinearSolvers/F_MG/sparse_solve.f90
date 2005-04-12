@@ -1963,6 +1963,8 @@ contains
 
     call ilut_build(spo%smt, spo%sil)
 
+    call destroy(mm_grown)
+
   contains
 
     function my_stencil_norm(ss) result(r)
