@@ -402,6 +402,7 @@ contains
              end if
           end if
           call copy(uu, mgt%uu1)
+          call parallel_bcast(stat, 1)
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
