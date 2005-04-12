@@ -108,6 +108,12 @@ module parallel
   end interface parallel_test
 
   interface parallel_bcast
+     module procedure parallel_bcast_d
+     module procedure parallel_bcast_r
+     module procedure parallel_bcast_i
+     module procedure parallel_bcast_l
+     module procedure parallel_bcast_c
+     module procedure parallel_bcast_z
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
@@ -922,6 +928,78 @@ contains
 
 
   ! Broadcast
+  subroutine parallel_bcast_d(a, root, comm)
+    real(kind=dp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node; 
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_d
+  subroutine parallel_bcast_r(a, root, comm)
+    real(kind=sp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_REAL, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_r
+  subroutine parallel_bcast_i(a, root, comm)
+    integer, intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_INTEGER, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_i
+  subroutine parallel_bcast_l(a, root, comm)
+    logical, intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_LOGICAL, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_l
+  subroutine parallel_bcast_cv(a, root, comm)
+    complex(kind=sp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_COMPLEX, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_c
+  subroutine parallel_bcast_z(a, root, comm)
+    complex(kind=dp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, MPI_DOUBLE_COMPLEX, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_z
   subroutine parallel_bcast_dv(a, n, root, comm)
     real(kind=dp_t), intent(in) :: a(*)
     integer, intent(in) :: n
