@@ -136,6 +136,10 @@ module parallel
   end interface parallel_test
 
   interface parallel_bcast
+     module procedure parallel_bcast_d
+     module procedure parallel_bcast_r
+     module procedure parallel_bcast_i
+     module procedure parallel_bcast_l
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
@@ -824,6 +828,46 @@ contains
 
 
 
+  subroutine parallel_bcast_d(a, root, comm)
+    real(kind=dp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root  = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_d
+  subroutine parallel_bcast_r(a, root, comm)
+    real(kind=sp_t), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_r
+  subroutine parallel_bcast_i(a, root, comm)
+    integer, intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_i
+  subroutine parallel_bcast_l(a, root, comm)
+    logical, intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_l
   subroutine parallel_bcast_dv(a, n, root, comm)
     real(kind=dp_t), intent(in) :: a(*)
     integer, intent(in) :: n
