@@ -868,9 +868,9 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_l
-  subroutine parallel_bcast_dv(a, n, root, comm)
-    real(kind=dp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+  ! vector versions
+  subroutine parallel_bcast_dv(a, root, comm)
+    real(kind=dp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer l_comm, l_root
@@ -879,9 +879,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_dv
-  subroutine parallel_bcast_rv(a, n, root, comm)
-    real(kind=sp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_rv(a, root, comm)
+    real(kind=sp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer l_comm, l_root
@@ -890,9 +889,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_rv
-  subroutine parallel_bcast_iv(a, n, root, comm)
+  subroutine parallel_bcast_iv(a, root, comm)
     integer, intent(in) :: a(*)
-    integer, intent(in) :: n
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer l_comm, l_root
@@ -901,9 +899,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_iv
-  subroutine parallel_bcast_lv(a, n, root, comm)
-    logical, intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_lv(a, root, comm)
+    logical, intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer l_comm, l_root

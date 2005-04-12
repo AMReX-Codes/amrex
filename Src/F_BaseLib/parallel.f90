@@ -1000,9 +1000,9 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, 1, MPI_DOUBLE_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_z
+  ! vector versions
   subroutine parallel_bcast_dv(a, n, root, comm)
-    real(kind=dp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+    real(kind=dp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1011,11 +1011,10 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
   end subroutine parallel_bcast_dv
   subroutine parallel_bcast_rv(a, n, root, comm)
-    real(kind=sp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+    real(kind=sp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1024,11 +1023,10 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_REAL, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_REAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_rv
-  subroutine parallel_bcast_iv(a, n, root, comm)
-    integer, intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_iv(a, root, comm)
+    integer, intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1037,11 +1035,10 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_INTEGER, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_INTEGER, l_root, l_comm, ierr)
   end subroutine parallel_bcast_iv
-  subroutine parallel_bcast_lv(a, n, root, comm)
-    logical, intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_lv(a, root, comm)
+    logical, intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1050,11 +1047,10 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_LOGICAL, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_lv
-  subroutine parallel_bcast_cv(a, n, root, comm)
-    complex(kind=sp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_cv(a, root, comm)
+    complex(kind=sp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1063,11 +1059,10 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_COMPLEX, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_cv
-  subroutine parallel_bcast_zv(a, n, root, comm)
-    complex(kind=dp_t), intent(in) :: a(*)
-    integer, intent(in) :: n
+  subroutine parallel_bcast_zv(a, root, comm)
+    complex(kind=dp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1076,7 +1071,7 @@ contains
     if ( present(root) ) l_root = root
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    CALL MPI_Bcast(a, n, MPI_DOUBLE_COMPLEX, l_root, l_comm, ierr)
+    CALL MPI_Bcast(a, size(a), MPI_DOUBLE_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_zv
 
 
