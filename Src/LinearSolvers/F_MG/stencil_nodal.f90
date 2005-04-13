@@ -24,19 +24,19 @@ module stencil_nodal_module
 contains
 
   subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type, pd, pdv)
-    type(multifab), intent(inout) :: ss
-    type(multifab), intent(inout) :: sg
-    real(kind=dp_t), intent(in)   :: dh_local(:), dh(:)
-    type(box), intent(in) :: pd
-    type(boxarray), intent(in) :: pdv
+    type(multifab ), intent(inout) :: ss
+    type(multifab ), intent(inout) :: sg
+    real(kind=dp_t), intent(in   ) :: dh_local(:), dh(:)
+    type(box      ), intent(in   ) :: pd
+    type(boxarray ), intent(in   ) :: pdv
     type(imultifab), intent(inout) :: mask
-    integer, intent(in)            :: face_type(:,:,:)
+    integer        , intent(in   ) :: face_type(:,:,:)
 
-    type(box     ) :: bx
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
-    integer, pointer :: mp(:,:,:,:)
-    integer :: i
+    integer        , pointer :: mp(:,:,:,:)
+    type(box)                :: bx
+    integer                  :: i
 
 !   Do this just to set everything in the mask to zero.
     call setval(mask,BC_INT)
@@ -50,26 +50,89 @@ contains
 
        bx = get_box(mask,i)
 
+       call stencil_set_bc_nodal(mask%fbs(i), face_type(i,:,:), bx, pdv)
+
        select case (ss%dim)
        case (1)
           call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
           call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
-                                 face_type(i,:,:), dh, bx, pd, pdv)
+                                 face_type(i,:,:), dh)
        case (3)
           call s_simple_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
-                                 face_type(i,:,:), dh, dh_local, bx, pd, pdv)
+                                 face_type(i,:,:), dh, dh_local)
        end select
     end do
 
   end subroutine stencil_fill_nodal
 
+  subroutine stencil_set_bc_nodal(mask, face_type, bx, pdv)
+    type(ifab)        , intent(inout) :: mask
+    integer           , intent(in   ) :: face_type(:,:)
+    type(box         ), intent(in   ) :: bx
+    type(boxarray    ), intent(in   ) :: pdv
+
+    integer, pointer :: mp(:,:,:,:)
+    type(box    )    :: bx1,bx2
+    type(boxarray)   :: ba
+    logical          :: nodal(bx%dim)
+    integer          :: ii,dm,ib,jb,kb,jb_lo,kb_lo
+
+    nodal = .true.
+
+    ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
+    do dm = 1, bx%dim
+       ! Lo side
+       bx1 = box_nodalize(bx,nodal)
+       bx1%hi(dm) = bx1%lo(dm)
+       mp => dataptr(mask,bx1)
+       if (face_type(dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU,dm,-1))
+       if (face_type(dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR, 1, 0))
+
+      ! Hi side
+      bx1 = box_nodalize(bx,nodal)
+      bx1%lo(dm) = bx1%hi(dm)
+      mp => dataptr(mask,bx1)
+      if (face_type(dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU,dm,+1))
+      if (face_type(dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR, 1, 0))
+    end do
+
+    ! Set the mask to BC_DIR at coarse-fine boundaries.
+
+    jb_lo = -1
+    kb_lo = -1
+    if (dm .lt. 2) jb_lo = 1
+    if (dm .lt. 3) kb_lo = 1
+
+    do kb = kb_lo, 1
+      do jb = jb_lo, 1
+        do ib = -1, 1
+          bx1 = shift(bx,ib,1)
+          if (dm > 1) bx1 = shift(bx1,jb,2)
+          if (dm > 2) bx1 = shift(bx1,kb,3)
+          call boxarray_boxarray_diff(ba, bx1, pdv)
+          do ii = 1, ba%nboxes
+             bx2 = ba%bxs(ii)
+             bx1 = box_intersection(box_nodalize(bx2,nodal),box_nodalize(bx,nodal))
+             if (.not. empty(bx1)) then
+               mp => dataptr(mask,bx1)
+               mp = ibset(mp, BC_BIT(BC_DIR,1,0))
+             end if
+          end do
+          call destroy(ba)
+        end do
+      end do
+    end do
+
+  end subroutine stencil_set_bc_nodal
+
   subroutine s_simple_1d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:)
-    integer           , intent(inout) :: mm(:)
+    integer           , intent(in   ) :: mm(:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer, intent(in)               :: face_type(:)
+    integer           , intent(in   ) :: face_type(:)
+
     integer i,nx
     real (kind = dp_t) f1
 
@@ -84,36 +147,19 @@ contains
        ss(i,2) = -sg(i-1)*f1
     end do
 
-    if (face_type(1) == BC_NEU) then
-       mm( 1) = ibset(mm(1),BC_BIT(BC_NEU,1,-1))
-    else if (face_type(1) == BC_DIR) then
-       mm( 1) = ibset(mm(1),BC_BIT(BC_DIR,1,0))
-    end if
-
-    if (face_type(2) == BC_NEU) then
-       mm(nx) = ibset(mm(1),BC_BIT(BC_NEU,1,+1))
-    else if (face_type(2) == BC_DIR) then
-       mm(nx) = ibset(mm(1),BC_BIT(BC_DIR,1,0))
-    end if
-
     if (bc_neumann(mm( 1),1,-1)) sg( 0) = sg(   1)
     if (bc_neumann(mm(nx),1,+1)) sg(nx) = sg(nx-1)
 
   end subroutine s_simple_1d_nodal
 
-  subroutine s_simple_2d_nodal(ss, sg, mm, face_type, dh, bx, pd, pdv)
+  subroutine s_simple_2d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
-    integer           , intent(inout) :: mm(:,:)
-    integer, intent(in)               :: face_type(:,:)
+    integer           , intent(in   ) :: mm(:,:)
+    integer           , intent(in   ) :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    type(box     ), intent(in) :: bx
-    type(box     ), intent(in) :: pd
-    type(boxarray), intent(in) :: pdv
 
-    type(box    )  :: bx1
-    type(boxarray) :: ba
-    integer :: i, j, ib, jb, ilo, jlo, ii, nx, ny
+    integer            :: i, j, nx, ny
     real (kind = dp_t) :: fx, fy
 
 !   fx = HALF*THIRD/dh(1)**2
@@ -124,71 +170,6 @@ contains
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
-
-    ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
-    if (face_type(2,1) == BC_NEU) &
-        mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_NEU,2,-1))
-    if (face_type(2,1) == BC_DIR) &
-        mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(2,2) == BC_NEU) &
-        mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_NEU,2,+1))
-    if (face_type(2,2) == BC_DIR) &
-        mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(1,1) == BC_NEU) &
-        mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_NEU,1,-1))
-    if (face_type(1,1) == BC_DIR) &
-        mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_DIR,1,0))
-    
-    if (face_type(1,2) == BC_NEU) &
-        mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_NEU,1,+1))
-    if (face_type(1,2) == BC_DIR) &
-        mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_DIR,1,0))
-
-    ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
-    ilo = bx%lo(1)
-    jlo = bx%lo(2)
-
-    do jb = -1, 1
-         do ib = -1, 1
-          bx1 = shift(bx,  jb, 2)
-          bx1 = shift(bx1, ib, 1)
-          call boxarray_boxarray_diff(ba, bx1, pdv)
-
-          do ii = 1, ba%nboxes
-             bx1 = ba%bxs(ii)
-             if (box_contains(pd,bx1)) then
-               if (ib == -1 .and. jb == 0) then
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                   mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
-                 end do
-               else if (ib == 1 .and. jb ==  0) then
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                   mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_DIR,1,0))
-                 end do
-               else if (ib == 0 .and. jb == -1) then
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,1) = ibset(mm(i,1),BC_BIT(BC_DIR,1,0))
-                 end do
-               else if (ib == 0 .and. jb ==  1) then
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_DIR,1,0))
-                 end do
-               else if (ib == -1 .and. jb == -1) then
-                   mm(1,1) = ibset(mm(1,1),BC_BIT(BC_DIR,1,0))
-               else if (ib == -1 .and. jb == +1) then
-                   mm(1,ny) = ibset(mm(1,ny),BC_BIT(BC_DIR,1,0))
-               else if (ib == +1 .and. jb == -1) then
-                   mm(nx,1) = ibset(mm(nx,1),BC_BIT(BC_DIR,1,0))
-               else if (ib == +1 .and. jb == +1) then
-                   mm(nx,ny) = ibset(mm(nx,ny),BC_BIT(BC_DIR,1,0))
-               end if
-             end if
-          end do
-          call destroy(ba)
-       end do
-    end do
 
     ! Set sg on edges at a Neumann boundary.
     do i = 1,nx-1
@@ -239,15 +220,12 @@ contains
 
   end subroutine s_simple_2d_nodal
 
-  subroutine s_simple_3d_nodal(ss, sg, mm, face_type, dh, dh_local, bx, pd, pdv)
+  subroutine s_simple_3d_nodal(ss, sg, mm, face_type, dh, dh_local)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
-    type(box     ), intent(in) :: bx
-    type(box     ), intent(in) :: pd
-    type(boxarray), intent(in) :: pdv
 
     type(box     ) :: bx1
     type(boxarray) :: ba
@@ -276,92 +254,6 @@ contains
 !       1  2  3       9 23  10     13 14 15
 !
 !   END STENCIL
-
-    ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
-    if (face_type(1,1) == BC_NEU) &
-       mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_NEU,1,-1))
-    if (face_type(1,1) == BC_DIR) &
-       mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(1,2) == BC_NEU) &
-       mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_NEU,1,+1))
-    if (face_type(1,2) == BC_DIR) &
-       mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(2,1) == BC_NEU) &
-       mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_NEU,2,-1))
-    if (face_type(2,1) == BC_DIR) &
-       mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(2,2) == BC_NEU) &
-       mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_NEU,2,+1))
-    if (face_type(2,2) == BC_DIR) &
-       mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(3,1) == BC_NEU) &
-       mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_NEU,3,-1))
-    if (face_type(3,1) == BC_DIR) &
-       mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_DIR,1,0))
-
-    if (face_type(3,2) == BC_NEU) &
-       mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_NEU,3,+1))
-    if (face_type(3,2) == BC_DIR) &
-       mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_DIR,1,0))
-
-    ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
-    ilo = bx%lo(1)
-    jlo = bx%lo(2)
-    klo = bx%lo(3)
-    do ib = 1, bx%dim
-       do jb = -1, 1, 2
-          bx1 = shift(bx, jb, ib)
-          jj = (3 + jb)/2
-          call boxarray_boxarray_diff(ba, bx1, pdv)
-          do ii = 1, ba%nboxes
-             bx1 = ba%bxs(ii)
-             if (box_contains(pd,bx1)) then
-               if (ib == 1 .and. jb == -1) then
-                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                   mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               else if (ib == 1 .and. jb ==  1) then
-                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                   mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               else if (ib == 2 .and. jb == -1) then
-                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,1,k) = ibset(mm(i,1,k),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               else if (ib == 2 .and. jb ==  1) then
-                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               else if (ib == 3 .and. jb == -1) then
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,j,1) = ibset(mm(i,j,1),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               else if (ib == 3 .and. jb ==  1) then
-                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
-                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
-                   mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
-                 end do
-                 end do
-               end if
-             end if
-          end do
-          call destroy(ba)
-       end do
-    end do
 
     ! Set sg on faces at a Neumann boundary.
     do j = 1,ny-1
