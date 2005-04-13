@@ -976,7 +976,7 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, 1, MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_l
-  subroutine parallel_bcast_cv(a, root, comm)
+  subroutine parallel_bcast_c(a, root, comm)
     complex(kind=sp_t), intent(in) :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
@@ -1001,7 +1001,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_DOUBLE_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_z
   ! vector versions
-  subroutine parallel_bcast_dv(a, n, root, comm)
+  subroutine parallel_bcast_dv(a, root, comm)
     real(kind=dp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
@@ -1013,7 +1013,7 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, size(a), MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
   end subroutine parallel_bcast_dv
-  subroutine parallel_bcast_rv(a, n, root, comm)
+  subroutine parallel_bcast_rv(a, root, comm)
     real(kind=sp_t), intent(in) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
