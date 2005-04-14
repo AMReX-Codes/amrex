@@ -23,105 +23,106 @@ module stencil_nodal_module
 
 contains
 
-  subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type, pd, pdv)
+  subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type)
     type(multifab ), intent(inout) :: ss
     type(multifab ), intent(inout) :: sg
     real(kind=dp_t), intent(in   ) :: dh_local(:), dh(:)
-    type(box      ), intent(in   ) :: pd
-    type(boxarray ), intent(in   ) :: pdv
     type(imultifab), intent(inout) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
 
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    type(box)                :: bx
     integer                  :: i
-
-!   Do this just to set everything in the mask to zero.
+    !
+    ! Do this just to set everything in the mask to zero.
+    !
     call setval(mask,BC_INT)
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
 
-       sp => dataptr(ss, i)
-       cp => dataptr(sg, i)
+       sp => dataptr(ss,   i)
+       cp => dataptr(sg,   i)
        mp => dataptr(mask, i)
 
-       bx = get_box(mask,i)
-
-       call stencil_set_bc_nodal(mask%fbs(i), face_type(i,:,:), bx, pdv)
+       call stencil_set_bc_nodal(ss, i, mask, face_type)
 
        select case (ss%dim)
        case (1)
           call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
-          call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
-                                 face_type(i,:,:), dh)
+          call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
        case (3)
-          call s_simple_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
-                                 face_type(i,:,:), dh, dh_local)
+          call s_simple_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), face_type(i,:,:), dh, dh_local)
        end select
     end do
 
   end subroutine stencil_fill_nodal
 
-  subroutine stencil_set_bc_nodal(mask, face_type, bx, pdv)
-    type(ifab)        , intent(inout) :: mask
-    integer           , intent(in   ) :: face_type(:,:)
-    type(box         ), intent(in   ) :: bx
-    type(boxarray    ), intent(in   ) :: pdv
+  subroutine stencil_set_bc_nodal(ss, idx, mask, face_type)
+    type(multifab),  intent(in)    :: ss
+    type(imultifab), intent(inout) :: mask
+    integer,         intent(in)    :: idx
+    integer,         intent(in)    :: face_type(:,:,:)
 
     integer, pointer :: mp(:,:,:,:)
-    type(box    )    :: bx1,bx2
+    type(box)        :: bx, bx1, bx2
     type(boxarray)   :: ba
-    logical          :: nodal(bx%dim)
-    integer          :: ii,dm,ib,jb,kb,jb_lo,kb_lo
+    integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo
 
-    nodal = .true.
-
+    bx = get_box(ss,idx)
+    !
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
+    ! Unless we're periodic and have a fine grid on the opposite side.
+    !
     do dm = 1, bx%dim
+       !
        ! Lo side
-       bx1 = box_nodalize(bx,nodal)
+       !
+       bx1 = box_nodalize(bx, ss%nodal)
        bx1%hi(dm) = bx1%lo(dm)
-       mp => dataptr(mask,bx1)
-       if (face_type(dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU,dm,-1))
-       if (face_type(dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR, 1, 0))
-
-      ! Hi side
-      bx1 = box_nodalize(bx,nodal)
-      bx1%lo(dm) = bx1%hi(dm)
-      mp => dataptr(mask,bx1)
-      if (face_type(dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU,dm,+1))
-      if (face_type(dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR, 1, 0))
+       mp => dataptr(mask%fbs(idx), bx1)
+       if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
+       if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       !
+       ! Hi side
+       !
+       bx1 = box_nodalize(bx, ss%nodal)
+       bx1%lo(dm) = bx1%hi(dm)
+       mp => dataptr(mask%fbs(idx), bx1)
+       if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
+       if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       !
+       ! TODO -- periodic goes here!!!
+       !
     end do
-
+    !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
-
+    !
     jb_lo = -1
     kb_lo = -1
     if (dm .lt. 2) jb_lo = 1
     if (dm .lt. 3) kb_lo = 1
 
     do kb = kb_lo, 1
-      do jb = jb_lo, 1
-        do ib = -1, 1
-          bx1 = shift(bx,ib,1)
-          if (dm > 1) bx1 = shift(bx1,jb,2)
-          if (dm > 2) bx1 = shift(bx1,kb,3)
-          call boxarray_boxarray_diff(ba, bx1, pdv)
-          do ii = 1, ba%nboxes
-             bx2 = ba%bxs(ii)
-             bx1 = box_intersection(box_nodalize(bx2,nodal),box_nodalize(bx,nodal))
-             if (.not. empty(bx1)) then
-               mp => dataptr(mask,bx1)
-               mp = ibset(mp, BC_BIT(BC_DIR,1,0))
-             end if
+       do jb = jb_lo, 1
+          do ib = -1, 1
+             bx1 = shift(bx,ib,1)
+             if (dm > 1) bx1 = shift(bx1,jb,2)
+             if (dm > 2) bx1 = shift(bx1,kb,3)
+             call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
+             do ii = 1, ba%nboxes
+                bx2 = ba%bxs(ii)
+                bx1 = box_intersection(box_nodalize(bx2,ss%nodal), box_nodalize(bx,ss%nodal))
+                if (.not. empty(bx1)) then
+                   mp => dataptr(mask%fbs(idx), bx1)
+                   mp = ibset(mp, BC_BIT(BC_DIR,1,0))
+                end if
+             end do
+             call destroy(ba)
           end do
-          call destroy(ba)
-        end do
-      end do
+       end do
     end do
 
   end subroutine stencil_set_bc_nodal
