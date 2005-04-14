@@ -1795,8 +1795,8 @@ contains
 
        spo%smt%ia(inode) = iedge
 
-       call imultifab_fill_boundary(spo%index_into_aa)
        call copy_nodal_ind_on_intersect(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -1960,7 +1960,7 @@ contains
     ! complete the definition of smt
     spo%smt%numa = num_aa
     spo%smt%nrow = numpts
-
+    
     call ilut_build(spo%smt, spo%sil)
 
     call destroy(mm_grown)
@@ -2590,9 +2590,11 @@ contains
         ibx = get_ibox(ind,igrid)
 
         do jgrid = 1,ngrids
+         if (jgrid .ne. igrid) then
          jbx = get_ibox(ind,jgrid)
 
          abx = intersection(ibx,jbx)
+
          if (.not. empty(abx)) then
            ind_i => dataptr(ind, igrid)
            ind_j => dataptr(ind, jgrid)
@@ -2630,6 +2632,7 @@ contains
              end select
            end if
          end if
+        end if
         end do
        end do
     end if
