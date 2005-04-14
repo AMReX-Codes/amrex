@@ -1693,8 +1693,8 @@ contains
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
-       call imultifab_fill_boundary(spo%index_into_aa)
        call copy_nodal_ind_on_intersect(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -1918,8 +1918,8 @@ contains
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
-       call imultifab_fill_boundary(spo%index_into_aa)
        call copy_nodal_ind_on_intersect(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa)
 
        allocate(spo%smt%ja(num_aa))
 
