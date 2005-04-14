@@ -197,12 +197,12 @@ contains
     end if
   end function bc_pretty_bit
 
-  subroutine mask_pretty_print(mf, str, unit, all, data, skip)
+  subroutine mask_pretty_print(mf, str, unit, all, data, skip, nodal)
     use bl_IO_module
     type(imultifab), intent(in) :: mf
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
-    logical, intent(in), optional :: all, data
+    logical, intent(in), optional :: all, data, nodal
     integer, intent(in), optional :: skip
     integer :: i, ii
     integer :: un
@@ -230,27 +230,29 @@ contains
           do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
              write(unit=fn, fmt='(i5)') i
              call mask_pretty_print_fab(mf%fbs(i), str = fn, unit = unit, &
-                  all = all, data = data, skip = unit_get_skip(skip) + 2)
+                  all = all, data = data, skip = unit_get_skip(skip) + 2, &
+                  nodal = nodal)
           end do
        end if
        call parallel_barrier()
     end do
   end subroutine mask_pretty_print
 
-  subroutine mask_pretty_print_fab(fb, str, unit, all, data, bx, skip)
+  subroutine mask_pretty_print_fab(fb, str, unit, all, data, bx, skip, nodal)
     use bl_IO_module
     type(ifab), intent(in) :: fb
     character(len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
-    logical, intent(in), optional :: all, data
+    logical, intent(in), optional :: all, data, nodal
     integer, intent(in), optional :: skip
     type(box), intent(in), optional :: bx
     integer :: un
-    logical :: lall, ldata
+    logical :: lall, ldata, lnodal
     type(box) :: lbx
     lbx  = box_allbox(fb%dim); if ( present(bx) ) lbx  = bx
     lall = .TRUE.; if ( present(all) ) lall = all
     ldata = .TRUE.; if ( present(data) ) ldata = data
+    lnodal = .FALSE.; if ( present(nodal) ) lnodal = nodal
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un, fmt='("IFAB")', advance = 'no')
@@ -280,20 +282,21 @@ contains
     else
        select case (fb%dim)
        case (1)
-          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
        case (2)
-          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
        case (3)
-          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
        end select
     end if
 
   contains
 
-    subroutine print_1d(fb, lo, bx)
+    subroutine print_1d(fb, lo, bx, lnodal)
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       integer, intent(in) :: fb(lo(1):,:)
+      logical, intent(in) :: lnodal
       integer n, i
       integer nc, hi(1)
       character(len=1) c
@@ -306,18 +309,29 @@ contains
                c = ' '
                if ( .not. contains(bx, (/i/)) ) c = '*'
                call unit_skip(un, skip)
-               write(unit=un, fmt='(A1,1X,I3,1(1X,I5),1X,A2,A2)') &
-                    c, n, i, &
-                    bc_pretty_bit(fb(i,n),1,-1), bc_pretty_bit(fb(i,n),1,1)
+
+               if ( lnodal ) then
+                  write(unit=un, fmt='(A1,1X,I3,1(1X,I5),1X,A2,A2,A2)') &
+                       c, n, i, &
+                       bc_pretty_bit(fb(i,n),1, 0), &
+                       bc_pretty_bit(fb(i,n),1,-1), bc_pretty_bit(fb(i,n),1,1)
+               else
+                  write(unit=un, fmt='(A1,1X,I3,1(1X,I5),1X,A2,A2)') &
+                       c, n, i, &
+                       bc_pretty_bit(fb(i,n),1,-1), bc_pretty_bit(fb(i,n),1,1)
+               end if
+
+
             end do
          end do
       end if
     end subroutine print_1d
 
-    subroutine print_2d(fb, lo, bx)
+    subroutine print_2d(fb, lo, bx, lnodal)
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       integer, intent(in) :: fb(lo(1):,lo(2):,:)
+      logical, intent(in) :: lnodal
       integer n, j, i
       integer nc, hi(2)
       character(len=1) c
@@ -333,20 +347,31 @@ contains
                   c = ' '
                   if ( .not. contains(bx, (/i,j/)) ) c = '*'
                   call unit_skip(un, skip)
-                  write(unit=un, fmt='(A1,1X,I3,2(1X,I5),1X,A2,A2,A2,A2)') &
-                       c, n, i, j, &
-                       bc_pretty_bit(fb(i,j,n),1,-1), bc_pretty_bit(fb(i,j,n),1,1), &
-                       bc_pretty_bit(fb(i,j,n),2,-1), bc_pretty_bit(fb(i,j,n),2,1)
+
+                  if ( lnodal) then
+                     write(unit=un, fmt='(A1,1X,I3,2(1X,I5),1X,A2,A2,A2,A2,A2)') &
+                          c, n, i, j, &
+                          bc_pretty_bit(fb(i,j,n),1, 0), &
+                          bc_pretty_bit(fb(i,j,n),1,-1), bc_pretty_bit(fb(i,j,n),1,1), &
+                          bc_pretty_bit(fb(i,j,n),2,-1), bc_pretty_bit(fb(i,j,n),2,1)
+                  else
+                     write(unit=un, fmt='(A1,1X,I3,2(1X,I5),1X,A2,A2,A2,A2)') &
+                          c, n, i, j, &
+                          bc_pretty_bit(fb(i,j,n),1,-1), bc_pretty_bit(fb(i,j,n),1,1), &
+                          bc_pretty_bit(fb(i,j,n),2,-1), bc_pretty_bit(fb(i,j,n),2,1)
+                  end if
+
                end do
             end do
          end do
       end if
     end subroutine print_2d
 
-    subroutine print_3d(fb, lo, bx)
+    subroutine print_3d(fb, lo, bx, lnodal)
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       integer, intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
+      logical, intent(in) :: lnodal
       integer :: n, k, j, i
       integer :: nc, hi(3)
       character(len=1) :: c
@@ -363,11 +388,22 @@ contains
                      c = ' '
                      if ( .not. contains(bx, (/i,j,k/)) ) c = '*'
                      call unit_skip(un, skip)
-                     write(unit=un, fmt='(A1,1X,I3,3(1X,I5),1X,A2,A2,A2,A2,A2,A2)') &
-                          c, n, i, j, k, &
-                          bc_pretty_bit(fb(i,j,k,n),1,-1), bc_pretty_bit(fb(i,j,k,n),1,1), &
-                          bc_pretty_bit(fb(i,j,k,n),2,-1), bc_pretty_bit(fb(i,j,k,n),2,1), &
-                          bc_pretty_bit(fb(i,j,k,n),3,-1), bc_pretty_bit(fb(i,j,k,n),3, 1)
+
+                     if ( lnodal) then
+                        write(unit=un, fmt='(A1,1X,I3,3(1X,I5),1X,A2,A2,A2,A2,A2,A2,A2)') &
+                             c, n, i, j, k, &
+                             bc_pretty_bit(fb(i,j,k,n),1, 0),  &
+                             bc_pretty_bit(fb(i,j,k,n),1,-1), bc_pretty_bit(fb(i,j,k,n),1,1), &
+                             bc_pretty_bit(fb(i,j,k,n),2,-1), bc_pretty_bit(fb(i,j,k,n),2,1), &
+                             bc_pretty_bit(fb(i,j,k,n),3,-1), bc_pretty_bit(fb(i,j,k,n),3, 1)
+                     else
+                        write(unit=un, fmt='(A1,1X,I3,3(1X,I5),1X,A2,A2,A2,A2,A2,A2)') &
+                             c, n, i, j, k, &
+                             bc_pretty_bit(fb(i,j,k,n),1,-1), bc_pretty_bit(fb(i,j,k,n),1,1), &
+                             bc_pretty_bit(fb(i,j,k,n),2,-1), bc_pretty_bit(fb(i,j,k,n),2,1), &
+                             bc_pretty_bit(fb(i,j,k,n),3,-1), bc_pretty_bit(fb(i,j,k,n),3, 1)
+                     end if
+
                   end do
                end do
             end do
