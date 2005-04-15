@@ -111,6 +111,7 @@ contains
              bx1 = shift(bx,ib,1)
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
+             bx1 = box_intersection(bx1,ss%la%lap%pd)
              call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
              do ii = 1, ba%nboxes
                 bx2 = ba%bxs(ii)
