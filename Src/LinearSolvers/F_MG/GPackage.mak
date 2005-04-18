@@ -14,6 +14,7 @@ f90sources += ml_interface_stencil.f90
 f90sources += ml_prolongation.f90
 f90sources += ml_restriction.f90
 f90sources += ml_util.f90
+f90sources += ml_nd.f90
 
 include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
