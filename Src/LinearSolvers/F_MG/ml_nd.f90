@@ -1,6 +1,7 @@
 module ml_nd_module
 
   use BoxLib
+  use bl_constants_module
   use omp_module
   use f2kcli
   use stencil_module
@@ -16,10 +17,6 @@ module ml_nd_module
   use ml_interface_stencil_module
   use ml_util_module
   use bndry_reg_module
-
-  real(kind=dp_t), parameter ::  ONE = 1.0_dp_t
-  real(kind=dp_t), parameter :: ZERO = 0.0_dp_t
-  real(kind=dp_t), parameter :: HALF = 0.5_dp_t
 
 contains
 
