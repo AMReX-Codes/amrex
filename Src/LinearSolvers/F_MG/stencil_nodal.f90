@@ -58,6 +58,8 @@ contains
        end select
     end do
 
+    call mask_pretty_print(mask, "mask", nodal = .true.)
+
   end subroutine stencil_fill_nodal
 
   subroutine stencil_set_bc_nodal(ss, idx, mask, face_type)
@@ -67,43 +69,50 @@ contains
     integer,         intent(in)    :: face_type(:,:,:)
 
     integer, pointer :: mp(:,:,:,:)
-    type(box)        :: bx, bx1, bx2
-    type(boxarray)   :: ba
+    type(box)        :: bx, bx1, nbx
+    type(boxarray)   :: ba, dba, pba
     integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo
 
-    bx = get_box(ss,idx)
+    type(box)        :: bxs(3**ss%dim), sbx
+    integer          :: shft(3**ss%dim,ss%dim), cnt, i, j
+
+    bx  = get_box(ss,idx)
+    nbx = get_ibox(ss, idx)
+
+!call box_print(nbx, 'nbx in stencil_set_bc_nodal')
+
     !
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
-    ! Unless we're periodic and have a fine grid on the opposite side.
     !
     do dm = 1, bx%dim
        !
        ! Lo side
        !
-       bx1 = box_nodalize(bx, ss%nodal)
+       bx1 = nbx
        bx1%hi(dm) = bx1%lo(dm)
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
-       if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       if (face_type(idx,dm,1) == BC_DIR) then
+          mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+          call boxarray_add_clean(dba, bx1)
+       end if
        !
        ! Hi side
        !
-       bx1 = box_nodalize(bx, ss%nodal)
+       bx1 = nbx
        bx1%lo(dm) = bx1%hi(dm)
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
-       if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
-       !
-       ! TODO -- periodic goes here!!!
-       !
+       if (face_type(idx,dm,2) == BC_DIR) then
+          mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+          call boxarray_add_clean(dba, bx1)
+       end if
     end do
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
     !
-    jb_lo = -1
-    kb_lo = -1
-    if (dm .lt. 2) jb_lo = 1
-    if (dm .lt. 3) kb_lo = 1
+    jb_lo = -1; if (dm .lt. 2) jb_lo = 1
+    kb_lo = -1; if (dm .lt. 3) kb_lo = 1
 
     do kb = kb_lo, 1
        do jb = jb_lo, 1
@@ -111,11 +120,10 @@ contains
              bx1 = shift(bx,ib,1)
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
-             bx1 = box_intersection(bx1,ss%la%lap%pd)
+             bx1 = box_intersection(bx1, ss%la%lap%pd)
              call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
              do ii = 1, ba%nboxes
-                bx2 = ba%bxs(ii)
-                bx1 = box_intersection(box_nodalize(bx2,ss%nodal), box_nodalize(bx,ss%nodal))
+                bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
                 if (.not. empty(bx1)) then
                    mp => dataptr(mask%fbs(idx), bx1)
                    mp = ibset(mp, BC_BIT(BC_DIR,1,0))
@@ -125,6 +133,31 @@ contains
           end do
        end do
     end do
+    !
+    ! Reset any Fine-Fine boundaries due to periodicity.
+    !
+    call multifab_internal_sync_shift(ss%la%lap%pd, nbx, ss%la%lap%pmask, ss%nodal, shft, cnt)
+
+    do i = 2, cnt
+       sbx = shift(nbx, shft(i,:))
+       do j = 1, ss%nboxes
+          bx1 = intersection(get_ibox(ss,j), sbx)
+          if ( .not. empty(bx1) ) then
+             bx1 = shift(bx1, -shft(i,:))
+             call boxarray_boxarray_diff(pba, bx1, dba)
+             do ii = 1, pba%nboxes
+                mp => dataptr(mask%fbs(idx), pba%bxs(ii))
+                mp = BC_INT
+!                call box_print(pba%bxs(ii), "clear")
+             end do
+             call destroy(pba)
+          end if
+       end do
+    end do
+
+!    call boxarray_print(dba, "dba")
+
+    if ( built_q(dba) ) call destroy(dba)
 
   end subroutine stencil_set_bc_nodal
 
