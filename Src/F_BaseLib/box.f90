@@ -1110,7 +1110,7 @@ contains
     type(box), intent(out) :: bxs(:)
 
     type(box) :: dom, bx, src
-    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk
+    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
 
     cnt = 0
 
@@ -1121,12 +1121,14 @@ contains
 
     if (contains(dom,bx)) return
 
+    l(:) = 0; where(nodal) l = 1
+
     nbeg = 0
     nend = 0
     nbeg(1:bx%dim) = -1
     nend(1:bx%dim) = +1
 
-    ldom = (/ extent(dom,1),extent(dom,2),extent(dom,3) /)
+    ldom = (/ extent(dom,1)-l(1), extent(dom,2)-l(2), extent(dom,3)-l(3) /)
 
     do ri = nbeg(1), nend(1)
        if (ri /= 0 .and. (.not. is_periodic(1))) cycle
