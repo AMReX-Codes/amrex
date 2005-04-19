@@ -151,48 +151,4 @@ contains
     end if
   end subroutine bl_assert_v
 
-  function bl_assert_eq2(n1, n2, str)
-    character(len=*), intent(in) :: str
-    integer, intent(in) :: n1, n2
-    integer :: bl_assert_eq2
-    if ( n1 == n2 ) then
-       bl_assert_eq2 = n1
-    else
-       call bl_error("ASSERTION FAILED:e2: ", str)
-    end if
-  end function bl_assert_eq2
-
-  function bl_assert_eq3(n1, n2, n3, str)
-    character(len=*), intent(in) :: str
-    integer, intent(in) :: n1, n2, n3
-    integer :: bl_assert_eq3
-    if ( n1 == n2 .and. n2 == n3 ) then
-       bl_assert_eq3 = n1
-    else
-       call bl_error("ASSERTION FAILED:e3: ", str)
-    end if
-  end function bl_assert_eq3
-
-  function bl_assert_eq4(n1, n2, n3, n4, str)
-    character(len=*), intent(in) :: str
-    integer, intent(in) :: n1, n2, n3, n4
-    integer :: bl_assert_eq4
-    if ( n1 == n2 .and. n2 == n3 .and. n3 == n4 ) then
-       bl_assert_eq4 = n1
-    else
-       call bl_error("ASSERTION FAILED:e4: ", str)
-    end if
-  end function bl_assert_eq4
-
-  function bl_assert_eqn(nn, str)
-    character(len=*), intent(in) :: str
-    integer, dimension(:), intent(in) :: nn
-    integer :: bl_assert_eqn
-    if ( all(nn(2:) == nn(1)) ) then
-       bl_assert_eqn = nn(1)
-    else
-       call bl_error("ASSERTION FAILED:ev: ", str)
-    end if
-  end function bl_assert_eqn
-
 end module bl_error_module

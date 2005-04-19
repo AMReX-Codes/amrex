@@ -684,10 +684,18 @@ contains
     call destroy(bl)
   end subroutine boxarray_box_diff
 
+  ! a retro name
+  subroutine boxarray_complementIn(ba, bx, ba1)
+    type(boxarray), intent(out) :: ba
+    type(boxarray), intent(in) :: ba1
+    type(box),intent(in) :: bx
+    call boxarray_boxarray_diff(ba, bx, ba1)
+  end subroutine boxarray_complementIn
+
   subroutine boxarray_boxarray_diff(ba, bx, ba1)
     type(boxarray), intent(out) :: ba
     type(boxarray), intent(in) :: ba1
-    type(box) :: bx
+    type(box), intent(in) :: bx
     type(list_box) :: bl1, bl
     call build(bl1, ba1%bxs)
     bl = boxlist_boxlist_diff(bx, bl1)
