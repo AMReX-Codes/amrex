@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.138 2005-03-30 01:49:01 welcome Exp $
+// $Id: Amr.cpp,v 1.139 2005-04-19 21:04:20 car Exp $
 //
 #include <winstd.H>
 
@@ -38,6 +38,13 @@
 std::list<std::string> Amr::state_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile = true;
+
+namespace
+{
+  bool plot_files_output = true;
+  bool checkpoint_files_output = true;
+}
+
 //
 // I now want to add a version string to the checkpoint file.
 //
@@ -292,6 +299,9 @@ Amr::Amr ()
 
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+
+    pp.query("checkpoint_files_output", checkpoint_files_output);
+    pp.query("plot_files_output", plot_files_output);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -684,6 +694,7 @@ Amr::writePlotFile (const std::string& root,
                     int                num)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::writePlotFile()");
+    if ( ! plot_files_output ) return;
 
     if (first_plotfile) 
     {
@@ -1125,6 +1136,7 @@ void
 Amr::checkPoint ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::checkPoint()");
+    if ( ! checkpoint_files_output ) return;
     //
     // In checkpoint files always write out FABs in NATIVE format.
     //
@@ -2020,14 +2032,7 @@ Amr::grid_places (int              lbase,
             //
             new_bx.refine(ref_ratio[levc]);
 
-            if (!new_bx.isDisjoint())
-            {
-                std::cout << "WARNING: new grids at level "
-                          << levf
-                          << " not disjoint:\n"
-                          << new_bx
-                          << '\n';
-            }
+            BL_ASSERT(new_bx.isDisjoint());
             new_grids[levf].define(new_bx);
         }
         //
