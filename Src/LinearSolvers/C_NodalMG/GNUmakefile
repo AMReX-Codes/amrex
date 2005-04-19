@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.51 2002-09-04 15:29:53 car Exp $
+# $Id: GNUmakefile,v 1.52 2005-04-19 20:42:24 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -10,8 +10,8 @@ DEBUG     = FALSE
 DEBUG     = TRUE
 PROFILE   = TRUE
 PROFILE   = FALSE
-DIM       = 3
 DIM       = 2
+DIM       = 3
 COMP      = cxx
 COMP      = KCC
 COMP	  = g++

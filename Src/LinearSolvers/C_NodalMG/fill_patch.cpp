@@ -923,6 +923,8 @@ restrict_level (MultiFab&                   dest,
 
 	for (int igrid = 0; igrid < r.size(); igrid++)
 	{
+	    if ( ! ( is_local(dest, jgrid) || is_local(r, igrid) ) ) continue;
+
 	    Box cbox = restric.box(r_ba[igrid], rat);
 
 	    if (region.intersects(cbox))
