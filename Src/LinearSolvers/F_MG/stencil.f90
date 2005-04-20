@@ -2477,7 +2477,7 @@ contains
                      + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
                      + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
                 if (bc_skewed(mm(i,j),2,+1)) &
-                     flux(ic,1) =  + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
+                     flux(ic,1) =  flux(ic,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
              else 
                 flux(ic,1) = Huge(flux)
              end if
