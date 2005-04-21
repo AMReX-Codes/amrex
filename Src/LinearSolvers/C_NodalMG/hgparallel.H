@@ -76,7 +76,7 @@ public:
     };
 
     typedef unsigned int sequence_number;
-    explicit task (task_list& task_list_);
+    explicit task (task_list& task_list_, int* did_work = 0);
     virtual ~task ();
     virtual bool ready ();
     virtual bool startup (long& sdncnt, long& rcvcnt);
@@ -106,6 +106,7 @@ protected:
     unsigned int          m_cnt;
     bool                  m_finished;
     bool                  m_started;
+    int*                  m_did_work;
 
 private:
     //
@@ -319,7 +320,8 @@ public:
                    const Box&      db_,
                    const MultiFab& smf_,
                    int             sgrid_,
-                   const Box&      sb_);
+                   const Box&      sb_,
+                   int*            did_work = 0);
 
     virtual ~task_copy_base();
     virtual bool depends_on_q (const task* t) const;
@@ -351,7 +353,8 @@ public:
                int             dgrid,
                const MultiFab& smf,
                int             sgrid,
-               const Box&      bx);
+               const Box&      bx,
+               int*            did_work = 0);
 
     task_copy (task_list&      tl_,
                MultiFab&       mf,
@@ -359,7 +362,8 @@ public:
                const Box&      db,
                const MultiFab& smf,
                int             sgrid,
-               const Box&      sb);
+               const Box&      sb,
+               int*            did_work = 0);
 
     task_copy (task_list&        tl_,
                MultiFab&         mf,
@@ -367,7 +371,8 @@ public:
                const MultiFab&   smf,
                int               sgrid,
                const Box&        bx,
-               const task_proxy& tp);
+               const task_proxy& tp,
+               int*            did_work = 0);
 
     virtual bool ready ();
 
@@ -390,7 +395,8 @@ public:
                      const Box&      bx,
                      const Box&      region,
                      const MultiFab& mf_,
-                     int             grid_);
+                     int             grid_,
+                     int*            did_work);
 
     virtual ~task_local_base ();
     virtual bool startup (long&, long&);
@@ -422,7 +428,8 @@ public:
                      int             target_proc_id,
                      const Box&      bx,
                      const MultiFab& mf_,
-                     int             grid_);
+                     int             grid_,
+                     int*            did_work);
 
     virtual bool ready ();
 };
@@ -445,7 +452,8 @@ public:
                    const Box&                region_,
                    const MultiFab&           smf_,
                    int                       grid_,
-                   const Box&                domain_);
+                   const Box&                domain_,
+                   int*                      did_work);
 
     virtual bool ready ();
 
@@ -465,7 +473,8 @@ public:
               const MultiFab& t_,
               int             tt_,
               const Box&      region_,
-              int             ncomp_);
+              int             ncomp_,
+              int*            did_work = 0);
 
     virtual ~task_fab ();
 
@@ -502,19 +511,21 @@ class level_interface;
 class amr_boundary;
 
 class task_fill_patch
-    : public task_fab
+    :
+    public task_fab
 {
 public:
 
-    task_fill_patch (task_list&                tl_,
-                     const MultiFab&           t_,
-                     int                       tt_,
-                     const Box&                region_,
-                     const MultiFab&           r_,
-                     const level_interface&    lev_interface_,
-                     const amr_boundary* bdy_,
-                     int                       idim_ /* = -1*/,
-                     int                       index_ /*= -1*/);
+    task_fill_patch (task_list&             tl_,
+                     const MultiFab&        t_,
+                     int                    tt_,
+                     const Box&             region_,
+                     const MultiFab&        r_,
+                     const level_interface& lev_interface_,
+                     const amr_boundary*    bdy_,
+                     int                    idim_,
+                     int                    index_,
+                     int*                   did_work = 0);
 
     virtual ~task_fill_patch ();
 
