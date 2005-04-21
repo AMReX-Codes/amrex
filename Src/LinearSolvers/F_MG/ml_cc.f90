@@ -8,6 +8,7 @@ module ml_cc_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
+  use ml_layout_module
   use itsol_module
   use box_util_module
   use bl_IO_module
@@ -20,11 +21,11 @@ module ml_cc_module
 
 contains
 
-subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,need_grad_phi_in)
+subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,need_grad_phi_in)
 
   implicit none
 
-  type(layout), intent(in)       :: la_tower(:)
+  type(ml_layout), intent(in)    :: mla
   type(mg_tower) , intent(inout) :: mgt(:)
   type( multifab), intent(inout) :: rh(:)
   type( multifab), intent(inout) :: full_soln(:)
@@ -62,7 +63,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
 
   dm = rh(1)%dim
 
-  nlevs = size(la_tower)
+  nlevs = mla%nlevel
 
   allocate(soln(nlevs), uu(nlevs), res(nlevs), temp_res(nlevs))
   allocate(uu_hold(2:nlevs-1))
@@ -70,14 +71,14 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   allocate(brs_bcs(2:nlevs))
 
   do n = 2,nlevs-1
-     la = la_tower(n)
+     la = mla%la(n)
      call multifab_build(uu_hold(n),la,1,1)
      call setval( uu_hold(n), ZERO,all=.true.)
   end do
 
   do n = nlevs, 1, -1
 
-     la = la_tower(n)
+     la = mla%la(n)
      call multifab_build(    soln(n), la, 1, 1)
      call multifab_build(      uu(n), la, 1, 1)
      call multifab_build(     res(n), la, 1, 0)
@@ -92,7 +93,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
      ! Build the (coarse resolution) flux registers to be used in computing
      !  the residual at a non-finest AMR level.
 
-     pdc = layout_get_pd(la_tower(n-1))
+     pdc = layout_get_pd(mla%la(n-1))
      call bndry_reg_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, width = 0)
      call bndry_reg_build(brs_bcs(n), la, ref_ratio(n-1,:), pdc, width = 2)
 
@@ -120,7 +121,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
     mglev      = mgt(n  )%nlevels
     mglev_crse = mgt(n-1)%nlevels
 
-    pdc = layout_get_pd(la_tower(n-1))
+    pdc = layout_get_pd(mla%la(n-1))
     call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
 
     call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
@@ -185,7 +186,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
              print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, norm_inf(res(n))
 
            ! Compute CRSE-FINE Res = Res - Lap(uu)
-           pdc = layout_get_pd(la_tower(n-1))
+           pdc = layout_get_pd(mla%la(n-1))
            call crse_fine_residual_cc(n,mgt,uu,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
 
            ! Restrict FINE Res to COARSE Res (important to do this last
@@ -214,7 +215,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
      !   Back up the V-cycle
      do n = 2, nlevs
 
-        pd = layout_get_pd(la_tower(n))
+        pd = layout_get_pd(mla%la(n))
         mglev = mgt(n)%nlevels
 
         ! Interpolate uu from coarser level
@@ -285,7 +286,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
 
      ! Interpolate soln to supply boundary conditions 
      do n = 2,nlevs
-       pd = layout_get_pd(la_tower(n))
+       pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
@@ -311,7 +312,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
        end do
 !      Compute the coarse-fine residual 
        do n = nlevs,2,-1
-          pdc = layout_get_pd(la_tower(n-1))
+          pdc = layout_get_pd(mla%la(n-1))
           call crse_fine_residual_cc(n,mgt,soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
        end do
 
@@ -357,7 +358,7 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
 !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
 !   crse-fine boundaries
     do n = 2,nlevs
-       pd = layout_get_pd(la_tower(n))
+       pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
@@ -424,12 +425,13 @@ contains
   end function ml_converged
 
   function ml_norm_inf(rr, mask) result(r)
-    real(dp_t)  :: r
-    type(multifab), intent(in) :: rr(:)
+    type( multifab), intent(in) :: rr(:)
     type(lmultifab), intent(in) :: mask(:)
-    integer n
-    r = 0
-    do n = 1, size(rr)
+    real(dp_t)                  :: r
+    integer                     :: n,nlevs
+    nlevs = size(rr)
+    r = norm_inf(rr(nlevs))
+    do n = 1,nlevs-1
        r = max(norm_inf(rr(n),mask(n)), r)
     end do
   end function ml_norm_inf

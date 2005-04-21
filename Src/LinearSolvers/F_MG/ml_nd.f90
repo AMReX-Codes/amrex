@@ -8,6 +8,7 @@ module ml_nd_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
+  use ml_layout_module
   use itsol_module
   use box_util_module
   use bl_IO_module
@@ -20,12 +21,12 @@ module ml_nd_module
 
 contains
 
-subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
+subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
 
   implicit none
 
-  type(layout), intent(in)       :: la_tower(:)
-  type(mg_tower) , intent(inout) :: mgt(:)
+  type(ml_layout), intent(in   ) :: mla
+  type(mg_tower ), intent(inout) :: mgt(:)
   type( multifab), intent(inout) :: rh(:)
   type( multifab), intent(inout) :: full_soln(:)
   type(lmultifab), intent(in   ) :: fine_mask(:)
@@ -57,21 +58,21 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   allocate(nodal(dm))
   nodal = .True.
 
-  nlevs = size(la_tower)
+  nlevs = mla%nlevel
 
   allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
   allocate(temp_res(nlevs))
   allocate(brs_flx(2:nlevs))
 
   do n = 2,nlevs-1
-     la = la_tower(n)
+     la = mla%la(n)
      call multifab_build( uu_hold(n), la, 1, 1, rh(nlevs)%nodal)
      call setval( uu_hold(n), ZERO,all=.true.)
   end do
 
   do n = nlevs, 1, -1
 
-     la = la_tower(n)
+     la = mla%la(n)
      call multifab_build(    soln(n), la, 1, 1, rh(nlevs)%nodal)
      call multifab_build(      uu(n), la, 1, 1, rh(nlevs)%nodal)
      call multifab_build(     res(n), la, 1, 1, rh(nlevs)%nodal)
@@ -86,7 +87,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
      ! Build the (coarse resolution) flux registers to be used in computing
      !  the residual at a non-finest AMR level.
 
-     pdc = layout_get_pd(la_tower(n-1))
+     pdc = layout_get_pd(mla%la(n-1))
      call bndry_reg_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, nodal = nodal)
 
   end do
@@ -114,7 +115,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
     mglev_crse = mgt(n-1)%nlevels
     call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                         mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
-    pdc = layout_get_pd(la_tower(n-1))
+    pdc = layout_get_pd(mla%la(n-1))
     call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n), &
                                   full_soln(n-1),full_soln(n),ref_ratio(n-1,:),pdc)
   enddo
@@ -186,7 +187,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
                                mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
            
            ! Compute CRSE-FINE Res = Rh - Lap(Soln)
-           pdc = layout_get_pd(la_tower(n-1))
+           pdc = layout_get_pd(mla%la(n-1))
            call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n), &
                                          soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
 
@@ -211,7 +212,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
      !   Back up the V-cycle
      do n = 2, nlevs
 
-        pd = layout_get_pd(la_tower(n))
+        pd = layout_get_pd(mla%la(n))
         mglev = mgt(n)%nlevels
 
         ! Interpolate uu from coarser level
@@ -299,7 +300,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
        end do
 
        do n = nlevs,2,-1
-          pdc = layout_get_pd(la_tower(n-1))
+          pdc = layout_get_pd(mla%la(n-1))
           call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n), &
                                         soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
        end do
