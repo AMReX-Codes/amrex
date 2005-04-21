@@ -66,6 +66,10 @@ public:
     bool flag (int idim, int i) const;
     static int ngrids (int idim);
 
+    mutable std::vector<int> m_fill_interface_1;
+    mutable std::vector<int> m_fill_interface_2;
+    mutable std::vector<int> m_fill_interface_3;
+
 private:
 
 #if (BL_SPACEDIM == 2)

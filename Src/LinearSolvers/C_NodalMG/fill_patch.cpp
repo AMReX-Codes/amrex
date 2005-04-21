@@ -74,9 +74,10 @@ task_fill_patch::task_fill_patch (task_list&                tl_,
                                   const level_interface&    lev_interface_,
                                   const amr_boundary* bdy_,
                                   int                       idim_,
-                                  int                       index_)
+                                  int                       index_,
+                                  int*                      did_work)
     :
-    task_fab(tl_, t_, tt_, region_, r_.nComp()),
+    task_fab(tl_, t_, tt_, region_, r_.nComp(), did_work),
     r(r_),
     lev_interface(lev_interface_),
     bdy(bdy_),
@@ -106,7 +107,8 @@ task_fill_patch::fill_patch_blindly ()
                                                                target_proc_id(),
                                                                region,
                                                                r,
-                                                               igrid)));
+                                                               igrid,
+                                                               m_did_work)));
 	    return true;
 	}
     }
@@ -119,12 +121,14 @@ task_fill_patch::fill_patch_blindly ()
 	if (r_ba[igrid].intersects(region))
 	{
             Box tb = r_ba[igrid] & region;
+
 	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
                                                                target,
                                                                target_proc_id(),
                                                                tb,
                                                                r,
-                                                               igrid)));
+                                                               igrid,
+                                                               m_did_work)));
 	}
     }
     return false;
@@ -152,7 +156,8 @@ task_fill_patch::fill_exterior_patch_blindly ()
                                                                  region,
                                                                  r,
                                                                  jgrid,
-                                                                 lev_interface.domain())));
+                                                                 lev_interface.domain(),
+                                                                 m_did_work)));
 		return true;
 	    }
 	    if (tb.intersects(region))
@@ -165,7 +170,8 @@ task_fill_patch::fill_exterior_patch_blindly ()
                                                                  tb,
                                                                  r,
                                                                  jgrid,
-                                                                 lev_interface.domain())));
+                                                                 lev_interface.domain(),
+                                                                 m_did_work)));
 	    }
 	}
     }
@@ -231,13 +237,13 @@ task_fill_patch::fill_patch ()
 			if (igrid >= 0)
 			{
 			    Box tb = r_ba[igrid] & region;
-			    depend_on(m_task_list.add_task(
-				new task_copy_local(m_task_list,
-						    target,
-						    target_proc_id(),
-						    tb,
-						    r,
-						    igrid)));
+			    depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
+                                                                               target,
+                                                                               target_proc_id(),
+                                                                               tb,
+                                                                               r,
+                                                                               igrid,
+                                                                               m_did_work)));
 			}
 			else
 			{
@@ -245,16 +251,15 @@ task_fill_patch::fill_patch ()
 			    Box tb = lev_interface.exterior_mesh()[igrid];
 			    tb.convert(type(r));
 			    tb &= region;
-                            depend_on(m_task_list.add_task(
-				new task_bdy_fill(
-				    m_task_list,
-				    bdy,
-				    target,
-				    target_proc_id(),
-				    tb,
-				    r,
-				    lev_interface.direct_exterior_ref(igrid),
-				    lev_interface.domain())));
+                            depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
+                                                                             bdy,
+                                                                             target,
+                                                                             target_proc_id(),
+                                                                             tb,
+                                                                             r,
+                                                                             lev_interface.direct_exterior_ref(igrid),
+                                                                             lev_interface.domain(),
+                                                                             m_did_work)));
 			}
 			break;
 		    }
