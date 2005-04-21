@@ -50,7 +50,6 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   real(dp_t) :: Anorm, bnorm, res_norm
   real(dp_t) :: snrm(2)
 
-  logical :: all_done
   logical, allocatable :: nodal(:)
 
   dm = rh(1)%dim
@@ -59,21 +58,25 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
 
   nlevs = size(la_tower)
 
-  allocate(soln(nlevs), uu(nlevs), uu_hold(nlevs), res(nlevs))
+  allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
   allocate(temp_res(nlevs))
   allocate(brs_flx(2:nlevs))
+
+  do n = 2,nlevs-1
+     la = la_tower(n)
+     call multifab_build( uu_hold(n), la, 1, 1, rh(nlevs)%nodal)
+     call setval( uu_hold(n), ZERO,all=.true.)
+  end do
 
   do n = nlevs, 1, -1
 
      la = la_tower(n)
-     call multifab_build(    soln(n), la, 1, 1, nodal)
-     call multifab_build(      uu(n), la, 1, 1, nodal)
-     call multifab_build( uu_hold(n), la, 1, 1, nodal)
-     call multifab_build(     res(n), la, 1, 1, nodal)
-     call multifab_build(temp_res(n), la, 1, 1, nodal)
+     call multifab_build(    soln(n), la, 1, 1, rh(nlevs)%nodal)
+     call multifab_build(      uu(n), la, 1, 1, rh(nlevs)%nodal)
+     call multifab_build(     res(n), la, 1, 1, rh(nlevs)%nodal)
+     call multifab_build(temp_res(n), la, 1, 1, rh(nlevs)%nodal)
      call setval(    soln(n), ZERO,all=.true.)
      call setval(      uu(n), ZERO,all=.true.)
-     call setval( uu_hold(n), ZERO,all=.true.)
      call setval(     res(n), ZERO,all=.true.)
      call setval(temp_res(n), ZERO,all=.true.)
  
@@ -87,8 +90,12 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
 
   end do
 
-! ****************************************************************************
-
+  do n = nlevs,2,-1
+    mglev      = mgt(n  )%nlevels
+    mglev_crse = mgt(n-1)%nlevels
+    call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
+                        mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+  end do
   bnorm = ml_norm_inf(rh,fine_mask)
 
   Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
@@ -114,6 +121,8 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   do n = 1,nlevs
      call multifab_copy(rh(n),res(n),all=.true.)
   end do
+
+! ****************************************************************************
 
   do iter = 1, mgt(nlevs)%max_iter
 
@@ -213,7 +222,7 @@ subroutine ml_nd(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
         ! Add: Soln += uu
         call saxpy(soln(n), ONE, uu(n), .true.)
 
-        ! Add: uu_hold += uu so that it interpolated uu be interpolated too.
+        ! Add: uu_hold += uu 
         if (n < nlevs) call saxpy(uu_hold(n), ONE, uu(n), .true.)
 
         ! Compute Res = Res - Lap(uu)
@@ -364,7 +373,8 @@ contains
     real(dp_t) :: ni_res, ni_sol
     ni_res = ml_norm_inf(res, mask)
     ni_sol = ml_norm_inf(sol, mask)
-    r = ni_res <= eps*(Anorm*ni_sol + bnorm)
+    r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+         ni_res <= spacing(Anorm)
   end function ml_converged
 
   function ml_norm_inf(rr, mask) result(r)
