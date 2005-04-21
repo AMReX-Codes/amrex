@@ -20,7 +20,7 @@ module ml_cc_module
 
 contains
 
-subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
+subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,need_grad_phi_in)
 
   implicit none
 
@@ -32,6 +32,8 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   integer        , intent(in   ) :: ref_ratio(:,:)
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
+
+  logical        , intent(in   ), optional :: need_grad_phi_in
 
   integer :: nlevs
   type(multifab), pointer  ::      soln(:) => Null()
@@ -47,10 +49,16 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   type(layout) :: la
   integer :: i, n, dm
   integer :: mglev, mglev_crse, iter, it
-  logical :: fine_converged
+  logical :: fine_converged,need_grad_phi
 
   real(dp_t) :: Anorm, bnorm, res_norm
   real(dp_t) :: snrm(2)
+
+  if ( present(need_grad_phi_in) ) then
+     need_grad_phi = need_grad_phi_in 
+  else
+     need_grad_phi = .false.
+  end if
 
   dm = rh(1)%dim
 
@@ -343,6 +351,21 @@ subroutine ml_cc(la_tower,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,ep
   end do
 
   deallocate(soln, uu, uu_hold, res, temp_res)
+
+  if (need_grad_phi) then
+
+!   Interpolate boundary conditions of soln in order to get correct grad(phi) at
+!   crse-fine boundaries
+    do n = 2,nlevs
+       pd = layout_get_pd(la_tower(n))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       do i = 1, dm
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+       end do
+    end do
+
+  end if
 
 contains
 
