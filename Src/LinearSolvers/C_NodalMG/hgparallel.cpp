@@ -938,9 +938,10 @@ task_fab::~task_fab ()
 
 task_fec_base::task_fec_base (task_list& tl_,
                               MultiFab&  s_,
-                              int        igrid_)
+                              int        igrid_,
+                              char*      did_work)
     :
-    task(tl_),
+    task(tl_,did_work),
     s(s_),
     igrid(igrid_)
 {

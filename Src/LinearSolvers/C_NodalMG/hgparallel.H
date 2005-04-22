@@ -550,7 +550,8 @@ public:
 
     task_fec_base (task_list& tl_,
                    MultiFab&  s_,
-                   int        igrid_);
+                   int        igrid_,
+                   char*      did_work = 0);
 
     virtual ~task_fec_base ();
 
