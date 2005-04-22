@@ -69,6 +69,8 @@ public:
     mutable std::vector<int> m_fill_interface_1;
     mutable std::vector<int> m_fill_interface_2;
     mutable std::vector<int> m_fill_interface_3;
+    mutable std::vector<int> m_fill_internal_borders_fn;
+    mutable std::vector<int> m_fill_internal_borders_fc;
 
 private:
 
