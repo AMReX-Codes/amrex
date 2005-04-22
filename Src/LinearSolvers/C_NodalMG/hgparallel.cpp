@@ -77,7 +77,7 @@ HG::MPI_finish ()
 
 
 // task
-task::task (task_list& tl_, int* did_work)
+task::task (task_list& tl_, char* did_work)
     :
     m_task_list(tl_),
     m_sno(1),
@@ -363,7 +363,7 @@ task_copy_base::task_copy_base(task_list&      tl_,
 			       const MultiFab& smf_,
 			       int             sgrid_,
 			       const Box&      sb_,
-                               int*            did_work)
+                               char*           did_work)
   :
   task(tl_,did_work),
   m_request(MPI_REQUEST_NULL),
@@ -503,7 +503,7 @@ task_copy::task_copy (task_list&      tl_,
                       const MultiFab& smf,
                       int             sgrid,
                       const Box&      bx,
-                      int*            did_work)
+                      char*           did_work)
     :
     task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx, did_work)
 {
@@ -517,7 +517,7 @@ task_copy::task_copy (task_list&      tl_,
                       const MultiFab& smf,
                       int             sgrid,
                       const Box&      sb,
-                      int*            did_work)
+                      char*           did_work)
     :
     task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb, did_work)
 {
@@ -531,7 +531,7 @@ task_copy::task_copy (task_list&        tl_,
                       int               sgrid,
                       const Box&        bx,
                       const task_proxy& tp,
-                      int*              did_work)
+                      char*             did_work)
     :
     task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx, did_work)
 {
@@ -616,7 +616,7 @@ task_local_base::task_local_base (task_list&      tl_,
                                   const Box&      region,
                                   const MultiFab& smf_,
                                   int             grid,
-                                  int*            did_work)
+                                  char*           did_work)
     :
     task(tl_,did_work),
     m_request(MPI_REQUEST_NULL),
@@ -745,7 +745,7 @@ task_copy_local::task_copy_local (task_list&      tl_,
                                   const Box&      bx,
                                   const MultiFab& smf_,
                                   int             grid,
-                                  int*            did_work)
+                                  char*           did_work)
     :
     task_local_base(tl_,fab_,target_proc_id,bx,bx,smf_,grid,did_work)
 {
@@ -822,7 +822,7 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
                               const MultiFab&     src_,
                               int                 grid_,
                               const Box&          domain_,
-                              int*                did_work)
+                              char*               did_work)
     :
     task_local_base(tl_,fab_,target_proc_id,Box(),region_,src_,grid_,did_work),
     m_domain(domain_),
@@ -909,7 +909,7 @@ task_fab::task_fab (task_list&      tl_,
                     int             tt_,
                     const Box&      region_,
                     int             ncomp_,
-                    int*            did_work)
+                    char*           did_work)
     :
     task(tl_,did_work),
     target(0),

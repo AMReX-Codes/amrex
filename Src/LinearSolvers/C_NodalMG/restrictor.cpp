@@ -77,7 +77,7 @@ public:
                   const Box&      bx,
                   const MultiFab& s_,
                   int             sgrid_,
-                  int*            did_work);
+                  char*           did_work);
 private:
     //
     // The data.
@@ -94,7 +94,7 @@ task_fab_get::task_fab_get (task_list&      tl_,
                             const Box&      bx_,
                             const MultiFab& s_,
                             int             sgrid_,
-                            int*            did_work)
+                            char*           did_work)
     :
     task_fab(tl_, d_, dgrid_, bx_, s_.nComp(), did_work),
     s(s_),
@@ -131,7 +131,7 @@ struct task_restriction_fill
                            int            integrate_,
                            int            i1_,
                            int            i2_,
-                           int*           did_work);
+                           char*          did_work);
 
     task_restriction_fill (const RESTFUN     ref_,
                            task_list&        tl_,
@@ -142,7 +142,7 @@ struct task_restriction_fill
                            const IntVect&    rat_,
                            int               integrate_,
                            const Array<int>& i1_,
-                           int*              did_work);
+                           char*             did_work);
 
     task_restriction_fill (const RESTFUN     ref_,
                            task_list&        tl_,
@@ -154,7 +154,7 @@ struct task_restriction_fill
                            int               integrate_,
                            const IntVect&    i1_,
                            const Array<int>& i2_,
-                           int*              did_work);
+                           char*             did_work);
 
     virtual bool ready ();
 
@@ -183,7 +183,7 @@ task_restriction_fill::task_restriction_fill (const RESTFUN  ref_,
                                               int            integrate_,
                                               int            i1_,
                                               int            i2_,
-                                              int*           did_work)
+                                              char*          did_work)
     :
     task(tl_,did_work),
     ref(ref_),
@@ -209,7 +209,7 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
                                               const IntVect&    rat_,
                                               int               integrate_,
                                               const Array<int>& i1_,
-                                              int*              did_work)
+                                              char*             did_work)
     :
     task(tl_,did_work),
     ref(ref_),
@@ -235,7 +235,7 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
                                               int               integrate_,
                                               const IntVect&    i1_,
                                               const Array<int>& i2_,
-                                              int*              did_work)
+                                              char*             did_work)
     :
     task(tl_,did_work),
     ref(ref_),
@@ -438,7 +438,7 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 
         if (lev_interface.m_fill_interface_1[jgrid])
         {
-            int* did_work = &lev_interface.m_fill_interface_1[jgrid];
+            char* did_work = &lev_interface.m_fill_interface_1[jgrid];
 
             *did_work = 0;
 
@@ -542,7 +542,7 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 #if (BL_SPACEDIM == 3)
         if (lev_interface.m_fill_interface_2[jgrid])
         {
-            int* did_work = &lev_interface.m_fill_interface_2[jgrid];
+            char* did_work = &lev_interface.m_fill_interface_2[jgrid];
 
             *did_work = 0;
 
@@ -604,7 +604,7 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 #endif
         if (lev_interface.m_fill_interface_3[jgrid])
         {
-            int* did_work = &lev_interface.m_fill_interface_3[jgrid];
+            char* did_work = &lev_interface.m_fill_interface_3[jgrid];
 
             *did_work = 0;
 
@@ -672,6 +672,6 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 
         std::cout << "m_fill_interface_1: used " << sum_1 << " out of " << dest.size() << "\n";
         std::cout << "m_fill_interface_2: used " << sum_2 << " out of " << dest.size() << "\n";
-        std::cout << "m_fill_interface_1: used " << sum_3 << " out of " << dest.size() << std::endl;
+        std::cout << "m_fill_interface_1: used " << sum_3 << " out of " << dest.size() << "\n";
     }
 }

@@ -76,7 +76,7 @@ public:
     };
 
     typedef unsigned int sequence_number;
-    explicit task (task_list& task_list_, int* did_work = 0);
+    explicit task (task_list& task_list_, char* did_work = 0);
     virtual ~task ();
     virtual bool ready ();
     virtual bool startup (long& sdncnt, long& rcvcnt);
@@ -106,7 +106,7 @@ protected:
     unsigned int          m_cnt;
     bool                  m_finished;
     bool                  m_started;
-    int*                  m_did_work;
+    char*                 m_did_work;
 
 private:
     //
@@ -321,7 +321,7 @@ public:
                    const MultiFab& smf_,
                    int             sgrid_,
                    const Box&      sb_,
-                   int*            did_work = 0);
+                   char*           did_work = 0);
 
     virtual ~task_copy_base();
     virtual bool depends_on_q (const task* t) const;
@@ -354,7 +354,7 @@ public:
                const MultiFab& smf,
                int             sgrid,
                const Box&      bx,
-               int*            did_work = 0);
+               char*           did_work = 0);
 
     task_copy (task_list&      tl_,
                MultiFab&       mf,
@@ -363,7 +363,7 @@ public:
                const MultiFab& smf,
                int             sgrid,
                const Box&      sb,
-               int*            did_work = 0);
+               char*           did_work = 0);
 
     task_copy (task_list&        tl_,
                MultiFab&         mf,
@@ -372,7 +372,7 @@ public:
                int               sgrid,
                const Box&        bx,
                const task_proxy& tp,
-               int*            did_work = 0);
+               char*             did_work = 0);
 
     virtual bool ready ();
 
@@ -396,7 +396,7 @@ public:
                      const Box&      region,
                      const MultiFab& mf_,
                      int             grid_,
-                     int*            did_work);
+                     char*           did_work);
 
     virtual ~task_local_base ();
     virtual bool startup (long&, long&);
@@ -429,7 +429,7 @@ public:
                      const Box&      bx,
                      const MultiFab& mf_,
                      int             grid_,
-                     int*            did_work);
+                     char*           did_work);
 
     virtual bool ready ();
 };
@@ -453,7 +453,7 @@ public:
                    const MultiFab&           smf_,
                    int                       grid_,
                    const Box&                domain_,
-                   int*                      did_work);
+                   char*                     did_work);
 
     virtual bool ready ();
 
@@ -474,7 +474,7 @@ public:
               int             tt_,
               const Box&      region_,
               int             ncomp_,
-              int*            did_work = 0);
+              char*           did_work = 0);
 
     virtual ~task_fab ();
 
@@ -525,7 +525,7 @@ public:
                      const amr_boundary*    bdy_,
                      int                    idim_,
                      int                    index_,
-                     int*                   did_work = 0);
+                     char*                  did_work = 0);
 
     virtual ~task_fill_patch ();
 

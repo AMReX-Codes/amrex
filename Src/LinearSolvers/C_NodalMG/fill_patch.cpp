@@ -75,7 +75,7 @@ task_fill_patch::task_fill_patch (task_list&                tl_,
                                   const amr_boundary* bdy_,
                                   int                       idim_,
                                   int                       index_,
-                                  int*                      did_work)
+                                  char*                     did_work)
     :
     task_fab(tl_, t_, tt_, region_, r_.nComp(), did_work),
     r(r_),
@@ -545,7 +545,7 @@ fill_internal_borders (MultiFab&              r,
 	{
             if (lev_interface.m_fill_internal_borders_fn[iface])
             {
-                int* did_work = &lev_interface.m_fill_internal_borders_fn[iface];
+                char* did_work = &lev_interface.m_fill_internal_borders_fn[iface];
 
                 *did_work = 0;
 
@@ -581,7 +581,7 @@ fill_internal_borders (MultiFab&              r,
 	{
             if (lev_interface.m_fill_internal_borders_fc[iface])
             {
-                int* did_work = &lev_interface.m_fill_internal_borders_fc[iface];
+                char* did_work = &lev_interface.m_fill_internal_borders_fc[iface];
 
                 *did_work = 0;
 
