@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.168 2004-04-27 17:00:44 car Exp $
+// $Id: FabArray.H,v 1.169 2005-04-23 19:49:49 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1662,17 +1662,20 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     for (int k = 0, i = MyProc+1; k < NProcs; k++, i++)
     {
         i %= NProcs;
-        
-        int strt = 0;
-        for (int j = 0; j < i; j++)
-            strt += Snds[j];
 
         if (Snds[i] > 0)
         {
-            size_t N = 0;
+            int strt = 0;
+            for (int j = 0; j < i; j++)
+	    {
+                strt += Snds[j];
+	    }
 
+            size_t N = 0;
             for (int j = 0; j < Snds[i]; j++)
+	    {
                 N += recv_cd[strt+j].box().numPts() * recv_cd[strt+j].nComp();
+	    }
 
             BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
