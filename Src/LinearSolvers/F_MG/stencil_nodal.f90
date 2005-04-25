@@ -78,9 +78,6 @@ contains
 
     bx  = get_box(ss,idx)
     nbx = get_ibox(ss, idx)
-
-!call box_print(nbx, 'nbx in stencil_set_bc_nodal')
-
     !
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
     !
@@ -92,8 +89,9 @@ contains
        bx1%hi(dm) = bx1%lo(dm)
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
-       if (face_type(idx,dm,1) == BC_DIR) then
-          mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+
+       if ((face_type(idx,dm,1) == BC_NEU) .or. (face_type(idx,dm,1) == BC_DIR)) then
           call boxarray_add_clean(dba, bx1)
        end if
        !
@@ -103,8 +101,9 @@ contains
        bx1%lo(dm) = bx1%hi(dm)
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
-       if (face_type(idx,dm,2) == BC_DIR) then
-          mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+
+       if ((face_type(idx,dm,2) == BC_NEU) .or. (face_type(idx,dm,2) == BC_DIR)) then
           call boxarray_add_clean(dba, bx1)
        end if
     end do
@@ -133,11 +132,16 @@ contains
           end do
        end do
     end do
+
+!return
+
     !
     ! Reset any Fine-Fine boundaries due to periodicity.
     !
     call multifab_internal_sync_shift(ss%la%lap%pd, nbx, ss%la%lap%pmask, ss%nodal, shft, cnt)
-
+    !
+    ! The "i == 1" component here is the box "nbx" itself which we ignore.
+    !
     do i = 2, cnt
        sbx = shift(nbx, shft(i,:))
        do j = 1, ss%nboxes
@@ -148,14 +152,11 @@ contains
              do ii = 1, pba%nboxes
                 mp => dataptr(mask%fbs(idx), pba%bxs(ii))
                 mp = BC_INT
-!                call box_print(pba%bxs(ii), "clear")
              end do
              call destroy(pba)
           end if
        end do
     end do
-
-!    call boxarray_print(dba, "dba")
 
     if ( built_q(dba) ) call destroy(dba)
 
