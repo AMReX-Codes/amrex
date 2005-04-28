@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.63 2002-12-11 17:05:25 lijewski Exp $
+// $Id: Geometry.cpp,v 1.64 2005-04-28 16:31:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -339,29 +339,12 @@ Geometry::buildFPB (MultiFab&  mf,
 
         BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
 
-        bool DoIt;
-        Box  TheDomain;
-
-        if (dest.ixType().cellCentered())
-        {
-            TheDomain = Domain();
-            DoIt      = !Domain().contains(dest);
-        }
-        else if (dest.ixType().nodeCentered())
-        {
-            TheDomain = BoxLib::surroundingNodes(Domain());
-            DoIt      = !BoxLib::grow(TheDomain,-1).contains(dest);
-        }
-        else 
-        {
-            TheDomain = Domain();
-            for (int n = 0; n < BL_SPACEDIM; n++)
-              if (dest.ixType()[n] == IndexType::NODE)
+        Box TheDomain = Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (dest.ixType()[n] == IndexType::NODE)
                 TheDomain.surroundingNodes(n);
-            DoIt      = !TheDomain.contains(dest);
-        }
 
-        if (DoIt)
+        if (!TheDomain.contains(dest))
         {
             const BoxArray& grids = mf.boxArray();
 
