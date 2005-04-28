@@ -97,6 +97,7 @@ contains
     deallocate(mla%la, mla%mask)
     mla%dim = 0
     mla%nlevel = 0
+    deallocate(mla%pmask)
   end subroutine ml_layout_destroy
 
 end module ml_layout_module

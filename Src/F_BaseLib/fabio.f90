@@ -669,6 +669,13 @@ contains
          call destroy(ba)
          close(unit=lun)
       end do
+
+      deallocate(nboxes)
+      deallocate(fileprefix)
+      deallocate(header)
+      deallocate(refrat)
+      deallocate(dxlev)
+
     end subroutine build_ns_plotfile
   end subroutine fabio_ml_multifab_read_d
 

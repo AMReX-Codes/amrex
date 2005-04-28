@@ -333,6 +333,17 @@ subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
 
 ! ****************************************************************************
 
+  do n = 2,nlevs-1
+     call multifab_destroy(uu_hold(n))
+  end do
+
+  do n = nlevs, 1, -1
+     call multifab_destroy(    soln(n))
+     call multifab_destroy(      uu(n))
+     call multifab_destroy(     res(n))
+     call multifab_destroy(temp_res(n))
+  end do
+
   deallocate(soln, uu, uu_hold, res, temp_res)
 
 contains
@@ -392,6 +403,9 @@ contains
              mgt(n  )%mm(mglev_fine), &
              pdc,ref_ratio, +i)
      end do
+
+     call multifab_destroy(dummy_rhs)
+
   end subroutine crse_fine_residual_nodal
 
   function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)

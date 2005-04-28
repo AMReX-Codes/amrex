@@ -351,6 +351,17 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
      call saxpy(full_soln(n),ONE,soln(n))
   end do
 
+  do n = 2,nlevs-1
+     call multifab_destroy(uu_hold(n))
+  end do
+
+  do n = nlevs, 1, -1
+     call multifab_destroy(    soln(n))
+     call multifab_destroy(      uu(n))
+     call multifab_destroy(     res(n))
+     call multifab_destroy(temp_res(n))
+  end do
+
   deallocate(soln, uu, uu_hold, res, temp_res)
 
   if (need_grad_phi) then
@@ -367,6 +378,9 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
     end do
 
   end if
+
+  deallocate(brs_flx)
+  deallocate(brs_bcs)
 
 contains
 
