@@ -93,7 +93,9 @@ contains
        call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
-    call destroy(mla%la(1))
+    do n = 1, mla%nlevel
+       call destroy(mla%la(n))
+    end do
     deallocate(mla%la, mla%mask)
     mla%dim = 0
     mla%nlevel = 0
