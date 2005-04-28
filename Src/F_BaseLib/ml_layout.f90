@@ -10,8 +10,9 @@ module ml_layout_module
      integer :: dim = 0
      integer :: nlevel = 0
      type(ml_boxarray) :: mba
-     type(layout), pointer :: la(:) => Null()
-     type(lmultifab), pointer :: mask(:) => Null()
+     type(layout)   , pointer ::    la(:) => Null()
+     type(lmultifab), pointer ::  mask(:) => Null() ! cell-centered mask
+     logical        , pointer :: pmask(:) => Null() ! periodic mask
   end type ml_layout
 
   interface destroy
@@ -53,17 +54,25 @@ contains
     r = ml_boxarray_get_pd(mla%mba, n)
   end function ml_layout_get_pd
 
-  subroutine ml_layout_build(mla, mba)
+  subroutine ml_layout_build(mla, mba, pmask)
     type(ml_layout), intent(inout) :: mla
     type(ml_boxarray), intent(in) :: mba
+    logical, optional :: pmask(:)
+
     type(boxarray) :: bac
     integer :: n
+    logical :: lpmask(mba%dim)
+
+    lpmask = .false.; if (present(pmask)) lpmask = pmask
+    allocate(mla%pmask(mba%dim))
+    mla%pmask  = lpmask
+
     mla%nlevel = mba%nlevel
-    mla%dim = mba%dim
+    mla%dim    = mba%dim
     call copy(mla%mba, mba)
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
-    call build(mla%la(1), mba%bas(1))
+    call build(mla%la(1), mba%bas(1),pmask=lpmask)
     do n = 2, mba%nlevel
        call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
     end do
