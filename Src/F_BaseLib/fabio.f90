@@ -660,7 +660,8 @@ contains
                trim(filename))
             bx = grow(get_ibox(mmf(i), j), lng)
             pp => dataptr(mmf(i), j, bx)
-            sz = volume(bxs(j))
+!           sz = volume(bxs(j))
+            sz = volume(get_ibox(mmf(i),j))
             call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
             call fabio_close(fd)
          end do
