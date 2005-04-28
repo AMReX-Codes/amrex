@@ -344,7 +344,7 @@ subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
      call multifab_destroy(temp_res(n))
   end do
 
-  deallocate(soln, uu, uu_hold, res, temp_res)
+  deallocate(soln, uu, uu_hold, res, temp_res, brs_flx)
 
 contains
 
