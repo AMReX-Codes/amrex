@@ -93,9 +93,11 @@ contains
        call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
-    do n = 1, mla%nlevel
-       call destroy(mla%la(n))
-    end do
+    !
+    ! Recall that we need only delete the coarsest level layout
+    ! since it 'owns' the refined levels.
+    !
+    call destroy(mla%la(1))
     deallocate(mla%la, mla%mask)
     mla%dim = 0
     mla%nlevel = 0
