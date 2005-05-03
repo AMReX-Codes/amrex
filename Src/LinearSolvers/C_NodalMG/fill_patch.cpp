@@ -538,7 +538,8 @@ fill_internal_borders (MultiFab&              r,
                 }
             }
 	}
-#endif
+#endif /*BL_SPACEDIM == 3*/
+
         const BoxArray& r_ba = r.boxArray();
 
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
@@ -612,8 +613,8 @@ fill_internal_borders (MultiFab&              r,
                 bi.growHi(idim, w).convert(IntVect::TheCellVector());
                 tl.add_task(new task_copy(tl, r, jgrid, r, igrid, bj, did_work));
                 tl.add_task(new task_copy(tl, r, igrid, r, jgrid, bi, did_work));
-            }
 #endif
+            }
 	}
     }
 
