@@ -39,5 +39,7 @@ module bl_constants_module
   !! Pi
   real(kind = dp_t), parameter :: M_PI    = &
        3.141592653589793238462643383279502884197_dp_t
+  real(kind = dp_t), parameter :: M_SQRT_PI  = &
+       1.772453850905516027298167483341145182798_dp_t
 
 end module bl_constants_module

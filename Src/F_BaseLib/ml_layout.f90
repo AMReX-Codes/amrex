@@ -15,6 +15,9 @@ module ml_layout_module
      logical        , pointer :: pmask(:) => Null() ! periodic mask
   end type ml_layout
 
+  interface build
+     module procedure ml_layout_build
+  end interface
   interface destroy
      module procedure ml_layout_destroy
   end interface
@@ -26,7 +29,18 @@ module ml_layout_module
      module procedure ml_layout_not_equal
   end interface
 
+  interface nlevels
+     module procedure ml_layout_nlevels
+  end interface
+
+
 contains
+
+  function ml_layout_nlevels(mla) result(r)
+    integer :: r
+    type(ml_layout), intent(in) :: mla
+    r = mla%nlevel
+  end function ml_layout_nlevels
 
   function ml_layout_equal(mla1, mla2) result(r)
     logical :: r
