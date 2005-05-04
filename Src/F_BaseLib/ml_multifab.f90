@@ -71,7 +71,46 @@ module ml_multifab_module
      module procedure ml_multifab_sub_sub
   end interface
 
+  interface dataptr
+     module procedure ml_multifab_dataptr
+     module procedure ml_multifab_dataptr_c
+     module procedure ml_multifab_dataptr_bx
+     module procedure ml_multifab_dataptr_bx_c
+  end interface
+
+  interface get_box
+     module procedure ml_multifab_get_box
+  end interface
+
+  interface get_pbox
+     module procedure ml_multifab_get_pbox
+  end interface
+
+  interface nlevels
+     module procedure ml_multifab_nlevels
+  end interface
+
 contains
+
+  function ml_multifab_nlevels(mmf) result(r)
+    integer :: r
+    type(ml_multifab), intent(in) :: mmf
+    r = mmf%nlevel
+  end function ml_multifab_nlevels
+
+  function ml_multifab_get_box(mmf, lev, n) result(r)
+    type(box) :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n
+    r = get_box(mmf%mf(lev), n)
+  end function ml_multifab_get_box
+
+  function ml_multifab_get_pbox(mmf, lev, n) result(r)
+    type(box) :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n
+    r = get_pbox(mmf%mf(lev), n)
+  end function ml_multifab_get_pbox
 
   function ml_multifab_built_q(mmf) result(r)
     logical :: r
@@ -289,6 +328,35 @@ contains
        call rescale(x%mf(n), val, off)
     end do
   end subroutine ml_multifab_rescale
+
+  function ml_multifab_dataptr(mmf, lev, n) result(r)
+    real(dp_t), pointer :: r(:,:,:,:)
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n
+    r => dataptr(mmf%mf(lev), n)
+  end function ml_multifab_dataptr
+  function ml_multifab_dataptr_c(mmf, lev, n, c, nc) result(r)
+    real(dp_t), pointer :: r(:,:,:,:)
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n, c
+    integer, intent(in), optional :: nc
+    r => dataptr(mmf%mf(lev), n, c, nc)
+  end function ml_multifab_dataptr_c
+  function ml_multifab_dataptr_bx(mmf, lev, n, bx) result(r)
+    real(dp_t), pointer :: r(:,:,:,:)
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n
+    type(box), intent(in) :: bx
+    r => dataptr(mmf%mf(lev), n, bx)
+  end function ml_multifab_dataptr_bx
+  function ml_multifab_dataptr_bx_c(mmf, lev, n, bx, c, nc) result(r)
+    real(dp_t), pointer :: r(:,:,:,:)
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n, c
+    integer, intent(in), optional :: nc
+    type(box), intent(in) :: bx
+    r => dataptr(mmf%mf(lev), n, bx, c, nc)
+  end function ml_multifab_dataptr_bx_c
 
   subroutine ml_multifab_print(mmf, str, unit, all, data, skip)
     use bl_IO_module
