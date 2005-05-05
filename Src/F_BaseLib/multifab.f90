@@ -2538,7 +2538,7 @@ contains
              mp => dataptr(mf, i, get_ibox(mf, i), comp)
              mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
              lmp => dataptr(mask, i, get_ibox(mask, i), 1)
-             r1 = r1 + sum(mp*mp1,mask = lmp)
+             r1 = r1 + sum(mp*mp1, mask = lmp)
           end do
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
@@ -2894,6 +2894,97 @@ contains
     !$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_norm_l1
+
+  function multifab_sum_c(mf, comp, nc, mask, all) result(r)
+    real(dp_t) :: r
+    integer, intent(in) :: comp
+    logical, intent(in), optional :: all
+    integer, intent(in), optional :: nc
+    type(multifab), intent(in) :: mf
+    type(lmultifab), intent(in), optional :: mask
+    real(dp_t), pointer :: mp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    integer :: i
+    real(dp_t) :: r1
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    r1 = 0
+    if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_pbox(mask, i))
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_ibox(mask, i))
+          end if
+          r1 = r1 + sum(mp, mask=lp)
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+          end if
+          r1 = r1 + sum(mp)
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    call parallel_reduce(r, r1, MPI_SUM)
+  end function multifab_sum_c
+  function multifab_sum(mf, mask, all) result(r)
+    real(dp_t) :: r
+    logical, intent(in), optional :: all
+    type(multifab), intent(in) :: mf
+    type(lmultifab), intent(in), optional :: mask
+    real(dp_t), pointer :: mp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    integer :: i, nc, n
+    real(dp_t) :: r1
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    r1 = 0
+    nc = mf%nc
+    if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             lp => dataptr(mask, i, get_pbox(mask, i))
+          else
+             lp => dataptr(mask, i, get_ibox(mask, i))
+          end if
+          do n = 1, nc
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), c=n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), c=n)
+             end if
+             r1 = r1 + sum(mp, mask = lp)
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i))
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i))
+          end if
+          r1 = r1 + sum(mp)
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    call parallel_reduce(r, r1, MPI_SUM)
+  end function multifab_sum
 
   function multifab_norm_l2_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
