@@ -70,6 +70,7 @@ module fabio_module
 
   interface fabio_ml_write
      module procedure fabio_ml_multifab_write_d
+     module procedure fabio_ml_mf_write
   end interface
 
   integer, parameter :: FABIO_RDONLY = 0
@@ -837,11 +838,15 @@ contains
   end subroutine fabio_ml_boxarray_read
 
   ! FABIO
-  subroutine fabio_ml_mf_write(xx, fname)
+  subroutine fabio_ml_mf_write(xx, fname, names, time, dx)
     type(ml_multifab), intent(in) :: xx
+    character(len=FABIO_MAX_VAR_NAME), intent(in), optional :: names(:)
     character(len=*), intent(in) :: fname
+    real(kind=dp_t), intent(in), optional :: dx(:)
+    real(kind=dp_t), intent(in), optional :: time
 
-    call fabio_ml_write(xx%mf, xx%mla%mba%rr(:,1), fname)
+    call fabio_ml_multifab_write_d(xx%mf, xx%mla%mba%rr(:,1), fname, &
+         names = names, time = time, dx = dx)
 
   end subroutine fabio_ml_mf_write
 
