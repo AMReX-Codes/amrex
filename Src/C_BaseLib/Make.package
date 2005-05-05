@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.37 2002-11-14 18:43:29 car Exp $
+# $Id: Make.package,v 1.38 2005-05-05 20:29:11 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -38,8 +38,10 @@ C$(BOXLIB_BASE)_headers += Thread.H
 C$(BOXLIB_BASE)_sources += BLWorkQueue.cpp
 C$(BOXLIB_BASE)_headers += WorkQueue.H
 
+ifeq ($(PROF),TRUE)
 ifeq ($(USE_MPI),TRUE)
 C$(BOXLIB_BASE)_sources += BLMpi.cpp
+endif
 endif
 
 #
