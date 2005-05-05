@@ -90,7 +90,18 @@ module ml_multifab_module
      module procedure ml_multifab_nlevels
   end interface
 
+  interface nboxes
+     module procedure ml_multifab_nboxes
+  end interface
+
 contains
+
+  function ml_multifab_nboxes(mmf, lev) result(r)
+    integer :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev
+    r = mmf%mf(lev)%nboxes
+  end function ml_multifab_nboxes
 
   function ml_multifab_nlevels(mmf) result(r)
     integer :: r
