@@ -60,15 +60,22 @@ module ml_multifab_module
   interface saxpy
      module procedure ml_multifab_saxpy_3_c
      module procedure ml_multifab_saxpy_3
+     module procedure ml_multifab_saxpy_5
   end interface
 
   interface div_div
      module procedure ml_multifab_div_div
+     module procedure ml_multifab_div_div_s
   end interface
 
   interface sub_sub
      module procedure ml_multifab_sub_sub_s
      module procedure ml_multifab_sub_sub
+  end interface
+
+  interface plus_plus
+     module procedure ml_multifab_plus_plus_s
+     module procedure ml_multifab_plus_plus
   end interface
 
   interface dataptr
@@ -94,8 +101,19 @@ module ml_multifab_module
      module procedure ml_multifab_nboxes
   end interface
 
+  interface remote
+     module procedure ml_multifab_remote
+  end interface
+
 contains
 
+  function ml_multifab_remote(mmf, lev, n) result(r)
+    logical :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev, n
+    r = remote(mmf%mf(lev), n)
+  end function ml_multifab_remote
+    
   function ml_multifab_nboxes(mmf, lev) result(r)
     integer :: r
     type(ml_multifab), intent(in) :: mmf
@@ -148,6 +166,15 @@ contains
        call multifab_saxpy_3(a%mf(n), b1, b%mf(n))
     end do
   end subroutine ml_multifab_saxpy_3
+  subroutine ml_multifab_saxpy_5(a, b1, b, c1, c)
+    real(dp_t), intent(in) :: b1, c1
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in)  :: b, c
+    integer :: n
+    do n = 1, a%nlevel
+       call multifab_saxpy_5(a%mf(n), b1, b%mf(n), c1, c%mf(n))
+    end do
+  end subroutine ml_multifab_saxpy_5
 
   subroutine ml_multifab_div_div(a, b)
     type(ml_multifab), intent(inout) :: a
@@ -157,6 +184,14 @@ contains
        call div_div(a%mf(n), b%mf(n))
     end do
   end subroutine ml_multifab_div_div
+  subroutine ml_multifab_div_div_s(a, b)
+    type(ml_multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call div_div(a%mf(n), b)
+    end do
+  end subroutine ml_multifab_div_div_s
 
   subroutine ml_multifab_sub_sub_s(a, b)
     type(ml_multifab), intent(inout) :: a
@@ -174,6 +209,23 @@ contains
        call sub_sub(a%mf(n), b%mf(n))
     end do
   end subroutine ml_multifab_sub_sub
+
+  subroutine ml_multifab_plus_plus_s(a, b)
+    type(ml_multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call plus_plus(a%mf(n), b)
+    end do
+  end subroutine ml_multifab_plus_plus_s
+  subroutine ml_multifab_plus_plus(a, b)
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call plus_plus(a%mf(n), b%mf(n))
+    end do
+  end subroutine ml_multifab_plus_plus
 
   subroutine ml_multifab_copy(target, source, all)
     type(ml_multifab), intent(inout) :: target
@@ -267,6 +319,17 @@ contains
             + dot(x%mf(n), compx, y%mf(n), compy, mask=x%mla%mask(n))
     end do
   end function ml_multifab_dot_cc
+
+  function ml_multifab_sum(x) result(r)
+    real(kind=dp_t) :: r
+    type(ml_multifab), intent(in) :: x
+    integer :: n
+    n = x%nlevel
+    r = multifab_sum(x%mf(n))
+    do n = x%nlevel-1, 1, -1
+       r = r/product(x%mla%mba%rr(n,:)) + multifab_sum(x%mf(n), mask = x%mla%mask(n))
+    end do
+  end function ml_multifab_sum
 
   function ml_multifab_norm_l2(x, all) result(r)
     real(kind=dp_t) :: r
