@@ -370,7 +370,6 @@ contains
     integer, intent(in) :: lev
     integer stat
     integer i
-    call bl_assert(lev==1, "bottom_solve only at level 1")
 
     stat = 0
     select case ( mgt%bottom_solver )
@@ -770,7 +769,7 @@ contains
 
   end subroutine mg_tower_v_cycle_c
 
-  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
+  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, bottom_level)
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
     type(multifab), intent(inout) :: uu
@@ -780,9 +779,13 @@ contains
     integer, intent(in) :: nu1, nu2
     integer, intent(inout) :: gamma
     integer, intent(in) :: cyc
+    integer, intent(in), optional :: bottom_level
     integer :: i
     logical :: do_diag
     real(dp_t) :: nrm, nrm1, nrm2, nrm3
+    integer :: lbl
+
+    lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
@@ -796,7 +799,7 @@ contains
     end if
 
     call timer_start(mgt%tm(lev))
-    if ( lev == 1 ) then
+    if ( lev == lbl ) then
        if (do_diag) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
           nrm = norm_inf(mgt%cc(lev))
@@ -840,7 +843,7 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma)
+               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
