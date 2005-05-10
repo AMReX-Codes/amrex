@@ -522,11 +522,11 @@ contains
     !   integer :: nn = 21
     logical :: skwd
 
-    call multifab_fill_boundary(uu)
+    call multifab_fill_boundary_c(uu, cu, 1)
     if ( st%extrap_bc) then
        ! call multifab_print(uu, unit=nn); nn = nn + 1
        ! call multifab_print(uu, 'before')
-       call stencil_extrap_bc(st, uu)
+       call stencil_extrap_bc(st, uu, cu)
        ! call multifab_print(uu, 'after')
        ! call multifab_print(uu, unit=nn); nn = nn + 1
     end if
@@ -946,9 +946,10 @@ contains
     end if
   end subroutine stencil_print
 
-  subroutine stencil_extrap_bc(st, uu)
+  subroutine stencil_extrap_bc(st, uu, c)
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: uu
+    integer, intent(in), optional :: c
     real(kind=dp_t), pointer :: up(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
     integer i, n
@@ -957,6 +958,25 @@ contains
        call bl_error("STENCIL_EXTRAP_BC: extrap_max_order < 1: ", st%extrap_max_order)
     end if
 
+    if ( present(c) ) then
+    do i = 1, uu%nboxes
+       if ( multifab_remote(uu, i) ) cycle
+       up => dataptr(uu, i)
+       mp => dataptr(st%mm, i)
+       n = c
+          select case ( st%dim )
+          case (1)
+             call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
+                  st%extrap_max_order, st%type == ST_CROSS)
+          case (2)
+             call extrap_2d(up(:,:,1,n), mp(:,:,1,1), st%xa, st%xb, st%dh, &
+                  st%extrap_max_order, st%type == ST_CROSS)
+          case (3)
+             call extrap_3d(up(:,:,:,n), mp(:,:,:,1), st%xa, st%xb, st%dh, &
+                  st%extrap_max_order, st%type == ST_CROSS)
+          end select
+    end do
+    else
     do i = 1, uu%nboxes
        if ( multifab_remote(uu, i) ) cycle
        up => dataptr(uu, i)
@@ -975,6 +995,7 @@ contains
           end select
        end do
     end do
+    end if
   end subroutine stencil_extrap_bc
 
   subroutine extrap_1d(ph, mm, xa, xb, dh, max_order, cross)
@@ -1128,10 +1149,10 @@ contains
     call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
     do k = 1, nn(3)
        do j = 1, nn(2)
-          if ( bc_dirichlet(mm( 1,j,k), 1, -1) ) then
+          if ( bc_dirichlet(mm(1,j,k),1,-1) ) then
              ph(0,j,k)       = sum(ph(0:norder(1),j,k)                   *cc(0:norder(1),1))
           end if
-          if ( bc_dirichlet(mm(nn(1),j,k), 1, +1) ) then
+          if ( bc_dirichlet(mm(nn(1),j,k),1,+1) ) then
              ph(nn(1)+1,j,k) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j,k)*cc(0:norder(1),2))
           end if
        end do
