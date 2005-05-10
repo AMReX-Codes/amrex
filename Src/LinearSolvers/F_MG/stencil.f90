@@ -9,6 +9,7 @@ module stencil_module
   integer, parameter :: ST_FILL_LAPLACE_2        = 1
   integer, parameter :: ST_FILL_LAPLACE_4        = 2
   integer, parameter :: ST_FILL_WEIGHTED_LAPLACE = 3
+  integer, parameter :: ST_FILL_SIMPLE_ABEC      = 6
   integer, parameter :: ST_FILL_ABEC_LAPLACE     = 4
   integer, parameter :: ST_FILL_TENSOR_ABEC      = 5
   integer, parameter :: ST_FILL_USER_DEFINED     = 100
@@ -522,6 +523,13 @@ contains
     !   integer :: nn = 21
     logical :: skwd
 
+    if ( uu%ng /= 1 ) then
+       call bl_error("STENCIL_APPLY_ST_C: uu%ng /= 1", uu%ng)
+    end if
+    if ( st%ss%ng /= 0 ) then
+       call bl_error("STENCIL_APPLY_ST_C: st%ss%ng /= 0", st%ss%ng)
+    end if
+
     call multifab_fill_boundary_c(uu, cu, 1)
     if ( st%extrap_bc) then
        ! call multifab_print(uu, unit=nn); nn = nn + 1
@@ -534,11 +542,11 @@ contains
     do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
        rp => dataptr(rr, i, get_ibox(rr,i), cr)
        up => dataptr(uu, i, cu)
-       upn => dataptr(uu, i, get_ibox(uu,i), cu)
        sp => dataptr(st%ss, i)
        mp => dataptr(st%mm, i)
        select case ( st%type )
        case (ST_DIAG)
+          upn => dataptr(uu, i, get_ibox(uu,i), cu)
           rp = sp*upn
        case (ST_CROSS)
           skwd = st%skewed(i)
@@ -781,6 +789,8 @@ contains
     integer :: i, id
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
+    real(kind=dp_t), pointer :: cpa(:,:,:,:)
+    real(kind=dp_t), pointer :: cpb(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
     type(box) :: bx, pd
     real(kind=dp_t) lxa(st%dim), lxb(st%dim)
@@ -827,6 +837,12 @@ contains
           if ( .not. present(coeffs) ) then
              call bl_error("STENCIL_FILL: ST_FILL_ABEC_LAPLACE requires coeffs")
           end if
+          if ( coeffs%ng /= 1 ) then
+             call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%ng /= 1", coeffs%ng)
+          end if
+          if ( coeffs%nc /= 1 ) then
+             call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%nc /= 1", coeffs%nc)
+          end if
           cp => dataptr(coeffs, i)
           select case (st%dim)
           case (1)
@@ -836,9 +852,34 @@ contains
           case (3)
              call s_weighted_laplacian_3d(sp(:,:,:,:), cp(:,:,:,1), st%dh, lal, lbe)
           end select
+       case ( ST_FILL_SIMPLE_ABEC )
+          if ( .not. present(coeffs) ) then
+             call bl_error("STENCIL_FILL: ST_FILL_ABEC_LAPLACE requires coeffs")
+          end if
+          if ( coeffs%ng /= 1 ) then
+             call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%ng /= 1", coeffs%ng)
+          end if
+          if ( coeffs%nc /= 1 + st%dim ) then
+             call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%nc /= 1 + dim", coeffs%nc)
+          end if
+
+          bx = get_box(st%ss, i)
+          cpa => dataptr(coeffs, i, bx, 1)
+          cpb => dataptr(coeffs, i, 2, st%dim)
+          select case (st%dim)
+          case (1)
+             call s_simple_abec_1d(sp(:,1,1,:), cpa(:,1,1,1), cpb(:,1,1,:), st%dh, lal, lbe)
+          case (2)
+             call s_simple_abec_2d(sp(:,:,1,:), cpa(:,:,1,1), cpb(:,:,1,:), st%dh, lal, lbe)
+          case (3)
+             call s_simple_abec_3d(sp(:,:,:,:), cpa(:,:,:,1), cpb(:,:,:,:), st%dh, lal, lbe)
+          end select
        case ( ST_FILL_ABEC_LAPLACE )
           if ( .not. present(coeffs) ) then
              call bl_error("STENCIL_FILL: ST_FILL_ABEC_LAPLACE requires coeffs")
+          end if
+          if ( coeffs%ng /= 1 ) then
+             call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%ng /= 1", coeffs%ng)
           end if
           cp => dataptr(coeffs, i)
           mp => dataptr(st%mm, i)
@@ -1931,6 +1972,75 @@ contains
     ss(:,:,:,5) =  bcoef(1:nx  ,2:ny+1,2:nz+1)*f1(3)
     ss(:,:,:,6) =  bcoef(1:nx  ,0:ny-1,0:nz-1)*f1(3)
   end subroutine s_weighted_laplacian_3d
+
+  subroutine s_simple_abec_1d(ss, acoef, bcoef, dh, alpha, beta)
+    real (kind = dp_t), intent(out) :: ss(:,0:)
+    real (kind = dp_t), intent(in)  :: acoef(:)
+    real (kind = dp_t), intent(in)  :: bcoef(0:,:)
+    real (kind = dp_t), intent(in) :: dh(:)
+    real(kind=dp_t), intent(in) :: alpha, beta
+    real (kind = dp_t) :: f1(size(dh))
+    integer nx
+    nx = size(ss,1)
+    f1 = beta*ONE/dh**2
+    ss(:,0) = &
+         + alpha*acoef &
+         - bcoef(2:nx+1,1)*f1(1) &
+         - bcoef(0:nx-1,1)*f1(1)
+    ss(:,1) =  bcoef(2:nx+1,1)
+    ss(:,2) =  bcoef(0:nx-1,1)
+  end subroutine s_simple_abec_1d
+
+  subroutine s_simple_abec_2d(ss, acoef, bcoef, dh, alpha, beta)
+    real (kind = dp_t), intent(out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in)  :: acoef(:,:)
+    real (kind = dp_t), intent(in)  :: bcoef(0:,0:,:)
+    real (kind = dp_t), intent(in) :: dh(:)
+    real(kind=dp_t), intent(in) :: alpha, beta
+    real (kind = dp_t) :: f1(size(dh))
+    integer nx, ny
+    nx = size(ss,1)
+    ny = size(ss,2)
+    f1 = beta*ONE/dh**2
+    ss(:,:,0) =  &
+         + alpha*acoef &
+         - bcoef(2:nx+1,1:ny  ,1)*f1(1) &
+         - bcoef(0:nx-1,1:ny  ,1)*f1(1) &
+         - bcoef(1:nx  ,2:ny+1,2)*f1(2) &
+         - bcoef(1:nx  ,0:ny-1,2)*f1(2)
+    ss(:,:,1) =  bcoef(2:nx+1,1:ny  ,1)*f1(1)
+    ss(:,:,2) =  bcoef(0:nx-1,1:ny  ,1)*f1(1)
+    ss(:,:,3) =  bcoef(1:nx  ,2:ny+1,2)*f1(2)
+    ss(:,:,4) =  bcoef(1:nx  ,0:ny-1,2)*f1(2)
+  end subroutine s_simple_abec_2d
+
+  subroutine s_simple_abec_3d(ss, acoef, bcoef, dh, alpha, beta)
+    real (kind = dp_t), intent(out) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in)  :: acoef(:,:,:)
+    real (kind = dp_t), intent(in)  :: bcoef(0:,0:,0:,:)
+    real (kind = dp_t), intent(in) :: dh(:)
+    real(kind=dp_t), intent(in) :: alpha, beta
+    real (kind = dp_t) :: f1(size(dh))
+    integer nx, ny, nz
+    nx = size(ss,1)
+    ny = size(ss,2)
+    nz = size(ss,3)
+    f1 = beta*ONE/dh**2
+    ss(:,:,:,0) =  &
+         + alpha*acoef  &
+         - bcoef(2:nx+1,1:ny  ,1:nz  ,1)*f1(1) &
+         - bcoef(0:nx-1,1:ny  ,1:nz  ,1)*f1(1) &
+         - bcoef(1:nx  ,2:ny+1,1:nz  ,2)*f1(2) &
+         - bcoef(1:nx  ,0:ny-1,1:nz  ,2)*f1(2) &
+         - bcoef(1:nx  ,2:ny+1,2:nz+1,3)*f1(3) &
+         - bcoef(1:nx  ,0:ny-1,0:nz-1,3)*f1(3)
+    ss(:,:,:,1) =  bcoef(2:nx+1,1:ny  ,1:nz  ,1)*f1(1)
+    ss(:,:,:,2) =  bcoef(0:nx-1,1:ny  ,1:nz  ,1)*f1(1)
+    ss(:,:,:,3) =  bcoef(1:nx  ,2:ny+1,1:nz  ,2)*f1(2)
+    ss(:,:,:,4) =  bcoef(1:nx  ,0:ny-1,1:nz  ,2)*f1(2)
+    ss(:,:,:,5) =  bcoef(1:nx  ,2:ny+1,2:nz+1,3)*f1(3)
+    ss(:,:,:,6) =  bcoef(1:nx  ,0:ny-1,0:nz-1,3)*f1(3)
+  end subroutine s_simple_abec_3d
 
   subroutine s_mehrstellen_1d(ss, dh, alpha, beta)
     real (kind = dp_t), intent(out) :: ss(:,0:)
