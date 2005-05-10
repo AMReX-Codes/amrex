@@ -105,6 +105,10 @@ module ml_multifab_module
      module procedure ml_multifab_remote
   end interface
 
+  interface print
+     module procedure ml_multifab_print
+  end interface
+
 contains
 
   function ml_multifab_remote(mmf, lev, n) result(r)
