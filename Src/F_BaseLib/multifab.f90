@@ -185,6 +185,7 @@ module multifab_module
 
   interface saxpy
      module procedure multifab_saxpy_3_c
+     module procedure multifab_saxpy_3_cc
      module procedure multifab_saxpy_3
      module procedure multifab_saxpy_4
      module procedure multifab_saxpy_5
@@ -2827,6 +2828,38 @@ contains
        !$OMP END PARALLEL DO
     end if
   end subroutine multifab_saxpy_3_c
+  subroutine multifab_saxpy_3_cc(a, ia, b1, b, ib, nc, all)
+    real(dp_t), intent(in) :: b1
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    integer, intent(in) :: ia, ib
+    integer, intent(in), optional :: nc
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    logical, intent(in), optional :: all
+    integer :: i
+    logical :: lall
+
+    lall = .false.; if ( present(all) ) lall = all
+
+    if (lall) then
+       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+          ap => dataptr(a, i, ia, nc)
+          bp => dataptr(b, i, ib, nc)
+          ap = ap + b1*bp
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+          ap => dataptr(a, i, get_ibox(a, i), ia, nc)
+          bp => dataptr(b, i, get_ibox(b, i), ib, nc)
+          ap = ap + b1*bp
+       end do
+       !$OMP END PARALLEL DO
+    end if
+  end subroutine multifab_saxpy_3_cc
 
   function multifab_norm_l1_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
