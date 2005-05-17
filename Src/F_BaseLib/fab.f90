@@ -1047,7 +1047,7 @@ contains
       integer ::n, i
       integer :: nc, hi(1)
       character(len=1) c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=2)
       hi(1) = lo(1) + size(fb,dim=1) - 1
       if ( ldata ) then
          do n = 1, nc
@@ -1069,7 +1069,7 @@ contains
       integer :: n, j, i
       integer :: nc, hi(2)
       character(len=1) c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=3)
       do i = 1, 2
          hi(i) = lo(i) + size(fb,dim=i) - 1
       end do
@@ -1175,7 +1175,7 @@ contains
       integer n, i
       integer nc, hi(1)
       character(len=1) c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=2)
       hi(1) = lo(1) + size(fb,dim=1) - 1
       if ( ldata ) then
          do n = 1, nc
@@ -1197,7 +1197,7 @@ contains
       integer n, j, i
       integer nc, hi(2)
       character(len=1) c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=3)
       do i = 1, 2
          hi(i) = lo(i) + size(fb,dim=i) - 1
       end do
@@ -1303,7 +1303,7 @@ contains
       integer :: n, i
       integer :: nc, hi(1)
       character(len=1) :: c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=2)
       hi(1) = lo(1) + size(fb,dim=1) - 1
       if ( ldata ) then
          do n = 1, nc
@@ -1325,7 +1325,7 @@ contains
       integer :: n, j, i
       integer :: nc, hi(2)
       character(len=1) :: c
-      nc = size(fb,dim=4)
+      nc = size(fb,dim=3)
       do i = 1, 2
          hi(i) = lo(i) + size(fb,dim=i) - 1
       end do
