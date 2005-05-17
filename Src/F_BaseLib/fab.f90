@@ -720,7 +720,7 @@ contains
     logical, intent(in), optional :: all, loc
     logical :: lall, lloc
     integer :: i, j, k, n
-    real(kind=dp_t) :: xx,yy,zz,fc
+    real(kind=dp_t) :: xx,yy,zz,fc,nn
     real(kind=dp_t) :: sgn
     lall = .false.; if ( present(all) ) lall = all
     lloc = .false.; if ( present(loc) ) lloc = loc
@@ -732,13 +732,14 @@ contains
        end if
        select case (fb%dim)
        case (3)
+          nn = og(n)/100/100/100/100
           do k = lbound(fb%p,3), ubound(fb%p,3)
              zz = og(k)/100/100/100
              do j = lbound(fb%p,2), ubound(fb%p,2)
                 yy = og(j)/100/100
                 do i = lbound(fb%p,1), ubound(fb%p,1)
                    xx = og(i)/100
-                   fc = 0; if ( lloc ) fc = xx + yy + zz
+                   fc = 0; if ( lloc ) fc = xx + yy + zz + nn
                    fb%p(i,j,k,n) = sgn*(ii+fc)
                 end do
              end do
@@ -749,17 +750,18 @@ contains
                 yy = og(j)/100/100
                 do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
                    xx = og(i)/100
-                   fc = 0; if ( lloc ) fc = xx + yy + zz
+                   fc = 0; if ( lloc ) fc = xx + yy + zz + nn
                    fb%p(i,j,k,n) = ii+fc
                 end do
              end do
           end do
        case (2)
+          nn = og(n)/100/100/100
           do j = lbound(fb%p,2), ubound(fb%p,2)
              yy = og(j)/100/100
              do i = lbound(fb%p,1), ubound(fb%p,1)
                 xx = og(i)/100
-                fc = 0; if ( lloc ) fc = xx + yy
+                fc = 0; if ( lloc ) fc = xx + yy + nn
                 fb%p(i,j,1,n) = sgn*(ii+fc)
              end do
           end do
@@ -767,19 +769,20 @@ contains
              yy = og(j)/100/100
              do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
                 xx = og(i)/100
-                fc = 0; if ( lloc ) fc = xx + yy
+                fc = 0; if ( lloc ) fc = xx + yy + nn
                 fb%p(i,j,1,n) = ii+fc
              end do
           end do
        case (1)
+          nn = og(n)/100/100
           do i = lbound(fb%p,1), ubound(fb%p,1)
              xx = og(i)/100
-             fc = 0; if ( lloc ) fc = xx
+             fc = 0; if ( lloc ) fc = xx + nn
              fb%p(i,1,1,n) = sgn*(ii+fc)
           end do
           do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
              xx = og(i)/100
-             fc = 0; if ( lloc ) fc = xx
+             fc = 0; if ( lloc ) fc = xx + nn
              fb%p(i,1,1,n) = ii+fc
           end do
        end select
