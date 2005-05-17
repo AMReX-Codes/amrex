@@ -2186,33 +2186,32 @@ contains
     end do
   end subroutine lmultifab_print
 
-  subroutine multifab_copy_c(mf1, targ, mf2, src, nc, all)
-    type(multifab), intent(inout) :: mf1
-    type(multifab), intent(in)  :: mf2
-    logical, intent(in), optional :: all
-    integer, intent(in) :: targ, src
-    integer, intent(in), optional :: nc
-    real(dp_t), pointer :: mp1(:,:,:,:)
-    real(dp_t), pointer :: mp2(:,:,:,:)
-    logical :: lall
-    integer :: i, n, lnc
+  subroutine multifab_copy_c(mdst, dst, msrc, src, nc, all)
 
-    lnc = 1;     if ( present(nc) ) lnc = nc
+    type(multifab), intent(inout) :: mdst
+    type(multifab), intent(in)    :: msrc
+    logical, intent(in), optional :: all
+    integer, intent(in)           :: dst, src
+    integer, intent(in), optional :: nc
+    real(dp_t), pointer           :: pdst(:,:,:,:)
+    real(dp_t), pointer           :: psrc(:,:,:,:)
+    logical                       :: lall
+    integer                       :: i, lnc
+
+    lnc  = 1;       if ( present(nc) )  lnc  = nc
     lall = .false.; if ( present(all) ) lall = all
-    if ( mf1%la == mf2%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp1,mp2) SHARED(lall)
-       do n = 0, lnc-1
-          do i = 1, mf1%nboxes
-             if ( multifab_remote(mf1,i) ) cycle
-             if ( lall ) then
-                mp1 => dataptr(mf1, i, get_pbox(mf1, i), targ+n)
-                mp2 => dataptr(mf2, i, get_pbox(mf2, i), src +n)
-             else
-                mp1 => dataptr(mf1, i, get_ibox(mf1, i), targ+n)
-                mp2 => dataptr(mf2, i, get_ibox(mf2, i), src +n)
-             end if
-             mp1 = mp2
-          end do
+    if ( mdst%la == msrc%la ) then
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
+       do i = 1, mdst%nboxes
+          if ( multifab_remote(mdst,i) ) cycle
+          if ( lall ) then
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dst, nc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), src, nc)
+          else
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dst, nc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), src, nc)
+          end if
+          pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
@@ -2222,70 +2221,70 @@ contains
   contains
 
     subroutine easy()
-      type(box) :: bx, abx
-      real(dp_t), pointer :: p1(:,:,:,:)
-      real(dp_t), pointer :: p2(:,:,:,:)
-      integer, parameter :: tag = 1102
-      integer :: i, j, proc
-      do n = 0, lnc - 1
-         do i = 1, mf1%nboxes
+      type(box)           :: bx, abx
+      integer, parameter  :: tag = 1102
+      integer             :: i, j, proc
+      do i = 1, mdst%nboxes
+         if ( lall ) then
+            bx = get_pbox(mdst, i)
+         else
+            bx = get_ibox(mdst, i)
+         end if
+         do j = 1, msrc%nboxes
+            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
             if ( lall ) then
-               bx = get_pbox(mf1, i)
+               abx = intersection(bx, get_pbox(msrc, j))
             else
-               bx = get_ibox(mf1, i)
+               abx = intersection(bx, get_ibox(msrc, j))
             end if
-            do j = 1, mf2%nboxes
-               if ( remote(mf1,i) .and. remote(mf2,j) ) cycle
-               abx = intersection(bx, get_ibox(mf2, j))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf1,i) .and. local(mf2,j) ) then
-                     p1 => dataptr(mf1, i, abx, targ+n)
-                     p2 => dataptr(mf2, j, abx, src +n)
-                     p1 = p2
-                  else if ( local(mf2,j) ) then ! must send
-                     p2 => dataptr(mf2, j, abx, src+n)
-                     proc = get_proc(mf1%la, i)
-                     call parallel_send(p2, proc, tag)
-                  else if ( local(mf1,i) ) then ! must recv
-                     p1 => dataptr(mf1, i, abx, targ+n)
-                     proc = get_proc(mf2%la, j)
-                     call parallel_recv(p1, proc, tag)
-                  end if
+            if ( .not. empty(abx) ) then
+               if ( local(mdst,i) .and. local(msrc,j) ) then
+                  pdst => dataptr(mdst, i, abx, dst, nc)
+                  psrc => dataptr(msrc, j, abx, src, nc)
+                  pdst = psrc
+               else if ( local(msrc,j) ) then ! must send
+                  psrc => dataptr(msrc, j, abx, src, nc)
+                  proc = get_proc(mdst%la, i)
+                  call parallel_send(psrc, proc, tag)
+               else if ( local(mdst,i) ) then ! must recv
+                  pdst => dataptr(mdst, i, abx, dst, nc)
+                  proc = get_proc(msrc%la, j)
+                  call parallel_recv(pdst, proc, tag)
                end if
-            end do
+            end if
          end do
       end do
 
     end subroutine easy
 
   end subroutine multifab_copy_c
-  subroutine imultifab_copy_c(mf1, targ, mf2, src, nc, all)
-    type(imultifab), intent(inout) :: mf1
-    type(imultifab), intent(in)  :: mf2
-    logical, intent(in), optional :: all
-    integer, intent(in) :: targ, src
-    integer, intent(in), optional :: nc
-    integer, pointer :: mp1(:,:,:,:)
-    integer, pointer :: mp2(:,:,:,:)
-    logical :: lall
-    integer :: i, n, lnc
 
-    lnc = 1;     if ( present(nc) ) lnc = nc
+  subroutine imultifab_copy_c(mdst, dst, msrc, src, nc, all)
+
+    type(imultifab), intent(inout) :: mdst
+    type(imultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all
+    integer, intent(in)            :: dst, src
+    integer, intent(in), optional  :: nc
+    integer, pointer               :: pdst(:,:,:,:)
+    integer, pointer               :: psrc(:,:,:,:)
+    logical                        :: lall
+    integer                        :: i, lnc
+
+    lnc  = 1;       if ( present(nc) )  lnc  = nc
     lall = .false.; if ( present(all) ) lall = all
-    if ( mf1%la == mf2%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp1,mp2)
-       do n = 0, lnc-1
-          do i = 1, mf1%nboxes
-             if ( remote(mf1,i) ) cycle
-             if ( lall ) then
-                mp1 => dataptr(mf1, i, get_pbox(mf1, i), targ + n)
-                mp2 => dataptr(mf2, i, get_pbox(mf2, i), src  + n)
-             else
-                mp1 => dataptr(mf1, i, get_ibox(mf1, i), targ + n)
-                mp2 => dataptr(mf2, i, get_ibox(mf2, i), src  + n)
-             end if
-             mp1 = mp2
-          end do
+    if ( mdst%la == msrc%la ) then
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       do i = 1, mdst%nboxes
+          if ( remote(mdst,i) ) cycle
+          if ( lall ) then
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dst, nc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), src, nc)
+          else
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dst, nc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), src, nc)
+          end if
+          pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
@@ -2295,63 +2294,65 @@ contains
   contains
 
     subroutine easy()
-      type(box) :: bx, abx
-      integer, pointer :: p1(:,:,:,:)
-      integer, pointer :: p2(:,:,:,:)
+      type(box)          :: bx, abx
       integer, parameter :: tag = 1102
-      integer :: i, j, proc
-      do n = 0, lnc-1
-         do i = 1, mf1%nboxes
+      integer            :: i, j, proc
+      do i = 1, mdst%nboxes
+         if ( lall ) then
+            bx = get_pbox(mdst, i)
+         else
+            bx = get_ibox(mdst, i)
+         end if
+         do j = 1, msrc%nboxes
             if ( lall ) then
-               bx = get_pbox(mf1, i)
+               abx = intersection(bx, get_pbox(msrc, j))
             else
-               bx = get_ibox(mf1, i)
+               abx = intersection(bx, get_ibox(msrc, j))
             end if
-            do j = 1, mf2%nboxes
-               abx = intersection(bx, get_ibox(mf2, j))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf1,i) .and. local(mf2,j) ) then
-                     p1 => dataptr(mf1, i, abx, targ + n)
-                     p2 => dataptr(mf2, j, abx, src  + n)
-                     p1 = p2
-                  else if ( local(mf2,j) ) then ! must send
-                     p2 => dataptr(mf2, j, abx, src + n)
-                     proc = get_proc(mf1%la, i)
-                     call parallel_send(p2, proc, tag)
-                  else if ( local(mf1,i) ) then ! must recv
-                     p1 => dataptr(mf1, i, abx, targ + n)
-                     proc = get_proc(mf2%la, j)
-                     call parallel_recv(p1, proc, tag)
-                  end if
+            if ( .not. empty(abx) ) then
+               if ( local(mdst,i) .and. local(msrc,j) ) then
+                  pdst => dataptr(mdst, i, abx, dst, nc)
+                  psrc => dataptr(msrc, j, abx, src, nc)
+                  pdst = psrc
+               else if ( local(msrc,j) ) then ! must send
+                  psrc => dataptr(msrc, j, abx, src, nc)
+                  proc = get_proc(mdst%la, i)
+                  call parallel_send(psrc, proc, tag)
+               else if ( local(mdst,i) ) then ! must recv
+                  pdst => dataptr(mdst, i, abx, dst, nc)
+                  proc = get_proc(msrc%la, j)
+                  call parallel_recv(pdst, proc, tag)
                end if
-            end do
+            end if
          end do
       end do
     end subroutine easy
 
   end subroutine imultifab_copy_c
-  subroutine multifab_copy(mf1, mf2, all)
-    type(multifab), intent(inout) :: mf1
-    type(multifab), intent(in)  :: mf2
+
+  subroutine multifab_copy(mdst, msrc, all)
+
+    type(multifab), intent(inout) :: mdst
+    type(multifab), intent(in)    :: msrc
     logical, intent(in), optional :: all
-    real(dp_t), pointer :: mp1(:,:,:,:)
-    real(dp_t), pointer :: mp2(:,:,:,:)
-    logical :: lall
-    integer :: i
+    real(dp_t), pointer           :: pdst(:,:,:,:)
+    real(dp_t), pointer           :: psrc(:,:,:,:)
+    logical                       :: lall
+    integer                       :: i
 
     lall = .false.; if ( present(all) ) lall = all
-    if ( mf1%la == mf2%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp1,mp2) SHARED(lall)
-       do i = 1, mf1%nboxes
-          if ( multifab_remote(mf1,i) ) cycle
+    if ( mdst%la == msrc%la ) then
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
+       do i = 1, mdst%nboxes
+          if ( multifab_remote(mdst,i) ) cycle
           if ( lall ) then
-             mp1 => dataptr(mf1, i, get_pbox(mf1, i))
-             mp2 => dataptr(mf2, i, get_pbox(mf2, i))
+             pdst => dataptr(mdst, i, get_pbox(mdst, i))
+             psrc => dataptr(msrc, i, get_pbox(msrc, i))
           else
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i))
-             mp2 => dataptr(mf2, i, get_ibox(mf2, i))
+             pdst => dataptr(mdst, i, get_ibox(mdst, i))
+             psrc => dataptr(msrc, i, get_ibox(msrc, i))
           end if
-          mp1 = mp2
+          pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
@@ -2361,33 +2362,35 @@ contains
   contains
 
     subroutine easy()
-      type(box) :: bx, abx
-      real(dp_t), pointer :: p1(:,:,:,:)
-      real(dp_t), pointer :: p2(:,:,:,:)
-      integer, parameter :: tag = 1102
-      integer i, j, proc
-      do i = 1, mf1%nboxes
+      type(box)           :: bx, abx
+      integer, parameter  :: tag = 1102
+      integer             :: i, j, proc
+      do i = 1, mdst%nboxes
          if ( lall ) then
-            bx = get_pbox(mf1, i)
+            bx = get_pbox(mdst, i)
          else
-            bx = get_ibox(mf1, i)
+            bx = get_ibox(mdst, i)
          end if
-         do j = 1, mf2%nboxes
-            if ( remote(mf1,i) .and. remote(mf2,j) ) cycle
-            abx = intersection(bx, get_ibox(mf2, j))
+         do j = 1, msrc%nboxes
+            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+            if ( lall ) then
+               abx = intersection(bx, get_pbox(msrc, j))
+            else
+               abx = intersection(bx, get_ibox(msrc, j))
+            end if
             if ( .not. empty(abx) ) then
-               if ( local(mf1,i) .and. local(mf2,j) ) then
-                  p1 => dataptr(mf1, i, abx)
-                  p2 => dataptr(mf2, j, abx)
-                  p1 = p2
-               else if ( local(mf2,j) ) then ! must send
-                  p2 => dataptr(mf2, j, abx)
-                  proc = get_proc(mf1%la, i)
-                  call parallel_send(p2, proc, tag)
-               else if ( local(mf1,i) ) then ! must recv
-                  p1 => dataptr(mf1, i, abx)
-                  proc = get_proc(mf2%la, j)
-                  call parallel_recv(p1, proc, tag)
+               if ( local(mdst,i) .and. local(msrc,j) ) then
+                  pdst => dataptr(mdst, i, abx)
+                  psrc => dataptr(msrc, j, abx)
+                  pdst = psrc
+               else if ( local(msrc,j) ) then ! must send
+                  psrc => dataptr(msrc, j, abx)
+                  proc = get_proc(mdst%la, i)
+                  call parallel_send(psrc, proc, tag)
+               else if ( local(mdst,i) ) then ! must recv
+                  pdst => dataptr(mdst, i, abx)
+                  proc = get_proc(msrc%la, j)
+                  call parallel_recv(pdst, proc, tag)
                end if
             end if
          end do
@@ -2396,27 +2399,29 @@ contains
     end subroutine easy
 
   end subroutine multifab_copy
-  subroutine imultifab_copy(mf1, mf2, all)
-    type(imultifab), intent(inout) :: mf1
-    type(imultifab), intent(in)  :: mf2
-    logical, intent(in), optional :: all
-    integer, pointer :: mp1(:,:,:,:)
-    integer, pointer :: mp2(:,:,:,:)
-    logical :: lall
-    integer :: i
+
+  subroutine imultifab_copy(mdst, msrc, all)
+
+    type(imultifab), intent(inout) :: mdst
+    type(imultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all
+    integer, pointer               :: pdst(:,:,:,:)
+    integer, pointer               :: psrc(:,:,:,:)
+    logical                        :: lall
+    integer                        :: i
     lall = .false.; if ( present(all) ) lall = all
-    if ( mf1%la == mf2%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp1,mp2)
-       do i = 1, mf1%nboxes
-          if ( remote(mf1,i) ) cycle
+    if ( mdst%la == msrc%la ) then
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       do i = 1, mdst%nboxes
+          if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             mp1 => dataptr(mf1, i, get_pbox(mf1, i))
-             mp2 => dataptr(mf2, i, get_pbox(mf2, i))
+             pdst => dataptr(mdst, i, get_pbox(mdst, i))
+             psrc => dataptr(msrc, i, get_pbox(msrc, i))
           else
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i))
-             mp2 => dataptr(mf2, i, get_ibox(mf2, i))
+             pdst => dataptr(mdst, i, get_ibox(mdst, i))
+             psrc => dataptr(msrc, i, get_ibox(msrc, i))
           end if
-          mp1 = mp2
+          pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
@@ -2426,32 +2431,34 @@ contains
   contains
 
     subroutine easy()
-      type(box) :: bx, abx
-      integer, pointer :: p1(:,:,:,:)
-      integer, pointer :: p2(:,:,:,:)
+      type(box)          :: bx, abx
       integer, parameter :: tag = 1102
-      integer :: i, j, proc
-      do i = 1, mf1%nboxes
+      integer            :: i, j, proc
+      do i = 1, mdst%nboxes
          if ( lall ) then
-            bx = get_pbox(mf1, i)
+            bx = get_pbox(mdst, i)
          else
-            bx = get_ibox(mf1, i)
+            bx = get_ibox(mdst, i)
          end if
-         do j = 1, mf2%nboxes
-            abx = intersection(bx, get_ibox(mf2, j))
+         do j = 1, msrc%nboxes
+            if ( lall ) then
+               abx = intersection(bx, get_pbox(msrc, j))
+            else
+               abx = intersection(bx, get_ibox(msrc, j))
+            end if
             if ( .not. empty(abx) ) then
-               if ( local(mf1,i) .and. local(mf2,j) ) then
-                  p1 => dataptr(mf1, i, abx)
-                  p2 => dataptr(mf2, j, abx)
-                  p1 = p2
-               else if ( local(mf2,j) ) then ! must send
-                  p2 => dataptr(mf2, j, abx)
-                  proc = get_proc(mf1%la, i)
-                  call parallel_send(p2, proc, tag)
-               else if ( local(mf1,i) ) then ! must recv
-                  p1 => dataptr(mf1, i, abx)
-                  proc = get_proc(mf2%la, j)
-                  call parallel_recv(p1, proc, tag)
+               if ( local(mdst,i) .and. local(msrc,j) ) then
+                  pdst => dataptr(mdst, i, abx)
+                  psrc => dataptr(msrc, j, abx)
+                  pdst = psrc
+               else if ( local(msrc,j) ) then ! must send
+                  psrc => dataptr(msrc, j, abx)
+                  proc = get_proc(mdst%la, i)
+                  call parallel_send(psrc, proc, tag)
+               else if ( local(mdst,i) ) then ! must recv
+                  pdst => dataptr(mdst, i, abx)
+                  proc = get_proc(msrc%la, j)
+                  call parallel_recv(pdst, proc, tag)
                end if
             end if
          end do
