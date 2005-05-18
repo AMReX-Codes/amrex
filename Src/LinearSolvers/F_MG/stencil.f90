@@ -919,7 +919,7 @@ contains
        st%diag_0(i) = diag_0_q(sp)
     end do
     if ( fill /= ST_FILL_USER_DEFINED .and. present(coeffs) ) then
-       call plus_plus(st%ss, 1, coeffs, 1)
+       call saxpy(st%ss, 1, alpha, coeffs, 1)
     end if
   end subroutine stencil_fill
 
@@ -1984,7 +1984,6 @@ contains
     nx = size(ss,1)
     f1 = beta*ONE/dh**2
     ss(:,0) = &
-         + alpha*acoef &
          - bcoef(2:nx+1,1)*f1(1) &
          - bcoef(0:nx-1,1)*f1(1)
     ss(:,1) =  bcoef(2:nx+1,1)
@@ -2003,7 +2002,6 @@ contains
     ny = size(ss,2)
     f1 = beta*ONE/dh**2
     ss(:,:,0) =  &
-         + alpha*acoef &
          - bcoef(2:nx+1,1:ny  ,1)*f1(1) &
          - bcoef(0:nx-1,1:ny  ,1)*f1(1) &
          - bcoef(1:nx  ,2:ny+1,2)*f1(2) &
@@ -2027,7 +2025,6 @@ contains
     nz = size(ss,3)
     f1 = beta*ONE/dh**2
     ss(:,:,:,0) =  &
-         + alpha*acoef  &
          - bcoef(2:nx+1,1:ny  ,1:nz  ,1)*f1(1) &
          - bcoef(0:nx-1,1:ny  ,1:nz  ,1)*f1(1) &
          - bcoef(1:nx  ,2:ny+1,1:nz  ,2)*f1(2) &
