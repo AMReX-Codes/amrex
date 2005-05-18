@@ -274,7 +274,7 @@ module multifab_module
   private :: build_nodal_dot_mask
 
   ! buffers used for parallel fill_boundary
-  real(kind=dp_t), allocatable, save, private  :: g_snd_d(:), g_rcv_d(:)
+  real(dp_t), allocatable, save, private  :: g_snd_d(:), g_rcv_d(:)
   integer, allocatable, save, private  :: g_snd_i(:), g_rcv_i(:)
   logical, allocatable, save, private  :: g_snd_l(:), g_rcv_l(:)
 
@@ -282,23 +282,30 @@ module multifab_module
   logical, private :: i_fb_fancy = .true.
   logical, private :: l_fb_fancy = .true.
 
+  logical, private :: d_cp_fancy = .false.
+  logical, private :: i_cp_fancy = .false.
+
   logical, private :: d_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: i_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: l_fb_async = .false. ! Do both recv's and send's asynchronously?
 
 contains
 
-  subroutine multifab_get_behavior(fb_async, fb_fancy)
+  subroutine multifab_get_behavior(fb_async, fb_fancy, cp_fancy)
     logical, intent(out), optional :: fb_async
     logical, intent(out), optional :: fb_fancy
+    logical, intent(out), optional :: cp_fancy
     if ( present(fb_async) ) fb_async = d_fb_async
     if ( present(fb_fancy) ) fb_fancy = d_fb_fancy
+    if ( present(cp_fancy) ) cp_fancy = d_cp_fancy
   end subroutine multifab_get_behavior
-  subroutine imultifab_get_behavior(fb_async, fb_fancy)
+  subroutine imultifab_get_behavior(fb_async, fb_fancy, cp_fancy)
     logical, intent(out), optional :: fb_async
     logical, intent(out), optional :: fb_fancy
+    logical, intent(out), optional :: cp_fancy
     if ( present(fb_async) ) fb_async = i_fb_async
     if ( present(fb_fancy) ) fb_fancy = i_fb_fancy
+    if ( present(cp_fancy) ) cp_fancy = i_cp_fancy
   end subroutine imultifab_get_behavior
   subroutine lmultifab_get_behavior(fb_async, fb_fancy)
     logical, intent(out), optional :: fb_async
@@ -307,17 +314,21 @@ contains
     if ( present(fb_fancy) ) fb_fancy = l_fb_fancy
   end subroutine lmultifab_get_behavior
 
-  subroutine multifab_set_behavior(fb_async, fb_fancy)
+  subroutine multifab_set_behavior(fb_async, fb_fancy, cp_fancy)
     logical, intent(in), optional :: fb_async
     logical, intent(in), optional :: fb_fancy
+    logical, intent(in), optional :: cp_fancy
     if ( present(fb_async) ) d_fb_async = fb_async
     if ( present(fb_fancy) ) d_fb_fancy = fb_fancy
+    if ( present(cp_fancy) ) d_cp_fancy = cp_fancy
   end subroutine multifab_set_behavior
-  subroutine imultifab_set_behavior(fb_async, fb_fancy)
+  subroutine imultifab_set_behavior(fb_async, fb_fancy, cp_fancy)
     logical, intent(in), optional :: fb_async
     logical, intent(in), optional :: fb_fancy
+    logical, intent(in), optional :: cp_fancy
     if ( present(fb_async) ) i_fb_async = fb_async
     if ( present(fb_fancy) ) i_fb_fancy = fb_fancy
+    if ( present(cp_fancy) ) i_cp_fancy = cp_fancy
   end subroutine imultifab_set_behavior
   subroutine lmultifab_set_behavior(fb_async, fb_fancy)
     logical, intent(in), optional :: fb_async
@@ -537,8 +548,8 @@ contains
   subroutine multifab_build_copy(m1, m2)
     type(multifab), intent(inout) :: m1
     type(multifab), intent(in) :: m2
-    real(kind=dp_t), pointer :: m1p(:,:,:,:)
-    real(kind=dp_t), pointer :: m2p(:,:,:,:)
+    real(dp_t), pointer :: m1p(:,:,:,:)
+    real(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call multifab_destroy(m1)
@@ -889,7 +900,7 @@ contains
 
   subroutine multifab_setval(mf, val, all)
     type(multifab), intent(inout) :: mf
-    real(kind=dp_t), intent(in) :: val
+    real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
     type(box) :: bx
@@ -951,7 +962,7 @@ contains
   subroutine multifab_setval_bx(mf, val, bx, all)
     type(multifab), intent(inout) :: mf
     type(box), intent(in) :: bx
-    real(kind=dp_t), intent(in) :: val
+    real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
     type(box) :: bx1
@@ -1053,7 +1064,7 @@ contains
     type(box), intent(in) :: bx
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    real(kind=dp_t), intent(in) :: val
+    real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
     type(box) :: bx1
@@ -1131,7 +1142,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    real(kind=dp_t), intent(in) :: val
+    real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
     type(box) :: bx
@@ -1228,7 +1239,7 @@ contains
   !! will corrupt f/f ghost cell values
   subroutine multifab_set_border_val(mf, val)
     type(multifab), intent(inout) :: mf
-    real(kind=dp_t), intent(in), optional :: val
+    real(dp_t), intent(in), optional :: val
     integer :: i
     do i = 1, mf%nboxes; if ( multifab_remote(mf, i) ) cycle
        call fab_set_border_val(mf%fbs(i), val)
@@ -1260,12 +1271,12 @@ contains
   contains
 
     subroutine easy()
-      real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                          :: bxai
-      type(box)                               :: abx
-      integer                                 :: i, j, ii, proc
-      integer                                 :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter                      :: tag = 1101
+      real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+      type(boxarray)      :: bxai
+      type(box)           :: abx
+      integer             :: i, j, ii, proc
+      integer             :: shft(2*3**mf%dim,mf%dim)
+      integer, parameter  :: tag = 1101
 
       do i = 1, mf%nboxes
          call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
@@ -1297,15 +1308,15 @@ contains
     end subroutine easy
 
     subroutine fancy()
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p
+      real(dp_t), pointer  :: p1(:,:,:,:), p2(:,:,:,:)
+      real(dp_t), pointer  :: p(:,:,:,:)
       integer, allocatable :: rst(:)
       integer, allocatable :: sst(:)
-      integer :: i, ii, jj
-      type(box) ::sbx, dbx
-      integer, parameter :: tag = 1102
-      integer :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc) :: bxasc
+      integer              :: i, ii, jj
+      type(box)            :: sbx, dbx
+      integer, parameter   :: tag = 1102
+      integer              :: nc, sh(MAX_SPACEDIM+1)
+      type(boxassoc)       :: bxasc
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 !call boxassoc_print(bxasc, unit = 1)
@@ -1415,12 +1426,12 @@ contains
   contains
 
     subroutine easy()
-      real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                          :: bxai
-      type(box)                               :: abx
-      integer                                 :: i, j, ii, proc
-      integer                                 :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter                      :: tag = 1101
+      real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+      type(boxarray)      :: bxai
+      type(box)           :: abx
+      integer             :: i, j, ii, proc
+      integer             :: shft(2*3**mf%dim,mf%dim)
+      integer, parameter  :: tag = 1101
 
       do i = 1, mf%nboxes
          call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
@@ -1452,15 +1463,15 @@ contains
     end subroutine easy
 
     subroutine fancy()
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: p
+      real(dp_t), pointer  :: p1(:,:,:,:), p2(:,:,:,:)
+      real(dp_t), pointer  :: p(:,:,:,:)
       integer, allocatable :: rst(:)
       integer, allocatable :: sst(:)
-      integer :: i, ii, jj
-      type(box) ::sbx, dbx
-      integer, parameter :: tag = 1102
-      integer :: sh(MAX_SPACEDIM+1)
-      type(boxassoc) :: bxasc
+      integer              :: i, ii, jj
+      type(box)            :: sbx, dbx
+      integer, parameter   :: tag = 1102
+      integer              :: sh(MAX_SPACEDIM+1)
+      type(boxassoc)       :: bxasc
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 !call boxassoc_print(bxasc, unit = 1)
@@ -1568,12 +1579,12 @@ contains
   contains
 
     subroutine easy()
-      integer, dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                       :: bxai
-      type(box)                            :: abx
-      integer                              :: i, j, ii, proc
-      integer                              :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter                   :: tag = 1101
+      integer, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+      type(boxarray)     :: bxai
+      type(box)          :: abx
+      integer            :: i, j, ii, proc
+      integer            :: shft(2*3**mf%dim,mf%dim)
+      integer, parameter :: tag = 1101
 
       do i = 1, mf%nboxes
          call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
@@ -1605,15 +1616,15 @@ contains
     end subroutine easy
 
     subroutine fancy()
-      integer, dimension(:,:,:,:), pointer :: p1, p2
-      integer, dimension(:,:,:,:), pointer :: p
+      integer, pointer     :: p1(:,:,:,:), p2(:,:,:,:)
+      integer, pointer     :: p(:,:,:,:)
       integer, allocatable :: rst(:)
       integer, allocatable :: sst(:)
-      integer :: i, ii, jj
-      type(box) :: sbx, dbx
-      integer, parameter :: tag = 1102
-      integer :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc) :: bxasc
+      integer              :: i, ii, jj
+      type(box)            :: sbx, dbx
+      integer, parameter   :: tag = 1102
+      integer              :: nc, sh(MAX_SPACEDIM+1)
+      type(boxassoc)       :: bxasc
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 
@@ -1716,12 +1727,12 @@ contains
   contains
 
     subroutine easy()
-      logical, dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                       :: bxai
-      type(box)                            :: abx
-      integer                              :: i, j, ii, proc
-      integer                              :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter                   :: tag = 1101
+      logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+      type(boxarray)     :: bxai
+      type(box)          :: abx
+      integer            :: i, j, ii, proc
+      integer            :: shft(2*3**mf%dim,mf%dim)
+      integer, parameter :: tag = 1101
 
       do i = 1, mf%nboxes
          call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
@@ -1753,15 +1764,15 @@ contains
     end subroutine easy
 
     subroutine fancy()
-      logical, dimension(:,:,:,:), pointer :: p1, p2
-      logical, dimension(:,:,:,:), pointer :: p
+      logical, pointer     :: p1(:,:,:,:), p2(:,:,:,:)
+      logical, pointer     :: p(:,:,:,:)
       integer, allocatable :: rst(:)
       integer, allocatable :: sst(:)
-      integer :: i, ii, jj
-      type(box) :: sbx, dbx
-      integer, parameter :: tag = 1102
-      integer :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc) :: bxasc
+      integer              :: i, ii, jj
+      type(box)            :: sbx, dbx
+      integer, parameter   :: tag = 1102
+      integer              :: nc, sh(MAX_SPACEDIM+1)
+      type(boxassoc)       :: bxasc
 
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 
@@ -2200,6 +2211,11 @@ contains
 
     lnc  = 1;       if ( present(nc) )  lnc  = nc
     lall = .false.; if ( present(all) ) lall = all
+
+    if (lnc < 1)               call bl_error('multifab_copy_c: nc must be >= 1')
+    if (mdst%nc < (dst+lnc-1)) call bl_error('multifab_copy_c: nc is too large for dst multifab')
+    if (msrc%nc < (src+lnc-1)) call bl_error('multifab_copy_c: nc is too large for src multifab')
+
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
        do i = 1, mdst%nboxes
@@ -2215,7 +2231,12 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       call easy()
+       if ( lall ) call bl_error('multifab_copy_c: copying ghostcells allowed only when layouts are the same')
+       if ( d_cp_fancy ) then
+          call fancy()
+       else
+          call easy()
+       end if
     end if
 
   contains
@@ -2223,20 +2244,12 @@ contains
     subroutine easy()
       type(box)           :: bx, abx
       integer, parameter  :: tag = 1102
-      integer             :: i, j, proc
+      integer             :: j, proc
       do i = 1, mdst%nboxes
-         if ( lall ) then
-            bx = get_pbox(mdst, i)
-         else
-            bx = get_ibox(mdst, i)
-         end if
+         bx = get_ibox(mdst, i)
          do j = 1, msrc%nboxes
             if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            if ( lall ) then
-               abx = intersection(bx, get_pbox(msrc, j))
-            else
-               abx = intersection(bx, get_ibox(msrc, j))
-            end if
+            abx = intersection(bx, get_ibox(msrc, j))
             if ( .not. empty(abx) ) then
                if ( local(mdst,i) .and. local(msrc,j) ) then
                   pdst => dataptr(mdst, i, abx, dst, nc)
@@ -2254,8 +2267,11 @@ contains
             end if
          end do
       end do
-
     end subroutine easy
+
+    subroutine fancy()
+      stop 'multifab_copy_c::fancy() not implemented'
+    end subroutine fancy
 
   end subroutine multifab_copy_c
 
@@ -2273,6 +2289,11 @@ contains
 
     lnc  = 1;       if ( present(nc) )  lnc  = nc
     lall = .false.; if ( present(all) ) lall = all
+
+    if (lnc < 1)               call bl_error('imultifab_copy_c: nc must be >= 1')
+    if (mdst%nc < (dst+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
+    if (msrc%nc < (src+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
+
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
@@ -2288,7 +2309,12 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       call easy()
+       if ( lall ) call bl_error('imultifab_copy_c: copying ghostcells allowed only when layouts are the same')
+       if ( i_cp_fancy ) then
+          call fancy()
+       else
+          call easy()
+       end if
     end if
 
   contains
@@ -2296,19 +2322,12 @@ contains
     subroutine easy()
       type(box)          :: bx, abx
       integer, parameter :: tag = 1102
-      integer            :: i, j, proc
+      integer            :: j, proc
       do i = 1, mdst%nboxes
-         if ( lall ) then
-            bx = get_pbox(mdst, i)
-         else
-            bx = get_ibox(mdst, i)
-         end if
+         bx = get_ibox(mdst, i)
          do j = 1, msrc%nboxes
-            if ( lall ) then
-               abx = intersection(bx, get_pbox(msrc, j))
-            else
-               abx = intersection(bx, get_ibox(msrc, j))
-            end if
+            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+            abx = intersection(bx, get_ibox(msrc, j))
             if ( .not. empty(abx) ) then
                if ( local(mdst,i) .and. local(msrc,j) ) then
                   pdst => dataptr(mdst, i, abx, dst, nc)
@@ -2328,6 +2347,10 @@ contains
       end do
     end subroutine easy
 
+    subroutine fancy()
+      stop 'imultifab_copy_c::fancy() not implemented'
+    end subroutine fancy
+
   end subroutine imultifab_copy_c
 
   subroutine multifab_copy(mdst, msrc, all)
@@ -2341,6 +2364,9 @@ contains
     integer                       :: i
 
     lall = .false.; if ( present(all) ) lall = all
+
+    if (mdst%nc .ne. msrc%nc) call bl_error('multifab_copy: multifabs must have same number of components')
+
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
        do i = 1, mdst%nboxes
@@ -2356,7 +2382,12 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       call easy()
+       if ( lall ) call bl_error('multifab_copy: copying ghostcells allowed only when layouts are the same')
+       if ( d_cp_fancy ) then
+          call fancy()
+       else
+          call easy()
+       end if
     end if
 
   contains
@@ -2364,20 +2395,12 @@ contains
     subroutine easy()
       type(box)           :: bx, abx
       integer, parameter  :: tag = 1102
-      integer             :: i, j, proc
+      integer             :: j, proc
       do i = 1, mdst%nboxes
-         if ( lall ) then
-            bx = get_pbox(mdst, i)
-         else
-            bx = get_ibox(mdst, i)
-         end if
+         bx = get_ibox(mdst, i)
          do j = 1, msrc%nboxes
             if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            if ( lall ) then
-               abx = intersection(bx, get_pbox(msrc, j))
-            else
-               abx = intersection(bx, get_ibox(msrc, j))
-            end if
+            abx = intersection(bx, get_ibox(msrc, j))
             if ( .not. empty(abx) ) then
                if ( local(mdst,i) .and. local(msrc,j) ) then
                   pdst => dataptr(mdst, i, abx)
@@ -2395,8 +2418,11 @@ contains
             end if
          end do
       end do
-
     end subroutine easy
+
+    subroutine fancy()
+      stop 'multifab_copy::fancy() not implemented'
+    end subroutine fancy
 
   end subroutine multifab_copy
 
@@ -2409,7 +2435,11 @@ contains
     integer, pointer               :: psrc(:,:,:,:)
     logical                        :: lall
     integer                        :: i
+
     lall = .false.; if ( present(all) ) lall = all
+
+    if (mdst%nc .ne. msrc%nc) call bl_error('imultifab_copy: multifabs must have same number of components')
+
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
@@ -2425,7 +2455,12 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       call easy()
+       if ( lall ) call bl_error('imultifab_copy: copying ghostcells allowed only when layouts are the same')
+       if ( i_cp_fancy ) then
+          call fancy()
+       else
+          call easy()
+       end if
     end if
 
   contains
@@ -2433,19 +2468,12 @@ contains
     subroutine easy()
       type(box)          :: bx, abx
       integer, parameter :: tag = 1102
-      integer            :: i, j, proc
+      integer            :: j, proc
       do i = 1, mdst%nboxes
-         if ( lall ) then
-            bx = get_pbox(mdst, i)
-         else
-            bx = get_ibox(mdst, i)
-         end if
+         bx = get_ibox(mdst, i)
          do j = 1, msrc%nboxes
-            if ( lall ) then
-               abx = intersection(bx, get_pbox(msrc, j))
-            else
-               abx = intersection(bx, get_ibox(msrc, j))
-            end if
+            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+            abx = intersection(bx, get_ibox(msrc, j))
             if ( .not. empty(abx) ) then
                if ( local(mdst,i) .and. local(msrc,j) ) then
                   pdst => dataptr(mdst, i, abx)
@@ -2463,8 +2491,11 @@ contains
             end if
          end do
       end do
-
     end subroutine easy
+
+    subroutine fancy()
+      stop 'imultifab_copy::fancy() not implemented'
+    end subroutine fancy
 
   end subroutine imultifab_copy
 
@@ -3443,7 +3474,7 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
-    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i
     logical :: lall
@@ -3537,7 +3568,7 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
-    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i
     logical :: lall
@@ -3628,7 +3659,7 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
-    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i
     logical :: lall
@@ -3671,7 +3702,7 @@ contains
   end subroutine multifab_plus_plus
   subroutine multifab_plus_plus_s(a, b, all)
     type(multifab), intent(inout) :: a
-    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), intent(in)  :: b
     logical, intent(in), optional :: all
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i
@@ -3719,7 +3750,7 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
-    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i
     logical :: lall
@@ -3748,7 +3779,7 @@ contains
     integer, intent(in) :: cf, cm, nc, lo(:)
     real(dp_t), intent(inout) :: fb(:,:,:,:)
     type(multifab), intent(in) :: mf
-    real(kind=dp_t), pointer :: mp(:,:,:,:)
+    real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i, xo(mf%dim)
     if ( parallel_q() ) then
        call bl_error("MULTIFAB_FAB_COPY: not ready for parallel")
@@ -3774,8 +3805,8 @@ contains
   contains
     subroutine c_1d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t), intent(inout)  :: f(lo(1):,:)
-      real(kind=dp_t), intent(in) :: x(xo(1):,:)
+      real(dp_t), intent(inout)  :: f(lo(1):,:)
+      real(dp_t), intent(in) :: x(xo(1):,:)
       integer :: i
       do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
          f(i,:) = x(i,:)
@@ -3783,8 +3814,8 @@ contains
     end subroutine c_1d
     subroutine c_2d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t), intent(inout)  :: f(lo(1):,lo(2):,:)
-      real(kind=dp_t), intent(in) :: x(xo(1):,xo(2):,:)
+      real(dp_t), intent(inout)  :: f(lo(1):,lo(2):,:)
+      real(dp_t), intent(in) :: x(xo(1):,xo(2):,:)
       integer :: i, j
       do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))
          do i = max(lbound(f,1),lbound(x,1)), min(ubound(f,1),ubound(x,1))
@@ -3794,8 +3825,8 @@ contains
     end subroutine c_2d
     subroutine c_3d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
-      real(kind=dp_t), intent(inout) :: f(lo(1):,lo(2):,lo(3):,:)
-      real(kind=dp_t), intent(in) :: x(xo(1):,xo(2):,xo(3):,:)
+      real(dp_t), intent(inout) :: f(lo(1):,lo(2):,lo(3):,:)
+      real(dp_t), intent(in) :: x(xo(1):,xo(2):,xo(3):,:)
       integer :: i, j, k
       do k = max(lbound(f,3),lbound(x,3)), min(ubound(f,3),ubound(x,3))
          do j = max(lbound(f,2),lbound(x,2)), min(ubound(f,2),ubound(x,2))

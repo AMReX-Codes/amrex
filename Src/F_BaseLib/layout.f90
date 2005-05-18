@@ -78,6 +78,17 @@ module layout_module
      type(boxassoc), pointer :: next => Null()
   end type boxassoc
 
+  type copyassoc
+     integer :: dim = 0                      ! spatial dimension 1, 2, or 3
+     logical, pointer :: nd_dst(:) => Null() ! dst nodal flag
+     logical, pointer :: nd_src(:) => Null() ! src nodal flag
+     type(local_conn)  :: l_con
+     type(remote_conn) :: r_con
+     type(copyassoc), pointer :: next => Null()
+     type(layout_rep), pointer :: lap_dst => Null()
+     type(layout_rep), pointer :: lap_src => Null()
+  end type copyassoc
+
   type layout
      integer :: la_type = LA_UNDF
      type(layout_rep), pointer :: lap => Null()
@@ -94,6 +105,7 @@ module layout_module
      integer, pointer, dimension(:) :: prc => Null()
      type(boxarray) :: bxa
      type(boxassoc), pointer :: bxasc => Null()
+     type(copyassoc), pointer :: cpasc => Null()
      type(coarsened_layout), pointer :: crse_la => Null()
      type(pn_layout), pointer :: pn_children => Null()
      type(derived_layout), pointer :: dlay => Null()
@@ -131,6 +143,7 @@ module layout_module
   interface built_q
      module procedure layout_built_q
      module procedure boxassoc_built_q
+     module procedure copyassoc_built_q
   end interface
 
   interface build
@@ -741,8 +754,8 @@ contains
     integer              :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
     type(box)            :: abx, bx
     type(boxarray)       :: bxa, bxai
-    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     type(layout)         :: la
+    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
@@ -902,7 +915,6 @@ contains
 
   subroutine boxassoc_destroy(bxasc)
     type(boxassoc), intent(inout) :: bxasc
-    integer :: i
     if ( .not. built_q(bxasc) ) call bl_error("BOXASSOC_DESTROY: not built")
     deallocate(bxasc%nodal)
     deallocate(bxasc%l_con%cpy)
@@ -1002,5 +1014,217 @@ contains
        call parallel_barrier()
     end do
   end subroutine boxassoc_print
+
+  subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
+
+    type(copyassoc),  intent(inout) :: cpasc
+    type(layout),     intent(in)    :: la_src, la_dst
+    logical,          intent(in)    :: nd_dst(:), nd_src(:)
+
+    integer              :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer              :: sh(MAX_SPACEDIM+1)
+    type(box)            :: bx
+    type(boxarray)       :: bxa_src, bxa_dst
+    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
+
+    if ( built_q(cpasc) ) call bl_error("COPYASSOC_BUILD: alread built")
+
+    bxa_src = get_boxarray(la_src)
+    bxa_dst = get_boxarray(la_dst)
+
+    cpasc%dim     = bxa_src%dim
+    cpasc%lap_dst => la_dst%lap
+    cpasc%lap_src => la_src%lap
+
+    allocate(cpasc%nd_dst(la_dst%lap%dim))
+    allocate(cpasc%nd_src(la_src%lap%dim))
+    allocate(parr(0:parallel_nprocs()-1,2))
+    allocate(pvol(0:parallel_nprocs()-1,2))
+    allocate(ppvol(0:parallel_nprocs()-1,2))
+
+    cpasc%nd_dst = nd_dst
+    cpasc%nd_src = nd_src
+
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
+
+    do i = 1, bxa_dst%nboxes
+       lcnt = 0
+       do j = 1, bxa_src%nboxes
+          if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
+          bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
+          if ( .not. empty(bx) ) then
+             if ( local(la_dst,i) .and. local(la_src,j) ) then
+                lcnt   = lcnt   + 1
+                lcnt_r = lcnt_r + 1
+             else if ( local(la_src,j) ) then
+                cnt_s               = cnt_s + 1
+                parr(la_src%lap%prc(i), 2) = parr(la_src%lap%prc(i), 2) + 1
+                pvol(la_src%lap%prc(i), 2) = pvol(la_src%lap%prc(i), 2) + volume(bx)
+             else if ( local(la_dst,i) ) then
+                cnt_r               = cnt_r + 1
+                parr(la_dst%lap%prc(j), 1) = parr(la_dst%lap%prc(j), 1) + 1
+                pvol(la_dst%lap%prc(j), 1) = pvol(la_dst%lap%prc(j), 1) + volume(bx)
+             end if
+          end if
+       end do
+    end do
+    !
+    ! Fill in the copyassoc structure.
+    !
+    cpasc%l_con%ncpy = lcnt_r
+    cpasc%r_con%nsnd = cnt_s
+    cpasc%r_con%nrcv = cnt_r
+    allocate(cpasc%l_con%cpy(lcnt_r))
+    allocate(cpasc%r_con%snd(cnt_s))
+    allocate(cpasc%r_con%rcv(cnt_r))
+    li_r = 1; i_r = 1; i_s = 1
+
+    do i = 1, bxa_dst%nboxes
+       do j = 1, bxa_src%nboxes
+          if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
+          bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
+          if ( .not. empty(bx) ) then
+             if ( local(la_dst,i) .and. local(la_src,j) ) then
+                cpasc%l_con%cpy(li_r)%nd  = i
+                cpasc%l_con%cpy(li_r)%ns  = j
+                cpasc%l_con%cpy(li_r)%sbx = bx
+                cpasc%l_con%cpy(li_r)%dbx = bx
+                li_r                      = li_r + 1
+             else if ( local(la_src,j) ) then
+                cpasc%r_con%snd(i_s)%nd  = i
+                cpasc%r_con%snd(i_s)%ns  = j
+                cpasc%r_con%snd(i_s)%sbx = bx
+                cpasc%r_con%snd(i_s)%dbx = bx
+                cpasc%r_con%snd(i_s)%pr  = get_proc(la_dst,i)
+                cpasc%r_con%snd(i_s)%s1  = volume(bx)
+                i_s                      = i_s + 1
+             else if ( local(la_dst,i) ) then
+                cpasc%r_con%rcv(i_r)%nd  = i
+                cpasc%r_con%rcv(i_r)%ns  = j
+                cpasc%r_con%rcv(i_r)%sbx = bx
+                cpasc%r_con%rcv(i_r)%dbx = bx
+                cpasc%r_con%rcv(i_r)%pr  = get_proc(la_src,j)
+                sh                       = 1
+                sh(1:cpasc%dim)          = extent(bx)
+                cpasc%r_con%rcv(i_r)%sh  = sh
+                i_r                      = i_r + 1
+             end if
+          end if
+       end do
+    end do
+    !
+    ! This region packs the src/recv boxes into processor order
+    !
+    do i = 0, parallel_nprocs()-1
+       ppvol(i,1) = sum(pvol(0:i-1,1))
+       ppvol(i,2) = sum(pvol(0:i-1,2))
+    end do
+    !
+    ! Pack Receives maintaining original ordering
+    !
+    do i_r = 1, cnt_r
+       i = cpasc%r_con%rcv(i_r)%pr
+       cpasc%r_con%rcv(i_r)%pv = ppvol(i,1)
+       pv = volume(cpasc%r_con%rcv(i_r)%dbx)
+       cpasc%r_con%rcv(i_r)%av = cpasc%r_con%rcv(i_r)%pv + pv
+       ppvol(i,1) = ppvol(i,1) + pv
+    end do
+    !
+    ! Pack Sends maintaining original ordering
+    !
+    do i_s = 1, cnt_s
+       i = cpasc%r_con%snd(i_s)%pr
+       cpasc%r_con%snd(i_s)%pv = ppvol(i,2)
+       pv = volume(cpasc%r_con%snd(i_s)%dbx)
+       cpasc%r_con%snd(i_s)%av = cpasc%r_con%snd(i_s)%pv + pv
+       ppvol(i,2) = ppvol(i,2) + pv
+    end do
+    !
+    ! Now compute the volume of data the each processor expects
+    !
+    pcnt_r = count(parr(:,1) /= 0 )
+    pcnt_s = count(parr(:,2) /= 0 )
+    cpasc%r_con%nrp  = pcnt_r
+    cpasc%r_con%nsp  = pcnt_s
+    cpasc%r_con%rvol = sum(pvol(:,1))
+    cpasc%r_con%svol = sum(pvol(:,2))
+    allocate(cpasc%r_con%str(pcnt_s))
+    allocate(cpasc%r_con%rtr(pcnt_r))
+    pi_r = 1; pi_s = 1; rpv  = 0; spv  = 0
+    do i = 0, size(pvol,dim=1)-1
+       if ( pvol(i,1) /= 0 ) then
+          cpasc%r_con%rtr(pi_r)%sz = pvol(i,1)
+          cpasc%r_con%rtr(pi_r)%pr = i
+          cpasc%r_con%rtr(pi_r)%pv = rpv
+          rpv  = rpv + pvol(i,1)
+          pi_r = pi_r + 1
+       end if
+       if ( pvol(i,2) /= 0 ) then
+          cpasc%r_con%str(pi_s)%sz = pvol(i,2)
+          cpasc%r_con%str(pi_s)%pr = i
+          cpasc%r_con%str(pi_s)%pv = spv
+          spv  = spv + pvol(i,2)
+          pi_s = pi_s + 1
+       end if
+    end do
+
+  end subroutine copyassoc_build
+
+  subroutine copyassoc_destroy(cpasc)
+    type(copyassoc), intent(inout) :: cpasc
+    if ( .not. built_q(cpasc) ) call bl_error("COPYASSOC_DESTROY: not built")
+    deallocate(cpasc%nd_dst)
+    deallocate(cpasc%nd_src)
+    deallocate(cpasc%l_con%cpy)
+    deallocate(cpasc%r_con%snd)
+    deallocate(cpasc%r_con%rcv)
+    deallocate(cpasc%r_con%str)
+    deallocate(cpasc%r_con%rtr)
+  end subroutine copyassoc_destroy
+
+  function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
+    logical                     :: r
+    type(copyassoc), intent(in) :: cpasc
+    type(layout), intent(in)    :: la_src, la_dst
+    logical, intent(in)         :: nd_dst(:), nd_src(:)
+    r =         associated(cpasc%lap_dst, la_dst%lap)
+    r = r .and. associated(cpasc%lap_src, la_src%lap)
+    r = r .and. all(cpasc%nd_dst .eqv. nd_dst)
+    r = r .and. all(cpasc%nd_src .eqv. nd_src)
+  end function copyassoc_check
+
+  function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
+    type(copyassoc)             :: r
+    type(layout), intent(in)    :: la_dst
+    type(layout), intent(inout) :: la_src
+    logical, intent(in)         :: nd_dst(:), nd_src(:)
+    type(copyassoc), pointer    :: cp
+    !
+    ! Do we have one stored in the "src" layout?
+    !
+    cp => la_src%lap%cpasc
+    do while ( associated(cp) )
+       if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
+          r = cp
+          return
+       end if
+       cp => cp%next
+    end do
+    !
+    ! Gotta build one then store in the "src" layout.
+    !
+    allocate (cp)
+    call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
+    cp%next => la_src%lap%cpasc
+    la_src%lap%cpasc => cp
+    r = cp
+  end function layout_copyassoc
+
+  function copyassoc_built_q(cpasc) result(r)
+    logical :: r
+    type(copyassoc), intent(in) :: cpasc
+    r = cpasc%dim /= 0
+  end function copyassoc_built_q
 
 end module layout_module
