@@ -78,6 +78,8 @@ module multifab_module
      module procedure multifab_copy
      module procedure imultifab_copy_c
      module procedure imultifab_copy
+     module procedure lmultifab_copy_c
+     module procedure lmultifab_copy
   end interface
 
   interface conformant_q
@@ -195,7 +197,9 @@ module multifab_module
      module procedure multifab_fill_boundary
      module procedure multifab_fill_boundary_c
      module procedure imultifab_fill_boundary
+     module procedure imultifab_fill_boundary_c
      module procedure lmultifab_fill_boundary
+     module procedure lmultifab_fill_boundary_c
   end interface
 
   interface internal_sync
@@ -272,11 +276,12 @@ module multifab_module
 ! end interface
 
   private :: build_nodal_dot_mask
-
-  ! buffers used for parallel fill_boundary
+  !
+  ! buffers used for parallel fill_boundary and copy
+  !
   real(dp_t), allocatable, save, private  :: g_snd_d(:), g_rcv_d(:)
-  integer, allocatable, save, private  :: g_snd_i(:), g_rcv_i(:)
-  logical, allocatable, save, private  :: g_snd_l(:), g_rcv_l(:)
+  integer,    allocatable, save, private  :: g_snd_i(:), g_rcv_i(:)
+  logical,    allocatable, save, private  :: g_snd_l(:), g_rcv_l(:)
 
   logical, private :: d_fb_fancy = .true.
   logical, private :: i_fb_fancy = .true.
@@ -284,6 +289,7 @@ module multifab_module
 
   logical, private :: d_cp_fancy = .false.
   logical, private :: i_cp_fancy = .false.
+  logical, private :: l_cp_fancy = .false.
 
   logical, private :: d_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: i_fb_async = .false. ! Do both recv's and send's asynchronously?
@@ -291,21 +297,17 @@ module multifab_module
 
 contains
 
-  subroutine multifab_get_behavior(fb_async, fb_fancy, cp_fancy)
+  subroutine multifab_get_behavior(fb_async, fb_fancy)
     logical, intent(out), optional :: fb_async
     logical, intent(out), optional :: fb_fancy
-    logical, intent(out), optional :: cp_fancy
     if ( present(fb_async) ) fb_async = d_fb_async
     if ( present(fb_fancy) ) fb_fancy = d_fb_fancy
-    if ( present(cp_fancy) ) cp_fancy = d_cp_fancy
   end subroutine multifab_get_behavior
-  subroutine imultifab_get_behavior(fb_async, fb_fancy, cp_fancy)
+  subroutine imultifab_get_behavior(fb_async, fb_fancy)
     logical, intent(out), optional :: fb_async
     logical, intent(out), optional :: fb_fancy
-    logical, intent(out), optional :: cp_fancy
     if ( present(fb_async) ) fb_async = i_fb_async
     if ( present(fb_fancy) ) fb_fancy = i_fb_fancy
-    if ( present(cp_fancy) ) cp_fancy = i_cp_fancy
   end subroutine imultifab_get_behavior
   subroutine lmultifab_get_behavior(fb_async, fb_fancy)
     logical, intent(out), optional :: fb_async
@@ -322,13 +324,11 @@ contains
     if ( present(fb_fancy) ) d_fb_fancy = fb_fancy
     if ( present(cp_fancy) ) d_cp_fancy = cp_fancy
   end subroutine multifab_set_behavior
-  subroutine imultifab_set_behavior(fb_async, fb_fancy, cp_fancy)
+  subroutine imultifab_set_behavior(fb_async, fb_fancy)
     logical, intent(in), optional :: fb_async
     logical, intent(in), optional :: fb_fancy
-    logical, intent(in), optional :: cp_fancy
     if ( present(fb_async) ) i_fb_async = fb_async
     if ( present(fb_fancy) ) i_fb_fancy = fb_fancy
-    if ( present(cp_fancy) ) i_cp_fancy = cp_fancy
   end subroutine imultifab_set_behavior
   subroutine lmultifab_set_behavior(fb_async, fb_fancy)
     logical, intent(in), optional :: fb_async
@@ -1246,159 +1246,410 @@ contains
     end do
   end subroutine multifab_set_border_val
 
-  subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
+  subroutine mf_reserve_double_space(rcon, nc)
+    type(remote_conn), intent(in) :: rcon
+    integer,           intent(in) :: nc
+    if ( rcon%svol > 0 ) then
+       if ( allocated(g_snd_d) ) then
+          if ( size(g_snd_d) < nc*rcon%svol ) then
+             deallocate(g_snd_d)
+             allocate(g_snd_d(nc*rcon%svol))
+          end if
+       else
+          allocate(g_snd_d(nc*rcon%svol))
+       end if
+    end if
+    if ( rcon%rvol > 0 ) then
+       if ( allocated(g_rcv_d) ) then
+          if ( size(g_rcv_d) < nc*rcon%rvol ) then
+             deallocate(g_rcv_d)
+             allocate(g_rcv_d(nc*rcon%rvol))
+          end if
+       else
+          allocate(g_rcv_d(nc*rcon%rvol))
+       end if
+    end if
+  end subroutine mf_reserve_double_space
+
+  subroutine mf_reserve_integer_space(rcon, nc)
+    type(remote_conn), intent(in) :: rcon
+    integer,           intent(in) :: nc
+    if ( rcon%svol > 0 ) then
+       if ( allocated(g_snd_i) ) then
+          if ( size(g_snd_i) < nc*rcon%svol ) then
+             deallocate(g_snd_i)
+             allocate(g_snd_i(nc*rcon%svol))
+          end if
+       else
+          allocate(g_snd_i(nc*rcon%svol))
+       end if
+    end if
+    if ( rcon%rvol > 0 ) then
+       if ( allocated(g_rcv_i) ) then
+          if ( size(g_rcv_i) < nc*rcon%rvol ) then
+             deallocate(g_rcv_i)
+             allocate(g_rcv_i(nc*rcon%rvol))
+          end if
+       else
+          allocate(g_rcv_i(nc*rcon%rvol))
+       end if
+    end if
+  end subroutine mf_reserve_integer_space
+
+  subroutine mf_reserve_logical_space(rcon, nc)
+    type(remote_conn), intent(in) :: rcon
+    integer,           intent(in) :: nc
+    if ( rcon%svol > 0 ) then
+       if ( allocated(g_snd_l) ) then
+          if ( size(g_snd_l) < nc*rcon%svol ) then
+             deallocate(g_snd_l)
+             allocate(g_snd_l(nc*rcon%svol))
+          end if
+       else
+          allocate(g_snd_l(nc*rcon%svol))
+       end if
+    end if
+    if ( rcon%rvol > 0 ) then
+       if ( allocated(g_rcv_l) ) then
+          if ( size(g_rcv_l) < nc*rcon%rvol ) then
+             deallocate(g_rcv_l)
+             allocate(g_rcv_l(nc*rcon%rvol))
+          end if
+       else
+          allocate(g_rcv_l(nc*rcon%rvol))
+       end if
+    end if
+  end subroutine mf_reserve_logical_space
+
+  subroutine mf_fb_easy_double(mf, c, nc, ng, lnocomm)
     type(multifab), intent(inout) :: mf
-    integer, intent(in), optional :: ng
-    logical, intent(in), optional :: nocomm, cross
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lnocomm
 
-    integer :: lng
-    logical :: lnocomm, lcross
+    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)      :: bxai
+    type(box)           :: abx
+    integer             :: i, j, ii, proc
+    integer             :: shft(2*3**mf%dim,mf%dim)
+    integer, parameter  :: tag = 1101
 
-    lcross  = .false.; if ( present(cross) )  lcross  = cross
-    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng     = mf%ng;   if ( present(ng) )     lng     = ng
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, ng, shft)
+       do j = 1, mf%nboxes
+          if ( remote(mf,i) .and. remote(mf,j) ) cycle
+          do ii = 1, bxai%nboxes
+             abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+             if ( .not. empty(abx) ) then
+                if ( local(mf,i) .and. local(mf,j) ) then
+                   psrc => dataptr(mf, j, abx, c, nc)
+                   pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                   pdst = psrc
+                else if ( .not. lnocomm ) then
+                   if ( local(mf,j) ) then ! must send
+                      psrc => dataptr(mf, j, abx, c, nc)
+                      proc = get_proc(mf%la, i)
+                      call parallel_send(psrc, proc, tag)
+                   else if ( local(mf,i) ) then  ! must recv
+                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                      proc = get_proc(mf%la,j)
+                      call parallel_recv(pdst, proc, tag)
+                   end if
+                end if
+             end if
+          end do
+       end do
+       call destroy(bxai)
+    end do
+  end subroutine mf_fb_easy_double
 
-    if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
+  subroutine mf_fb_easy_integer(mf, c, nc, ng, lnocomm)
+    type(imultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lnocomm
 
-    if ( lng < 1 ) return
+    integer, pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)      :: bxai
+    type(box)           :: abx
+    integer             :: i, j, ii, proc
+    integer             :: shft(2*3**mf%dim,mf%dim)
+    integer, parameter  :: tag = 1101
 
-    if ( d_fb_fancy ) then
-       call fancy()
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, ng, shft)
+       do j = 1, mf%nboxes
+          if ( remote(mf,i) .and. remote(mf,j) ) cycle
+          do ii = 1, bxai%nboxes
+             abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+             if ( .not. empty(abx) ) then
+                if ( local(mf,i) .and. local(mf,j) ) then
+                   psrc => dataptr(mf, j, abx, c, nc)
+                   pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                   pdst = psrc
+                else if ( .not. lnocomm ) then
+                   if ( local(mf,j) ) then ! must send
+                      psrc => dataptr(mf, j, abx, c, nc)
+                      proc = get_proc(mf%la, i)
+                      call parallel_send(psrc, proc, tag)
+                   else if ( local(mf,i) ) then  ! must recv
+                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                      proc = get_proc(mf%la,j)
+                      call parallel_recv(pdst, proc, tag)
+                   end if
+                end if
+             end if
+          end do
+       end do
+       call destroy(bxai)
+    end do
+  end subroutine mf_fb_easy_integer
+
+  subroutine mf_fb_easy_logical(mf, c, nc, ng, lnocomm)
+    type(lmultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lnocomm
+
+    logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)     :: bxai
+    type(box)          :: abx
+    integer            :: i, j, ii, proc
+    integer            :: shft(2*3**mf%dim,mf%dim)
+    integer, parameter :: tag = 1101
+
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, ng, shft)
+       do j = 1, mf%nboxes
+          if ( remote(mf,i) .and. remote(mf,j) ) cycle
+          do ii = 1, bxai%nboxes
+             abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+             if ( .not. empty(abx) ) then
+                if ( local(mf,i) .and. local(mf,j) ) then
+                   psrc => dataptr(mf, j, abx, c, nc)
+                   pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                   pdst = psrc
+                else if ( .not. lnocomm ) then
+                   if ( local(mf,j) ) then ! must send
+                      psrc => dataptr(mf, j, abx, c, nc)
+                      proc = get_proc(mf%la, i)
+                      call parallel_send(psrc, proc, tag)
+                   else if ( local(mf,i) ) then  ! must recv
+                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                      proc = get_proc(mf%la,j)
+                      call parallel_recv(pdst, proc, tag)
+                   end if
+                end if
+             end if
+          end do
+       end do
+       call destroy(bxai)
+    end do
+  end subroutine mf_fb_easy_logical
+
+  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, lnocomm)
+    type(multifab), intent(inout) :: mf
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross, lnocomm
+
+    real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer,    allocatable :: rst(:), sst(:)
+    integer,    parameter   :: tag = 1102
+    integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)               :: sbx, dbx
+    type(boxassoc)          :: bxasc
+
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    do i = 1, bxasc%l_con%ncpy
+       ii  = bxasc%l_con%cpy(i)%nd
+       jj  = bxasc%l_con%cpy(i)%ns
+       sbx = bxasc%l_con%cpy(i)%sbx
+       dbx = bxasc%l_con%cpy(i)%dbx
+       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  = p2
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_double_space(bxasc%r_con, nc)
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( d_fb_async ) then
+       do i = 1, bxasc%r_con%nsp
+          sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
     else
-       call easy()
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
     end if
 
-  contains
+    call parallel_wait(rst)
 
-    subroutine easy()
-      real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-      type(boxarray)      :: bxai
-      type(box)           :: abx
-      integer             :: i, j, ii, proc
-      integer             :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter  :: tag = 1101
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p =  reshape(g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+    end do
 
-      do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
-         do j = 1, mf%nboxes
-            if ( remote(mf,i) .and. remote(mf,j) ) cycle
-            do ii = 1, bxai%nboxes
-               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf,i) .and. local(mf,j) ) then
-                     psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                     pdst = psrc
-                  else if ( .not. lnocomm ) then
-                     if ( local(mf,j) ) then ! must send
-                        psrc => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(psrc, proc, tag)
-                     else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(pdst, proc, tag)
-                     end if
-                  end if
-               end if
-            end do
-         end do
-         call destroy(bxai)
-      end do
-    end subroutine easy
+    if ( d_fb_async) call parallel_wait(sst)
 
-    subroutine fancy()
-      real(dp_t), pointer  :: p1(:,:,:,:), p2(:,:,:,:)
-      real(dp_t), pointer  :: p(:,:,:,:)
-      integer, allocatable :: rst(:)
-      integer, allocatable :: sst(:)
-      integer              :: i, ii, jj
-      type(box)            :: sbx, dbx
-      integer, parameter   :: tag = 1102
-      integer              :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc)       :: bxasc
+  end subroutine mf_fb_fancy_double
 
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
-!call boxassoc_print(bxasc, unit = 1)
+  subroutine mf_fb_fancy_integer(mf, c, nc, ng, lcross, lnocomm)
+    type(imultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lcross, lnocomm
 
-      !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
-      do i = 1, bxasc%l_con%ncpy
-         ii = bxasc%l_con%cpy(i)%nd
-         jj = bxasc%l_con%cpy(i)%ns
-         sbx = bxasc%l_con%cpy(i)%sbx
-         dbx = bxasc%l_con%cpy(i)%dbx
-         p1 => dataptr(mf%fbs(ii), dbx)
-         p2 => dataptr(mf%fbs(jj), sbx)
-!print *, i
-!print *, ii, dbx
-!print *, jj, sbx
-         p1 = p2
-      end do
-      !$OMP END PARALLEL DO
+    integer, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+    type(boxassoc)       :: bxasc
 
-      if ( lnocomm ) return
-      
-      if ( bxasc%r_con%svol > 0 ) then
-         if ( allocated(g_snd_d) ) then
-            if ( size(g_snd_d) < bxasc%r_con%svol ) then
-               deallocate(g_snd_d)
-               allocate(g_snd_d(bxasc%r_con%svol))
-            end if
-         else
-            allocate(g_snd_d(bxasc%r_con%svol))
-         end if
-      end if
-      if ( bxasc%r_con%rvol > 0 ) then
-         if ( allocated(g_rcv_d) ) then
-            if ( size(g_rcv_d) < bxasc%r_con%rvol ) then
-               deallocate(g_rcv_d)
-               allocate(g_rcv_d(bxasc%r_con%rvol))
-            end if
-         else
-            allocate(g_rcv_d(bxasc%r_con%rvol))
-         end if
-      end if
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-      ! the boxassoc contains size data in terms of numpts, must use
-      ! nc to get the actual volume
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    do i = 1, bxasc%l_con%ncpy
+       ii  = bxasc%l_con%cpy(i)%nd
+       jj  = bxasc%l_con%cpy(i)%ns
+       sbx = bxasc%l_con%cpy(i)%sbx
+       dbx = bxasc%l_con%cpy(i)%dbx
+       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  = p2
+    end do
+    !$OMP END PARALLEL DO
 
-      nc = mf%nc
-      do i = 1, bxasc%r_con%nsnd
-         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx)
-         g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = &
-              reshape(p, nc*bxasc%r_con%snd(i)%s1)
-      end do
-      allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      !
-      ! Always do recv's asynchronously.
-      !
-      do i = 1, bxasc%r_con%nrp
-         rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-      end do
-      if ( d_fb_async ) then
-         do i = 1, bxasc%r_con%nsp
-            sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      else
-         do i = 1, bxasc%r_con%nsp
-            call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      end if
-      call parallel_wait(rst)
-      do i = 1, bxasc%r_con%nrcv
-         sh = bxasc%r_con%rcv(i)%sh
-         sh(4) = nc
-         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx)
-         p =  reshape( &
-              g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
-              sh)
-      end do
-      if ( d_fb_async) call parallel_wait(sst)
-    end subroutine fancy
-  end subroutine multifab_fill_boundary
+    if ( lnocomm ) return
+
+    call mf_reserve_integer_space(bxasc%r_con, nc)
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       g_snd_i(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( i_fb_async ) then
+       do i = 1, bxasc%r_con%nsp
+          sst(i) = parallel_isend_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv:), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p =  reshape(g_rcv_i(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( i_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_fb_fancy_integer
+
+  subroutine mf_fb_fancy_logical(mf, c, nc, ng, lcross, lnocomm)
+    type(lmultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lcross, lnocomm
+
+    logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+    type(boxassoc)       :: bxasc
+
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    do i = 1, bxasc%l_con%ncpy
+       ii  = bxasc%l_con%cpy(i)%nd
+       jj  = bxasc%l_con%cpy(i)%ns
+       sbx = bxasc%l_con%cpy(i)%sbx
+       dbx = bxasc%l_con%cpy(i)%dbx
+       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  = p2
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_logical_space(bxasc%r_con, nc)
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       g_snd_l(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( l_fb_async ) then
+       do i = 1, bxasc%r_con%nsp
+          sst(i) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p =  reshape(g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( l_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_fb_fancy_logical
 
   subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
     type(multifab), intent(inout) :: mf
@@ -1413,297 +1664,58 @@ contains
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
-    if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
+    if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
 
     if ( lng < 1 ) return
 
     if ( d_fb_fancy ) then
-       call fancy()
+      call mf_fb_fancy_double(mf, c, nc, lng, lcross, lnocomm)
     else
-       call easy()
+      call mf_fb_easy_double(mf, c, nc, lng, lnocomm)
     end if
-
-  contains
-
-    subroutine easy()
-      real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-      type(boxarray)      :: bxai
-      type(box)           :: abx
-      integer             :: i, j, ii, proc
-      integer             :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter  :: tag = 1101
-
-      do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
-         do j = 1, mf%nboxes
-            if ( remote(mf,i) .and. remote(mf,j) ) cycle
-            do ii = 1, bxai%nboxes
-               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf,i) .and. local(mf,j) ) then
-                     psrc => dataptr(mf, j, abx, c, nc)
-                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                     pdst = psrc
-                  else if ( .not. lnocomm ) then
-                     if ( local(mf,j) ) then ! must send
-                        psrc => dataptr(mf, j, abx, c, nc)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(psrc, proc, tag)
-                     else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(pdst, proc, tag)
-                     end if
-                  end if
-               end if
-            end do
-         end do
-         call destroy(bxai)
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      real(dp_t), pointer  :: p1(:,:,:,:), p2(:,:,:,:)
-      real(dp_t), pointer  :: p(:,:,:,:)
-      integer, allocatable :: rst(:)
-      integer, allocatable :: sst(:)
-      integer              :: i, ii, jj
-      type(box)            :: sbx, dbx
-      integer, parameter   :: tag = 1102
-      integer              :: sh(MAX_SPACEDIM+1)
-      type(boxassoc)       :: bxasc
-
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
-!call boxassoc_print(bxasc, unit = 1)
-
-      !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
-      do i = 1, bxasc%l_con%ncpy
-         ii = bxasc%l_con%cpy(i)%nd
-         jj = bxasc%l_con%cpy(i)%ns
-         sbx = bxasc%l_con%cpy(i)%sbx
-         dbx = bxasc%l_con%cpy(i)%dbx
-         p1 => dataptr(mf%fbs(ii), dbx, c, nc)
-         p2 => dataptr(mf%fbs(jj), sbx, c, nc)
-!print *, i
-!print *, ii, dbx
-!print *, jj, sbx
-         p1 = p2
-      end do
-      !$OMP END PARALLEL DO
-
-      if ( lnocomm ) return
-      
-      if ( bxasc%r_con%svol > 0 ) then
-         if ( allocated(g_snd_d) ) then
-            if ( size(g_snd_d) < bxasc%r_con%svol ) then
-               deallocate(g_snd_d)
-               allocate(g_snd_d(bxasc%r_con%svol))
-            end if
-         else
-            allocate(g_snd_d(bxasc%r_con%svol))
-         end if
-      end if
-      if ( bxasc%r_con%rvol > 0 ) then
-         if ( allocated(g_rcv_d) ) then
-            if ( size(g_rcv_d) < bxasc%r_con%rvol ) then
-               deallocate(g_rcv_d)
-               allocate(g_rcv_d(bxasc%r_con%rvol))
-            end if
-         else
-            allocate(g_rcv_d(bxasc%r_con%rvol))
-         end if
-      end if
-
-      ! the boxassoc contains size data in terms of numpts, must use
-      ! nc to get the actual volume
-
-      do i = 1, bxasc%r_con%nsnd
-         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-         g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = &
-              reshape(p, nc*bxasc%r_con%snd(i)%s1)
-      end do
-      allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      !
-      ! Always do recv's asynchronously.
-      !
-      do i = 1, bxasc%r_con%nrp
-         rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-      end do
-      if ( d_fb_async ) then
-         do i = 1, bxasc%r_con%nsp
-            sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      else
-         do i = 1, bxasc%r_con%nsp
-            call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      end if
-      call parallel_wait(rst)
-      do i = 1, bxasc%r_con%nrcv
-         sh = bxasc%r_con%rcv(i)%sh
-         sh(4) = nc
-         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-         p =  reshape( &
-              g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
-              sh)
-      end do
-      if ( d_fb_async) call parallel_wait(sst)
-    end subroutine fancy
   end subroutine multifab_fill_boundary_c
+
+  subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
+    type(multifab), intent(inout) :: mf
+    integer, intent(in), optional :: ng
+    logical, intent(in), optional :: nocomm, cross
+    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
+  end subroutine multifab_fill_boundary
+
+  subroutine imultifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
+    type(imultifab), intent(inout) :: mf
+    integer, intent(in)            :: c, nc
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm, cross
+
+    integer :: lng
+    logical :: lnocomm, lcross
+
+    lcross  = .false.; if ( present(cross) )  lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng) )     lng     = ng
+
+    if ( lng > mf%ng ) call bl_error("IMULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
+
+    if ( lng < 1 ) return
+
+    if ( i_fb_fancy ) then
+       call mf_fb_fancy_integer(mf, c, nc, lng, lcross, lnocomm)
+    else
+       call mf_fb_easy_integer(mf, c, nc, lng, lnocomm)
+    end if
+  end subroutine imultifab_fill_boundary_c
 
   subroutine imultifab_fill_boundary(mf, ng, nocomm, cross)
     type(imultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
     logical, intent(in), optional  :: nocomm, cross
-
-    integer :: lng
-    logical :: lnocomm, lcross
-
-    lcross  = .false.; if ( present(cross) )  lcross  = cross
-    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng     = mf%ng;   if ( present(ng) )     lng     = ng
-
-    if ( lng > mf%ng ) &
-         call bl_error("IMULTIFAB_FILL_BOUNDARY: ng too large", ng)
-    if ( lng < 1 ) return
-
-    if ( i_fb_fancy ) then
-       call fancy()
-    else
-       call easy()
-    end if
-
-  contains
-
-    subroutine easy()
-      integer, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
-      type(boxarray)     :: bxai
-      type(box)          :: abx
-      integer            :: i, j, ii, proc
-      integer            :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter :: tag = 1101
-
-      do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
-         do j = 1, mf%nboxes
-            if ( remote(mf,i) .and. remote(mf,j) ) cycle
-            do ii = 1, bxai%nboxes
-               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf,i) .and. local(mf,j) ) then
-                     psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                     pdst = psrc
-                  else if ( .not. lnocomm ) then
-                     if ( local(mf,j) ) then ! must send
-                        psrc => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(psrc, proc, tag)
-                     else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(pdst, proc, tag)
-                     end if
-                  end if
-               end if
-            end do
-         end do
-         call destroy(bxai)
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      integer, pointer     :: p1(:,:,:,:), p2(:,:,:,:)
-      integer, pointer     :: p(:,:,:,:)
-      integer, allocatable :: rst(:)
-      integer, allocatable :: sst(:)
-      integer              :: i, ii, jj
-      type(box)            :: sbx, dbx
-      integer, parameter   :: tag = 1102
-      integer              :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc)       :: bxasc
-
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
-
-      do i = 1, bxasc%l_con%ncpy
-         ii = bxasc%l_con%cpy(i)%nd
-         jj = bxasc%l_con%cpy(i)%ns
-         sbx = bxasc%l_con%cpy(i)%sbx
-         dbx = bxasc%l_con%cpy(i)%dbx
-         p1 => dataptr(mf%fbs(ii), dbx)
-         p2 => dataptr(mf%fbs(jj), sbx)
-         p1 = p2
-      end do
-
-      if ( lnocomm ) return
-      
-      if ( bxasc%r_con%svol > 0 ) then
-         if ( allocated(g_snd_i) ) then
-            if ( size(g_snd_i) < bxasc%r_con%svol ) then
-               deallocate(g_snd_i)
-               allocate(g_snd_i(bxasc%r_con%svol))
-            end if
-         else
-            allocate(g_snd_i(bxasc%r_con%svol))
-         end if
-      end if
-      if ( bxasc%r_con%rvol > 0 ) then
-         if ( allocated(g_rcv_i) ) then
-            if ( size(g_rcv_i) < bxasc%r_con%rvol ) then
-               deallocate(g_rcv_i)
-               allocate(g_rcv_i(bxasc%r_con%rvol))
-            end if
-         else
-            allocate(g_rcv_i(bxasc%r_con%rvol))
-         end if
-      end if
-
-      ! the boxassoc contains size data in terms of numpts, must use
-      ! nc to get the actual volume
-
-      nc = mf%nc
-      do i = 1, bxasc%r_con%nsnd
-         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx)
-         g_snd_i(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = &
-              reshape(p, nc*bxasc%r_con%snd(i)%s1)
-      end do
-      allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      !
-      ! Always do recv's asynchronously.
-      !
-      do i = 1, bxasc%r_con%nrp
-         rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
-              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-      end do
-      if ( i_fb_async ) then
-         do i = 1, bxasc%r_con%nsp
-            sst(i) = parallel_isend_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      else
-         do i = 1, bxasc%r_con%nsp
-            call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      end if
-      call parallel_wait(rst)
-      do i = 1, bxasc%r_con%nrcv
-         sh = bxasc%r_con%rcv(i)%sh
-         sh(4) = nc
-         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx)
-         p =  reshape( &
-              g_rcv_i(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
-              sh)
-      end do
-      if ( i_fb_async) call parallel_wait(sst)
-    end subroutine fancy
+    call imultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
   end subroutine imultifab_fill_boundary
 
-  subroutine lmultifab_fill_boundary(mf, ng, nocomm, cross)
+  subroutine lmultifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
     type(lmultifab), intent(inout) :: mf
+    integer, intent(in)            :: c, nc
     integer, intent(in), optional  :: ng
     logical, intent(in), optional  :: nocomm, cross
 
@@ -1714,144 +1726,25 @@ contains
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
-    if ( lng > mf%ng ) &
-         call bl_error("LMULTIFAB_FILL_BOUNDARY: ng too large", ng)
+    if ( lng > mf%ng ) call bl_error("LMULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
+
     if ( lng < 1 ) return
 
     if ( l_fb_fancy ) then
-       call fancy()
+       call mf_fb_fancy_logical(mf, c, nc, lng, lcross, lnocomm)
     else
-       call easy()
+       call mf_fb_easy_logical(mf, c, nc, lng, lnocomm)
     end if
+  end subroutine lmultifab_fill_boundary_c
 
-  contains
-
-    subroutine easy()
-      logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
-      type(boxarray)     :: bxai
-      type(box)          :: abx
-      integer            :: i, j, ii, proc
-      integer            :: shft(2*3**mf%dim,mf%dim)
-      integer, parameter :: tag = 1101
-
-      do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
-         do j = 1, mf%nboxes
-            if ( remote(mf,i) .and. remote(mf,j) ) cycle
-            do ii = 1, bxai%nboxes
-               abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-               if ( .not. empty(abx) ) then
-                  if ( local(mf,i) .and. local(mf,j) ) then
-                     psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                     pdst = psrc
-                  else if ( .not. lnocomm ) then
-                     if ( local(mf,j) ) then ! must send
-                        psrc => dataptr(mf, j, abx)
-                        proc = get_proc(mf%la, i)
-                        call parallel_send(psrc, proc, tag)
-                     else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
-                        proc = get_proc(mf%la,j)
-                        call parallel_recv(pdst, proc, tag)
-                     end if
-                  end if
-               end if
-            end do
-         end do
-         call destroy(bxai)
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      logical, pointer     :: p1(:,:,:,:), p2(:,:,:,:)
-      logical, pointer     :: p(:,:,:,:)
-      integer, allocatable :: rst(:)
-      integer, allocatable :: sst(:)
-      integer              :: i, ii, jj
-      type(box)            :: sbx, dbx
-      integer, parameter   :: tag = 1102
-      integer              :: nc, sh(MAX_SPACEDIM+1)
-      type(boxassoc)       :: bxasc
-
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
-
-      do i = 1, bxasc%l_con%ncpy
-         ii = bxasc%l_con%cpy(i)%nd
-         jj = bxasc%l_con%cpy(i)%ns
-         sbx = bxasc%l_con%cpy(i)%sbx
-         dbx = bxasc%l_con%cpy(i)%dbx
-         p1 => dataptr(mf%fbs(ii), dbx)
-         p2 => dataptr(mf%fbs(jj), sbx)
-         p1 = p2
-      end do
-
-      if ( lnocomm ) return
-      
-      if ( bxasc%r_con%svol > 0 ) then
-         if ( allocated(g_snd_l) ) then
-            if ( size(g_snd_l) < bxasc%r_con%svol ) then
-               deallocate(g_snd_l)
-               allocate(g_snd_l(bxasc%r_con%svol))
-            end if
-         else
-            allocate(g_snd_l(bxasc%r_con%svol))
-         end if
-      end if
-      if ( bxasc%r_con%rvol > 0 ) then
-         if ( allocated(g_rcv_l) ) then
-            if ( size(g_rcv_l) < bxasc%r_con%rvol ) then
-               deallocate(g_rcv_l)
-               allocate(g_rcv_l(bxasc%r_con%rvol))
-            end if
-         else
-            allocate(g_rcv_l(bxasc%r_con%rvol))
-         end if
-      end if
-
-      ! the boxassoc contains size data in terms of numpts, must use
-      ! nc to get the actual volume
-
-      nc = mf%nc
-      do i = 1, bxasc%r_con%nsnd
-         p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx)
-         g_snd_l(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = &
-              reshape(p, nc*bxasc%r_con%snd(i)%s1)
-      end do
-      allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-      !
-      ! Always do recv's asynchronously.
-      !
-      do i = 1, bxasc%r_con%nrp
-         rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-      end do
-      if ( l_fb_async ) then
-         do i = 1, bxasc%r_con%nsp
-            sst(i) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      else
-         do i = 1, bxasc%r_con%nsp
-            call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
-                 nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-         end do
-      end if
-      call parallel_wait(rst)
-      do i = 1, bxasc%r_con%nrcv
-         sh = bxasc%r_con%rcv(i)%sh
-         sh(4) = nc
-         p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx)
-         p =  reshape( &
-              g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), &
-              sh)
-      end do
-      if ( l_fb_async) call parallel_wait(sst)
-    end subroutine fancy
-
+  subroutine lmultifab_fill_boundary(mf, ng, nocomm, cross)
+    type(lmultifab), intent(inout) :: mf
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm, cross
+    call lmultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
   end subroutine lmultifab_fill_boundary
 
-  subroutine multifab_internal_sync_shift(dmn,bx,pmask,nodal,shft,cnt)
+  subroutine multifab_internal_sync_shift(dmn, bx, pmask, nodal, shft, cnt)
     type(box), intent(in)  :: dmn,bx
     integer,   intent(out) :: shft(:,:),cnt
     logical,   intent(in)  :: pmask(:),nodal(:)
@@ -2197,307 +2090,476 @@ contains
     end do
   end subroutine lmultifab_print
 
-  subroutine multifab_copy_c(mdst, dst, msrc, src, nc, all)
-
+  subroutine mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all
-    integer, intent(in)           :: dst, src
+    integer,        intent(in)    :: dstcomp, srccomp, nc
+    logical,        intent(in)    :: lnocomm
+
+    real(dp_t), pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    integer,    parameter :: tag = 1102
+    type(box)             :: abx
+    integer               :: i, j, proc
+
+    do i = 1, mdst%nboxes
+       do j = 1, msrc%nboxes
+          if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+          abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
+          if ( .not. empty(abx) ) then
+             if ( local(mdst,i) .and. local(msrc,j) ) then
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                psrc => dataptr(msrc, j, abx, srccomp, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(msrc,j) ) then ! must send
+                   psrc => dataptr(msrc, j, abx, srccomp, nc)
+                   proc = get_proc(mdst%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mdst,i) ) then ! must recv
+                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                   proc = get_proc(msrc%la, j)
+                   call parallel_recv(pdst, proc, tag)
+                end if
+             end if
+          end if
+       end do
+    end do
+  end subroutine mf_copy_easy_double
+
+  subroutine mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+    type(imultifab), intent(inout) :: mdst
+    type(imultifab), intent(in)    :: msrc
+    integer,         intent(in)    :: dstcomp, srccomp, nc
+    logical,         intent(in)    :: lnocomm
+
+    integer, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, parameter :: tag = 1102
+    type(box)          :: abx
+    integer            :: i, j, proc
+
+    do i = 1, mdst%nboxes
+       do j = 1, msrc%nboxes
+          if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+          abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
+          if ( .not. empty(abx) ) then
+             if ( local(mdst,i) .and. local(msrc,j) ) then
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                psrc => dataptr(msrc, j, abx, srccomp, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(msrc,j) ) then ! must send
+                   psrc => dataptr(msrc, j, abx, srccomp, nc)
+                   proc = get_proc(mdst%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mdst,i) ) then ! must recv
+                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                   proc = get_proc(msrc%la, j)
+                   call parallel_recv(pdst, proc, tag)
+                end if
+             end if
+          end if
+       end do
+    end do
+  end subroutine mf_copy_easy_integer
+
+  subroutine mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+    type(lmultifab), intent(inout) :: mdst
+    type(lmultifab), intent(in)    :: msrc
+    integer,         intent(in)    :: dstcomp, srccomp, nc
+    logical,         intent(in)    :: lnocomm
+
+    logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, parameter :: tag = 1102
+    type(box)          :: abx
+    integer            :: i, j, proc
+
+    do i = 1, mdst%nboxes
+       do j = 1, msrc%nboxes
+          if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+          abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
+          if ( .not. empty(abx) ) then
+             if ( local(mdst,i) .and. local(msrc,j) ) then
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                psrc => dataptr(msrc, j, abx, srccomp, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(msrc,j) ) then ! must send
+                   psrc => dataptr(msrc, j, abx, srccomp, nc)
+                   proc = get_proc(mdst%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mdst,i) ) then ! must recv
+                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                   proc = get_proc(msrc%la, j)
+                   call parallel_recv(pdst, proc, tag)
+                end if
+             end if
+          end if
+       end do
+    end do
+  end subroutine mf_copy_easy_logical
+
+  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+    type(multifab), intent(inout) :: mdst
+    type(multifab), intent(in)    :: msrc
+    integer, intent(in)           :: dstcomp, srccomp, nc
+    logical, intent(in)           :: lnocomm
+
+    type(copyassoc)      :: cpasc
+    real(dp_t), pointer  :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+
+    cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    do i = 1, cpasc%l_con%ncpy
+       ii   = cpasc%l_con%cpy(i)%nd
+       jj   = cpasc%l_con%cpy(i)%ns
+       sbx  = cpasc%l_con%cpy(i)%sbx
+       dbx  = cpasc%l_con%cpy(i)%dbx
+       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       pdst = psrc
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_double_space(cpasc%r_con, nc)
+
+    do i = 1, cpasc%r_con%nsnd
+       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       g_snd_d(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( d_fb_async ) then
+       do i = 1, cpasc%r_con%nsp
+          sst(i) = parallel_isend_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv:), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, cpasc%r_con%nrcv
+       sh = cpasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p =  reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( d_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_copy_fancy_double
+
+  subroutine mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+    type(imultifab), intent(inout) :: mdst
+    type(imultifab), intent(in)    :: msrc
+    integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
+
+    type(copyassoc)      :: cpasc
+    integer, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+
+    cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    do i = 1, cpasc%l_con%ncpy
+       ii   = cpasc%l_con%cpy(i)%nd
+       jj   = cpasc%l_con%cpy(i)%ns
+       sbx  = cpasc%l_con%cpy(i)%sbx
+       dbx  = cpasc%l_con%cpy(i)%dbx
+       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       pdst = psrc
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_integer_space(cpasc%r_con, nc)
+
+    do i = 1, cpasc%r_con%nsnd
+       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       g_snd_i(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( i_fb_async ) then
+       do i = 1, cpasc%r_con%nsp
+          sst(i) = parallel_isend_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv:), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, cpasc%r_con%nrcv
+       sh = cpasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p =  reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( i_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_copy_fancy_integer
+
+  subroutine mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+    type(lmultifab), intent(inout) :: mdst
+    type(lmultifab), intent(in)    :: msrc
+    integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
+
+    type(copyassoc)      :: cpasc
+    logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+
+    cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    do i = 1, cpasc%l_con%ncpy
+       ii   = cpasc%l_con%cpy(i)%nd
+       jj   = cpasc%l_con%cpy(i)%ns
+       sbx  = cpasc%l_con%cpy(i)%sbx
+       dbx  = cpasc%l_con%cpy(i)%dbx
+       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       pdst = psrc
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_logical_space(cpasc%r_con, nc)
+
+    do i = 1, cpasc%r_con%nsnd
+       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       g_snd_l(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( l_fb_async ) then
+       do i = 1, cpasc%r_con%nsp
+          sst(i) = parallel_isend_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv:), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, cpasc%r_con%nrcv
+       sh = cpasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p =  reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( l_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_copy_fancy_logical
+
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
+    type(multifab), intent(inout) :: mdst
+    type(multifab), intent(in)    :: msrc
+    logical, intent(in), optional :: all, nocomm
+    integer, intent(in)           :: dstcomp, srccomp
     integer, intent(in), optional :: nc
-    real(dp_t), pointer           :: pdst(:,:,:,:)
-    real(dp_t), pointer           :: psrc(:,:,:,:)
-    logical                       :: lall
+    real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
+    logical                       :: lall, lnocomm
     integer                       :: i, lnc
 
-    lnc  = 1;       if ( present(nc) )  lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc     = nc
+    lall    = .false.; if ( present(all)    ) lall    = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
 
-    if (lnc < 1)               call bl_error('multifab_copy_c: nc must be >= 1')
-    if (mdst%nc < (dst+lnc-1)) call bl_error('multifab_copy_c: nc is too large for dst multifab')
-    if (msrc%nc < (src+lnc-1)) call bl_error('multifab_copy_c: nc is too large for src multifab')
+    if (lnc < 1)                   call bl_error('multifab_copy_c: nc must be >= 1')
+    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('multifab_copy_c: nc is too large for dst multifab')
+    if (msrc%nc < (srccomp+lnc-1)) call bl_error('multifab_copy_c: nc is too large for src multifab')
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
        do i = 1, mdst%nboxes
-          if ( multifab_remote(mdst,i) ) cycle
+          if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dst, nc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), src, nc)
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dst, nc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), src, nc)
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('multifab_copy_c: copying ghostcells allowed only when layouts are the same')
+
        if ( d_cp_fancy ) then
-          call fancy()
+          call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        else
-          call easy()
+          call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        end if
     end if
-
-  contains
-
-    subroutine easy()
-      type(box)           :: bx, abx
-      integer, parameter  :: tag = 1102
-      integer             :: j, proc
-      do i = 1, mdst%nboxes
-         bx = get_ibox(mdst, i)
-         do j = 1, msrc%nboxes
-            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            abx = intersection(bx, get_ibox(msrc, j))
-            if ( .not. empty(abx) ) then
-               if ( local(mdst,i) .and. local(msrc,j) ) then
-                  pdst => dataptr(mdst, i, abx, dst, nc)
-                  psrc => dataptr(msrc, j, abx, src, nc)
-                  pdst = psrc
-               else if ( local(msrc,j) ) then ! must send
-                  psrc => dataptr(msrc, j, abx, src, nc)
-                  proc = get_proc(mdst%la, i)
-                  call parallel_send(psrc, proc, tag)
-               else if ( local(mdst,i) ) then ! must recv
-                  pdst => dataptr(mdst, i, abx, dst, nc)
-                  proc = get_proc(msrc%la, j)
-                  call parallel_recv(pdst, proc, tag)
-               end if
-            end if
-         end do
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      stop 'multifab_copy_c::fancy() not implemented'
-    end subroutine fancy
-
   end subroutine multifab_copy_c
 
-  subroutine imultifab_copy_c(mdst, dst, msrc, src, nc, all)
+  subroutine multifab_copy(mdst, msrc, all, nocomm)
+    type(multifab), intent(inout) :: mdst
+    type(multifab), intent(in)    :: msrc
+    logical, intent(in), optional :: all, nocomm
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('multifab_copy: multifabs must have same number of components')
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+  end subroutine multifab_copy
 
+  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
-    integer, intent(in)            :: dst, src
+    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
-    integer, pointer               :: pdst(:,:,:,:)
-    integer, pointer               :: psrc(:,:,:,:)
-    logical                        :: lall
+    integer, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
+    logical                        :: lall, lnocomm
     integer                        :: i, lnc
 
-    lnc  = 1;       if ( present(nc) )  lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc     = nc
+    lall    = .false.; if ( present(all)    ) lall    = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
 
     if (lnc < 1)               call bl_error('imultifab_copy_c: nc must be >= 1')
-    if (mdst%nc < (dst+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
-    if (msrc%nc < (src+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
+    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
+    if (msrc%nc < (srccomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dst, nc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), src, nc)
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dst, nc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), src, nc)
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('imultifab_copy_c: copying ghostcells allowed only when layouts are the same')
+
        if ( i_cp_fancy ) then
-          call fancy()
+          call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        else
-          call easy()
+          call mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        end if
     end if
-
-  contains
-
-    subroutine easy()
-      type(box)          :: bx, abx
-      integer, parameter :: tag = 1102
-      integer            :: j, proc
-      do i = 1, mdst%nboxes
-         bx = get_ibox(mdst, i)
-         do j = 1, msrc%nboxes
-            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            abx = intersection(bx, get_ibox(msrc, j))
-            if ( .not. empty(abx) ) then
-               if ( local(mdst,i) .and. local(msrc,j) ) then
-                  pdst => dataptr(mdst, i, abx, dst, nc)
-                  psrc => dataptr(msrc, j, abx, src, nc)
-                  pdst = psrc
-               else if ( local(msrc,j) ) then ! must send
-                  psrc => dataptr(msrc, j, abx, src, nc)
-                  proc = get_proc(mdst%la, i)
-                  call parallel_send(psrc, proc, tag)
-               else if ( local(mdst,i) ) then ! must recv
-                  pdst => dataptr(mdst, i, abx, dst, nc)
-                  proc = get_proc(msrc%la, j)
-                  call parallel_recv(pdst, proc, tag)
-               end if
-            end if
-         end do
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      stop 'imultifab_copy_c::fancy() not implemented'
-    end subroutine fancy
-
   end subroutine imultifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, all)
-
-    type(multifab), intent(inout) :: mdst
-    type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all
-    real(dp_t), pointer           :: pdst(:,:,:,:)
-    real(dp_t), pointer           :: psrc(:,:,:,:)
-    logical                       :: lall
-    integer                       :: i
-
-    lall = .false.; if ( present(all) ) lall = all
-
-    if (mdst%nc .ne. msrc%nc) call bl_error('multifab_copy: multifabs must have same number of components')
-
-    if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
-       do i = 1, mdst%nboxes
-          if ( multifab_remote(mdst,i) ) cycle
-          if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i))
-             psrc => dataptr(msrc, i, get_pbox(msrc, i))
-          else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i))
-             psrc => dataptr(msrc, i, get_ibox(msrc, i))
-          end if
-          pdst = psrc
-       end do
-       !$OMP END PARALLEL DO
-    else
-       if ( lall ) call bl_error('multifab_copy: copying ghostcells allowed only when layouts are the same')
-       if ( d_cp_fancy ) then
-          call fancy()
-       else
-          call easy()
-       end if
-    end if
-
-  contains
-
-    subroutine easy()
-      type(box)           :: bx, abx
-      integer, parameter  :: tag = 1102
-      integer             :: j, proc
-      do i = 1, mdst%nboxes
-         bx = get_ibox(mdst, i)
-         do j = 1, msrc%nboxes
-            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            abx = intersection(bx, get_ibox(msrc, j))
-            if ( .not. empty(abx) ) then
-               if ( local(mdst,i) .and. local(msrc,j) ) then
-                  pdst => dataptr(mdst, i, abx)
-                  psrc => dataptr(msrc, j, abx)
-                  pdst = psrc
-               else if ( local(msrc,j) ) then ! must send
-                  psrc => dataptr(msrc, j, abx)
-                  proc = get_proc(mdst%la, i)
-                  call parallel_send(psrc, proc, tag)
-               else if ( local(mdst,i) ) then ! must recv
-                  pdst => dataptr(mdst, i, abx)
-                  proc = get_proc(msrc%la, j)
-                  call parallel_recv(pdst, proc, tag)
-               end if
-            end if
-         end do
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      stop 'multifab_copy::fancy() not implemented'
-    end subroutine fancy
-
-  end subroutine multifab_copy
-
-  subroutine imultifab_copy(mdst, msrc, all)
-
+  subroutine imultifab_copy(mdst, msrc, all, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
-    integer, pointer               :: pdst(:,:,:,:)
-    integer, pointer               :: psrc(:,:,:,:)
-    logical                        :: lall
-    integer                        :: i
+    logical, intent(in), optional  :: all, nocomm
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('imultifab_copy: multifabs must have same number of components')
+    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+  end subroutine imultifab_copy
 
-    lall = .false.; if ( present(all) ) lall = all
+  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
+    type(lmultifab), intent(inout) :: mdst
+    type(lmultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in)            :: dstcomp, srccomp
+    integer, intent(in), optional  :: nc
+    logical, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
+    logical                        :: lall, lnocomm
+    integer                        :: i, lnc
 
-    if (mdst%nc .ne. msrc%nc) call bl_error('imultifab_copy: multifabs must have same number of components')
+    lnc     = 1;       if ( present(nc)     ) lnc     = nc
+    lall    = .false.; if ( present(all)    ) lall    = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+
+    if (lnc < 1)               call bl_error('imultifab_copy_c: nc must be >= 1')
+    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
+    if (msrc%nc < (srccomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i))
-             psrc => dataptr(msrc, i, get_pbox(msrc, i))
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i))
-             psrc => dataptr(msrc, i, get_ibox(msrc, i))
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('imultifab_copy: copying ghostcells allowed only when layouts are the same')
-       if ( i_cp_fancy ) then
-          call fancy()
+       if ( lall ) call bl_error('lmultifab_copy_c: copying ghostcells allowed only when layouts are the same')
+
+       if ( l_cp_fancy ) then
+          call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        else
-          call easy()
+          call mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
        end if
     end if
+  end subroutine lmultifab_copy_c
 
-  contains
-
-    subroutine easy()
-      type(box)          :: bx, abx
-      integer, parameter :: tag = 1102
-      integer            :: j, proc
-      do i = 1, mdst%nboxes
-         bx = get_ibox(mdst, i)
-         do j = 1, msrc%nboxes
-            if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
-            abx = intersection(bx, get_ibox(msrc, j))
-            if ( .not. empty(abx) ) then
-               if ( local(mdst,i) .and. local(msrc,j) ) then
-                  pdst => dataptr(mdst, i, abx)
-                  psrc => dataptr(msrc, j, abx)
-                  pdst = psrc
-               else if ( local(msrc,j) ) then ! must send
-                  psrc => dataptr(msrc, j, abx)
-                  proc = get_proc(mdst%la, i)
-                  call parallel_send(psrc, proc, tag)
-               else if ( local(mdst,i) ) then ! must recv
-                  pdst => dataptr(mdst, i, abx)
-                  proc = get_proc(msrc%la, j)
-                  call parallel_recv(pdst, proc, tag)
-               end if
-            end if
-         end do
-      end do
-    end subroutine easy
-
-    subroutine fancy()
-      stop 'imultifab_copy::fancy() not implemented'
-    end subroutine fancy
-
-  end subroutine imultifab_copy
+  subroutine lmultifab_copy(mdst, msrc, all, nocomm)
+    type(lmultifab), intent(inout) :: mdst
+    type(lmultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all, nocomm
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('lmultifab_copy: multifabs must have same number of components')
+    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+  end subroutine lmultifab_copy
 
   subroutine build_nodal_dot_mask(mask, mf)
     type(multifab), intent(in)  :: mf
