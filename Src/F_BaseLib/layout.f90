@@ -109,8 +109,6 @@ module layout_module
      type(coarsened_layout), pointer :: crse_la => Null()
      type(pn_layout), pointer :: pn_children => Null()
      type(derived_layout), pointer :: dlay => Null()
-     integer, pointer, dimension(:) :: local_boxes => Null()
-     integer :: nlocal_boxes = 0
   end type layout_rep
 
   !! A layout that is derived by coarsening an existing layout,
@@ -294,15 +292,6 @@ contains
     ! call layout_roundrobin(lap%prc, ba%bxs)
     call layout_knapsack(lap%prc, ba%bxs)
 
-    lap%nlocal_boxes = count(lap%prc == parallel_myproc())
-    allocate(lap%local_boxes(lap%nlocal_boxes))
-    i = 1
-    do j = 1, size(lap%prc)
-       if ( lap%prc(j) == parallel_myproc() ) then
-          lap%local_boxes(i) = j
-          i = i + 1
-       end if
-    end do
   end subroutine layout_rep_build
 
   recursive subroutine layout_rep_destroy(lap, la_type)
@@ -315,7 +304,6 @@ contains
     type(copyassoc), pointer :: cpa, ocpa
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
-       deallocate(lap%local_boxes)
     end if
     if ( la_type /= LA_DERV ) then
        call destroy(lap%bxa)
@@ -486,16 +474,6 @@ contains
     dla%la%lap%prc = l_prc
     dla%la%lap%bxa = la%lap%bxa
 
-    dla%la%lap%nlocal_boxes = count(dla%la%lap%prc == parallel_myproc())
-    allocate(dla%la%lap%local_boxes(dla%la%lap%nlocal_boxes))
-    i = 1
-    do j = 1, size(dla%la%lap%prc)
-       if ( dla%la%lap%prc(j) == parallel_myproc() ) then
-          dla%la%lap%local_boxes(i) = j
-          i = i + 1
-       end if
-    end do
-
     ! install the new derived into the layout
     dla%next => la%lap%dlay
     la%lap%dlay => dla
@@ -538,8 +516,6 @@ contains
     cla%la%lap%pmask => la%lap%pmask
 
     cla%la%lap%prc => la%lap%prc
-    cla%la%lap%nlocal_boxes = la%lap%nlocal_boxes
-    cla%la%lap%local_boxes => la%lap%local_boxes
 
     call boxarray_build_v(cla%la%lap%bxa, la%lap%bxa%bxs)
 
