@@ -203,6 +203,8 @@ module multifab_module
   end interface
 
   interface internal_sync
+     module procedure multifab_internal_sync_c
+     module procedure lmultifab_internal_sync_c
      module procedure multifab_internal_sync
      module procedure lmultifab_internal_sync
   end interface
@@ -287,9 +289,9 @@ module multifab_module
   logical, private :: i_fb_fancy = .true.
   logical, private :: l_fb_fancy = .true.
 
-  logical, private :: d_cp_fancy = .false.
-  logical, private :: i_cp_fancy = .false.
-  logical, private :: l_cp_fancy = .false.
+  logical, private :: d_cp_fancy = .true.
+  logical, private :: i_cp_fancy = .true.
+  logical, private :: l_cp_fancy = .true.
 
   logical, private :: d_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: i_fb_async = .false. ! Do both recv's and send's asynchronously?
@@ -387,7 +389,7 @@ contains
 
   subroutine check_conformance(a,b)
     type(multifab), intent(in) :: a, b
-    if ( not_equal(a%la, b%la) ) call bl_error("MULTIFAB::check_conformance:: not conformant")
+    if ( not_equal(a%la, b%la) ) call bl_error("MULTIFAB::CHECK_CONFORMANCE: not conformant")
   end subroutine check_conformance
 
   function multifab_cell_centered_q(mf) result(r)
@@ -1660,11 +1662,12 @@ contains
     integer :: lng
     logical :: lnocomm, lcross
 
-    lcross  = .false.; if ( present(cross) )  lcross  = cross
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng     = mf%ng;   if ( present(ng) )     lng     = ng
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
 
-    if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
+    if ( lng > mf%ng )      call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
 
     if ( lng < 1 ) return
 
@@ -1691,11 +1694,12 @@ contains
     integer :: lng
     logical :: lnocomm, lcross
 
-    lcross  = .false.; if ( present(cross) )  lcross  = cross
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng     = mf%ng;   if ( present(ng) )     lng     = ng
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
 
-    if ( lng > mf%ng ) call bl_error("IMULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
+    if ( lng > mf%ng )      call bl_error('IMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('IMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
 
     if ( lng < 1 ) return
 
@@ -1722,11 +1726,12 @@ contains
     integer :: lng
     logical :: lnocomm, lcross
 
-    lcross  = .false.; if ( present(cross) )  lcross  = cross
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng     = mf%ng;   if ( present(ng) )     lng     = ng
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
 
-    if ( lng > mf%ng ) call bl_error("LMULTIFAB_FILL_BOUNDARY_C: ng too large", ng)
+    if ( lng > mf%ng )      call bl_error('LMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('LMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
 
     if ( lng < 1 ) return
 
@@ -1822,13 +1827,15 @@ contains
   !! cell-centered multifab, there are no overlaps to reconcile.
   !! if ALL is true then even ghost cell data is 'reconciled'
   !!
-  subroutine multifab_internal_sync(mf, all, filter)
+  subroutine multifab_internal_sync_c(mf, c, nc, all, filter)
     type(multifab), intent(inout)               :: mf
+    integer, intent(in)                         :: c
+    integer, intent(in), optional               :: nc
     logical, intent(in), optional               :: all
     type(box)                                   :: ibx, jbx, abx, sbx
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
-    integer                                     :: i, j, jj, proc, cnt
+    integer                                     :: i, j, jj, proc, cnt, lnc
     integer                                     :: shft(3**mf%dim,mf%dim)
     integer, parameter                          :: tag = 1104
     logical                                     :: lall
@@ -1843,7 +1850,10 @@ contains
 
     optional filter
 
+    lnc  = 1;        if ( present(nc)  ) lnc  = nc
     lall = .false. ; if ( present(all) ) lall = all
+
+    if ( mf%nc < (c+lnc-1) ) call bl_error('MULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
 
     do j = 1, mf%nboxes
        if ( lall ) then
@@ -1866,8 +1876,8 @@ contains
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
              if ( .not. empty(abx) ) then
                 if ( local(mf, i) .and. local(mf, j) ) then
-                   pdst => dataptr(mf, i, abx)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   pdst => dataptr(mf, i, abx, c, lnc)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
                    if ( present(filter) ) then
                       call filter(pdst, psrc)
                    else
@@ -1875,11 +1885,11 @@ contains
                    end if
                 else if ( local(mf, j) ) then ! must send
                    proc = get_proc(mf%la, i)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
                    call parallel_send(psrc, proc, tag)
                 else if ( local(mf, i) ) then  ! must recv
                    proc = get_proc(mf%la,j)
-                   pdst => dataptr(mf, i, abx)
+                   pdst => dataptr(mf, i, abx, c, lnc)
                    if ( present(filter) ) then
                       allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
                       call parallel_recv(pt, proc, tag)
@@ -1893,6 +1903,20 @@ contains
           end do
        end do
     end do
+  end subroutine multifab_internal_sync_c
+
+  subroutine multifab_internal_sync(mf, all, filter)
+    type(multifab), intent(inout)               :: mf
+    logical, intent(in), optional               :: all
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    call multifab_internal_sync_c(mf, 1, mf%nc, all, filter)
   end subroutine multifab_internal_sync
   !!
   !! Internal Sync makes sure that any overlapped values are reconciled
@@ -1900,13 +1924,15 @@ contains
   !! numbered boxes.  Works cell centered and node centered.  Though in a typical
   !! cell-centered multifab, there are no overlaps to reconcile.
   !!
-  subroutine lmultifab_internal_sync(mf, all, filter)
+  subroutine lmultifab_internal_sync_c(mf, c, nc, all, filter)
     type(lmultifab), intent(inout)           :: mf
+    integer, intent(in)                      :: c
+    integer, intent(in), optional            :: nc
     logical, intent(in), optional            :: all
     type(box)                                :: ibx, jbx, abx, sbx
     logical, dimension(:,:,:,:), pointer     :: pdst, psrc
     logical, dimension(:,:,:,:), allocatable :: pt
-    integer                                  :: i, j, jj, proc, cnt
+    integer                                  :: i, j, jj, proc, cnt, lnc
     integer                                  :: shft(3**mf%dim,mf%dim)
     integer, parameter                       :: tag = 1104
     logical                                  :: lall
@@ -1920,7 +1946,10 @@ contains
 
     optional filter
 
+    lnc  = 1;        if ( present(nc)  ) lnc  = nc
     lall = .false. ; if ( present(all) ) lall = all
+
+    if ( mf%nc < (c+lnc-1) ) call bl_error('LMULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
 
     do j = 1, mf%nboxes
        if ( lall ) then
@@ -1943,8 +1972,8 @@ contains
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
              if ( .not. empty(abx) ) then
                 if ( local(mf, i) .and. local(mf, j) ) then
-                   pdst => dataptr(mf, i, abx)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   pdst => dataptr(mf, i, abx, c, lnc)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
                    if ( present(filter) ) then
                       call filter(pdst, psrc)
                    else
@@ -1952,11 +1981,11 @@ contains
                    end if
                 else if ( local(mf, j) ) then ! must send
                    proc = get_proc(mf%la, i)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
                    call parallel_send(psrc, proc, tag)
                 else if ( local(mf, i) ) then  ! must recv
                    proc = get_proc(mf%la,j)
-                   pdst => dataptr(mf, i, abx)
+                   pdst => dataptr(mf, i, abx, c, lnc)
                    if ( present(filter) ) then
                       allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
                       call parallel_recv(pt, proc, tag)
@@ -1970,6 +1999,19 @@ contains
           end do
        end do
     end do
+  end subroutine lmultifab_internal_sync_c
+
+  subroutine lmultifab_internal_sync(mf, all, filter)
+    type(lmultifab), intent(inout)           :: mf
+    logical, intent(in), optional            :: all
+    interface
+       subroutine filter(out, in)
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    call lmultifab_internal_sync_c(mf, 1, mf%nc, all, filter)
   end subroutine lmultifab_internal_sync
 
   subroutine multifab_print(mf, str, unit, all, data, skip)
@@ -2422,31 +2464,31 @@ contains
     lall    = .false.; if ( present(all)    ) lall    = all
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
 
-    if (lnc < 1)                   call bl_error('multifab_copy_c: nc must be >= 1')
-    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('multifab_copy_c: nc is too large for dst multifab')
-    if (msrc%nc < (srccomp+lnc-1)) call bl_error('multifab_copy_c: nc is too large for src multifab')
+    if ( lnc < 1 )                   call bl_error('MULTIFAB_COPY_C: nc must be >= 1')
+    if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for dst multifab', lnc)
+    if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('multifab_copy_c: copying ghostcells allowed only when layouts are the same')
+       if ( lall ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( d_cp_fancy ) then
-          call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        else
-          call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        end if
     end if
   end subroutine multifab_copy_c
@@ -2455,7 +2497,7 @@ contains
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     logical, intent(in), optional :: all, nocomm
-    if ( mdst%nc .ne. msrc%nc ) call bl_error('multifab_copy: multifabs must have same number of components')
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
     call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
   end subroutine multifab_copy
 
@@ -2473,31 +2515,31 @@ contains
     lall    = .false.; if ( present(all)    ) lall    = all
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
 
-    if (lnc < 1)               call bl_error('imultifab_copy_c: nc must be >= 1')
-    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
-    if (msrc%nc < (srccomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
+    if ( lnc < 1 )                   call bl_error('IMULTIFAB_COPY_C: nc must be >= 1')
+    if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
+    if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('imultifab_copy_c: copying ghostcells allowed only when layouts are the same')
+       if ( lall ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( i_cp_fancy ) then
-          call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        else
-          call mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        end if
     end if
   end subroutine imultifab_copy_c
@@ -2506,7 +2548,7 @@ contains
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
-    if ( mdst%nc .ne. msrc%nc ) call bl_error('imultifab_copy: multifabs must have same number of components')
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('IMULTIFAB_COPY: multifabs must have same number of components')
     call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
   end subroutine imultifab_copy
 
@@ -2524,31 +2566,31 @@ contains
     lall    = .false.; if ( present(all)    ) lall    = all
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
 
-    if (lnc < 1)               call bl_error('imultifab_copy_c: nc must be >= 1')
-    if (mdst%nc < (dstcomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for dst multifab')
-    if (msrc%nc < (srccomp+lnc-1)) call bl_error('imultifab_copy_c: nc is too large for src multifab')
+    if ( lnc < 1 )                   call bl_error('LMULTIFAB_COPY_C: nc must be >= 1')
+    if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
+    if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, nc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, nc)
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
           pdst = psrc
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('lmultifab_copy_c: copying ghostcells allowed only when layouts are the same')
+       if ( lall ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( l_cp_fancy ) then
-          call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        else
-          call mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+          call mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
        end if
     end if
   end subroutine lmultifab_copy_c
@@ -2557,7 +2599,7 @@ contains
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
-    if ( mdst%nc .ne. msrc%nc ) call bl_error('lmultifab_copy: multifabs must have same number of components')
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('LMULTIFAB_COPY: multifabs must have same number of components')
     call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
   end subroutine lmultifab_copy
 
