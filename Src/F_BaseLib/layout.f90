@@ -312,6 +312,7 @@ contains
     type(pn_layout), pointer :: pnp, opnp
     type(derived_layout), pointer :: dla, odla
     type(boxassoc), pointer :: bxa, obxa
+    type(copyassoc), pointer :: cpa, ocpa
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%local_boxes)
@@ -352,6 +353,13 @@ contains
        call boxassoc_destroy(bxa)
        deallocate(bxa)
        bxa => obxa
+    end do
+    cpa => lap%cpasc
+    do while ( associated(cpa) )
+       ocpa => cpa%next
+       call copyassoc_destroy(cpa)
+       deallocate(cpa)
+       cpa => ocpa
     end do
     deallocate(lap)
   end subroutine layout_rep_destroy
@@ -1059,12 +1067,12 @@ contains
                 lcnt_r = lcnt_r + 1
              else if ( local(la_src,j) ) then
                 cnt_s               = cnt_s + 1
-                parr(la_src%lap%prc(i), 2) = parr(la_src%lap%prc(i), 2) + 1
-                pvol(la_src%lap%prc(i), 2) = pvol(la_src%lap%prc(i), 2) + volume(bx)
+                parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
+                pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
              else if ( local(la_dst,i) ) then
                 cnt_r               = cnt_r + 1
-                parr(la_dst%lap%prc(j), 1) = parr(la_dst%lap%prc(j), 1) + 1
-                pvol(la_dst%lap%prc(j), 1) = pvol(la_dst%lap%prc(j), 1) + volume(bx)
+                parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
+                pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
              end if
           end if
        end do
@@ -1195,15 +1203,15 @@ contains
   end function copyassoc_check
 
   function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
-    type(copyassoc)             :: r
-    type(layout), intent(in)    :: la_dst
-    type(layout), intent(inout) :: la_src
-    logical, intent(in)         :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer    :: cp
+    type(copyassoc)                :: r
+    type(layout),    intent(inout) :: la_dst
+    type(layout),    intent(in)    :: la_src
+    logical,         intent(in)    :: nd_dst(:), nd_src(:)
+    type(copyassoc), pointer       :: cp
     !
-    ! Do we have one stored in the "src" layout?
+    ! Do we have one stored in the "dst" layout?
     !
-    cp => la_src%lap%cpasc
+    cp => la_dst%lap%cpasc
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
           r = cp
@@ -1212,12 +1220,12 @@ contains
        cp => cp%next
     end do
     !
-    ! Gotta build one then store in the "src" layout.
+    ! Gotta build one then store in the "dst" layout.
     !
     allocate (cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
-    cp%next => la_src%lap%cpasc
-    la_src%lap%cpasc => cp
+    cp%next => la_dst%lap%cpasc
+    la_dst%lap%cpasc => cp
     r = cp
   end function layout_copyassoc
 
