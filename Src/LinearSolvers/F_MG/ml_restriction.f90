@@ -11,65 +11,17 @@ module ml_restriction_module
 
 contains
 
-  subroutine ml_cc_restriction(crse, fine, ir)
-    type(multifab), intent(inout) :: fine
-    type(multifab), intent(inout) :: crse
-    integer, intent(in) :: ir(:)
-
-    ! Local variables
-    integer :: dm
-    integer :: lo (fine%dim), hi (fine%dim)
-    integer :: loc(fine%dim)
-    integer :: lof(fine%dim)
-    integer :: i, j, n
-    type(box) :: fbox, cbox
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-
-    dm = crse%dim
-    do j = 1, crse%nboxes
-       cbox = get_ibox(crse,j)
-       loc = lwb(cbox) - crse%ng
-       do i = 1, fine%nboxes
-          fbox = get_ibox(fine,i)
-          lof(:) = lwb(fbox) - fine%ng 
-          fbox = box_coarsen_v(fbox,ir)
-          if (box_intersects(fbox,cbox)) then
-             lo(:) = lwb(box_intersection(cbox,fbox))
-             hi(:) = upb(box_intersection(cbox,fbox))
-             fp      => dataptr(fine   ,i)
-             cp      => dataptr(crse   ,j)
-             do n = 1, 1
-                select case (dm)
-                case (1)
-                   call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
-                case (2)
-                   call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
-                case (3)
-                   call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
-                end select
-             end do
-          end if
-       end do
-    end do
-
-  end subroutine ml_cc_restriction
   subroutine ml_cc_restriction_c(crse, cc, fine, cf, ir, nc)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
-    integer, intent(in) :: cc, cf
+    integer, intent(in)           :: cc, cf
     integer, intent(in), optional :: nc
-    integer, intent(in) :: ir(:)
+    integer, intent(in)           :: ir(:)
 
-    ! Local variables
-    integer :: dm
-    integer :: lo (fine%dim), hi (fine%dim)
-    integer :: loc(fine%dim)
-    integer :: lof(fine%dim)
-    integer :: i, j, n, lnc
-    type(box) :: fbox, cbox
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
+    integer             :: i, j, n, lnc, dm, lo(fine%dim), hi(fine%dim)
+    integer             :: loc(fine%dim), lof(fine%dim)
+    type(box)           :: fbox, cbox
+    real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
@@ -85,8 +37,8 @@ contains
              lo(:) = lwb(box_intersection(cbox,fbox))
              hi(:) = upb(box_intersection(cbox,fbox))
              do n = 0, lnc - 1
-                fp      => dataptr(fine   ,i, cf + n, 1)
-                cp      => dataptr(crse   ,j, cc + n, 1)
+                fp => dataptr(fine, i, cf + n, 1)
+                cp => dataptr(crse, j, cc + n, 1)
                 select case (dm)
                 case (1)
                    call cc_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
@@ -99,23 +51,25 @@ contains
           end if
        end do
     end do
-
   end subroutine ml_cc_restriction_c
+
+  subroutine ml_cc_restriction(crse, fine, ir)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(inout) :: crse
+    integer,        intent(in)    :: ir(:)
+    call ml_cc_restriction_c(crse, 1, fine, 1, ir, 1)
+  end subroutine ml_cc_restriction
 
   subroutine ml_edge_restriction(crse, fine, ir)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
-    integer, intent(in) :: ir(:)
+    integer,        intent(in)    :: ir(:)
 
-    ! Local variables
-    integer :: dm
-    integer :: lo (fine%dim), hi (fine%dim)
-    integer :: loc(fine%dim)
-    integer :: lof(fine%dim)
-    integer :: i, j, n
-    type(box) :: fbox, cbox
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
+    integer             :: i, j, n, dm
+    integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
+    type(box)           :: fbox, cbox
+    real(dp_t), pointer :: fp(:,:,:,:)
+    real(dp_t), pointer :: cp(:,:,:,:)
 
     dm = crse%dim
     do j = 1, crse%nboxes
@@ -128,8 +82,8 @@ contains
           if (box_intersects(fbox,cbox)) then
              lo(:) = lwb(box_intersection(cbox,fbox))
              hi(:) = upb(box_intersection(cbox,fbox))
-             fp      => dataptr(fine   ,i)
-             cp      => dataptr(crse   ,j)
+             fp => dataptr(fine, i)
+             cp => dataptr(crse, j)
              do n = 1, dm
                 hi(n) = hi(n)+1
                 select case (dm)
@@ -145,33 +99,24 @@ contains
           end if
        end do
     end do
-
   end subroutine ml_edge_restriction
 
  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
-  type(multifab), intent(inout) :: fine
-  type(multifab), intent(inout) :: crse
+  type(multifab),  intent(inout) :: fine
+  type(multifab),  intent(inout) :: crse
   type(imultifab), intent(in   ) :: mm_fine
   type(imultifab), intent(in   ) :: mm_crse
-  integer, intent(in) :: ir(:)
-  logical, intent(in), optional :: inject
-  integer, intent(in)          :: face_type(:,:,:)
+  integer,         intent(in)    :: ir(:)
+  integer,         intent(in)    :: face_type(:,:,:)
+  logical,         intent(in), optional :: inject
 
-! Local variables
-  integer :: dm
-  integer :: lo (fine%dim), hi (fine%dim)
-  integer :: loc(fine%dim)
-  integer :: lof(fine%dim)
-  integer :: lom_fine(fine%dim)
-  integer :: lom_crse(fine%dim)
-  integer :: i, j, n, id
-  logical :: local_inject
-  logical :: nodal_flag
-  type(box) :: fbox, cbox
-  real(kind=dp_t), pointer :: fp(:,:,:,:)
-  real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer        , pointer :: mp_fine(:,:,:,:)
-  integer        , pointer :: mp_crse(:,:,:,:)
+  integer             :: i, j, n, id, dm
+  integer             :: lo (fine%dim), hi (fine%dim), loc(fine%dim), lof(fine%dim)
+  integer             :: lom_fine(fine%dim), lom_crse(fine%dim)
+  logical             :: local_inject, nodal_flag
+  type(box)           :: fbox, cbox
+  real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+  integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
 
   integer :: mg_restriction_mode
 
@@ -225,7 +170,7 @@ contains
         do n = 1, 1
           select case (dm)
           case (1)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
              else
                call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
@@ -234,7 +179,7 @@ contains
                     mg_restriction_mode)
              end if
           case (2)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
              else
                call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
@@ -243,7 +188,7 @@ contains
                     mg_restriction_mode)
              end if
           case (3)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
              else
                call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
