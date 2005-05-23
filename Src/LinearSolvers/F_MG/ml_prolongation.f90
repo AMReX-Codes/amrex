@@ -398,7 +398,10 @@ contains
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:), side
-    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, 1)
+    if ( crse%nc .ne. fine%nc ) then
+       call bl_error('ml_interp_bcs: crse & fine must have same # of components')
+    end if
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, fine%nc)
   end subroutine ml_interp_bcs
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, hic, lo, hi, ir, side)
