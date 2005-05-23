@@ -5,15 +5,15 @@ module ml_prolongation_module
 
   implicit none
 
-  real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
-  real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
-  real (kind = dp_t), private, parameter :: TWO   = 2.0_dp_t
-  real (kind = dp_t), private, parameter :: THREE = 3.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR  = 4.0_dp_t
-  real (kind = dp_t), private, parameter :: HALF  = 0.5_dp_t
-  real (kind = dp_t), private, parameter :: FOURTH= 0.25_dp_t
-  real (kind = dp_t), private, parameter :: EIGHTH= 0.125_dp_t
-  real (kind = dp_t), private, parameter :: THREE_EIGHTHS= 0.375_dp_t
+  real (dp_t), private, parameter :: ZERO  = 0.0_dp_t
+  real (dp_t), private, parameter :: ONE   = 1.0_dp_t
+  real (dp_t), private, parameter :: TWO   = 2.0_dp_t
+  real (dp_t), private, parameter :: THREE = 3.0_dp_t
+  real (dp_t), private, parameter :: FOUR  = 4.0_dp_t
+  real (dp_t), private, parameter :: HALF  = 0.5_dp_t
+  real (dp_t), private, parameter :: FOURTH= 0.25_dp_t
+  real (dp_t), private, parameter :: EIGHTH= 0.125_dp_t
+  real (dp_t), private, parameter :: THREE_EIGHTHS= 0.375_dp_t
 
 contains
 
@@ -28,8 +28,8 @@ contains
   integer :: i, j, n
 
   integer :: dm
-  real(kind=dp_t), pointer :: fp(:,:,:,:)
-  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  real(dp_t), pointer :: fp(:,:,:,:)
+  real(dp_t), pointer :: cp(:,:,:,:)
 
   dm = crse%dim
 
@@ -40,10 +40,6 @@ contains
 
     if ( nodal_q(fine) ) then
       cbox_refined = make_box(ir*lwb(cbox),ir*upb(cbox))
-!     do idim=1,dm
-!       cbox%lo(i) = ir(i)*cbox%lo(i)
-!       cbox%hi(i) = ir(i)*cbox%hi(i)
-!     end do
     else
       cbox_refined = box_refine_v(cbox,ir)
     end if
@@ -112,8 +108,8 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in   ) :: cc(loc(1):)
     integer, intent(in) :: ir(:)
     integer :: i, ic
 
@@ -128,8 +124,8 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc
 
@@ -147,8 +143,8 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc
 
@@ -169,25 +165,23 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in   ) :: cc(loc(1):)
     integer, intent(in) :: ir(:)
     integer :: i, ic, l
-    real (kind = dp_t) :: fac_left, fac_rght
+    real (dp_t) :: fac_left, fac_rght
 
     do i = lo(1),hi(1),ir(1)
        ic = i / ir(1) 
-!      ff(i) = ff(i) + cc(ic)
-       ff(i) =         cc(ic)
+       ff(i) = cc(ic)
     end do
 
     do l = 1, ir(1)-1
-       fac_rght = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
+       fac_rght = real(l,dp_t) / real(ir(1),dp_t)
        fac_left = ONE - fac_rght
        do i = lo(1), hi(1)-1, ir(1)
           ic = i / ir(1) 
-!         ff(i+l) = ff(i+l) + fac_left*cc(ic) + fac_rght*cc(ic+1)
-          ff(i+l) =           fac_left*cc(ic) + fac_rght*cc(ic+1)
+          ff(i+l) = fac_left*cc(ic) + fac_rght*cc(ic+1)
        end do
     end do
 
@@ -197,12 +191,12 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, l, m
-    real (kind = dp_t) :: fac_left, fac_rght
-    real (kind = dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
+    real (dp_t) :: fac_left, fac_rght
+    real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
                                lof(2):lof(2)+size(ff,dim=2)-1)
 
     do j = lo(2),hi(2),ir(2)
@@ -216,7 +210,7 @@ contains
 !   Interpolate at fine nodes between coarse nodes in the i-direction only
     do j = lo(2),hi(2),ir(2)
        do l = 1, ir(1)-1
-          fac_rght = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
+          fac_rght = real(l,dp_t) / real(ir(1),dp_t)
           fac_left = ONE - fac_rght
           do i = lo(1),hi(1)-1,ir(1)
              temp(i+l,j) = fac_left*temp(i,j) + fac_rght*temp(i+ir(1),j)
@@ -226,21 +220,20 @@ contains
 
 !   Interpolate in the j-direction using previously interpolated "temp"
     do m = 1, ir(2)-1
-      fac_rght = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
-      fac_left = ONE - fac_rght
-      do j = lo(2),hi(2)-1,ir(2)
-      do i = lo(1),hi(1)
-          temp(i,j+m) = fac_left*temp(i,j      ) &
-                       +fac_rght*temp(i,j+ir(2))
-      end do
-      end do
+       fac_rght = real(m,dp_t) / real(ir(2),dp_t)
+       fac_left = ONE - fac_rght
+       do j = lo(2),hi(2)-1,ir(2)
+          do i = lo(1),hi(1)
+             temp(i,j+m) = fac_left*temp(i,j      ) &
+                  +fac_rght*temp(i,j+ir(2))
+          end do
+       end do
     end do
 
     do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-!     ff(i,j) = ff(i,j) + temp(i,j)
-      ff(i,j) =           temp(i,j)
-    end do
+       do i = lo(1),hi(1)
+          ff(i,j) = temp(i,j)
+       end do
     end do
 
   end subroutine ml_prolongation_2d_nodal
@@ -249,16 +242,16 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, l, m, n
-    real (kind = dp_t) :: fac_left, fac_rght
-    real (kind = dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
+    real (dp_t) :: fac_left, fac_rght
+    real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
                                lof(2):lof(2)+size(ff,dim=2)-1,&
                                lof(3):lof(3)+size(ff,dim=3)-1)
 
-!   Interpolate at coarse node locations only
+    !   Interpolate at coarse node locations only
     do k = lo(3),hi(3),ir(3)
        kc = k / ir(3) 
        do j = lo(2),hi(2),ir(2)
@@ -270,214 +263,89 @@ contains
        end do
     end do
 
-!   Interpolate at fine nodes between coarse nodes in the i-direction only
+    !   Interpolate at fine nodes between coarse nodes in the i-direction only
     do k = lo(3),hi(3),ir(3)
-    do j = lo(2),hi(2),ir(2)
-       do l = 1, ir(1)-1
-          fac_rght = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
-          fac_left = ONE - fac_rght
-          do i = lo(1),hi(1)-1,ir(1)
-             temp(i+l,j,k) = fac_left*temp(i,j,k) + fac_rght*temp(i+ir(1),j,k)
+       do j = lo(2),hi(2),ir(2)
+          do l = 1, ir(1)-1
+             fac_rght = real(l,dp_t) / real(ir(1),dp_t)
+             fac_left = ONE - fac_rght
+             do i = lo(1),hi(1)-1,ir(1)
+                temp(i+l,j,k) = fac_left*temp(i,j,k) + fac_rght*temp(i+ir(1),j,k)
+             end do
           end do
        end do
-    end do
     end do
 
 !   Interpolate in the j-direction.
     do k = lo(3),hi(3),ir(3)
        do m = 1, ir(2)-1
-          fac_rght = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
+          fac_rght = real(m,dp_t) / real(ir(2),dp_t)
           fac_left = ONE - fac_rght
           do j = lo(2),hi(2)-1,ir(2)
-          do i = lo(1),hi(1)
-              temp(i,j+m,k) = fac_left*temp(i,j      ,k) &
-                             +fac_rght*temp(i,j+ir(2),k)
-          end do
+             do i = lo(1),hi(1)
+                temp(i,j+m,k) = fac_left*temp(i,j      ,k) &
+                     +fac_rght*temp(i,j+ir(2),k)
+             end do
           end do
        end do
     end do
 
 !   Interpolate in the k-direction.
     do n = 1, ir(3)-1
-       fac_rght = real(n,kind=dp_t) / real(ir(3),kind=dp_t)
+       fac_rght = real(n,dp_t) / real(ir(3),dp_t)
        fac_left = ONE - fac_rght
        do k = lo(3),hi(3)-1,ir(3)
-       do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-           temp(i,j,k+n) = fac_left*temp(i,j,k) &
-                          +fac_rght*temp(i,j,k+ir(3))
-       end do
-       end do
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
+                temp(i,j,k+n) = fac_left*temp(i,j,k) &
+                     +fac_rght*temp(i,j,k+ir(3))
+             end do
+          end do
        end do
     end do
 
     do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-!     ff(i,j,k) = ff(i,j,k) + temp(i,j,k)
-      ff(i,j,k) =             temp(i,j,k)
-    end do
-    end do
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ff(i,j,k) = temp(i,j,k)
+          end do
+       end do
     end do
 
   end subroutine ml_prolongation_3d_nodal
 
-  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, side)
-    type(multifab), intent(inout) :: fine
-    type(multifab), intent(in   ) :: crse
-    type(box), intent(in) :: fine_domain
-    integer, intent(in) :: ir(:)
-    type(box) :: fbox, cbox, fbox_grown, cbox_refined
-    integer :: lo (fine%dim), hi (fine%dim)
-    integer :: loc(fine%dim), hic(fine%dim)
-    integer :: lof(fine%dim)
-    integer :: dm, side
-    integer :: i, n, nc
-    integer :: dir,face
-
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-
-    dm = fine%dim
-    nc = fine%nc
-    if ( fine%nc /= crse%nc ) then
-       call bl_error("ML_INTERP_BCS: fine%nc /= crse%nc")
-    end if
-
-    if (side == 1) then
-       dir = 1
-       face = 1
-    else if (side == -1) then
-       dir = 1
-       face = -1
-    else if (side == 2) then
-       dir = 2
-       face = 1
-    else if (side == -2) then
-       dir = 2
-       face = -1
-    else if (side == 3) then
-       dir = 3
-       face = 1
-    else if (side == -3) then
-       dir = 3
-       face = -1
-    end if
-
-    do i = 1, fine%nboxes
-
-       cbox = get_ibox(crse,i)
-       loc = lwb(cbox) - crse%ng
-       hic = upb(cbox) + crse%ng
-
-       cbox_refined = box_refine_v(cbox,ir)
-
-       fbox   = get_ibox(fine,i)
-       lof = lwb(fbox) - fine%ng 
-
-       if ( .not. nodal_q(crse) ) then
-          fbox_grown = box_grow_n_d_f(fbox,1,dir,face)
-          fbox_grown = box_intersection(fbox_grown,fine_domain)
-       else
-          fbox_grown = fbox
-       end if
-
-       if (box_intersects(fbox_grown,cbox_refined)) then
-          lo = lwb(box_intersection(cbox_refined,fbox_grown))
-          hi = upb(box_intersection(cbox_refined,fbox_grown))
-          fp => dataptr(fine, i)
-          cp => dataptr(crse, i)
-          do n = 1, nc 
-             select case (dm)
-             case (1)
-                if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_1d(&
-                        fp(:,1,1,n), lof, &
-                        cp(:,1,1,n), loc, hic, &
-                        lo, hi, ir, side)
-                else if ( nodal_q(crse) ) then
-                   call bl_error("ML_INTERP_BCS: nodal 1d not provided")
-                end if
-             case (2)
-                if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_2d(&
-                        fp(:,:,1,n), lof, cp(:,:,1,n), loc, hic, &
-                        lo, hi, ir, side)
-                else if ( nodal_q(crse) ) then
-                   call ml_interp_bcs_2d_nodal(&
-                        fp(:,:,1,n), lof, cp(:,:,1,n), loc, hic, &
-                        lo, hi, ir, side)
-                end if
-             case (3)
-                if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_3d(&
-                        fp(:,:,:,n), lof, cp(:,:,:,n), loc, hic, &
-                        lo, hi, ir, side)
-                else if ( nodal_q(crse) )  then
-                   call ml_interp_bcs_3d_nodal( &
-                        fp(:,:,:,n), lof, cp(:,:,:,n), loc, hic, &
-                        lo, hi, ir, side)
-                end if
-             end select
-          end do
-       end if
-    end do
-
-    call multifab_fill_boundary(fine)
-
-  end subroutine ml_interp_bcs
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, side, nc)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
-    type(box), intent(in) :: fine_domain
-    integer, intent(in) :: ir(:)
-    integer, intent(in) :: cf, cc
-    integer, intent(in), optional :: nc
-    type(box) :: fbox, cbox, fbox_grown, cbox_refined
-    integer :: lo (fine%dim), hi (fine%dim)
-    integer :: loc(fine%dim), hic(fine%dim)
-    integer :: lof(fine%dim)
-    integer :: dm, side
-    integer :: i, n, lnc
-    integer :: dir, face
+    type(box),      intent(in)    :: fine_domain
+    integer,        intent(in)    :: ir(:)
+    integer,        intent(in)    :: cf, cc, side
+    integer,        intent(in), optional :: nc
 
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
+    type(box) :: fbox, cbox, fbox_grown, cbox_refined
+    integer   :: lo (fine%dim), hi (fine%dim)
+    integer   :: loc(fine%dim), hic(fine%dim)
+    integer   :: lof(fine%dim)
+    integer   :: dm, i, n, lnc, dir, face
+
+    real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
-    dm = fine%dim
-
-    if (side == 1) then
-       dir = 1
-       face = 1
-    else if (side == -1) then
-       dir = 1
-       face = -1
-    else if (side == 2) then
-       dir = 2
-       face = 1
-    else if (side == -2) then
-       dir = 2
-       face = -1
-    else if (side == 3) then
-       dir = 3
-       face = 1
-    else if (side == -3) then
-       dir = 3
-       face = -1
-    end if
+    dm   = fine%dim
+    dir  = abs(side)
+    face = sign(1, side)
 
     do i = 1, fine%nboxes
 
        cbox = get_ibox(crse,i)
-       loc = lwb(cbox) - crse%ng
-       hic = upb(cbox) + crse%ng
+       loc  = lwb(cbox) - crse%ng
+       hic  = upb(cbox) + crse%ng
 
        cbox_refined = box_refine_v(cbox,ir)
 
-       fbox   = get_ibox(fine,i)
-       lof = lwb(fbox) - fine%ng 
+       fbox = get_ibox(fine,i)
+       lof  = lwb(fbox) - fine%ng 
 
        if ( .not. nodal_q(crse) ) then
           fbox_grown = box_grow_n_d_f(fbox,1,dir,face)
@@ -486,7 +354,7 @@ contains
           fbox_grown = fbox
        end if
 
-       if (box_intersects(fbox_grown,cbox_refined)) then
+       if ( box_intersects(fbox_grown,cbox_refined) ) then
           lo = lwb(box_intersection(cbox_refined,fbox_grown))
           hi = upb(box_intersection(cbox_refined,fbox_grown))
           fp => dataptr(fine, i)
@@ -495,32 +363,26 @@ contains
              select case (dm)
              case (1)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_1d(&
-                        fp(:,1,1,cf+n), lof, &
-                        cp(:,1,1,cc+n), loc, hic, &
-                        lo, hi, ir, side)
+                   call ml_interp_bcs_1d(fp(:,1,1,cf+n), lof, &
+                        cp(:,1,1,cc+n), loc, hic, lo, hi, ir, side)
                 else if ( nodal_q(crse) ) then
                    call bl_error("ML_INTERP_BCS: nodal 1d not provided")
                 end if
              case (2)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_2d(&
-                        fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, &
-                        lo, hi, ir, side)
+                   call ml_interp_bcs_2d(fp(:,:,1,cf+n), lof, &
+                        cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
                 else if ( nodal_q(crse) ) then
-                   call ml_interp_bcs_2d_nodal(&
-                        fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, &
-                        lo, hi, ir, side)
+                   call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, &
+                        cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
                 end if
              case (3)
                 if ( cell_centered_q(crse) ) then
-                   call ml_interp_bcs_3d(&
-                        fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, &
-                        lo, hi, ir, side)
+                   call ml_interp_bcs_3d(fp(:,:,:,cf+n), lof, &
+                        cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
                 else if ( nodal_q(crse) )  then
-                   call ml_interp_bcs_3d_nodal( &
-                        fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, &
-                        lo, hi, ir, side)
+                   call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, &
+                        cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
                 end if
              end select
           end do
@@ -531,33 +393,39 @@ contains
 
   end subroutine ml_interp_bcs_c
 
+  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, side)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(in   ) :: crse
+    type(box),      intent(in)    :: fine_domain
+    integer,        intent(in)    :: ir(:), side
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, 1)
+  end subroutine ml_interp_bcs
+
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, hic, lo, hi, ir, side)
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):)
-    real (kind = dp_t), intent(in) :: cc(loc(1):)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in) :: cc(loc(1):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, ic
-
-    i  = lo(1)
-    ic = i / ir(1)
+    i     = lo(1)
+    ic    = i / ir(1)
     ff(i) = cc(ic)
-
   end subroutine ml_interp_bcs_1d
 
   subroutine ml_interp_bcs_2d(ff, lof, cc, loc, hic, lo, hi, ir, side)
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (kind = dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, m
-    real (kind = dp_t) :: xloc(0:3)
-    real (kind = dp_t) :: first_der, second_der
+    real (dp_t) :: xloc(0:3)
+    real (dp_t) :: first_der, second_der
 
     if (ir(1) == 2) then
        xloc(0) = -FOURTH
@@ -645,13 +513,13 @@ contains
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (kind = dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, m
-    real (kind = dp_t) :: xloc(0:3)
-    real (kind = dp_t) :: first_der
+    real (dp_t) :: xloc(0:3)
+    real (dp_t) :: first_der
 
     if (ir(1) == 2) then
        xloc(0) = ZERO
@@ -697,14 +565,14 @@ contains
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (kind = dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, m, n
-    real (kind = dp_t) :: xloc(0:3)
-    real (kind = dp_t) :: xder,x2der,yder,y2der,zder,z2der
-    real (kind = dp_t) :: xyder,yzder,xzder
+    real (dp_t) :: xloc(0:3)
+    real (dp_t) :: xder,x2der,yder,y2der,zder,z2der
+    real (dp_t) :: xyder,yzder,xzder
 
     if (ir(1) == 2) then
        xloc(0) = -FOURTH
@@ -866,14 +734,14 @@ contains
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (kind = dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, m, n
-    real (kind = dp_t) :: xloc(0:3)
-    real (kind = dp_t) :: xder, yder, zder
-    real (kind = dp_t) :: xyder,yzder,xzder
+    real (dp_t) :: xloc(0:3)
+    real (dp_t) :: xder, yder, zder
+    real (dp_t) :: xyder,yzder,xzder
 
     if (ir(1) == 2) then
        xloc(0) = ZERO
