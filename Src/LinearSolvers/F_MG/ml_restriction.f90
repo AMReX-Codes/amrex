@@ -57,7 +57,10 @@ contains
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: ir(:)
-    call ml_cc_restriction_c(crse, 1, fine, 1, ir, 1)
+    if ( crse%nc .ne. fine%nc ) then
+       call bl_error('ml_cc_restriction: crse & fine must have same # of components')
+    end if
+    call ml_cc_restriction_c(crse, 1, fine, 1, ir, crse%nc)
   end subroutine ml_cc_restriction
 
   subroutine ml_edge_restriction(crse, fine, ir)
