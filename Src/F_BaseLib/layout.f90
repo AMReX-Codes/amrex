@@ -57,16 +57,6 @@ module layout_module
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
 
-!  type boxother
-!     integer   :: no = 0
-!     type(box) :: bx
-!  end type boxother
-
-!  type boxinters
-!     integer :: ddbx = 0
-!     type(boxother), pointer :: bxo_r(:) => Null()
-!  end type boxinters
-
   type boxassoc
      integer :: dim    = 0                  ! spatial dimension 1, 2, or 3
      integer :: nboxes = 0                  ! number of boxes
@@ -79,15 +69,19 @@ module layout_module
   end type boxassoc
 
   type copyassoc
-     integer :: dim = 0                      ! spatial dimension 1, 2, or 3
-     logical, pointer :: nd_dst(:) => Null() ! dst nodal flag
-     logical, pointer :: nd_src(:) => Null() ! src nodal flag
+     integer           :: dim = 0             ! spatial dimension 1, 2, or 3
+     logical, pointer  :: nd_dst(:) => Null() ! dst nodal flag
+     logical, pointer  :: nd_src(:) => Null() ! src nodal flag
      type(local_conn)  :: l_con
      type(remote_conn) :: r_con
-     type(copyassoc), pointer :: next => Null()
+     type(copyassoc),  pointer :: next    => Null()
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type copyassoc
+  !
+  ! Global list of copyassoc's used by multifab copy routines.
+  !
+  type(copyassoc), pointer, save :: the_copyassoc_head => Null()
 
   type layout
      integer :: la_type = LA_UNDF
@@ -105,7 +99,6 @@ module layout_module
      integer, pointer, dimension(:) :: prc => Null()
      type(boxarray) :: bxa
      type(boxassoc), pointer :: bxasc => Null()
-     type(copyassoc), pointer :: cpasc => Null()
      type(coarsened_layout), pointer :: crse_la => Null()
      type(pn_layout), pointer :: pn_children => Null()
      type(derived_layout), pointer :: dlay => Null()
@@ -301,7 +294,7 @@ contains
     type(pn_layout), pointer :: pnp, opnp
     type(derived_layout), pointer :: dla, odla
     type(boxassoc), pointer :: bxa, obxa
-    type(copyassoc), pointer :: cpa, ocpa
+    type(copyassoc), pointer :: cpa, ncpa, pcpa
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
     end if
@@ -342,12 +335,29 @@ contains
        deallocate(bxa)
        bxa => obxa
     end do
-    cpa => lap%cpasc
+    !
+    ! Remove all copyassoc's associated with this layout_rep.
+    !
+    cpa  => the_copyassoc_head
+    pcpa => Null()
     do while ( associated(cpa) )
-       ocpa => cpa%next
-       call copyassoc_destroy(cpa)
-       deallocate(cpa)
-       cpa => ocpa
+       ncpa => cpa%next
+       if ( associated(lap, cpa%lap_src) .or. associated(lap, cpa%lap_dst) ) then
+          if ( associated(cpa, the_copyassoc_head) ) then
+             the_copyassoc_head => cpa%next
+          else
+             pcpa%next => ncpa
+          end if
+          call copyassoc_destroy(cpa)
+          deallocate(cpa)
+       else
+          if ( .not. associated(pcpa) ) then
+             pcpa => the_copyassoc_head
+          else
+             pcpa => pcpa%next
+          end if
+       end if
+       cpa => ncpa
     end do
     deallocate(lap)
   end subroutine layout_rep_destroy
@@ -1165,6 +1175,7 @@ contains
     deallocate(cpasc%r_con%rcv)
     deallocate(cpasc%r_con%str)
     deallocate(cpasc%r_con%rtr)
+    cpasc%dim = 0
   end subroutine copyassoc_destroy
 
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
@@ -1185,9 +1196,9 @@ contains
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
     type(copyassoc), pointer       :: cp
     !
-    ! Do we have one stored in the "dst" layout?
+    ! Do we have one stored?
     !
-    cp => la_dst%lap%cpasc
+    cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
           r = cp
@@ -1196,12 +1207,12 @@ contains
        cp => cp%next
     end do
     !
-    ! Gotta build one then store in the "dst" layout.
+    ! Gotta build one.
     !
-    allocate (cp)
+    allocate(cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
-    cp%next => la_dst%lap%cpasc
-    la_dst%lap%cpasc => cp
+    cp%next => the_copyassoc_head
+    the_copyassoc_head => cp
     r = cp
   end function layout_copyassoc
 
