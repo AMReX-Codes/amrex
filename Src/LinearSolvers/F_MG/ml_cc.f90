@@ -180,9 +180,9 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
            if (do_diagnostics == 1 .and. parallel_ioprocessor()) &
              print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, norm_inf(res(n))
 
-           ! Compute CRSE-FINE Res = Res - Lap(uu)
+           ! Compute CRSE-FINE Res = Res - Crse Flux(soln) + Fine Flux(soln)
            pdc = layout_get_pd(mla%la(n-1))
-           call crse_fine_residual_cc(n,mgt,uu,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
+           call crse_fine_residual_cc(n,mgt,soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
 
            ! Restrict FINE Res to COARSE Res (important to do this last
            !     so we overwrite anything extra which may have been defined
@@ -305,6 +305,7 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
           mglev = mgt(n)%nlevels
           call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
        end do
+
 !      Compute the coarse-fine residual 
        do n = nlevs,2,-1
           pdc = layout_get_pd(mla%la(n-1))
@@ -338,7 +339,7 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
 
 ! ****************************************************************************
 
-  if ( mgt(nlevs)%verbose > 0 .AND. parallel_IOProcessor() ) &
+! if ( mgt(nlevs)%verbose > 0 .AND. parallel_IOProcessor() ) &
      write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter-1
 
   ! Add: soln += full_soln
