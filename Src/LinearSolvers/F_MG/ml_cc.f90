@@ -32,14 +32,14 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
   logical        , intent(in   ), optional :: need_grad_phi_in
 
   integer :: nlevs
-  type(multifab), pointer  ::      soln(:) => Null()
-  type(multifab), pointer  ::        uu(:) => Null()
-  type(multifab), pointer  ::   uu_hold(:) => Null()
-  type(multifab), pointer  ::       res(:) => Null()
-  type(multifab), pointer  ::  temp_res(:) => Null()
+  type(multifab), allocatable  ::      soln(:)
+  type(multifab), allocatable  ::        uu(:)
+  type(multifab), allocatable  ::   uu_hold(:)
+  type(multifab), allocatable  ::       res(:)
+  type(multifab), allocatable  ::  temp_res(:)
 
-  type(bndry_reg), pointer :: brs_flx(:) => Null()
-  type(bndry_reg), pointer :: brs_bcs(:) => Null()
+  type(bndry_reg), allocatable :: brs_flx(:)
+  type(bndry_reg), allocatable :: brs_bcs(:)
 
   type(box   ) :: pd,pdc
   type(layout) :: la
@@ -339,7 +339,7 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
 
 ! ****************************************************************************
 
-! if ( mgt(nlevs)%verbose > 0 .AND. parallel_IOProcessor() ) &
+  if ( mgt(nlevs)%verbose > 0 .AND. parallel_IOProcessor() ) &
      write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter-1
 
   ! Add: soln += full_soln
@@ -356,9 +356,10 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
      call multifab_destroy(      uu(n))
      call multifab_destroy(     res(n))
      call multifab_destroy(temp_res(n))
+     if ( n == 1 ) exit
+     call bndry_reg_destroy(brs_flx(n))
+     call bndry_reg_destroy(brs_bcs(n))
   end do
-
-  deallocate(soln, uu, uu_hold, res, temp_res)
 
   if (need_grad_phi) then
 
@@ -374,9 +375,6 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
     end do
 
   end if
-
-  deallocate(brs_flx)
-  deallocate(brs_bcs)
 
 contains
 
