@@ -146,6 +146,46 @@ DistributionMapping::Finalize ()
 //
 std::vector< Array<int> > DistributionMapping::m_Cache;
 
+int
+DistributionMapping::WhereToStart (int nprocs)
+{
+    if (m_Cache.size() == 0) return 0;
+    //
+    // What's the largest proc_map in our cache?
+    //
+    int N = m_Cache[0].size();
+    for (int i = 1; i < m_Cache.size(); i++)
+        if (N < m_Cache[i].size())
+            N = m_Cache[i].size();
+
+    N--; // Subtract off the extra space reserved for the sentinel value.
+
+    BL_ASSERT(N > 0);
+
+    if (N < nprocs)
+        //
+        // We've got idle CPU(s); start distribution from there.
+        //
+        return N;
+    //
+    // We don't have any idle CPUs; find the one with the fewest boxes.
+    //
+    std::vector<int> count(nprocs,0);
+
+    for (int i = 0; i < m_Cache.size(); i++)
+        for (int j = 0; j < m_Cache[i].size() - 1; j++)
+            count[m_Cache[i][j]]++;
+
+    N = 0;
+    for (int i = 1; i < count.size(); i++)
+        if (count[N] > count[i])
+            N = i;
+
+    BL_ASSERT(N >= 0 && N < nprocs);
+
+    return N;
+}
+
 bool
 DistributionMapping::GetMap (const BoxArray& boxes)
 {
@@ -161,8 +201,8 @@ DistributionMapping::GetMap (const BoxArray& boxes)
         {
             const Array<int>& cached_procmap = m_Cache[i];
 
-            for (int i = 0; i <= N; i++)
-                m_procmap[i] = cached_procmap[i];
+            for (int j = 0; j <= N; j++)
+                m_procmap[j] = cached_procmap[j];
 
             BL_ASSERT(m_procmap[N] == ParallelDescriptor::MyProc());
 
@@ -211,26 +251,16 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     if (!(m_procmap.size() == boxes.size()+1))
         m_procmap.resize(boxes.size()+1);
 
-    if (DistributionMapping::m_Strategy == ROUNDROBIN)
+    if (!GetMap(boxes))
     {
-        //
-        // Don't bother with the cache -- just do it :-)
-        //
         (this->*m_BuildMap)(boxes,nprocs);
-    }
-    else
-    {
-        if (!GetMap(boxes))
-        {
-            (this->*m_BuildMap)(boxes,nprocs);
 
-#if defined(BL_USE_MPI) && !defined(BL_NO_PROCMAP_CACHE)
-            //
-            // We always append new processor maps.
-            //
-            DistributionMapping::m_Cache.push_back(m_procmap);
+#if defined(BL_USE_MPI)
+        //
+        // We always append new processor maps.
+        //
+        DistributionMapping::m_Cache.push_back(m_procmap);
 #endif
-        }
     }
 }
 
@@ -245,6 +275,11 @@ DistributionMapping::FlushCache ()
 void
 DistributionMapping::AddToCache (const DistributionMapping& dm)
 {
+    //
+    // No need to maintain a cache when running in serial.
+    //
+    if (ParallelDescriptor::NProcs() < 2) return;
+
     bool              doit = true;
     const Array<int>& pmap = dm.ProcessorMap();
 
@@ -368,6 +403,7 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
     m_procmap[nboxes] = ParallelDescriptor::MyProc();
 }
 #endif
+
 void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {
@@ -375,8 +411,13 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 
     m_procmap.resize(nboxes+1);
 
+    int N = WhereToStart(nprocs);
+
     for (int i = 0; i < nboxes; i++)
-        m_procmap[i] = i % nprocs;
+        //
+        // Start the round-robin at processor N.
+        //
+        m_procmap[i] = (i + N) % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
@@ -389,8 +430,13 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(m_procmap.size() == boxes.size()+1);
 
+    int N = WhereToStart(nprocs);
+
     for (int i = 0; i < boxes.size(); i++)
-        m_procmap[i] = i % nprocs;
+        //
+        // Start the round-robin at processor N.
+        //
+        m_procmap[i] = (i + N) % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
@@ -572,8 +618,6 @@ top:
     }
 
  bottom:
-
-
     //
     // Here I am "load-balanced".
     //
@@ -936,6 +980,8 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
     }
     else
     {
+        int N = WhereToStart(nprocs);
+
         std::vector< std::list<int> > vec = knapsack(pts,nprocs);
 
         BL_ASSERT(int(vec.size()) == nprocs);
@@ -944,10 +990,10 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
 
         for (unsigned int i = 0; i < vec.size(); i++)
         {
+            int where = (i + N) % nprocs;
+
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-            {
-                m_procmap[*lit] = i;
-            }
+                m_procmap[*lit] = where;
         }
         //
         // Set sentinel equal to our processor number.
@@ -970,6 +1016,8 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
     else
     {
+        int N = WhereToStart(nprocs);
+
         std::vector<long> pts(boxes.size());
 
         for (unsigned int i = 0; i < pts.size(); i++)
@@ -982,8 +1030,12 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         std::list<int>::iterator lit;
 
         for (unsigned int i = 0; i < vec.size(); i++)
+        {
+            int where = (i + N) % nprocs;
+
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                m_procmap[*lit] = i;
+                m_procmap[*lit] = where;
+        }
 
 	MinimizeCommCosts(m_procmap,boxes,pts,nprocs);
         //

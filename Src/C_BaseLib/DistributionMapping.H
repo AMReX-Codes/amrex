@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.24 2004-10-11 20:20:47 car Exp $
+// $Id: DistributionMapping.H,v 1.25 2005-05-26 20:48:13 lijewski Exp $
 //
 #include <vector>
 
@@ -126,11 +126,14 @@ private:
     void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
     void MetisProcessorMap        (const BoxArray& boxes, int nprocs);
-
     //
     // Our cache of processor maps.
     //
     static std::vector< Array<int> > m_Cache;
+    //
+    // One which CPU to begin a distribution?
+    //
+    static int WhereToStart (int nprocs);
     //
     // Look for a cached processor map.
     //
