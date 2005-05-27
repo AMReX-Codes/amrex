@@ -2,6 +2,7 @@ module bc_module
 
   implicit none
 
+  integer, parameter, public :: BC_UNDEF     = -HUGE(1)
   integer, parameter, public :: BC_PER       = -1
   integer, parameter, public :: BC_INT       = 0
   integer, parameter, public :: BC_DIR       = 1
