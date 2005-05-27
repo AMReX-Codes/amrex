@@ -55,8 +55,8 @@ ifeq ($(COMP),g95)
   CC := gcc
   F90FLAGS += -std=f95
   FFLAGS   += -std=f95
-  F90FLAGS += -fmod=$(mdir)
-  FFLAGS   += -fmod=$(mdir)
+  F90FLAGS += -fmod=$(mdir) -I $(mdir)
+  FFLAGS   += -fmod=$(mdir) -I $(mdir)
 # F90FLAGS += -Wall 
 # FFLAGS += -Wall 
 # CFLAGS += -Wall
@@ -208,15 +208,18 @@ ifeq ($(ARCH),Linux)
         CFLAGS   += -g -Wcheck
 	LDFLAGS  += -Bstatic
       else
-        F90FLAGS += -O3
-        FFLAGS += -O3
-        CFLAGS += -O3
-#       F90FLAGS += -ip
-#       FFLAGS += -ip
-#       CFLAGS += -ip
-#       F90FLAGS += -ipo
-#       FFLAGS += -ipo
-#       CFLAGS += -ipo
+        ifdef INTEL_X86
+	  F90FLAGS += -fast
+	  FFLAGS += -fast
+	  CFLAGS += -fast
+	else
+          F90FLAGS += -O3
+          FFLAGS += -O3
+          CFLAGS += -O3
+          F90FLAGS += -ipo
+          FFLAGS += -ipo
+          CFLAGS += -ipo
+	endif
 #       LDFLAGS += -static
       endif
       ifdef PROF
@@ -322,6 +325,7 @@ ifeq ($(ARCH),Linux)
     FFLAGS =
     F90FLAGS =
     F90FLAGS += -M $(mdir)
+    FFLAGS += -M $(mdir)
     CFLAGS += -Wall
     ifdef NDEBUG
       FFLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
@@ -464,14 +468,15 @@ ifeq ($(ARCH),OSF1)
   endif
 endif
 
-c_includes = $(addprefix --I , $(INCLUDE_LOCATIONS))
+f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
+c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(FPARALLEL)/scripts/tcsort.pl
 MODDEP  :=  $(FPARALLEL)/scripts/moddep.pl
 MKDEP   :=  $(FPARALLEL)/scripts/mkdep.pl
 F90DOC  :=  $(FPARALLEL)/scripts/f90doc/f90doc
 
-FPPFLAGS += $(fpp_flags)
+FPPFLAGS += $(fpp_flags) $(f_includes)
 LDFLAGS  += $(fld_flags)
 libraries += $(mpi_libraries)
 
