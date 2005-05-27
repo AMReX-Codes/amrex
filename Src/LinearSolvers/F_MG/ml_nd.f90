@@ -35,13 +35,13 @@ subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
   real(dp_t)     , intent(in   ) :: eps
 
   integer :: nlevs
-  type(multifab), pointer  ::      soln(:) => Null()
-  type(multifab), pointer  ::        uu(:) => Null()
-  type(multifab), pointer  ::   uu_hold(:) => Null()
-  type(multifab), pointer  ::       res(:) => Null()
-  type(multifab), pointer  ::  temp_res(:) => Null()
+  type(multifab), allocatable  ::      soln(:)
+  type(multifab), allocatable  ::        uu(:)
+  type(multifab), allocatable  ::   uu_hold(:)
+  type(multifab), allocatable  ::       res(:)
+  type(multifab), allocatable  ::  temp_res(:)
 
-  type(bndry_reg), pointer :: brs_flx(:) => Null()
+  type(bndry_reg), allocatable :: brs_flx(:)
 
   type(box   ) :: pd,pdc
   type(layout) :: la
@@ -342,9 +342,9 @@ subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
      call multifab_destroy(      uu(n))
      call multifab_destroy(     res(n))
      call multifab_destroy(temp_res(n))
+     if ( n == 1 ) exit
+     call bndry_reg_destroy(brs_flx(n))
   end do
-
-  deallocate(soln, uu, uu_hold, res, temp_res, brs_flx)
 
 contains
 
