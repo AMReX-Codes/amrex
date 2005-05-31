@@ -1,0 +1,8 @@
+t
+*.ncb *.opt *.plg
+Debug Release
+sparse_soln_nodal
+rh-init_nodal
+soln_nodal
+soln_cc
+rh-init_cc
