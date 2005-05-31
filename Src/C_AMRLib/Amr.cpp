@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.139 2005-04-19 21:04:20 car Exp $
+// $Id: Amr.cpp,v 1.140 2005-05-31 18:11:22 marc Exp $
 //
 #include <winstd.H>
 
@@ -1538,24 +1538,31 @@ Amr::regrid (int  lbase,
         {
             //
             // We're being called on startup from bldFineLevels().
+            // NOTE: The initData function may use a filPatch, and so needs to
+            //       be officially inserted into the hierarchy prior to the call.
             //
-            a->initData();
+            amr_level.clear(lev);
+            amr_level.set(lev,a);
+            amr_level[lev].initData();
         }
         else if (amr_level.defined(lev))
         {
             //
             // Init with data from old structure then remove old structure.
+            // NOTE: The init function may use a filPatch from the old level,
+            //       which therefore needs remain in the hierarchy during the call.
             //
             a->init(amr_level[lev]);
-        }
+            amr_level.clear(lev);
+            amr_level.set(lev,a);
+       }
         else
         {
             a->init();
+            amr_level.clear(lev);
+            amr_level.set(lev,a);
         }
 
-        amr_level.clear(lev);
-
-        amr_level.set(lev,a);
     }
     //
     // Build any additional data structures after grid generation.
