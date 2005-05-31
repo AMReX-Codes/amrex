@@ -18,20 +18,20 @@ module mg_restriction_module
 !      module procedure nodal_restriction_3d
 !   end interface
 
-  real(kind=dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(kind=dp_t), private, parameter :: ONE  = 1.0_dp_t
-  real(kind=dp_t), private, parameter :: TWO  = 2.0_dp_t
-  real(kind=dp_t), private, parameter :: HALF = 0.5_dp_t
+  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
+  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
+  real(dp_t), private, parameter :: TWO  = 2.0_dp_t
+  real(dp_t), private, parameter :: HALF = 0.5_dp_t
 
 contains
   subroutine cc_restriction_1d(cc, loc, ff, lof, lo, hi, ir)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(out) :: cc(loc(1):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):)
+    real (dp_t), intent(out) :: cc(loc(1):)
+    real (dp_t), intent(in) :: ff(lof(1):)
     integer, intent(in) :: ir(:)
-    real (kind = dp_t) :: fac
+    real (dp_t) :: fac
     integer :: i, l
 
     fac = one/real(product(ir),kind=dp_t)
@@ -50,10 +50,10 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(out) :: cc(loc(1):,loc(2):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(out) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(in) :: ff(lof(1):,lof(2):)
     integer, intent(in) :: ir(:)
-    real (kind = dp_t) :: fac
+    real (dp_t) :: fac
     integer :: i, j, l, m
 
     fac = one/real(product(ir),kind=dp_t)
@@ -76,10 +76,10 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:),hi(:)
-    real (kind = dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(in) :: ff(lof(1):,lof(2):,lof(3):)
     integer, intent(in) :: ir(:)
-    real (kind = dp_t) :: fac
+    real (dp_t) :: fac
     integer :: i, j, k, l, m, n
 
     fac = one/real(product(ir),kind=dp_t)
@@ -110,8 +110,8 @@ contains
     integer, intent(in) :: lom_fine(:)
     integer, intent(in) :: lom_crse(:)
     integer, intent(in) :: lo(:), hi(:)
-    real(kind=dp_t), intent(out) :: cc(loc(1):)
-    real(kind=dp_t), intent(in)  :: ff(lof(1):)
+    real(dp_t), intent(out) :: cc(loc(1):)
+    real(dp_t), intent(in)  :: ff(lof(1):)
     integer        , intent(in)  :: mm_fine(lom_fine(1):)
     integer        , intent(in)  :: mm_crse(lom_crse(1):)
     integer :: ir(:)
@@ -121,7 +121,7 @@ contains
 
     integer :: i, ifine, m
 
-    real(kind=dp_t) :: fac, fac0
+    real(dp_t) :: fac, fac0
 
     hif = lof(1)+size(ff,dim=1)-1
 
@@ -190,8 +190,8 @@ contains
     integer, intent(in) :: lom_fine(:)
     integer, intent(in) :: lom_crse(:)
     integer, intent(in) :: lo(:), hi(:)
-    real(kind=dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real(kind=dp_t), intent(  out) :: cc(loc(1):,loc(2):)
+    real(dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real(dp_t), intent(  out) :: cc(loc(1):,loc(2):)
     integer        , intent(in)  :: mm_fine(lom_fine(1):,lom_fine(2):)
     integer        , intent(in)  :: mm_crse(lom_crse(1):,lom_crse(2):)
     integer :: ir(:)
@@ -201,7 +201,7 @@ contains
     integer :: i, j, ifine, jfine, m, n, ng
     integer :: ileft,irght,jbot,jtop
     integer :: hif(2)
-    real(kind=dp_t) :: fac,fac0,fac1
+    real(dp_t) :: fac,fac0,fac1
     logical :: add_lo_x, add_lo_y, add_hi_x, add_hi_y
 
     hif(1) = lof(1)+size(ff,dim=1)-1
@@ -338,8 +338,8 @@ contains
     integer, intent(in) :: lom_fine(:)
     integer, intent(in) :: lom_crse(:)
     integer, intent(in) :: lo(:),hi(:)
-    real(kind=dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real(kind=dp_t), intent(  out) :: cc(loc(1):,loc(2):,loc(3):)
+    real(dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real(dp_t), intent(  out) :: cc(loc(1):,loc(2):,loc(3):)
     integer        , intent(in   ) :: mm_fine(lom_fine(1):,lom_fine(2):,lom_fine(3):)
     integer        , intent(in   ) :: mm_crse(lom_crse(1):,lom_crse(2):,lom_crse(3):)
     integer :: ir(:)
@@ -350,7 +350,7 @@ contains
     integer :: ifine, jfine, kfine
     integer :: ileft, irght, jbot, jtop, kdwn, kup
     integer :: hif(3)
-    real(kind=dp_t) :: fac, fac0, fac1, fac2
+    real(dp_t) :: fac, fac0, fac1, fac2
     logical :: add_lo_x, add_lo_y, add_lo_z, add_hi_x, add_hi_y, add_hi_z
 
     hif(1) = lof(1)+size(ff,dim=1)-1
@@ -549,8 +549,8 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(out) :: cc(loc(1):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):)
+    real (dp_t), intent(out) :: cc(loc(1):)
+    real (dp_t), intent(in) :: ff(lof(1):)
     integer, intent(in) :: ir(:)
 
     integer :: i
@@ -566,10 +566,10 @@ contains
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     integer, intent(in) :: face
-    real (kind = dp_t), intent(out) :: cc(loc(1):,loc(2):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(out) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(in) :: ff(lof(1):,lof(2):)
     integer, intent(in) :: ir(:)
-    real (kind = dp_t) :: fac
+    real (dp_t) :: fac
     integer :: i, j, l, m
   
     if (face .eq. 1) then
@@ -607,10 +607,10 @@ contains
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:),hi(:)
     integer, intent(in) :: face
-    real (kind = dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
-    real (kind = dp_t), intent(in) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(in) :: ff(lof(1):,lof(2):,lof(3):)
     integer, intent(in) :: ir(:)
-    real (kind = dp_t) :: fac
+    real (dp_t) :: fac
     integer :: i, j, k, l, m, n
 
     if (face .eq. 1) then
