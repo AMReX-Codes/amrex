@@ -133,8 +133,6 @@ contains
        end do
     end do
 
-!return
-
     !
     ! Reset any Fine-Fine boundaries due to periodicity.
     !
@@ -1377,8 +1375,8 @@ contains
                 i = (ic-lod(1))*ratio(1)
                 irght = i+n
                 ileft = i-n
-                jbot  = j+l
-                jtop  = j-l
+                jtop  = j+l
+                jbot  = j-l
                 if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
                 if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
                 if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
