@@ -135,60 +135,61 @@ contains
 
     rmode = 0
 
-    do j = 1, crse%nboxes
-       cbox     = get_ibox(crse,j)
-       loc      = lwb(cbox) - crse%ng
-       lom_crse = lwb(get_box(mm_crse,j)) - mm_crse%ng
-       !
-       ! Set to zero here on the interior of each fine grid so don't have to 
-       ! within nodal_restriction.
-       !
-       do i = 1, fine%nboxes
-          fbox = coarsen(get_ibox(fine,i), ir)
-          do id = 1,fbox%dim
-             if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
-             if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
-          end do
-          isect = intersection(fbox,cbox)
-          if ( .not. empty(isect) ) then
-             call setval(crse%fbs(j), ZERO, isect)
-          end if
+  do j = 1, crse%nboxes
+
+    cbox = get_ibox(crse,j)
+    loc = lwb(cbox) - crse%ng
+    lom_crse = lwb(get_box(mm_crse,j)) - mm_crse%ng
+
+!   Set to zero here on the interior of each fine grid so don't have to 
+!      within nodal_restriction
+    do i = 1, fine%nboxes
+       fbox = get_ibox(fine,i)
+       fbox = box_coarsen_v(fbox,ir)
+       do id = 1,fbox%dim
+          if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
+          if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
        end do
-
-       do i = 1, fine%nboxes
-          lof   = lwb(get_ibox(fine,i)) - fine%ng 
-          fbox  = coarsen(fbox,ir)
-          isect = intersection(cbox,fbox)
-
-          if ( .not. empty(isect) ) then
-             lo       = lwb(isect)
-             hi       = upb(isect)
-             lom_fine = lwb(get_box(mm_fine,i)) - mm_fine%ng
-
-             mp_fine  => dataptr(mm_fine,i)
-             mp_crse  => dataptr(mm_crse,j)
-
-             do n = 1, crse%nc
-                fp => dataptr(fine, i, n, 1)
-                cp => dataptr(crse, j, n, 1)
-                select case (crse%dim)
-                case (1)
-                   call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
-                        mp_fine(:,1,1,1), lom_fine, &
-                        mp_crse(:,1,1,1), lom_crse, lo, hi, ir, linject, rmode)
-                case (2)
-                   call nodal_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
-                        mp_fine(:,:,1,1), lom_fine, &
-                        mp_crse(:,:,1,1), lom_crse, lo, hi, ir, linject, rmode)
-                case (3)
-                   call nodal_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
-                        mp_fine(:,:,:,1), lom_fine, &
-                        mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
-                end select
-             end do
-          end if
-       end do
+       if (box_intersects(fbox,cbox)) then
+          call setval(crse%fbs(j), ZERO, box_intersection(fbox,cbox))
+       end if
     end do
+
+    do i = 1, fine%nboxes
+
+      fbox = get_ibox(fine,i)
+      lof(:) = lwb(fbox) - fine%ng 
+      fbox = box_coarsen_v(fbox,ir)
+
+      if (box_intersects(fbox,cbox)) then
+        lo(:) = lwb(box_intersection(cbox,fbox))
+        hi(:) = upb(box_intersection(cbox,fbox))
+
+        fp      => dataptr(fine   ,i)
+        mp_fine => dataptr(mm_fine,i)
+        lom_fine(:) = lwb(get_box(mm_fine,i)) - mm_fine%ng
+
+        do n = 1, fine%nc
+           cp      => dataptr(crse   ,j, n, 1)
+           mp_crse => dataptr(mm_crse,j, n, 1)
+          select case (fine%dim)
+          case (1)
+             call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
+                  mp_fine(:,1,1,1), lom_fine, &
+                  mp_crse(:,1,1,1), lom_crse, lo, hi, ir, linject, rmode)
+          case (2)
+             call nodal_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
+                  mp_fine(:,:,1,1), lom_fine, &
+                  mp_crse(:,:,1,1), lom_crse, lo, hi, ir, linject, rmode)
+          case (3)
+             call nodal_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
+                  mp_fine(:,:,:,1), lom_fine, &
+                  mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
+          end select
+        end do
+      end if
+    end do
+  end do
 
   end subroutine ml_nodal_restriction
 
