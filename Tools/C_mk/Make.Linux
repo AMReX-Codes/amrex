@@ -21,6 +21,16 @@ ifeq ($(COMP),PGI)
   CXXOPTF +=
   CXXDEBF += -g
 else
+ifeq ($(WHICHLINUX), JVN)
+  ifeq ($(COMP),Intel)
+    CXX = icc
+    CXXOPTF +=
+    CXXDEBF += -g
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpiCC
+    endif
+  endif
+endif
 endif
 endif
 endif

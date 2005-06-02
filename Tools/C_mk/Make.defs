@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.81 2005-01-26 16:33:15 car Exp $
+# Make.defs $Id: Make.defs,v 1.82 2005-06-02 00:28:08 vince Exp $
 #
 
 #
@@ -95,6 +95,12 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
     WHICHLINUX := ALPHACLUSTER
+  endif
+  ifeq ($(findstring nugigan, $(UNAMEN)), nugigan)
+    WHICHLINUX := NUGIGAN
+  endif
+  ifeq ($(findstring jvn, $(UNAMEN)), jvn)
+    WHICHLINUX := JVN
   endif
 endif
 
