@@ -134,7 +134,7 @@ subroutine mgt_get_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(out) :: rh(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(inout) :: rh(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: rp(:,:,:,:)
   
   call mgt_verify_n(mgt, "MGT_GET_RH", n, lo, hi)
@@ -162,7 +162,7 @@ subroutine mgt_get_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(out) :: uu(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: up(:,:,:,:)
   
   call mgt_verify_n(mgt, "MGT_GET_UU", n, lo, hi)
