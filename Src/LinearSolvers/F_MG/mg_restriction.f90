@@ -14,12 +14,12 @@ module mg_restriction_module
 contains
 
   subroutine cc_restriction_1d(cc, loc, ff, lof, lo, hi, ir)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:), hi(:)
-    real (dp_t), intent(out) :: cc(loc(1):)
-    real (dp_t), intent(in)  :: ff(lof(1):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: cc(loc(1):)
+    real (dp_t), intent(in)    :: ff(lof(1):)
+    integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
     integer     :: i, l
@@ -37,12 +37,12 @@ contains
   end subroutine cc_restriction_1d
 
   subroutine cc_restriction_2d(cc, loc, ff, lof, lo, hi, ir)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:), hi(:)
-    real (dp_t), intent(out) :: cc(loc(1):,loc(2):)
-    real (dp_t), intent(in)  :: ff(lof(1):,lof(2):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(in)    :: ff(lof(1):,lof(2):)
+    integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
     integer     :: i, j, l, m
@@ -64,12 +64,12 @@ contains
   end subroutine cc_restriction_2d
 
   subroutine cc_restriction_3d(cc, loc, ff, lof, lo, hi, ir)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:),hi(:)
-    real (dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
-    real (dp_t), intent(in)  :: ff(lof(1):,lof(2):,lof(3):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:),hi(:)
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(in)    :: ff(lof(1):,lof(2):,lof(3):)
+    integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
     integer     :: i, j, k, l, m, n
@@ -97,18 +97,18 @@ contains
   subroutine nodal_restriction_1d(cc, loc, ff, lof, &
                                   mm_fine, lom_fine, mm_crse, lom_crse, &
                                   lo, hi, ir, inject, mg_restriction_mode)
-    integer,    intent(in)  :: loc(:)
-    integer,    intent(in)  :: lof(:)
-    integer,    intent(in)  :: lom_fine(:)
-    integer,    intent(in)  :: lom_crse(:)
-    integer,    intent(in)  :: lo(:), hi(:)
-    real(dp_t), intent(out) :: cc(loc(1):)
-    real(dp_t), intent(in)  :: ff(lof(1):)
-    integer,    intent(in)  :: mm_fine(lom_fine(1):)
-    integer,    intent(in)  :: mm_crse(lom_crse(1):)
-    integer,    intent(in)  :: ir(:)
-    logical,    intent(in)  :: inject
-    integer,    intent(in)  :: mg_restriction_mode
+    integer,    intent(in)    :: loc(:)
+    integer,    intent(in)    :: lof(:)
+    integer,    intent(in)    :: lom_fine(:)
+    integer,    intent(in)    :: lom_crse(:)
+    integer,    intent(in)    :: lo(:), hi(:)
+    real(dp_t), intent(inout) :: cc(loc(1):)
+    real(dp_t), intent(in)    :: ff(lof(1):)
+    integer,    intent(in)    :: mm_fine(lom_fine(1):)
+    integer,    intent(in)    :: mm_crse(lom_crse(1):)
+    integer,    intent(in)    :: ir(:)
+    logical,    intent(in)    :: inject
+    integer,    intent(in)    :: mg_restriction_mode
 
     integer    :: hif, i, ifine, m
     real(dp_t) :: fac, fac0
@@ -181,7 +181,7 @@ contains
     integer,    intent(in)    :: lom_crse(:)
     integer,    intent(in)    :: lo(:), hi(:)
     real(dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real(dp_t), intent(  out) :: cc(loc(1):,loc(2):)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer,    intent(in)    :: mm_fine(lom_fine(1):,lom_fine(2):)
     integer,    intent(in)    :: mm_crse(lom_crse(1):,lom_crse(2):)
     integer,    intent(in)    :: ir(:)
@@ -329,7 +329,7 @@ contains
     integer,    intent(in   ) :: lom_crse(:)
     integer,    intent(in   ) :: lo(:),hi(:)
     real(dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real(dp_t), intent(  out) :: cc(loc(1):,loc(2):,loc(3):)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
     integer,    intent(in   ) :: mm_fine(lom_fine(1):,lom_fine(2):,lom_fine(3):)
     integer,    intent(in   ) :: mm_crse(lom_crse(1):,lom_crse(2):,lom_crse(3):)
     integer,    intent(in   ) :: ir(:)
@@ -536,12 +536,12 @@ contains
   end subroutine nodal_restriction_3d
 
   subroutine edge_restriction_1d(cc, loc, ff, lof, lo, hi, ir)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:), hi(:)
-    real (dp_t), intent(out) :: cc(loc(1):)
-    real (dp_t), intent(in)  :: ff(lof(1):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: cc(loc(1):)
+    real (dp_t), intent(in)    :: ff(lof(1):)
+    integer,     intent(in)    :: ir(:)
 
     integer :: i
 
@@ -552,21 +552,23 @@ contains
   end subroutine edge_restriction_1d
 
   subroutine edge_restriction_2d(cc, loc, ff, lof, lo, hi, ir, face)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:), hi(:)
-    integer,     intent(in)  :: face
-    real (dp_t), intent(out) :: cc(loc(1):,loc(2):)
-    real (dp_t), intent(in)  :: ff(lof(1):,lof(2):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:), hi(:)
+    integer,     intent(in)    :: face
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    real (dp_t), intent(in)    :: ff(lof(1):,lof(2):)
+    integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
     integer     :: i, j, l, m
   
     if (face .eq. 1) then
-      fac = one/real(ir(2),kind=dp_t)
+       fac = one/real(ir(2),kind=dp_t)
     else if (face .eq. 2) then
-      fac = one/real(ir(1),kind=dp_t)
+       fac = one/real(ir(1),kind=dp_t)
+    else
+       call bl_error('edge_restriction_2d: face must be 1 or 2')
     end if
 
     if ( face .eq. 1 ) then
@@ -580,8 +582,8 @@ contains
           end do
        end do
     else if ( face .eq. 2 ) then
-       do i = lo(1), hi(1)
-          do j = lo(2), hi(2)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
              cc(i,j) = zero
              do l = 0, ir(1)-1
                 cc(i,j) = cc(i,j) + ff(ir(1)*i+l,ir(2)*j)
@@ -594,23 +596,25 @@ contains
   end subroutine edge_restriction_2d
 
   subroutine edge_restriction_3d(cc, loc, ff, lof, lo, hi, ir, face)
-    integer,     intent(in)  :: loc(:)
-    integer,     intent(in)  :: lof(:)
-    integer,     intent(in)  :: lo(:),hi(:)
-    integer,     intent(in)  :: face
-    real (dp_t), intent(out) :: cc(loc(1):,loc(2):,loc(3):)
-    real (dp_t), intent(in)  :: ff(lof(1):,lof(2):,lof(3):)
-    integer,     intent(in)  :: ir(:)
+    integer,     intent(in)    :: loc(:)
+    integer,     intent(in)    :: lof(:)
+    integer,     intent(in)    :: lo(:),hi(:)
+    integer,     intent(in)    :: face
+    real (dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
+    real (dp_t), intent(in)    :: ff(lof(1):,lof(2):,lof(3):)
+    integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
     integer :: i, j, k, l, m, n
 
     if ( face .eq. 1 ) then
-      fac = one/real(ir(2)*ir(3),kind=dp_t)
+       fac = one/real(ir(2)*ir(3),kind=dp_t)
     else if (face .eq. 2) then
-      fac = one/real(ir(1)*ir(3),kind=dp_t)
+       fac = one/real(ir(1)*ir(3),kind=dp_t)
     else if (face .eq. 3) then
-      fac = one/real(ir(1)*ir(2),kind=dp_t)
+       fac = one/real(ir(1)*ir(2),kind=dp_t)
+    else
+       call bl_error('edge_restriction_3d: face must be 1, 2 or 3')
     end if
 
     if ( face .eq. 1 ) then
