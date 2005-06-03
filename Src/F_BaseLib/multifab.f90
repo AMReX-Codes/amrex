@@ -904,61 +904,19 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          call setval(mf%fbs(i), val)
-       else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call multifab_setval_c(mf, val, 1, mf%nc, all)
   end subroutine multifab_setval
   subroutine imultifab_setval(mf, val, all)
     type(imultifab), intent(inout) :: mf
     integer, intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( imultifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          call setval(mf%fbs(i), val)
-       else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call imultifab_setval_c(mf, val, 1, mf%nc, all)
   end subroutine imultifab_setval
   subroutine lmultifab_setval(mf, val, all)
     type(lmultifab), intent(inout) :: mf
     logical, intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          call setval(mf%fbs(i), val)
-       else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call lmultifab_setval_c(mf, val, 1, mf%nc, all)
   end subroutine lmultifab_setval
 
   subroutine multifab_setval_bx(mf, val, bx, all)
@@ -966,72 +924,21 @@ contains
     type(box), intent(in) :: bx
     real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx1
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       else
-          bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call multifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine multifab_setval_bx
   subroutine imultifab_setval_bx(mf, val, bx, all)
     type(imultifab), intent(inout) :: mf
     type(box), intent(in) :: bx
     integer, intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx1
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( imultifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       else
-          bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call imultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine imultifab_setval_bx
   subroutine lmultifab_setval_bx(mf, val, bx, all)
     type(lmultifab), intent(inout) :: mf
     type(box), intent(in) :: bx
     logical, intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx1
-    logical lall
-    lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf, i) ) cycle
-       if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       else
-          bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    call lmultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine lmultifab_setval_bx
 
   subroutine lmultifab_setval_ba(mf, val, ba, all)
@@ -3012,7 +2919,7 @@ contains
     logical, pointer :: lp(:,:,:,:)
     type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
-    integer :: i
+    integer :: i, n
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
@@ -3022,13 +2929,18 @@ contains
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i))
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = r1 + sum(abs(mp), mask = lp)
+          do n = comp, comp+nc-1
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), n)
+             end if
+             r1 = r1 + sum(abs(mp), mask = lp)
+          end do
        end do
        !$OMP END PARALLEL DO
     else
@@ -3047,27 +2959,10 @@ contains
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_norm_l1_c
   function multifab_norm_l1(mf, all) result(r)
-    real(dp_t) :: r
+    real(dp_t)                    :: r
+    type(multifab), intent(in)    :: mf
     logical, intent(in), optional :: all
-    type(multifab), intent(in) :: mf
-    real(dp_t), pointer :: mp(:,:,:,:)
-    integer :: i
-    real(dp_t) :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i))
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i))
-       end if
-       r1 = r1 + sum(abs(mp))
-    end do
-    !$OMP END PARALLEL DO
-    call parallel_reduce(r, r1, MPI_SUM)
+    r = multifab_norm_l1_c(mf, 1, mf%nc, all = all)
   end function multifab_norm_l1
 
   function multifab_sum_c(mf, comp, nc, mask, all) result(r)
@@ -3079,7 +2974,7 @@ contains
     type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
-    integer :: i
+    integer :: i, n
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
@@ -3089,13 +2984,18 @@ contains
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = r1 + sum(mp, mask=lp)
+          do n = comp, comp+nc-1
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), n)
+             end if
+             r1 = r1 + sum(mp, mask=lp)
+          end do
        end do
        !$OMP END PARALLEL DO
     else
@@ -3114,51 +3014,11 @@ contains
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_sum_c
   function multifab_sum(mf, mask, all) result(r)
-    real(dp_t) :: r
-    logical, intent(in), optional :: all
-    type(multifab), intent(in) :: mf
+    real(dp_t)                            :: r
+    type(multifab), intent(in)            :: mf
     type(lmultifab), intent(in), optional :: mask
-    real(dp_t), pointer :: mp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    integer :: i, nc, n
-    real(dp_t) :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    nc = mf%nc
-    if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
-          do n = 1, nc
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), c=n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), c=n)
-             end if
-             r1 = r1 + sum(mp, mask = lp)
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i))
-          end if
-          r1 = r1 + sum(mp)
-       end do
-       !$OMP END PARALLEL DO
-    end if
-    call parallel_reduce(r, r1, MPI_SUM)
+    logical, intent(in), optional         :: all
+    r = multifab_sum_c(mf, 1, mf%nc, mask, all)
   end function multifab_sum
 
   function multifab_norm_l2_c(mf, comp, nc, mask, all) result(r)
@@ -3170,7 +3030,7 @@ contains
     type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
-    integer :: i
+    integer :: i, n
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
@@ -3180,13 +3040,18 @@ contains
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = r1 + sum(mp**2, mask=lp)
+          do n = comp, comp+nc-1
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), n)
+             end if
+             r1 = r1 + sum(mp**2, mask=lp)
+          end do
        end do
        !$OMP END PARALLEL DO
     else
@@ -3206,52 +3071,11 @@ contains
     r = sqrt(r)
   end function multifab_norm_l2_c
   function multifab_norm_l2(mf, mask, all) result(r)
-    real(dp_t) :: r
-    logical, intent(in), optional :: all
-    type(multifab), intent(in) :: mf
+    real(dp_t)                            :: r
+    logical, intent(in), optional         :: all
+    type(multifab), intent(in)            :: mf
     type(lmultifab), intent(in), optional :: mask
-    real(dp_t), pointer :: mp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    integer :: i, nc, n
-    real(dp_t) :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    nc = mf%nc
-    if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
-          do n = 1, nc
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), c=n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), c=n)
-             end if
-             r1 = r1 + sum(mp**2, mask = lp)
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i))
-          end if
-          r1 = r1 + sum(mp**2)
-       end do
-       !$OMP END PARALLEL DO
-    end if
-    call parallel_reduce(r, r1, MPI_SUM)
-    r = sqrt(r)
+    r = multifab_norm_l2_c(mf, 1, mf%nc, mask, all)
   end function multifab_norm_l2
 
   function multifab_norm_inf_c(mf, comp, nc, mask, all) result(r)
@@ -3279,9 +3103,9 @@ contains
           end if
           do n = comp, comp+nc-1
              if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), comp)
+                mp => dataptr(mf, i, get_pbox(mf, i), n)
              else
-                mp => dataptr(mf, i, get_ibox(mf, i), comp)
+                mp => dataptr(mf, i, get_ibox(mf, i), n)
              end if
              r1 = max(r1, maxval(abs(mp), mask = lp))
           end do
@@ -3303,51 +3127,11 @@ contains
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_norm_inf_c
   function multifab_norm_inf(mf, mask, all) result(r)
-    real(dp_t) :: r
-    logical, intent(in), optional :: all
+    real(dp_t)                            :: r
+    logical, intent(in), optional         :: all
     type(lmultifab), intent(in), optional :: mask
-    type(multifab), intent(in) :: mf
-    real(dp_t), pointer :: mp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    integer :: i, n, nc
-    real(dp_t) :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    nc = mf%nc
-    if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
-          do n = 1, nc
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), n)
-             end if
-             r1 = max(r1, maxval(abs(mp),mask=lp))
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
-       do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i))
-          end if
-          r1 = max(r1, maxval(abs(mp)))
-       end do
-       !$OMP END PARALLEL DO
-    end if
-    call parallel_reduce(r, r1, MPI_MAX)
+    type(multifab), intent(in)            :: mf
+    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all)
   end function multifab_norm_inf
 
   function imultifab_norm_inf_c(mf, comp, nc, all) result(r)
@@ -3376,27 +3160,10 @@ contains
     call parallel_reduce(r, r1, MPI_MAX)
   end function imultifab_norm_inf_c
   function imultifab_norm_inf(mf, all) result(r)
-    integer :: r
+    integer                       :: r
     logical, intent(in), optional :: all
-    type(imultifab), intent(in) :: mf
-    integer, pointer :: mp(:,:,:,:)
-    integer :: i
-    integer :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
-    do i = 1, mf%nboxes
-       if ( imultifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i))
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i))
-       end if
-       r1 = max(r1, maxval(abs(mp)))
-    end do
-    !$OMP END PARALLEL DO
-    call parallel_reduce(r, r1, MPI_MAX)
+    type(imultifab), intent(in)   :: mf
+    r = imultifab_norm_inf_c(mf, 1, mf%nc, all)
   end function imultifab_norm_inf
 
   function imultifab_sum_c(mf, comp, nc, all) result(r)
@@ -3428,24 +3195,7 @@ contains
     integer :: r
     logical, intent(in), optional :: all
     type(imultifab), intent(in) :: mf
-    integer, pointer :: mp(:,:,:,:)
-    integer :: i
-    integer :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-    do i = 1, mf%nboxes
-       if ( imultifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i))
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i))
-       end if
-       r1 = r1 + sum(mp)
-    end do
-    !$OMP END PARALLEL DO
-    call parallel_reduce(r, r1, MPI_SUM)
+    r = imultifab_sum_c(mf, 1, mf%nc, all)
   end function imultifab_sum
 
   function lmultifab_count(mf, all) result(r)
@@ -3471,30 +3221,6 @@ contains
     !$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_SUM)
   end function lmultifab_count
-
-!   function lmultifab_any(mf, all) result(r)
-!     logical :: r
-!     logical, intent(in), optional :: all
-!     type(lmultifab), intent(in) :: mf
-!     logical, pointer :: mp(:,:,:,:)
-!     integer :: i
-!     logical :: r1
-!     logical :: lall
-!     lall = .false.; if ( present(all) ) lall = all
-!     r1 = .false.
-!     !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(.and.:r1)
-!     do i = 1, mf%nboxes
-!        if ( lmultifab_remote(mf,i) ) cycle
-!        if ( lall ) then
-!           mp => dataptr(mf, i, get_pbox(mf, i))
-!        else
-!           mp => dataptr(mf, i, get_ibox(mf, i))
-!        end if
-!        r1 = r1 .and. any(mp)
-!     end do
-!     !$OMP END PARALLEL DO
-!     call parallel_reduce(r, r1, MPI_LAND)
-!   end function lmultifab_any
 
   subroutine multifab_div_div(a, b, all)
     type(multifab), intent(inout) :: a
@@ -3531,7 +3257,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     if ( b == 0.0_dp_t ) then
-       call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+       call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
@@ -3584,7 +3310,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     if ( b == 0.0_dp_t ) then
-       call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+       call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
@@ -3781,51 +3507,8 @@ contains
     !$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_s_c
 
-  subroutine multifab_plus_plus(a, b, all)
-    type(multifab), intent(inout) :: a
-    type(multifab), intent(in)  :: b
-    logical, intent(in), optional :: all
-    real(dp_t), pointer :: ap(:,:,:,:)
-    real(dp_t), pointer :: bp(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
-    do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i)
-          bp => dataptr(b, i)
-       else
-          ap => dataptr(a, i, get_ibox(a, i))
-          bp => dataptr(b, i, get_ibox(b, i))
-       end if
-       ap = ap + bp
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine multifab_plus_plus
-  subroutine multifab_plus_plus_s(a, b, all)
-    type(multifab), intent(inout) :: a
-    real(dp_t), intent(in)  :: b
-    logical, intent(in), optional :: all
-    real(dp_t), pointer :: ap(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap)
-    do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i)
-       else
-          ap => dataptr(a, i, get_ibox(a, i))
-       end if
-       ap = ap + b
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine multifab_plus_plus_s
-  subroutine multifab_plus_plus_c(a, targ, b, src, nc, all)
-    integer, intent(in) :: targ, src
+  subroutine multifab_plus_plus_c(a, dst, b, src, nc, all)
+    integer, intent(in) :: dst, src
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
@@ -3839,18 +3522,25 @@ contains
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
-          ap => dataptr(a, i, targ, nc)
+          ap => dataptr(a, i, dst, nc)
           bp => dataptr(b, i, src, nc)
        else
-          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+          ap => dataptr(a, i, get_ibox(a, i), dst, nc)
           bp => dataptr(b, i, get_ibox(b, i), src, nc)
        end if
        ap = ap + bp
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_plus_plus_c
-  subroutine multifab_plus_plus_s_c(a, targ, b, nc, all)
-    integer, intent(in) :: targ
+  subroutine multifab_plus_plus(a, b, all)
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    logical, intent(in), optional :: all
+    call multifab_plus_plus_c(a, 1, b, 1, a%nc, all)
+  end subroutine multifab_plus_plus
+
+  subroutine multifab_plus_plus_s_c(a, dst, b, nc, all)
+    integer, intent(in) :: dst
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     type(multifab), intent(inout) :: a
@@ -3863,14 +3553,20 @@ contains
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
-          ap => dataptr(a, i, targ, nc)
+          ap => dataptr(a, i, dst, nc)
        else
-          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+          ap => dataptr(a, i, get_ibox(a, i), dst, nc)
        end if
        ap = ap + b
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_plus_plus_s_c
+  subroutine multifab_plus_plus_s(a, b, all)
+    type(multifab), intent(inout) :: a
+    real(dp_t), intent(in)  :: b
+    logical, intent(in), optional :: all
+    call multifab_plus_plus_s_c(a, 1, b, a%nc, all)
+  end subroutine multifab_plus_plus_s
 
   !! Copies valid data of MF onto FB
   !! FB: Array data
