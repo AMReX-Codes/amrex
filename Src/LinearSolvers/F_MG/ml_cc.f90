@@ -351,16 +351,6 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
      call multifab_destroy(uu_hold(n))
   end do
 
-  do n = nlevs, 1, -1
-     call multifab_destroy(    soln(n))
-     call multifab_destroy(      uu(n))
-     call multifab_destroy(     res(n))
-     call multifab_destroy(temp_res(n))
-     if ( n == 1 ) exit
-     call bndry_reg_destroy(brs_flx(n))
-     call bndry_reg_destroy(brs_bcs(n))
-  end do
-
   if (need_grad_phi) then
 
 !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
@@ -375,6 +365,16 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
     end do
 
   end if
+
+  do n = nlevs, 1, -1
+     call multifab_destroy(    soln(n))
+     call multifab_destroy(      uu(n))
+     call multifab_destroy(     res(n))
+     call multifab_destroy(temp_res(n))
+     if ( n == 1 ) exit
+     call bndry_reg_destroy(brs_flx(n))
+     call bndry_reg_destroy(brs_bcs(n))
+  end do
 
 contains
 
