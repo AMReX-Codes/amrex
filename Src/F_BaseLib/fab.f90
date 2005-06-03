@@ -600,25 +600,6 @@ contains
     call mem_stats_alloc(lfab_ms, volume(fb, all=.TRUE.))
   end subroutine lfab_build
 
-!   subroutine fab_build_copy(f1, f2)
-!     type(fab), intent(inout) :: f1
-!     type(fab), intent(in) :: f2
-!     integer :: lo(MAX_SPACEDIM+1), hi(MAX_SPACEDIM+1)
-!     if ( .not. conformant_q(f1, f2) ) then
-!        if ( built_q(f1) ) call destroy(f1)
-!        f1%dim = f2%dim
-!        f1%bx  = f2%bx
-!        f1%ibx = f2%ibx
-!        f1%pbx = f2%pbx
-!        f1%ng  = f2%ng
-!        f1%nc  = f2%nc
-!        lo = lbound(f2%p)
-!        hi = ubound(f2%p)
-!        allocate(f1%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:f1%nc))
-!     end if
-!     f1%p = f2%p
-!   end subroutine fab_build_copy
-
   subroutine fab_destroy(fb)
     type(fab), intent(inout) :: fb
     call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
@@ -678,6 +659,7 @@ contains
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     real(kind=dp_t), pointer :: r(:,:,:,:)
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('fab_dataptr_bx: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,:)
@@ -691,6 +673,7 @@ contains
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, pointer :: r(:,:,:,:)
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('ifab_dataptr_bx: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,:)
@@ -704,6 +687,7 @@ contains
     type(lfab), intent(in) :: fb
     type(box), intent(in) :: bx
     logical, pointer :: r(:,:,:,:)
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('lfab_dataptr_bx: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,:)
@@ -807,6 +791,7 @@ contains
     real(kind=dp_t), pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_c: not enough components')
     r => fb%p(:,:,:,c:c+lnc-1)
   end function fab_dataptr_c
   function ifab_dataptr_c(fb, c, nc) result(r)
@@ -816,6 +801,7 @@ contains
     integer, pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('ifab_dataptr_c: not enough components')
     r => fb%p(:,:,:,c:c+lnc-1)
   end function ifab_dataptr_c
   function lfab_dataptr_c(fb, c, nc) result(r)
@@ -825,6 +811,7 @@ contains
     logical, pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('lfab_dataptr_c: not enough components')
     r => fb%p(:,:,:,c:c+lnc-1)
   end function lfab_dataptr_c
 
@@ -836,6 +823,8 @@ contains
     real(kind=dp_t), pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_bx_c: not enough components')
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('fab_dataptr_bx_c: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,c:c+lnc-1)
@@ -853,6 +842,8 @@ contains
     integer, pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('ifab_dataptr_bx_c: not enough components')
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('ifab_dataptr_bx_c: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,c:c+lnc-1)
@@ -870,6 +861,8 @@ contains
     logical, pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('lfab_dataptr_bx_c: not enough components')
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('lfab_dataptr_bx_c: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,c:c+lnc-1)
