@@ -62,51 +62,44 @@ contains
     end if
     call ml_cc_restriction_c(crse, 1, fine, 1, ir, crse%nc)
   end subroutine ml_cc_restriction
-  !
-  ! Is this used?  If so it needs to be parallelized!!!
-  !
+
   subroutine ml_edge_restriction(crse, fine, ir, n)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: ir(:)
+    integer,        intent(in)    :: n
 
-    integer             :: i, j, n
+    integer             :: i
     integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
-    type(box)           :: fbox, cbox
-    real(dp_t), pointer :: fp(:,:,:,:)
-    real(dp_t), pointer :: cp(:,:,:,:)
+    real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    type(layout)        :: lacfine
+    type(multifab)      :: cfine
 
-!    print *,' *** norm_l1(crse) before ', norm_l1(crse)
-!    print *,' *** norm_l2(crse) before ', norm_l2(crse)
-!    print *,' *** norm_inf(crse) before ', norm_inf(crse)
+    call layout_build_coarse(lacfine, fine%la, ir)
 
-    do j = 1, crse%nboxes
-       cbox = get_ibox(crse,j)
-       loc = lwb(cbox) - crse%ng
-       do i = 1, fine%nboxes
-          fbox = get_ibox(fine,i)
-          lof(:) = lwb(fbox) - fine%ng 
-          fbox = box_coarsen_v(fbox,ir)
-          if (box_intersects(fbox,cbox)) then
-             lo(:) = lwb(box_intersection(cbox,fbox))
-             hi(:) = upb(box_intersection(cbox,fbox))
-             fp => dataptr(fine, i)
-             cp => dataptr(crse, j)
-             select case (crse%dim)
-             case (1)
-                call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
-             case (2)
-                call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, n)
-             case (3)
-                call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, n)
-             end select
-          end if
-       end do
+    call multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
+
+    do i = 1, fine%nboxes
+       if ( remote(fine,i) ) cycle
+       lo  = lwb(get_ibox(cfine,i))
+       hi  = upb(get_ibox(cfine,i))
+       loc = lwb(get_pbox(cfine,i))
+       lof = lwb(get_pbox(fine, i))
+       fp  => dataptr(fine,  i)
+       cp  => dataptr(cfine, i)
+       select case (crse%dim)
+       case (1)
+          call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+       case (2)
+          call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, n)
+       case (3)
+          call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, n)
+       end select
     end do
 
-!    print *,' *** norm_l1(crse) after ', norm_l1(crse)
-!    print *,' *** norm_l2(crse) after ', norm_l2(crse)
-!    print *,' *** norm_inf(crse) after ', norm_inf(crse)
+    call copy(crse, cfine)
+
+    call multifab_destroy(cfine)
 
   end subroutine ml_edge_restriction
   !
