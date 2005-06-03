@@ -76,6 +76,10 @@ contains
     real(dp_t), pointer :: fp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
 
+!    print *,' *** norm_l1(crse) before ', norm_l1(crse)
+!    print *,' *** norm_l2(crse) before ', norm_l2(crse)
+!    print *,' *** norm_inf(crse) before ', norm_inf(crse)
+
     do j = 1, crse%nboxes
        cbox = get_ibox(crse,j)
        loc = lwb(cbox) - crse%ng
@@ -88,21 +92,22 @@ contains
              hi(:) = upb(box_intersection(cbox,fbox))
              fp => dataptr(fine, i)
              cp => dataptr(crse, j)
-!            do n = 1, crse%dim
-!               hi(n) = hi(n)+1
-                select case (crse%dim)
-                case (1)
-                   call edge_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
-                case (2)
-                   call edge_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir, n)
-                case (3)
-                   call edge_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir, n)
-                end select
-!               hi(n) = hi(n)-1
-!            end do
+             select case (crse%dim)
+             case (1)
+                call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+             case (2)
+                call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, n)
+             case (3)
+                call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, n)
+             end select
           end if
        end do
     end do
+
+!    print *,' *** norm_l1(crse) after ', norm_l1(crse)
+!    print *,' *** norm_l2(crse) after ', norm_l2(crse)
+!    print *,' *** norm_inf(crse) after ', norm_inf(crse)
+
   end subroutine ml_edge_restriction
   !
   ! TODO -- this needs to be parallelized!!!
