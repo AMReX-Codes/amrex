@@ -65,7 +65,7 @@ contains
   !
   ! Is this used?  If so it needs to be parallelized!!!
   !
-  subroutine ml_edge_restriction(crse, fine, ir)
+  subroutine ml_edge_restriction(crse, fine, ir, n)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: ir(:)
@@ -88,8 +88,8 @@ contains
              hi(:) = upb(box_intersection(cbox,fbox))
              fp => dataptr(fine, i)
              cp => dataptr(crse, j)
-             do n = 1, crse%dim
-                hi(n) = hi(n)+1
+!            do n = 1, crse%dim
+!               hi(n) = hi(n)+1
                 select case (crse%dim)
                 case (1)
                    call edge_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
@@ -98,8 +98,8 @@ contains
                 case (3)
                    call edge_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir, n)
                 end select
-                hi(n) = hi(n)-1
-             end do
+!               hi(n) = hi(n)-1
+!            end do
           end if
        end do
     end do
