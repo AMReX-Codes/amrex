@@ -83,32 +83,44 @@ contains
 
   !! lin_cc_interp:   linear conservative interpolation from coarse grid to fine
 
-  subroutine lin_cc_interp_2d (fine, crse, lratio, bc, &
-       fvcx, fvcy, cvcx, cvcy, &
-       lim_slope, lin_limit)
+  subroutine lin_cc_interp_2d (fine, fine_lo, crse, crse_lo,lratio, bc, &
+       fvcx, fvcx_lo, fvcy, fvcy_lo, cvcx, cvcx_lo, cvcy, cvcy_lo, &
+       cslope_lo, cslope_hi, lim_slope, lin_limit)
 
+    integer, intent(in) :: fine_lo(:),crse_lo(:)
+    integer, intent(in) :: cslope_lo(:),cslope_hi(:)
     integer, intent(in) :: lratio(:)
     integer, intent(in) :: bc(:,:,:)
+    integer, intent(in) :: fvcx_lo,fvcy_lo,cvcx_lo,cvcy_lo
     logical, intent(in) :: lim_slope, lin_limit
-    real(kind=dp_t), intent(out) :: fine(0:,0:,:)
-    real(kind=dp_t), intent(inout) :: crse(-1:,-1:,:)
-    real(kind=dp_t), intent(in) :: fvcx(0:)
-    real(kind=dp_t), intent(in) :: fvcy(0:)
-    real(kind=dp_t), intent(in) :: cvcx(-1:)
-    real(kind=dp_t), intent(in) :: cvcy(-1:)
+    real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,fine_lo(2):,:)
+    real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,:)
+    real(kind=dp_t), intent(in   ) :: fvcx(fvcx_lo:)
+    real(kind=dp_t), intent(in   ) :: fvcy(fvcy_lo:)
+    real(kind=dp_t), intent(in   ) :: cvcx(cvcx_lo:)
+    real(kind=dp_t), intent(in   ) :: cvcy(cvcy_lo:)
 
 
-    real(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) ::     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) :: xslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
-    real(kind=dp_t) ::     uc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) ::     lc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) :: yslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
-    real(kind=dp_t) ::         alpha(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) ::          cmax(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) ::          cmin(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) ::         voffx(0:size(fine,1)-1)
-    real(kind=dp_t) ::         voffy(0:size(fine,2)-1)
+    real(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::     lc_xslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) :: xslope_factor(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2))
+    real(kind=dp_t) ::     uc_yslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::     lc_yslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) :: yslope_factor(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2))
+    real(kind=dp_t) ::         alpha(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::          cmax(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::          cmin(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::         voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
+    real(kind=dp_t) ::         voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
 
     integer :: n
     integer :: i, ic
@@ -123,13 +135,13 @@ contains
 
     xok = (nxc >=  2)
 
-    do j = 0, size(fine,2)-1
+    do j = fvcy_lo, fvcy_lo+size(fine,2)-1
        jc = IX_PROJ(j,lratio(2))
        fycen = HALF*(fvcy(j)+fvcy(j+1))
        cycen = HALF*(cvcy(jc)+cvcy(jc+1))
        voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
     end do
-    do i = 0, size(fine,1)-1
+    do i = fvcx_lo, fvcx_lo+size(fine,1)-1
        ic = IX_PROJ(i,lratio(1))
        fxcen = HALF*(fvcx(i)+fvcx(i+1))
        cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
@@ -139,13 +151,13 @@ contains
     ! Prevent underflow for small crse values.
     where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
     alpha = ONE
-    cmax = crse(0:nxc(1)-1,0:nxc(2)-1,:)
-    cmin = crse(0:nxc(1)-1,0:nxc(2)-1,:)
+    cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),:)
+    cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),:)
 
     do n = 1, size(fine,3)
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
-       do j = 0, nxc(2)-1
-          do i = 0, nxc(1)-1
+       do j = cslope_lo(2), cslope_hi(2)
+          do i = cslope_lo(1), cslope_hi(1)
              do joff = -1, 1
                 do ioff = -1, 1
                    cmax(i,j,n) = max(cmax(i,j,n),crse(i+ioff,j+joff,n))
@@ -160,85 +172,85 @@ contains
     ! Compute unlimited and limited slopes
     !
     do n = 1, size(fine,3)
-       do j = 0, nxc(2)-1
-          do i = 0, nxc(1)-1
+       do j = cslope_lo(2), cslope_hi(2)
+          do i = cslope_lo(1), cslope_hi(1)
              uc_xslope(i,j,n) = HALF*(crse(i+1,j,n)-crse(i-1,j,n))
-             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,i,j,n,dim=1)
+             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,crse_lo,i,j,n,dim=1)
           end do
        end do
 
        if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
-          i = 0
+          i = cslope_lo(1)
           if ( xok(1) ) then
-             do j = 0, nxc(2)-1
+             do j = cslope_lo(2), cslope_hi(2)
                 uc_xslope(i,j,n) = -SIXTEEN/FIFTEEN*crse(i-1,j,n)+ HALF*crse(i,j,n) &
                      + TWO3RD*crse(i+1,j,n) - TENTH*crse(i+2,j,n)
              end do
           else
-             do j = 0, nxc(2)-1
+             do j = cslope_lo(2), cslope_hi(2)
                 uc_xslope(i,j,n) = FOURTH * (crse(i+1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i-1,j,n) )
              end do
           end if
-          do j = 0, nxc(2)-1
-             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,i,j,n,dim=1)
+          do j = cslope_lo(2), cslope_hi(2)
+             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,crse_lo,i,j,n,dim=1)
           end do
        end if
 
        if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
-          i = nxc(1)-1
+          i = cslope_hi(1)
           if ( xok(1) ) then
-             do j = 0, nxc(2)-1
+             do j = cslope_lo(2), cslope_hi(2)
                 uc_xslope(i,j,n) = SIXTEEN/FIFTEEN*crse(i+1,j,n)- HALF*crse(i,j,n) &
                      - TWO3RD*crse(i-1,j,n) + TENTH*crse(i-2,j,n)
              end do
           else
-             do j = 0, nxc(2)-1
+             do j = cslope_lo(2), cslope_hi(2)
                 uc_xslope(i,j,n) = -FOURTH * (crse(i-1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i+1,j,n) )
              end do
           end if
-          do j = 0, nxc(2)-1
-             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,i,j,n, dim=1)
+          do j = cslope_lo(2), cslope_hi(2)
+             lc_xslope(i,j,n) = uclc_slope(uc_xslope(i,j,n),crse,crse_lo,i,j,n, dim=1)
           end do
        end if
 
-       do j = 0, nxc(2)-1
-          do i = 0, nxc(1)-1
+       do j = cslope_lo(2), cslope_hi(2)
+          do i = cslope_lo(1), cslope_hi(1)
              uc_yslope(i,j,n) = HALF*(crse(i,j+1,n)-crse(i,j-1,n))
-             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,i,j,n,dim=2)
+             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,crse_lo,i,j,n,dim=2)
           end do
        end do
 
        if (bc(2,1,n)  == EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
-          j = 0
+          j = cslope_lo(2)
           if ( xok(1) ) then
-             do i = 0, nxc(1)-1
+             do i = cslope_lo(1), cslope_hi(1)
                 uc_yslope(i,j,n) = -SIXTEEN/FIFTEEN*crse(i,j-1,n)+ HALF*crse(i,j,n) &
                      + TWO3RD*crse(i,j+1,n) - TENTH*crse(i,j+2,n)
              end do
           else
-             do i = 0, nxc(1)-1
+             do i = cslope_lo(1), cslope_hi(1)
                 uc_yslope(i,j,n) = FOURTH * (crse(i,j+1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j-1,n) )
              end do
           end if
-          do i = 0, nxc(1)-1
-             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,i,j,n,dim=2)
+          do i = cslope_lo(1), cslope_hi(1)
+             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,crse_lo,i,j,n,dim=2)
           end do
        end if
 
        if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
-          j = nxc(2)-1
+          j = cslope_hi(2)
           if ( xok(2) ) then
-             do i = 0, nxc(1)-1
+             do i = cslope_lo(1), cslope_hi(1)
                 uc_yslope(i,j,n) = SIXTEEN/FIFTEEN*crse(i,j+1,n)- HALF*crse(i,j,n) &
                      - TWO3RD*crse(i,j-1,n) + TENTH*crse(i,j-2,n)
              end do
           else
-             do i = 0, nxc(1)-1
+             do i = cslope_lo(1), cslope_hi(1)
                 uc_yslope(i,j,n) = -FOURTH * (crse(i,j-1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j+1,n) )
              end do
           end if
-          do i = 0, nxc(1)-1
-             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,i,j,n,dim=2)
+          do i = cslope_lo(1), cslope_hi(1)
+             lc_yslope(i,j,n) = uclc_slope(uc_yslope(i,j,n),crse,crse_lo,i,j,n,dim=2)
           end do
        end if
 
@@ -249,9 +261,9 @@ contains
        ! Do the interpolation using unlimited slopes.
 
        do n = 1, size(fine,3)
-          do j = 0, size(fine,2)-1
+          do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
              jc = IX_PROJ(j,lratio(2))
-             do i = 0, size(fine,1)-1
+             do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
                 ic = IX_PROJ(i,lratio(1))
                 fine(i,j,n) = crse(ic,jc,n) + voffx(i)*uc_xslope(ic,jc,n)+ voffy(j)*uc_yslope(ic,jc,n)
              end do
@@ -292,11 +304,11 @@ contains
           ! Limit slopes so as to not introduce new maxs or mins.
 
           do n = 1, size(fine,3)
-             do j = 0, size(fine,2)-1
+             do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
 
                 jc = IX_PROJ(j,lratio(2))
 
-                do i = 0, size(fine,1)-1
+                do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
                    ic = IX_PROJ(i,lratio(1))
 
                    orig_corr_fact = voffx(i)*lc_xslope(ic,jc,n)+ voffy(j)*lc_yslope(ic,jc,n) 
@@ -321,10 +333,10 @@ contains
        ! Do the interpolation with limited slopes.
 
        do n = 1, size(fine,3)
-          do j = 0, size(fine,2)-1
+          do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
              jc = IX_PROJ(j,lratio(2))
 
-             do i = 0, size(fine,1)-1
+             do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
                 ic = IX_PROJ(i,lratio(1))
 
                 fine(i,j,n) = crse(ic,jc,n) + alpha(ic,jc,n)*( &
@@ -339,10 +351,12 @@ contains
 
   contains
 
-    function uclc_slope(uslope, crse, i, j, n, dim) result(lc)
+    function uclc_slope(uslope, crse, crse_lo, i, j, n, dim) result(lc)
+
+      integer, intent(in) :: crse_lo(:)
       real(kind = dp_t) :: lc
       real(kind=dp_t), intent(in) :: uslope
-      real(kind=dp_t), intent(in)  :: crse(-1:,-1:,:)
+      real(kind=dp_t), intent(in)  :: crse(crse_lo(1):,crse_lo(2):,:)
       real(kind=dp_t) :: cen, forw, back, slp
       integer, intent(in) :: i, j, n, dim
       if ( dim == 1 ) then
@@ -751,20 +765,22 @@ contains
   !! linccinterp:   linear conservative interpolation from coarse grid to
 
   subroutine lin_cc_interp_3d (fine,  &
-       crse, &
-       lratio, &
-       bc,fvcx, fvcy, fvcz, cvcx, cvcy, cvcz, lim_slope, lin_limit)
+       crse, lratio, bc, &
+       fvcx, fvcx_lo, fvcy, fvcy_lo, fvcz, fvcz_lo, &
+       cvcx, cvcx_lo, cvcy, cvcy_lo, cvcz, cvcz_lo, &
+       lim_slope, lin_limit)
 
     integer, intent(in) :: bc(:,:,:)
     integer, intent(in) :: lratio(:)
+    integer, intent(in) :: fvcx_lo,fvcy_lo,fvcz_lo,cvcx_lo,cvcy_lo,cvcz_lo
     REAL(kind=dp_t), intent(out) :: fine(0:,0:,0:,:)
     REAL(kind=dp_t), intent(inout) :: crse(-1:,-1:,-1:,:)
-    REAL(kind=dp_t), intent(in) :: fvcx(0:)
-    REAL(kind=dp_t), intent(in) :: fvcy(0:)
-    REAL(kind=dp_t), intent(in) :: fvcz(0:)
-    REAL(kind=dp_t), intent(in) :: cvcx(0:)
-    REAL(kind=dp_t), intent(in) :: cvcy(0:)
-    REAL(kind=dp_t), intent(in) :: cvcz(0:)
+    REAL(kind=dp_t), intent(in) :: fvcx(fvcx_lo:)
+    REAL(kind=dp_t), intent(in) :: fvcy(fvcy_lo:)
+    REAL(kind=dp_t), intent(in) :: fvcz(fvcz_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcx(cvcx_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcy(cvcy_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcz(cvcz_lo:)
     logical, intent(in) ::  lim_slope, lin_limit
 
     REAL(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
