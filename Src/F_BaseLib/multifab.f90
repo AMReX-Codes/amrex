@@ -3033,6 +3033,8 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    integer :: lnc
+    lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -3044,7 +3046,7 @@ contains
           else
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          do n = comp, comp+nc-1
+          do n = comp, comp + lnc - 1
              if ( lall ) then
                 mp => dataptr(mf, i, get_pbox(mf, i), n)
              else
