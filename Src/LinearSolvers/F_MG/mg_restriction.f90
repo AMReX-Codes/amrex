@@ -94,6 +94,60 @@ contains
 
   end subroutine cc_restriction_3d
 
+  subroutine nodal_zero_1d(cc, loc, mm_fine, lom_fine, lo, hi, ir)
+    integer,    intent(in)    :: loc(:)
+    real(dp_t), intent(inout) :: cc(loc(1):)
+    integer,    intent(in)    :: lom_fine(:)
+    integer,    intent(in)    :: mm_fine(lom_fine(1):)
+    integer,    intent(in)    :: lo(:), hi(:)
+    integer,    intent(in)    :: ir(:)
+
+    integer :: i
+
+    do i = lo(1),hi(1)
+       if ( .not. bc_dirichlet(mm_fine(ir(1)*i),1,0) ) cc(i) = ZERO
+    end do
+
+  end subroutine nodal_zero_1d
+
+  subroutine nodal_zero_2d(cc, loc, mm_fine, lom_fine, lo, hi, ir)
+    integer,    intent(in)    :: loc(:)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    integer,    intent(in)    :: lom_fine(:)
+    integer,    intent(in)    :: mm_fine(lom_fine(1):,lom_fine(2):)
+    integer,    intent(in)    :: lo(:), hi(:)
+    integer,    intent(in)    :: ir(:)
+
+    integer :: i, j
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          if ( .not. bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) ) cc(i,j) = ZERO
+       end do
+    end do
+
+  end subroutine nodal_zero_2d
+
+  subroutine nodal_zero_3d(cc, loc, mm_fine, lom_fine, lo, hi, ir)
+    integer,    intent(in)    :: loc(:)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,    intent(in)    :: lom_fine(:)
+    integer,    intent(in)    :: mm_fine(lom_fine(1):,lom_fine(2):,lom_fine(3):)
+    integer,    intent(in)    :: lo(:), hi(:)
+    integer,    intent(in)    :: ir(:)
+
+    integer :: i, j, k
+
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             if ( .not. bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0) ) cc(i,j,k) = ZERO
+          end do
+       end do
+    end do
+
+  end subroutine nodal_zero_3d
+
   subroutine nodal_restriction_1d(cc, loc, ff, lof, &
                                   mm_fine, lom_fine, mm_crse, lom_crse, &
                                   lo, hi, ir, inject, mg_restriction_mode)
