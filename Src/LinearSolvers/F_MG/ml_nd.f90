@@ -380,8 +380,8 @@ contains
 
 !    First compute a residual which only takes contributions from the
 !       grid on which it is calculated.
-           call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
-                         dummy_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+     call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
+                   dummy_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
 
      do i = 1,dm
         call ml_fine_contrib(brs_flx%bmf(i,0), &
