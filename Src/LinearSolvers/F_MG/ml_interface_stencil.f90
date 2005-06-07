@@ -524,12 +524,12 @@ contains
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
-    !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
-
     !   Lo i side
     if (side == -1) then
 
        do j = lo(2),hi(2)
+
+        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
 
           if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
              crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
@@ -550,11 +550,15 @@ contains
                res(i,j) = res(i,j) + fine_flux(i,j)
           end if
 
+        end if
+
        end do
 
        !   Hi i side
     else if (side ==  1) then
        do j = lo(2),hi(2)
+
+        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
 
           if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
              crse_flux = (ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
@@ -575,12 +579,16 @@ contains
                res(i,j) = res(i,j) + fine_flux(i,j)
           end if
 
+        end if
+
        end do
 
        !   Lo j side
     else if (side == -2) then
 
        do i = lo(1),hi(1)
+
+        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
 
           if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
@@ -601,12 +609,16 @@ contains
                res(i,j) = res(i,j) + fine_flux(i,j)
           end if
 
+        end if
+
        end do
 
        !   Hi j side
     else if (side ==  2) then
 
        do i = lo(1),hi(1)
+
+        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
 
           if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux = (ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
@@ -626,6 +638,8 @@ contains
             if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) &
                res(i,j) = res(i,j) + fine_flux(i,j)
           end if
+
+        end if
 
        end do
     end if
@@ -686,6 +700,8 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
 
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+
              cell_mm = ss(i,j,k,sig_mm)*(cc(ioff,j-1,k-1) + cc(ioff,j-1,k  ) &
                   +cc(ioff,j  ,k-1) + cc(i  ,j-1,k-1) &
                   - FOUR*cc(i  ,j  ,k) )
@@ -729,9 +745,12 @@ contains
 
              if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
                res(i,j,k) = res(i,j,k) + crse_flux
-               if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) &
+               if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
                  res(i,j,k) = res(i,j,k) + fine_flux(i,j,k)
+               end if
              end if
+
+           end if
           end do
        end do
        !   Lo/Hi j side
@@ -752,6 +771,8 @@ contains
        end if
        do k = lo(3),hi(3)
           do i = lo(1),hi(1)
+
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
 
              cell_mm = ss(i,j,k,sig_mm)*(cc(i-1,joff,k-1) + cc(i-1,joff,k  ) &
                   +cc(i  ,joff,k-1) + cc(i-1,j   ,k-1) &
@@ -798,6 +819,7 @@ contains
                  res(i,j,k) = res(i,j,k) + fine_flux(i,j,k)
              end if
 
+           end if
           end do
        end do
        !   Lo/Hi k side
@@ -819,6 +841,8 @@ contains
 
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
+
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
 
              cell_mm = ss(i,j,k,sig_mm)*(cc(i-1,j-1,koff) + cc(i-1,j  ,koff) &
                   +cc(i  ,j-1,koff) + cc(i-1,j-1,k   ) &
@@ -864,6 +888,8 @@ contains
                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) &
                  res(i,j,k) = res(i,j,k) + fine_flux(i,j,k)
              end if
+
+           end if
           end do
        end do
     end if
