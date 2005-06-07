@@ -139,18 +139,43 @@ contains
     loc = lwb(cbox) - crse%ng
     lom_crse = lwb(get_box(mm_crse,j)) - mm_crse%ng
 
-!   Set to zero here on the interior of each fine grid so don't have to 
+!   Set to zero here on the interior of fine region so don't have to 
 !      within nodal_restriction
     do i = 1, fine%nboxes
        fbox = get_ibox(fine,i)
+       lof(:) = lwb(fbox) - fine%ng 
        fbox = box_coarsen_v(fbox,ir)
-       do id = 1,fbox%dim
-          if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
-          if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
-       end do
-       if (box_intersects(fbox,cbox)) then
-          call setval(crse%fbs(j), ZERO, box_intersection(fbox,cbox))
-       end if
+
+!      do id = 1,fbox%dim
+!         if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
+!         if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
+!      end do
+!      if (box_intersects(fbox,cbox)) then
+!         call setval(crse%fbs(j), ZERO, box_intersection(fbox,cbox))
+!      end if
+
+      if (box_intersects(fbox,cbox)) then
+
+        lo(:) = lwb(box_intersection(cbox,fbox))
+        hi(:) = upb(box_intersection(cbox,fbox))
+
+        fp      => dataptr(fine   ,i)
+        mp_fine => dataptr(mm_fine,i)
+        lom_fine(:) = lwb(get_box(mm_fine,i)) - mm_fine%ng
+
+        do n = 1, fine%nc
+           cp      => dataptr(crse   ,j, n, 1)
+           mp_crse => dataptr(mm_crse,j, n, 1)
+          select case (fine%dim)
+          case (1)
+             call nodal_zero_1d(cp(:,1,1,1), loc, mp_fine(:,1,1,1), lom_fine, lo, hi, ir)
+          case (2)
+             call nodal_zero_2d(cp(:,:,1,1), loc, mp_fine(:,:,1,1), lom_fine, lo, hi, ir)
+          case (3)
+             call nodal_zero_3d(cp(:,:,:,1), loc, mp_fine(:,:,:,1), lom_fine, lo, hi, ir)
+          end select
+        end do
+      end if
     end do
 
     do i = 1, fine%nboxes
