@@ -2039,16 +2039,28 @@ contains
     end do
   end subroutine lmultifab_print
 
-  subroutine mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer,        intent(in)    :: dstcomp, srccomp, nc
     logical,        intent(in)    :: lnocomm
 
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
     real(dp_t), pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
     integer,    parameter :: tag = 1102
     type(box)             :: abx
     integer               :: i, j, proc
+
+    real(dp_t), dimension(:,:,:,:), allocatable :: pt
 
     do i = 1, mdst%nboxes
        do j = 1, msrc%nboxes
@@ -2058,7 +2070,11 @@ contains
              if ( local(mdst,i) .and. local(msrc,j) ) then
                 pdst => dataptr(mdst, i, abx, dstcomp, nc)
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
-                pdst = psrc
+                if ( present(filter) ) then
+                   call filter(pdst, psrc)
+                else
+                   pdst = psrc
+                end if
              else if ( .not. lnocomm ) then
                 if ( local(msrc,j) ) then ! must send
                    psrc => dataptr(msrc, j, abx, srccomp, nc)
@@ -2067,7 +2083,14 @@ contains
                 else if ( local(mdst,i) ) then ! must recv
                    pdst => dataptr(mdst, i, abx, dstcomp, nc)
                    proc = get_proc(msrc%la, j)
-                   call parallel_recv(pdst, proc, tag)
+                   if ( present(filter) ) then
+                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                      call parallel_recv(pt, proc, tag)
+                      call filter(pdst, pt)
+                      deallocate(pt)
+                   else
+                      call parallel_recv(pdst, proc, tag)
+                   end if
                 end if
              end if
           end if
@@ -2075,16 +2098,28 @@ contains
     end do
   end subroutine mf_copy_easy_double
 
-  subroutine mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     integer,         intent(in)    :: dstcomp, srccomp, nc
     logical,         intent(in)    :: lnocomm
 
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
     integer, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
     integer, parameter :: tag = 1102
     type(box)          :: abx
     integer            :: i, j, proc
+
+    integer, dimension(:,:,:,:), allocatable :: pt
 
     do i = 1, mdst%nboxes
        do j = 1, msrc%nboxes
@@ -2094,7 +2129,11 @@ contains
              if ( local(mdst,i) .and. local(msrc,j) ) then
                 pdst => dataptr(mdst, i, abx, dstcomp, nc)
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
-                pdst = psrc
+                if ( present(filter) ) then
+                   call filter(pdst, psrc)
+                else
+                   pdst = psrc
+                end if
              else if ( .not. lnocomm ) then
                 if ( local(msrc,j) ) then ! must send
                    psrc => dataptr(msrc, j, abx, srccomp, nc)
@@ -2103,7 +2142,14 @@ contains
                 else if ( local(mdst,i) ) then ! must recv
                    pdst => dataptr(mdst, i, abx, dstcomp, nc)
                    proc = get_proc(msrc%la, j)
-                   call parallel_recv(pdst, proc, tag)
+                   if ( present(filter) ) then
+                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                      call parallel_recv(pt, proc, tag)
+                      call filter(pdst, pt)
+                      deallocate(pt)
+                   else
+                      call parallel_recv(pdst, proc, tag)
+                   end if
                 end if
              end if
           end if
@@ -2111,16 +2157,28 @@ contains
     end do
   end subroutine mf_copy_easy_integer
 
-  subroutine mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     integer,         intent(in)    :: dstcomp, srccomp, nc
     logical,         intent(in)    :: lnocomm
 
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
     logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
     integer, parameter :: tag = 1102
     type(box)          :: abx
     integer            :: i, j, proc
+
+    logical, dimension(:,:,:,:), allocatable :: pt
 
     do i = 1, mdst%nboxes
        do j = 1, msrc%nboxes
@@ -2130,7 +2188,11 @@ contains
              if ( local(mdst,i) .and. local(msrc,j) ) then
                 pdst => dataptr(mdst, i, abx, dstcomp, nc)
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
-                pdst = psrc
+                if ( present(filter) ) then
+                   call filter(pdst, psrc)
+                else
+                   pdst = psrc
+                end if
              else if ( .not. lnocomm ) then
                 if ( local(msrc,j) ) then ! must send
                    psrc => dataptr(msrc, j, abx, srccomp, nc)
@@ -2139,7 +2201,14 @@ contains
                 else if ( local(mdst,i) ) then ! must recv
                    pdst => dataptr(mdst, i, abx, dstcomp, nc)
                    proc = get_proc(msrc%la, j)
-                   call parallel_recv(pdst, proc, tag)
+                   if ( present(filter) ) then
+                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                      call parallel_recv(pt, proc, tag)
+                      call filter(pdst, pt)
+                      deallocate(pt)
+                   else
+                      call parallel_recv(pdst, proc, tag)
+                   end if
                 end if
              end if
           end if
@@ -2147,11 +2216,21 @@ contains
     end do
   end subroutine mf_copy_easy_logical
 
-  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer, intent(in)           :: dstcomp, srccomp, nc
     logical, intent(in)           :: lnocomm
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     type(copyassoc)      :: cpasc
     real(dp_t), pointer  :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
@@ -2170,7 +2249,11 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       pdst = psrc
+       if ( present(filter) ) then
+          call filter(pdst, psrc)
+       else
+          pdst = psrc
+       end if
     end do
     !$OMP END PARALLEL DO
 
@@ -2210,18 +2293,32 @@ contains
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       p =  reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       if ( present(filter) ) then
+          call filter(p, reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
+       else
+          p =  reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       end if
     end do
 
     if ( d_fb_async) call parallel_wait(sst)
 
   end subroutine mf_copy_fancy_double
 
-  subroutine mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     integer, intent(in)            :: dstcomp, srccomp, nc
     logical, intent(in)            :: lnocomm
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     type(copyassoc)      :: cpasc
     integer, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
@@ -2240,7 +2337,11 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       pdst = psrc
+       if ( present(filter) ) then
+          call filter(pdst, psrc)
+       else
+          pdst = psrc
+       end if
     end do
     !$OMP END PARALLEL DO
 
@@ -2280,18 +2381,32 @@ contains
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       p =  reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       if ( present(filter) ) then
+          call filter(p, reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
+       else
+          p =  reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       end if
     end do
 
     if ( i_fb_async) call parallel_wait(sst)
 
   end subroutine mf_copy_fancy_integer
 
-  subroutine mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm)
+  subroutine mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     integer, intent(in)            :: dstcomp, srccomp, nc
     logical, intent(in)            :: lnocomm
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     type(copyassoc)      :: cpasc
     logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
@@ -2310,7 +2425,11 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       pdst = psrc
+       if ( present(filter) ) then
+          call filter(pdst, psrc)
+       else
+          pdst = psrc
+       end if
     end do
     !$OMP END PARALLEL DO
 
@@ -2350,14 +2469,18 @@ contains
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       p =  reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       if ( present(filter) ) then
+          call filter(p, reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
+       else
+          p =  reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       end if
     end do
 
     if ( l_fb_async) call parallel_wait(sst)
 
   end subroutine mf_copy_fancy_logical
 
-  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     logical, intent(in), optional :: all, nocomm
@@ -2366,6 +2489,16 @@ contains
     real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
     logical                       :: lall, lnocomm
     integer                       :: i, lnc
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     lnc     = 1;       if ( present(nc)     ) lnc     = nc
     lall    = .false.; if ( present(all)    ) lall    = all
@@ -2386,29 +2519,41 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          pdst = psrc
+          if ( present(filter) ) then
+             call filter(pdst, psrc)
+          else
+             pdst = psrc
+          end if
        end do
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( d_cp_fancy ) then
-          call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        else
-          call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        end if
     end if
   end subroutine multifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, all, nocomm)
+  subroutine multifab_copy(mdst, msrc, all, nocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     logical, intent(in), optional :: all, nocomm
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
-    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm, filter)
   end subroutine multifab_copy
 
-  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
+  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
@@ -2417,6 +2562,16 @@ contains
     integer, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
     logical                        :: lall, lnocomm
     integer                        :: i, lnc
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     lnc     = 1;       if ( present(nc)     ) lnc     = nc
     lall    = .false.; if ( present(all)    ) lall    = all
@@ -2437,29 +2592,41 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          pdst = psrc
+          if ( present(filter) ) then
+             call filter(pdst, psrc)
+          else
+             pdst = psrc
+          end if
        end do
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( i_cp_fancy ) then
-          call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        else
-          call mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_easy_integer(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        end if
     end if
   end subroutine imultifab_copy_c
 
-  subroutine imultifab_copy(mdst, msrc, all, nocomm)
+  subroutine imultifab_copy(mdst, msrc, all, nocomm, filter)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('IMULTIFAB_COPY: multifabs must have same number of components')
-    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm, filter)
   end subroutine imultifab_copy
 
-  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm)
+  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
@@ -2468,6 +2635,16 @@ contains
     logical, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
     logical                        :: lall, lnocomm
     integer                        :: i, lnc
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
 
     lnc     = 1;       if ( present(nc)     ) lnc     = nc
     lall    = .false.; if ( present(all)    ) lall    = all
@@ -2488,26 +2665,38 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          pdst = psrc
+          if ( present(filter) ) then
+             call filter(pdst, psrc)
+          else
+             pdst = psrc
+          end if
        end do
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
 
        if ( l_cp_fancy ) then
-          call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        else
-          call mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm)
+          call mf_copy_easy_logical(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        end if
     end if
   end subroutine lmultifab_copy_c
 
-  subroutine lmultifab_copy(mdst, msrc, all, nocomm)
+  subroutine lmultifab_copy(mdst, msrc, all, nocomm, filter)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     logical, intent(in), optional  :: all, nocomm
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('LMULTIFAB_COPY: multifabs must have same number of components')
-    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm)
+    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm, filter)
   end subroutine lmultifab_copy
 
   subroutine build_nodal_dot_mask(mask, mf)
