@@ -102,9 +102,14 @@ contains
     call multifab_destroy(cfine)
 
   end subroutine ml_edge_restriction
-  !
-  ! TODO -- this needs to be parallelized!!!
-  !
+
+  subroutine ml_restrict_copy_sum(out, in)
+     use bl_types
+     real(dp_t), intent(inout) :: out(:,:,:,:)
+     real(dp_t), intent(in   ) ::  in(:,:,:,:)
+     out = out + in 
+  end subroutine ml_restrict_copy_sum
+
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
     type(multifab),  intent(inout) :: fine
     type(multifab),  intent(inout) :: crse
@@ -122,6 +127,9 @@ contains
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
     integer             :: rmode
+    type(layout)        :: lacfine
+    type(multifab)      :: cfine
+    type(imultifab)     :: mm_cfine
 
     if ( crse%nc .ne. fine%nc ) then
        call bl_error('ml_restriction: crse & fine must have same # of components')
@@ -129,72 +137,51 @@ contains
 
     linject = .false. ; if ( present(inject) ) linject = inject
 
-    call multifab_fill_boundary(fine)
+    call layout_build_coarse(lacfine, fine%la, ir)
+    call  multifab_build(cfine,    lacfine, nc =    crse%nc, ng = 0, nodal =    crse%nodal)
+    call imultifab_build(mm_cfine, lacfine, nc = mm_crse%nc, ng = 0, nodal = mm_crse%nodal)
+    call copy(   cfine,    crse)
+    call copy(mm_cfine, mm_crse)
 
     rmode = 0
 
-  do j = 1, crse%nboxes
-
-    cbox = get_ibox(crse,j)
-    loc = lwb(cbox) - crse%ng
-    lom_crse = lwb(get_box(mm_crse,j)) - mm_crse%ng
-
-!   Set to zero here on the interior of fine region so don't have to 
-!      within nodal_restriction
-    do i = 1, fine%nboxes
-       fbox = get_ibox(fine,i)
-       lof(:) = lwb(fbox) - fine%ng 
-       fbox = box_coarsen_v(fbox,ir)
-
-!      do id = 1,fbox%dim
-!         if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
-!         if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
-!      end do
-!      if (box_intersects(fbox,cbox)) then
-!         call setval(crse%fbs(j), ZERO, box_intersection(fbox,cbox))
-!      end if
-
-      if (box_intersects(fbox,cbox)) then
-
-        lo(:) = lwb(box_intersection(cbox,fbox))
-        hi(:) = upb(box_intersection(cbox,fbox))
-
-        fp      => dataptr(fine   ,i)
-        mp_fine => dataptr(mm_fine,i)
-        lom_fine(:) = lwb(get_box(mm_fine,i)) - mm_fine%ng
-
-        do n = 1, fine%nc
-           cp      => dataptr(crse   ,j, n, 1)
-           mp_crse => dataptr(mm_crse,j, n, 1)
-          select case (fine%dim)
-          case (1)
-             call nodal_zero_1d(cp(:,1,1,1), loc, mp_fine(:,1,1,1), lom_fine, lo, hi, ir)
-          case (2)
-             call nodal_zero_2d(cp(:,:,1,1), loc, mp_fine(:,:,1,1), lom_fine, lo, hi, ir)
-          case (3)
-             call nodal_zero_3d(cp(:,:,:,1), loc, mp_fine(:,:,:,1), lom_fine, lo, hi, ir)
-          end select
-        end do
-      end if
-    end do
+    if ( .not. linject ) then
+       do i = 1, fine%nboxes
+          if ( remote(fine, i) ) cycle
+          lo       = lwb(get_ibox(cfine,   i))
+          hi       = upb(get_ibox(cfine,   i))
+          loc      = lwb(get_pbox(cfine,   i))
+          lom_fine = lwb(get_pbox(mm_fine, i))
+          do n = 1, fine%nc
+             cp      => dataptr(cfine,   i, n, 1)
+             mp_fine => dataptr(mm_fine, i, n, 1)
+             select case (fine%dim)
+             case (1)
+                call nodal_zero_1d(cp(:,1,1,1), loc, mp_fine(:,1,1,1), lom_fine, lo, hi, ir)
+             case (2)
+                call nodal_zero_2d(cp(:,:,1,1), loc, mp_fine(:,:,1,1), lom_fine, lo, hi, ir)
+             case (3)
+                call nodal_zero_3d(cp(:,:,:,1), loc, mp_fine(:,:,:,1), lom_fine, lo, hi, ir)
+             end select
+          end do
+       end do
+       call copy(crse, cfine)
+       call setval(cfine, 0.0_dp_t)
+    end if
 
     do i = 1, fine%nboxes
-
-      fbox = get_ibox(fine,i)
-      lof(:) = lwb(fbox) - fine%ng 
-      fbox = box_coarsen_v(fbox,ir)
-
-      if (box_intersects(fbox,cbox)) then
-        lo(:) = lwb(box_intersection(cbox,fbox))
-        hi(:) = upb(box_intersection(cbox,fbox))
-
-        fp      => dataptr(fine   ,i)
-        mp_fine => dataptr(mm_fine,i)
-        lom_fine(:) = lwb(get_box(mm_fine,i)) - mm_fine%ng
-
-        do n = 1, fine%nc
-           cp      => dataptr(crse   ,j, n, 1)
-           mp_crse => dataptr(mm_crse,j, n, 1)
+       if ( remote(fine, i) ) cycle
+       lo       = lwb(get_ibox(cfine,   i))
+       hi       = upb(get_ibox(cfine,   i))
+       lof      = lwb(get_pbox(fine,    i))
+       loc      = lwb(get_pbox(cfine,   i))
+       lom_crse = lwb(get_pbox(mm_cfine,i))
+       lom_fine = lwb(get_pbox(mm_fine, i))
+       do n = 1, fine%nc
+          cp      => dataptr(cfine,   i, n, 1)
+          fp      => dataptr(fine,    i, n, 1)
+          mp_crse => dataptr(mm_cfine,i, n, 1)
+          mp_fine => dataptr(mm_fine, i, n, 1)
           select case (fine%dim)
           case (1)
              call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
@@ -209,10 +196,17 @@ contains
                   mp_fine(:,:,:,1), lom_fine, &
                   mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
           end select
-        end do
-      end if
+       end do
     end do
-  end do
+
+    if ( linject ) then
+       call multifab_copy(crse, cfine)
+    else
+       call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
+    end if
+
+    call destroy(mm_cfine)
+    call destroy(cfine)
 
   end subroutine ml_nodal_restriction
 
