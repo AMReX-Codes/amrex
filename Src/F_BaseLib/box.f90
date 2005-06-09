@@ -541,15 +541,19 @@ contains
   function box_contains(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
-    r = all(bx1%lo(1:bx1%dim) <= bx2%lo(1:bx2%dim)) &
-         .and. all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
+    r = all(bx1%lo(1:bx1%dim) <= bx2%lo(1:bx2%dim)) .and. &
+        all(bx1%lo(1:bx1%dim) <= bx2%hi(1:bx2%dim)) .and. &
+        all(bx1%hi(1:bx1%dim) >= bx2%lo(1:bx2%dim)) .and. &
+        all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
   end function box_contains
 
   function box_contains_strict(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
-    r = all(bx1%lo(1:bx1%dim) < bx2%lo(1:bx2%dim)) &
-         .and. all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
+    r = all(bx1%lo(1:bx1%dim) < bx2%lo(1:bx2%dim)) .and. &
+        all(bx1%lo(1:bx1%dim) < bx2%hi(1:bx2%dim)) .and. &
+        all(bx1%hi(1:bx1%dim) > bx2%lo(1:bx2%dim)) .and. &
+        all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
   end function box_contains_strict
 
   function box_contains_iv(bx1, iv) result(r)
