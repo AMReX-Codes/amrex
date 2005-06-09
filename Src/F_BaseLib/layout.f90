@@ -781,19 +781,18 @@ contains
           bx = box_nodalize(get_box(bxa, j), nodal)
           do ii = 1, bxai%nboxes
              abx = intersection(bx, bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                if ( local(la,i) .and. local(la, j) ) then
-                   lcnt   = lcnt   + 1
-                   lcnt_r = lcnt_r + 1
-                else if ( local(la, j) ) then
-                   cnt_s               = cnt_s + 1
-                   parr(lap%prc(i), 2) = parr(lap%prc(i), 2) + 1
-                   pvol(lap%prc(i), 2) = pvol(lap%prc(i), 2) + volume(abx)
-                else if ( local(la, i) ) then
-                   cnt_r               = cnt_r + 1
-                   parr(lap%prc(j), 1) = parr(lap%prc(j), 1) + 1
-                   pvol(lap%prc(j), 1) = pvol(lap%prc(j), 1) + volume(abx)
-                end if
+             if ( empty(abx) ) cycle
+             if ( local(la,i) .and. local(la, j) ) then
+                lcnt   = lcnt   + 1
+                lcnt_r = lcnt_r + 1
+             else if ( local(la, j) ) then
+                cnt_s               = cnt_s + 1
+                parr(lap%prc(i), 2) = parr(lap%prc(i), 2) + 1
+                pvol(lap%prc(i), 2) = pvol(lap%prc(i), 2) + volume(abx)
+             else if ( local(la, i) ) then
+                cnt_r               = cnt_r + 1
+                parr(lap%prc(j), 1) = parr(lap%prc(j), 1) + 1
+                pvol(lap%prc(j), 1) = pvol(lap%prc(j), 1) + volume(abx)
              end if
           end do
        end do
@@ -817,33 +816,32 @@ contains
           bx = box_nodalize(get_box(bxa, j), nodal)
           do ii = 1, bxai%nboxes
              abx = intersection(bx, bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                if ( local(la,i) .and. local(la, j) ) then
-                      bxasc%l_con%cpy(li_r)%nd  = i
-                      bxasc%l_con%cpy(li_r)%ns  = j
-                      bxasc%l_con%cpy(li_r)%sbx = abx
-                      bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
-                      li_r                      = li_r + 1
-                   else if ( local(la,j) ) then
-                      bxasc%r_con%snd(i_s)%nd  = i
-                      bxasc%r_con%snd(i_s)%ns  = j
-                      bxasc%r_con%snd(i_s)%sbx = abx
-                      bxasc%r_con%snd(i_s)%dbx = shift(abx,-shft(ii,:))
-                      bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                      bxasc%r_con%snd(i_s)%s1  = volume(abx)
-                      i_s                      = i_s + 1
-                   else if ( local(la,i) ) then
-                      bxasc%r_con%rcv(i_r)%nd  = i
-                      bxasc%r_con%rcv(i_r)%ns  = j
-                      bxasc%r_con%rcv(i_r)%sbx = abx
-                      bxasc%r_con%rcv(i_r)%dbx = shift(abx,-shft(ii,:))
-                      bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
-                      sh                       = 1
-                      sh(1:bxasc%dim)          = extent(abx)
-                      bxasc%r_con%rcv(i_r)%sh  = sh
-                      i_r                      = i_r + 1
-                   end if
-                end if
+             if ( empty(abx) ) cycle
+             if ( local(la,i) .and. local(la, j) ) then
+                bxasc%l_con%cpy(li_r)%nd  = i
+                bxasc%l_con%cpy(li_r)%ns  = j
+                bxasc%l_con%cpy(li_r)%sbx = abx
+                bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
+                li_r                      = li_r + 1
+             else if ( local(la,j) ) then
+                bxasc%r_con%snd(i_s)%nd  = i
+                bxasc%r_con%snd(i_s)%ns  = j
+                bxasc%r_con%snd(i_s)%sbx = abx
+                bxasc%r_con%snd(i_s)%dbx = shift(abx,-shft(ii,:))
+                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                bxasc%r_con%snd(i_s)%s1  = volume(abx)
+                i_s                      = i_s + 1
+             else if ( local(la,i) ) then
+                bxasc%r_con%rcv(i_r)%nd  = i
+                bxasc%r_con%rcv(i_r)%ns  = j
+                bxasc%r_con%rcv(i_r)%sbx = abx
+                bxasc%r_con%rcv(i_r)%dbx = shift(abx,-shft(ii,:))
+                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                sh                       = 1
+                sh(1:bxasc%dim)          = extent(abx)
+                bxasc%r_con%rcv(i_r)%sh  = sh
+                i_r                      = i_r + 1
+             end if
           end do
        end do
        call destroy(bxai)
@@ -1047,19 +1045,18 @@ contains
        do j = 1, bxa_src%nboxes
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
           bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
-          if ( .not. empty(bx) ) then
-             if ( local(la_dst,i) .and. local(la_src,j) ) then
-                lcnt   = lcnt   + 1
-                lcnt_r = lcnt_r + 1
-             else if ( local(la_src,j) ) then
-                cnt_s               = cnt_s + 1
-                parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
-                pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
-             else if ( local(la_dst,i) ) then
-                cnt_r               = cnt_r + 1
-                parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
-                pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
-             end if
+          if ( empty(bx) ) cycle
+          if ( local(la_dst,i) .and. local(la_src,j) ) then
+             lcnt   = lcnt   + 1
+             lcnt_r = lcnt_r + 1
+          else if ( local(la_src,j) ) then
+             cnt_s               = cnt_s + 1
+             parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
+             pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
+          else if ( local(la_dst,i) ) then
+             cnt_r               = cnt_r + 1
+             parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
+             pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
           end if
        end do
     end do
@@ -1078,32 +1075,31 @@ contains
        do j = 1, bxa_src%nboxes
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
           bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
-          if ( .not. empty(bx) ) then
-             if ( local(la_dst,i) .and. local(la_src,j) ) then
-                cpasc%l_con%cpy(li_r)%nd  = i
-                cpasc%l_con%cpy(li_r)%ns  = j
-                cpasc%l_con%cpy(li_r)%sbx = bx
-                cpasc%l_con%cpy(li_r)%dbx = bx
-                li_r                      = li_r + 1
-             else if ( local(la_src,j) ) then
-                cpasc%r_con%snd(i_s)%nd  = i
-                cpasc%r_con%snd(i_s)%ns  = j
-                cpasc%r_con%snd(i_s)%sbx = bx
-                cpasc%r_con%snd(i_s)%dbx = bx
-                cpasc%r_con%snd(i_s)%pr  = get_proc(la_dst,i)
-                cpasc%r_con%snd(i_s)%s1  = volume(bx)
-                i_s                      = i_s + 1
-             else if ( local(la_dst,i) ) then
-                cpasc%r_con%rcv(i_r)%nd  = i
-                cpasc%r_con%rcv(i_r)%ns  = j
-                cpasc%r_con%rcv(i_r)%sbx = bx
-                cpasc%r_con%rcv(i_r)%dbx = bx
-                cpasc%r_con%rcv(i_r)%pr  = get_proc(la_src,j)
-                sh                       = 1
-                sh(1:cpasc%dim)          = extent(bx)
-                cpasc%r_con%rcv(i_r)%sh  = sh
-                i_r                      = i_r + 1
-             end if
+          if ( empty(bx) ) cycle
+          if ( local(la_dst,i) .and. local(la_src,j) ) then
+             cpasc%l_con%cpy(li_r)%nd  = i
+             cpasc%l_con%cpy(li_r)%ns  = j
+             cpasc%l_con%cpy(li_r)%sbx = bx
+             cpasc%l_con%cpy(li_r)%dbx = bx
+             li_r                      = li_r + 1
+          else if ( local(la_src,j) ) then
+             cpasc%r_con%snd(i_s)%nd  = i
+             cpasc%r_con%snd(i_s)%ns  = j
+             cpasc%r_con%snd(i_s)%sbx = bx
+             cpasc%r_con%snd(i_s)%dbx = bx
+             cpasc%r_con%snd(i_s)%pr  = get_proc(la_dst,i)
+             cpasc%r_con%snd(i_s)%s1  = volume(bx)
+             i_s                      = i_s + 1
+          else if ( local(la_dst,i) ) then
+             cpasc%r_con%rcv(i_r)%nd  = i
+             cpasc%r_con%rcv(i_r)%ns  = j
+             cpasc%r_con%rcv(i_r)%sbx = bx
+             cpasc%r_con%rcv(i_r)%dbx = bx
+             cpasc%r_con%rcv(i_r)%pr  = get_proc(la_src,j)
+             sh                       = 1
+             sh(1:cpasc%dim)          = extent(bx)
+             cpasc%r_con%rcv(i_r)%sh  = sh
+             i_r                      = i_r + 1
           end if
        end do
     end do

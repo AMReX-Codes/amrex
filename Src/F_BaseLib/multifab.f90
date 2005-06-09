@@ -956,12 +956,10 @@ contains
           if ( lmultifab_remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
-             if ( .not. empty(bx1) ) &
-                  call setval(mf%fbs(i), val, bx1)
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
           else
              bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
-             if ( .not. empty(bx1) ) &
-                  call setval(mf%fbs(i), val, bx1)
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
           end if
        end do
     end do
@@ -984,12 +982,10 @@ contains
        if ( multifab_remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
     !$OMP END PARALLEL DO
@@ -1010,12 +1006,10 @@ contains
        if ( imultifab_remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
     !$OMP END PARALLEL DO
@@ -1036,12 +1030,10 @@ contains
        if ( lmultifab_remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) &
-               call setval(mf%fbs(i), val, bx1, c, nc)
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
     !$OMP END PARALLEL DO
@@ -1248,21 +1240,20 @@ contains
           if ( remote(mf,i) .and. remote(mf,j) ) cycle
           do ii = 1, bxai%nboxes
              abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                if ( local(mf,i) .and. local(mf,j) ) then
+             if ( empty(abx) ) cycle
+             if ( local(mf,i) .and. local(mf,j) ) then
+                psrc => dataptr(mf, j, abx, c, nc)
+                pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(mf,j) ) then ! must send
                    psrc => dataptr(mf, j, abx, c, nc)
+                   proc = get_proc(mf%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf,i) ) then  ! must recv
                    pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                   pdst = psrc
-                else if ( .not. lnocomm ) then
-                   if ( local(mf,j) ) then ! must send
-                      psrc => dataptr(mf, j, abx, c, nc)
-                      proc = get_proc(mf%la, i)
-                      call parallel_send(psrc, proc, tag)
-                   else if ( local(mf,i) ) then  ! must recv
-                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                      proc = get_proc(mf%la,j)
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   proc = get_proc(mf%la,j)
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end do
@@ -1289,21 +1280,20 @@ contains
           if ( remote(mf,i) .and. remote(mf,j) ) cycle
           do ii = 1, bxai%nboxes
              abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                if ( local(mf,i) .and. local(mf,j) ) then
+             if ( empty(abx) ) cycle
+             if ( local(mf,i) .and. local(mf,j) ) then
+                psrc => dataptr(mf, j, abx, c, nc)
+                pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(mf,j) ) then ! must send
                    psrc => dataptr(mf, j, abx, c, nc)
+                   proc = get_proc(mf%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf,i) ) then  ! must recv
                    pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                   pdst = psrc
-                else if ( .not. lnocomm ) then
-                   if ( local(mf,j) ) then ! must send
-                      psrc => dataptr(mf, j, abx, c, nc)
-                      proc = get_proc(mf%la, i)
-                      call parallel_send(psrc, proc, tag)
-                   else if ( local(mf,i) ) then  ! must recv
-                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                      proc = get_proc(mf%la,j)
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   proc = get_proc(mf%la,j)
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end do
@@ -1330,21 +1320,20 @@ contains
           if ( remote(mf,i) .and. remote(mf,j) ) cycle
           do ii = 1, bxai%nboxes
              abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
-             if ( .not. empty(abx) ) then
-                if ( local(mf,i) .and. local(mf,j) ) then
+             if ( empty(abx) ) cycle
+             if ( local(mf,i) .and. local(mf,j) ) then
+                psrc => dataptr(mf, j, abx, c, nc)
+                pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(mf,j) ) then ! must send
                    psrc => dataptr(mf, j, abx, c, nc)
+                   proc = get_proc(mf%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf,i) ) then  ! must recv
                    pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                   pdst = psrc
-                else if ( .not. lnocomm ) then
-                   if ( local(mf,j) ) then ! must send
-                      psrc => dataptr(mf, j, abx, c, nc)
-                      proc = get_proc(mf%la, i)
-                      call parallel_send(psrc, proc, tag)
-                   else if ( local(mf,i) ) then  ! must recv
-                      pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
-                      proc = get_proc(mf%la,j)
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   proc = get_proc(mf%la,j)
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end do
@@ -1781,30 +1770,29 @@ contains
                 ibx = get_ibox(mf,i)
              end if
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
-             if ( .not. empty(abx) ) then
-                if ( local(mf, i) .and. local(mf, j) ) then
-                   pdst => dataptr(mf, i, abx, c, lnc)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                   if ( present(filter) ) then
-                      call filter(pdst, psrc)
-                   else
-                      pdst = psrc
-                   end if
-                else if ( local(mf, j) ) then ! must send
-                   proc = get_proc(mf%la, i)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                   call parallel_send(psrc, proc, tag)
-                else if ( local(mf, i) ) then  ! must recv
-                   proc = get_proc(mf%la,j)
-                   pdst => dataptr(mf, i, abx, c, lnc)
-                   if ( present(filter) ) then
-                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                      call parallel_recv(pt, proc, tag)
-                      call filter(pdst, pt)
-                      deallocate(pt)
-                   else
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+             if ( empty(abx) ) cycle
+             if ( local(mf, i) .and. local(mf, j) ) then
+                pdst => dataptr(mf, i, abx, c, lnc)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                if ( present(filter) ) then
+                   call filter(pdst, psrc)
+                else
+                   pdst = psrc
+                end if
+             else if ( local(mf, j) ) then ! must send
+                proc = get_proc(mf%la, i)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mf, i) ) then  ! must recv
+                proc = get_proc(mf%la,j)
+                pdst => dataptr(mf, i, abx, c, lnc)
+                if ( present(filter) ) then
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
+                else
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end do
@@ -1877,30 +1865,29 @@ contains
                 ibx = get_ibox(mf,i)
              end if
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
-             if ( .not. empty(abx) ) then
-                if ( local(mf, i) .and. local(mf, j) ) then
-                   pdst => dataptr(mf, i, abx, c, lnc)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                   if ( present(filter) ) then
-                      call filter(pdst, psrc)
-                   else
-                      pdst = psrc
-                   end if
-                else if ( local(mf, j) ) then ! must send
-                   proc = get_proc(mf%la, i)
-                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                   call parallel_send(psrc, proc, tag)
-                else if ( local(mf, i) ) then  ! must recv
-                   proc = get_proc(mf%la,j)
-                   pdst => dataptr(mf, i, abx, c, lnc)
-                   if ( present(filter) ) then
-                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                      call parallel_recv(pt, proc, tag)
-                      call filter(pdst, pt)
-                      deallocate(pt)
-                   else
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+             if ( empty(abx) ) cycle
+             if ( local(mf, i) .and. local(mf, j) ) then
+                pdst => dataptr(mf, i, abx, c, lnc)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                if ( present(filter) ) then
+                   call filter(pdst, psrc)
+                else
+                   pdst = psrc
+                end if
+             else if ( local(mf, j) ) then ! must send
+                proc = get_proc(mf%la, i)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mf, i) ) then  ! must recv
+                proc = get_proc(mf%la,j)
+                pdst => dataptr(mf, i, abx, c, lnc)
+                if ( present(filter) ) then
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
+                else
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end do
@@ -2066,31 +2053,30 @@ contains
        do j = 1, msrc%nboxes
           if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
           abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
-          if ( .not. empty(abx) ) then
-             if ( local(mdst,i) .and. local(msrc,j) ) then
-                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+          if ( empty(abx) ) cycle
+          if ( local(mdst,i) .and. local(msrc,j) ) then
+             pdst => dataptr(mdst, i, abx, dstcomp, nc)
+             psrc => dataptr(msrc, j, abx, srccomp, nc)
+             if ( present(filter) ) then
+                call filter(pdst, psrc)
+             else
+                pdst = psrc
+             end if
+          else if ( .not. lnocomm ) then
+             if ( local(msrc,j) ) then ! must send
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
+                proc = get_proc(mdst%la, i)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mdst,i) ) then ! must recv
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                proc = get_proc(msrc%la, j)
                 if ( present(filter) ) then
-                   call filter(pdst, psrc)
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
                 else
-                   pdst = psrc
-                end if
-             else if ( .not. lnocomm ) then
-                if ( local(msrc,j) ) then ! must send
-                   psrc => dataptr(msrc, j, abx, srccomp, nc)
-                   proc = get_proc(mdst%la, i)
-                   call parallel_send(psrc, proc, tag)
-                else if ( local(mdst,i) ) then ! must recv
-                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
-                   proc = get_proc(msrc%la, j)
-                   if ( present(filter) ) then
-                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                      call parallel_recv(pt, proc, tag)
-                      call filter(pdst, pt)
-                      deallocate(pt)
-                   else
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end if
@@ -2125,31 +2111,30 @@ contains
        do j = 1, msrc%nboxes
           if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
           abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
-          if ( .not. empty(abx) ) then
-             if ( local(mdst,i) .and. local(msrc,j) ) then
-                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+          if ( empty(abx) ) cycle
+          if ( local(mdst,i) .and. local(msrc,j) ) then
+             pdst => dataptr(mdst, i, abx, dstcomp, nc)
+             psrc => dataptr(msrc, j, abx, srccomp, nc)
+             if ( present(filter) ) then
+                call filter(pdst, psrc)
+             else
+                pdst = psrc
+             end if
+          else if ( .not. lnocomm ) then
+             if ( local(msrc,j) ) then ! must send
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
+                proc = get_proc(mdst%la, i)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mdst,i) ) then ! must recv
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                proc = get_proc(msrc%la, j)
                 if ( present(filter) ) then
-                   call filter(pdst, psrc)
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
                 else
-                   pdst = psrc
-                end if
-             else if ( .not. lnocomm ) then
-                if ( local(msrc,j) ) then ! must send
-                   psrc => dataptr(msrc, j, abx, srccomp, nc)
-                   proc = get_proc(mdst%la, i)
-                   call parallel_send(psrc, proc, tag)
-                else if ( local(mdst,i) ) then ! must recv
-                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
-                   proc = get_proc(msrc%la, j)
-                   if ( present(filter) ) then
-                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                      call parallel_recv(pt, proc, tag)
-                      call filter(pdst, pt)
-                      deallocate(pt)
-                   else
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end if
@@ -2184,31 +2169,30 @@ contains
        do j = 1, msrc%nboxes
           if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
           abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
-          if ( .not. empty(abx) ) then
-             if ( local(mdst,i) .and. local(msrc,j) ) then
-                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+          if ( empty(abx) ) cycle
+          if ( local(mdst,i) .and. local(msrc,j) ) then
+             pdst => dataptr(mdst, i, abx, dstcomp, nc)
+             psrc => dataptr(msrc, j, abx, srccomp, nc)
+             if ( present(filter) ) then
+                call filter(pdst, psrc)
+             else
+                pdst = psrc
+             end if
+          else if ( .not. lnocomm ) then
+             if ( local(msrc,j) ) then ! must send
                 psrc => dataptr(msrc, j, abx, srccomp, nc)
+                proc = get_proc(mdst%la, i)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mdst,i) ) then ! must recv
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                proc = get_proc(msrc%la, j)
                 if ( present(filter) ) then
-                   call filter(pdst, psrc)
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
                 else
-                   pdst = psrc
-                end if
-             else if ( .not. lnocomm ) then
-                if ( local(msrc,j) ) then ! must send
-                   psrc => dataptr(msrc, j, abx, srccomp, nc)
-                   proc = get_proc(mdst%la, i)
-                   call parallel_send(psrc, proc, tag)
-                else if ( local(mdst,i) ) then ! must recv
-                   pdst => dataptr(mdst, i, abx, dstcomp, nc)
-                   proc = get_proc(msrc%la, j)
-                   if ( present(filter) ) then
-                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                      call parallel_recv(pt, proc, tag)
-                      call filter(pdst, pt)
-                      deallocate(pt)
-                   else
-                      call parallel_recv(pdst, proc, tag)
-                   end if
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end if
