@@ -107,6 +107,7 @@ contains
           call boxarray_add_clean(dba, bx1)
        end if
     end do
+
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
     !
@@ -120,15 +121,17 @@ contains
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
              bx1 = box_intersection(bx1, ss%la%lap%pd)
-             call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
-             do ii = 1, ba%nboxes
-                bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
-                if (.not. empty(bx1)) then
+             if (box_contains(ss%la%lap%pd,bx1)) then
+               call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
+               do ii = 1, ba%nboxes
+                 bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
+                 if (.not. empty(bx1)) then
                    mp => dataptr(mask%fbs(idx), bx1)
                    mp = ibset(mp, BC_BIT(BC_DIR,1,0))
-                end if
-             end do
-             call destroy(ba)
+                 end if
+               end do
+               call destroy(ba)
+             end if
           end do
        end do
     end do
