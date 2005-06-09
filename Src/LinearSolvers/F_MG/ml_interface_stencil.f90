@@ -71,40 +71,36 @@ contains
           lof = lwb(fbox)
 
           if (box_contains(crse_domain,fbox)) then
-             if (.not. empty(box_intersection(cbox,fbox))) then
-
-                lo = lwb(box_intersection(cbox,fbox))
-                hi = upb(box_intersection(cbox,fbox))
-                fp => dataptr(flux, i)
-                cp => dataptr(crse, j)
-                rp => dataptr(res, j)
-                sp => dataptr(ss, j)
-                do n = 1, 1
-                   select case (dm)
-                   case (1)
-                      call ml_interface_1d(rp(:,1,1,n), lor, &
-                           fp(:,1,1,n), lof, &
-                           cp(:,1,1,n), loc, &
-                           sp(:,1,1,:), los, &
-                           lo, hi, face, dim, efactor)
-                   case (2)
-                      call ml_interface_2d(rp(:,:,1,n), lor, &
-                           fp(:,:,1,n), lof, &
-                           cp(:,:,1,n), loc, &
-                           sp(:,:,1,:), los, &
-                           lo, hi, face, dim, efactor)
-                   case (3)
-                      call ml_interface_3d(rp(:,:,:,n), lor, &
-                           fp(:,:,:,n), lof, &
-                           cp(:,:,:,n), loc, &
-                           sp(:,:,:,:), los, &
-                           lo, hi, face, dim, efactor)
-                   end select
-                end do
-
-             end if
+             if ( empty(box_intersection(cbox,fbox)) ) cycle
+             lo = lwb(box_intersection(cbox,fbox))
+             hi = upb(box_intersection(cbox,fbox))
+             fp => dataptr(flux, i)
+             cp => dataptr(crse, j)
+             rp => dataptr(res, j)
+             sp => dataptr(ss, j)
+             do n = 1, 1
+                select case (dm)
+                case (1)
+                   call ml_interface_1d(rp(:,1,1,n), lor, &
+                        fp(:,1,1,n), lof, &
+                        cp(:,1,1,n), loc, &
+                        sp(:,1,1,:), los, &
+                        lo, hi, face, dim, efactor)
+                case (2)
+                   call ml_interface_2d(rp(:,:,1,n), lor, &
+                        fp(:,:,1,n), lof, &
+                        cp(:,:,1,n), loc, &
+                        sp(:,:,1,:), los, &
+                        lo, hi, face, dim, efactor)
+                case (3)
+                   call ml_interface_3d(rp(:,:,:,n), lor, &
+                        fp(:,:,:,n), lof, &
+                        cp(:,:,:,n), loc, &
+                        sp(:,:,:,:), los, &
+                        lo, hi, face, dim, efactor)
+                end select
+             end do
           end if
-
        end do
     end do
   end subroutine ml_interface
@@ -157,38 +153,34 @@ contains
           lof = lwb(fbox)
 
           if (box_contains(crse_domain,fbox)) then
-             if (.not. empty(box_intersection(cbox,fbox))) then
-
-                lo = lwb(box_intersection(cbox,fbox))
-                hi = upb(box_intersection(cbox,fbox))
-                fp => dataptr(flux, i, cf)
-                cp => dataptr(crse, j, cr)
-                rp => dataptr(res, j, cr)
-                sp => dataptr(ss, j)
-                select case (dm)
-                case (1)
-                   call ml_interface_1d(rp(:,1,1,1), lor, &
-                        fp(:,1,1,1), lof, &
-                        cp(:,1,1,1), loc, &
-                        sp(:,1,1,:), los, &
-                        lo, hi, face, dim, efactor)
-                case (2)
-                   call ml_interface_2d(rp(:,:,1,1), lor, &
-                        fp(:,:,1,1), lof, &
-                        cp(:,:,1,1), loc, &
-                        sp(:,:,1,:), los, &
-                        lo, hi, face, dim, efactor)
-                case (3)
-                   call ml_interface_3d(rp(:,:,:,1), lor, &
-                        fp(:,:,:,1), lof, &
-                        cp(:,:,:,1), loc, &
-                        sp(:,:,:,:), los, &
-                        lo, hi, face, dim, efactor)
-                end select
-
-             end if
+             if ( empty(box_intersection(cbox,fbox)) ) cycle
+             lo = lwb(box_intersection(cbox,fbox))
+             hi = upb(box_intersection(cbox,fbox))
+             fp => dataptr(flux, i, cf)
+             cp => dataptr(crse, j, cr)
+             rp => dataptr(res, j, cr)
+             sp => dataptr(ss, j)
+             select case (dm)
+             case (1)
+                call ml_interface_1d(rp(:,1,1,1), lor, &
+                     fp(:,1,1,1), lof, &
+                     cp(:,1,1,1), loc, &
+                     sp(:,1,1,:), los, &
+                     lo, hi, face, dim, efactor)
+             case (2)
+                call ml_interface_2d(rp(:,:,1,1), lor, &
+                     fp(:,:,1,1), lof, &
+                     cp(:,:,1,1), loc, &
+                     sp(:,:,1,:), los, &
+                     lo, hi, face, dim, efactor)
+             case (3)
+                call ml_interface_3d(rp(:,:,:,1), lor, &
+                     fp(:,:,:,1), lof, &
+                     cp(:,:,:,1), loc, &
+                     sp(:,:,:,:), los, &
+                     lo, hi, face, dim, efactor)
+             end select
           end if
-
        end do
     end do
   end subroutine ml_interface_c

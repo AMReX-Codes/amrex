@@ -2586,54 +2586,50 @@ contains
 
 !   Copy on intersect from the grid which owns ind() to the grid which doesn't.
     if (ngrids > 1) then
-      do igrid = 1,ngrids
-        ibx = get_ibox(ind,igrid)
-
-        do jgrid = 1,ngrids
-         if (jgrid .ne. igrid) then
-         jbx = get_ibox(ind,jgrid)
-
-         abx = intersection(ibx,jbx)
-
-         if (.not. empty(abx)) then
-           ind_i => dataptr(ind, igrid)
-           ind_j => dataptr(ind, jgrid)
-           lo_i = lwb(ibx)
-           hi_i = upb(ibx)
-           lo_j = lwb(jbx)
-           hi_j = upb(jbx)
-           lo_a = lwb(abx)
-           hi_a = upb(abx)
-           do_copy = .false.
-           do idm = 1,ind%dim
-             if (lo_i(idm) == hi_j(idm)) do_copy = .true.
-           end do
-           if (do_copy) then
-             select case(ind%dim)
-             case(1)
-               if (ind_i(lo_a(1),1,1,1) .gt. -1) ind_j(i,1,1,1) = ind_i(i,1,1,1)
-             case(2)
-               do j = lo_a(2),hi_a(2)
-               do i = lo_a(1),hi_a(1)
-                 if (ind_i(i,j,1,1) .gt. -1) then
-                  ind_j(i,j,1,1) = ind_i(i,j,1,1)
-                 end if
-               end do
-               end do
-             case(3)
-               do k = lo_a(3),hi_a(3)
-               do j = lo_a(2),hi_a(2)
-               do i = lo_a(1),hi_a(1)
-                 if (ind_i(i,j,k,1) .gt. -1) &
-                  ind_j(i,j,k,1) = ind_i(i,j,k,1)
-               end do
-               end do
-               end do
-             end select
-           end if
-         end if
-        end if
-        end do
+       do igrid = 1,ngrids
+          ibx = get_ibox(ind,igrid)
+          do jgrid = 1,ngrids
+             if (jgrid .ne. igrid) then
+                jbx = get_ibox(ind,jgrid)
+                abx = intersection(ibx,jbx)
+                if ( empty(abx) ) cycle
+                ind_i => dataptr(ind, igrid)
+                ind_j => dataptr(ind, jgrid)
+                lo_i = lwb(ibx)
+                hi_i = upb(ibx)
+                lo_j = lwb(jbx)
+                hi_j = upb(jbx)
+                lo_a = lwb(abx)
+                hi_a = upb(abx)
+                do_copy = .false.
+                do idm = 1,ind%dim
+                   if (lo_i(idm) == hi_j(idm)) do_copy = .true.
+                end do
+                if (do_copy) then
+                   select case(ind%dim)
+                   case(1)
+                      if (ind_i(lo_a(1),1,1,1) .gt. -1) ind_j(i,1,1,1) = ind_i(i,1,1,1)
+                   case(2)
+                      do j = lo_a(2),hi_a(2)
+                         do i = lo_a(1),hi_a(1)
+                            if (ind_i(i,j,1,1) .gt. -1) then
+                               ind_j(i,j,1,1) = ind_i(i,j,1,1)
+                            end if
+                         end do
+                      end do
+                   case(3)
+                      do k = lo_a(3),hi_a(3)
+                         do j = lo_a(2),hi_a(2)
+                            do i = lo_a(1),hi_a(1)
+                               if (ind_i(i,j,k,1) .gt. -1) &
+                                    ind_j(i,j,k,1) = ind_i(i,j,k,1)
+                            end do
+                         end do
+                      end do
+                   end select
+                end if
+             end if
+          end do
        end do
     end if
 
@@ -2866,43 +2862,42 @@ contains
 
 !      Copy on intersect from the grid which owns the solution to the grid which doesn't.
        if (ngrids > 1) then
-        do jgrid = 1,ngrids
-         jbx = get_ibox(uu,jgrid)
-         abx = intersection(ibx,jbx)
-         if (.not. empty(abx)) then
-           rp_j => dataptr(uu,jgrid)
-           lo_j = lwb(jbx)
-           hi_j = upb(jbx)
-           lo_a = lwb(abx)
-           hi_a = upb(abx)
-           do_copy = .false.
-           do idm = 1,rh%dim
-             if (lo(idm) == hi_j(idm)) do_copy = .true.
-           end do
-           if (do_copy) then
-             select case(rh%dim)
-             case(1)
-               if (ind(lo_a(1),1,1,1) .gt. -1) rp_j(i,1,1,1) = rp(i,1,1,1)
-             case(2)
-               do j = lo_a(2),hi_a(2)
-               do i = lo_a(1),hi_a(1)
-                 if (ind(i,j,1,1) .gt. -1) &
-                  rp_j(i,j,1,1) = rp(i,j,1,1)
-               end do
-               end do
-             case(3)
-               do k = lo_a(3),hi_a(3)
-               do j = lo_a(2),hi_a(2)
-               do i = lo_a(1),hi_a(1)
-                 if (ind(i,j,k,1) .gt. -1) &
-                  rp_j(i,j,k,1) = rp(i,j,k,1)
-               end do
-               end do
-               end do
-             end select
-           end if
-         end if
-        end do
+          do jgrid = 1,ngrids
+             jbx = get_ibox(uu,jgrid)
+             abx = intersection(ibx,jbx)
+             if ( empty(abx)) cycle
+             rp_j => dataptr(uu,jgrid)
+             lo_j = lwb(jbx)
+             hi_j = upb(jbx)
+             lo_a = lwb(abx)
+             hi_a = upb(abx)
+             do_copy = .false.
+             do idm = 1,rh%dim
+                if (lo(idm) == hi_j(idm)) do_copy = .true.
+             end do
+             if (do_copy) then
+                select case(rh%dim)
+                case(1)
+                   if (ind(lo_a(1),1,1,1) .gt. -1) rp_j(i,1,1,1) = rp(i,1,1,1)
+                case(2)
+                   do j = lo_a(2),hi_a(2)
+                      do i = lo_a(1),hi_a(1)
+                         if (ind(i,j,1,1) .gt. -1) &
+                              rp_j(i,j,1,1) = rp(i,j,1,1)
+                      end do
+                   end do
+                case(3)
+                   do k = lo_a(3),hi_a(3)
+                      do j = lo_a(2),hi_a(2)
+                         do i = lo_a(1),hi_a(1)
+                            if (ind(i,j,k,1) .gt. -1) &
+                                 rp_j(i,j,k,1) = rp(i,j,k,1)
+                         end do
+                      end do
+                   end do
+                end select
+             end if
+          end do
        end if
     end do
 

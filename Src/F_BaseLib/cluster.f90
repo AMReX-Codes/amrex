@@ -143,9 +143,8 @@ contains
          do j = 1, i-1
             bxj = get_pbox(mask, j)
             bxij = intersection(bxi, bxj)
-            if ( .not. empty(bxij) ) then
-               call setval(mask%fbs(i), .false., bxij)
-            end if
+            if ( empty(bxij) ) cycle
+            call setval(mask%fbs(i), .false., bxij)
          end do
       end do
     end subroutine owner_mask
@@ -763,9 +762,8 @@ contains
              bxj = get_ibox(mask, j)
           end if
           bxij = intersection(bxi, bxj)
-          if ( .not. empty(bxij) ) then
-             call setval(mask%fbs(i), .false., bxij)
-          end if
+          if ( empty(bxij) ) cycle
+          call setval(mask%fbs(i), .false., bxij)
        end do
     end do
   end subroutine lmultifab_owner_mask

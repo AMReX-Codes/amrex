@@ -107,7 +107,6 @@ contains
           call boxarray_add_clean(dba, bx1)
        end if
     end do
-
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
     !
@@ -121,21 +120,18 @@ contains
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
              bx1 = box_intersection(bx1, ss%la%lap%pd)
-             if (box_contains(ss%la%lap%pd,bx1)) then
-               call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
-               do ii = 1, ba%nboxes
-                 bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
-                 if (.not. empty(bx1)) then
-                   mp => dataptr(mask%fbs(idx), bx1)
-                   mp = ibset(mp, BC_BIT(BC_DIR,1,0))
-                 end if
-               end do
-               call destroy(ba)
-             end if
+             if ( empty(bx1) ) cycle
+             call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
+             do ii = 1, ba%nboxes
+                bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
+                if ( empty(bx1) ) cycle
+                mp => dataptr(mask%fbs(idx), bx1)
+                mp = ibset(mp, BC_BIT(BC_DIR,1,0))
+             end do
+             call destroy(ba)
           end do
        end do
     end do
-
     !
     ! Reset any Fine-Fine boundaries due to periodicity.
     !
@@ -147,15 +143,14 @@ contains
        sbx = shift(nbx, shft(i,:))
        do j = 1, ss%nboxes
           bx1 = intersection(get_ibox(ss,j), sbx)
-          if ( .not. empty(bx1) ) then
-             bx1 = shift(bx1, -shft(i,:))
-             call boxarray_boxarray_diff(pba, bx1, dba)
-             do ii = 1, pba%nboxes
-                mp => dataptr(mask%fbs(idx), pba%bxs(ii))
-                mp = BC_INT
-             end do
-             call destroy(pba)
-          end if
+          if ( empty(bx1) ) cycle
+          bx1 = shift(bx1, -shft(i,:))
+          call boxarray_boxarray_diff(pba, bx1, dba)
+          do ii = 1, pba%nboxes
+             mp => dataptr(mask%fbs(idx), pba%bxs(ii))
+             mp = BC_INT
+          end do
+          call destroy(pba)
        end do
     end do
 
