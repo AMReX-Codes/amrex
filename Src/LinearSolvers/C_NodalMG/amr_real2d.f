@@ -1,15 +1,14 @@
 c-----------------------------------------------------------------------
-      subroutine hgfinit(indx,
+      subroutine hgfinit(
      &     v, vlo, vhi, nc,
-     &     lo, hi)
+     &     lo, hi, n)
       implicit none
-      integer vlo(2), vhi(2), lo(2), hi(2), nc, indx
+      integer vlo(2), vhi(2), lo(2), hi(2), nc
       double precision v(
      &     vlo(1):vhi(1), vlo(2):vhi(2), nc
      &     )
       integer i, j, n
-      double precision JF, NF, IF
-      parameter (IF = 100)
+      double precision JF, NF
       parameter (JF = 100)
       parameter (NF = 100)
       do n = 1, nc
@@ -17,8 +16,8 @@ c-----------------------------------------------------------------------
                do i = lo(1), hi(1)
                   v(i,j,n) = i + JF*(j + NF*(n-1))
                end do
-            end do
-      end do
+               end do
+               end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based data.

@@ -1,15 +1,14 @@
 c-----------------------------------------------------------------------
-      subroutine hgfinit(indx,
+      subroutine hgfinit(
      &     v, vlo, vhi, nc,
-     &     lo, hi)
+     &     lo, hi, n)
       implicit none
-      integer vlo(3), vhi(3), lo(3), hi(3), nc, indx
+      integer vlo(3), vhi(3), lo(3), hi(3), nc
       double precision v(
      &     vlo(1):vhi(1), vlo(2):vhi(2), vlo(3):vhi(3), nc
      &     )
       integer i, j, k, n
-      double precision JF, KF, NF, IF
-      parameter (IF = 100)
+      double precision JF, KF, NF
       parameter (JF = 100)
       parameter (KF = 100)
       parameter (NF = 100)

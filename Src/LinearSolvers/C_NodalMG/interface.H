@@ -2,8 +2,6 @@
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
 
-#include <map>
-
 #include "amr_defs.H"
 
 class amr_boundary;
@@ -67,19 +65,6 @@ public:
     int aux (int idim, int i) const;
     bool flag (int idim, int i) const;
     static int ngrids (int idim);
-
-    mutable std::vector<char> m_fill_interface_1;
-    mutable std::vector<char> m_fill_interface_2;
-    mutable std::vector<char> m_fill_interface_3;
-
-    mutable std::vector<char> m_fill_internal_borders_fn;
-    mutable std::vector<char> m_fill_internal_borders_fc;
-
-    typedef std::map< std::pair<int,int>, std::vector<char> > InterfaceResidualMap;
-
-    mutable InterfaceResidualMap m_interface_residual_f;
-    mutable InterfaceResidualMap m_interface_residual_e;
-    mutable InterfaceResidualMap m_interface_residual_c;
 
 private:
 
