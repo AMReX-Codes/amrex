@@ -21,19 +21,18 @@
 
 extern "C"
 {
-  void FORT_FILL_INIT(const int*, Real*, const int*, const int*, const int*, const int*, const int*);
+  void FORT_FILL_INIT(Real*, const int*, const int*, const int*, const int*, const int*);
 }
 
 void
-HG_MF_INIT_FILL (MultiFab& mf)
+MF_FILL_INIT (MultiFab& mf)
 {
   for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
       Box bx = mfi.validbox();
       int nc = mf.nComp();
-      int in = mfi.index();
       FArrayBox& f = mf[mfi];
-      FORT_FILL_INIT(&in,
+      FORT_FILL_INIT(
 		     f.dataPtr(), f.loVect(), f.hiVect(), &nc,
 		     bx.loVect(), bx.hiVect());
     }

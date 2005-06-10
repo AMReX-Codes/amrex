@@ -58,13 +58,9 @@ level_interface::~level_interface()
 void
 level_interface::copy (const level_interface& src)
 {
-    if (ok()) BoxLib::Error( "level_interface::copy: this object already allocated" );
-
-    m_fill_interface_1         = src.m_fill_interface_1;
-    m_fill_interface_2         = src.m_fill_interface_2;
-    m_fill_interface_3         = src.m_fill_interface_3;
-    m_fill_internal_borders_fn = src.m_fill_internal_borders_fn;
-    m_fill_internal_borders_fc = src.m_fill_internal_borders_fc;
+    if (ok())
+	BoxLib::Error( "level_interface::copy"
+		       "this object already allocated" );
 
     status = 0;
 
@@ -100,26 +96,9 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
                                   const level_interface&    src,
                                   const IntVect&            rat)
 {
-    if (ok()) BoxLib::Error( "level_interface::alloc_coarsened: this object already allocated" );
-
-    m_fill_interface_1.resize(Im.size());
-    m_fill_interface_2.resize(Im.size());
-    m_fill_interface_3.resize(Im.size());
-    m_fill_internal_borders_fn.resize(src.nboxes(level_interface::FACEDIM));
-    m_fill_internal_borders_fc.resize(src.nboxes(level_interface::FACEDIM));
-
-    for (int i = 0; i < Im.size(); i++)
-    {
-        m_fill_interface_1[i] = 1;
-        m_fill_interface_2[i] = 1;
-        m_fill_interface_3[i] = 1;
-    }
-
-    for (int i = 0; i < src.nboxes(level_interface::FACEDIM); i++)
-    {
-        m_fill_internal_borders_fn[i] = 1;
-        m_fill_internal_borders_fc[i] = 1;
-    }
+    if (ok())
+	BoxLib::Error( "level_interface::alloc_coarsened"
+		       "this object already allocated" );
 
     status = 1;
 
@@ -189,22 +168,13 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
 }
 
 void
-level_interface::alloc (const BoxArray&     Im,
-                        const Box&          Domain,
+level_interface::alloc (const BoxArray&           Im,
+                        const Box&                Domain,
                         const amr_boundary* bdy)
 {
-    if (ok()) BoxLib::Error( "level_interface::alloc: this object already allocated" );
-
-    m_fill_interface_1.resize(Im.size());
-    m_fill_interface_2.resize(Im.size());
-    m_fill_interface_3.resize(Im.size());
-
-    for (int i = 0; i < Im.size(); i++)
-    {
-        m_fill_interface_1[i]   = 1;
-        m_fill_interface_2[i]   = 1;
-        m_fill_interface_3[i]   = 1;
-    }
+    if (ok())
+	BoxLib::Error( "level_interface::alloc"
+		       "this object already allocated" );
 
     status = 3;
 
@@ -603,15 +573,6 @@ level_interface::alloc (const BoxArray&     Im,
 		}
 	    }
 	}
-    }
-
-    m_fill_internal_borders_fn.resize(nboxes(level_interface::FACEDIM));
-    m_fill_internal_borders_fc.resize(nboxes(level_interface::FACEDIM));
-
-    for (int i = 0; i < nboxes(level_interface::FACEDIM); i++)
-    {
-        m_fill_internal_borders_fn[i] = 1;
-        m_fill_internal_borders_fc[i] = 1;
     }
 }
 

@@ -4,9 +4,6 @@
 
 #include "fill_patch.H"
 
-
-void HG_MF_INIT_FILL (MultiFab&);
-
 class amr_multigrid
 {
 public:

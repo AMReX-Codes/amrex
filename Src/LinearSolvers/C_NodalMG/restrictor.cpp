@@ -76,8 +76,7 @@ public:
                   int             dgrid_,
                   const Box&      bx,
                   const MultiFab& s_,
-                  int             sgrid_,
-                  char*           did_work);
+                  int             sgrid_);
 private:
     //
     // The data.
@@ -93,10 +92,9 @@ task_fab_get::task_fab_get (task_list&      tl_,
                             int             dgrid_,
                             const Box&      bx_,
                             const MultiFab& s_,
-                            int             sgrid_,
-                            char*           did_work)
+                            int             sgrid_)
     :
-    task_fab(tl_, d_, dgrid_, bx_, s_.nComp(), did_work),
+    task_fab(tl_, d_, dgrid_, bx_, s_.nComp()),
     s(s_),
     sgrid(sgrid_),
     bx(bx_),
@@ -107,8 +105,7 @@ task_fab_get::task_fab_get (task_list&      tl_,
                                                             target_proc_id(),
                                                             bx,
                                                             s,
-                                                            sgrid,
-                                                            did_work)));
+                                                            sgrid)));
 }
 
 extern "C"
@@ -129,9 +126,8 @@ struct task_restriction_fill
                            task_fab*      tf_,
                            const IntVect& rat_,
                            int            integrate_,
-                           int            i1_,
-                           int            i2_,
-                           char*          did_work);
+                           int            i1_ = 0,
+                           int            i2_ = 0);
 
     task_restriction_fill (const RESTFUN     ref_,
                            task_list&        tl_,
@@ -141,8 +137,7 @@ struct task_restriction_fill
                            task_fab*         tf_,
                            const IntVect&    rat_,
                            int               integrate_,
-                           const Array<int>& i1_,
-                           char*             did_work);
+                           const Array<int>& i1_);
 
     task_restriction_fill (const RESTFUN     ref_,
                            task_list&        tl_,
@@ -153,8 +148,7 @@ struct task_restriction_fill
                            const IntVect&    rat_,
                            int               integrate_,
                            const IntVect&    i1_,
-                           const Array<int>& i2_,
-                           char*             did_work);
+                           const Array<int>& i2_);
 
     virtual bool ready ();
 
@@ -182,10 +176,9 @@ task_restriction_fill::task_restriction_fill (const RESTFUN  ref_,
                                               const IntVect& rat_,
                                               int            integrate_,
                                               int            i1_,
-                                              int            i2_,
-                                              char*          did_work)
+                                              int            i2_)
     :
-    task(tl_,did_work),
+    task(tl_),
     ref(ref_),
     m(m_),
     ind(ind_),
@@ -208,10 +201,9 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
                                               task_fab*         tf_,
                                               const IntVect&    rat_,
                                               int               integrate_,
-                                              const Array<int>& i1_,
-                                              char*             did_work)
+                                              const Array<int>& i1_)
     :
-    task(tl_,did_work),
+    task(tl_),
     ref(ref_),
     m(m_),
     ind(ind_),
@@ -234,10 +226,9 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
                                               const IntVect&    rat_,
                                               int               integrate_,
                                               const IntVect&    i1_,
-                                              const Array<int>& i2_,
-                                              char*             did_work)
+                                              const Array<int>& i2_)
     :
-    task(tl_,did_work),
+    task(tl_),
     ref(ref_),
     m(m_),
     ind(ind_),
@@ -265,7 +256,6 @@ task_restriction_fill::ready ()
 	       tff->fab().dataPtr(), DIMLIST(fb),
 	       D_DECL(rat[0], rat[1], rat[2]), m.nComp(),
 	       &integrate, arg1.dataPtr(), arg2.dataPtr());
-        if (m_did_work) *m_did_work = 1;
     }
     return true;
 }
@@ -435,243 +425,223 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
         const Box regplus = BoxLib::grow(region, 1);
 
 	task_list tl;
-
-        if (lev_interface.m_fill_interface_1[jgrid])
+        for (int iface = 0;
+	     iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
         {
-            char* did_work = &lev_interface.m_fill_interface_1[jgrid];
+            if (lev_interface.flag(level_interface::FACEDIM, iface))
+		continue;
 
-            *did_work = 0;
-
-            for (int iface = 0;
-                 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
+            Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
+            const IntVect t =
+		lev_interface.box(level_interface::FACEDIM, iface).type();
+            const unsigned int geo =
+		lev_interface.geo(level_interface::FACEDIM, iface);
+            cbox.coarsen(rat);
+            if (region.intersects(cbox))
             {
-                if (lev_interface.flag(level_interface::FACEDIM, iface))
-                    continue;
+                //
+                // This extends fine face by one coarse cell past coarse face:
+                //
+                cbox &= regplus;
+                int idim = lev_interface.fdim(iface);
+                cbox.grow(t - 1);
+                Box fb = rebox(cbox, rat);
 
-                Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-                const IntVect t =
-                    lev_interface.box(level_interface::FACEDIM, iface).type();
-                const unsigned int geo =
-                    lev_interface.geo(level_interface::FACEDIM, iface);
-                cbox.coarsen(rat);
-                if (region.intersects(cbox))
+                if (geo == level_interface::ALL)
                 {
                     //
-                    // This extends fine face by one coarse cell past coarse face:
+                    // Fine grid on both sides.
                     //
-                    cbox &= regplus;
-                    int idim = lev_interface.fdim(iface);
-                    cbox.grow(t - 1);
-                    Box fb = rebox(cbox, rat);
+                    if (fine.nGrow() >= ratmax - 1)
+                    {
+                        int igrid =
+			    lev_interface.grid(
+				level_interface::FACEDIM, iface, 0);
+                        if (igrid < 0)
+                            igrid =
+				lev_interface.grid(
+				    level_interface::FACEDIM, iface, 1);
+                        task_fab* tfab =
+			    new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANRST2, tl,
+				dest, jgrid, cbox, tfab,
+				rat, integrate));
+                    }
+                    else
+                    {
+                        task_fab* tfab =
+			    new task_fill_patch(
+				tl, dest, jgrid, fb, fine,
+				lev_interface,
+				bdy,
+				level_interface::FACEDIM, iface);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate));
+                    }
+                }
+                else
+                {
+                    //
+                    // Fine grid on just one side.
+                    //
+                    const int idir  = (geo & level_interface::LOW) ? -1 : 1;
+                    const int igrid =
+			(idir < 0) ?
+			lev_interface.grid(
+			    level_interface::FACEDIM, iface, 0) :
+                        lev_interface.grid(
+			    level_interface::FACEDIM, iface, 1) ;
 
+                    if (igrid >= 0)
+                    {
+                        //
+                        // Usual case, a fine grid extends all along the face.
+                        //
+                        task_fab* tfab =
+			    new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate, idim, idir));
+                    }
+                    else
+                    {
+                        //
+                        // A virtual fine grid is on the other side of the boundary.
+                        //
+                        if (geo & level_interface::LOW)
+                            fb.growHi(idim, 1 - rat[idim]);
+                        else
+                            fb.growLo(idim, 1 - rat[idim]);
+                        task_fab* tfab =
+			    new task_fill_patch(
+				tl, dest, jgrid, fb, fine,
+				lev_interface, bdy,
+				level_interface::FACEDIM, iface);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate, idim, idir));
+                    }
+                }
+            }
+        }
+	tl.execute("bilinear_restrictor::fill_interface(1)");
+
+#if (BL_SPACEDIM == 3)
+
+        for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++)
+        {
+            if (lev_interface.flag(1, iedge)) continue;
+
+            Box cbox = lev_interface.node_box(1, iedge);
+            const IntVect t = lev_interface.box(1, iedge).type();
+            cbox.coarsen(rat);
+
+            if (region.intersects(cbox))
+            {
+                //
+                // This extends fine edge by one coarse cell past coarse face:
+                //
+                cbox &= regplus;
+                cbox.grow(t - 1);
+                const Box          fb  = rebox(cbox, rat);
+                const unsigned int geo = lev_interface.geo(1, iedge);
+
+                if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1)
+                {
+                    int igrid = lev_interface.grid(1, iedge, 0);
+                    for (int itmp = 1; igrid < 0; itmp++)
+                        igrid = lev_interface.grid(1, iedge, itmp);
+                    task_fab* tfab =
+			new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
+                    tl.add_task(
+			new task_restriction_fill(
+			    &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+			    rat, integrate));
+                }
+                else
+                {
+                    task_fab* tfab =
+			new task_fill_patch(
+			    tl, dest, jgrid, fb, fine, lev_interface, bdy, 1, iedge);
                     if (geo == level_interface::ALL)
                     {
                         //
-                        // Fine grid on both sides.
+                        // Fine grid on all sides.
                         //
-                        if (fine.nGrow() >= ratmax - 1)
-                        {
-                            int igrid =
-                                lev_interface.grid(
-                                    level_interface::FACEDIM, iface, 0);
-                            if (igrid < 0)
-                                igrid = lev_interface.grid( level_interface::FACEDIM, iface, 1);
-
-                            task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
-
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl,
-                                            dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
-                        }
-                        else
-                        {
-                            task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface,
-                                                                 bdy, level_interface::FACEDIM, iface, did_work);
-
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
-                        }
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate));
                     }
                     else
                     {
-                        //
-                        // Fine grid on just one side.
-                        //
-                        const int idir  = (geo & level_interface::LOW) ? -1 : 1;
-                        const int igrid =
-                            (idir < 0) ?
-                            lev_interface.grid(level_interface::FACEDIM, iface, 0) :
-                            lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
-
-                        if (igrid >= 0)
-                        {
-                            //
-                            // Usual case, a fine grid extends all along the face.
-                            //
-                            task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
-
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, idim, idir, did_work));
-                        }
-                        else
-                        {
-                            //
-                            // A virtual fine grid is on the other side of the boundary.
-                            //
-                            if (geo & level_interface::LOW)
-                                fb.growHi(idim, 1 - rat[idim]);
-                            else
-                                fb.growLo(idim, 1 - rat[idim]);
-
-                            task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface, bdy,
-                                                                 level_interface::FACEDIM, iface, did_work);
-
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, idim, idir, did_work));
-                        }
+                        Array<int> ga = lev_interface.geo_array(1, iedge);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANER2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate, t, ga));
                     }
                 }
             }
-            tl.execute("bilinear_restrictor::fill_interface(1)");
         }
-
-#if (BL_SPACEDIM == 3)
-        if (lev_interface.m_fill_interface_2[jgrid])
-        {
-            char* did_work = &lev_interface.m_fill_interface_2[jgrid];
-
-            *did_work = 0;
-
-            for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++)
-            {
-                if (lev_interface.flag(1, iedge)) continue;
-
-                Box cbox = lev_interface.node_box(1, iedge);
-                const IntVect t = lev_interface.box(1, iedge).type();
-                cbox.coarsen(rat);
-
-                if (region.intersects(cbox))
-                {
-                    //
-                    // This extends fine edge by one coarse cell past coarse face:
-                    //
-                    cbox &= regplus;
-                    cbox.grow(t - 1);
-                    const Box          fb  = rebox(cbox, rat);
-                    const unsigned int geo = lev_interface.geo(1, iedge);
-
-                    if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1)
-                    {
-                        int igrid = lev_interface.grid(1, iedge, 0);
-                        for (int itmp = 1; igrid < 0; itmp++)
-                            igrid = lev_interface.grid(1, iedge, itmp);
-
-                        task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
-
-                        tl.add_task(new task_restriction_fill(
-                                        &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                        rat, integrate, 0, 0, did_work));
-                    }
-                    else
-                    {
-                        task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface, bdy, 1, iedge, did_work);
-
-                        if (geo == level_interface::ALL)
-                        {
-                            //
-                            // Fine grid on all sides.
-                            //
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
-                        }
-                        else
-                        {
-                            Array<int> ga = lev_interface.geo_array(1, iedge);
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANER2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, t, ga, did_work));
-                        }
-                    }
-                }
-            }
-            tl.execute("bilinear_restrictor::fill_interface(2)");
-        }
+	tl.execute("bilinear_restrictor::fill_interface(2)");
 #endif
-        if (lev_interface.m_fill_interface_3[jgrid])
+        for (int icor = 0; icor < lev_interface.nboxes(0); icor++)
         {
-            char* did_work = &lev_interface.m_fill_interface_3[jgrid];
+            if (lev_interface.flag(0, icor)) continue;
 
-            *did_work = 0;
+            Box cbox = lev_interface.box(0, icor);
+            cbox.coarsen(rat);
 
-            for (int icor = 0; icor < lev_interface.nboxes(0); icor++)
+            if (region.intersects(cbox))
             {
-                if (lev_interface.flag(0, icor)) continue;
+                const Box          fb  = rebox(cbox, rat);
+                const unsigned int geo = lev_interface.geo(0, icor);
 
-                Box cbox = lev_interface.box(0, icor);
-                cbox.coarsen(rat);
-
-                if (region.intersects(cbox))
+                if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1)
                 {
-                    const Box          fb  = rebox(cbox, rat);
-                    const unsigned int geo = lev_interface.geo(0, icor);
-
-                    if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1)
+                    int igrid = lev_interface.grid(0, icor, 0);
+                    for (int itmp = 1; igrid < 0; itmp++)
+                        igrid = lev_interface.grid(0, icor, itmp);
+                    task_fab* tfab =
+			new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
+                    tl.add_task(
+			new task_restriction_fill(
+			    &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+			    rat, integrate));
+                }
+                else
+                {
+                    task_fab* tfab =
+			new task_fill_patch(tl, dest, jgrid, fb, fine,
+					    lev_interface, bdy, 0, icor);
+                    if (geo == level_interface::ALL)
                     {
-                        int igrid = lev_interface.grid(0, icor, 0);
-                        for (int itmp = 1; igrid < 0; itmp++)
-                            igrid = lev_interface.grid(0, icor, itmp);
-
-                        task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
-
-                        tl.add_task(new task_restriction_fill(
-                                        &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                        rat, integrate, 0, 0, did_work));
+                        //
+                        // Fine grid on all sides.
+                        //
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate));
                     }
                     else
                     {
-                        task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface, bdy, 0, icor, did_work);
-
-                        if (geo == level_interface::ALL)
-                        {
-                            //
-                            // Fine grid on all sides.
-                            //
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
-                        }
-                        else
-                        {
-                            Array<int> ga = lev_interface.geo_array(0, icor);
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANCR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, ga, did_work));
-                        }
+                        Array<int> ga = lev_interface.geo_array(0, icor);
+                        tl.add_task(
+			    new task_restriction_fill(
+				&FORT_FANCR2, tl, dest, jgrid, cbox, tfab,
+				rat, integrate, ga));
                     }
                 }
             }
-            tl.execute("bilinear_restrictor::fill_interface(3)");
         }
-    }
-
-    if (ParallelDescriptor::IOProcessor() && false)
-    {
-        int sum_1 = 0, sum_2 = 0, sum_3 = 0;
-
-        for (int jgrid = 0; jgrid < dest.size(); jgrid++)
-        {
-            if (lev_interface.m_fill_interface_1[jgrid]) sum_1++;
-            if (lev_interface.m_fill_interface_2[jgrid]) sum_2++;
-            if (lev_interface.m_fill_interface_3[jgrid]) sum_3++;
-        }
-
-        std::cout << "m_fill_interface_1: used " << sum_1 << " out of " << dest.size() << "\n";
-        std::cout << "m_fill_interface_2: used " << sum_2 << " out of " << dest.size() << "\n";
-        std::cout << "m_fill_interface_1: used " << sum_3 << " out of " << dest.size() << "\n";
+	tl.execute("bilinear_restrictor::fill_interface(3)");
     }
 }
