@@ -53,8 +53,8 @@ ifeq ($(COMP),g95)
   FC := g95
   F90 := g95
   CC := gcc
-  F90FLAGS += -std=f95
-  FFLAGS   += -std=f95
+  F90FLAGS += -std=f95 -fintrinsic-extensions  
+  FFLAGS   += -std=f95 -fintrinsic-extensions  
   F90FLAGS += -fmod=$(mdir) -I $(mdir)
   FFLAGS   += -fmod=$(mdir) -I $(mdir)
 # F90FLAGS += -Wall 
@@ -63,9 +63,9 @@ ifeq ($(COMP),g95)
 # FFLAGS += -ffloat-store
 # F90FLAGS += -ffloat-store
   ifdef NDEBUG
-    F90FLAGS += -O
-    FFLAGS += -O
-    CFLAGS += -O
+    F90FLAGS += -O3 -ffloat-store
+    FFLAGS += -O3 -ffloat-store
+    CFLAGS += -O3
   else
     F90FLAGS += -g
     F90FLAGS += -fbounds-check
@@ -168,6 +168,10 @@ ifeq ($(ARCH),Linux)
     endif
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
+    ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
+      _ifc  := ifort
+      _comp := Intel8
+    else
     ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
       _ifc  := ifort
       _comp := Intel8
@@ -179,6 +183,7 @@ ifeq ($(ARCH),Linux)
       _comp := Intel7
     else
       $(errorr "$(_ifc_version) of IFC will not work")
+    endif
     endif
     endif
     endif
@@ -197,6 +202,12 @@ ifeq ($(ARCH),Linux)
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
     endif
+    ifdef MPI
+      FFLAGS   += -I $(MPIHOME)/include
+      F90FLAGS += -I $(MPIHOME)/include
+      LDFLAGS  += -L$(MPIHOME)/lib
+      mpi_libraries += -lmpich
+    endif
     ifeq ($(_comp),Intel8)
       ifndef NDEBUG
         F90FLAGS += -g -traceback
@@ -206,7 +217,7 @@ ifeq ($(ARCH),Linux)
 #       F90FLAGS += -check noshape -check nopointer
 #       FFLAGS   += -check noshape -check nopointer
         CFLAGS   += -g -Wcheck
-	LDFLAGS  += -Bstatic
+#	LDFLAGS  += -Bstatic
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast
