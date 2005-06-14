@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.82 2005-06-02 00:28:08 vince Exp $
+# Make.defs $Id: Make.defs,v 1.83 2005-06-14 16:22:54 car Exp $
 #
 
 #
@@ -317,6 +317,16 @@ ifeq ($(COMP),Intel)
        CXXOPTF += -wd1572
        CXXDEBF += -wd1572
 #      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
+   else
+   ifeq ($(findstring Version 9, $(__icc_version)), Version 9)
+       ICC_VERSION := 9.0
+       ICC_MAJOR_VERSION := 9
+       ICC_MINOR_VERSION := 0
+       _icpc := icpc
+#      CXXOPTF += -wd1572
+#      CXXDEBF += -wd1572
+#      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
+   endif
    endif
    endif
    endif
@@ -335,8 +345,8 @@ ifeq ($(FCOMP),Intel)
    else
      _ifc := ifc
    endif
-   FDEBF += -g
-   fDEBF += -g
+   FDEBF += -g -u
+   fDEBF += -g -u
    FOPTF += -g
    fOPTF += -g
    FOPTF += -O3
@@ -381,6 +391,13 @@ ifeq ($(FCOMP),Intel)
        IFC_MAJOR_VERSION := 8
        IFC_MINOR_VERSION := 1
        LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
+   else
+   ifeq ($(findstring Version 9.0, $(__ifc_version)), Version 9.0)
+       IFC_VERSION := 9.0
+       IFC_MAJOR_VERSION := 9
+       IFC_MINOR_VERSION := 0
+       LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
+   endif
    endif
    endif
    endif
@@ -390,7 +407,7 @@ ifeq ($(FCOMP),Intel)
      FDEBF += -CB -CU
      fDEBF += -CB -CU
    endif
-   ifeq ($(IFC_MAJOR_VERSION),8)
+   ifneq ($(IFC_MAJOR_VERSION),7)
      _ifc := ifort
      override XTRALIBS += -lifcore 
    else
