@@ -22,8 +22,6 @@ module ppm_util_module
 
   private :: store_pgm_str, load_palette_str, store_ppm_str
 
-  integer, parameter, private :: EOS = -1
-
 contains
 
   subroutine load_palette(fname, r, g, b, a)
