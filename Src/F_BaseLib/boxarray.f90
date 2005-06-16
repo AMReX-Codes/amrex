@@ -438,6 +438,20 @@ contains
     end do
   end subroutine boxarray_nodalize
 
+  function boxarray_projectable(ba, rr) result(r)
+    logical :: r
+    type(boxarray), intent(in) :: ba
+    integer, intent(in) :: rr(:)
+    integer :: i
+    r = .true.
+    do i = 1, nboxes(ba)
+       if ( .not. box_projectable(ba%bxs(i), rr) ) then
+          r = .false.
+          exit
+       end if
+    end do
+  end function boxarray_projectable
+
   subroutine boxarray_coarsen_v_m(ba, cv, mask)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: cv(:)

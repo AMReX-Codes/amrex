@@ -106,6 +106,8 @@ module box_module
      module procedure box_grow_n_d_f
      module procedure box_grow_v
      module procedure box_grow_v_f
+     module procedure box_grow_v_m
+     module procedure box_grow_i_m
   end interface
 
   !! shifts a box
@@ -402,14 +404,6 @@ contains
     end do
   end function box_denodalize
 
-!   function box_grow_m(bx, mat) result(r)
-!     type(box), intent(in) :: bx
-!     integer, intent(in) :: mat(:,:)
-!     type(box) :: r
-!     r%dim = bx%dim
-!     r%lo(1:r%dim) =  bx%lo(1:bx%dim) - mat(1:bx%dim,1)
-!     r%hi(1:r%dim) =  bx%hi(1:bx%dim) + mat(1:bx%dim,2)
-!   end function box_grow_m
   function box_grow_v_f(bx, rv, face) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
@@ -417,10 +411,8 @@ contains
     type(box) :: r
     r = bx
     if ( face == -1 ) then
-       r = bx
        r%lo(1:r%dim) =  bx%lo(1:bx%dim) - rv
     else if ( face == 1 ) then
-       r = bx
        r%hi(1:r%dim) =  bx%hi(1:bx%dim) + rv
     else 
        call bl_error("BOX_GROW_V_F: unexpected face: ", face)
@@ -433,10 +425,8 @@ contains
     type(box) :: r
     r = bx
     if ( face == -1 ) then
-       r = bx
        r%lo(dim) = bx%lo(dim) - ri
     else if ( face == 1 ) then
-       r = bx
        r%hi(dim) = bx%hi(dim) + ri
     else 
        call bl_error("BOX_GROW_N_D_F: unexpected face: ", face)
@@ -461,12 +451,23 @@ contains
     integer, intent(in) :: rv(:)
     logical, intent(in) :: mask(:)
     type(box) :: r
-    r%dim = bx%dim
+    r = bx
     where ( mask(1:bx%dim) ) 
        r%lo = bx%lo - rv
        r%hi = bx%hi + rv
     end where
   end function box_grow_v_m
+  function box_grow_i_m(bx, iv, mask) result(r)
+    type(box), intent(in) :: bx
+    integer, intent(in) :: iv
+    logical, intent(in) :: mask(:)
+    type(box) :: r
+    r = bx
+    where ( mask(1:bx%dim) ) 
+       r%lo = bx%lo - iv
+       r%hi = bx%hi + iv
+    end where
+  end function box_grow_i_m
   function box_grow_v(bx, rv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
@@ -480,7 +481,7 @@ contains
     integer, intent(in) :: ri
     logical, intent(in) :: mask(:)
     type(box) :: r
-    r%dim = bx%dim
+    r = bx
     where ( mask(1:bx%dim) )
        r%lo = bx%lo - ri
        r%hi = bx%hi + ri
@@ -1166,15 +1167,22 @@ contains
        if (ri /= 0 .and. is_periodic(1)) bx = shift(bx,-ri*ldom(1),1)
     end do
 
-    contains
+  contains
 
-      function is_periodic(i) result(r)
-        integer, intent(in) :: i
-        logical             :: r
-        r = .false.
-        if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
-      end function is_periodic
+    function is_periodic(i) result(r)
+      integer, intent(in) :: i
+      logical             :: r
+      r = .false.
+      if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
+    end function is_periodic
 
   end subroutine box_periodic_shift
+
+  function box_projectable(bx, rr) result(r)
+    logical :: r
+    type(box), intent(in) :: bx
+    integer, intent(in) :: rr(:)
+    r = bx == refine(coarsen(bx, rr), rr)
+  end function box_projectable
 
 end module box_module
