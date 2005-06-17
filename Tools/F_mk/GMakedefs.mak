@@ -53,8 +53,8 @@ ifeq ($(COMP),g95)
   FC := g95
   F90 := g95
   CC := gcc
-  F90FLAGS += -std=f95 -fintrinsic-extensions  
-  FFLAGS   += -std=f95 -fintrinsic-extensions  
+  F90FLAGS += -std=f95 -fintrinsic-extensions=iargc,getarg
+  FFLAGS   += -std=f95 -fintrinsic-extensions=iargc,getarg  
   F90FLAGS += -fmod=$(mdir) -I $(mdir)
   FFLAGS   += -fmod=$(mdir) -I $(mdir)
 # F90FLAGS += -Wall 
