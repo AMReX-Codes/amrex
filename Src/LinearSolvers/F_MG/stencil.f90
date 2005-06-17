@@ -481,7 +481,7 @@ contains
     logical, pointer :: lp(:,:,:,:)
     r1 = -Huge(r1)
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r1)
+       !$OMP PARALLEL DO PRIVATE(i,sp,lp) REDUCTION(MAX:r1)
        do i = 1, ss%nboxes
           if ( remote(ss,i) ) cycle
           sp => dataptr(ss, i)
