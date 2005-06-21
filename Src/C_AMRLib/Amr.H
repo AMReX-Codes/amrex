@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.31 2005-03-30 01:49:01 welcome Exp $
+// $Id: Amr.H,v 1.32 2005-06-21 21:42:03 lijewski Exp $
 //
 
 #include <fstream>
@@ -154,6 +154,9 @@ public:
                 quantities.
     */
     static void fillStatePlotVarList ();
+
+    /*@ManDoc:  Write out plotfiles (True/False)? */
+    static bool Plot_Files_Output ();
 
     /*@ManDoc: The names of derived variables to output in the
                plotfile.  They can be set using the amr.derive\_plot\_vars 
