@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.140 2005-05-31 18:11:22 marc Exp $
+// $Id: Amr.cpp,v 1.141 2005-06-21 21:42:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -55,6 +55,8 @@ static const std::string CheckPointVersion = "CheckPointVersion_1.0";
 static int regrid_on_restart = 0;
 
 static int plotfile_on_restart = 0;
+
+bool Amr::Plot_Files_Output () { return plot_files_output; }
 
 std::ostream&
 Amr::DataLog (int i)
@@ -694,7 +696,7 @@ Amr::writePlotFile (const std::string& root,
                     int                num)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::writePlotFile()");
-    if ( ! plot_files_output ) return;
+    if ( ! Plot_Files_Output() ) return;
 
     if (first_plotfile) 
     {
