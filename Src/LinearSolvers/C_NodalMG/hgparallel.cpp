@@ -77,13 +77,14 @@ HG::MPI_finish ()
 
 
 // task
-task::task (task_list& tl_)
+task::task (task_list& tl_, char* did_work)
     :
     m_task_list(tl_),
     m_sno(1),
     m_cnt(1),
     m_finished(false),
-    m_started(false)
+    m_started(false),
+    m_did_work(did_work)
 {
     BL_ASSERT(m_sno > 0);
 }
@@ -361,9 +362,10 @@ task_copy_base::task_copy_base(task_list&      tl_,
 			       const Box&      db_,
 			       const MultiFab& smf_,
 			       int             sgrid_,
-			       const Box&      sb_)
+			       const Box&      sb_,
+                               char*           did_work)
   :
-  task(tl_),
+  task(tl_,did_work),
   m_request(MPI_REQUEST_NULL),
   m_tmp(0),
   m_dmf(dmf_),
@@ -439,6 +441,8 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
                                                   HG::mpi_comm).req();
             rcvcnt *= sizeof(double);
 
+            if (m_did_work) *m_did_work = 1;
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid))
@@ -453,6 +457,8 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
                                                   m_sno,
                                                   HG::mpi_comm).req();
             sndcnt *= sizeof(double);
+
+            if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
@@ -496,9 +502,10 @@ task_copy::task_copy (task_list&      tl_,
                       int             dgrid,
                       const MultiFab& smf,
                       int             sgrid,
-                      const Box&      bx)
+                      const Box&      bx,
+                      char*           did_work)
     :
-    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
+    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx, did_work)
 {
     init();
 }
@@ -509,9 +516,10 @@ task_copy::task_copy (task_list&      tl_,
                       const Box&      db,
                       const MultiFab& smf,
                       int             sgrid,
-                      const Box&      sb)
+                      const Box&      sb,
+                      char*           did_work)
     :
-    task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb)
+    task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb, did_work)
 {
     init();
 }
@@ -522,9 +530,10 @@ task_copy::task_copy (task_list&        tl_,
                       const MultiFab&   smf,
                       int               sgrid,
                       const Box&        bx,
-                      const task_proxy& tp)
+                      const task_proxy& tp,
+                      char*             did_work)
     :
-    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
+    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx, did_work)
 {
     depend_on(tp);
     init();
@@ -545,6 +554,8 @@ task_copy::init ()
             {
                 m_dmf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_dbx, 0, m_dmf.nComp());
 
+                if (m_did_work) *m_did_work = 1;
+
                 m_finished = true;
             }
         }
@@ -564,6 +575,7 @@ task_copy::ready ()
     {
         BL_ASSERT(!m_finished);
         m_dmf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_dbx,0,m_dmf.nComp());
+        if (m_did_work) *m_did_work = 1;
         return true;
     }
 
@@ -587,6 +599,7 @@ task_copy::ready ()
             BL_ASSERT(count == m_tmp->box().numPts()*m_tmp->nComp());
 #endif
             m_dmf[m_dgrid].copy(*m_tmp,m_tmp->box(),0,m_dbx,0,m_smf.nComp());
+            if (m_did_work) *m_did_work = 1;
         }
         return true;
     }
@@ -602,9 +615,10 @@ task_local_base::task_local_base (task_list&      tl_,
                                   const Box&      bx,
                                   const Box&      region,
                                   const MultiFab& smf_,
-                                  int             grid)
+                                  int             grid,
+                                  char*           did_work)
     :
-    task(tl_),
+    task(tl_,did_work),
     m_request(MPI_REQUEST_NULL),
     m_tmp(0),
     m_fab(fab_),
@@ -664,6 +678,8 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
                                                   HG::mpi_comm).req();
             rcvcnt *= sizeof(double);
 
+            if (m_did_work) *m_did_work = 1;
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid))
@@ -678,6 +694,8 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
                                                   m_sno,
                                                   HG::mpi_comm).req();
             sndcnt *= sizeof(double);
+
+            if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
@@ -726,9 +744,10 @@ task_copy_local::task_copy_local (task_list&      tl_,
                                   int             target_proc_id,
                                   const Box&      bx,
                                   const MultiFab& smf_,
-                                  int             grid)
+                                  int             grid,
+                                  char*           did_work)
     :
-    task_local_base(tl_,fab_,target_proc_id,bx,bx,smf_,grid)
+    task_local_base(tl_,fab_,target_proc_id,bx,bx,smf_,grid,did_work)
 {
     if (m_fab != 0 || is_local(m_smf, m_sgrid))
     {
@@ -741,6 +760,8 @@ task_copy_local::task_copy_local (task_list&      tl_,
             if (dependencies.empty())
             {
                 m_fab->copy(m_smf[m_sgrid], m_bx);
+
+                if (m_did_work) *m_did_work = 1;
 
                 m_finished = true;
             }
@@ -761,6 +782,7 @@ task_copy_local::ready ()
     {
         BL_ASSERT(!m_finished);
         m_fab->copy(m_smf[m_sgrid], m_bx);
+        if (m_did_work) *m_did_work = 1;
         return true;
     }
 
@@ -784,6 +806,7 @@ task_copy_local::ready ()
             BL_ASSERT(count == m_tmp->box().numPts()*m_tmp->nComp());
 #endif
             m_fab->copy(*m_tmp, m_bx);
+            if (m_did_work) *m_did_work = 1;
         }
         return true;
     }
@@ -798,9 +821,10 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
                               const Box&          region_,
                               const MultiFab&     src_,
                               int                 grid_,
-                              const Box&          domain_)
+                              const Box&          domain_,
+                              char*               did_work)
     :
-    task_local_base(tl_,fab_,target_proc_id,Box(),region_,src_,grid_),
+    task_local_base(tl_,fab_,target_proc_id,Box(),region_,src_,grid_,did_work),
     m_domain(domain_),
     m_bdy(bdy_)
 {
@@ -827,6 +851,8 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
             {
                 m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
 
+                if (m_did_work) *m_did_work = 1;
+
                 m_finished = true;
             }
         }
@@ -846,6 +872,7 @@ task_bdy_fill::ready ()
     {
         BL_ASSERT(!m_finished);
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
+        if (m_did_work) *m_did_work = 1;
 	return true;
     }
 
@@ -869,6 +896,7 @@ task_bdy_fill::ready ()
 	    BL_ASSERT(count == m_tmp->box().numPts()*m_tmp->nComp());
 #endif
 	    m_bdy->fill(*m_fab, m_region, *m_tmp, m_domain);
+            if (m_did_work) *m_did_work = 1;
 	}
 	return true;
     }
@@ -880,9 +908,10 @@ task_fab::task_fab (task_list&      tl_,
                     const MultiFab& t_,
                     int             tt_,
                     const Box&      region_,
-                    int             ncomp_)
+                    int             ncomp_,
+                    char*           did_work)
     :
-    task(tl_),
+    task(tl_,did_work),
     target(0),
     region(region_),
     ncomp(ncomp_),
@@ -893,6 +922,8 @@ task_fab::task_fab (task_list&      tl_,
     if (is_local(t_, tt_))
     {
         target = new FArrayBox(region, ncomp);
+
+        if (m_did_work) *m_did_work = 1;
     }
     else
     {
@@ -907,9 +938,10 @@ task_fab::~task_fab ()
 
 task_fec_base::task_fec_base (task_list& tl_,
                               MultiFab&  s_,
-                              int        igrid_)
+                              int        igrid_,
+                              char*      did_work)
     :
-    task(tl_),
+    task(tl_,did_work),
     s(s_),
     igrid(igrid_)
 {
