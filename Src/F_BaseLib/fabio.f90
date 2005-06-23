@@ -214,8 +214,8 @@ contains
     do i = 1, nb
        if ( local(mf, i) ) then
           do j = 1, nc
-             mnl(j) = min_val(mf%fbs(i),j,all)
-             mxl(j) = max_val(mf%fbs(i),j,all)
+             mnl(j) = min_val(mf%fbs(i), j, all = all)
+             mxl(j) = max_val(mf%fbs(i), j, all = all)
           end do
        end if
        if ( parallel_IOProcessor() ) then

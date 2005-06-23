@@ -269,6 +269,16 @@ module multifab_module
      module procedure multifab_sub_sub_s_c
   end interface
 
+  interface min_val
+     module procedure multifab_min_c
+     module procedure multifab_min
+  end interface
+
+  interface max_val
+     module procedure multifab_max_c
+     module procedure multifab_max
+  end interface
+
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
@@ -2755,7 +2765,7 @@ contains
        if ( present(all) ) call bl_error('DONT SAY ALL IN MASKED FUNCTION DOT')
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( multifab_remote(mf,i) ) cycle
              mp => dataptr(mf, i, get_ibox(mf, i), comp)
@@ -2766,6 +2776,7 @@ contains
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( multifab_remote(mf,i) ) cycle
 
@@ -2775,6 +2786,7 @@ contains
 
              r1 = r1 + sum(ma*mp*mp1)
           end do
+          !$OMP END PARALLEL DO
           call destroy(tmask)
        else
           call bl_error("MULTIFAB_DOT_CC, failes when not nodal or cell-centered, can be fixed")
@@ -2798,6 +2810,7 @@ contains
        else if ( nodal_q(mf) ) then
           if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
           call build_nodal_dot_mask(tmask, mf)
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( multifab_remote(mf,i) ) cycle
 
@@ -2807,6 +2820,7 @@ contains
 
              r1 = r1 + sum(ma*mp*mp1)
           end do
+          !$OMP END PARALLEL DO
           call destroy(tmask)
        else
           call bl_error("MULTIFAB_DOT_CC, failes when not nodal or cell-centered, can be fixed")
@@ -2847,6 +2861,7 @@ contains
     else if (nodal_q(mf) ) then
        if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
        call build_nodal_dot_mask(mask, mf)
+       !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
 
@@ -2856,6 +2871,7 @@ contains
 
           r1 = r1 + sum(ma*mp*mp1)
        end do
+       !$OMP END PARALLEL DO
        call destroy(mask)
     else
        call bl_error("MULTIFAB_DOT_C fails when not nodal or cell centered, can be fixed")
@@ -2894,6 +2910,7 @@ contains
     else if ( nodal_q(mf) ) then
        if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
        call build_nodal_dot_mask(mask, mf)
+       !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
 
@@ -2903,12 +2920,59 @@ contains
 
           r1 = r1 + sum(ma*mp*mp1)
        end do
+       !$OMP END PARALLEL DO
        call destroy(mask)
     else
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
     call parallel_reduce(r,r1,MPI_SUM)
   end function multifab_dot
+
+  subroutine multifab_rescale_2(mf, c, min, max, xmin, xmax, clip)
+    type(multifab), intent(inout) :: mf
+    real(dp_t), intent(in), optional :: min, max
+    real(dp_t), intent(in), optional :: xmin, xmax
+    logical, intent(in), optional :: clip
+    integer, intent(in) :: c
+    integer :: i
+    real(dp_t), pointer :: mp(:,:,:,:)
+    real(dp_t) :: lmin, lmax, lxmin, lxmax
+    logical :: lclip
+    lclip = .false. ; if ( present(clip) ) lclip = clip
+    if ( present(min) ) then
+       lmin = min
+    else
+       lmin = min_val(mf, c)
+    end if
+    if ( present(max) ) then
+       lmax = max
+    else
+       lmax = max_val(mf, c)
+    end if
+    lxmin = 0.0_dp_t ; if ( present(xmin) ) lxmin = xmin
+    lxmax = 1.0_dp_t ; if ( present(xmax) ) lxmax = xmax
+    if ( lclip ) then
+       !$OMP PARALLEL DO PRIVATE(i, mp) SHARED(mf,c,lxmin,lxmax,lmin,lmax)
+       do i = 1, nboxes(mf)
+          mp => dataptr(mf, i, get_ibox(mf, i), c)
+          where ( mp < lmin )
+             mp = lxmin
+          elsewhere ( mp > lmax )
+             mp = lxmax
+          elsewhere
+             mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
+          end where
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i, mp)
+       do i = 1, nboxes(mf)
+          mp => dataptr(mf, i, get_ibox(mf, i), c)
+          mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
+       end do
+       !$OMP END PARALLEL DO
+    end if
+  end subroutine multifab_rescale_2
 
   subroutine multifab_rescale_c(mf, c, val, off)
     real(dp_t), intent(in) :: val
@@ -3098,7 +3162,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
@@ -3153,7 +3217,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
@@ -3211,7 +3275,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
@@ -3268,7 +3332,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+       !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
@@ -3765,6 +3829,7 @@ contains
     if ( ncomp(mf) < cm + nc - 1 ) then
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
+    !$OMP PARALLEL DO PRIVATE(i,mp,xo)
     do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
@@ -3777,6 +3842,7 @@ contains
           call c_3d(fb(:,:,:,cf:cf+nc-1), lo, mp(:,:,:,cm:cm+nc-1), xo)
        end select
     end do
+    !$OMP END PARALLEL DO
   contains
     subroutine c_1d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
@@ -3812,5 +3878,67 @@ contains
       end do
     end subroutine c_3d
   end subroutine multifab_fab_copy
+
+  function multifab_min(mf, all) result(r)
+    real(kind=dp_t) :: r
+    type(multifab), intent(in) :: mf
+    logical, intent(in), optional :: all
+    integer :: i
+    real(kind=dp_t) :: r1
+    r1 = +Huge(r1)
+    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
+    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+       r1 = min(r1,min_val(mf%fbs(i), all))
+    end do
+    !$OMP END PARALLEL DO
+    call parallel_reduce(r, r1, MPI_MIN)
+  end function multifab_min
+  function multifab_min_c(mf, c, nc, all) result(r)
+    real(kind=dp_t) :: r
+    type(multifab), intent(in) :: mf
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    real(kind=dp_t) :: r1
+    integer :: i
+    r1 = +Huge(r1)
+    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
+    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+       r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
+    end do
+    !$OMP END PARALLEL DO
+    call parallel_reduce(r, r1, MPI_MIN)
+  end function multifab_min_c
+  
+  function multifab_max(mf, all) result(r)
+    real(kind=dp_t) :: r
+    type(multifab), intent(in) :: mf
+    logical, intent(in), optional :: all
+    integer :: i
+    real(kind=dp_t) :: r1
+    r1 = -Huge(r1)
+    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
+    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+       r1 = max(r1, max_val(mf%fbs(i), all))
+    end do
+    !$OMP END PARALLEL DO
+    call parallel_reduce(r, r1, MPI_MAX)
+  end function multifab_max
+  function multifab_max_c(mf, c, nc, all) result(r)
+    real(kind=dp_t) :: r
+    type(multifab), intent(in) :: mf
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    integer :: i
+    real(kind=dp_t) :: r1
+    r1 = -Huge(r1)
+    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
+    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+       r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
+    end do
+    !$OMP END PARALLEL DO
+    call parallel_reduce(r, r1, MPI_MAX)
+  end function multifab_max_c
   
 end module multifab_module

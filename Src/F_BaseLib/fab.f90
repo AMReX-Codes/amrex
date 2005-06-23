@@ -1384,18 +1384,19 @@ contains
     end if
     r = maxval(mp)
   end function fab_max
-  function fab_max_c(fb, c, all) result(r)
+  function fab_max_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     logical :: lall
     real(dp_t), pointer :: mp(:,:,:,:)
     lall = .FALSE.; if ( present(all) ) lall = all
     if ( lall ) then
-       mp => dataptr(fb, get_pbox(fb), c)
+       mp => dataptr(fb, get_pbox(fb), c, nc)
     else
-       mp => dataptr(fb, get_ibox(fb), c)
+       mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = maxval(mp)
   end function fab_max_c
@@ -1409,15 +1410,16 @@ contains
     mp => dataptr(fb, sbx)
     r = maxval(mp)
   end function fab_max_bx
-  function fab_max_bx_c(fb, bx, c) result(r)
+  function fab_max_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     real(dp_t), pointer :: mp(:,:,:,:)
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c)
+    mp => dataptr(fb, sbx, c, nc)
     r = maxval(mp)
   end function fab_max_bx_c
   function ifab_max(fb, all) result(r)
@@ -1434,18 +1436,19 @@ contains
     end if
     r = maxval(mp)
   end function ifab_max
-  function ifab_max_c(fb, c, all) result(r)
+  function ifab_max_c(fb, c, nc, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     logical :: lall
     integer, pointer :: mp(:,:,:,:)
     lall = .FALSE.; if ( present(all) ) lall = all
     if ( lall ) then
-       mp => dataptr(fb, get_pbox(fb), c)
+       mp => dataptr(fb, get_pbox(fb), c, nc)
     else
-       mp => dataptr(fb, get_ibox(fb), c)
+       mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = maxval(mp)
   end function ifab_max_c
@@ -1459,15 +1462,16 @@ contains
     mp => dataptr(fb, sbx)
     r = maxval(mp)
   end function ifab_max_bx
-  function ifab_max_bx_c(fb, bx, c) result(r)
+  function ifab_max_bx_c(fb, bx, c, nc) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     integer, pointer :: mp(:,:,:,:)
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c)
+    mp => dataptr(fb, sbx, c, nc)
     r = maxval(mp)
   end function ifab_max_bx_c
 
@@ -1485,18 +1489,19 @@ contains
     end if
     r = minval(mp)
   end function fab_min
-  function fab_min_c(fb, c, all) result(r)
+  function fab_min_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     logical :: lall
     real(dp_t), pointer :: mp(:,:,:,:)
     lall = .FALSE.; if ( present(all) ) lall = all
     if ( lall ) then
-       mp => dataptr(fb, get_pbox(fb), c)
+       mp => dataptr(fb, get_pbox(fb), c, nc)
     else
-       mp => dataptr(fb, get_ibox(fb), c)
+       mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = minval(mp)
   end function fab_min_c
@@ -1510,15 +1515,16 @@ contains
     mp => dataptr(fb, sbx)
     r = minval(mp)
   end function fab_min_bx
-  function fab_min_bx_c(fb, bx, c) result(r)
+  function fab_min_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     real(dp_t), pointer :: mp(:,:,:,:)
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c)
+    mp => dataptr(fb, sbx, c, nc)
     r = minval(mp)
   end function fab_min_bx_c
   function ifab_min(fb, all) result(r)
@@ -1535,10 +1541,11 @@ contains
     end if
     r = minval(mp)
   end function ifab_min
-  function ifab_min_c(fb, c, all) result(r)
+  function ifab_min_c(fb, c, nc, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     logical :: lall
     integer, pointer :: mp(:,:,:,:)
@@ -1560,15 +1567,16 @@ contains
     mp => dataptr(fb, sbx)
     r = minval(mp)
   end function ifab_min_bx
-  function ifab_min_bx_c(fb, bx, c) result(r)
+  function ifab_min_bx_c(fb, bx, c, nc) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
+    integer, intent(in), optional :: nc
     integer, pointer :: mp(:,:,:,:)
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c)
+    mp => dataptr(fb, sbx, c, nc)
     r = minval(mp)
   end function ifab_min_bx_c
 
