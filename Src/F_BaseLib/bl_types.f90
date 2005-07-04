@@ -38,7 +38,7 @@ module bl_types
   !! Prints useful type information for some of the basic type
   public :: bl_types_info
    
-  logical, private, parameter :: bigend = IACHAR(TRANSFER(1,"a")) == 0 
+  logical, private, parameter :: bigendian = IACHAR(TRANSFER(1,"a")) == 0 
 
 contains
   
@@ -78,7 +78,7 @@ contains
 
   function bl_is_bigendian() result(r)
     logical :: r
-    r = endian
+    r = bigendian
   end function bl_is_bigendian
 
 end module bl_types
