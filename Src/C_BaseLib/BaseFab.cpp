@@ -57,7 +57,7 @@ BoxLib::The_Arena ()
     return a;
 }
 
-#ifndef WIN32
+#if !( defined(WIN32) || defined(PGI) )
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
