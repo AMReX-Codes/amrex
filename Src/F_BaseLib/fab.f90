@@ -35,6 +35,16 @@ module fab_module
      real(kind = dp_t), pointer, dimension(:,:,:,:) :: p => Null()
   end type fab
 
+  type zfab
+     integer   :: dim = 0
+     type(box) :: bx
+     type(box) :: pbx
+     type(box) :: ibx
+     integer   :: nc = 1
+     integer   :: ng = 0
+     complex(kind = dp_t), pointer, dimension(:,:,:,:) :: p => Null()
+  end type zfab
+
   type ifab
      integer   :: dim = 0
      type(box) :: bx
@@ -77,6 +87,7 @@ module fab_module
 
   interface destroy
      module procedure fab_destroy
+     module procedure zfab_destroy
      module procedure ifab_destroy
      module procedure lfab_destroy
   end interface
@@ -109,6 +120,11 @@ module fab_module
      module procedure fab_dataptr_c
      module procedure fab_dataptr_bx_c
 
+     module procedure zfab_dataptr
+     module procedure zfab_dataptr_bx
+     module procedure zfab_dataptr_c
+     module procedure zfab_dataptr_bx_c
+
      module procedure ifab_dataptr
      module procedure ifab_dataptr_bx
      module procedure ifab_dataptr_c
@@ -125,6 +141,11 @@ module fab_module
      module procedure fab_setval_bx
      module procedure fab_setval_c
      module procedure fab_setval_bx_c
+
+     module procedure zfab_setval
+     module procedure zfab_setval_bx
+     module procedure zfab_setval_c
+     module procedure zfab_setval_bx_c
 
      module procedure ifab_setval
      module procedure ifab_setval_bx
@@ -143,50 +164,47 @@ module fab_module
      module procedure lfab_print
   end interface
 
-!  interface lwb
-!     module procedure fab_lwb
-!     module procedure ifab_lwb
-!  end interface
-
-!   interface upb
-!      module procedure fab_upb
-!      module procedure ifab_upb
-!   end interface
-
   interface get_box
      module procedure fab_get_box
+     module procedure zfab_get_box
      module procedure ifab_get_box
      module procedure lfab_get_box
   end interface
 
   interface get_pbox
      module procedure fab_get_pbox
+     module procedure zfab_get_pbox
      module procedure ifab_get_pbox
      module procedure lfab_get_pbox
   end interface
 
   interface get_ibox
      module procedure fab_get_ibox
+     module procedure zfab_get_pbox
      module procedure ifab_get_ibox
      module procedure lfab_get_ibox
   end interface
 
   interface volume
      module procedure fab_volume
+     module procedure zfab_volume
      module procedure ifab_volume
      module procedure lfab_volume
   end interface
 
   interface ncomp
      module procedure fab_ncomp
+     module procedure zfab_ncomp
      module procedure ifab_ncomp
   end interface
 
   real(kind=dp_t), parameter :: fab_default_init = -Huge(1.0_dp_t)
+  complex(kind=dp_t), parameter :: zfab_default_init = -Huge(1.0_dp_t)
   integer, parameter :: ifab_default_init = -Huge(1)
   logical, parameter :: lfab_default_init = .FALSE.
 
   type(mem_stats), private, save ::  fab_ms
+  type(mem_stats), private, save :: zfab_ms
   type(mem_stats), private, save :: ifab_ms
   type(mem_stats), private, save :: lfab_ms
 
@@ -196,6 +214,10 @@ contains
     type(mem_stats), intent(in) :: ms
     fab_ms = ms
   end subroutine fab_set_mem_stats
+  subroutine zfab_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    zfab_ms = ms
+  end subroutine zfab_set_mem_stats
   subroutine ifab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
     ifab_ms = ms
@@ -209,6 +231,10 @@ contains
     type(mem_stats) :: r
     r = fab_ms
   end function fab_mem_stats
+  function zfab_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = zfab_ms
+  end function zfab_mem_stats
   function ifab_mem_stats() result(r)
     type(mem_stats) :: r
     r = ifab_ms
@@ -228,6 +254,16 @@ contains
        r = volume(get_box(fb))
     end if
   end function fab_volume
+  function zfab_volume(fb, all) result(r)
+    integer(kind=ll_t) :: r
+    type(zfab), intent(in) :: fb
+    logical, optional :: all
+    if ( all ) then
+       r = volume(get_pbox(fb))
+    else
+       r = volume(get_box(fb))
+    end if
+  end function zfab_volume
   function ifab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(ifab), intent(in) :: fb
@@ -265,6 +301,18 @@ contains
     integer :: r(fb%dim)
     r = lwb(fb%bx)
   end function ifab_lwb
+
+  function zfab_lwb(fb) result(r)
+    type(zfab), intent(in) :: fb
+    integer :: r(fb%dim)
+    r = lwb(fb%bx)
+  end function zfab_lwb
+  function zfab_lwb_n(fb,dim) result(r)
+    type(zfab), intent(in) :: fb
+    integer, intent(in) :: dim
+    integer :: r
+    r = lwb(fb%bx,dim)
+  end function zfab_lwb_n
 
   function fab_ilwb(fb) result(r)
     type(fab), intent(in) :: fb
@@ -344,6 +392,11 @@ contains
     type(fab), intent(in) :: fb
     r = fb%nc
   end function fab_ncomp
+  function zfab_ncomp(fb) result(r)
+    integer :: r
+    type(zfab), intent(in) :: fb
+    r = fb%nc
+  end function zfab_ncomp
   function ifab_ncomp(fb) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
@@ -355,6 +408,11 @@ contains
     type(box) :: r
     r = fb%bx
   end function fab_get_box
+  function zfab_get_box(fb) result(r)
+    type(zfab), intent(in) :: fb
+    type(box) :: r
+    r = fb%bx
+  end function zfab_get_box
   function ifab_get_box(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
@@ -371,6 +429,11 @@ contains
     type(box) :: r
     r = fb%pbx
   end function fab_get_pbox
+  function zfab_get_pbox(fb) result(r)
+    type(zfab), intent(in) :: fb
+    type(box) :: r
+    r = fb%pbx
+  end function zfab_get_pbox
   function ifab_get_pbox(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
@@ -387,6 +450,11 @@ contains
     type(box) :: r
     r = fb%ibx
   end function fab_get_ibox
+  function zfab_get_ibox(fb) result(r)
+    type(zfab), intent(in) :: fb
+    type(box) :: r
+    r = fb%ibx
+  end function zfab_get_ibox
   function ifab_get_ibox(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
@@ -542,6 +610,35 @@ contains
     call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
   end subroutine fab_build
 
+  subroutine zfab_build(fb, bx, nc, ng, nodal, alloc)
+    type(zfab), intent(out) :: fb
+    type(box), intent(in)  :: bx
+    integer, intent(in), optional :: ng, nc
+    logical, intent(in), optional :: nodal(:)
+    logical, intent(in), optional :: alloc
+    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
+    integer :: lnc, lng
+    logical :: lal
+    lng = 0; if ( present(ng) ) lng = ng
+    lnc = 1; if ( present(nc) ) lnc = nc
+    lal = .true.; if ( present(alloc) ) lal = alloc
+    lo = 1
+    hi = 1
+    fb%dim = bx%dim
+    fb%bx = bx
+    fb%ng = lng
+    fb%nc = lnc
+    fb%ibx = box_nodalize(bx, nodal)
+    fb%pbx = grow(fb%ibx, lng)
+    lo(1:fb%dim) = fb%pbx%lo(1:fb%dim)
+    hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
+    if ( lal ) then
+       allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
+       call setval(fb, zfab_default_init)
+    end if
+    call mem_stats_alloc(zfab_ms, volume(fb, all=.TRUE.))
+  end subroutine zfab_build
+
   subroutine ifab_build(fb, bx, nc, ng, nodal, alloc)
     type(ifab), intent(out) :: fb
     type(box), intent(in)  :: bx
@@ -609,6 +706,15 @@ contains
     fb%nc  = 0
     fb%ng  = 0
   end subroutine fab_destroy
+  subroutine zfab_destroy(fb)
+    type(zfab), intent(inout) :: fb
+    call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
+    if ( associated(fb%p) ) deallocate(fb%p)
+    fb%bx  = nobox(fb%dim)
+    fb%dim = 0
+    fb%nc  = 0
+    fb%ng  = 0
+  end subroutine zfab_destroy
   subroutine ifab_destroy(fb)
     type(ifab), intent(inout) :: fb
     call mem_stats_dealloc(ifab_ms, volume(fb, all=.TRUE.))
@@ -644,6 +750,11 @@ contains
     real(kind=dp_t), pointer :: r(:,:,:,:)
     r => fb%p
   end function fab_dataptr
+  function zfab_dataptr(fb) result(r)
+    type(zfab), intent(in) :: fb
+    complex(kind=dp_t), pointer :: r(:,:,:,:)
+    r => fb%p
+  end function zfab_dataptr
   function ifab_dataptr(fb) result(r)
     type(ifab), intent(in) :: fb
     integer, pointer :: r(:,:,:,:)
@@ -669,6 +780,20 @@ contains
        r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),:)
     end select
   end function fab_dataptr_bx
+  function zfab_dataptr_bx(fb, bx) result(r)
+    type(zfab), intent(in) :: fb
+    type(box), intent(in) :: bx
+    complex(kind=dp_t), pointer :: r(:,:,:,:)
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('fab_dataptr_bx: bx is too large')
+    select case (fb%dim)
+    case (1)
+       r => fb%p(bx%lo(1):bx%hi(1),:,:,:)
+    case (2)
+       r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),:,:)
+    case (3)
+       r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),:)
+    end select
+  end function zfab_dataptr_bx
   function ifab_dataptr_bx(fb, bx) result(r)
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -794,6 +919,16 @@ contains
     if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_c: not enough components')
     r => fb%p(:,:,:,c:c+lnc-1)
   end function fab_dataptr_c
+  function zfab_dataptr_c(fb, c, nc) result(r)
+    type(zfab), intent(in) :: fb
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(kind=dp_t), pointer :: r(:,:,:,:)
+    integer :: lnc
+    lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_c: not enough components')
+    r => fb%p(:,:,:,c:c+lnc-1)
+  end function zfab_dataptr_c
   function ifab_dataptr_c(fb, c, nc) result(r)
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
@@ -834,6 +969,25 @@ contains
        r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),c:c+lnc-1)
     end select
   end function fab_dataptr_bx_c
+  function zfab_dataptr_bx_c(fb, bx, c, nc) result(r)
+    type(zfab), intent(in) :: fb
+    type(box), intent(in) :: bx
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(kind=dp_t), pointer :: r(:,:,:,:)
+    integer :: lnc
+    lnc = 1; if ( present(nc) ) lnc = nc
+    if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_bx_c: not enough components')
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('fab_dataptr_bx_c: bx is too large')
+    select case (fb%dim)
+    case (1)
+       r => fb%p(bx%lo(1):bx%hi(1),:,:,c:c+lnc-1)
+    case (2)
+       r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),:,c:c+lnc-1)
+    case (3)
+       r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),c:c+lnc-1)
+    end select
+  end function zfab_dataptr_bx_c
   function ifab_dataptr_bx_c(fb, bx, c, nc) result(r)
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -879,6 +1033,12 @@ contains
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine fab_setval
+  subroutine zfab_setval(fb, val)
+    type(zfab), intent(inout) :: fb
+    complex(kind=dp_t), intent(in) :: val
+    if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
+    fb%p = val
+  end subroutine zfab_setval
   subroutine ifab_setval(fb, val)
     type(ifab), intent(inout) :: fb
     integer, intent(in) :: val
@@ -901,6 +1061,15 @@ contains
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
     p = val
   end subroutine fab_setval_bx
+  subroutine zfab_setval_bx(fb, val, bx)
+    type(zfab), intent(inout) :: fb
+    type(box), intent(in) :: bx
+    complex(kind=dp_t), intent(in) :: val
+    complex(kind=dp_t), pointer :: p(:,:,:,:)
+    p => zfab_dataptr_bx(fb, bx)
+    if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
+    p = val
+  end subroutine zfab_setval_bx
   subroutine ifab_setval_bx(fb, val, bx)
     type(ifab), intent(inout) :: fb
     type(box), intent(in) :: bx
@@ -930,6 +1099,16 @@ contains
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
     p = val
   end subroutine fab_setval_c
+  subroutine zfab_setval_c(fb, val, c, nc)
+    type(zfab), intent(inout) :: fb
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(kind=dp_t), intent(in) :: val
+    complex(kind=dp_t), pointer :: p(:,:,:,:)
+    p => zfab_dataptr_c(fb, c, nc)
+    if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
+    p = val
+  end subroutine zfab_setval_c
   subroutine ifab_setval_c(fb, val, c, nc)
     type(ifab), intent(inout) :: fb
     integer, intent(in) :: c
@@ -962,6 +1141,17 @@ contains
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
     p = val
   end subroutine fab_setval_bx_c
+  subroutine zfab_setval_bx_c(fb, val, bx, c, nc)
+    type(zfab), intent(inout) :: fb
+    type(box), intent(in) :: bx
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(kind=dp_t), intent(in) :: val
+    complex(kind=dp_t), pointer :: p(:,:,:,:)
+    p => zfab_dataptr_bx_c(fb, bx, c, nc)
+    if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
+    p = val
+  end subroutine zfab_setval_bx_c
   subroutine ifab_setval_bx_c(fb, val, bx, c, nc)
     type(ifab), intent(inout) :: fb
     type(box), intent(in) :: bx
