@@ -28,10 +28,12 @@ module boxarray_module
 
   interface copy
      module procedure boxarray_build_copy
+     module procedure boxarray_build_copy_l
   end interface
 
   interface build
      module procedure boxarray_build_v
+     module procedure boxarray_build_l
      module procedure boxarray_build_bx
   end interface
 
@@ -141,8 +143,6 @@ module boxarray_module
   private :: boxlist_build_a
   private :: boxlist_nboxes
   private :: boxlist_verify_dim
-  private :: boxarray_build_l
-  private :: boxarray_build_copy_l
 
   type(mem_stats), private, save :: boxarray_ms
 
