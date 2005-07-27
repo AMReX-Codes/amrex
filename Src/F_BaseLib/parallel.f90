@@ -925,7 +925,28 @@ contains
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_lv
 
-
+  ! AlltoAll
+  subroutine parallel_alltoall_d(a, b, comm)
+    real(kind=dp_t), intent(out) :: b(:)
+    real(kind=dp_t), intent(in) :: a
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer :: n
+    n = 1
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, comm, ierr)
+  end subroutine parallel_alltoall_d
+  ! AlltoAll
+  subroutine parallel_alltoall_dv(a, b, comm)
+    real(kind=dp_t), intent(out) :: b(:)
+    real(kind=dp_t), intent(in) :: a(:)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer :: n
+    n = size(a)
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, comm, ierr)
+  end subroutine parallel_alltoall_dv
 
   ! Broadcast
   subroutine parallel_bcast_d(a, root, comm)
