@@ -375,11 +375,11 @@ contains
     end do
 
     do j = ly+1, hy-1
-       lply(j) = lply(i) + sigy(j+1)-2*sigy(j)+sigy(j-1)
+       lply(j) = lply(j) + sigy(j+1)-2*sigy(j)+sigy(j-1)
     end do
 
     do k = lz+1, hz-1
-       lplz(k) = lplz(i) + sigz(k+1)-2*sigz(k)+sigz(k-1)
+       lplz(k) = lplz(k) + sigz(k+1)-2*sigz(k)+sigz(k-1)
     end do
 
     if ( verbose .and. parallel_IOProcessor() ) then
