@@ -137,7 +137,8 @@ contains
       type(lmultifab), intent(inout) :: mask
       integer :: i, j
       type(box) :: bxi, bxj, bxij
-      call setval(mask, val = .true.)
+
+!     call setval(mask, val = .true.)
       do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
          bxi = get_pbox(mask, i)
          do j = 1, i-1
@@ -313,8 +314,8 @@ contains
     type(lmultifab), intent(in) :: tagboxes
     integer, intent(in):: lo(:)
     type(box), intent(in) :: bx
-    integer, intent(out) :: sigx(lo(1):),sigy(lo(1):),sigz(lo(1):)
-    integer, intent(out) :: lplx(lo(1):),lply(lo(1):),lplz(lo(1):)
+    integer, intent(out) :: sigx(lo(1):),sigy(lo(2):),sigz(lo(3):)
+    integer, intent(out) :: lplx(lo(1):),lply(lo(2):),lplz(lo(3):)
     logical, pointer :: tp(:,:,:,:)
 !   logical, pointer :: mp(:,:,:,:)
     integer :: n
@@ -330,8 +331,8 @@ contains
     lply = 0
     lplz = 0
 
-    lx = lwb(bx,1); ly = 0; lz = 0
-    hx = upb(bx,1); hy = 0; hz = 0
+    lx = lwb(bx,1); ly = 1; lz = 1
+    hx = upb(bx,1); hy = 1; hz = 1
     if ( tagboxes%dim > 1 ) then
        ly = lwb(bx,2)
        hy = upb(bx,2)
@@ -363,9 +364,9 @@ contains
        end do
     end do
 
-    call parallel_reduce(sigx(lx:hx), sigx, MPI_SUM)
-    call parallel_reduce(sigx(ly:hy), sigy, MPI_SUM)
-    call parallel_reduce(sigx(lz:hz), sigz, MPI_SUM)
+    call parallel_reduce(sigx(lx:hx), tsigx, MPI_SUM)
+    call parallel_reduce(sigx(ly:hy), tsigy, MPI_SUM)
+    call parallel_reduce(sigx(lz:hz), tsigz, MPI_SUM)
 
        !! Note: only one of berger/rigotsis schemes is here used.
        !! Note: a fill boundary needs to have b???
