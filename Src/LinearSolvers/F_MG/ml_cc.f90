@@ -247,15 +247,9 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
         call setval(uu(n), ZERO, all=.true.)
 
         ! Relax ...
-        if (n > 1) then
-          call mini_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
-               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-               mgt(n)%gamma)
-        else 
-          call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
-               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-               mgt(n)%gamma)
-        end if
+        call mini_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+             uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+             mgt(n)%gamma)
 
         ! Compute Res = Res - Lap(uu)
         call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), mgt(n)%mm(mglev))
