@@ -156,10 +156,17 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
            print *,'DWN: RES BEFORE GSRB AT LEVEL ',n, norm_inf(res(n))
 
         ! Relax ...
-        if (iter < mgt(nlevs)%max_iter) &
-        call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
-                            uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                            mgt(n)%gamma)
+        if (iter < mgt(nlevs)%max_iter) then
+          if (n > 1) then
+            call mini_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+                 uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                 mgt(n)%gamma)
+          else 
+            call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+                 uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                 mgt(n)%gamma)
+          end if
+        end if
 
         ! Add: Soln += uu
         call saxpy(soln(n), ONE, uu(n))
@@ -240,9 +247,15 @@ subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,nee
         call setval(uu(n), ZERO, all=.true.)
 
         ! Relax ...
-        call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
-                            uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                            mgt(n)%gamma)
+        if (n > 1) then
+          call mini_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+               mgt(n)%gamma)
+        else 
+          call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+               mgt(n)%gamma)
+        end if
 
         ! Compute Res = Res - Lap(uu)
         call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), mgt(n)%mm(mglev))
