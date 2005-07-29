@@ -373,7 +373,8 @@ contains
     if ( tagboxes%dim > 1 ) then
        ly = lwb(bx,2)
        hy = upb(bx,2)
-    else if ( tagboxes%dim > 2 ) then
+    end if
+    if ( tagboxes%dim > 2 ) then
        lz = lwb(bx,3)
        hz = upb(bx,3)
     end if

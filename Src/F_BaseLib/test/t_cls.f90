@@ -32,15 +32,28 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   logical, pointer :: lp(:,:,:,:)
   integer :: lo(3), hi(3), ng
 
-  dm = 2
+  dm = 3
 
   ng = 2
-  select case (ng)
-  case (1)
-     bx(1) = make_box((/0,0/), (/n-1,n-1/))
+  select case (dm)
   case (2)
-     bx(1) = make_box((/0,0/), (/n/2-1,n-1/))
-     bx(2) = make_box((/n/2,0/), (/n-1,n-1/))
+     select case (ng)
+     case (1)
+        bx(1) = make_box((/0,0/), (/n-1,n-1/))
+     case (2)
+        bx(1) = make_box((/0,0/), (/n/2-1,n-1/))
+        bx(2) = make_box((/n/2,0/), (/n-1,n-1/))
+     end select
+  case (3)
+     select case (ng)
+     case (1)
+        bx(1) = make_box((/0,0,0/), (/n-1,n-1,n-1/))
+     case (2)
+        bx(1) = make_box((/0,0,0/), (/n-1,n-1,n/2-1/))
+        bx(2) = make_box((/0,0,n/2/), (/n-1,n-1,n-1/))
+     end select
+  case default
+     call bl_error("NO OTHER CASES")
   end select
   call build(ba, bx(1:ng))
   call build(la, ba)
@@ -56,23 +69,29 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
      lo = 0; lo(1:dm) = lwb(get_box(tagbox, ng))
      hi = 0; hi(1:dm) = upb(get_box(tagbox, ng))
      lp => dataptr(tagbox, ng)
-     do j = lo(2), hi(2)
+     select case (dm)
+     case (1)
         do i = lo(1), hi(1)
-           if ( .true. ) then
-              if (  i == 7 .and. j == 7 ) then
-                 lp(i,j,1,1) = .true.
-              end if
-              if (  i == 8 .and. j == 8 ) then
-                 lp(i,j,1,1) = .true.
-              end if
-           else
-              d = sqrt((i-cen)**2 + (j-cen)**2)
-              if ( d <= wid1 .and. d >= wid2 ) then
-                 lp(i,j,1,1) = .true.
-              end if
-           endif
+           d = sqrt((i-cen)**2)
+           if ( d <= wid1 .and. d >= wid2 ) then
+              lp(i,1,1,1) = .true.
+           end if
         end do
-     end do
+     case (2)
+        do j = lo(2), hi(2); do i = lo(1), hi(1)
+           d = sqrt((i-cen)**2 + (j-cen)**2)
+           if ( d <= wid1 .and. d >= wid2 ) then
+              lp(i,j,1,1) = .true.
+           end if
+        end do; end do
+     case(3)
+        do k = lo(3), hi(3); do j = lo(2), hi(2); do i = lo(1), hi(1)
+           d = sqrt((i-cen)**2 + (j-cen)**2 + (k-cen)**2)
+           if ( d <= wid1 .and. d >= wid2 ) then
+              lp(i,j,k,1) = .true.
+           end if
+        end do; end do; end do
+     end select
   end do
 
   call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
