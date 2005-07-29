@@ -1,21 +1,32 @@
 subroutine t_cluster
+  use f2kcli
+  use bl_types
   use cluster_module
+  integer :: buf_wid, minwidth
+  real(dp_t) :: min_eff
+
+  min_eff = .7
+  buf_wid = 1
+  minwidth = 1
+
   call cluster_set_verbose(.true.)
-  call t_cls_mf
+  call t_cls_mf(buf_wid, minwidth, min_eff)
+
 end subroutine t_cluster
 
-subroutine t_cls_mf(ng)
+subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   use cluster_module
   use multifab_module
   implicit none
+  integer, intent(in) :: minwidth
+  integer, intent(in) :: buf_wid
+  real(dp_t), intent(in) :: min_eff
   integer, parameter :: n = 16
   type(lmultifab) :: tagbox
-  integer :: minwidth
   type(boxarray) :: boxes, ba
   type(box) :: bx(2)
   type(layout) :: la
-  integer :: buf_wid
-  real(dp_t) :: min_eff, overall_eff
+  real(dp_t) :: overall_eff
   real(dp_t) :: d, wid1, wid2, cen
   integer :: i, j, k, dm
   logical, pointer :: lp(:,:,:,:)
@@ -35,13 +46,9 @@ subroutine t_cls_mf(ng)
   call build(la, ba)
   call build(tagbox, la, nc=1, ng=0)
 
-  min_eff = .7
-  buf_wid = 1
   wid1 = real(n,dp_t)/3
   wid2 = real(n,dp_t)/4
   cen  = real(n,dp_t)/2
-
-  minwidth = 1
 
   call setval(tagbox, .false.)
 
@@ -51,8 +58,11 @@ subroutine t_cls_mf(ng)
      lp => dataptr(tagbox, ng)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           if ( .false. ) then
+           if ( .true. ) then
               if (  i == 7 .and. j == 7 ) then
+                 lp(i,j,1,1) = .true.
+              end if
+              if (  i == 8 .and. j == 8 ) then
                  lp(i,j,1,1) = .true.
               end if
            else
@@ -81,28 +91,25 @@ subroutine t_cls_mf(ng)
 
 end subroutine t_cls_mf
 
-subroutine t_cls
+subroutine t_cls(buf_wid, minwidth, min_eff)
   use cluster_module
   use multifab_module
   implicit none
+  integer, intent(in) :: minwidth
+  integer, intent(in) :: buf_wid
+  real(dp_t), intent(in) :: min_eff
   integer, parameter :: n = 16
   logical :: tagbox(0:n-1, 0:n-1, 0:0)
-  integer :: minwidth
   type(boxarray) :: boxes
   type(list_box_node), pointer :: bn
-  integer :: buf_wid
-  real(dp_t) :: min_eff, overall_eff
+  real(dp_t) :: overall_eff
   real(dp_t) :: d, wid1, wid2, cen
   integer :: i, j, k, dm
 
   dm = 2
-  min_eff = .7
-  buf_wid = 1
   wid1 = real(n,dp_t)/3
   wid2 = real(n,dp_t)/4
   cen  = real(n,dp_t)/2
-
-  minwidth = 1
 
   tagbox = .false.
 

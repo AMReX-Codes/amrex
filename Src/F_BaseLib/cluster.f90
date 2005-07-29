@@ -84,20 +84,26 @@ contains
        return
     end if
 
+    ! buffer the cells
     do b = 1, buf%nboxes; if ( remote(buf, b) ) cycle
        mt => dataptr(tagboxes, b, get_box(tagboxes,b))
        mb => dataptr(buf, b)
        select case (dm)
        case (1)
-          call frob_1d(mb(:,1,1,1), mt(:,1,1,:), buf_wid)
+          call buffer_1d(mb(:,1,1,1), mt(:,1,1,:), buf_wid)
        case (2)
-          call frob_2d(mb(:,:,1,1), mt(:,:,1,:), buf_wid)
+          call buffer_2d(mb(:,:,1,1), mt(:,:,1,:), buf_wid)
        case (3)
-          call frob_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
+          call buffer_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
        end select
     end do
 
+    ! remove any tags outside the problem domain.
+    call pd_mask(buf)
+    ! make sure that all tagged cells in are replicated in the high
+    ! indexed boxes
     call internal_sync(buf, all = .true., filter = filter_lor)
+    ! remove all tags from the low index fabs that overlap high index fabs
     call owner_mask(buf)
 
     call cluster_mf_private(lboxes, buf, minwidth, min_eff)
@@ -111,16 +117,30 @@ contains
     call destroy(lboxes)
 
     if ( present(overall_eff) ) then
-       bboxinte = 0
-       do i = 1, nboxes(boxes)
-          bboxinte = bboxinte + volume(get_box(boxes,i))
-       end do
+       bboxinte = volume(boxes)
        overall_eff = real(count(buf,all=.true.),dp_t) / real(bboxinte, dp_t)
     end if
 
     call destroy(buf)
 
   contains
+
+    subroutine pd_mask(mask)
+      type(lmultifab), intent(inout) :: mask
+      integer :: i, j
+      type(box) :: bxi, bxj, bxij, pd
+      type(boxarray) :: ba
+
+      pd = get_pd(get_layout(mask))
+      do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
+         bxi = get_pbox(mask, i)
+         call boxarray_box_diff(ba, bxi, pd)
+         do j = 1, nboxes(ba)
+            call setval(mask%fbs(i), .false., get_box(ba,j))
+         end do
+         call destroy(ba)
+      end do
+    end subroutine pd_mask
 
     subroutine owner_mask(mask)
       type(lmultifab), intent(inout) :: mask
@@ -138,8 +158,7 @@ contains
       end do
     end subroutine owner_mask
 
-
-    subroutine frob_1d(bb, tt, ng)
+    subroutine buffer_1d(bb, tt, ng)
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:)
       logical, intent(out) :: bb(1-ng:)
@@ -149,9 +168,9 @@ contains
          if ( any(tt(i,:)) ) bb(i-ng:i+ng) = .true.
       end do
 
-    end subroutine frob_1d
+    end subroutine buffer_1d
 
-    subroutine frob_2d(bb, tt, ng)
+    subroutine buffer_2d(bb, tt, ng)
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:)
@@ -161,9 +180,9 @@ contains
          if ( any(tt(i,j,:)) ) bb(i-ng:i+ng,j-ng:j+ng) = .true.
       end do; end do
 
-    end subroutine frob_2d
+    end subroutine buffer_2d
 
-    subroutine frob_3d(bb, tt, ng)
+    subroutine buffer_3d(bb, tt, ng)
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:,1-ng:)
@@ -173,7 +192,7 @@ contains
          if ( any(tt(i,j,k,:)) ) bb(i-ng:i+ng,j-ng:j+ng,k-ng:k+ng) = .true.
       end do; end do; end do
 
-    end subroutine frob_3d
+    end subroutine buffer_3d
 
   end subroutine cls_3d_mf
 
@@ -614,6 +633,10 @@ contains
     call bracket(sigz, lz, hz)
 
     call set(bn, make_box((/lx, ly, lz/), (/hx, hy, hz/)))
+
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       call print(value(bn), 'find_holes ==>')
+    end if
 
     if ( holes(sigx, lx, hx, 1) ) then
        r = .true.
