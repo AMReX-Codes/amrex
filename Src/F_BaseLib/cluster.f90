@@ -113,6 +113,7 @@ contains
        if ( dm < 3 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=3)
        if ( dm < 2 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=2)
     end do
+    boxes%dim = dm
 
     call destroy(lboxes)
 
@@ -265,6 +266,7 @@ contains
        if ( dm < 3 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=3)
        if ( dm < 2 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=2)
     end do
+    boxes%dim = dm
 
     call destroy(lboxes)
 
