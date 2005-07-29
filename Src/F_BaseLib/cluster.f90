@@ -4,12 +4,24 @@ module cluster_module
   use bl_error_module
   use box_module
   use list_box_module
+  use boxarray_module
   use multifab_module
 
   implicit none
 
+  private
+
   logical, private, save :: verbose = .false.
   integer, private, save :: cut_threshold = 2
+
+  public :: cluster_set_verbose
+  public :: cluster_set_cut_threshold
+  public :: cluster
+
+  interface cluster
+     module procedure cls_3d_mf
+     module procedure cls_3d
+  end interface
 
 contains
 
@@ -29,83 +41,37 @@ contains
     out = out .or. in
   end subroutine filter_lor
 
-  subroutine t_cls
-    integer, parameter :: n = 16
-    logical :: tagbox(0:n-1, 0:n-1, 0:0)
-    integer :: minwidth
-    type(list_box) :: boxes
-    type(list_box_node), pointer :: bn
-    integer :: buf_wid
-    real(dp_t) :: min_eff, overall_eff
-    real(dp_t) :: d, wid1, wid2, cen
-    integer :: i, j, k
-
-    min_eff = .7
-    buf_wid = 1
-    wid1 = real(n,dp_t)/3
-    wid2 = real(n,dp_t)/4
-    cen  = real(n,dp_t)/2
-
-    minwidth = 1
-
-    tagbox = .false.
-
-    k = 0
-    do j = 0, n-1
-       do i = 0, n-1
-          d = sqrt((i-cen)**2 + (j-cen)**2)
-          if ( d <= wid1 .and. d >= wid2 ) then
-             tagbox(i,j,k) = .true.
-          end if
-       end do
-    end do
-
-    call cls_3d(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
-
-    print *, 'number of boxes ', size(boxes)
-    bn => begin(boxes)
-    do while ( associated(bn) ) 
-       call print(value(bn))
-       bn => next(bn)
-    end do
-    print *, 'overall_eff', overall_eff
-
-    call destroy(boxes)
-
-  end subroutine t_cls
-
-  subroutine bit_print(tagbox)
-    logical, intent(in) :: tagbox(0:,0:)
-    integer :: i, j
-    integer :: nx, ny
-    character c
-    nx = size(tagbox,1)
-    ny = size(tagbox,2)
-    do j = ny-1, 0, -1
-       write(*,fmt='(i3," : ")', advance='no') j
-       do i = 0, nx-1
-          c = ' '; if ( tagbox(i,j) ) c = '*'
-          write(*,fmt='(a1)', advance = 'no') c
-       end do
-       write(*,fmt='()')
-    end do
-  end subroutine bit_print
-
-  subroutine cls_3d_mf(boxes, tagboxes, minwidth, buf_wid, min_eff, overall_eff)
-    type(list_box), intent(out) :: boxes
+  subroutine cls_3d_mf(boxes, tagboxes, minwidth, buf_wid, min_eff, overall_eff, blocking_factor)
+    type(boxarray), intent(out) :: boxes
     type(lmultifab), intent(in) :: tagboxes
     integer, intent(in) :: minwidth
     integer, intent(in) :: buf_wid
     real(dp_t), intent(in) :: min_eff
     real(dp_t), intent(out), optional :: overall_eff
+    integer, intent(in), optional :: blocking_factor
 
+    type(list_box) :: lboxes
     type(lmultifab) :: buf
     logical, pointer :: mt(:,:,:,:)
     logical, pointer :: mb(:,:,:,:)
     integer :: b
     integer :: num_flag
-    
-    call build(boxes)
+    integer :: dm, i
+    integer :: bboxinte
+    integer :: lblocking_factor
+
+    lblocking_factor = 1
+    if ( present(blocking_factor) ) then
+       call bl_error("CLUSTER: blocking factor not implemented yet")
+    end if
+
+    if ( nghost(tagboxes) /= 0 ) then
+       call bl_error("CLUSTER: tagboxes must have NG = 0")
+    end if
+
+    dm = tagboxes%dim
+
+    call build(lboxes)
     call build(buf, get_layout(tagboxes), nc = 1, ng = buf_wid)
 
     num_flag = lmultifab_count(tagboxes)
@@ -116,84 +82,125 @@ contains
           overall_eff = 0
        end if
        return
-       end if
+    end if
 
     do b = 1, buf%nboxes; if ( remote(buf, b) ) cycle
-       mt => dataptr(tagboxes, b)
+       mt => dataptr(tagboxes, b, get_box(tagboxes,b))
        mb => dataptr(buf, b)
-       call frob(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
+       select case (dm)
+       case (1)
+          call frob_1d(mb(:,1,1,1), mt(:,1,1,:), buf_wid)
+       case (2)
+          call frob_2d(mb(:,:,1,1), mt(:,:,1,:), buf_wid)
+       case (3)
+          call frob_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
+       end select
     end do
 
     call internal_sync(buf, all = .true., filter = filter_lor)
     call owner_mask(buf)
 
-    call cluster_mf(boxes, buf, minwidth, min_eff)
+    call cluster_mf_private(lboxes, buf, minwidth, min_eff)
+
+    call build(boxes, lboxes)
+    do i = 1, nboxes(boxes)
+       if ( dm < 3 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=3)
+       if ( dm < 2 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=2)
+    end do
+
+    call destroy(lboxes)
+
+    if ( present(overall_eff) ) then
+       bboxinte = 0
+       do i = 1, nboxes(boxes)
+          bboxinte = bboxinte + volume(get_box(boxes,i))
+       end do
+       overall_eff = real(count(buf,all=.true.),dp_t) / real(bboxinte, dp_t)
+    end if
 
     call destroy(buf)
 
   contains
-    
+
     subroutine owner_mask(mask)
       type(lmultifab), intent(inout) :: mask
       integer :: i, j
       type(box) :: bxi, bxj, bxij
 
-!     call setval(mask, val = .true.)
       do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
          bxi = get_pbox(mask, i)
          do j = 1, i-1
             bxj = get_pbox(mask, j)
             bxij = intersection(bxi, bxj)
             if ( empty(bxij) ) cycle
-            call setval(mask%fbs(i), .false., bxij)
+            call setval(mask%fbs(j), .false., bxij)
          end do
       end do
     end subroutine owner_mask
-          
 
-    subroutine frob(bb, tt, ng)
+
+    subroutine frob_1d(bb, tt, ng)
+      integer, intent(in) :: ng
+      logical, intent(in) :: tt(:,:)
+      logical, intent(out) :: bb(1-ng:)
+      integer :: i, j, k, l, m, n
+
+      do i = 1, size(tt,1)
+         if ( any(tt(i,:)) ) bb(i-ng:i+ng) = .true.
+      end do
+
+    end subroutine frob_1d
+
+    subroutine frob_2d(bb, tt, ng)
+      integer, intent(in) :: ng
+      logical, intent(in) :: tt(:,:,:)
+      logical, intent(out) :: bb(1-ng:,1-ng:)
+      integer :: i, j, k, l, m, n
+
+      do j = 1, size(tt,2); do i = 1, size(tt,1)
+         if ( any(tt(i,j,:)) ) bb(i-ng:i+ng,j-ng:j+ng) = .true.
+      end do; end do
+
+    end subroutine frob_2d
+
+    subroutine frob_3d(bb, tt, ng)
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:,1-ng:)
       integer :: i, j, k, l, m, n
-      integer :: nx, ny, nz
 
-      nz = size(tt,3); ny = size(tt,2); nx = size(tt,1)
-
-      do k = 1, nz; do j = 1, ny; do i = 1, nx
-         if ( any(tt(i,j,k,:)) ) then
-            do l = max(1,i-ng), min(i+ng,nx)
-               do m = max(1,j-ng), min(j+ng,ny)
-                  do n = max(1,k-ng), min(k+ng,nz)
-                     bb(l,m,n) = .true.
-                  end do
-               end do
-            end do
-         end if
+      do k = 1, size(tt,3); do j = 1, size(tt,2); do i = 1, size(tt,1)
+         if ( any(tt(i,j,k,:)) ) bb(i-ng:i+ng,j-ng:j+ng,k-ng:k+ng) = .true.
       end do; end do; end do
-    end subroutine frob
+
+    end subroutine frob_3d
 
   end subroutine cls_3d_mf
 
-  subroutine cls_3d(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
-    type(list_box), intent(out) :: boxes
+  subroutine cls_3d(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff, dim)
+    type(boxarray), intent(out) :: boxes
     logical, intent(in) :: tagbox(:,:,:)
     integer, intent(in) :: minwidth
     integer, intent(in) :: buf_wid
     real(dp_t), intent(in) :: min_eff
     real(dp_t), intent(out), optional :: overall_eff
+    integer, optional, intent(in) :: dim
 
     type(list_box_node), pointer :: bn
 
     logical, allocatable :: buf_box(:,:,:)
     integer :: nx, ny, nz
+    type(list_box) :: lboxes
 
     integer :: i, j, k, l, m, n 
     integer :: num_flag
     integer :: bboxinte
 
-    call build(boxes)
+    integer :: dm
 
+    call build(lboxes)
+
+    dm = 3; if ( present(dim) ) dm = dim
     nx = size(tagbox,1); ny = size(tagbox,2); nz = size(tagbox,3)
 
     allocate(buf_box(nx,ny,nz))
@@ -222,11 +229,11 @@ contains
        end if
     end do; end do; end do
 
-    call cluster(boxes, buf_box, minwidth, min_eff)
+    call cluster_l_private(lboxes, buf_box, minwidth, min_eff)
 
     if ( present(overall_eff) ) then
        bboxinte = 0
-       bn => begin(boxes)
+       bn => begin(lboxes)
        do while ( associated(bn) )
           bboxinte = bboxinte + volume(value(bn))
           bn => next(bn)
@@ -234,9 +241,17 @@ contains
        overall_eff = real(count(buf_box),dp_t) / real(bboxinte, dp_t)
     end if
 
+    call build(boxes, lboxes)
+    do i = 1, nboxes(boxes)
+       if ( dm < 3 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=3)
+       if ( dm < 2 ) boxes%bxs(i) = reduce(get_box(boxes,i),dim=2)
+    end do
+
+    call destroy(lboxes)
+
   end subroutine cls_3d
 
-  subroutine cluster_mf(boxes, tagboxes, minwidth, min_eff)
+  subroutine cluster_mf_private(boxes, tagboxes, minwidth, min_eff)
     type(list_box), intent(inout) :: boxes
     type(lmultifab), intent(in) ::  tagboxes
     integer, intent(in) ::  minwidth
@@ -253,6 +268,7 @@ contains
     lo = 0 ; hi = 0
     bbx = bbox(get_boxarray(tagboxes))
     lo(1:bbx%dim) = lwb(bbx); hi(1:bbx%dim) = upb(bbx)
+    bbx = make_box(lo, hi)
     allocate(sigx(lo(1):hi(1)), sigy(lo(2):hi(2)), sigz(lo(3):hi(3)))
     allocate(lplx(lo(1):hi(1)), lply(lo(2):hi(2)), lplz(lo(3):hi(3)))
     call push_back(boxes, bbx)
@@ -273,9 +289,9 @@ contains
        end if
     end do
 
-  end subroutine cluster_mf
+  end subroutine cluster_mf_private
 
-  subroutine cluster(boxes, tagbox, minwidth, min_eff)
+  subroutine cluster_l_private(boxes, tagbox, minwidth, min_eff)
     type(list_box), intent(inout) :: boxes
     logical, intent(in) ::  tagbox(0:,0:,0:)
     integer, intent(in) ::  minwidth
@@ -308,7 +324,7 @@ contains
        end if
     end do
 
-  end subroutine cluster
+  end subroutine cluster_l_private
 
   subroutine sigma_laplace_mf(tagboxes, bx, sigx, sigy, sigz, lplx, lply, lplz, lo)
     type(lmultifab), intent(in) :: tagboxes
@@ -317,19 +333,19 @@ contains
     integer, intent(out) :: sigx(lo(1):),sigy(lo(2):),sigz(lo(3):)
     integer, intent(out) :: lplx(lo(1):),lply(lo(2):),lplz(lo(3):)
     logical, pointer :: tp(:,:,:,:)
-!   logical, pointer :: mp(:,:,:,:)
+    !   logical, pointer :: mp(:,:,:,:)
     integer :: n
+    type(box) :: bx1
 
     integer, allocatable :: tsigx(:),tsigy(:),tsigz(:)
     integer :: i, j, k, lx, ly, lz, hx, hy, hz
+    integer :: hh(4), dm, ll(3), ii, jj, kk
+
+    dm = tagboxes%dim
 
     sigx = 0
     sigy = 0
     sigz = 0
-
-    lplx = 0
-    lply = 0
-    lplz = 0
 
     lx = lwb(bx,1); ly = 1; lz = 1
     hx = upb(bx,1); hy = 1; hz = 1
@@ -347,39 +363,48 @@ contains
     tsigz = 0
 
     do n = 1, tagboxes%nboxes; if ( remote(tagboxes, n) ) cycle
-       if ( .not. intersects(get_box(tagboxes,n), bx) ) cycle
-       tp => dataptr(tagboxes, n)
-       do i = lx, hx
-          tsigx(i) = tsigx(i) + count(tp(i,ly:hy,lz:hz,1))
+       bx1 = intersection(get_pbox(tagboxes, n), bx)
+       if ( empty(bx1) ) cycle
+       tp => dataptr(tagboxes, n, bx1)
+
+       ll = 1; ll(1:dm) = lwb(bx1)
+       hh = 1; hh(1:dm) = extent(bx1)
+       do i = 1, hh(1)
+          ii = ll(1) + i - 1
+          tsigx(ii) = tsigx(ii) + count(tp(i,:,:,1))
        end do
 
-       do j = ly, hy
-          ! tsigy(j) = tsigy(j) + count(tp(lx:hx,j,lz:hz,1) .and. mp(lx:hx,j,lz:hz,1))
-          tsigy(j) = tsigy(j) + count(tp(lx:hx,j,lz:hz,1))
+       do j = 1, hh(2)
+          jj = ll(2) + j - 1
+          tsigy(jj) = tsigy(jj) + count(tp(:,j,:,1))
        end do
 
-       do k = lz, hz
-!         tsigz(k) = tsigz(k) + count(tp(lx:hx,ly:hy,k,1) .and. mp(lx:hx,ly:hy,k,1))
-          tsigz(k) = tsigz(k) + count(tp(lx:hx,ly:hy,k,1))
+       do k = 1, hh(3)
+          kk = ll(3) + k - 1
+          tsigz(kk) = tsigz(kk) + count(tp(:,:,k,1))
        end do
     end do
 
     call parallel_reduce(sigx(lx:hx), tsigx, MPI_SUM)
-    call parallel_reduce(sigx(ly:hy), tsigy, MPI_SUM)
-    call parallel_reduce(sigx(lz:hz), tsigz, MPI_SUM)
+    call parallel_reduce(sigy(ly:hy), tsigy, MPI_SUM)
+    call parallel_reduce(sigz(lz:hz), tsigz, MPI_SUM)
 
-       !! Note: only one of berger/rigotsis schemes is here used.
-       !! Note: a fill boundary needs to have b???
+    !! Note: only one of berger/rigotsis schemes is here used.
+    !! Note: a fill boundary needs to have b???
+    lplx = 0
+    lply = 0
+    lplz = 0
+
     do i = lx+1, hx-1
-       lplx(i) = lplx(i) + sigx(i+1)-2*sigx(i)+sigx(i-1)
+       lplx(i) = sigx(i+1)-2*sigx(i)+sigx(i-1)
     end do
 
     do j = ly+1, hy-1
-       lply(j) = lply(j) + sigy(j+1)-2*sigy(j)+sigy(j-1)
+       lply(j) = sigy(j+1)-2*sigy(j)+sigy(j-1)
     end do
 
     do k = lz+1, hz-1
-       lplz(k) = lplz(k) + sigz(k+1)-2*sigz(k)+sigz(k-1)
+       lplz(k) = sigz(k+1)-2*sigz(k)+sigz(k-1)
     end do
 
     if ( verbose .and. parallel_IOProcessor() ) then
@@ -407,7 +432,6 @@ contains
 
     lx = lwb(bx,1); ly = lwb(bx,2); lz = lwb(bx,3)
     hx = upb(bx,1); hy = upb(bx,2); hz = upb(bx,3)
-
 
     do i = lx, hx
        sigx(i) = count(tagbox(i,ly:hy,lz:hz))
@@ -495,10 +519,13 @@ contains
     type(lmultifab), intent(in) :: tagboxes
     logical, pointer :: tp(:,:,:,:)
     integer :: n
+    type(box) :: bx1
 
     r = 0
     do n = 1, tagboxes%nboxes; if ( remote(tagboxes, n) ) cycle
-       tp => dataptr(tagboxes, n, bx)
+       bx1 = intersection(get_pbox(tagboxes, n), bx)
+       if ( empty(bx1) ) cycle
+       tp => dataptr(tagboxes, n, bx1)
        r = r + real(count(tp),dp_t)
     end do
     r = r/dvolume(bx)
