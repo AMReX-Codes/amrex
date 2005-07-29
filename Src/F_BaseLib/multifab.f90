@@ -106,6 +106,7 @@ module multifab_module
   interface print
      module procedure multifab_print
      module procedure imultifab_print
+     module procedure lmultifab_print
   end interface
 
   interface setval
@@ -154,6 +155,13 @@ module multifab_module
   interface nboxes
      module procedure multifab_nboxes
      module procedure imultifab_nboxes
+     module procedure lmultifab_nboxes
+  end interface
+
+  interface nghost
+     module procedure multifab_nghost
+     module procedure imultifab_nghost
+     module procedure lmultifab_nghost
   end interface
 
   interface volume
@@ -277,6 +285,10 @@ module multifab_module
   interface max_val
      module procedure multifab_max_c
      module procedure multifab_max
+  end interface
+
+  interface count
+     module procedure lmultifab_count
   end interface
 
   type(mem_stats), private, save ::  multifab_ms
@@ -486,7 +498,7 @@ contains
     integer :: lnc, lng
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
-    lnc = 0; if ( present(nc) ) lnc = nc
+    lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = layout_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
@@ -513,7 +525,7 @@ contains
     integer :: lnc, lng
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
-    lnc = 0; if ( present(nc) ) lnc = nc
+    lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = layout_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
@@ -540,7 +552,7 @@ contains
 
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
-    lnc = 0; if ( present(nc) ) lnc = nc
+    lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = layout_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
@@ -710,6 +722,27 @@ contains
     integer :: r
     r = mf%nboxes
   end function imultifab_nboxes
+  function lmultifab_nboxes(mf) result(r)
+    type(lmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%nboxes
+  end function lmultifab_nboxes
+
+  function multifab_nghost(mf) result(r)
+    type(multifab), intent(in) :: mf
+    integer :: r
+    r = mf%ng
+  end function multifab_nghost
+  function imultifab_nghost(mf) result(r)
+    type(imultifab), intent(in) :: mf
+    integer :: r
+    r = mf%ng
+  end function imultifab_nghost
+  function lmultifab_nghost(mf) result(r)
+    type(lmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%ng
+  end function lmultifab_nghost
 
   function multifab_remote(mf, i) result(r)
     type(multifab), intent(in) :: mf

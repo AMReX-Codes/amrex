@@ -536,12 +536,6 @@ subroutine t_ba
   call destroy(bxa)
 end subroutine t_ba
 
-subroutine t_cluster
-  use cluster_module
-  call cluster_set_verbose(.true.)
-  call t_cls
-end subroutine t_cluster
-
 subroutine t_box_mod
   use box_module
   use boxarray_module
