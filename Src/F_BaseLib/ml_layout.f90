@@ -128,6 +128,12 @@ contains
        mla%mba%rr(n-1,:) = extent(mla%mba%pd(n))/extent(mla%mba%pd(n-1))
     end do
 
+    ! transfer the layouts...
+    allocate(mla%la(mla%nlevel))
+    do n = 1, mla%nlevel
+       mla%la(n) = la(n)
+    end do
+
     ! build the pmasks...
     allocate(mla%mask(mla%nlevel-1))
     do n = mla%nlevel-1, 1, -1
@@ -137,11 +143,6 @@ contains
        call boxarray_coarsen(bac, mla%mba%rr(n,:))
        call setval(mla%mask(n), .false., bac)
        call destroy(bac)
-    end do
-    
-    ! transfer the layouts...
-    do n = 1, mla%nlevel
-       mla%la(n) = la(n)
     end do
 
   end subroutine ml_layout_build_la
