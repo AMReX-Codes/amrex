@@ -100,6 +100,52 @@ contains
     end do
   end subroutine ml_layout_build
 
+  subroutine ml_layout_build_la(mla, la)
+    type(ml_layout), intent(inout) :: mla
+    type(layout), intent(inout) :: la(:)
+    integer :: n
+    type(boxarray) :: bac
+    if ( size(la) == 0 ) then
+       call bl_error("ML_LAYOUT_BUILD_LA: la array is empty!")
+    end if
+    mla%dim = layout_dim(la(1))
+    mla%nlevel = size(la)
+
+    allocate(mla%pmask(mla%dim))
+    mla%pmask = get_pmask(la(1))
+    do n = 1, mla%nlevel
+       if ( any( mla%pmask .neqv. get_pmask(la(n))) ) then
+          call bl_error("ML_LAYOUT_BUILD_LA: inconsistent pmask")
+       end if
+    end do
+
+    ! copy the
+    call build(mla%mba, mla%nlevel, mla%dim)
+    do n = 1, mla%nlevel
+       call copy(mla%mba%bas(n), get_boxarray(la(n)))
+       mla%mba%pd(n) = get_pd(la(n))
+       if ( n == 1 ) cycle
+       mla%mba%rr(n-1,:) = extent(mla%mba%pd(n))/extent(mla%mba%pd(n-1))
+    end do
+
+    ! build the pmasks...
+    allocate(mla%mask(mla%nlevel-1))
+    do n = mla%nlevel-1, 1, -1
+       call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
+       call setval(mla%mask(n), val = .true.)
+       call copy(bac, mla%mba%bas(n+1))
+       call boxarray_coarsen(bac, mla%mba%rr(n,:))
+       call setval(mla%mask(n), .false., bac)
+       call destroy(bac)
+    end do
+    
+    ! transfer the layouts...
+    do n = 1, mla%nlevel
+       mla%la(n) = la(n)
+    end do
+
+  end subroutine ml_layout_build_la
+
   subroutine ml_layout_destroy(mla)
     type(ml_layout), intent(inout) :: mla
     integer :: n
