@@ -14,6 +14,13 @@ module layout_module
   integer, private, parameter :: LA_PPRT = 4
   integer, private, parameter :: LA_DERV = 5
 
+  integer, parameter :: LA_KNAPSACK   = 101
+  integer, parameter :: LA_ROUNDROBIN = 102
+  integer, parameter :: LA_LOCAL      = 103
+  integer, parameter :: LA_EXPLICIT   = 104
+
+  integer, private :: def_mapping = LA_KNAPSACK
+
   type comm_dsc
      integer   :: nd = 0        ! dst box number
      integer   :: ns = 0        ! src box number
@@ -191,6 +198,10 @@ module layout_module
      module procedure layout_get_pd
   end interface
 
+  interface get_pmask
+     module procedure layout_get_pmask
+  end interface
+
   private layout_next_id
   private layout_rep_build
   private layout_rep_destroy
@@ -199,6 +210,15 @@ module layout_module
   type(mem_stats), private, save :: la_ms
 
 contains
+
+  subroutine layout_set_mapping(mapping)
+    integer, intent(in) :: mapping
+    def_mapping = mapping
+  end subroutine layout_set_mapping
+  function layout_get_mapping() result(r)
+    integer :: r
+    r = def_mapping
+  end function layout_get_mapping
 
   subroutine boxassoc_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -266,24 +286,50 @@ contains
     r = la%lap%bxa
   end function layout_boxarray
 
-  subroutine layout_rep_build(lap, ba, pd, pmask)
+  function layout_get_pmask(la) result(r)
+    type(layout), intent(in) :: la
+    logical :: r(la%lap%dim)
+    r = la%lap%pmask
+  end function layout_get_pmask
+
+  subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
     type(layout_rep), intent(out) :: lap
     type(boxarray), intent(in) :: ba
-    logical :: pmask(:)
     type(box), intent(in) :: pd
+    logical, intent(in) :: pmask(:)
+    integer, intent(in), optional :: mapping
+    integer, intent(in), optional :: explicit_mapping(:)
     integer :: i, j
+    integer :: lmapping
 
+    lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
     call boxarray_build_copy(lap%bxa, ba)
-    lap%dim = lap%bxa%dim
+    lap%dim    = lap%bxa%dim
     lap%nboxes = lap%bxa%nboxes
-    lap%id    = layout_next_id()
-    lap%pd    = pd
+    lap%id     = layout_next_id()
+    lap%pd     = pd
     allocate(lap%pmask(lap%dim))
     lap%pmask = pmask
 
     allocate(lap%prc(lap%nboxes))
-    ! call layout_roundrobin(lap%prc, ba%bxs)
-    call layout_knapsack(lap%prc, ba%bxs)
+    select case (lmapping)
+    case (LA_EXPLICIT)
+       if ( .not. present(explicit_mapping) ) then
+          call bl_error("LAYOUT_REP_BUILD: mapping explicit but no explicit_mapping")
+       end if
+       if ( size(lap%prc) /= size(explicit_mapping) ) then
+          call bl_error("LAYOUT_REP_BUILD: incommesurate explicit mapping")
+       end if
+       lap%prc = explicit_mapping
+    case (LA_LOCAL)
+       lap%prc = parallel_myproc()
+    case (LA_ROUNDROBIN)
+       call layout_roundrobin(lap%prc, ba%bxs)
+    case (LA_KNAPSACK)
+       call layout_knapsack(lap%prc, ba%bxs)
+    case default
+       call bl_error("LAYOUT_REP_BUILD: unknown mapping:", lmapping)
+    end select
 
   end subroutine layout_rep_build
 
@@ -362,11 +408,13 @@ contains
     deallocate(lap)
   end subroutine layout_rep_destroy
 
-  subroutine layout_build_ba(la, ba, pd, pmask)
+  subroutine layout_build_ba(la, ba, pd, pmask, mapping, explicit_mapping)
     type(layout), intent(out) :: la
     type(boxarray), intent(in) :: ba
     type(box), intent(in), optional :: pd
-    logical, optional :: pmask(:)
+    logical, intent(in), optional :: pmask(:)
+    integer, intent(in), optional :: mapping
+    integer, intent(in), optional :: explicit_mapping(:)
     type(box) :: lpd
     logical :: lpmask(ba%dim)
     lpmask = .false.; if ( present(pmask) ) lpmask = pmask
@@ -377,7 +425,7 @@ contains
     end if
     allocate(la%lap)
     la%la_type = LA_BASE
-    call layout_rep_build(la%lap, ba, lpd, lpmask)
+    call layout_rep_build(la%lap, ba, lpd, lpmask, mapping, explicit_mapping)
   end subroutine layout_build_ba
 
   subroutine layout_destroy(la)
@@ -387,11 +435,13 @@ contains
 !   deallocate(la%lap)
   end subroutine layout_destroy
 
-  subroutine layout_build_pn(lapn, la, ba, rr)
+  subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
     type(layout), intent(out)   :: lapn
     type(layout), intent(inout) :: la
     type(boxarray), intent(in) :: ba
     integer, intent(in) :: rr(:)
+    integer, intent(in), optional :: mapping
+    integer, intent(in), optional :: explicit_mapping(:)
     type(pn_layout), pointer :: pla
     type(box) :: rpd
 
@@ -422,7 +472,8 @@ contains
 
     allocate(pla%la%lap)
     rpd = refine(la%lap%pd, pla%refr)
-    call layout_rep_build(pla%la%lap, ba, rpd, la%lap%pmask)
+    call layout_rep_build(pla%la%lap, ba, rpd, la%lap%pmask, &
+        mapping, explicit_mapping)
 
     ! install the new coarsened layout into the layout
     pla%next => la%lap%pn_children
