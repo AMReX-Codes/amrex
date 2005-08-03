@@ -167,7 +167,8 @@ contains
     type(boxarray), intent(in) :: ba
     integer :: i, j
     type(box):: b1, b2
-    integer cnt, vol
+    integer :: cnt
+    integer :: vol
     integer :: un
     un = unit_new()
     open(un,file='conn', status = 'replace', action = 'write')
@@ -250,23 +251,13 @@ subroutine t_mf
   implicit none
   integer, parameter :: dm = 2
 !  integer, parameter :: dm = 3
-  type (box) :: bx, pd
+  type (box) :: pd
   type (box), dimension(4) :: bxs
-  type (boxarray):: ba,cba
+  type (boxarray):: ba
   type (layout) :: la
   type (multifab) :: mf
-  type (boxassoc) :: bxasc
  logical :: pmask(2),nodal(2)
 !  logical :: pmask(3),nodal(3)
-  integer :: ms
-  integer :: sz
-  integer :: i
-
-  type(box) :: thebxs(27)
-  integer   :: cnt,shft(27,dm)
-
-  sz = 8
-  ms = 4
 
 !pmask = (/.false.,.true./)
 pmask = .false.
@@ -427,9 +418,8 @@ subroutine t_nodal_mf_fabio
   type (layout) :: la
   type (multifab) :: mf
   type (multifab) :: mfc
-  integer :: i, j, n, nx, ny, dm
+  integer :: dm
   logical, allocatable :: nodal(:)
-  real(kind=dp_t), pointer :: fp(:,:,:,:)
 
   dm = 2
   allocate(nodal(dm)); nodal = .true.
