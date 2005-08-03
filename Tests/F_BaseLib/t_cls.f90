@@ -120,7 +120,6 @@ subroutine t_cls(buf_wid, minwidth, min_eff)
   integer, parameter :: n = 16
   logical :: tagbox(0:n-1, 0:n-1, 0:0)
   type(boxarray) :: boxes
-  type(list_box_node), pointer :: bn
   real(dp_t) :: overall_eff
   real(dp_t) :: d, wid1, wid2, cen
   integer :: i, j, k, dm

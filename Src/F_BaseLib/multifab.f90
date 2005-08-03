@@ -1771,7 +1771,7 @@ contains
     integer, intent(in)                         :: c
     integer, intent(in), optional               :: nc
     logical, intent(in), optional               :: all
-    type(box)                                   :: ibx, jbx, abx, sbx
+    type(box)                                   :: ibx, jbx, abx
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
     integer                                     :: i, j, jj, proc, cnt, lnc
@@ -1867,7 +1867,7 @@ contains
     integer, intent(in)                      :: c
     integer, intent(in), optional            :: nc
     logical, intent(in), optional            :: all
-    type(box)                                :: ibx, jbx, abx, sbx
+    type(box)                                :: ibx, jbx, abx
     logical, dimension(:,:,:,:), pointer     :: pdst, psrc
     logical, dimension(:,:,:,:), allocatable :: pt
     integer                                  :: i, j, jj, proc, cnt, lnc
