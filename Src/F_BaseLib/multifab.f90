@@ -17,6 +17,17 @@ module multifab_module
      type(fab), pointer :: fbs(:) => Null()
   end type multifab
 
+  type zmultifab
+     logical :: bound = .false.
+     integer :: dim = 0
+     integer :: nboxes = 0
+     integer :: nc = 1
+     integer :: ng = 0
+     logical, pointer :: nodal(:) => Null()
+     type(layout) :: la
+     type(zfab), pointer :: fbs(:) => Null()
+  end type zmultifab
+
   type imultifab
      logical :: bound = .false.
      integer :: dim = 0
@@ -49,12 +60,14 @@ module multifab_module
      module procedure multifab_nodal_q
      module procedure imultifab_nodal_q
      module procedure lmultifab_nodal_q
+     module procedure zmultifab_nodal_q
   end interface
 
   interface built_q
      module procedure multifab_built_q
      module procedure imultifab_built_q
      module procedure lmultifab_built_q
+     module procedure zmultifab_built_q
   end interface
 
   interface build
@@ -65,6 +78,7 @@ module multifab_module
      module procedure imultifab_build_copy
 
      module procedure lmultifab_build
+     module procedure zmultifab_build
   end interface
 
   interface destroy
@@ -126,60 +140,75 @@ module multifab_module
      module procedure lmultifab_setval_bx_c
 
      module procedure lmultifab_setval_ba
+
+     module procedure zmultifab_setval
+     module procedure zmultifab_setval_bx
+     module procedure zmultifab_setval_c
+     module procedure zmultifab_setval_bx_c
+
   end interface
 
   interface get_boxarray
      module procedure multifab_get_boxarray
      module procedure imultifab_get_boxarray
      module procedure lmultifab_get_boxarray
+     module procedure zmultifab_get_boxarray
   end interface
 
   interface get_pbox
      module procedure multifab_get_pbox
      module procedure imultifab_get_pbox
      module procedure lmultifab_get_pbox
+     module procedure zmultifab_get_pbox
   end interface
 
   interface get_ibox
      module procedure multifab_get_ibox
      module procedure imultifab_get_ibox
      module procedure lmultifab_get_ibox
+     module procedure zmultifab_get_ibox
   end interface
   
   interface get_box
      module procedure multifab_get_box
      module procedure imultifab_get_box
      module procedure lmultifab_get_box
+     module procedure zmultifab_get_box
   end interface
 
   interface nboxes
      module procedure multifab_nboxes
      module procedure imultifab_nboxes
      module procedure lmultifab_nboxes
+     module procedure zmultifab_nboxes
   end interface
 
   interface nghost
      module procedure multifab_nghost
      module procedure imultifab_nghost
      module procedure lmultifab_nghost
+     module procedure zmultifab_nghost
   end interface
 
   interface volume
      module procedure multifab_volume
      module procedure imultifab_volume
      module procedure lmultifab_volume
+     module procedure zmultifab_volume
   end interface
 
   interface local
      module procedure multifab_local
      module procedure imultifab_local
      module procedure lmultifab_local
+     module procedure zmultifab_local
   end interface
 
   interface remote
      module procedure multifab_remote
      module procedure imultifab_remote
      module procedure lmultifab_remote
+     module procedure zmultifab_remote
   end interface
 
   interface get_layout
@@ -294,6 +323,7 @@ module multifab_module
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
+  type(mem_stats), private, save :: zmultifab_ms
 
 ! interface assignment(=)
 !    module procedure multifab_die_die
@@ -306,18 +336,22 @@ module multifab_module
   real(dp_t), allocatable, save, private  :: g_snd_d(:), g_rcv_d(:)
   integer,    allocatable, save, private  :: g_snd_i(:), g_rcv_i(:)
   logical,    allocatable, save, private  :: g_snd_l(:), g_rcv_l(:)
+  complex(dp_t), allocatable, save, private  :: g_snd_z(:), g_rcv_z(:)
 
   logical, private :: d_fb_fancy = .true.
   logical, private :: i_fb_fancy = .true.
   logical, private :: l_fb_fancy = .true.
+  logical, private :: z_fb_fancy = .true.
 
   logical, private :: d_cp_fancy = .true.
   logical, private :: i_cp_fancy = .true.
   logical, private :: l_cp_fancy = .true.
+  logical, private :: z_cp_fancy = .true.
 
   logical, private :: d_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: i_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: l_fb_async = .false. ! Do both recv's and send's asynchronously?
+  logical, private :: z_fb_async = .false. ! Do both recv's and send's asynchronously?
 
 contains
 
@@ -339,6 +373,12 @@ contains
     if ( present(fb_async) ) fb_async = l_fb_async
     if ( present(fb_fancy) ) fb_fancy = l_fb_fancy
   end subroutine lmultifab_get_behavior
+  subroutine zmultifab_get_behavior(fb_async, fb_fancy)
+    logical, intent(out), optional :: fb_async
+    logical, intent(out), optional :: fb_fancy
+    if ( present(fb_async) ) fb_async = z_fb_async
+    if ( present(fb_fancy) ) fb_fancy = z_fb_fancy
+  end subroutine zmultifab_get_behavior
 
   subroutine multifab_set_behavior(fb_async, fb_fancy, cp_fancy)
     logical, intent(in), optional :: fb_async
@@ -360,6 +400,12 @@ contains
     if ( present(fb_async) ) l_fb_async = fb_async
     if ( present(fb_fancy) ) l_fb_fancy = fb_fancy
   end subroutine lmultifab_set_behavior
+  subroutine zmultifab_set_behavior(fb_async, fb_fancy)
+    logical, intent(in), optional :: fb_async
+    logical, intent(in), optional :: fb_fancy
+    if ( present(fb_async) ) z_fb_async = fb_async
+    if ( present(fb_fancy) ) z_fb_fancy = fb_fancy
+  end subroutine zmultifab_set_behavior
 
 ! subroutine multifab_die_die(mf,mf1)
 !   type(multifab), intent(in) :: mf1
@@ -382,6 +428,11 @@ contains
     type(lmultifab), intent(in) :: mf
     r = mf%nc
   end function lmultifab_ncomp
+  function zmultifab_ncomp(mf) result(r)
+    integer :: r
+    type(zmultifab), intent(in) :: mf
+    r = mf%nc
+  end function zmultifab_ncomp
 
   subroutine multifab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -395,6 +446,10 @@ contains
     type(mem_stats), intent(in) :: ms
     lmultifab_ms = ms
   end subroutine lmultifab_set_mem_stats
+  subroutine zmultifab_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    zmultifab_ms = ms
+  end subroutine zmultifab_set_mem_stats
 
   function multifab_mem_stats() result(r)
     type(mem_stats) :: r
@@ -408,6 +463,10 @@ contains
     type(mem_stats) :: r
     r = lmultifab_ms
   end function lmultifab_mem_stats
+  function zmultifab_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = zmultifab_ms
+  end function zmultifab_mem_stats
 
   subroutine check_conformance(a,b)
     type(multifab), intent(in) :: a, b
@@ -429,6 +488,11 @@ contains
     type(lmultifab), intent(in) :: mf
     r = .not. any(mf%nodal)
   end function lmultifab_cell_centered_q
+  function zmultifab_cell_centered_q(mf) result(r)
+    logical :: r
+    type(zmultifab), intent(in) :: mf
+    r = .not. any(mf%nodal)
+  end function zmultifab_cell_centered_q
   
   function multifab_nodal_q(mf) result(r)
     logical :: r
@@ -443,8 +507,13 @@ contains
   function lmultifab_nodal_q(mf) result(r)
     logical :: r
     type(lmultifab), intent(in) :: mf
-    r = mf%dim /= 0
+    r = all(mf%nodal)
   end function lmultifab_nodal_q
+  function zmultifab_nodal_q(mf) result(r)
+    logical :: r
+    type(zmultifab), intent(in) :: mf
+    r = mf%dim /= 0
+  end function zmultifab_nodal_q
   
   function multifab_built_q(mf) result(r)
     logical :: r
@@ -461,6 +530,11 @@ contains
     type(lmultifab), intent(in) :: mf
     r = mf%dim /= 0
   end function lmultifab_built_q
+  function zmultifab_built_q(mf) result(r)
+    logical :: r
+    type(zmultifab), intent(in) :: mf
+    r = mf%dim /= 0
+  end function zmultifab_built_q
   
   function multifab_conformant_q(a,b) result(r)
     logical :: r
@@ -472,6 +546,16 @@ contains
     type(imultifab), intent(in) :: a, b
     r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
   end function imultifab_conformant_q
+  function lmultifab_conformant_q(a,b) result(r)
+    logical :: r
+    type(lmultifab), intent(in) :: a, b
+    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
+  end function lmultifab_conformant_q
+  function zmultifab_conformant_q(a,b) result(r)
+    logical :: r
+    type(zmultifab), intent(in) :: a, b
+    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
+  end function zmultifab_conformant_q
 
   function multifab_get_layout(mf) result(r)
     type(layout) :: r
@@ -488,6 +572,11 @@ contains
     type(lmultifab), intent(in) :: mf
     r = mf%la
   end function lmultifab_get_layout
+  function zmultifab_get_layout(mf) result(r)
+    type(layout) :: r
+    type(zmultifab), intent(in) :: mf
+    r = mf%la
+  end function zmultifab_get_layout
 
   subroutine multifab_build(mf, la, nc, ng, nodal)
     type(multifab), intent(out) :: mf
@@ -508,10 +597,10 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
-      call fab_build( &
+      call build( &
            mf%fbs(i), get_box(mf%la, i), &
            mf%nc, mf%ng, mf%nodal,  &
-           alloc = multifab_local(mf, i))
+           alloc = local(mf, i))
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
   end subroutine multifab_build
@@ -535,9 +624,9 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
-       call ifab_build(mf%fbs(i), get_box(mf%la, i), &
+       call build(mf%fbs(i), get_box(mf%la, i), &
             mf%nc, mf%ng, mf%nodal, &
-            alloc = imultifab_local(mf, i))
+            alloc = local(mf, i))
     end do
     call mem_stats_alloc(imultifab_ms, volume(mf, all = .TRUE.))
   end subroutine imultifab_build
@@ -562,12 +651,39 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
-       call lfab_build(mf%fbs(i), get_box(mf%la, i), &
+       call build(mf%fbs(i), get_box(mf%la, i), &
             mf%nc, mf%ng, mf%nodal, &
-            alloc = lmultifab_local(mf, i))
+            alloc = local(mf, i))
     end do
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine lmultifab_build
+
+  subroutine zmultifab_build(mf, la, nc, ng, nodal)
+    type(zmultifab), intent(out) :: mf
+    type(layout), intent(in) :: la
+    integer, intent(in),optional :: nc, ng
+    logical, intent(in),optional :: nodal(:)
+    integer :: i
+    integer :: lnc, lng
+
+    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    lng = 0; if ( present(ng) ) lng = ng
+    lnc = 1; if ( present(nc) ) lnc = nc
+    mf%dim = layout_dim(la)
+    mf%la = la
+    mf%nboxes = layout_nboxes(la)
+    mf%nc = lnc
+    mf%ng = lng
+    allocate(mf%nodal(mf%dim))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
+    allocate(mf%fbs(mf%nboxes))
+    do i = 1, mf%nboxes
+       call build(mf%fbs(i), get_box(mf%la, i), &
+            mf%nc, mf%ng, mf%nodal, &
+            alloc = local(mf, i))
+    end do
+    call mem_stats_alloc(zmultifab_ms, volume(mf, all = .TRUE.))
+  end subroutine zmultifab_build
 
   subroutine multifab_build_copy(m1, m2)
     type(multifab), intent(inout) :: m1
@@ -586,7 +702,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
     do i = 1, m1%nboxes
-       if ( multifab_remote(m1, i) ) cycle
+       if ( remote(m1, i) ) cycle
        call fab_build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -611,7 +727,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
     do i = 1, m1%nboxes
-       if ( imultifab_remote(m1, i) ) cycle
+       if ( remote(m1, i) ) cycle
        call ifab_build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -711,6 +827,20 @@ contains
        r = volume(get_boxarray(mf))
     end if
   end function lmultifab_volume
+  function zmultifab_volume(mf, all) result(r)
+    integer(kind=ll_t) :: r
+    type(zmultifab), intent(in) :: mf
+    logical, optional :: all
+    integer :: i
+    if ( all ) then
+       r = 0_ll_t
+       do i = 1, mf%nboxes
+          r = r + volume(get_pbox(mf, i))
+       end do
+    else
+       r = volume(get_boxarray(mf))
+    end if
+  end function zmultifab_volume
 
   function multifab_nboxes(mf) result(r)
     type(multifab), intent(in) :: mf
@@ -727,6 +857,11 @@ contains
     integer :: r
     r = mf%nboxes
   end function lmultifab_nboxes
+  function zmultifab_nboxes(mf) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%nboxes
+  end function zmultifab_nboxes
 
   function multifab_nghost(mf) result(r)
     type(multifab), intent(in) :: mf
@@ -743,6 +878,11 @@ contains
     integer :: r
     r = mf%ng
   end function lmultifab_nghost
+  function zmultifab_nghost(mf) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%ng
+  end function zmultifab_nghost
 
   function multifab_remote(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -762,6 +902,12 @@ contains
     logical :: r
     r = layout_remote(mf%la, i)
   end function lmultifab_remote
+  function zmultifab_remote(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    logical :: r
+    r = layout_remote(mf%la, i)
+  end function zmultifab_remote
 
   function multifab_local(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -781,6 +927,12 @@ contains
     logical :: r
     r = layout_local(mf%la, i)
   end function lmultifab_local
+  function zmultifab_local(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    logical :: r
+    r = layout_local(mf%la, i)
+  end function zmultifab_local
 
   function multifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
@@ -797,6 +949,11 @@ contains
     type(lmultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function lmultifab_get_boxarray
+  function zmultifab_get_boxarray(mf) result(r)
+    type(boxarray) :: r
+    type(zmultifab), intent(in) :: mf
+    r = get_boxarray(mf%la)
+  end function zmultifab_get_boxarray
 
   function multifab_get_box(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -816,6 +973,12 @@ contains
     type(box) :: r
     r = get_box(mf%la, i)
   end function lmultifab_get_box
+  function zmultifab_get_box(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    type(box) :: r
+    r = get_box(mf%la, i)
+  end function zmultifab_get_box
 
   function multifab_get_ibox(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -835,6 +998,12 @@ contains
     type(box) :: r
     r = mf%fbs(i)%ibx
   end function lmultifab_get_ibox
+  function zmultifab_get_ibox(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    type(box) :: r
+    r = mf%fbs(i)%ibx
+  end function zmultifab_get_ibox
 
   function multifab_get_pbox(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -854,6 +1023,12 @@ contains
     type(box) :: r
     r = mf%fbs(i)%pbx
   end function lmultifab_get_pbox
+  function zmultifab_get_pbox(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    type(box) :: r
+    r = mf%fbs(i)%pbx
+  end function zmultifab_get_pbox
 
   function multifab_dataptr(mf, i) result(r)
     type(multifab), intent(in) :: mf
@@ -961,6 +1136,12 @@ contains
     logical, intent(in), optional :: all
     call lmultifab_setval_c(mf, val, 1, mf%nc, all)
   end subroutine lmultifab_setval
+  subroutine zmultifab_setval(mf, val, all)
+    type(zmultifab), intent(inout) :: mf
+    complex(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    call zmultifab_setval_c(mf, val, 1, mf%nc, all)
+  end subroutine zmultifab_setval
 
   subroutine multifab_setval_bx(mf, val, bx, all)
     type(multifab), intent(inout) :: mf
@@ -983,6 +1164,13 @@ contains
     logical, intent(in), optional :: all
     call lmultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine lmultifab_setval_bx
+  subroutine zmultifab_setval_bx(mf, val, bx, all)
+    type(zmultifab), intent(inout) :: mf
+    type(box), intent(in) :: bx
+    complex(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    call zmultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
+  end subroutine zmultifab_setval_bx
 
   subroutine lmultifab_setval_ba(mf, val, ba, all)
     type(lmultifab), intent(inout) :: mf
@@ -996,7 +1184,7 @@ contains
     !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
     do n = 1, ba%nboxes
        do i = 1, mf%nboxes
-          if ( lmultifab_remote(mf, i) ) cycle
+          if ( remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
              if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
@@ -1022,7 +1210,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
@@ -1046,7 +1234,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( imultifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
@@ -1070,7 +1258,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
@@ -1081,6 +1269,30 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine lmultifab_setval_bx_c
+  subroutine zmultifab_setval_bx_c(mf, val, bx, c, nc, all)
+    type(zmultifab), intent(inout) :: mf
+    type(box), intent(in) :: bx
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    integer :: i
+    type(box) :: bx1
+    logical lall
+    lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       if ( lall ) then
+          bx1 = intersection(bx, get_pbox(mf, i))
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       else
+          bx1 = intersection(bx, get_ibox(mf, i))
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       end if
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine zmultifab_setval_bx_c
 
   subroutine multifab_setval_c(mf, val, c, nc, all)
     type(multifab), intent(inout) :: mf
@@ -1094,7 +1306,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1116,7 +1328,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( imultifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1138,7 +1350,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1148,6 +1360,28 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine lmultifab_setval_c
+  subroutine zmultifab_setval_c(mf, val, c, nc, all)
+    type(zmultifab), intent(inout) :: mf
+    integer, intent(in) :: c
+    integer, intent(in), optional :: nc
+    complex(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    integer :: i
+    type(box) :: bx
+    logical lall
+    lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       if ( lall ) then
+          call setval(mf%fbs(i), val, c, nc)
+       else
+          bx = get_ibox(mf, i)
+          call setval(mf%fbs(i), val, bx, c, nc)
+       end if
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine zmultifab_setval_c
 
   subroutine multifab_debug_fill(mf, all, loc)
     type(multifab), intent(inout) :: mf
@@ -1155,7 +1389,7 @@ contains
     logical, intent(in), optional :: loc
     integer :: i
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        call fab_debug_fill(mf%fbs(i), i, all, loc)
     end do
   end subroutine multifab_debug_fill
@@ -1167,7 +1401,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( imultifab_remote(mf, i) ) cycle
+       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx = get_pbox(mf, i)
        else
@@ -1185,7 +1419,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), intent(in), optional :: val
     integer :: i
-    do i = 1, mf%nboxes; if ( multifab_remote(mf, i) ) cycle
+    do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
        call fab_set_border_val(mf%fbs(i), val)
     end do
   end subroutine multifab_set_border_val
@@ -2068,6 +2302,45 @@ contains
        call parallel_barrier()
     end do
   end subroutine lmultifab_print
+  subroutine zmultifab_print(mf, str, unit, all, data, skip)
+    use bl_IO_module
+    type(zmultifab), intent(in) :: mf
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    integer :: i, ii
+    integer :: un
+    character(len=5) :: fn
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("ZMULTIFAB")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+    do ii = 0, parallel_nprocs()
+       if ( ii == parallel_myproc() ) then
+          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+             write(unit=fn, fmt='(i5)') i
+             call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
+                  skip = unit_get_skip(skip) + 2)
+          end do
+       end if
+       call parallel_barrier()
+    end do
+  end subroutine zmultifab_print
 
   subroutine mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(multifab), intent(inout) :: mdst
@@ -2734,7 +3007,7 @@ contains
 
     call build(mask, mf%la, 1, 0, mf%nodal)
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        full_box = get_ibox(mf,i)
 
        select case ( full_box%dim )
@@ -2800,7 +3073,7 @@ contains
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
           do i = 1, mf%nboxes
-             if ( multifab_remote(mf,i) ) cycle
+             if ( remote(mf,i) ) cycle
              mp => dataptr(mf, i, get_ibox(mf, i), comp)
              mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
              lmp => dataptr(mask, i, get_ibox(mask, i), 1)
@@ -2811,7 +3084,7 @@ contains
           call build_nodal_dot_mask(tmask, mf)
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
-             if ( multifab_remote(mf,i) ) cycle
+             if ( remote(mf,i) ) cycle
 
              mp => dataptr(mf, i, get_ibox(mf, i), comp)
              mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
@@ -2829,7 +3102,7 @@ contains
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
           do i = 1, mf%nboxes
-             if ( multifab_remote(mf,i) ) cycle
+             if ( remote(mf,i) ) cycle
              if ( lall ) then
                 mp => dataptr(mf, i, get_pbox(mf, i), comp)
                 mp1 => dataptr(mf1, i, get_pbox(mf1, i), comp1)
@@ -2845,7 +3118,7 @@ contains
           call build_nodal_dot_mask(tmask, mf)
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
-             if ( multifab_remote(mf,i) ) cycle
+             if ( remote(mf,i) ) cycle
 
              mp => dataptr(mf, i, get_ibox(mf, i), comp)
              mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
@@ -2880,7 +3153,7 @@ contains
     if ( cell_centered_q(mf) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp)
              mp1 => dataptr(mf1, i, get_pbox(mf1, i), comp)
@@ -2896,7 +3169,7 @@ contains
        call build_nodal_dot_mask(mask, mf)
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
 
           mp => dataptr(mf, i, get_ibox(mf, i), comp)
           mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp)
@@ -2929,7 +3202,7 @@ contains
     if ( cell_centered_q(mf) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i))
              mp1 => dataptr(mf1, i, get_pbox(mf1, i))
@@ -2945,7 +3218,7 @@ contains
        call build_nodal_dot_mask(mask, mf)
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
 
           mp => dataptr(mf, i, get_ibox(mf, i))
           mp1 => dataptr(mf1, i, get_ibox(mf1, i))
@@ -3016,7 +3289,7 @@ contains
     integer :: i
     !$OMP PARALLEL DO PRIVATE(i,mp)
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i), c)
        if ( present(off) ) then
           mp = mp*val + off
@@ -3034,7 +3307,7 @@ contains
     integer :: i
     !$OMP PARALLEL DO PRIVATE(i,mp)
     do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i))
        if ( present(off) ) then
           mp = mp*val + off
@@ -3055,7 +3328,7 @@ contains
     integer :: i
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
@@ -3074,7 +3347,7 @@ contains
     integer :: i
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
@@ -3098,7 +3371,7 @@ contains
     if (lall) then
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes
-          if ( multifab_remote(a,i) ) cycle
+          if ( remote(a,i) ) cycle
           ap => dataptr(a,i)
           bp => dataptr(b,i)
           ap = ap + b1*bp
@@ -3107,7 +3380,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes
-          if ( multifab_remote(a,i) ) cycle
+          if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i))
           bp => dataptr(b, i, get_ibox(b, i))
           ap = ap + b1*bp
@@ -3131,7 +3404,7 @@ contains
 
     if (lall) then
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
-       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
           ap = ap + b1*bp
@@ -3139,7 +3412,7 @@ contains
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
-       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i), ia)
           bp => dataptr(b, i, get_ibox(b, i))
           ap = ap + b1*bp
@@ -3163,7 +3436,7 @@ contains
 
     if (lall) then
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
-       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
           ap = ap + b1*bp
@@ -3171,7 +3444,7 @@ contains
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,ap,bp)
-       do i = 1, a%nboxes; if ( multifab_remote(a,i) ) cycle
+       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i), ia, nc)
           bp => dataptr(b, i, get_ibox(b, i), ib, nc)
           ap = ap + b1*bp
@@ -3197,7 +3470,7 @@ contains
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3216,7 +3489,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3252,7 +3525,7 @@ contains
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3271,7 +3544,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3310,7 +3583,7 @@ contains
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3329,7 +3602,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3367,7 +3640,7 @@ contains
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3386,7 +3659,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
-          if ( multifab_remote(mf,i) ) cycle
+          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3420,7 +3693,7 @@ contains
     r1 = 0
     !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
     do i = 1, mf%nboxes
-       if ( imultifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -3452,7 +3725,7 @@ contains
     r1 = 0
     !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
     do i = 1, mf%nboxes
-       if ( imultifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -3482,7 +3755,7 @@ contains
     r1 = 0
     !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
     do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf,i) ) cycle
+       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i))
        else
@@ -3505,7 +3778,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
           bp => dataptr(b, i)
@@ -3533,7 +3806,7 @@ contains
     end if
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
        else
@@ -3556,7 +3829,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
           bp => dataptr(b, i, src, nc)
@@ -3586,7 +3859,7 @@ contains
     end if
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
        else
@@ -3608,7 +3881,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
           bp => dataptr(b, i)
@@ -3630,7 +3903,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
        else
@@ -3653,7 +3926,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
           bp => dataptr(b, i, src, nc)
@@ -3677,7 +3950,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
        else
@@ -3699,7 +3972,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
           bp => dataptr(b, i)
@@ -3721,7 +3994,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i)
        else
@@ -3744,7 +4017,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
           bp => dataptr(b, i, src, nc)
@@ -3768,7 +4041,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, targ, nc)
        else
@@ -3792,7 +4065,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, dst, nc)
           bp => dataptr(b, i, src, nc)
@@ -3823,7 +4096,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
-       if ( multifab_remote(a,i) ) cycle
+       if ( remote(a,i) ) cycle
        if ( lall ) then
           ap => dataptr(a, i, dst, nc)
        else

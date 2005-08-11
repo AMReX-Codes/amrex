@@ -71,18 +71,11 @@ module fab_module
 !     module procedure ifab_dim
 !  end interface
 
-  !! Returns whether the FAB has been built, this is different from
-  !! whether the underlying pointer has been allocated since on parallel
-  !! systems the pointer will not be allocated if the LAYOUT says it
-  !! lives on another processor
-  interface built_q
-     module procedure fab_built_q
-     module procedure ifab_built_q
-  end interface
-
-  interface conformant_q
-     module procedure fab_conformant_q
-     module procedure ifab_conformant_q
+  interface build
+     module procedure fab_build
+     module procedure ifab_build
+     module procedure lfab_build
+     module procedure zfab_build
   end interface
 
   interface destroy
@@ -90,6 +83,23 @@ module fab_module
      module procedure zfab_destroy
      module procedure ifab_destroy
      module procedure lfab_destroy
+  end interface
+
+  !! Returns whether the FAB has been built, this is different from
+  !! whether the underlying pointer has been allocated since on parallel
+  !! systems the pointer will not be allocated if the LAYOUT says it
+  !! lives on another processor
+  interface built_q
+     module procedure fab_built_q
+     module procedure zfab_built_q
+     module procedure ifab_built_q
+     module procedure lfab_built_q
+  end interface
+
+  interface conformant_q
+     module procedure fab_conformant_q
+     module procedure zfab_conformant_q
+     module procedure ifab_conformant_q
   end interface
 
   interface max_val
@@ -162,6 +172,7 @@ module fab_module
      module procedure fab_print
      module procedure ifab_print
      module procedure lfab_print
+     module procedure zfab_print
   end interface
 
   interface get_box
@@ -196,6 +207,7 @@ module fab_module
      module procedure fab_ncomp
      module procedure zfab_ncomp
      module procedure ifab_ncomp
+     module procedure lfab_ncomp
   end interface
 
   real(kind=dp_t), parameter :: fab_default_init = -Huge(1.0_dp_t)
@@ -402,6 +414,11 @@ contains
     type(ifab), intent(in) :: fb
     r = fb%nc
   end function ifab_ncomp
+  function lfab_ncomp(fb) result(r)
+    integer :: r
+    type(lfab), intent(in) :: fb
+    r = fb%nc
+  end function lfab_ncomp
 
   function fab_get_box(fb) result(r)
     type(fab), intent(in) :: fb
@@ -471,11 +488,21 @@ contains
     logical :: r
     r = fb%dim /= 0
   end function fab_built_q
+  function zfab_built_q(fb) result(r)
+    type(zfab), intent(in) :: fb
+    logical :: r
+    r = fb%dim /= 0
+  end function zfab_built_q
   function ifab_built_q(fb) result(r)
     type(ifab), intent(in) :: fb
     logical :: r
     r = fb%dim /= 0
   end function ifab_built_q
+  function lfab_built_q(fb) result(r)
+    type(lfab), intent(in) :: fb
+    logical :: r
+    r = fb%dim /= 0
+  end function lfab_built_q
 
   function fab_conformant_q(a,b) result(r)
     logical :: r
@@ -489,6 +516,18 @@ contains
        r = .FALSE.
     end if 
   end function fab_conformant_q
+  function zfab_conformant_q(a,b) result(r)
+    logical :: r
+    type(zfab), intent(in) :: a, b
+    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
+       r = .true.
+    else if ( built_q(a) .and. built_q(b) ) then
+       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
+            a%nc == b%nc .AND. a%ibx == b%ibx
+    else
+       r = .FALSE.
+    end if 
+  end function zfab_conformant_q
   function ifab_conformant_q(a,b) result(r)
     logical :: r
     type(ifab), intent(in) :: a, b
@@ -501,6 +540,18 @@ contains
        r = .FALSE.
     end if 
   end function ifab_conformant_q
+  function lfab_conformant_q(a,b) result(r)
+    logical :: r
+    type(lfab), intent(in) :: a, b
+    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
+       r = .true.
+    else if ( built_q(a) .and. built_q(b) ) then
+       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
+            a%nc == b%nc .AND. a%ibx == b%ibx
+    else
+       r = .FALSE.
+    end if 
+  end function lfab_conformant_q
 
   subroutine fab_set_border_val(fb, val)
     type(fab), intent(inout) :: fb
@@ -1559,6 +1610,134 @@ contains
       end if
     end subroutine print_3d
   end subroutine lfab_print
+  subroutine zfab_print(fb, str, unit, all, data, bx, skip)
+    use bl_IO_module
+    type(zfab), intent(in) :: fb
+    character(len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    type(box), intent(in), optional :: bx
+    integer :: un
+    logical :: lall, ldata
+    type(box) :: lbx
+    lbx  = box_allbox(fb%dim); if ( present(bx) ) lbx  = bx
+    lall = .TRUE.; if ( present(all) ) lall = all
+    ldata = .TRUE.; if ( present(data) ) ldata = data
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("ZFAB")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') fb%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
+    call print(fb%ibx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
+    call print(fb%pbx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    call print(fb%bx, unit = un)
+    if ( .not. associated(fb%p) ) then
+       call unit_skip(un, skip)
+       write(unit=un) 'NOT ASSOCIATED'
+    else
+       select case (fb%dim)
+       case (1)
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       case (2)
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       case (3)
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       end select
+    end if
+  contains
+    subroutine print_1d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      complex(kind=dp_t), intent(in) :: fb(lo(1):,:)
+      integer ::n, i
+      integer :: nc, hi(1)
+      character(len=1) c
+      nc = size(fb,dim=2)
+      hi(1) = lo(1) + size(fb,dim=1) - 1
+      if ( ldata ) then
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               if ( .not. ( lall .or. contains(bx, (/i/)) ) ) cycle
+               c = ' '
+               if ( .not. contains(bx, (/i/)) ) c = '*'
+               call unit_skip(un, skip)
+               write(unit=un, fmt='(A1,1X,I3,1(1X,I5),1X,2G25.15)') &
+                    c, n, i, fb(i,n)
+            end do
+         end do
+      end if
+    end subroutine print_1d
+    subroutine print_2d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      complex(kind=dp_t), intent(in) :: fb(lo(1):,lo(2):,:)
+      integer :: n, j, i
+      integer :: nc, hi(2)
+      character(len=1) c
+      nc = size(fb,dim=3)
+      do i = 1, 2
+         hi(i) = lo(i) + size(fb,dim=i) - 1
+      end do
+      if ( ldata ) then
+         do n = 1, nc
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if ( .not. ( lall .or. contains(bx, (/i,j/)) ) ) cycle
+                  c = ' '
+                  if ( .not. contains(bx, (/i,j/)) ) c = '*'
+                  call unit_skip(un, skip)
+                  write(unit=un, fmt='(A1,1X,I3,2(1X,I5),1X,2G25.15)') &
+                       c, n, i, j, fb(i,j,n)
+               end do
+            end do
+         end do
+      end if
+    end subroutine print_2d
+    subroutine print_3d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      complex(kind=dp_t), intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
+      integer :: n, k, j, i
+      integer :: nc, hi(3)
+      character(len=1) :: c
+      nc = size(fb,dim=4)
+      do i = 1, 3
+         hi(i) = lo(i) + size(fb,dim=i) - 1
+      end do
+      if ( ldata ) then
+         do n = 1, nc
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     if ( .not. ( lall .or. contains(bx, (/i,j,k/)) ) ) cycle
+                     c = ' '
+                     if ( .not. contains(bx, (/i,j,k/)) ) c = '*'
+                     call unit_skip(un, skip)
+                     write(unit=un, fmt='(A1,1X,I3,3(1X,I5),1X,2G25.15)') &
+                          c, n, i, j, k, fb(i,j,k,n)
+                  end do
+               end do
+            end do
+         end do
+      end if
+    end subroutine print_3d
+  end subroutine zfab_print
 
   function fab_max(fb, all) result(r)
     real(kind=dp_t) :: r
@@ -1741,9 +1920,9 @@ contains
     integer, pointer :: mp(:,:,:,:)
     lall = .FALSE.; if ( present(all) ) lall = all
     if ( lall ) then
-       mp => dataptr(fb, get_pbox(fb), c)
+       mp => dataptr(fb, get_pbox(fb), c, nc)
     else
-       mp => dataptr(fb, get_ibox(fb), c)
+       mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = minval(mp)
   end function ifab_min_c
@@ -1769,5 +1948,21 @@ contains
     mp => dataptr(fb, sbx, c, nc)
     r = minval(mp)
   end function ifab_min_bx_c
+
+  function lfab_count(fb, all) result(r)
+    integer :: r
+    type(lfab), intent(in) :: fb
+    logical, intent(in), optional :: all
+    integer :: i
+    logical, pointer :: lp(:,:,:,:)
+    logical :: lall
+    lall = .false. ; if ( present(all) ) lall = all
+    if ( lall ) then
+       lp => dataptr(fb, get_pbox(fb))
+    else
+       lp => dataptr(fb, get_ibox(fb))
+    end if
+    r = count(lp)
+  end function lfab_count
 
 end module fab_module
