@@ -97,6 +97,13 @@ module parallel
      module procedure parallel_send_i5
      module procedure parallel_send_i6
      module procedure parallel_send_i7
+     module procedure parallel_send_z1
+     module procedure parallel_send_z2
+     module procedure parallel_send_z3
+     module procedure parallel_send_z4
+     module procedure parallel_send_z5
+     module procedure parallel_send_z6
+     module procedure parallel_send_z7
   end interface parallel_send
 
   interface parallel_recv
@@ -121,6 +128,13 @@ module parallel
      module procedure parallel_recv_i5
      module procedure parallel_recv_i6
      module procedure parallel_recv_i7
+     module procedure parallel_recv_z1
+     module procedure parallel_recv_z2
+     module procedure parallel_recv_z3
+     module procedure parallel_recv_z4
+     module procedure parallel_recv_z5
+     module procedure parallel_recv_z6
+     module procedure parallel_recv_z7
   end interface parallel_recv
 
   interface parallel_wait
@@ -158,6 +172,7 @@ module parallel
      module procedure parallel_gather_rv
      module procedure parallel_gather_iv
      module procedure parallel_gather_lv
+     module procedure parallel_gather_zv
   end interface parallel_gather
 
   interface
@@ -339,6 +354,17 @@ contains
     call parallel_abort('PARALLEL_ISEND_RV')
     r = -1
   end function parallel_isend_lv
+  function parallel_isend_zv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    complex(kind=dp_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_ISEND_DV')
+    r = -1
+  end function parallel_isend_zv
 
 
 
@@ -390,6 +416,18 @@ contains
     a(1:n) = .FALSE.
     r = -1
   end function parallel_irecv_lv
+  function parallel_irecv_zv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    complex(dp_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_ISEND_RV')
+    a(1:n) = .FALSE.
+    r = -1
+  end function parallel_irecv_zv
 
 
 
@@ -623,8 +661,57 @@ contains
     if ( present(comm) ) l_comm = comm
     call parallel_abort('PARALLEL_SEND')
   end subroutine parallel_send_lv
-
-
+  subroutine parallel_send_z1(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z1
+  subroutine parallel_send_z2(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z2
+  subroutine parallel_send_z3(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z3
+  subroutine parallel_send_z4(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z4
+  subroutine parallel_send_z5(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z5
+  subroutine parallel_send_z6(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z6
+  subroutine parallel_send_z7(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z7
+  subroutine parallel_send_zv(a, n, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_SEND')
+  end subroutine parallel_send_zv
 
   subroutine parallel_recv_d1(a, proc, tag, comm, status)
     real(kind=dp_t), intent(out) :: a(:)
@@ -825,6 +912,68 @@ contains
     a(1:n) = .FALSE.
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_lv
+  subroutine parallel_recv_z1(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z1
+  subroutine parallel_recv_z2(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z2
+  subroutine parallel_recv_z3(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z3
+  subroutine parallel_recv_z4(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z4
+  subroutine parallel_recv_z5(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z5
+  subroutine parallel_recv_z6(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z6
+  subroutine parallel_recv_z7(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z7
+  subroutine parallel_recv_zv(a, n, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm, lstatus(MPI_STATUS_SIZE)
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    lstatus = 0
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_RECV')
+    a(1:n) = HUGE(real(a))
+    if ( present(status) ) status = lstatus
+  end subroutine parallel_recv_zv
 
 
 
@@ -995,6 +1144,19 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_gather_lv
+  subroutine parallel_gather_lv(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    complex(dp_t), intent(in) :: snd(*)
+    complex(dp_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_zv
 
   ! PARALLEL_GATHER
 

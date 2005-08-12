@@ -115,12 +115,19 @@ module multifab_module
      module procedure lmultifab_dataptr_bx
      module procedure lmultifab_dataptr_bx_c
      module procedure lmultifab_dataptr_c
+
+     module procedure zmultifab_dataptr
+     module procedure zmultifab_dataptr_bx
+     module procedure zmultifab_dataptr_bx_c
+     module procedure zmultifab_dataptr_c
+
   end interface
 
   interface print
      module procedure multifab_print
      module procedure imultifab_print
      module procedure lmultifab_print
+     module procedure zmultifab_print
   end interface
 
   interface setval
@@ -233,16 +240,23 @@ module multifab_module
   interface fill_boundary
      module procedure multifab_fill_boundary
      module procedure multifab_fill_boundary_c
+
      module procedure imultifab_fill_boundary
      module procedure imultifab_fill_boundary_c
+
      module procedure lmultifab_fill_boundary
      module procedure lmultifab_fill_boundary_c
+
+     module procedure zmultifab_fill_boundary
+     module procedure zmultifab_fill_boundary_c
+
   end interface
 
   interface internal_sync
      module procedure multifab_internal_sync_c
-     module procedure lmultifab_internal_sync_c
      module procedure multifab_internal_sync
+
+     module procedure lmultifab_internal_sync_c
      module procedure lmultifab_internal_sync
   end interface
 
@@ -1048,6 +1062,12 @@ contains
     logical, pointer :: r(:,:,:,:)
     r => mf%fbs(i)%p
   end function lmultifab_dataptr
+  function zmultifab_dataptr(mf, i) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    complex(dp_t), pointer :: r(:,:,:,:)
+    r => mf%fbs(i)%p
+  end function zmultifab_dataptr
 
   function multifab_dataptr_c(mf, i, c, nc) result(r)
     type(multifab), intent(in) :: mf
@@ -1070,6 +1090,13 @@ contains
     logical, pointer :: r(:,:,:,:)
     r => lfab_dataptr_c(mf%fbs(i), c, nc)
   end function lmultifab_dataptr_c
+  function zmultifab_dataptr_c(mf, i, c, nc) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i, c
+    integer, intent(in), optional :: nc
+    complex(dp_t), pointer :: r(:,:,:,:)
+    r => zfab_dataptr_c(mf%fbs(i), c, nc)
+  end function zmultifab_dataptr_c
 
   function multifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
     type(multifab), intent(in) :: mf
@@ -1095,6 +1122,14 @@ contains
     logical, pointer :: r(:,:,:,:)
     r => lfab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
   end function lmultifab_dataptr_bx_c
+  function zmultifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i, c
+    integer, intent(in), optional :: nc
+    type(box), intent(in) :: bx
+    complex(dp_t), pointer :: r(:,:,:,:)
+    r => zfab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
+  end function zmultifab_dataptr_bx_c
 
   function multifab_dataptr_bx(mf, i, bx) result(r)
     type(multifab), intent(in) :: mf
@@ -1117,6 +1152,13 @@ contains
     logical, pointer :: r(:,:,:,:)
     r => lfab_dataptr_bx(mf%fbs(i), bx)
   end function lmultifab_dataptr_bx
+  function zmultifab_dataptr_bx(mf, i, bx) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer, intent(in) :: i
+    type(box), intent(in) :: bx
+    complex(dp_t), pointer :: r(:,:,:,:)
+    r => zfab_dataptr_bx(mf%fbs(i), bx)
+  end function zmultifab_dataptr_bx
 
   subroutine multifab_setval(mf, val, all)
     type(multifab), intent(inout) :: mf
@@ -1619,6 +1661,46 @@ contains
     end do
   end subroutine mf_fb_easy_logical
 
+  subroutine mf_fb_easy_z(mf, c, nc, ng, lnocomm)
+    type(zmultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lnocomm
+
+    complex(dp_t), pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)     :: bxai
+    type(box)          :: abx
+    integer            :: i, j, ii, proc
+    integer            :: shft(2*3**mf%dim,mf%dim)
+    integer, parameter :: tag = 1101
+
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, ng, shft)
+       do j = 1, mf%nboxes
+          if ( remote(mf,i) .and. remote(mf,j) ) cycle
+          do ii = 1, bxai%nboxes
+             abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
+             if ( empty(abx) ) cycle
+             if ( local(mf,i) .and. local(mf,j) ) then
+                psrc => dataptr(mf, j, abx, c, nc)
+                pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                pdst = psrc
+             else if ( .not. lnocomm ) then
+                if ( local(mf,j) ) then ! must send
+                   psrc => dataptr(mf, j, abx, c, nc)
+                   proc = get_proc(mf%la, i)
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf,i) ) then  ! must recv
+                   pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
+                   proc = get_proc(mf%la,j)
+                   call parallel_recv(pdst, proc, tag)
+                end if
+             end if
+          end do
+       end do
+       call destroy(bxai)
+    end do
+  end subroutine mf_fb_easy_z
+
   subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, lnocomm)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
@@ -1826,6 +1908,75 @@ contains
 
   end subroutine mf_fb_fancy_logical
 
+  subroutine mf_fb_fancy_z(mf, c, nc, ng, lcross, lnocomm)
+    type(zmultifab), intent(inout) :: mf
+    integer,         intent(in)    :: c, nc, ng
+    logical,         intent(in)    :: lcross, lnocomm
+
+    complex(dp_t), pointer :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+    type(boxassoc)       :: bxasc
+
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    do i = 1, bxasc%l_con%ncpy
+       ii  = bxasc%l_con%cpy(i)%nd
+       jj  = bxasc%l_con%cpy(i)%ns
+       sbx = bxasc%l_con%cpy(i)%sbx
+       dbx = bxasc%l_con%cpy(i)%dbx
+       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  = p2
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_logical_space(bxasc%r_con, nc)
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       g_snd_l(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( l_fb_async ) then
+       do i = 1, bxasc%r_con%nsp
+          sst(i) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p =  reshape(g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+    end do
+
+    if ( l_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_fb_fancy_z
+
   subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
     type(multifab), intent(inout) :: mf
     integer, intent(in)           :: c, nc
@@ -1921,6 +2072,38 @@ contains
     logical, intent(in), optional  :: nocomm, cross
     call lmultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
   end subroutine lmultifab_fill_boundary
+
+  subroutine zmultifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
+    type(zmultifab), intent(inout) :: mf
+    integer, intent(in)            :: c, nc
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm, cross
+
+    integer :: lng
+    logical :: lnocomm, lcross
+
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+
+    if ( lng > mf%ng )      call bl_error('ZMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('ZMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
+
+    if ( lng < 1 ) return
+
+    if ( l_fb_fancy ) then
+       call mf_fb_fancy_z(mf, c, nc, lng, lcross, lnocomm)
+    else
+       call mf_fb_easy_z(mf, c, nc, lng, lnocomm)
+    end if
+  end subroutine zmultifab_fill_boundary_c
+
+  subroutine zmultifab_fill_boundary(mf, ng, nocomm, cross)
+    type(zmultifab), intent(inout) :: mf
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm, cross
+    call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
+  end subroutine zmultifab_fill_boundary
 
   subroutine multifab_internal_sync_shift(dmn, bx, pmask, nodal, shft, cnt)
     type(box), intent(in)  :: dmn,bx

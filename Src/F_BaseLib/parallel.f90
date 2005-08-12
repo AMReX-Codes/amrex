@@ -67,6 +67,13 @@ module parallel
      module procedure parallel_send_l5
      module procedure parallel_send_l6
      module procedure parallel_send_l7
+     module procedure parallel_send_z1
+     module procedure parallel_send_z2
+     module procedure parallel_send_z3
+     module procedure parallel_send_z4
+     module procedure parallel_send_z5
+     module procedure parallel_send_z6
+     module procedure parallel_send_z7
   end interface parallel_send
 
   interface parallel_recv
@@ -91,6 +98,13 @@ module parallel
      module procedure parallel_recv_l5
      module procedure parallel_recv_l6
      module procedure parallel_recv_l7
+     module procedure parallel_recv_z1
+     module procedure parallel_recv_z2
+     module procedure parallel_recv_z3
+     module procedure parallel_recv_z4
+     module procedure parallel_recv_z5
+     module procedure parallel_recv_z6
+     module procedure parallel_recv_z7
   end interface parallel_recv
 
   interface parallel_wait
@@ -724,6 +738,58 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Send(a, n, MPI_LOGICAL, proc, tag, l_comm, ierr)
   end subroutine parallel_send_lv
+  subroutine parallel_send_z1(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z1
+  subroutine parallel_send_z2(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z2
+  subroutine parallel_send_z3(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z3
+  subroutine parallel_send_z4(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z4
+  subroutine parallel_send_z5(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z5
+  subroutine parallel_send_z6(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z6
+  subroutine parallel_send_z7(a, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_zv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_z7
+  subroutine parallel_send_zv(a, n, proc, tag, comm)
+    complex(kind=dp_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_Send
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Send(a, n, MPI_DOUBLE_COMPLEX, proc, tag, l_comm, ierr)
+  end subroutine parallel_send_zv
 
 
 
@@ -924,6 +990,67 @@ contains
     CALL MPI_Recv(a, n, MPI_LOGICAL, proc, tag, l_comm, lstatus, ierr)
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_lv
+  subroutine parallel_recv_z1(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z1
+  subroutine parallel_recv_z2(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z2
+  subroutine parallel_recv_z3(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z3
+  subroutine parallel_recv_z4(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z4
+  subroutine parallel_recv_z5(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z5
+  subroutine parallel_recv_z6(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z6
+  subroutine parallel_recv_z7(a, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_zv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_z7
+  subroutine parallel_recv_zv(a, n, proc, tag, comm, status)
+    complex(kind=dp_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, lstatus(MPI_STATUS_SIZE)
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    external MPI_Recv
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Recv(a, n, MPI_DOUBLE_COMPLEX, proc, tag, l_comm, lstatus, ierr)
+    if ( present(status) ) status = lstatus
+  end subroutine parallel_recv_zv
 
   ! AlltoAll
   subroutine parallel_alltoall_d(a, b, comm)
