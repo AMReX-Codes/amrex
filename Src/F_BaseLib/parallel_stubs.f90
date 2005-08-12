@@ -425,11 +425,9 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     call parallel_abort('PARALLEL_ISEND_RV')
-    a(1:n) = .FALSE.
+    a(1:n) = Huge(1.0_dp_t)
     r = -1
   end function parallel_irecv_zv
-
-
 
   subroutine parallel_wait_one(req, status)
     integer, intent(in)  :: req
@@ -971,7 +969,7 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     call parallel_abort('PARALLEL_RECV')
-    a(1:n) = HUGE(real(a))
+    a(1:n) = HUGE(1.0_dp_t)
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_zv
 

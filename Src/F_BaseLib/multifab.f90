@@ -1940,7 +1940,7 @@ contains
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_l(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+       g_snd_z(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
     allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
@@ -1948,18 +1948,18 @@ contains
     ! Always do recv's asynchronously.
     !
     do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+       rst(i) = parallel_irecv_zv(g_rcv_z(1+nc*bxasc%r_con%rtr(i)%pv:), &
             nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
     end do
 
     if ( l_fb_async ) then
        do i = 1, bxasc%r_con%nsp
-          sst(i) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
+          sst(i) = parallel_isend_zv(g_snd_z(1+nc*bxasc%r_con%str(i)%pv:), &
                nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
        end do
     else
        do i = 1, bxasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+          call parallel_send_zv(g_snd_z(1+nc*bxasc%r_con%str(i)%pv), &
                nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
        end do
     end if
@@ -1970,7 +1970,7 @@ contains
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-       p =  reshape(g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+       p =  reshape(g_rcv_z(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
     end do
 
     if ( l_fb_async) call parallel_wait(sst)
