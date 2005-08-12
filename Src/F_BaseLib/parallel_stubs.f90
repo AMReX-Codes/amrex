@@ -1144,7 +1144,7 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_gather_lv
-  subroutine parallel_gather_lv(snd, rcv, n, root, comm)
+  subroutine parallel_gather_zv(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     complex(dp_t), intent(in) :: snd(*)
     complex(dp_t), intent(out) :: rcv(*)
