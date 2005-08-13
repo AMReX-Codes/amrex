@@ -432,6 +432,17 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_ISend(a, n, MPI_LOGICAL, proc, tag, l_comm, r, ierr)
   end function parallel_isend_lv
+  function parallel_isend_zv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    complex(dp_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_ISend
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_ISend(a, n, MPI_DOUBLE_COMPLEX, proc, tag, l_comm, r, ierr)
+  end function parallel_isend_zv
 
   ! IRECV:
   ! non-blocking receive.
@@ -479,6 +490,17 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_IRecv(a, n, MPI_LOGICAL, proc, tag, l_comm, r, ierr)
   end function parallel_irecv_lv
+  function parallel_irecv_zv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    complex(dp_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_IRecv
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_IRecv(a, n, MPI_DOUBLE_COMPLEX, proc, tag, l_comm, r, ierr)
+  end function parallel_irecv_zv
 
 
 
