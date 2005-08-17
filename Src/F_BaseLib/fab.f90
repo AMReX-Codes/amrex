@@ -80,9 +80,9 @@ module fab_module
 
   interface destroy
      module procedure fab_destroy
-     module procedure zfab_destroy
      module procedure ifab_destroy
      module procedure lfab_destroy
+     module procedure zfab_destroy
   end interface
 
   !! Returns whether the FAB has been built, this is different from
@@ -759,7 +759,7 @@ contains
   end subroutine fab_destroy
   subroutine zfab_destroy(fb)
     type(zfab), intent(inout) :: fb
-    call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
+    call mem_stats_dealloc(zfab_ms, volume(fb, all=.TRUE.))
     if ( associated(fb%p) ) deallocate(fb%p)
     fb%bx  = nobox(fb%dim)
     fb%dim = 0

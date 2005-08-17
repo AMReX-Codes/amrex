@@ -85,6 +85,7 @@ module multifab_module
      module procedure multifab_destroy
      module procedure imultifab_destroy
      module procedure lmultifab_destroy
+     module procedure zmultifab_destroy
   end interface
 
   interface copy
@@ -798,6 +799,22 @@ contains
     mf%ng  = 0
     mf%nboxes = 0
   end subroutine lmultifab_destroy
+  subroutine zmultifab_destroy(mf)
+    type(zmultifab), intent(inout) :: mf
+    integer :: i
+    if ( .not. mf%bound ) then
+       call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
+       do i = 1, mf%nboxes
+          call destroy(mf%fbs(i))
+       end do
+    end if
+    deallocate(mf%fbs)
+    deallocate(mf%nodal)
+    mf%dim = 0
+    mf%nc  = 0
+    mf%ng  = 0
+    mf%nboxes = 0
+  end subroutine zmultifab_destroy
 
   function multifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
