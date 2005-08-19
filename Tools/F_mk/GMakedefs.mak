@@ -69,8 +69,10 @@ ifeq ($(COMP),g95)
   else
     F90FLAGS += -g
     F90FLAGS += -fbounds-check
+    F90FLAGS += -freal=nan
     FFLAGS += -g
     FFLAGS += -fbounds-check
+    FFLAGS += -freal=nan
     CFLAGS += -g
   endif
   ifdef mpi_include
@@ -203,6 +205,9 @@ ifeq ($(ARCH),Linux)
       F90FLAGS += -openmp -fpp2
     endif
     ifdef MPI
+      F90 := mpif90
+      FC  := mpif77
+      CC  := mpicc
       FFLAGS   += -I $(MPIHOME)/include
       F90FLAGS += -I $(MPIHOME)/include
       LDFLAGS  += -L$(MPIHOME)/lib
