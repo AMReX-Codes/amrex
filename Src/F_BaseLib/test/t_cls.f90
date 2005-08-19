@@ -5,9 +5,11 @@ subroutine t_cluster
   integer :: buf_wid, minwidth
   real(dp_t) :: min_eff
 
-  min_eff = .7
-  buf_wid = 1
-  minwidth = 1
+  min_eff = .9_dp_t
+  min_eff = .8_dp_t
+  min_eff = .3_dp_t
+  buf_wid = 0
+  minwidth = 2
 
   call cluster_set_verbose(.true.)
   call t_cls_mf(buf_wid, minwidth, min_eff)
@@ -17,6 +19,8 @@ end subroutine t_cluster
 subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   use cluster_module
   use multifab_module
+  use fabio_module
+  use bl_constants_module
   implicit none
   integer, intent(in) :: minwidth
   integer, intent(in) :: buf_wid
@@ -31,8 +35,9 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   integer :: i, j, k, dm
   logical, pointer :: lp(:,:,:,:)
   integer :: lo(3), hi(3), ng
+  type(multifab) :: mf
 
-  dm = 3
+  dm = 2
 
   ng = 2
   select case (dm)
@@ -58,6 +63,7 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   call build(ba, bx(1:ng))
   call build(la, ba)
   call build(tagbox, la, nc=1, ng=0)
+  call build(mf, la)
 
   wid1 = real(n,dp_t)/3
   wid2 = real(n,dp_t)/4
@@ -94,61 +100,85 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
      end select
   end do
 
+  call setval_mask(mf, tagbox, ONE, ZERO)
+  call fabio_multifab_write_d(mf, "tdir1", "tags1")
+
   call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
 
   print *, 'number of boxes ', nboxes(boxes)
   do i = 1, nboxes(boxes)
+     write(6,fmt='(i5,1x)', advance = 'no') i
      call print(get_box(boxes,i))
   end do
   print *, 'overall_eff', overall_eff
 
+  call destroy(mf)
   call destroy(tagbox)
   call destroy(la)
   call destroy(ba)
 
   call destroy(boxes)
 
+contains
+
+  subroutine setval_mask(mf, tags, on, off)
+    type(multifab), intent(inout) :: mf
+    type(lmultifab), intent(in) :: tags
+    real(dp_t), intent(in) :: on, off
+    integer :: i
+    logical, pointer :: tp(:,:,:,:)
+    real(dp_t), pointer :: mp(:,:,:,:)
+    integer :: lo(3)
+
+    call setval(mf, off)
+    do i = 1, tags%nboxes; if ( remote(tags, i) ) cycle
+       tp => dataptr(tags, i)
+       mp => dataptr(mf, i)
+       where(tp) mp = on
+    end do
+  end subroutine setval_mask
+
 end subroutine t_cls_mf
 
-subroutine t_cls(buf_wid, minwidth, min_eff)
-  use cluster_module
-  use multifab_module
-  implicit none
-  integer, intent(in) :: minwidth
-  integer, intent(in) :: buf_wid
-  real(dp_t), intent(in) :: min_eff
-  integer, parameter :: n = 16
-  logical :: tagbox(0:n-1, 0:n-1, 0:0)
-  type(boxarray) :: boxes
-  real(dp_t) :: overall_eff
-  real(dp_t) :: d, wid1, wid2, cen
-  integer :: i, j, k, dm
+! subroutine t_cls(buf_wid, minwidth, min_eff)
+!   use cluster_module
+!   use multifab_module
+!   implicit none
+!   integer, intent(in) :: minwidth
+!   integer, intent(in) :: buf_wid
+!   real(dp_t), intent(in) :: min_eff
+!   integer, parameter :: n = 16
+!   logical :: tagbox(0:n-1, 0:n-1, 0:0)
+!   type(boxarray) :: boxes
+!   real(dp_t) :: overall_eff
+!   real(dp_t) :: d, wid1, wid2, cen
+!   integer :: i, j, k, dm
 
-  dm = 2
-  wid1 = real(n,dp_t)/3
-  wid2 = real(n,dp_t)/4
-  cen  = real(n,dp_t)/2
+!   dm = 2
+!   wid1 = real(n,dp_t)/3
+!   wid2 = real(n,dp_t)/4
+!   cen  = real(n,dp_t)/2
 
-  tagbox = .false.
+!   tagbox = .false.
 
-  k = 0
-  do j = 0, n-1
-     do i = 0, n-1
-        d = sqrt((i-cen)**2 + (j-cen)**2)
-        if ( d <= wid1 .and. d >= wid2 ) then
-           tagbox(i,j,k) = .true.
-        end if
-     end do
-  end do
+!   k = 0
+!   do j = 0, n-1
+!      do i = 0, n-1
+!         d = sqrt((i-cen)**2 + (j-cen)**2)
+!         if ( d <= wid1 .and. d >= wid2 ) then
+!            tagbox(i,j,k) = .true.
+!         end if
+!      end do
+!   end do
 
-  call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff, dim = dm)
+!   call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff, dim = dm)
 
-  print *, 'number of boxes ', nboxes(boxes)
-  do i = 1, nboxes(boxes)
-     call print(get_box(boxes,i))
-  end do
-  print *, 'overall_eff', overall_eff
+!   print *, 'number of boxes ', nboxes(boxes)
+!   do i = 1, nboxes(boxes)
+!      call print(get_box(boxes,i))
+!   end do
+!   print *, 'overall_eff', overall_eff
 
-  call destroy(boxes)
+!   call destroy(boxes)
 
-end subroutine t_cls
+! end subroutine t_cls
