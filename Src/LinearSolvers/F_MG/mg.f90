@@ -185,7 +185,7 @@ contains
     end if
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
 
-    n = max_mg_levels(layout_boxarray(la), mgt%min_width)
+    n = max_mg_levels(get_boxarray(la), mgt%min_width)
     mgt%nlevels = min(n, mgt%max_nlevel)
     n = mgt%nlevels
     mgt%nboxes = layout_nboxes(la)
