@@ -539,13 +539,23 @@ contains
          - max(bx1%lo(1:dm),bx2%lo(1:dm))) >= 0 )
   end function box_intersects
 
-  function box_contains(bx1, bx2) result(r)
-    type(box), intent(in) :: bx1, bx2
+  function box_contains(bx1, bx2, strict) result(r)
     logical :: r
-    r = all(bx1%lo(1:bx1%dim) <= bx2%lo(1:bx2%dim)) .and. &
-        all(bx1%lo(1:bx1%dim) <= bx2%hi(1:bx2%dim)) .and. &
-        all(bx1%hi(1:bx1%dim) >= bx2%lo(1:bx2%dim)) .and. &
-        all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
+    type(box), intent(in) :: bx1, bx2
+    logical, intent(in), optional :: strict
+    logical :: lstrict
+    lstrict = .false.; if ( present(strict) ) lstrict = strict
+    if ( lstrict ) then
+       r = all(bx1%lo(1:bx1%dim) < bx2%lo(1:bx2%dim)) .and. &
+            all(bx1%lo(1:bx1%dim) < bx2%hi(1:bx2%dim)) .and. &
+            all(bx1%hi(1:bx1%dim) > bx2%lo(1:bx2%dim)) .and. &
+            all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
+    else
+       r = all(bx1%lo(1:bx1%dim) <= bx2%lo(1:bx2%dim)) .and. &
+            all(bx1%lo(1:bx1%dim) <= bx2%hi(1:bx2%dim)) .and. &
+            all(bx1%hi(1:bx1%dim) >= bx2%lo(1:bx2%dim)) .and. &
+            all(bx1%hi(1:bx1%dim) >= bx2%hi(1:bx2%dim))
+    end if
   end function box_contains
 
   function box_contains_strict(bx1, bx2) result(r)
@@ -557,11 +567,18 @@ contains
         all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
   end function box_contains_strict
 
-  function box_contains_iv(bx1, iv) result(r)
+  function box_contains_iv(bx1, iv, strict) result(r)
+    logical :: r
     type(box), intent(in) :: bx1
     integer, intent(in) :: iv(:)
-    logical :: r
-    r = all(bx1%lo(1:bx1%dim) <= iv) .and. all(bx1%hi(1:bx1%dim) >= iv)
+    logical, intent(in), optional :: strict
+    logical :: lstrict
+    lstrict = .false.; if ( present(strict) ) lstrict = strict
+    if ( lstrict ) then
+       r = all(bx1%lo(1:bx1%dim) < iv) .and. all(bx1%hi(1:bx1%dim) > iv)
+    else
+       r = all(bx1%lo(1:bx1%dim) <= iv) .and. all(bx1%hi(1:bx1%dim) >= iv)
+    end if
   end function box_contains_iv
 
   function box_shift_v_m(bx, iv, mask) result(r)
@@ -815,26 +832,26 @@ contains
     r%hi(1:r%dim) = max(b1%hi(1:b1%dim),b2%hi(1:b2%dim))
   end function box_bbox
 
-  function box_boundary_n(bx, igrow) result(r)
-    type(box), intent(in) :: bx
-    integer, intent(in)  :: igrow
-    type(box), dimension(MAX_SPACEDIM, 2) :: r
-    type(box) :: tbx
-    integer :: i, j, jj
-    if ( igrow < 0 ) then
-       call bl_error('box_boundary_n: grow < 0: ', igrow)
-    end if
-    tbx = grow(bx, igrow)
-    do i = 1, bx%dim
-       do j = -1, 1, 2
-          jj = (3+j)/2
-          call box_peel(tbx, i, j, igrow, r(i,jj))
-       end do
-    end do
-    if ( tbx /= bx ) then
-       call bl_error('box_boundary_n: tbx /= bx')
-    end if
-  end function box_boundary_n
+!   function box_boundary_n(bx, igrow) result(r)
+!     type(box), intent(in) :: bx
+!     integer, intent(in)  :: igrow
+!     type(box), dimension(MAX_SPACEDIM, 2) :: r
+!     type(box) :: tbx
+!     integer :: i, j, jj
+!     if ( igrow < 0 ) then
+!        call bl_error('box_boundary_n: grow < 0: ', igrow)
+!     end if
+!     tbx = grow(bx, igrow)
+!     do i = 1, bx%dim
+!        do j = -1, 1, 2
+!           jj = (3+j)/2
+!           call box_peel(tbx, i, j, igrow, r(i,jj))
+!        end do
+!     end do
+!     if ( tbx /= bx ) then
+!        call bl_error('box_boundary_n: tbx /= bx')
+!     end if
+!   end function box_boundary_n
 
 !   function box_boundary_m(bx, mat) result(r)
 !     type(box), intent(in) :: bx
