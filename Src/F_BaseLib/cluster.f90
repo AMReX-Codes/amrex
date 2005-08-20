@@ -13,7 +13,7 @@ module cluster_module
 
   logical, private, save :: verbose = .false.
   integer, private, save :: cut_threshold = 2
-  real(dp_t), private, save :: beta = 1.0_dp_t
+  real(dp_t), private, save :: beta = 1.05_dp_t
 
   public :: cluster_set_verbose
   public :: cluster_get_verbose
@@ -373,6 +373,8 @@ contains
        end if
        if ( size(c1) > 0 .or. size(c2) > 0 ) then
           if ( size(c1) == 1 .and. size(c2) == 1 ) then
+             b1 = front(c1)
+             b2 = front(c2)
              c_eff = ( dvolume(b1)*b1_eff + dvolume(b2)*b2_eff )/(dvolume(b1) + dvolume(b2))
              if ( verbose ) then
                 print *, 'c_eff = ', c_eff, bx_eff, c_eff-beta*bx_eff>0.0_dp_t
@@ -476,6 +478,8 @@ contains
     end if
 
     ! final fall back:
+
+    return
 
     i = maxloc(extent(bx),dim=1)
     if ( extent(bx,i) >= 2*minwidth ) then
