@@ -137,6 +137,8 @@ module multifab_module
      module procedure multifab_setval_c
      module procedure multifab_setval_bx_c
 
+     module procedure multifab_setval_mask
+
      module procedure imultifab_setval
      module procedure imultifab_setval_bx
      module procedure imultifab_setval_c
@@ -147,6 +149,7 @@ module multifab_module
      module procedure lmultifab_setval_c
      module procedure lmultifab_setval_bx_c
 
+     module procedure  multifab_setval_ba
      module procedure lmultifab_setval_ba
 
      module procedure zmultifab_setval
@@ -1231,6 +1234,43 @@ contains
     call zmultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine zmultifab_setval_bx
 
+  subroutine multifab_setval_mask(mf, val, mask)
+    type(multifab), intent(inout) :: mf
+    real(dp_t), intent(in) :: val
+    type(lmultifab), intent(in)   :: mask
+    integer :: i
+    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       call setval(mf%fbs(i), val, mask%fbs(i))
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_setval_mask
+
+  subroutine multifab_setval_ba(mf, val, ba, all)
+    type(multifab), intent(inout) :: mf
+    type(boxarray), intent(in) :: ba
+    real(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    integer :: i, n
+    type(box) :: bx1
+    logical lall
+    lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    do n = 1, ba%nboxes
+       do i = 1, mf%nboxes
+          if ( remote(mf, i) ) cycle
+          if ( lall ) then
+             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          else
+             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_setval_ba
   subroutine lmultifab_setval_ba(mf, val, ba, all)
     type(lmultifab), intent(inout) :: mf
     type(boxarray), intent(in) :: ba

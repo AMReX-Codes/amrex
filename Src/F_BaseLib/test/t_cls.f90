@@ -5,13 +5,16 @@ subroutine t_cluster
   integer :: buf_wid, minwidth
   real(dp_t) :: min_eff
 
-  min_eff = .9_dp_t
   min_eff = .8_dp_t
-  min_eff = .3_dp_t
+  min_eff = .5_dp_t
+  min_eff = .9_dp_t
+  buf_wid = 2
   buf_wid = 0
   minwidth = 2
 
+  call cluster_set_verbose(.false.)
   call cluster_set_verbose(.true.)
+  call cluster_set_beta(1.0_dp_t)
   call t_cls_mf(buf_wid, minwidth, min_eff)
 
 end subroutine t_cluster
@@ -139,46 +142,3 @@ contains
   end subroutine setval_mask
 
 end subroutine t_cls_mf
-
-! subroutine t_cls(buf_wid, minwidth, min_eff)
-!   use cluster_module
-!   use multifab_module
-!   implicit none
-!   integer, intent(in) :: minwidth
-!   integer, intent(in) :: buf_wid
-!   real(dp_t), intent(in) :: min_eff
-!   integer, parameter :: n = 16
-!   logical :: tagbox(0:n-1, 0:n-1, 0:0)
-!   type(boxarray) :: boxes
-!   real(dp_t) :: overall_eff
-!   real(dp_t) :: d, wid1, wid2, cen
-!   integer :: i, j, k, dm
-
-!   dm = 2
-!   wid1 = real(n,dp_t)/3
-!   wid2 = real(n,dp_t)/4
-!   cen  = real(n,dp_t)/2
-
-!   tagbox = .false.
-
-!   k = 0
-!   do j = 0, n-1
-!      do i = 0, n-1
-!         d = sqrt((i-cen)**2 + (j-cen)**2)
-!         if ( d <= wid1 .and. d >= wid2 ) then
-!            tagbox(i,j,k) = .true.
-!         end if
-!      end do
-!   end do
-
-!   call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff, dim = dm)
-
-!   print *, 'number of boxes ', nboxes(boxes)
-!   do i = 1, nboxes(boxes)
-!      call print(get_box(boxes,i))
-!   end do
-!   print *, 'overall_eff', overall_eff
-
-!   call destroy(boxes)
-
-! end subroutine t_cls
