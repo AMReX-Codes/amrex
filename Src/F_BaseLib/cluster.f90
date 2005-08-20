@@ -13,9 +13,14 @@ module cluster_module
 
   logical, private, save :: verbose = .false.
   integer, private, save :: cut_threshold = 2
+  real(dp_t), private, save :: beta = 1.0_dp_t
 
   public :: cluster_set_verbose
+  public :: cluster_get_verbose
   public :: cluster_set_cut_threshold
+  public :: cluster_get_cut_threshold
+  public :: cluster_set_beta
+  public :: cluster_get_beta
   public :: cluster
 
   interface cluster
@@ -28,11 +33,28 @@ contains
     logical, intent(in) :: val
     verbose = val
   end subroutine cluster_set_verbose
+  function cluster_get_verbose() result(r)
+    logical :: r
+    r = verbose
+  end function cluster_get_verbose
 
   subroutine cluster_set_cut_threshold(val)
     integer, intent(in) :: val
     cut_threshold= val
   end subroutine cluster_set_cut_threshold
+  function cluster_get_cut_threshold() result(r)
+    integer :: r
+    r = cut_threshold
+  end function cluster_get_cut_threshold
+
+  subroutine cluster_set_beta(val)
+    real(dp_t), intent(in) :: val
+    beta = val
+  end subroutine cluster_set_beta
+  function cluster_get_beta() result(r)
+    real(dp_t)  :: r
+    r = beta
+  end function cluster_get_beta
 
   subroutine filter_lor(out, in)
     logical, intent(inout) :: out(:,:,:,:)
@@ -59,6 +81,7 @@ contains
     integer :: bboxinte
     integer :: lblocking_factor
     type(box) :: bx
+    real(dp_t) :: bx_eff
 
     lblocking_factor = 1
     if ( present(blocking_factor) ) then
@@ -67,6 +90,18 @@ contains
 
     if ( nghost(tagboxes) /= 0 ) then
        call bl_error("CLUSTER: tagboxes must have NG = 0")
+    end if
+
+    if ( minwidth < 1 ) then
+       call bl_error("CLUSTER: minwidth  must be > 0; ", minwidth)
+    end if
+
+    if ( min_eff < 0 .or. min_eff > 1.0_dp_t ) then
+       call bl_error("CLUSTER: min_eff must be >= 0 and <= 1: ", min_eff)
+    end if
+
+    if ( buf_wid < 0 ) then
+       call bl_error("CLUSTER: buf_wid must be >= 0: ", buf_wid)
     end if
 
     dm = tagboxes%dim
@@ -98,33 +133,29 @@ contains
        end select
     end do
 
-print *, 'HERE'
-print *, 'count1 ', count(buf, all = .true.)
     ! remove any tags outside the problem domain.
     call pd_mask(buf)
-print *, 'count2 ', count(buf, all = .true.)
     ! make sure that all tagged cells in are replicated in the high
     ! indexed boxes
     call internal_sync(buf, all = .true., filter = filter_lor)
-print *, 'count3 ', count(buf, all = .true.)
     ! remove all tags from the low index fabs that overlap high index fabs
     call owner_mask(buf)
-print *, 'count4 ', count(buf, all = .true.)
 
     bx = get_pd(get_layout(buf))
-    call cluster_mf_private_recursive(lboxes, bx, buf, minwidth, min_eff)
+    call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf, minwidth, min_eff)
 
     call build(boxes, lboxes)
-    boxes%dim = dm
 
     call destroy(lboxes)
 
     if ( present(overall_eff) ) then
        bboxinte = volume(boxes)
        overall_eff = real(count(buf,all=.true.),dp_t) / real(bboxinte, dp_t)
-       do i = 1, nboxes(boxes)
-          print *, i, box_eff_mf(buf, get_box(boxes,i))
-       end do
+       if ( verbose ) then
+          do i = 1, nboxes(boxes)
+             print *, i, box_eff_mf(buf, get_box(boxes,i))
+          end do
+       end if
     end if
 
     call destroy(buf)
@@ -202,9 +233,10 @@ print *, 'count4 ', count(buf, all = .true.)
 
   end subroutine cls_3d_mf
 
-  function cluster_tally(tagboxes, bx, tx, ty, tz, ll, hh) result(r)
+  function cluster_tally(tagboxes, bx, tx, ty, tz, ll, hh, minwidth) result(r)
     type(box) :: r
     type(lmultifab), intent(in) :: tagboxes
+    integer, intent(in) :: minwidth
     type(box), intent(in) :: bx
     integer, intent(in) :: ll(:), hh(:)
     integer, intent(out) :: tx(ll(1):), ty(ll(2):), tz(ll(3):)
@@ -244,9 +276,9 @@ print *, 'count4 ', count(buf, all = .true.)
        end do
     end do
 
-    call bracket(tx, ll(1), hh(1), llo(1), hho(1))
-    call bracket(ty, ll(2), hh(2), llo(2), hho(2))
-    call bracket(tz, ll(3), hh(3), llo(3), hho(3))
+    call bracket(tx, ll(1), hh(1), llo(1), hho(1), minwidth)
+    call bracket(ty, ll(2), hh(2), llo(2), hho(2), minwidth)
+    call bracket(tz, ll(3), hh(3), llo(3), hho(3), minwidth)
 
     if ( all(llo <= hho) ) then
        r = make_box(llo(1:dm), hho(1:dm))
@@ -254,18 +286,19 @@ print *, 'count4 ', count(buf, all = .true.)
 
   contains
 
-    subroutine bracket(sig, ll, hh, llo, hho)
+    subroutine bracket(sig, ll, hh, llo, hho, minwidth)
       integer, intent(in) :: ll, hh
       integer, intent(out) :: llo, hho
       integer, intent(in)    :: sig(ll:hh)
+      integer, intent(in) :: minwidth
 
       llo = ll
-      do while ( sig(llo) == 0  .and.  llo < hh )
+      hho = hh
+      do while ( sig(llo) == 0  .and.  hho-llo >= minwidth )
          llo = llo + 1
       end do
 
-      hho = hh
-      do while ( sig(hho) ==  0  .and.  hho > llo )
+      do while ( sig(hho) ==  0  .and. hho-llo >= minwidth )
          hho = hho - 1
       end do
 
@@ -273,24 +306,27 @@ print *, 'count4 ', count(buf, all = .true.)
 
   end function cluster_tally
 
-  recursive subroutine cluster_mf_private_recursive(boxes, bx, tagboxes, minwidth, min_eff)
+  recursive subroutine cluster_mf_private_recursive(boxes, bx, bx_eff, tagboxes, minwidth, min_eff)
     type(list_box), intent(out) :: boxes
     type(box), intent(in) :: bx
     type(lmultifab), intent(in) ::  tagboxes
     integer, intent(in) ::  minwidth
     real(dp_t), intent(in) ::   min_eff
-    real(dp_t) bx_eff
+    real(dp_t), intent(out) ::  bx_eff ! Only meaningfull for the case of 1 box returned
     type(box) :: bbx
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     type(list_box) :: C1, C2
     type(box) :: b1, b2
     integer, allocatable :: sx(:), sy(:), sz(:)
+    real(dp_t) :: b1_eff, b2_eff, c_eff
     integer :: ll(3), hh(3)
     integer :: dm
 
     dm  = tagboxes%dim
 
-call print(bx, 'in bx')
+    if ( verbose ) then
+       call print(bx, 'in bx')
+    end if
     if ( empty(bx) ) then
        return
     endif
@@ -300,9 +336,11 @@ call print(bx, 'in bx')
 
     allocate(sx(ll(1):hh(1)), sy(ll(2):hh(2)), sz(ll(3):hh(3)))
 
-    bbx = cluster_tally(tagboxes, bx, sx, sy, sz, ll, hh)
+    bbx = cluster_tally(tagboxes, bx, sx, sy, sz, ll, hh, minwidth)
 
-call print(bbx, '  bbx')
+    if ( verbose ) then
+       call print(bbx, '  bbx')
+    end if
 
     if ( empty(bbx) ) then
        return
@@ -310,8 +348,12 @@ call print(bbx, '  bbx')
 
     bx_eff = box_eff_mf(tagboxes, bbx)
 
-print *, 'bx_eff ', bx_eff
-print *, 'min_eff ', min_eff
+    if ( verbose ) then
+       print *, 'bx_eff ', bx_eff
+       print *, 'min_eff ', min_eff
+    end if
+
+    if ( bx_eff == 0.0_dp_t) return
 
     if ( bx_eff >= min_eff ) then
        call push_back(boxes, bbx)
@@ -319,15 +361,34 @@ print *, 'min_eff ', min_eff
        lo = 1; lo(1:dm) = lwb(bbx); hi = 1; hi(1:dm) = upb(bbx)
        call find_split(bbx, b1, b2, minwidth, &
             sx(lo(1):hi(1)), sy(lo(2):hi(2)), sz(lo(3):hi(3)), lo, hi)
-call print(b1, 'b1')
-call print(b2, 'b2')
-       call cluster_mf_private_recursive(c1, b1, tagboxes, minwidth, min_eff)
-       call cluster_mf_private_recursive(c2, b2, tagboxes, minwidth, min_eff)
-print *, 'size(c1) = ', size(c1)
-print *, 'size(c2) = ', size(c2)
+       if ( verbose ) then
+          call print(bbx, 'bbx;find_split')
+          call print(b1, 'b1')
+          call print(b2, 'b2')
+       end if
+       call cluster_mf_private_recursive(c1, b1, b1_eff, tagboxes, minwidth, min_eff)
+       call cluster_mf_private_recursive(c2, b2, b2_eff, tagboxes, minwidth, min_eff)
+       if ( verbose ) then
+          print *, 'size(c1) = ', size(c1), 'size(c2) = ', size(c2)
+       end if
        if ( size(c1) > 0 .or. size(c2) > 0 ) then
-          boxes = c1
-          call splice(boxes, c2)
+          if ( size(c1) == 1 .and. size(c2) == 1 ) then
+             c_eff = ( dvolume(b1)*b1_eff + dvolume(b2)*b2_eff )/(dvolume(b1) + dvolume(b2))
+             if ( verbose ) then
+                print *, 'c_eff = ', c_eff, bx_eff, c_eff-beta*bx_eff>0.0_dp_t
+             end if
+             if ( c_eff > beta*bx_eff ) then
+                call push_back(boxes, b1)
+                call push_back(boxes, b2)
+             else
+                call push_back(boxes, bbx)
+             end if
+             call destroy(c1)
+             call destroy(c2)
+          else
+             boxes = c1
+             call splice(boxes, c2)
+          end if
        else
           call push_back(boxes, bbx)
        end if
@@ -398,23 +459,32 @@ print *, 'size(c2) = ', size(c2)
        if ( maxval(hi) >= CUT_THRESHOLD ) then
           i = maxloc(hi, dim=1)
           call box_chop(bx, b1, b2, i, ip(i))
-print *, 'extents b1,b2 ', extent(b1), extent(b2)
+          if ( verbose ) then
+             call print(bx, 'bx;inflection')
+             call print(b1, 'b1')
+             call print(b2, 'b2')
+             print *, 'extents b1,b2 ', extent(b1), extent(b2)
+             print *, 'i = ', i
+             print *, 'ip ', ip
+             print *, 'hi ', hi
+             print *, 'lx ', lx
+             print *, 'ly ', ly
+             print *, 'lz ', lz
+          end if
           return
        end if
     end if
 
     ! final fall back:
 
-print *, 'fall back'
-print *, 'extent ', extent(bx)
     i = maxloc(extent(bx),dim=1)
-call print(bx, 'bx')
-print *, 'i = ', i
     if ( extent(bx,i) >= 2*minwidth ) then
        call box_chop(bx, b1, b2, i, lwb(bx,i) + extent(bx,i)/2)
-call print(b1, 'b1')
-call print(b2, 'b2')
-print *, 'extents b1,b2 ', extent(b1), extent(b2)
+       if ( verbose ) then
+          call print(bx, 'bx;fallback')
+          call print(b1, 'b1')
+          call print(b2, 'b2')
+       end if
     end if
 
   contains
@@ -434,7 +504,11 @@ print *, 'extents b1,b2 ', extent(b1), extent(b2)
             call box_chop(bx, b1, b2, dim, i)
             b2 = grow(b2, -1, dim, -1)
             r  = .true.
-print *, 'extents b1,b2 ', extent(b1), extent(b2)
+            if ( verbose ) then
+               call print(bx, 'bx;holes')
+               call print(b1, 'b1')
+               call print(b2, 'b2')
+            end if
             return
          end if
       end do
