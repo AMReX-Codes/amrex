@@ -14,20 +14,24 @@ module bl_error_module
   !! process terminates.
   interface bl_error
      module procedure bl_error0
-     module procedure bl_error1_c
+     module procedure bl_error1_ch
      module procedure bl_error1_i
      module procedure bl_error1_d
      module procedure bl_error1_s
+     module procedure bl_error1_z
+     module procedure bl_error1_c
   end interface
 
   !! Print an warning message consisting of text followed by an optional
   !! scalar variable of type character(len=*), integer, or real.
   interface bl_warn
      module procedure bl_warn0
-     module procedure bl_warn1_c
+     module procedure bl_warn1_ch
      module procedure bl_warn1_i
      module procedure bl_warn1_d
      module procedure bl_warn1_s
+     module procedure bl_warn1_z
+     module procedure bl_warn1_c
   end interface
 
   !! Print an error message consisting of text when logical condition
@@ -52,11 +56,11 @@ contains
     call parallel_abort()
   end subroutine bl_error0
 
-  subroutine bl_error1_c(str, str1)
+  subroutine bl_error1_ch(str, str1)
     character(len=*), intent(in) :: str, str1
     write(*,fmt=*) "BOXLIB ERROR: ", str, str1
     call parallel_abort()
-  end subroutine bl_error1_c
+  end subroutine bl_error1_ch
 
   subroutine bl_error1_i(str, val)
     character(len=*), intent(in) :: str
@@ -79,15 +83,29 @@ contains
     call parallel_abort()
   end subroutine bl_error1_s
 
+  subroutine bl_error1_z(str, val)
+    character(len=*), intent(in) :: str
+    complex(kind=dp_t), intent(in) :: val
+    write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call parallel_abort()
+  end subroutine bl_error1_z
+
+  subroutine bl_error1_c(str, val)
+    character(len=*), intent(in) :: str
+    complex(kind=sp_t), intent(in) :: val
+    write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call parallel_abort()
+  end subroutine bl_error1_c
+
   subroutine bl_warn0(str)
     character(len=*), intent(in) :: str
     write(*,fmt=*) "BOXLIB WARN: ", str
   end subroutine bl_warn0
 
-  subroutine bl_warn1_c(str, str1)
+  subroutine bl_warn1_ch(str, str1)
     character(len=*), intent(in) :: str, str1
     write(*,fmt=*) "BOXLIB WARN: ", str, str1
-  end subroutine bl_warn1_c
+  end subroutine bl_warn1_ch
 
   subroutine bl_warn1_i(str, val)
     character(len=*), intent(in) :: str
@@ -107,8 +125,20 @@ contains
     write(*,fmt=*) "BOXLIB WARN: ", str, val
   end subroutine bl_warn1_s
 
+  subroutine bl_warn1_z(str, val)
+    character(len=*), intent(in) :: str
+    complex(kind=dp_t), intent(in) :: val
+    write(*,fmt=*) "BOXLIB WARN: ", str, val
+  end subroutine bl_warn1_z
+
+  subroutine bl_warn1_c(str, val)
+    character(len=*), intent(in) :: str
+    complex(kind=sp_t), intent(in) :: val
+    write(*,fmt=*) "BOXLIB WARN: ", str, val
+  end subroutine bl_warn1_c
+
   !! Stolen from Numerical Recepies
-  !! If COND is true, nothing; if COND is false, call BL_ERROR_C, which
+  !! If COND is true, nothing; if COND is false, call BL_ERROR_CH, which
   !! terminates the process
 
   subroutine bl_assert1(n1, str)

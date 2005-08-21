@@ -465,7 +465,7 @@ contains
     write(unit=un, fmt='(" NLEVEL  = ",i2)') mmf%nlevel
     do n = 1, mmf%nlevel
        write(unit=levstr,fmt='("LEVEL ", i1)') n
-       call multifab_print(mmf%mf(n), &
+       call print(mmf%mf(n), &
             str = trim(levstr), &
             unit = unit,  &
             all = all, &

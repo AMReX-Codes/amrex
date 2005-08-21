@@ -50,7 +50,7 @@ contains
   end subroutine str2int
 
   !! Converts character to lowercase
-  function to_lower ( c ) result(r)
+  function to_lower (c) result(r)
     character :: r
     character, intent(in) :: c
     r = c
@@ -60,7 +60,7 @@ contains
   end function to_lower
 
   !! Converts character to uppercase
-  function to_upper ( c ) result(r)
+  function to_upper (c) result(r)
     character :: r
     character, intent(in) :: c
     r = c
@@ -157,22 +157,13 @@ contains
     character(len=*), intent(in) :: s1, s2
     integer :: i, l1, l2, lc
 
-    l1 = len ( s1 )
-    l2 = len ( s2 )
-    lc = min ( l1, l2 )
+    l1 = len_trim (s1)
+    l2 = len_trim (s2)
     r = .false.
+    if ( l1 /= l2 ) return
+    lc = l1
     do i = 1, lc
        if ( to_upper(s1(i:i)) /= to_upper(s2(i:i)) ) then
-          return
-       end if
-    end do
-    do i = lc + 1, l1
-       if ( s1(i:i) /= ' ' ) then
-          return
-       end if
-    end do
-    do i = lc + 1, l2
-       if ( s2(i:i) /= ' ' ) then
           return
        end if
     end do
