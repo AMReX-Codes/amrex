@@ -100,28 +100,31 @@ module fab_module
      module procedure fab_conformant_q
      module procedure zfab_conformant_q
      module procedure ifab_conformant_q
+     module procedure lfab_conformant_q
   end interface
 
   interface max_val
-     module procedure fab_max
-     module procedure fab_max_bx
-     module procedure fab_max_c
-     module procedure fab_max_bx_c
-     module procedure ifab_max
-     module procedure ifab_max_bx
-     module procedure ifab_max_c
-     module procedure ifab_max_bx_c
+     module procedure fab_max_val
+     module procedure fab_max_val_bx
+     module procedure fab_max_val_c
+     module procedure fab_max_val_bx_c
+
+     module procedure ifab_max_val
+     module procedure ifab_max_val_bx
+     module procedure ifab_max_val_c
+     module procedure ifab_max_val_bx_c
   end interface
 
   interface min_val
-     module procedure fab_min
-     module procedure fab_min_bx
-     module procedure fab_min_c
-     module procedure fab_min_bx_c
-     module procedure ifab_min
-     module procedure ifab_min_bx
-     module procedure ifab_min_c
-     module procedure ifab_min_bx_c
+     module procedure fab_min_val
+     module procedure fab_min_val_bx
+     module procedure fab_min_val_c
+     module procedure fab_min_val_bx_c
+
+     module procedure ifab_min_val
+     module procedure ifab_min_val_bx
+     module procedure ifab_min_val_c
+     module procedure ifab_min_val_bx_c
   end interface
 
   interface dataptr
@@ -151,23 +154,25 @@ module fab_module
      module procedure fab_setval_bx
      module procedure fab_setval_c
      module procedure fab_setval_bx_c
-
      module procedure fab_setval_mask
 
      module procedure zfab_setval
      module procedure zfab_setval_bx
      module procedure zfab_setval_c
      module procedure zfab_setval_bx_c
+     module procedure zfab_setval_mask
 
      module procedure ifab_setval
      module procedure ifab_setval_bx
      module procedure ifab_setval_c
      module procedure ifab_setval_bx_c
+     module procedure ifab_setval_mask
 
      module procedure lfab_setval
      module procedure lfab_setval_bx
      module procedure lfab_setval_c
      module procedure lfab_setval_bx_c
+     module procedure lfab_setval_mask
   end interface
 
   interface print
@@ -1104,6 +1109,7 @@ contains
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine lfab_setval
+
   subroutine fab_setval_mask(fb, val, mask)
     type(fab), intent(inout) :: fb
     real(kind=dp_t), intent(in) :: val
@@ -1114,6 +1120,36 @@ contains
     lp => dataptr(mask, get_box(mask))
     where(lp) pp = val
   end subroutine fab_setval_mask
+  subroutine zfab_setval_mask(fb, val, mask)
+    type(zfab), intent(inout) :: fb
+    complex(kind=dp_t), intent(in) :: val
+    type(lfab), intent(in)  :: mask
+    complex(dp_t), pointer :: pp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    pp => dataptr(fb, get_box(fb))
+    lp => dataptr(mask, get_box(mask))
+    where(lp) pp = val
+  end subroutine zfab_setval_mask
+  subroutine ifab_setval_mask(fb, val, mask)
+    type(ifab), intent(inout) :: fb
+    integer, intent(in) :: val
+    type(lfab), intent(in)  :: mask
+    integer, pointer :: pp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    pp => dataptr(fb, get_box(fb))
+    lp => dataptr(mask, get_box(mask))
+    where(lp) pp = val
+  end subroutine ifab_setval_mask
+  subroutine lfab_setval_mask(fb, val, mask)
+    type(lfab), intent(inout) :: fb
+    logical, intent(in) :: val
+    type(lfab), intent(in)  :: mask
+    logical, pointer :: pp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    pp => dataptr(fb, get_box(fb))
+    lp => dataptr(mask, get_box(mask))
+    where(lp) pp = val
+  end subroutine lfab_setval_mask
 
   subroutine fab_setval_bx(fb, val, bx)
     type(fab), intent(inout) :: fb
@@ -1751,7 +1787,7 @@ contains
     end subroutine print_3d
   end subroutine zfab_print
 
-  function fab_max(fb, all) result(r)
+  function fab_max_val(fb, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     logical, intent(in), optional :: all
@@ -1764,8 +1800,8 @@ contains
        mp => dataptr(fb, get_ibox(fb))
     end if
     r = maxval(mp)
-  end function fab_max
-  function fab_max_c(fb, c, nc, all) result(r)
+  end function fab_max_val
+  function fab_max_val_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     integer, intent(in) :: c
@@ -1780,8 +1816,8 @@ contains
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = maxval(mp)
-  end function fab_max_c
-  function fab_max_bx(fb, bx) result(r)
+  end function fab_max_val_c
+  function fab_max_val_bx(fb, bx) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1790,8 +1826,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
     r = maxval(mp)
-  end function fab_max_bx
-  function fab_max_bx_c(fb, bx, c, nc) result(r)
+  end function fab_max_val_bx
+  function fab_max_val_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1802,8 +1838,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
     r = maxval(mp)
-  end function fab_max_bx_c
-  function ifab_max(fb, all) result(r)
+  end function fab_max_val_bx_c
+  function ifab_max_val(fb, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     logical, intent(in), optional :: all
@@ -1816,8 +1852,8 @@ contains
        mp => dataptr(fb, get_ibox(fb))
     end if
     r = maxval(mp)
-  end function ifab_max
-  function ifab_max_c(fb, c, nc, all) result(r)
+  end function ifab_max_val
+  function ifab_max_val_c(fb, c, nc, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
@@ -1832,8 +1868,8 @@ contains
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = maxval(mp)
-  end function ifab_max_c
-  function ifab_max_bx(fb, bx) result(r)
+  end function ifab_max_val_c
+  function ifab_max_val_bx(fb, bx) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1842,8 +1878,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
     r = maxval(mp)
-  end function ifab_max_bx
-  function ifab_max_bx_c(fb, bx, c, nc) result(r)
+  end function ifab_max_val_bx
+  function ifab_max_val_bx_c(fb, bx, c, nc) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1854,9 +1890,9 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
     r = maxval(mp)
-  end function ifab_max_bx_c
+  end function ifab_max_val_bx_c
 
-  function fab_min(fb, all) result(r)
+  function fab_min_val(fb, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     logical, intent(in), optional :: all
@@ -1869,8 +1905,8 @@ contains
        mp => dataptr(fb, get_ibox(fb))
     end if
     r = minval(mp)
-  end function fab_min
-  function fab_min_c(fb, c, nc, all) result(r)
+  end function fab_min_val
+  function fab_min_val_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     integer, intent(in) :: c
@@ -1885,8 +1921,8 @@ contains
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = minval(mp)
-  end function fab_min_c
-  function fab_min_bx(fb, bx) result(r)
+  end function fab_min_val_c
+  function fab_min_val_bx(fb, bx) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1895,8 +1931,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
     r = minval(mp)
-  end function fab_min_bx
-  function fab_min_bx_c(fb, bx, c, nc) result(r)
+  end function fab_min_val_bx
+  function fab_min_val_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1907,8 +1943,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
     r = minval(mp)
-  end function fab_min_bx_c
-  function ifab_min(fb, all) result(r)
+  end function fab_min_val_bx_c
+  function ifab_min_val(fb, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     logical, intent(in), optional :: all
@@ -1921,8 +1957,8 @@ contains
        mp => dataptr(fb, get_ibox(fb))
     end if
     r = minval(mp)
-  end function ifab_min
-  function ifab_min_c(fb, c, nc, all) result(r)
+  end function ifab_min_val
+  function ifab_min_val_c(fb, c, nc, all) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
@@ -1937,8 +1973,8 @@ contains
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
     r = minval(mp)
-  end function ifab_min_c
-  function ifab_min_bx(fb, bx) result(r)
+  end function ifab_min_val_c
+  function ifab_min_val_bx(fb, bx) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1947,8 +1983,8 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
     r = minval(mp)
-  end function ifab_min_bx
-  function ifab_min_bx_c(fb, bx, c, nc) result(r)
+  end function ifab_min_val_bx
+  function ifab_min_val_bx_c(fb, bx, c, nc) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
@@ -1959,7 +1995,7 @@ contains
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
     r = minval(mp)
-  end function ifab_min_bx_c
+  end function ifab_min_val_bx_c
 
   function lfab_count(fb, all) result(r)
     integer :: r

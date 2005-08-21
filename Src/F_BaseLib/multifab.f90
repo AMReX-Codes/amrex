@@ -54,6 +54,7 @@ module multifab_module
      module procedure multifab_cell_centered_q
      module procedure imultifab_cell_centered_q
      module procedure lmultifab_cell_centered_q
+     module procedure zmultifab_cell_centered_q
   end interface
 
   interface nodal_q
@@ -78,7 +79,10 @@ module multifab_module
      module procedure imultifab_build_copy
 
      module procedure lmultifab_build
+     module procedure lmultifab_build_copy
+
      module procedure zmultifab_build
+     module procedure zmultifab_build_copy
   end interface
 
   interface destroy
@@ -91,14 +95,22 @@ module multifab_module
   interface copy
      module procedure multifab_copy_c
      module procedure multifab_copy
+
      module procedure imultifab_copy_c
      module procedure imultifab_copy
+
      module procedure lmultifab_copy_c
      module procedure lmultifab_copy
+
+     module procedure zmultifab_copy_c
+     module procedure zmultifab_copy
   end interface
 
   interface conformant_q
      module procedure multifab_conformant_q
+     module procedure imultifab_conformant_q
+     module procedure lmultifab_conformant_q
+     module procedure zmultifab_conformant_q
   end interface
 
   interface dataptr
@@ -136,26 +148,29 @@ module multifab_module
      module procedure multifab_setval_bx
      module procedure multifab_setval_c
      module procedure multifab_setval_bx_c
-
+     module procedure multifab_setval_ba
      module procedure multifab_setval_mask
 
      module procedure imultifab_setval
      module procedure imultifab_setval_bx
      module procedure imultifab_setval_c
      module procedure imultifab_setval_bx_c
+     module procedure imultifab_setval_ba
+     module procedure imultifab_setval_mask
 
      module procedure lmultifab_setval
      module procedure lmultifab_setval_bx
      module procedure lmultifab_setval_c
      module procedure lmultifab_setval_bx_c
-
-     module procedure  multifab_setval_ba
      module procedure lmultifab_setval_ba
+     module procedure lmultifab_setval_mask
 
      module procedure zmultifab_setval
      module procedure zmultifab_setval_bx
      module procedure zmultifab_setval_c
      module procedure zmultifab_setval_bx_c
+     module procedure zmultifab_setval_ba
+     module procedure zmultifab_setval_mask
 
   end interface
 
@@ -226,6 +241,7 @@ module multifab_module
      module procedure multifab_get_layout
      module procedure imultifab_get_layout
      module procedure lmultifab_get_layout
+     module procedure zmultifab_get_layout
   end interface
 
   interface rescale
@@ -268,6 +284,7 @@ module multifab_module
      module procedure multifab_ncomp
      module procedure imultifab_ncomp
      module procedure lmultifab_ncomp
+     module procedure zmultifab_ncomp
   end interface
 
   interface norm_l2
@@ -710,7 +727,7 @@ contains
     real(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call multifab_destroy(m1)
+    if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
     m1%la = m2%la
     m1%nboxes = m2%nboxes
@@ -721,7 +738,7 @@ contains
     allocate(m1%fbs(m1%nboxes))
     do i = 1, m1%nboxes
        if ( remote(m1, i) ) cycle
-       call fab_build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        m1p = m2p
@@ -735,7 +752,7 @@ contains
     integer, pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("IMULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call imultifab_destroy(m1)
+    if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
     m1%la = m2%la
     m1%nboxes = m2%nboxes
@@ -746,13 +763,63 @@ contains
     allocate(m1%fbs(m1%nboxes))
     do i = 1, m1%nboxes
        if ( remote(m1, i) ) cycle
-       call ifab_build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        m1p = m2p
     end do
     call mem_stats_alloc(imultifab_ms, volume(m1, all = .TRUE.))
   end subroutine imultifab_build_copy
+  subroutine lmultifab_build_copy(m1, m2)
+    type(lmultifab), intent(inout) :: m1
+    type(lmultifab), intent(in) :: m2
+    logical, pointer :: m1p(:,:,:,:)
+    logical, pointer :: m2p(:,:,:,:)
+    integer :: i
+    if ( built_q(m1) ) call bl_error("LMULTIFAB_BUILD_COPY: already built")
+    if ( built_q(m1) ) call destroy(m1)
+    m1%dim = m2%dim
+    m1%la = m2%la
+    m1%nboxes = m2%nboxes
+    m1%nc = m2%nc
+    m1%ng = m2%nc
+    allocate(m1%nodal(m1%dim))
+    m1%nodal = m2%nodal
+    allocate(m1%fbs(m1%nboxes))
+    do i = 1, m1%nboxes
+       if ( remote(m1, i) ) cycle
+       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       m1p => dataptr(m1,i)
+       m2p => dataptr(m2,i)
+       m1p = m2p
+    end do
+    call mem_stats_alloc(lmultifab_ms, volume(m1, all = .TRUE.))
+  end subroutine lmultifab_build_copy
+  subroutine zmultifab_build_copy(m1, m2)
+    type(zmultifab), intent(inout) :: m1
+    type(zmultifab), intent(in) :: m2
+    complex(dp_t), pointer :: m1p(:,:,:,:)
+    complex(dp_t), pointer :: m2p(:,:,:,:)
+    integer :: i
+    if ( built_q(m1) ) call bl_error("ZMULTIFAB_BUILD_COPY: already built")
+    if ( built_q(m1) ) call destroy(m1)
+    m1%dim = m2%dim
+    m1%la = m2%la
+    m1%nboxes = m2%nboxes
+    m1%nc = m2%nc
+    m1%ng = m2%nc
+    allocate(m1%nodal(m1%dim))
+    m1%nodal = m2%nodal
+    allocate(m1%fbs(m1%nboxes))
+    do i = 1, m1%nboxes
+       if ( remote(m1, i) ) cycle
+       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       m1p => dataptr(m1,i)
+       m2p => dataptr(m2,i)
+       m1p = m2p
+    end do
+    call mem_stats_alloc(zmultifab_ms, volume(m1, all = .TRUE.))
+  end subroutine zmultifab_build_copy
 
   subroutine multifab_destroy(mf)
     type(multifab), intent(inout) :: mf
@@ -760,7 +827,7 @@ contains
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
        do i = 1, mf%nboxes
-          call fab_destroy(mf%fbs(i))
+          call destroy(mf%fbs(i))
        end do
     end if
     deallocate(mf%fbs)
@@ -776,7 +843,7 @@ contains
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
        do i = 1, mf%nboxes
-          call ifab_destroy(mf%fbs(i))
+          call destroy(mf%fbs(i))
        end do
     end if
     deallocate(mf%fbs)
@@ -792,7 +859,7 @@ contains
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
        do i = 1, mf%nboxes
-          call lfab_destroy(mf%fbs(i))
+          call destroy(mf%fbs(i))
        end do
     end if
     deallocate(mf%fbs)
@@ -1246,6 +1313,42 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_setval_mask
+  subroutine imultifab_setval_mask(mf, val, mask)
+    type(imultifab), intent(inout) :: mf
+    integer, intent(in) :: val
+    type(lmultifab), intent(in)   :: mask
+    integer :: i
+    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       call setval(mf%fbs(i), val, mask%fbs(i))
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine imultifab_setval_mask
+  subroutine lmultifab_setval_mask(mf, val, mask)
+    type(lmultifab), intent(inout) :: mf
+    logical, intent(in) :: val
+    type(lmultifab), intent(in)   :: mask
+    integer :: i
+    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       call setval(mf%fbs(i), val, mask%fbs(i))
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine lmultifab_setval_mask
+  subroutine zmultifab_setval_mask(mf, val, mask)
+    type(zmultifab), intent(inout) :: mf
+    complex(dp_t), intent(in) :: val
+    type(lmultifab), intent(in)   :: mask
+    integer :: i
+    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
+    do i = 1, mf%nboxes
+       if ( remote(mf, i) ) cycle
+       call setval(mf%fbs(i), val, mask%fbs(i))
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine zmultifab_setval_mask
 
   subroutine multifab_setval_ba(mf, val, ba, all)
     type(multifab), intent(inout) :: mf
@@ -1295,6 +1398,54 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine lmultifab_setval_ba
+  subroutine imultifab_setval_ba(mf, val, ba, all)
+    type(imultifab), intent(inout) :: mf
+    type(boxarray), intent(in) :: ba
+    integer, intent(in) :: val
+    logical, intent(in), optional :: all
+    integer :: i, n
+    type(box) :: bx1
+    logical lall
+    lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    do n = 1, ba%nboxes
+       do i = 1, mf%nboxes
+          if ( remote(mf, i) ) cycle
+          if ( lall ) then
+             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          else
+             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine imultifab_setval_ba
+  subroutine zmultifab_setval_ba(mf, val, ba, all)
+    type(zmultifab), intent(inout) :: mf
+    type(boxarray), intent(in) :: ba
+    complex(dp_t), intent(in) :: val
+    logical, intent(in), optional :: all
+    integer :: i, n
+    type(box) :: bx1
+    logical lall
+    lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    do n = 1, ba%nboxes
+       do i = 1, mf%nboxes
+          if ( remote(mf, i) ) cycle
+          if ( lall ) then
+             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          else
+             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
+             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine zmultifab_setval_ba
 
   subroutine multifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(multifab), intent(inout) :: mf
@@ -2756,6 +2907,64 @@ contains
     end do
   end subroutine mf_copy_easy_logical
 
+  subroutine mf_copy_easy_z(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
+    type(zmultifab), intent(inout) :: mdst
+    type(zmultifab), intent(in)    :: msrc
+    integer,         intent(in)    :: dstcomp, srccomp, nc
+    logical,         intent(in)    :: lnocomm
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    complex(dp_t), pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, parameter :: tag = 1102
+    type(box)          :: abx
+    integer            :: i, j, proc
+
+    complex(dp_t), dimension(:,:,:,:), allocatable :: pt
+
+    do i = 1, mdst%nboxes
+       do j = 1, msrc%nboxes
+          if ( remote(mdst,i) .and. remote(msrc,j) ) cycle
+          abx = intersection(get_ibox(mdst,i), get_ibox(msrc,j))
+          if ( empty(abx) ) cycle
+          if ( local(mdst,i) .and. local(msrc,j) ) then
+             pdst => dataptr(mdst, i, abx, dstcomp, nc)
+             psrc => dataptr(msrc, j, abx, srccomp, nc)
+             if ( present(filter) ) then
+                call filter(pdst, psrc)
+             else
+                pdst = psrc
+             end if
+          else if ( .not. lnocomm ) then
+             if ( local(msrc,j) ) then ! must send
+                psrc => dataptr(msrc, j, abx, srccomp, nc)
+                proc = get_proc(mdst%la, i)
+                call parallel_send(psrc, proc, tag)
+             else if ( local(mdst,i) ) then ! must recv
+                pdst => dataptr(mdst, i, abx, dstcomp, nc)
+                proc = get_proc(msrc%la, j)
+                if ( present(filter) ) then
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                   call parallel_recv(pt, proc, tag)
+                   call filter(pdst, pt)
+                   deallocate(pt)
+                else
+                   call parallel_recv(pdst, proc, tag)
+                end if
+             end if
+          end if
+       end do
+    end do
+  end subroutine mf_copy_easy_z
+
   subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
@@ -3020,6 +3229,94 @@ contains
 
   end subroutine mf_copy_fancy_logical
 
+  subroutine mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, nc, lnocomm, filter)
+    type(zmultifab), intent(inout) :: mdst
+    type(zmultifab), intent(in)    :: msrc
+    integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    type(copyassoc)      :: cpasc
+    complex(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
+    integer, allocatable :: rst(:), sst(:)
+    integer, parameter   :: tag = 1102
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    type(box)            :: sbx, dbx
+
+    cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    do i = 1, cpasc%l_con%ncpy
+       ii   = cpasc%l_con%cpy(i)%nd
+       jj   = cpasc%l_con%cpy(i)%ns
+       sbx  = cpasc%l_con%cpy(i)%sbx
+       dbx  = cpasc%l_con%cpy(i)%dbx
+       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       if ( present(filter) ) then
+          call filter(pdst, psrc)
+       else
+          pdst = psrc
+       end if
+    end do
+    !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
+
+    call mf_reserve_logical_space(cpasc%r_con, nc)
+
+    do i = 1, cpasc%r_con%nsnd
+       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       g_snd_z(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+    end do
+
+    allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
+    !
+    ! Always do recv's asynchronously.
+    !
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+
+    if ( l_fb_async ) then
+       do i = 1, cpasc%r_con%nsp
+          sst(i) = parallel_isend_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv:), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    else
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+    end if
+
+    call parallel_wait(rst)
+
+    do i = 1, cpasc%r_con%nrcv
+       sh = cpasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       if ( present(filter) ) then
+          call filter(p, reshape(g_rcv_z(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
+       else
+          p =  reshape(g_rcv_z(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+       end if
+    end do
+
+    if ( l_fb_async) call parallel_wait(sst)
+
+  end subroutine mf_copy_fancy_z
+
   subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
@@ -3238,6 +3535,79 @@ contains
     if ( mdst%nc .ne. msrc%nc ) call bl_error('LMULTIFAB_COPY: multifabs must have same number of components')
     call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm, filter)
   end subroutine lmultifab_copy
+
+  subroutine zmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
+    type(zmultifab), intent(inout) :: mdst
+    type(zmultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in)            :: dstcomp, srccomp
+    integer, intent(in), optional  :: nc
+    complex(dp_t), pointer         :: pdst(:,:,:,:), psrc(:,:,:,:)
+    logical                        :: lall, lnocomm
+    integer                        :: i, lnc
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    lnc     = 1;       if ( present(nc)     ) lnc     = nc
+    lall    = .false.; if ( present(all)    ) lall    = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+
+    if ( lnc < 1 )                   call bl_error('ZMULTIFAB_COPY_C: nc must be >= 1')
+    if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
+    if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
+
+    if ( mdst%la == msrc%la ) then
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       do i = 1, mdst%nboxes
+          if ( remote(mdst,i) ) cycle
+          if ( lall ) then
+             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
+          else
+             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
+             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
+          end if
+          if ( present(filter) ) then
+             call filter(pdst, psrc)
+          else
+             pdst = psrc
+          end if
+       end do
+       !$OMP END PARALLEL DO
+    else
+       if ( lall ) call bl_error('ZMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
+
+       if ( l_cp_fancy ) then
+          call mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
+       else
+          call mf_copy_easy_z(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
+       end if
+    end if
+  end subroutine zmultifab_copy_c
+
+  subroutine zmultifab_copy(mdst, msrc, all, nocomm, filter)
+    type(zmultifab), intent(inout) :: mdst
+    type(zmultifab), intent(in)    :: msrc
+    logical, intent(in), optional  :: all, nocomm
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( mdst%nc .ne. msrc%nc ) call bl_error('ZMULTIFAB_COPY: multifabs must have same number of components')
+    call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, nocomm, filter)
+  end subroutine zmultifab_copy
 
   subroutine build_nodal_dot_mask(mask, mf)
     type(multifab), intent(in)  :: mf
