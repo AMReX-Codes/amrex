@@ -657,7 +657,7 @@ contains
     integer :: un
     un = unit_stdout(unit)
     call unit_skip(unit, skip)
-    write(unit=un, fmt='("LAYOUT")', advance = 'no')
+    write(unit=un, fmt='("LAYOUT[(* ")', advance = 'no')
     if ( present(str) ) then
        write(unit=un, fmt='(": ", A)') str
     else
@@ -665,7 +665,7 @@ contains
     end if
     if ( .not. associated(la%lap) ) then
        call unit_skip(unit, skip)
-       write(unit=un, fmt='(" NOT ASSOCIATED")')
+       write(unit=un, fmt='(" empty *)]")')
     else
        call unit_skip(unit, skip)
        write(unit=un, fmt='(" ID = ",i0)', advance = 'no') la%lap%id
@@ -675,7 +675,8 @@ contains
        write(unit=un, fmt='(" NBOXES  = ",i2)') la%lap%nboxes
        call unit_skip(unit, skip)
        write(unit=un, fmt='(" PD      = ",i2)', advance = 'no')
-       call print(la%lap%pd)
+       call print(la%lap%pd, advance = 'NO')
+       write(unit=un, fmt = '(" *)]")')
     end if
   end subroutine layout_print
 

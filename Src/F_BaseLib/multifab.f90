@@ -1161,28 +1161,28 @@ contains
     integer, intent(in) :: i, c
     integer, intent(in), optional :: nc
     real(dp_t), pointer :: r(:,:,:,:)
-    r => fab_dataptr_c(mf%fbs(i), c, nc)
+    r => dataptr(mf%fbs(i), c, nc)
   end function multifab_dataptr_c
   function imultifab_dataptr_c(mf, i, c, nc) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i, c
     integer, intent(in), optional :: nc
     integer, pointer :: r(:,:,:,:)
-    r => ifab_dataptr_c(mf%fbs(i), c, nc)
+    r => dataptr(mf%fbs(i), c, nc)
   end function imultifab_dataptr_c
   function lmultifab_dataptr_c(mf, i, c, nc) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i, c
     integer, intent(in), optional :: nc
     logical, pointer :: r(:,:,:,:)
-    r => lfab_dataptr_c(mf%fbs(i), c, nc)
+    r => dataptr(mf%fbs(i), c, nc)
   end function lmultifab_dataptr_c
   function zmultifab_dataptr_c(mf, i, c, nc) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i, c
     integer, intent(in), optional :: nc
     complex(dp_t), pointer :: r(:,:,:,:)
-    r => zfab_dataptr_c(mf%fbs(i), c, nc)
+    r => dataptr(mf%fbs(i), c, nc)
   end function zmultifab_dataptr_c
 
   function multifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
@@ -1191,7 +1191,7 @@ contains
     integer, intent(in), optional :: nc
     type(box), intent(in) :: bx
     real(dp_t), pointer :: r(:,:,:,:)
-    r => fab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
+    r => dataptr(mf%fbs(i), bx, c, nc)
   end function multifab_dataptr_bx_c
   function imultifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
     type(imultifab), intent(in) :: mf
@@ -1199,7 +1199,7 @@ contains
     integer, intent(in), optional :: nc
     type(box), intent(in) :: bx
     integer, pointer :: r(:,:,:,:)
-    r => ifab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
+    r => dataptr(mf%fbs(i), bx, c, nc)
   end function imultifab_dataptr_bx_c
   function lmultifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
     type(lmultifab), intent(in) :: mf
@@ -1207,7 +1207,7 @@ contains
     integer, intent(in), optional :: nc
     type(box), intent(in) :: bx
     logical, pointer :: r(:,:,:,:)
-    r => lfab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
+    r => dataptr(mf%fbs(i), bx, c, nc)
   end function lmultifab_dataptr_bx_c
   function zmultifab_dataptr_bx_c(mf, i, bx, c, nc) result(r)
     type(zmultifab), intent(in) :: mf
@@ -1215,7 +1215,7 @@ contains
     integer, intent(in), optional :: nc
     type(box), intent(in) :: bx
     complex(dp_t), pointer :: r(:,:,:,:)
-    r => zfab_dataptr_bx_c(mf%fbs(i), bx, c, nc)
+    r => dataptr(mf%fbs(i), bx, c, nc)
   end function zmultifab_dataptr_bx_c
 
   function multifab_dataptr_bx(mf, i, bx) result(r)
@@ -1223,28 +1223,28 @@ contains
     integer, intent(in) :: i
     type(box), intent(in) :: bx
     real(dp_t), pointer :: r(:,:,:,:)
-    r => fab_dataptr_bx(mf%fbs(i), bx)
+    r => dataptr(mf%fbs(i), bx)
   end function multifab_dataptr_bx
   function imultifab_dataptr_bx(mf, i, bx) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box), intent(in) :: bx
     integer, pointer :: r(:,:,:,:)
-    r => ifab_dataptr_bx(mf%fbs(i), bx)
+    r => dataptr(mf%fbs(i), bx)
   end function imultifab_dataptr_bx
   function lmultifab_dataptr_bx(mf, i, bx) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box), intent(in) :: bx
     logical, pointer :: r(:,:,:,:)
-    r => lfab_dataptr_bx(mf%fbs(i), bx)
+    r => dataptr(mf%fbs(i), bx)
   end function lmultifab_dataptr_bx
   function zmultifab_dataptr_bx(mf, i, bx) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box), intent(in) :: bx
     complex(dp_t), pointer :: r(:,:,:,:)
-    r => zfab_dataptr_bx(mf%fbs(i), bx)
+    r => dataptr(mf%fbs(i), bx)
   end function zmultifab_dataptr_bx
 
   subroutine multifab_setval(mf, val, all)

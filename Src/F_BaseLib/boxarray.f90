@@ -1033,9 +1033,9 @@ contains
     integer :: un
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt = '("BOXARRAY")', advance = 'no')
+    write(unit=un, fmt = '("BOXARRAY[(*")', advance = 'no')
     if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
+       write(unit=un, fmt='(" ",A)') str
     else
        write(unit=un, fmt='()')
     end if
@@ -1043,29 +1043,52 @@ contains
     write(unit=un, fmt='(" DIM     = ",i5)') ba%dim
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NBOXES  = ",i5)') ba%nboxes
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" *) {")')
     do i = 1, ba%nboxes
-       call print(ba%bxs(i), unit=unit, advance = 'yes', &
+       call print(ba%bxs(i), unit=unit, advance = 'NO', &
             legacy = legacy, skip = unit_get_skip(skip)+ 1)
+       if ( i == ba%nboxes ) then
+          write(unit=un, fmt='("}]")')
+       else
+          write(unit=un, fmt='(",")')
+       end if
     end do
   end subroutine boxarray_print
 
-  subroutine boxlist_print(bl, str, unit, legacy)
+  subroutine boxlist_print(bl, str, unit, legacy, skip)
     use bl_IO_module
     type(list_box), intent(in) :: bl
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: legacy
+    integer, intent(in), optional :: skip
     type(list_box_node), pointer :: bn
-    integer :: un
+    integer :: un, cnt
     un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt = '("BOXLIST[(*")', advance = 'no')
     if ( present(str) ) then
-       write(unit=un, fmt='("(*",A,"*)")') str
+       write(unit=un, fmt='(" ",A)') str
+    else
+       write(unit=un, fmt='()')
     end if
-    write(unit=un, fmt = '("boxlist[ ", i10, ", {")') size(bl)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NBOXES  = ",i5)') size(bl)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" *) {")')
+    cnt = 0
     bn => begin(bl)
     do while ( associated(bn) )
-       call print(value(bn), unit=unit, legacy = legacy)
+       call print(value(bn), unit=unit, advance = 'NO',  &
+            legacy = legacy, skip = unit_get_skip(skip)+ 1)
        bn => next(bn)
+       cnt = cnt + 1
+       if ( cnt == size(bl) ) then
+          write(unit=un, fmt='(",")')
+       else
+          write(unit=un, fmt='(",")')
+       end if
     end do
   end subroutine boxlist_print
 

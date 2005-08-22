@@ -342,7 +342,7 @@ contains
       call build(ba, bxs)
       call build(la, ba)
       dm = ba%dim
-      call multifab_build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
+      call build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
       read(unit=lun, fmt=*) idummy
       do j = 1, nboxes
          read(unit=lun, fmt=*) cdummy, &
@@ -650,7 +650,7 @@ contains
          call bl_stream_expect(strm, ')')
          call build(ba, bxs)
          call build(la, ba)
-         call multifab_build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
+         call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
             read(unit=lun, fmt=*) cdummy, &

@@ -991,12 +991,12 @@ contains
   contains
     subroutine write_a_box
       call unit_skip(un, skip)
-      write(unit=un, fmt='("BOX")', advance='no')
+      write(unit=un, fmt='("BOX[")', advance='no')
       if ( present(str) ) then
-         write(unit=un, fmt='("{", A, "}")', advance = 'no') str
+         write(unit=un, fmt='("(* ", A, " *)")', advance = 'no') str
       end if
       if ( bx%dim > 0 ) then
-         write(unit=un, fmt='("[{", 3('//findex//',:,", "))', advance = 'no') bx%lo(1:bx%dim)
+         write(unit=un, fmt='("{", 3('//findex//',:,", "))', advance = 'no') bx%lo(1:bx%dim)
          write(unit=un, fmt='("}, {", 3('//findex//',:,", "))', advance = 'no') bx%hi(1:bx%dim)
          write(unit=un, fmt='("}]")', advance = 'no' )
       end if
