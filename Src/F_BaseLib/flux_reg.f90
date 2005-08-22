@@ -183,7 +183,7 @@ contains
     end if
     do i = 1, br%dim
        do f = 0, 1
-          call multifab_print(br%bmf(i,f), &
+          call print(br%bmf(i,f), &
                unit = unit, &
                all = all, &
                data = data,  &

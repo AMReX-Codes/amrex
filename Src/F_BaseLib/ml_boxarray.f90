@@ -274,9 +274,9 @@ contains
     integer :: un
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt = '("ML_BOXARRAY")', advance = 'no')
+    write(unit=un, fmt = '("MLBOXARRAY[(*")', advance = 'no')
     if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
+       write(unit=un, fmt='(" ",A)') str
     else
        write(unit=un, fmt='()')
     end if
@@ -284,11 +284,22 @@ contains
     write(unit=un, fmt='(" DIM     = ",i2)') mba%dim
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NLEVEL  = ",i2)') mba%nlevel
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" *) {")')
     do i = 1, mba%nlevel
        call unit_skip(un, unit_get_skip(skip)+1)
-       write(unit=un, fmt = '("LEVEL ", i2, " PD ")', advance = 'no') i
-       call print(mba%pd(i), unit=un)
+       write(unit=un, fmt = '("(* LEVEL ", i2)') i
+       call unit_skip(un, unit_get_skip(skip)+1)
+       write(unit=un, fmt = '(" PD = ")', advance = 'no')
+       call print(mba%pd(i), unit=un, advance = 'NO')
+       write(unit=un, fmt = '(" *)")')
        call print(mba%bas(i), skip = unit_get_skip(skip) + 2)
+       if ( i == mba%nlevel ) then
+          call unit_skip(un, skip)
+          write(unit=un, fmt = '("}]")')
+       else
+          write(unit=un, fmt = '(",")')
+       end if
     end do
   end subroutine ml_boxarray_print
 
