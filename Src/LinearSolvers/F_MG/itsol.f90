@@ -20,11 +20,12 @@ contains
   function itsol_converged(rr, uu, Anorm, bnorm, eps) result(r)
     type(multifab), intent(in) :: rr, uu
     real(dp_t), intent(in) :: Anorm, bnorm, eps
-    real(dp_t)             :: norm
+    real(dp_t)             :: norm_rr, norm_uu
     logical :: r
-    norm = norm_inf(rr)
-    r = (norm <= eps*(Anorm*norm_inf(uu) + bnorm)) .or. &
-        (norm <= epsilon(Anorm)*Anorm)
+    norm_rr = norm_inf(rr)
+    norm_uu = norm_inf(uu)
+    r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
+        (norm_rr <= epsilon(Anorm)*Anorm)
   end function itsol_converged
 
   subroutine itsol_stencil_apply(aa, rr, uu, mm)
@@ -100,7 +101,7 @@ contains
     type(layout) :: la
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
-    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm
+    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm, den
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
@@ -175,7 +176,12 @@ contains
        end if
        call itsol_precon(aa, ph, pp, mm)
        call itsol_stencil_apply(aa, vv, ph, mm); cnt = cnt + 1
-       alpha = rho/dot(rt, vv)
+       den = dot(rt, vv)
+       if ( den == ZERO ) then
+          call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
+          exit
+       end if
+       alpha = rho/den
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
        if ( verbose > 1 ) then
@@ -238,7 +244,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
-    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm
+    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm, den
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve
@@ -299,7 +305,12 @@ contains
           call saxpy(pp, zz, beta, pp)
        end if
        call itsol_stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
-       alpha = rho/dot(pp, qq)
+       den = dot(pp, qq)
+       if ( den == 0 ) then
+          call bl_warn("CG_solve: breakdown in solver, going with what I have")
+          exit
+       end if
+       alpha = rho/den
        call saxpy(uu,   alpha, pp)
        call saxpy(rr, - alpha, qq)
        if ( verbose > 1 ) then
