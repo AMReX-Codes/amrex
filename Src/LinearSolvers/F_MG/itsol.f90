@@ -178,8 +178,12 @@ contains
        call itsol_stencil_apply(aa, vv, ph, mm); cnt = cnt + 1
        den = dot(rt, vv)
        if ( den == ZERO ) then
-          call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
-          exit
+          if ( present(stat) ) then
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
+             stat = 30
+             goto 100
+          endif
+          call bl_error("BiCGStab: failure 3")
        end if
        alpha = rho/den
        call saxpy(uu, alpha, ph)
@@ -307,8 +311,12 @@ contains
        call itsol_stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
        den = dot(pp, qq)
        if ( den == 0 ) then
-          call bl_warn("CG_solve: breakdown in solver, going with what I have")
-          exit
+          if ( present(stat) ) then
+             call bl_warn("CG_solve: breakdown in solver, going with what I have")
+             stat = 30
+             goto 100
+          end if
+          call bl_error("CG_solve: failure 1")
        end if
        alpha = rho/den
        call saxpy(uu,   alpha, pp)
