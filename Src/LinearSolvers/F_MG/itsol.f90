@@ -10,12 +10,46 @@ module itsol_module
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter = 1000
   real(dp_t), private, parameter :: ZERO = 0.0_dp_t
+  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
 
   private :: itsol_defect
   private :: itsol_precon
   private :: itsol_precon_st
 
 contains
+
+  !! ITSOL_BREAKDOWN: is supposed to detect 'bad' numbers
+  !! that shouldn't be used in a CG/BICG
+  !! Not Used
+  function itsol_breakdown(alpha, how) result(r)
+    logical :: r
+    real(dp_t), intent(in) :: alpha
+    integer, intent(out) :: how
+    real(dp_t) :: beta
+
+    r = .false.
+    how = 0
+    if ( alpha > ZERO ) then
+       beta = ONE/alpha
+       if ( beta <= ZERO ) then
+          r = .true.
+          how = 2
+       end if
+    else if ( alpha < ZERO ) then
+       beta = ONE/alpha
+       if ( beta >= ZERO ) then
+          r = .true.
+          how = 2
+       end if
+    else if ( alpha == ZERO ) then
+       r = .true.
+       how = 1
+    else
+       r = .true.
+       how = 2
+    end if
+
+  end function itsol_breakdown
 
   function itsol_converged(rr, uu, Anorm, bnorm, eps) result(r)
     type(multifab), intent(in) :: rr, uu
@@ -154,7 +188,7 @@ contains
        if ( i == 1 ) then
           call copy(pp, rr)
        else
-          if ( rho_1 == 0.0_dp_t ) then
+          if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("BiCGStab_SOLVE: failure 1")
                 stat = 2
@@ -162,7 +196,7 @@ contains
              end if
              call bl_error("BiCGStab: failure 1")
           end if
-          if ( omega == 0.0_dp_t ) then
+          if ( omega == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("BiCGStab_SOLVE: failure 2")
                 stat = 3
@@ -198,7 +232,16 @@ contains
        call itsol_precon(aa, sh, ss, mm)
        call itsol_stencil_apply(aa, tt, sh, mm); cnt = cnt + 1
 
-       omega = dot(tt,ss)/dot(tt,tt)
+       den = dot(tt,tt)
+       if ( den == ZERO ) then
+          if ( present(stat) ) then
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
+             stat = 31
+             goto 100
+          endif
+          call bl_error("BiCGStab: failure 3")
+       end if
+       omega = dot(tt,ss)/den
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
        if ( verbose > 1 ) then
@@ -297,7 +340,7 @@ contains
           call copy(pp, zz)
           rho_orig = rho
        else
-          if ( rho_1 == 0.0_dp_t ) then
+          if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("CG_solve: failure 1")
                 stat = 1
@@ -310,7 +353,7 @@ contains
        end if
        call itsol_stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
        den = dot(pp, qq)
-       if ( den == 0 ) then
+       if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("CG_solve: breakdown in solver, going with what I have")
              stat = 30
@@ -575,7 +618,7 @@ contains
        if ( i == 1 ) then
           call copy(pp, rr)
        else
-          if ( rho_1 == 0.0_dp_t ) then
+          if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("BiCGStab_SOLVE: failure 1")
                 stat = 2
@@ -583,7 +626,7 @@ contains
              end if
              call bl_error("BiCGStab: failure 1")
           end if
-          if ( omega == 0.0_dp_t ) then
+          if ( omega == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("BiCGStab_SOLVE: failure 2")
                 stat = 3
@@ -708,7 +751,7 @@ contains
           call copy(pp, zz)
           rho_orig = rho
        else
-          if ( rho_1 == 0.0_dp_t ) then
+          if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
                 call bl_warn("CG_solve: failure 1")
                 stat = 1
