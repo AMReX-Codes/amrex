@@ -25,6 +25,7 @@ f90sources += fabio.f90
 f90sources += plotfile.f90
 f90sources += filler.f90
 f90sources += cluster.f90
+f90sources += cluster_2d.f90
 f90sources += interp.f90
 f90sources += bc.f90
 f90sources += bndry_reg.f90
