@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.141 2005-06-21 21:42:03 lijewski Exp $
+// $Id: Amr.cpp,v 1.142 2005-08-29 16:27:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -840,7 +840,7 @@ Amr::init (Real strt_time,
            Real stop_time)
 {
     probStartTime = ParallelDescriptor::second();
-    if (!restart_file.empty())
+    if (!restart_file.empty() && restart_file != "init")
     {
         restart(restart_file);
     }
