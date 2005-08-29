@@ -12,6 +12,10 @@ module ml_boxarray_module
      type(box), pointer :: pd(:) => Null()
   end type ml_boxarray
 
+  interface get_dim
+     module procedure ml_boxarray_dim
+  end interface
+
   interface destroy
      module procedure ml_boxarray_destroy
   end interface

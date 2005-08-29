@@ -42,9 +42,9 @@ module box_module
   end interface
 
   !! Returns the dimensionality of the box.
-!  interface dim
-!     module procedure box_dim
-!  end interface
+  interface get_dim
+     module procedure box_dim
+  end interface
 
   !! Returns the volume of the box as a ll_t
   interface volume
@@ -1049,7 +1049,7 @@ contains
     if ( present(nodal) ) nodal = .false.
     call build(strm, unit_stdin(unit))
     c = bl_stream_peek_chr(strm)
-    if ( c == 'b' ) then
+    if ( c == 'B' ) then
        call read_box()
     else if ( c == '(' ) then
        call read_a_legacy_box()
@@ -1059,9 +1059,10 @@ contains
     call destroy(strm)
   contains
     subroutine read_box
-       call bl_stream_expect(strm, "box")
-       call bl_stream_expect(strm, (/"[", "{"/))
-       call bl_stream_expect(strm, (/"}", "]"/))
+      call bl_stream_expect(strm, "BOX")
+      call bl_stream_expect(strm, "[")
+      call bl_error("READ_BOX: this is as far as I got")
+      call bl_stream_expect(strm, "]")
     end subroutine read_box
     subroutine read_a_legacy_box
       character(len=1) :: c

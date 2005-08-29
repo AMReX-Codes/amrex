@@ -438,7 +438,7 @@ contains
     integer, intent(in) :: type
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: nodal(:)
-    st%dim = layout_dim(la)
+    st%dim = get_dim(la)
     st%type = type
     if ( present(nc) ) then
        st%ns = nc

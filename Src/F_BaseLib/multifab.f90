@@ -202,6 +202,13 @@ module multifab_module
      module procedure zmultifab_get_box
   end interface
 
+  interface get_dim
+     module procedure multifab_get_dim
+     module procedure imultifab_get_dim
+     module procedure lmultifab_get_dim
+     module procedure zmultifab_get_dim
+  end interface
+
   interface nboxes
      module procedure multifab_nboxes
      module procedure imultifab_nboxes
@@ -623,7 +630,7 @@ contains
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    mf%dim = layout_dim(la)
+    mf%dim = get_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
     mf%nc = lnc
@@ -650,7 +657,7 @@ contains
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    mf%dim = layout_dim(la)
+    mf%dim = get_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
     mf%nc = lnc
@@ -677,7 +684,7 @@ contains
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    mf%dim = layout_dim(la)
+    mf%dim = get_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
     mf%nc = lnc
@@ -704,7 +711,7 @@ contains
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    mf%dim = layout_dim(la)
+    mf%dim = get_dim(la)
     mf%la = la
     mf%nboxes = layout_nboxes(la)
     mf%nc = lnc
@@ -942,6 +949,27 @@ contains
        r = volume(get_boxarray(mf))
     end if
   end function zmultifab_volume
+
+  function multifab_get_dim(mf) result(r)
+    type(multifab), intent(in) :: mf
+    integer :: r
+    r = mf%dim
+  end function multifab_get_dim
+  function imultifab_get_dim(mf) result(r)
+    type(imultifab), intent(in) :: mf
+    integer :: r
+    r = mf%dim
+  end function imultifab_get_dim
+  function lmultifab_get_dim(mf) result(r)
+    type(lmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%dim
+  end function lmultifab_get_dim
+  function zmultifab_get_dim(mf) result(r)
+    type(zmultifab), intent(in) :: mf
+    integer :: r
+    r = mf%dim
+  end function zmultifab_get_dim
 
   function multifab_nboxes(mf) result(r)
     type(multifab), intent(in) :: mf

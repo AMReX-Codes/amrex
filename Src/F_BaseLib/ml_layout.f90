@@ -108,7 +108,7 @@ contains
     if ( size(la) == 0 ) then
        call bl_error("ML_LAYOUT_BUILD_LA: la array is empty!")
     end if
-    mla%dim = layout_dim(la(1))
+    mla%dim = get_dim(la(1))
     mla%nlevel = size(la)
 
     allocate(mla%pmask(mla%dim))

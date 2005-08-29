@@ -66,10 +66,12 @@ module fab_module
   end type lfab
 
   !! Returns the Dimension  of the FAB
-!  interface get_dim
-!     module procedure fab_dim
-!     module procedure ifab_dim
-!  end interface
+  interface get_dim
+     module procedure fab_dim
+     module procedure ifab_dim
+     module procedure lfab_dim
+     module procedure zfab_dim
+  end interface
 
   interface build
      module procedure fab_build
@@ -795,13 +797,23 @@ contains
   function fab_dim(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r
-    r = box_dim(fb%bx)
+    r = fb%dim
   end function fab_dim
   function ifab_dim(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r
-    r = box_dim(fb%bx)
+    r = fb%dim
   end function ifab_dim
+  function lfab_dim(fb) result(r)
+    type(lfab), intent(in) :: fb
+    integer :: r
+    r = fb%dim
+  end function lfab_dim
+  function zfab_dim(fb) result(r)
+    type(zfab), intent(in) :: fb
+    integer :: r
+    r = fb%dim
+  end function zfab_dim
 
   function fab_dataptr(fb) result(r)
     type(fab), intent(in) :: fb

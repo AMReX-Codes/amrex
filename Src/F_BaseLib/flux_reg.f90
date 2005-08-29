@@ -53,8 +53,8 @@ contains
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
-    dm = layout_dim(la)
-    nb = layout_nboxes(la)
+    dm = get_dim(la)
+    nb = nboxes(la)
 
     allocate(lo(dm),hi(dm),nd_flag(dm))
 
