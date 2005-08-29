@@ -188,8 +188,8 @@ contains
     n = max_mg_levels(get_boxarray(la), mgt%min_width)
     mgt%nlevels = min(n, mgt%max_nlevel)
     n = mgt%nlevels
-    mgt%nboxes = layout_nboxes(la)
-    mgt%dim    = layout_dim(la)
+    mgt%nboxes = nboxes(la)
+    mgt%dim    = get_dim(la)
 
     allocate(mgt%face_type(mgt%nboxes,mgt%dim,2))
 

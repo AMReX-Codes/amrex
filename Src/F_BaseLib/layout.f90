@@ -198,6 +198,10 @@ module layout_module
      module procedure layout_get_pd
   end interface
 
+  interface get_dim
+     module procedure layout_dim
+  end interface
+
   interface get_pmask
      module procedure layout_get_pmask
   end interface

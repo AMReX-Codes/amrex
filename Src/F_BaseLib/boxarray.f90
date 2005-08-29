@@ -14,9 +14,9 @@ module boxarray_module
      type(box), pointer :: bxs(:) => Null()
   end type boxarray
 
-!  interface dim
-!     module procedure boxarray_dim
-!  end interface
+  interface get_dim
+     module procedure boxarray_dim
+  end interface
 
   interface empty
      module procedure boxarray_empty

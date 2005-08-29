@@ -58,7 +58,7 @@ contains
     lnc = 1; if ( present(nc) ) lnc = nc
     lw = 0; if ( present(width) ) lw = width
 
-    dm = layout_dim(la)
+    dm = get_dim(la)
     nb = layout_nboxes(la)
 
     allocate(bxs(nb))
@@ -73,7 +73,7 @@ contains
 
     nd_flag = .false.; if ( present(nodal) ) nd_flag = nodal
 
-    if ( dm /= layout_dim(la) .or. &
+    if ( dm /= get_dim(la) .or. &
          dm /= box_dim(pd)) then
        call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
     end if
