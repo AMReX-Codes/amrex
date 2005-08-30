@@ -919,50 +919,12 @@ contains
     
     if ( size(bxl) == 0 ) return
     dm = box_dim(front(bxl))
-    do while ( simp_old() > 0 )
+    do while ( simp() > 0 )
     end do
 
   contains
 
     function simp() result(cnt)
-      integer :: cnt
-      type(list_box_node), pointer :: ba, bb
-      type(box) :: bx
-      logical match, t
-      integer :: i
-
-      if ( size(bxl) == 0 ) return
-      cnt = 0
-      ba => begin(bxl)
-
-      do while ( associated(ba) )
-         match = .FALSE.
-         bb => next(ba)
-         do while ( associated(bb) )
-            do i = 1, dm
-               t = box_merge(bx, value(ba), value(bb), i)
-               if ( t ) exit
-            end do
-            if ( t ) then
-               call set(bb, bx)
-               ba => erase(bxl, ba)
-               cnt = cnt + 1
-               match = .TRUE.
-               exit
-            else
-               ! No match found, try next element.
-               bb => next(bb)
-            end if
-         end do
-         ! If a match was found, a was already advanced in the list.
-         if (.not. match) then
-            ba => next(ba)
-         end if
-      end do
-
-    end function simp
-
-    function simp_old() result(cnt)
       integer :: cnt
       integer :: joincnt
       integer, dimension(dm) :: lo, hi, alo, ahi, blo, bhi
@@ -984,14 +946,14 @@ contains
             canjoin = .TRUE.
             joincnt = 0
             do i = 1, dm
-               if (alo(i) == blo(i) .AND. ahi(i)==bhi(i)) then
+               if ( alo(i) == blo(i) .AND. ahi(i)==bhi(i) ) then
                   lo(i) = alo(i)
                   hi(i) = ahi(i)
-               else if (alo(i)<=blo(i) .AND. blo(i)<=ahi(i)+1) then
+               else if ( alo(i)<=blo(i) .AND. blo(i)<=ahi(i)+1 ) then
                   lo(i) = alo(i)
                   hi(i) = max(ahi(i),bhi(i))
                   joincnt = joincnt + 1
-               else if (blo(i)<=alo(i) .AND. alo(i)<=bhi(i)+1) then
+               else if ( blo(i)<=alo(i) .AND. alo(i)<=bhi(i)+1 ) then
                   lo(i) = blo(i)
                   hi(i) = max(ahi(i),bhi(i))
                   joincnt = joincnt + 1
@@ -1000,7 +962,7 @@ contains
                   exit
                end if
             end do
-            if (canjoin .AND. (joincnt <= 1)) then
+            if ( canjoin .AND. (joincnt <= 1) ) then
                ! Modify b and remove a from the list.
                call build(bx, lo, hi)
                call set(bb, bx)
@@ -1014,12 +976,13 @@ contains
             end if
          end do
          ! If a match was found, a was already advanced in the list.
-         if (.not. match) then
+         if ( .not. match ) then
             ba => next(ba)
          end if
       end do
 
-    end function simp_old
+    end function simp
+
   end subroutine boxlist_simplify
 
   subroutine boxarray_print(ba, str, unit, legacy, skip)
