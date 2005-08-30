@@ -59,7 +59,7 @@ contains
     lw = 0; if ( present(width) ) lw = width
 
     dm = get_dim(la)
-    nb = layout_nboxes(la)
+    nb = nboxes(la)
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1))
