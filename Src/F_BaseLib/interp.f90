@@ -83,7 +83,8 @@ contains
 
   !! lin_cc_interp:   linear conservative interpolation from coarse grid to fine
 
-  subroutine lin_cc_interp_2d (fine, fine_lo, crse, crse_lo,lratio, bc, &
+  subroutine lin_cc_interp_2d (fine, fine_lo, crse, crse_lo, &
+       lratio, bc, &
        fvcx, fvcx_lo, fvcy, fvcy_lo, cvcx, cvcx_lo, cvcy, cvcy_lo, &
        cslope_lo, cslope_hi, lim_slope, lin_limit)
 
@@ -132,6 +133,7 @@ contains
     integer :: ioff, joff
 
     forall (i =1:2) nxc(i) = size(crse,i)-2
+    print *,'NXC ',nxc
 
     xok = (nxc >=  2)
 
@@ -155,7 +157,9 @@ contains
     cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),:)
 
     do n = 1, size(fine,3)
+       !
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
+       !
        do j = cslope_lo(2), cslope_hi(2)
           do i = cslope_lo(1), cslope_hi(1)
              do joff = -1, 1
@@ -825,6 +829,7 @@ contains
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
     xok = (nxc >=  2)
+    print *,'NXC ',nxc
 
     do k = fvcz_lo, fvcz_lo+size(fine,3)-1
        kc = IX_PROJ(k,lratio(3))
@@ -847,7 +852,7 @@ contains
 
     ! Prevent underflow for small crse values.
     where(abs(crse) < 1.0d-20) crse = ZERO
-    alpha = 1.d0
+    alpha = ONE
     cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),cslope_lo(3):cslope_hi(3),:)
     cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),cslope_lo(3):cslope_hi(3),:)
     
@@ -886,7 +891,7 @@ contains
        end do
 
        if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
-          i = 0
+          i = cslope_lo(1)
           if ( xok(1) ) then
              do k = cslope_lo(3),cslope_hi(3)
                 do j = cslope_lo(2),cslope_hi(2)
@@ -909,7 +914,7 @@ contains
        end if
 
        if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
-          i = nxc(1) - 1
+          i = cslope_hi(1)
           if ( xok(1) ) then
              do k = cslope_lo(3),cslope_hi(3)
                 do j = cslope_lo(2),cslope_hi(2)
@@ -942,7 +947,7 @@ contains
        end do
 
        if (bc(2,1,n)  ==  EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
-          j = 0
+          j = cslope_lo(2)
           if ( xok(2) ) then
              do k = cslope_lo(3),cslope_hi(3)
                 do i = cslope_lo(1),cslope_hi(1)
@@ -965,7 +970,7 @@ contains
        end if
 
        if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
-          j = nxc(2)-1
+          j = cslope_hi(2)
           if ( xok(2) ) then
              do k = cslope_lo(3),cslope_hi(3)
                 do i = cslope_lo(1),cslope_hi(1)
@@ -998,7 +1003,7 @@ contains
        end do
 
        if (bc(3,1,n)  == EXT_DIR .or. bc(3,1,n) == HOEXTRAP ) then
-          k = 0
+          k = cslope_lo(3)
           if ( xok(3) ) then
              do j = cslope_lo(2),cslope_hi(2)
                 do i = cslope_lo(1),cslope_hi(1)
@@ -1021,7 +1026,7 @@ contains
        end if
 
        if (bc(3,2,n)  ==  EXT_DIR .or. bc(3,2,n)  ==  HOEXTRAP) then
-          k = nxc(3)-1
+          k = cslope_hi(3)
           if ( xok(3) ) then
              do j = cslope_lo(2),cslope_hi(2)
                 do i = cslope_lo(1),cslope_hi(1)
