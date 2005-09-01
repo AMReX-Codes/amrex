@@ -269,11 +269,15 @@ contains
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
-    fx = ONE / (36.0_dp_t*dh(1)**2)
-    fy = ONE / (36.0_dp_t*dh(2)**2)
-    fz = ONE / (36.0_dp_t*dh(3)**2)
-    f0 = FOUR * (fx + fy + fz)
+!   fx = ONE / (36.0_dp_t*dh(1)**2)
+!   fy = ONE / (36.0_dp_t*dh(2)**2)
+!   fz = ONE / (36.0_dp_t*dh(3)**2)
 !   f0 = THIRD * THIRD * ( ONE/dh(1)**2 + ONE/dh(2)**2 + ONE/dh(3)**2)
+
+    fx = ONE / (36.0_dp_t)
+    fy = ONE / (36.0_dp_t)
+    fz = ONE / (36.0_dp_t)
+    f0 = FOUR * (fx + fy + fz)
 
 !   BEGIN STENCIL
 !
@@ -443,8 +447,11 @@ contains
     end do
     end do
 
-    ratio = dh_local(1) / dh(1)
-    ss = ss*ratio
+!   ratio = dh_local(1) / dh(1)
+!   print *,'DH_LOC RATIO ',dh_local(1),ratio
+!   ss = ss*ratio
+
+    ss = ss*dh_local(1)
 
   end subroutine s_simple_3d_nodal
 
