@@ -86,7 +86,7 @@ contains
     call copy(mla%mba, mba)
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
-    call build(mla%la(1), mba%bas(1),pmask=lpmask)
+    call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
     do n = 2, mba%nlevel
        call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
     end do
