@@ -66,7 +66,7 @@ extern "C"
 
   void mgt_set_level(const int* mgt, const int* lev, const int* nb, 
 		     const int* dm, const int* lo, const int* hi, 
-		     const int* pd_lo, const int* pd_hi, const int* bc);
+		     const int* pd_lo, const int* pd_hi, const int* bc, const int* pm);
 
   void mgt_finalize(const int* mgt);
 
