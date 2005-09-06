@@ -1,6 +1,5 @@
 module ml_cc_module
 
-  use BoxLib
   use bl_constants_module
   use stencil_module
   use mg_module

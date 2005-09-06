@@ -1,7 +1,9 @@
 f90sources += ml_nd.f90
 f90sources += ml_cc.f90
 f90sources += itsol.f90
-#f90sources += mg_cpp.f90
+ifdef USE_MG_CPP
+f90sources += mg_cpp.f90
+endif
 f90sources += mg.f90
 f90sources += mg_smoother.f90
 f90sources += mlmg.f90

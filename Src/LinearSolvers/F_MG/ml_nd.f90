@@ -1,16 +1,12 @@
 module ml_nd_module
 
-  use BoxLib
   use bl_constants_module
-  use omp_module
-  use f2kcli
   use stencil_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
   use ml_layout_module
   use itsol_module
-  use box_util_module
   use bl_IO_module
 
   use ml_restriction_module

@@ -23,11 +23,15 @@ contains
   subroutine mgt_verify(mgt, str)
     integer, intent(in) :: mgt
     character(len=*), intent(in) :: str
+
     if ( mgt < 1 .or. mgt > max_mgt ) then
-       call bl_error( trim(str) // ": MGT out of bounds")
+       call bl_error( trim(str) // ": MGT out of bounds: mgt: ", mgt)
     end if
     if ( mgts(mgt)%dim == 0 ) then
-       call bl_error( trim(str) // ": MGT invalid DIM: not allocated")
+       call bl_error( trim(str) // ": MGT invalid DIM: not allocated: mgt: ", mgt)
+    end if
+    if ( mgts(mgt)%han /= mgt ) then
+       call bl_error( trim(str) // ": MGT invalid han: mgt: ", mgt)
     end if
     
   end subroutine mgt_verify
@@ -36,6 +40,7 @@ contains
     integer, intent(in) :: mgt, n, lo(:), hi(:)
     character(len=*), intent(in) :: str
     type(box) :: bx
+
     call mgt_verify(mgt, str)
     if ( n < 1 .or. n > nboxes(mgts(mgt)%lay) ) then
        call bl_error( trim(str) // ": Box out of bounds")
@@ -44,11 +49,13 @@ contains
     if ( bx /= get_box(mgts(mgt)%lay, n)) then
        call bl_error( trim(str) // ": Box no filling")
     end if
+
   end subroutine mgt_verify_n
 
   subroutine mgt_not_final(mgt, str)
     integer, intent(in) :: mgt
     character(len=*), intent(in) :: str
+
     call mgt_verify(mgt, str)
     if ( mgts(mgt)%final ) then
        call bl_error( trim(str) // ": Changes made to finalized solver!")
@@ -63,6 +70,7 @@ subroutine mgt_alloc(mgt, dm, nlevel)
   integer, intent(in) :: dm, nlevel
   integer, intent(out) :: mgt
   integer i
+
   if ( nlevel /= 1 ) then
      call bl_error("MGT_ALLOC: you've caught me at a bad time")
   end if
@@ -73,18 +81,24 @@ subroutine mgt_alloc(mgt, dm, nlevel)
         mgts(i)%han =  i
      end if
   end do
+
 end subroutine mgt_alloc
 
 subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: dm, mgt, lev, nb, lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm)
+  integer, intent(in) :: mgt, lev, nb, dm
+  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm)
+
   type(box) :: bxs(nb)
   type(boxarray) :: ba
   integer   :: i
   integer   :: nc
+  logical   :: pmask(dm)
 
   call mgt_verify(mgt, "MGT_SET_LEVEL")
+
+  pmask = dm
 
   if ( dm /= mgts(mgt)%dim ) then
      call bl_error("MGT_SET_LEVEL: Input DIM doesn't match internal DIM")
@@ -94,22 +108,24 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc)
      bxs(i) = make_box(lo(i,:), hi(i,:))
   end do
   call build(ba, bxs)
-  call build(mgts(mgt)%lay, ba)
+  call build(mgts(mgt)%lay, ba, pd = mgts(mgt)%pd, pmask = pmask)
   allocate(mgts(mgt)%bc(dm,2))
   do i = 1, dm
      mgts(mgt)%bc = transpose(bc)
   end do
 
   nc = 1
-  call build(mgts(mgt)%uu, mgts(mgt)%lay, nc, 1)
-  call build(mgts(mgt)%rh, mgts(mgt)%lay, nc, 0)
+  call build(mgts(mgt)%uu, mgts(mgt)%lay, nc, ng = 1)
+  call build(mgts(mgt)%rh, mgts(mgt)%lay, nc, ng = 0)
   call destroy(ba)
+
 end subroutine mgt_set_level
 
 subroutine mgt_finalize(mgt)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt
+
   call mgt_verify(mgt, "MGT_FINALIZE")
   call mg_tower_build(mgts(mgt)%mgt, mgts(mgt)%lay, mgts(mgt)%pd, mgts(mgt)%bc)
   mgts(mgt)%final = .true.
@@ -140,7 +156,7 @@ subroutine mgt_get_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   call mgt_verify_n(mgt, "MGT_GET_RH", n, lo, hi)
 
   rp => dataptr(mgts(mgt)%rh, n)
-  rh(lo(1):hi(1), lo(2):hi(2)) =   rp(lo(1):hi(1), lo(2):hi(2),1,1)
+  rh(lo(1):hi(1), lo(2):hi(2)) = rp(lo(1):hi(1), lo(2):hi(2),1,1)
 
 end subroutine mgt_get_rh_2d
 
@@ -180,12 +196,13 @@ subroutine mgt_dealloc(mgt)
   call mgt_verify(mgt, "MGT_DEALLOC")
 
   call mg_tower_destroy(mgts(mgt)%mgt)
-  call layout_destroy(mgts(mgt)%lay)
   call destroy(mgts(mgt)%rh)
   call destroy(mgts(mgt)%uu)
+  call destroy(mgts(mgt)%lay)
   mgts(mgt)%han = -1
   mgts(mgt)%dim = 0
   mgt = -1
+
 end subroutine mgt_dealloc
 
 subroutine mgt_solve(mgt)
@@ -206,16 +223,20 @@ subroutine mgt_set_nu1(mgt, nu1)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, nu1
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%nu1 = nu1
+
 end subroutine mgt_set_nu1
 
 subroutine mgt_set_nu2(mgt, nu2)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, nu2
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%nu2 = nu2
+
 end subroutine mgt_set_nu2
 
 subroutine mgt_set_eps(mgt, eps)
@@ -223,8 +244,10 @@ subroutine mgt_set_eps(mgt, eps)
   implicit none
   integer, intent(in) :: mgt
   real(kind=dp_t), intent(in) :: eps
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%eps = eps
+
 end subroutine mgt_set_eps
 
 subroutine mgt_set_bottom_solver(mgt, bottom_solver)
@@ -232,8 +255,10 @@ subroutine mgt_set_bottom_solver(mgt, bottom_solver)
   implicit none
   integer, intent(in) :: mgt
   integer, intent(in) :: bottom_solver
+
   call mgt_not_final(mgt, "MGT_SET_NU1") 
   mgts(mgt)%mgt%bottom_solver = bottom_solver
+
 end subroutine mgt_set_bottom_solver
 
 subroutine mgt_set_bottom_max_iter(mgt, bottom_max_iter)
@@ -241,8 +266,10 @@ subroutine mgt_set_bottom_max_iter(mgt, bottom_max_iter)
   implicit none
   integer, intent(in) :: mgt
   integer, intent(in) :: bottom_max_iter
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%bottom_max_iter = bottom_max_iter
+
 end subroutine mgt_set_bottom_max_iter
 
 subroutine mgt_set_bottom_solver_eps(mgt, bottom_solver_eps)
@@ -250,8 +277,10 @@ subroutine mgt_set_bottom_solver_eps(mgt, bottom_solver_eps)
   implicit none
   integer, intent(in) :: mgt
   real(kind=dp_t), intent(in) :: bottom_solver_eps
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%bottom_solver_eps = bottom_solver_eps
+
 end subroutine mgt_set_bottom_solver_eps
 
 subroutine mgt_set_max_nlevel(mgt, max_nlevel)
@@ -259,8 +288,10 @@ subroutine mgt_set_max_nlevel(mgt, max_nlevel)
   implicit none
   integer, intent(in) :: mgt
   integer, intent(in) :: max_nlevel
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%max_nlevel = max_nlevel
+
 end subroutine mgt_set_max_nlevel
 
 subroutine mgt_set_min_width(mgt, min_width)
@@ -268,6 +299,8 @@ subroutine mgt_set_min_width(mgt, min_width)
   implicit none
   integer, intent(in) :: mgt
   integer, intent(in) :: min_width
+
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%min_width = min_width
+
 end subroutine mgt_set_min_width
