@@ -234,7 +234,7 @@ subroutine mgt_set_nu2(mgt, nu2)
   implicit none
   integer, intent(in) :: mgt, nu2
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_NU2")
   mgts(mgt)%mgt%nu2 = nu2
 
 end subroutine mgt_set_nu2
@@ -245,7 +245,7 @@ subroutine mgt_set_eps(mgt, eps)
   integer, intent(in) :: mgt
   real(kind=dp_t), intent(in) :: eps
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_EPS")
   mgts(mgt)%mgt%eps = eps
 
 end subroutine mgt_set_eps
@@ -256,7 +256,7 @@ subroutine mgt_set_bottom_solver(mgt, bottom_solver)
   integer, intent(in) :: mgt
   integer, intent(in) :: bottom_solver
 
-  call mgt_not_final(mgt, "MGT_SET_NU1") 
+  call mgt_not_final(mgt, "MGT_SET_BOTTOM_SOLVER") 
   mgts(mgt)%mgt%bottom_solver = bottom_solver
 
 end subroutine mgt_set_bottom_solver
@@ -267,7 +267,7 @@ subroutine mgt_set_bottom_max_iter(mgt, bottom_max_iter)
   integer, intent(in) :: mgt
   integer, intent(in) :: bottom_max_iter
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_BOTTOM_MAX_ITER")
   mgts(mgt)%mgt%bottom_max_iter = bottom_max_iter
 
 end subroutine mgt_set_bottom_max_iter
@@ -278,7 +278,7 @@ subroutine mgt_set_bottom_solver_eps(mgt, bottom_solver_eps)
   integer, intent(in) :: mgt
   real(kind=dp_t), intent(in) :: bottom_solver_eps
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_BOTTOM_SOLVER_EPS")
   mgts(mgt)%mgt%bottom_solver_eps = bottom_solver_eps
 
 end subroutine mgt_set_bottom_solver_eps
@@ -289,7 +289,7 @@ subroutine mgt_set_max_nlevel(mgt, max_nlevel)
   integer, intent(in) :: mgt
   integer, intent(in) :: max_nlevel
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_MAX_NLEVEL")
   mgts(mgt)%mgt%max_nlevel = max_nlevel
 
 end subroutine mgt_set_max_nlevel
@@ -300,7 +300,7 @@ subroutine mgt_set_min_width(mgt, min_width)
   integer, intent(in) :: mgt
   integer, intent(in) :: min_width
 
-  call mgt_not_final(mgt, "MGT_SET_NU1")
+  call mgt_not_final(mgt, "MGT_SET_MIN_WIDTH")
   mgts(mgt)%mgt%min_width = min_width
 
 end subroutine mgt_set_min_width
