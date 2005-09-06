@@ -84,11 +84,11 @@ subroutine mgt_alloc(mgt, dm, nlevel)
 
 end subroutine mgt_alloc
 
-subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc)
+subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, nb, dm
-  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm)
+  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm), pm(dm)
 
   type(box) :: bxs(nb)
   type(boxarray) :: ba
@@ -98,7 +98,7 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc)
 
   call mgt_verify(mgt, "MGT_SET_LEVEL")
 
-  pmask = dm
+  pmask = (pm /= 0)
 
   if ( dm /= mgts(mgt)%dim ) then
      call bl_error("MGT_SET_LEVEL: Input DIM doesn't match internal DIM")

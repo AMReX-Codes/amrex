@@ -1,6 +1,9 @@
 # FParallelMG.mak
 # use this access fParallel's fortran solvers in Parallel/BoxLib code
 # See iamrlib/run2d/GNUmakefile for an example
+# Note: that you can not do a parallel make if you are using these files
+# since the dependencies for the object/module files can not be infered
+# from the names or ordering of thes files
 #
 # ------------- in your GNUmakefile --------------
 # 
@@ -40,6 +43,7 @@ f90EXE_sources += BoxLib.f90
 f90EXE_sources += knapsack.f90
 #f90EXE_sources += interp.f90
 f90EXE_sources += bl_string.f90
+#f90EXE_sources += bl_parmparse.f90
 f90EXE_sources += bl_timer.f90
 f90EXE_sources += bl_stream.f90
 f90EXE_sources += bl_mem_stat.f90
