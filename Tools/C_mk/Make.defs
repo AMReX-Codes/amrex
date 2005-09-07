@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.83 2005-06-14 16:22:54 car Exp $
+# Make.defs $Id: Make.defs,v 1.84 2005-09-07 19:01:45 car Exp $
 #
 
 #
@@ -164,36 +164,10 @@ FORTPREP  	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
 # a placeholder in case we have to write something later
 F90PREP  	= cat
 MKDEP		= perl $(PBOXLIB_HOME)/scripts/mkdep
-INSTALL		= sh   $(PBOXLIB_HOME)/scripts/install-sh -c
-#
-# SunOS ranlib has a problem if the library is installed 444 :-(
-#
-ifeq ($(MACHINE), SunOS)
-INSTALL_DATA 	= $(INSTALL) -m 0644
-else
-INSTALL_DATA 	= $(INSTALL) -m 0444
-endif
-#
-# We assume that INSTALL_ROOT is either set on the command line,
-# set in the environment, or set by a controlling GNUmakefile.
-# It is where the stuff is to be installed. For the guthamr stuff
-# proper, we set this to GUTHAMR_HOME.  If this isn't set,
-# we set it to where guthamr was installed.
-#
-ifndef INSTALL_ROOT
-    INSTALL_ROOT = $(GUTHAMR_HOME)
-endif
-
-ifndef INSTALL_PREFIX
-    INSTALL_PREFIX = $(INSTALL_ROOT)
-endif
-
-RANLIB = true
+MODDEP		= perl $(PBOXLIB_HOME)/scripts/moddep.pl
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
-LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
-FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using g++ ...
 #
@@ -257,8 +231,8 @@ ifeq ($(FCOMP),gfortran)
     fDEBF += -g
 endif
 ifeq ($(FCOMP),g95)
-    FC := g95 -fno-second-underscore
-    fC := g95 -fno-second-underscore
+    FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
+    fC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O -g
@@ -277,10 +251,10 @@ ifeq ($(COMP),Intel)
    endif
    CXXOPTF += -g
    CXXOPTF += -O3
+#  CXXOPTF += -parallel
    CXXDEBF += -g
-   ifeq ($(COMP),Intel)
-     CXXOPTF += -ip
-   endif
+   CXXOPTF += -ip
+#  CXXOPTF += -ipo
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
        ICC_VERSION := 5.0.1
@@ -351,8 +325,14 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -g
    FOPTF += -O3
    fOPTF += -O3
+#  FOPTF += -parallel
+#  fOPTF += -parallel
+   FOPTF += -O3
+   fOPTF += -O3
    FOPTF += -ip
    fOPTF += -ip
+#  FOPTF += -ipo
+#  fOPTF += -ipo
    __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
        IFC_VERSION := 5.0.1
@@ -404,12 +384,12 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    ifneq ($(DIM),3)
-     FDEBF += -CB -CU
-     fDEBF += -CB -CU
+     FDEBF += -CB
+     fDEBF += -CB
    endif
    ifneq ($(IFC_MAJOR_VERSION),7)
-     _ifc := ifort
-     override XTRALIBS += -lifcore 
+     _ifc = ifort
+     override XTRALIBS += -lifcore -lguide
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
      ifneq ($(DIM),3)
@@ -420,18 +400,11 @@ ifeq ($(FCOMP),Intel)
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
    endif
-   _ifc += -mp
+   _ifc += -mp -module $(fmoddir)
     FC = $(_ifc)
     fC = $(_ifc)
 endif
-#
-# Generic setup for using cfront ...
-#
-ifeq ($(COMP),CFRONT)
-    CLOSELIB    := TRUE
-    ptRepDir	 = $(objTempDir)/ptrepository
-    CXXLIBFLAGS += -ptr$(ptRepDir)
-endif
+
 #
 # We can do library closure with KCC 3.x.
 #
@@ -451,46 +424,39 @@ ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
     KCC_VERSION:=3.1
     KCC_MAJOR_VERSION:=3
     KCC_MINOR_VERSION:=1
-    CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.2, $(__kcc_version)), KAI C++ 3.2)
     KCC_VERSION:=3.2
     KCC_MINOR_VERSION:=2
-    CLOSELIB := TRUE
 endif
 ifeq ($(findstring KAI C++ 3.3, $(__kcc_version)), KAI C++ 3.3)
     KCC_VERSION:=3.3
     KCC_MAJOR_VERSION:=3
     KCC_MINOR_VERSION:=3
-    CLOSELIB := TRUE
     CXXLIBFLAGS = --one_per
 endif
 ifeq ($(findstring KAI C++ 3.4, $(__kcc_version)), KAI C++ 3.4)
     KCC_VERSION:=3.4
     KCC_MAJOR_VERSION:=3
     KCC_MINOR_VERSION:=4
-    CLOSELIB := TRUE
     CXXLIBFLAGS = --one_per
 endif
 ifeq ($(findstring C++ 3.9, $(__kcc_version)), C++ 3.9)
     KCC_VERSION:=3.9
     KCC_MINOR_VERSION:=9
     KCC_MAJOR_VERSION:=3
-    CLOSELIB:=TRUE
     CXXLIBFLAGS = --one_per
 endif
 ifeq ($(findstring KAI C++ 4.0, $(__kcc_version)), KAI C++ 4.0)
     KCC_VERSION:=4.0
     KCC_MINOR_VERSION:=0
     KCC_MAJOR_VERSION=4
-    CLOSELIB := TRUE
     CXXLIBFLAGS = --one_per
 endif
 ifeq ($(findstring C++ 4.0, $(__kcc_version)), C++ 4.0)
     KCC_VERSION:=4.0
     KCC_MINOR_VERSION:=0
     KCC_MAJOR_VERSION:=4
-    CLOSELIB:=TRUE
     CXXLIBFLAGS = --one_per
 endif
 
@@ -585,13 +551,6 @@ F77SourceFiles	=
 F90SourceFiles	=
 f77SourceFiles	=
 
-objForLibs	=	$(CLIB_sources:%.cpp=%.o)			\
-			$(FLIB_sources:%.F=%.o)				\
-			$(F90LIB_sources:%.F90=%.o)			\
-			$(cLIB_sources:%.c=%.o)				\
-			$(fLIB_sources:%.f=%.o)				\
-			$(f90LIB_sources:%.f90=%.o)			\
-
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(FEXE_sources:%.F=%.o)				\
 			$(F90EXE_sources:%.F90=%.o)			\
@@ -601,7 +560,6 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
-instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers) $(f90LIB_headers)
 
 INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL) $(GNU_STD_INCL)
 LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
@@ -620,6 +578,7 @@ endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
+fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES) $(includes)
 
@@ -630,17 +589,6 @@ LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
-optionsLib	= $(addprefix lib,					\
-			$(addsuffix $(optionsSuffix).a, $(LBASE)))
-
-instIncludeDir	= $(INSTALL_PREFIX)/include
-instLibDir	= $(INSTALL_PREFIX)/lib/$(machineSuffix)
-instBinDir	= $(INSTALL_PREFIX)/bin/$(machineSuffix)
-instScriptDir	= $(INSTALL_PREFIX)/bin
-instHtmlDir	= $(INSTALL_PREFIX)/html
-instInfoDir	= $(INSTALL_PREFIX)/info
-instMkDir	= $(INSTALL_PREFIX)/mk
-
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 depTempDir	= d/$(optionsSuffix)
@@ -649,28 +597,23 @@ objTempDir	= o/$(optionsSuffix)
 objEXETempDir   = o/$(optionsSuffix).EXE
 f77TempDir	= f/$(optionsSuffix)
 
-instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
 #
 # For source code mainipulation
 #
 CSRCALL		= $(CEXE_sources) $(CEXE_headers)			\
-		  $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
-FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) 	\
-                  $(FLIB_headers)
-F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers) $(F90LIB_sources) \
-                  $(F90LIB_headers)
-cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) 	\
-                  $(cLIB_headers)
-fSRCALL		= $(fEXE_sources) $(fEXE_headers) $(fLIB_sources) 	\
-                  $(fLIB_headers)
-f90SRCALL	= $(f90EXE_sources) $(f90EXE_headers) $(f90LIB_sources) \
-                  $(f90LIB_headers)
+		  $(T_sources) $(T_headers)
+FSRCALL		= $(FEXE_sources) $(FEXE_headers)
+
+F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers)
+
+cSRCALL		= $(cEXE_sources) $(cEXE_headers)
+
+fSRCALL		= $(fEXE_sources) $(fEXE_headers)
+
+f90SRCALL	= $(f90EXE_sources) $(f90EXE_headers)
+
 allSources	= $(CSRCALL) $(FSRCALL) $(F90SRCALL) $(cSRCALL) $(fSRCALL) $(f90SRCALL)
 
-
-ifndef CLOSELIB
-    CLOSELIB   := FALSE
-endif
 
 ifdef WARNINGS
     CXX += $(FULLWARN)
