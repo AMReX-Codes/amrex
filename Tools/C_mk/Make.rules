@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.27 2005-09-07 19:01:45 car Exp $
+# $Id: Make.rules,v 1.28 2005-09-07 19:22:31 car Exp $
 #
 
 clean::
@@ -111,6 +111,30 @@ $(depEXETempDir)/%.d: %.f
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(fEXE_sources) 
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	$(MODDEP) --odir $(objEXETempDir) $^ > $(depEXETempDir)/f90.depends 
+
+########################################################################
+#
+# Create MS-IDE dsp file to build this project
+
+ifeq ($(DEBUG), TRUE)
+  DspFileRoot := $(EBASE)$(DIM)d.DEBUG
+  DspOlevel := 0
+else
+  DspOlevel := 1
+  DspFileRoot = $(EBASE)$(DIM)d
+endif
+
+dsp: $(DspFileRoot).dsp
+.dspDepends:    $(FEXE_sources) $(FEXE_headers) $(fEXE_sources)      \
+		$(CEXE_headers) $(CEXE_sources) $(INCLUDE_LOCATIONS)
+	@echo $^ > .dspDepends
+
+$(DspFileRoot).dsp: .dspDepends
+	@(echo Building DSP file = $(DspFileRoot).dsp; \
+	$(TOP)/scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) \
+		-o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
+
+.PHONY: dsp
 
 #
 # Now load/build the dependency files.
