@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.27 2005-09-07 21:11:47 jbb Exp $
+c $Id: INTERP_2D.F,v 1.28 2005-09-07 21:13:00 jbb Exp $
 c
 
 #undef  BL_LANG_CC
@@ -583,12 +583,12 @@ c
                      orig_corr_fact = voffx(i)*lc_xslope(ic,jc,n)
      &                    + voffy(j)*lc_yslope(ic,jc,n) 
                      dummy_fine = crse(ic,jc,n) + orig_corr_fact
-                     if (dummy_fine .gt. cmax(ic,jc,n)) .and.
+                     if ( (dummy_fine .gt. cmax(ic,jc,n)) .and.
      $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,n)))) then
                         corr_fact = (cmax(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                      endif
-                     if (dummy_fine .lt. cmin(ic,jc,n)) .and.
+                     if ( (dummy_fine .lt. cmin(ic,jc,n)) .and.
      $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,n)))) then
                         corr_fact = (cmin(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
