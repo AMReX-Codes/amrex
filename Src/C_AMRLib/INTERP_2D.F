@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.26 2004-08-16 22:40:50 marc Exp $
+c $Id: INTERP_2D.F,v 1.27 2005-09-07 21:11:47 jbb Exp $
 c
 
 #undef  BL_LANG_CC
@@ -323,23 +323,30 @@ c :::
        REAL_T factorn, denom, slope_factor, dummy
        REAL_T fxcen, cxcen, fycen, cycen
        REAL_T orig_corr_fact,corr_fact
+       REAL_T dummy_fine
        logical xok, yok
        integer ncbx, ncby
        integer ioff,joff
+       integer voff_lo(2),voff_hi(2)
 
        ncbx = cslopehi(1)-cslopelo(1)+1
        ncby = cslopehi(2)-cslopelo(2)+1
 
+       voff_lo(1) = cslopelo(1) * lratiox
+       voff_lo(2) = cslopelo(2) * lratioy
+       voff_hi(1) = (cslopehi(1)+1) * lratiox - 1
+       voff_hi(2) = (cslopehi(2)+1) * lratioy - 1
+
        xok = (ncbx .ge. 2)
        yok = (ncby .ge. 2)
 
-       do j = fblo(2), fbhi(2)
+       do j = voff_lo(2),voff_hi(2)
          jc = IX_PROJ(j,lratioy)
          fycen = half*(fvcy(j)+fvcy(j+1))
          cycen = half*(cvcy(jc)+cvcy(jc+1))
          voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
        end do
-       do i = fblo(1), fbhi(1)
+       do i = voff_lo(1),voff_hi(1)
           ic = IX_PROJ(i,lratiox)
           fxcen = half*(fvcx(i)+fvcx(i+1))
           cxcen = half*(cvcx(ic)+cvcx(ic+1))
@@ -567,21 +574,21 @@ c          Limit slopes so as to not introduce new maxs or mins.
 c
 
             do n = 1, nvar
-               do j = fblo(2),fbhi(2)
+               do j = voff_lo(2),voff_hi(2)
                   jc = IX_PROJ(j,lratioy)
 
-                  do i = fblo(1),fbhi(1)
+                  do i = voff_lo(1),voff_hi(1)
                      ic = IX_PROJ(i,lratiox)
 
                      orig_corr_fact = voffx(i)*lc_xslope(ic,jc,n)
      &                    + voffy(j)*lc_yslope(ic,jc,n) 
-                     fine(i,j,n) = crse(ic,jc,n) + orig_corr_fact
-                     if ((fine(i,j,n) .gt. cmax(ic,jc,n)) .and.
+                     dummy_fine = crse(ic,jc,n) + orig_corr_fact
+                     if (dummy_fine .gt. cmax(ic,jc,n)) .and.
      $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,n)))) then
                         corr_fact = (cmax(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                      endif
-                     if ((fine(i,j,n) .lt. cmin(ic,jc,n)) .and.
+                     if (dummy_fine .lt. cmin(ic,jc,n)) .and.
      $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,n)))) then
                         corr_fact = (cmin(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)

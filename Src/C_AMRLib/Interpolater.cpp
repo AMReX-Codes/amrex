@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.32 2004-01-07 21:18:55 car Exp $
+// $Id: Interpolater.cpp,v 1.33 2005-09-07 21:11:47 jbb Exp $
 //
 #include <winstd.H>
 
@@ -262,6 +262,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Box cslope_bx(crse_bx);
     cslope_bx.grow(-1);
     //
+    // Make a refinement of cslope_bx
+    //
+    Box fine_version_of_cslope_bx = BoxLib::refine(cslope_bx,ratio);
+    //
     // Get coarse and fine edge-centered volume coordinates.
     //
     Array<Real> fvc[BL_SPACEDIM];
@@ -269,7 +273,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     int dir;
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
+        fine_geom.GetEdgeVolCoord(fvc[dir],fine_version_of_cslope_bx,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
     //
@@ -312,7 +316,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     const int* csblo  = cslope_bx.loVect();
     int lin_limit     = (do_linear_limiting ? 1 : 0);
     const int* cvcblo = crse_bx.loVect();
-    const int* fvcblo = target_fine_region.loVect();
+    const int* fvcblo = fine_version_of_cslope_bx.loVect();
     int slope_flag    = 1;
 
     int cvcbhi[BL_SPACEDIM];
@@ -602,6 +606,10 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     Box cslope_bx(crse_bx);
     cslope_bx.grow(-1);
     //
+    // Make a refinement of cslope_bx
+    //
+    Box fine_version_of_cslope_bx = BoxLib::refine(cslope_bx,ratio);
+    //
     // Get coarse and fine edge-centered volume coordinates.
     //
     Array<Real> fvc[BL_SPACEDIM];
@@ -609,7 +617,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     int dir;
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
+        fine_geom.GetEdgeVolCoord(fvc[dir],fine_version_of_cslope_bx,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
     //
@@ -652,7 +660,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     const int* csblo  = cslope_bx.loVect();
     int lin_limit     = 1;
     const int* cvcblo = crse_bx.loVect();
-    const int* fvcblo = target_fine_region.loVect();
+    const int* fvcblo = fine_version_of_cslope_bx.loVect();
 
     int cvcbhi[BL_SPACEDIM];
     int fvcbhi[BL_SPACEDIM];

@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.29 2004-08-16 22:40:50 marc Exp $
+c $Id: INTERP_3D.F,v 1.30 2005-09-07 21:11:47 jbb Exp $
 c
 
 #undef  BL_LANG_CC
@@ -336,9 +336,12 @@ c :::
       REAL_T factorn, denom
       REAL_T fxcen, cxcen, fycen, cycen, fzcen, czcen
       REAL_T corr_fact,orig_corr_fact
+      REAL_T dummy_fine
       logical xok, yok, zok
       integer ncbx, ncby, ncbz
       integer ioff,joff,koff
+
+      integer voff_lo(3), voff_hi(3)
 
       ncbx = cslopehi(1)-cslopelo(1)+1
       ncby = cslopehi(2)-cslopelo(2)+1
@@ -347,19 +350,26 @@ c :::
       yok = (ncby .ge. 2)
       zok = (ncbz .ge. 2)
 
-      do k = fblo(3), fbhi(3)
+      voff_lo(1) = cslopelo(1) * lratiox
+      voff_lo(2) = cslopelo(2) * lratioy
+      voff_lo(3) = cslopelo(3) * lratioz
+      voff_hi(1) = (cslopehi(1)+1) * lratiox - 1
+      voff_hi(2) = (cslopehi(2)+1) * lratioy - 1
+      voff_hi(3) = (cslopehi(3)+1) * lratioz - 1
+
+      do k = voff_lo(3),voff_hi(3)
         kc = IX_PROJ(k,lratioz)
         fzcen = half*(fvcz(k)+fvcz(k+1))
         czcen = half*(cvcz(kc)+cvcz(kc+1))
         voffz(k) = (fzcen-czcen)/(cvcz(kc+1)-cvcz(kc))
       end do
-      do j = fblo(2), fbhi(2)
+      do j = voff_lo(2),voff_hi(2)
         jc = IX_PROJ(j,lratioy)
         fycen = half*(fvcy(j)+fvcy(j+1))
         cycen = half*(cvcy(jc)+cvcy(jc+1))
         voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
       end do
-      do i = fblo(1), fbhi(1)
+      do i = voff_lo(1),voff_hi(1)
          ic = IX_PROJ(i,lratiox)
          fxcen = half*(fvcx(i)+fvcx(i+1))
          cxcen = half*(cvcx(ic)+cvcx(ic+1))
@@ -714,26 +724,28 @@ c         Limit slopes so as to not introduce new maxs or mins.
 c
             do n = 1,nvar
 
-               do k = fblo(3),fbhi(3)
+               do k = voff_lo(3),voff_hi(3)
                   kc = IX_PROJ(k,lratioz)
-                  do j = fblo(2),fbhi(2)
+                  do j = voff_lo(2),voff_hi(2)
                      jc = IX_PROJ(j,lratioy)
-                     do i = fblo(1),fbhi(1)
+                     do i = voff_lo(1),voff_hi(1)
                         ic = IX_PROJ(i,lratiox)
                         orig_corr_fact = voffx(i)*lc_xslope(ic,jc,kc,n)
      &                       + voffy(j)*lc_yslope(ic,jc,kc,n)
      &                       + voffz(k)*lc_zslope(ic,jc,kc,n)
-                        fine(i,j,k,n) = crse(ic,jc,kc,n) + orig_corr_fact
-                        if ((fine(i,j,k,n) .gt. cmax(ic,jc,kc,n)) .and.
+                        dummy_fine = crse(ic,jc,kc,n) + orig_corr_fact
+                        if ((dummy_fine .gt. cmax(ic,jc,kc,n)) .and.
      $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
                            corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                         endif
-                        if ((fine(i,j,k,n) .lt. cmin(ic,jc,kc,n)) .and.
+
+                        if ((dummy_fine .lt. cmin(ic,jc,kc,n)) .and.
      $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
                            corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                         endif
+
 #ifndef NDEBUG
                         if (alpha(ic,jc,kc,n) .lt. 0.d0) then
                            print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
