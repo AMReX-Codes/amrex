@@ -264,7 +264,7 @@ contains
     end do
   end subroutine ml_multifab_setval
 
-  pure function ml_multifab_ncomp(mmf) result(r)
+  function ml_multifab_ncomp(mmf) result(r)
     integer :: r
     type(ml_multifab), intent(in) :: mmf
     r = mmf%nc
