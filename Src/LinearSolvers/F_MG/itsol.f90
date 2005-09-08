@@ -136,6 +136,7 @@ contains
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm, den
+    real(dp_t) :: rho_hg, rho_orig
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
@@ -170,6 +171,8 @@ contains
     cnt = 0
     call itsol_defect(aa, rr, rh, uu, mm); cnt = cnt + 1
     call copy(rt, rr)
+    rho = dot(rt, rr)
+    rho_orig = rho
 
     Anorm = stencil_norm(aa)
     bnorm = norm_inf(rh)
@@ -250,7 +253,15 @@ contains
              write(unit=*, fmt='(i3,": Rnorm=",g15.8)') cnt, nrm
           end if
        end if
-       if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
+       if ( .true. .and. nodal_solve ) then
+          ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
+          call itsol_precon(aa, sh, rr, mm)
+          rho_hg = dot(rr, sh)
+          if ( (rho_hg < rho_orig*eps) .or. &
+              itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
+       else
+          if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
+       end if
        rho_1 = rho
     end do
 
@@ -370,11 +381,12 @@ contains
              write(unit=*, fmt='(i3,": Rnorm=",g15.8)') i, nrm
           end if
        end if
-       if ( .false. .and. nodal_solve ) then
-          ! HACK, ONLY NEED THIS TO MATCH THE HGPROJ STOPPING CRITERION
+       if ( .true. .and. nodal_solve ) then
+          ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, zz, rr, mm)
           rho_hg = dot(rr, zz)
-          if (rho_hg < rho_orig*eps) exit
+          if ( (rho_hg < rho_orig*eps) .or. &
+              itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        else
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        end if
