@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.84 2005-09-07 19:01:45 car Exp $
+# Make.defs $Id: Make.defs,v 1.85 2005-09-09 20:35:16 car Exp $
 #
 
 #
@@ -306,6 +306,14 @@ ifeq ($(COMP),Intel)
    endif
    endif
    endif
+   ifeq ($(ICC_MAJOR_VERSION),9)
+     CXXDEBF += -traceback 
+     CXXDEBF += -debug expr-source-pos 
+     CXXDEBF += -debug semantic-stepping -debug inline_debug_info
+     CXXDEBF += -debug inline_debug_info
+     CXXDEBF += -ftrapuv
+     # CXXDEBF += -debug variable-locations
+   endif
    CXX = $(_icpc)
    CC  = $(_icc)
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
@@ -383,19 +391,20 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    endif
-   ifneq ($(DIM),3)
-     FDEBF += -CB
-     fDEBF += -CB
-   endif
    ifneq ($(IFC_MAJOR_VERSION),7)
      _ifc = ifort
      override XTRALIBS += -lifcore -lguide
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
-     ifneq ($(DIM),3)
-       FDEBF += -CA
-       fDEBF += -CA
-     endif
+   endif
+   ifneq ($(IFC_MAJOR_VERSION), 9)
+     FDEBF += -CB
+     fDEBF += -CB
+   else
+     FDEBF += -check all -traceback -debug extended
+     fDEBF += -check all -traceback -debug extended
+     FDEBF += -ftrapuv
+     fDEBF += -ftrapuv
    endif
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
