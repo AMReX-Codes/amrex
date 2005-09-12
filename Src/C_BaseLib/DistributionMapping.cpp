@@ -29,7 +29,7 @@ static int    metis_opt                  = 0;
 static int    verbose                    = 1;
 static double max_efficiency             = .95;
 static bool   only_heaviest_cpu          = false;
-static bool   do_not_minimize_comm_costs = false;
+static bool   do_not_minimize_comm_costs = true;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
 //
