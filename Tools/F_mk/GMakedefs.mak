@@ -32,6 +32,9 @@ sources     =
 fsources    =
 f90sources  =
 csources    =
+libraries   =
+xtr_libraries =
+mpi_libraries =
 
 
 CPPFLAGS += -DBL_$(ARCH)
@@ -53,8 +56,8 @@ ifeq ($(COMP),g95)
   FC := g95
   F90 := g95
   CC := gcc
-  F90FLAGS += -std=f95 -fintrinsic-extensions=iargc,getarg
-  FFLAGS   += -std=f95 -fintrinsic-extensions=iargc,getarg  
+# F90FLAGS += -std=f95 -fintrinsic-extensions=iargc,getarg
+# FFLAGS   += -std=f95 -fintrinsic-extensions=iargc,getarg  
   F90FLAGS += -fmod=$(mdir) -I $(mdir)
   FFLAGS   += -fmod=$(mdir) -I $(mdir)
 # F90FLAGS += -Wall 
@@ -80,6 +83,9 @@ ifeq ($(COMP),g95)
   endif
   ifdef mpi_lib
     fld_flags += -L $(mpi_lib)
+  endif
+  ifeq ($(ARCH),Darwin)
+    xtr_libraries += -lSystemStubs
   endif
 endif
 
@@ -525,7 +531,7 @@ F90DOC  :=  $(FPARALLEL)/scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags) $(f_includes)
 LDFLAGS  += $(fld_flags)
-libraries += $(mpi_libraries)
+libraries += $(mpi_libraries) $(xtr_libraries)
 
 CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
