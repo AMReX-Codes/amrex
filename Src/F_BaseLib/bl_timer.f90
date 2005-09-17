@@ -90,10 +90,11 @@ contains
   end subroutine timer_stop
 
   ! This is dangerous since it forces a reduction!
-  function timer_value(tm, total) result(r)
+  function timer_value(tm, total, proc) result(r)
     real(kind=dp_t) :: r
     type(timer), intent(in) :: tm
     logical, intent(in), optional :: total
+    integer, intent(in), optional :: proc
     logical :: ltotal
     real(kind=dp_t) :: r1
     ltotal = .FALSE.; if ( present(total) ) ltotal = total
@@ -104,7 +105,7 @@ contains
     else
        r1 = tm%time
     end if
-    call parallel_reduce(r, r1, MPI_MAX)
+    call parallel_reduce(r, r1, MPI_MAX, proc = proc)
     r = r1*MIL_SEC
   end function timer_value
 
@@ -129,7 +130,7 @@ contains
     !!            1
     !!<            2345
     
-    r = timer_value(tm, total)
+    r = timer_value(tm, total, proc = parallel_ioprocessornode())
     if ( parallel_IOProcessor() ) then
        un = unit_stdout(unit)
        adv = unit_advance(advance)
