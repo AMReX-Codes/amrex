@@ -9,7 +9,7 @@ program main
 ! call t_plotfile
 ! call t_ba
 ! call t_bx
-  call t_cluster
+! call t_cluster
 ! call t_mf_fabio
 ! call t_mf
 ! call t_fabio
@@ -24,6 +24,7 @@ program main
 ! call t_timer
 ! call t_knap
 ! call t_ml_mf_read()
+  call t_bl_prof()
 
   call boxlib_finalize()
 
