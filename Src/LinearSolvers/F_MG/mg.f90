@@ -272,29 +272,61 @@ contains
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
     if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
 
-    if ( .false. ) then
-       if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-          write(unit=*, fmt=*) 'MG Solver'
-          write(unit=*, fmt=*) 'nlevels           = ', mgt%nlevels
-          write(unit=*, fmt=*) 'ng                = ', mgt%ng
-          write(unit=*, fmt=*) 'nc                = ', mgt%nc
-          write(unit=*, fmt=*) 'min_width         = ', mgt%min_width
-          write(unit=*, fmt=*) 'max_nlevel        = ', mgt%max_nlevel
-          write(unit=*, fmt=*) 'max_iter          = ', mgt%max_iter
-          write(unit=*, fmt=*) 'eps               = ', mgt%eps
-          write(unit=*, fmt=*) 'solver            = ', mgt%solver
-          write(unit=*, fmt=*) 'smoother          = ', mgt%smoother
-          write(unit=*, fmt=*) 'nu1               = ', mgt%nu1
-          write(unit=*, fmt=*) 'nu2               = ', mgt%nu2
-          write(unit=*, fmt=*) 'gamma             = ', mgt%gamma
-          write(unit=*, fmt=*) 'omega             = ', mgt%omega
-          write(unit=*, fmt=*) 'cycle             = ', mgt%cycle
-          write(unit=*, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
-          write(unit=*, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
-          write(unit=*, fmt=*) 'bottom_max_iter   = ', mgt%bottom_max_iter
-       end if
-    end if
   end subroutine mg_tower_build
+
+  subroutine mg_tower_print(mgt, str, unit, skip)
+    use bl_IO_module
+    type(mg_tower), intent(in) :: mgt
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    integer, intent(in), optional :: skip
+    integer :: un
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt = '("MG_TOWER[(*")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(" ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'nlevels           = ', mgt%nlevels
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'ng                = ', mgt%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'nc                = ', mgt%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'min_width         = ', mgt%min_width
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'max_nlevel        = ', mgt%max_nlevel
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'max_iter          = ', mgt%max_iter
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'eps               = ', mgt%eps
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'solver            = ', mgt%solver
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'nu1               = ', mgt%nu1
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'nu2               = ', mgt%nu2
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'omega             = ', mgt%omega
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
+    call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'bottom_max_iter   = ', mgt%bottom_max_iter
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" *)]")')
+
+  end subroutine mg_tower_print
 
   subroutine mg_tower_destroy(mgt)
     type(mg_tower), intent(inout) :: mgt
