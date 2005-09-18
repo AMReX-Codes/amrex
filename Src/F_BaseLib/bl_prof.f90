@@ -1,6 +1,7 @@
 module bl_prof_module
 
   use bl_error_module
+  use bl_timer_module
 
   implicit none
 
@@ -8,9 +9,11 @@ module bl_prof_module
   !! timers
   integer, parameter, private :: BL_PROF_MAX_NAME_LENGTH = 64
   integer, parameter, private :: BL_PROF_NOT_REG = 0
-  type bl_prof_reg
+  type, private :: bl_prof_reg
      integer :: reg = BL_PROF_NOT_REG
      character(len=BL_PROF_MAX_NAME_LENGTH) :: name = ''
+     type(bl_prof_timer), pointer :: bpt => Null()
+     logical :: managed = .false.
   end type bl_prof_reg
 
   !! This is the object that lives in user space
@@ -18,53 +21,47 @@ module bl_prof_module
      integer :: reg = BL_PROF_NOT_REG
   end type bl_prof_timer
 
-  type bl_prof_timer_record
+  type, private :: activation_n
      integer :: reg = BL_PROF_NOT_REG
-     type(bl_prof_timer_record), pointer :: next => Null()
-  end type bl_prof_timer_record
+     type(timer) :: rec
+     logical :: running = .false.
+     type(activation_n), pointer :: children(:) => Null()
+  end type activation_n
 
-  type bl_prof_stack_n
-     type(bl_prof_timer_record), pointer :: rec_p => Null()
-     type(bl_prof_stack_n), pointer :: next => Null()
-  end type bl_prof_stack_n
-
-  type bl_prof_stack
-     type(bl_prof_stack_n), pointer :: head => Null()
-  end type bl_prof_stack
-
-  interface pop
-     module procedure bl_prof_stack_pop
-  end interface
-
-  interface push
-     module procedure bl_prof_stack_push
-  end interface
-
-  interface front
-     module procedure bl_prof_stack_front
-  end interface
+  type, private :: stack_n
+     type(activation_n), pointer :: a_p
+  end type stack_n
 
   interface build
      module procedure bl_prof_timer_build
-  end interface
-
-  interface start
-     module procedure bl_prof_timer_start
   end interface
 
   interface stop
      module procedure bl_prof_timer_stop
   end interface
 
-  integer, parameter, private :: BL_PROF_MAX_TIMERS = 1024
-  type(bl_prof_reg), private, save :: timers(BL_PROF_MAX_TIMERS)
+  interface start
+     module procedure bl_prof_timer_start
+  end interface
+
+  interface destroy
+     module procedure bl_prof_timer_destroy
+  end interface
+
+  type(bl_prof_reg), private, save, pointer :: timers(:)
 
   !! By default, we don't profile should be relatively low-overhead if
   !! used judiciously
   logical, private, save :: bpt_on = .false.
 
-  type(bl_prof_stack_n), target, private, save :: base_node
-  type(bl_prof_stack), private, save :: the_stack
+  type(stack_n), private, save, pointer :: the_stack(:) => Null()
+  integer, private :: stk_p = 0
+
+  type(activation_n), private, save, target :: the_call_tree
+
+  private f_activation
+  private p_activation
+  private t_activation
 
 contains
 
@@ -81,81 +78,144 @@ contains
   subroutine bl_prof_initialize(on)
     logical, intent(in), optional :: on
     if ( present(on) ) call bl_prof_set_state(on)
-    the_stack%head => base_node
+    if ( associated(timers) .or. associated(the_stack) ) then
+       call bl_error("BL_PROF_INITIALIZE: must be called once only")
+    end if
+    !! Hand initialize the data structures
+    allocate(timers(1))
+    timers(1)%reg = 1
+    timers(1)%name = "boxlib"
+    allocate(the_stack(1))
+    stk_p = 1
+    allocate(the_call_tree%children(0))
+    the_stack(1)%a_p => the_call_tree
+    the_stack(1)%a_p%reg = 1
+    call timer_start(the_stack(1)%a_p%rec)
+    the_stack(1)%a_p%running = .true.
   end subroutine bl_prof_initialize
+
+  recursive subroutine f_activation(a)
+    type(activation_n), intent(inout) :: a
+    integer i
+    do i = 1, size(a%children)
+       call f_activation(a%children(i))
+    end do
+    deallocate(a%children)
+  end subroutine f_activation
 
   subroutine bl_prof_finalize
     !! will be used to tear down the execution stack
+    integer i
+    if ( stk_p /= 1 ) then
+       call bl_error("BL_PROF_FINALIZE: stk_p :", stk_p)
+    end if
+    do i = 1, size(timers)
+       if ( timers(i)%managed ) then
+          deallocate(timers(i)%bpt)
+       end if
+    end do
+    deallocate(timers)
+    call f_activation(the_call_tree)
+    deallocate(the_stack)
   end subroutine bl_prof_finalize
-
-  subroutine bl_prof_stack_pop(bps)
-    type(bl_prof_stack), intent(in) :: bps
-  end subroutine bl_prof_stack_pop
-
-  subroutine bl_prof_stack_push(bps)
-    type(bl_prof_stack), intent(in) :: bps
-  end subroutine bl_prof_stack_push
-
-  function bl_prof_stack_front(bps) result(r)
-    type(bl_prof_timer_record) :: r
-    type(bl_prof_stack), intent(in) :: bps
-  end function bl_prof_stack_front
 
   subroutine bl_prof_timer_init
   end subroutine bl_prof_timer_init
 
-  subroutine bl_prof_timer_build(bpt, name)
-    type(bl_prof_timer), intent(inout) :: bpt
+  subroutine bl_prof_timer_build(bpt, name, no_start)
+    type(bl_prof_timer), intent(inout), target :: bpt
     character(len=*), intent(in) :: name
+    logical, intent(in), optional :: no_start
     integer :: i
+    type(bl_prof_reg), pointer :: new_timers(:)
+    type(stack_n), pointer :: new_stack(:)
+    type(activation_n), pointer :: new_children(:), a_p
+    logical :: lstart
 
     if ( .not. bpt_on ) return
+    !! reverse the sense
+    lstart = .false.; if ( present(no_start) ) lstart = .not. no_start
     !! If not registered, then register
     if ( bpt%reg == BL_PROF_NOT_REG ) then
-       do i = 1, BL_PROF_MAX_TIMERS
+       do i = 1, size(timers)
           if ( timers(i)%reg == BL_PROF_NOT_REG ) exit
           if ( timers(i)%name == name ) then
              call bl_error("BL_PROF_TIMER_BUILD: name already registered", name)
           end if
        end do
-       if ( i > BL_PROF_MAX_TIMERS ) then
-          call bl_error("BL_PROF_TIMER_BUILD: out of timers")
+       if ( i > size(timers) ) then
+          allocate(new_timers(i))
+          new_timers(1:i-1) = timers(1:i-1)
+          deallocate(timers)
+          timers => new_timers
        end if
        timers(i)%reg = i
        timers(i)%name = name
+       timers(i)%bpt => bpt
        bpt%reg = i
+    end if
+
+    !! Call tree placement
+    do i = 1, size(the_stack(stk_p)%a_p%children)
+       a_p => the_stack(stk_p)%a_p%children(i)
+       if ( a_p%reg == bpt%reg ) exit
+    end do
+    if ( i > size(the_stack(stk_p)%a_p%children) ) then
+       allocate(new_children(i))
+       new_children(1:i-1) = the_stack(stk_p)%a_p%children(1:i-1)
+       deallocate(the_stack(stk_p)%a_p%children)
+       the_stack(stk_p)%a_p%children => new_children
+       a_p => the_stack(stk_p)%a_p%children(i)
+       allocate(a_p%children(0))
+       a_p%reg = bpt%reg
+    end if
+
+    !! Stack adjustment
+    if ( stk_p == size(the_stack) ) then
+       allocate(new_stack(stk_p+1))
+       new_stack(1:stk_p) = the_stack(1:stk_p)
+       deallocate(the_stack)
+       the_stack => new_stack
+    else if ( stk_p > size(the_stack) ) then
+       call bl_error("BL_PROF_BUILD: stack super-overflow", stk_p-size(the_stack))
+    end if
+    stk_p = stk_p + 1
+    the_stack(stk_p)%a_p => a_p
+
+    if ( lstart ) then
+       call bl_prof_timer_start(bpt)
     end if
 
   end subroutine bl_prof_timer_build
 
+  subroutine bl_prof_timer_destroy(bpt)
+    type(bl_prof_timer), intent(inout), target :: bpt
+    if ( .not. bpt_on ) return
+    if ( stk_p < 1 ) then
+       call bl_error("BL_PROF_TIMER_DESTROY: stack underflow: ", stk_p)
+    end if
+    if ( the_stack(stk_p)%a_p%running ) then
+       call bl_prof_timer_stop(bpt)
+    end if
+    stk_p = stk_p - 1
+  end subroutine bl_prof_timer_destroy
+
   subroutine bl_prof_timer_start(bpt)
     type(bl_prof_timer), intent(inout) :: bpt
-    type(bl_prof_timer_record) :: rec
-    type(bl_prof_timer_record), pointer :: recp
+
     if ( .not. bpt_on ) return
-    rec = front(the_stack)
-    recp => rec%next
-    do while ( associated(recp) ) 
-       if ( recp%reg == bpt%reg ) then
-          print *, 'here'
-          exit
-       end if
-       recp => recp%next
-    end do
-    print *, 'associated ', associated(recp)
-    if ( .not. associated(recp) ) then
-       allocate(recp)
-       recp%reg = bpt%reg
-       recp%next => rec%next
-       rec%next => recp
-    end if
-print *, 'recp = ', recp%reg
+    the_stack(stk_p)%a_p%running = .true.
+    call timer_start(the_stack(stk_p)%a_p%rec)
 
   end subroutine bl_prof_timer_start
 
   subroutine bl_prof_timer_stop(bpt)
     type(bl_prof_timer), intent(inout) :: bpt
+
     if ( .not. bpt_on ) return
+    call timer_stop(the_stack(stk_p)%a_p%rec)
+    the_stack(stk_p)%a_p%running = .false.
+
   end subroutine bl_prof_timer_stop
 
   subroutine bl_prof_glean(fname, note)
@@ -165,50 +225,73 @@ print *, 'recp = ', recp%reg
     integer :: un
     character(len=8) :: date
     character(len=10) :: time
-    integer :: i, cnt
-    type(bl_prof_timer_record) :: rec
+    integer :: i
 
-    un = unit_new()
-    open(unit = un, file = trim(fname), &
-         form = "formatted", access = "sequential", &
-         status = "replace", action = "write")
-
-    !! Preamble
-    call date_and_time(date = date, time = time)
-    write(unit = un, &
-         fmt = '("(* BL PROF results for ", A2,"/",A2,"/",A4, " ", A2,":",A2,":",A2)') &
-         date(5:6), date(7:8), date(1:4), &
-         time(1:2), time(3:4), time(5:6)
-    if ( present(note) ) then
-       write(unit = un, fmt = '("   Note: ", A)') note
+    if ( stk_p /= 1 ) then
+       call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
     end if
-    write(unit = un, fmt = '("*)")')
+    call timer_stop(the_stack(1)%a_p%rec)
 
-    !!
-    write(unit = un, fmt = '("registeredTimers = {")')
-    cnt = 0
-    do i = 1, BL_PROF_MAX_TIMERS
-       if ( timers(i)%reg == BL_PROF_NOT_REG ) exit
-       cnt = cnt + 1
-    end do
-    do i = 1, cnt
-       write(unit = un, fmt = '("{", i0, ", ", A, "}")', advance = 'no') &
-            timers(i)%reg, trim(timers(i)%name)
-       if ( i < cnt ) then
-          write(unit = un, fmt = '(",")')
-       else
-          write(unit = un, fmt = '()')
-       end if
-    end do
-    write(unit = un, fmt = '("};")')
-    !! Now grovel through the stack
-    rec = bl_prof_stack_front(the_stack)
+    if ( parallel_ioprocessor() ) then
+       un = unit_new()
+       open(unit = un, file = trim(fname), &
+            form = "formatted", access = "sequential", &
+            status = "replace", action = "write")
+    end if
 
-    !! Done
-    close(unit = un)
+    call p_activation(the_call_tree, un, 0)
+    if ( parallel_ioprocessor() ) then
+       close(unit = un)
+    end if
   end subroutine bl_prof_glean
 
+  function t_activation(a) result(r)
+    real(dp_t) :: r
+    type(activation_n), intent(in) :: a
+    integer :: i
+    r = 0.0_dp_t
+    do i = 1, size(a%children)
+       r = r + timer_value(a%children(i)%rec)
+    end do
+  end function t_activation
+
+  recursive subroutine p_activation(a, un, skip)
+    use bl_IO_module
+    type(activation_n), intent(in) :: a
+    integer, intent(in) :: un, skip
+    integer :: i, cnt
+    character(len=20) :: nm
+    real(dp_t) :: cum, cum_chidren, self, avg
+    nm(1:skip) = repeat(' ', skip)
+    nm(skip+1:) = trim(timers(a%reg)%name)
+    cnt = a%rec%cnt
+    cum = timer_value(a%rec, total = .true.)
+    cum_chidren = t_activation(a)
+    self = cum - cum_chidren
+    avg  = self/cnt
+    if ( parallel_ioprocessor() ) then
+       write(unit = un, fmt = '(A,1x,i10,3(G20.10))') nm, &
+            cnt, cum, self, avg
+    end if
+    do i = 1, size(a%children)
+       call p_activation(a%children(i), un, skip+1)
+    end do
+  end subroutine p_activation
+
 end module bl_prof_module
+
+!! The C interface, not working
+subroutine bl_prof_build_c(reg, name, n)
+  use bl_prof_module
+  use bl_string_module
+  implicit none
+  integer, intent(out) :: reg
+  integer, intent(in) :: n
+  integer, intent(in) :: name(n)
+  character(len=n) :: cname
+  call int2str(cname, name, n)
+  reg = 0
+end subroutine bl_prof_build_c
 
 subroutine t_bl_prof
   use bl_prof_module
@@ -221,6 +304,7 @@ subroutine t_bl_prof
   call t()
   call t()
   call stop(bpt)
+  call destroy(bpt)
   call bl_prof_glean("bl_prof_res")
   call bl_prof_finalize
 
@@ -231,6 +315,7 @@ contains
     call build(bpt, "t")
     call start(bpt)
     call stop(bpt)
+    call destroy(bpt)
   end subroutine t
 
   subroutine g
@@ -238,6 +323,7 @@ contains
     call build(bpt, "t")        ! (sic)
     call start(bpt)
     call stop(bpt)
+    call destroy(bpt)
   end subroutine g
 
 end subroutine t_bl_prof
