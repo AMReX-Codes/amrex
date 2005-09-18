@@ -137,6 +137,7 @@ contains
     recp => rec%next
     do while ( associated(recp) ) 
        if ( recp%reg == bpt%reg ) then
+          print *, 'here'
           exit
        end if
        recp => recp%next
@@ -144,9 +145,11 @@ contains
     print *, 'associated ', associated(recp)
     if ( .not. associated(recp) ) then
        allocate(recp)
+       recp%reg = bpt%reg
        recp%next => rec%next
        rec%next => recp
     end if
+print *, 'recp = ', recp%reg
 
   end subroutine bl_prof_timer_start
 
