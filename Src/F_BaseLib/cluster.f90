@@ -6,6 +6,7 @@ module cluster_module
   use list_box_module
   use boxarray_module
   use multifab_module
+  use bl_prof_module
 
   implicit none
 
@@ -82,6 +83,9 @@ contains
     integer :: lblocking_factor
     type(box) :: bx
     real(dp_t) :: bx_eff
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "cluster")
 
     lblocking_factor = 1
     if ( present(blocking_factor) ) then
@@ -159,6 +163,8 @@ contains
     end if
 
     call destroy(buf)
+
+    call destroy(bpt)
 
   contains
 

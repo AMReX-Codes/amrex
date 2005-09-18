@@ -3,6 +3,7 @@ module stencil_module
   use bl_types
   use bc_module
   use multifab_module
+  use bl_prof_module
 
   implicit none
 
@@ -479,6 +480,9 @@ contains
     real(kind=dp_t) :: r1
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "st_norm")
     r1 = -Huge(r1)
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,sp,lp) REDUCTION(MAX:r1)
@@ -499,6 +503,7 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r,r1,MPI_MAX)
+    call destroy(bpt)
   end function stencil_norm
 
   subroutine stencil_defect_st(st, rr, ff, uu)

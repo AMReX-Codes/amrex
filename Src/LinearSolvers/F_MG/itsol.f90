@@ -57,10 +57,14 @@ contains
     real(dp_t), intent(in) :: Anorm, bnorm, eps
     real(dp_t)             :: norm_rr, norm_uu
     logical :: r
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "its_converged")
     norm_rr = norm_inf(rr)
     norm_uu = norm_inf(uu)
     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
         (norm_rr <= epsilon(Anorm)*Anorm)
+    call destroy(bpt)
   end function itsol_converged
 
   subroutine itsol_stencil_apply(aa, rr, uu, mm)
@@ -76,7 +80,7 @@ contains
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "itsol_stencil_apply")
+    call build(bpt, "its_stencil_apply")
 
     call multifab_fill_boundary(uu)
 
@@ -126,8 +130,14 @@ contains
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in) :: rh, aa
     type(imultifab), intent(in) :: mm
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "its_defect")
+
     call itsol_stencil_apply(aa, rr, uu, mm)
     call saxpy(rr, rh, -1.0_dp_t, rr)
+
+    call destroy(bpt)
   end subroutine itsol_defect
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
@@ -148,7 +158,7 @@ contains
     logical :: nodal_solve
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "itsol_BiCGStab_solve")
+    call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
 
@@ -322,7 +332,7 @@ contains
     real(dp_t) :: rho_hg, rho_orig
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "itsol_CG_Solve")
+    call build(bpt, "its_CG_Solve")
 
     if ( present(stat) ) stat = 0
 
@@ -441,6 +451,10 @@ contains
     integer :: i, n
     integer, intent(in), optional :: method
     integer :: lm
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "its_precon")
+
     lm = 1; if ( present(method) ) lm = method
 
     select case (lm)
@@ -480,6 +494,9 @@ contains
           end do
        end do
     end select
+
+    call destroy(bpt)
+
   contains
     subroutine jacobi_precon_1d(a, u, r, ng)
       integer, intent(in) :: ng

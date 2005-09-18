@@ -129,7 +129,7 @@ contains
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_build")
+    call build(bpt, "mgt_build")
     ! Paste in optional arguments
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
@@ -409,7 +409,7 @@ contains
     integer i
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_bottom_solve")
+    call build(bpt, "mgt_bottom_solve")
     stat = 0
     select case ( mgt%bottom_solver )
     case (0)
@@ -534,7 +534,7 @@ contains
     integer :: mg_restriction_mode
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_restriction")
+    call build(bpt, "mgt_restriction")
 
     ir = 2
 
@@ -609,7 +609,7 @@ contains
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_smoother")
+    call build(bpt, "mgt_smoother")
 
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )
@@ -730,7 +730,7 @@ contains
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_prolongation")
+    call build(bpt, "mgt_prolongation")
 
     ir = 2
 
@@ -843,7 +843,7 @@ contains
     integer :: lbl
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mg_tower_cycle")
+    call build(bpt, "mgt_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -1008,7 +1008,7 @@ contains
     type(bl_prof_timer), save :: bpt
     character(len=128) :: defbase
 
-    call build(bpt, "mg_tower_solve")
+    call build(bpt, "mgt_solve")
 
     ldef = .false.; if ( present(defect_history) ) ldef = defect_history
     if ( ldef ) then
