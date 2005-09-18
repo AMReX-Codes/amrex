@@ -1,9 +1,12 @@
 # FParallelMG.mak
-# use this access fParallel's fortran solvers in Parallel/BoxLib code
-# See iamrlib/run2d/GNUmakefile for an example
-# Note: that you can not do a parallel make if you are using these files
-# since the dependencies for the object/module files can not be infered
-# from the names or ordering of thes files
+#
+# Use this to access fParallel's fortran solvers in Parallel/BoxLib code.
+# See iamrlib/run2d/GNUmakefile for an example.
+# Note: that you can do a parallel make if you are using this file if you
+# are using the MODDEP dependency evaluater that is in Parallel/scripts 
+# and is used in the default Parallel/mk/Make.{rules,defs}. Otherwise,
+# you can't since the dependencies for the object/module files can not be
+# infered from the names or ordering of thes files.
 #
 # ------------- in your GNUmakefile --------------
 # 
@@ -23,7 +26,6 @@
 
 f90EXE_sources += bc.f90
 f90EXE_sources += bl_IO.f90
-f90EXE_sources += bl_space.f90
 f90EXE_sources += bl_types.f90
 #f90EXE_sources += f2kcli.f90
 #f90EXE_sources += omp.f90
@@ -38,7 +40,7 @@ else
 endif
 f90EXE_sources += bl_constants.f90
 f90EXE_sources += bl_error.f90
-f90EXE_sources += BoxLib.f90
+#f90EXE_sources += BoxLib.f90
 #f90EXE_sources += mt19937ar.f90
 f90EXE_sources += knapsack.f90
 #f90EXE_sources += interp.f90
@@ -65,6 +67,7 @@ f90EXE_sources += ml_multifab.f90
 f90EXE_sources += fabio.f90
 #f90EXE_sources += plotfile.f90
 #f90EXE_sources += filler.f90
+f90EXE_sources += bl_space.f90
 
 f90EXE_sources += mg_prolongation.f90
 f90EXE_sources += st_coeffs.f90

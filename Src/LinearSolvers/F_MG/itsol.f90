@@ -4,6 +4,7 @@ module itsol_module
   use multifab_module
   use stencil_module
   use stencil_nodal_module
+  use bl_prof_module
 
   implicit none
 
@@ -73,6 +74,9 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n
     logical :: nodal_flag
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "itsol_stencil_apply")
 
     call multifab_fill_boundary(uu)
 
@@ -114,6 +118,8 @@ contains
        end do
     end do
 
+    call destroy(bpt)
+
   end subroutine itsol_stencil_apply
 
   subroutine itsol_defect(aa, rr, rh, uu, mm)
@@ -140,6 +146,9 @@ contains
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "itsol_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
 
@@ -289,6 +298,8 @@ contains
        end if
     end if
 
+    call destroy(bpt)
+
   end subroutine itsol_BiCGStab_solve
 
   subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
@@ -309,6 +320,9 @@ contains
     integer :: cnt
 
     real(dp_t) :: rho_hg, rho_orig
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "itsol_CG_Solve")
 
     if ( present(stat) ) stat = 0
 
@@ -412,6 +426,8 @@ contains
           call bl_error("CG_solve: failed to converge");
        end if
     end if
+
+    call destroy(bpt)
 
   end subroutine itsol_CG_Solve
 
