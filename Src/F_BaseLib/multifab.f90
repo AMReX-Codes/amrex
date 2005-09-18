@@ -3,6 +3,7 @@ module multifab_module
   use layout_module
   use fab_module
   use bl_mem_stat_module
+  use bl_prof_module
 
   implicit none
 
@@ -2221,6 +2222,9 @@ contains
 
     integer :: lng
     logical :: lnocomm, lcross
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "multifab_fill_boundary_c")
 
     lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
@@ -2236,6 +2240,7 @@ contains
     else
       call mf_fb_easy_double(mf, c, nc, lng, lnocomm)
     end if
+    call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
   subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
