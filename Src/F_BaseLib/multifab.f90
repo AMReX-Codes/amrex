@@ -2224,7 +2224,7 @@ contains
     logical :: lnocomm, lcross
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "multifab_fill_boundary_c")
+    call build(bpt, "mf_fill_boundary_c")
 
     lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
@@ -3369,6 +3369,9 @@ contains
     end interface
 
     optional filter
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_copy_c")
 
     lnc     = 1;       if ( present(nc)     ) lnc     = nc
     lall    = .false.; if ( present(all)    ) lall    = all
@@ -3405,6 +3408,7 @@ contains
           call mf_copy_easy_double(mdst, dstcomp, msrc, srccomp, lnc, lnocomm, filter)
        end if
     end if
+    call destroy(bpt)
   end subroutine multifab_copy_c
 
   subroutine multifab_copy(mdst, msrc, all, nocomm, filter)
@@ -3840,6 +3844,9 @@ contains
     real(dp_t) :: r1
     integer :: i
     logical :: lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_dot")
     lall = .FALSE.; if ( present(all) ) lall = all
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
@@ -3875,6 +3882,7 @@ contains
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
     call parallel_reduce(r,r1,MPI_SUM)
+    call destroy(bpt)
   end function multifab_dot
 
   subroutine multifab_rescale_2(mf, c, min, max, xmin, xmax, clip)
@@ -3969,6 +3977,9 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_saxpy_5")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
@@ -3978,6 +3989,7 @@ contains
        ap = b1*bp + c1*cp
     end do
     !$OMP END PARALLEL DO
+    call destroy(bpt)
   end subroutine multifab_saxpy_5
 
   subroutine multifab_saxpy_4(a, b, c1, c)
@@ -3988,6 +4000,9 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_saxpy_4")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
@@ -3997,6 +4012,7 @@ contains
        ap = bp + c1*cp
     end do
     !$OMP END PARALLEL DO
+    call destroy(bpt)
   end subroutine multifab_saxpy_4
 
   subroutine multifab_saxpy_3(a, b1, b, all)
@@ -4008,6 +4024,9 @@ contains
     logical, intent(in), optional :: all
     integer :: i
     logical :: lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_saxpy_3")
 
     lall = .false.; if ( present(all) ) lall = all
 
@@ -4030,6 +4049,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     end if
+    call destroy(bpt)
   end subroutine multifab_saxpy_3
 
   subroutine multifab_saxpy_3_c(a, ia, b1, b, all)
