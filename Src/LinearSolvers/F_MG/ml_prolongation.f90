@@ -167,8 +167,9 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, l, m
     real (dp_t) :: fac_left, fac_rght
-    real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
-                               lof(2):lof(2)+size(ff,dim=2)-1)
+!   real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
+!                              lof(2):lof(2)+size(ff,dim=2)-1)
+    real (dp_t) :: temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2))
 
     do j = lo(2),hi(2),ir(2)
        jc = j / ir(2) 
@@ -216,9 +217,10 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, l, m, n
     real (dp_t) :: fac_left, fac_rght
-    real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
-                               lof(2):lof(2)+size(ff,dim=2)-1,&
-                               lof(3):lof(3)+size(ff,dim=3)-1)
+!   real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
+!                              lof(2):lof(2)+size(ff,dim=2)-1,&
+!                              lof(3):lof(3)+size(ff,dim=3)-1)
+    real (dp_t) :: temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3))
 
     !   Interpolate at coarse node locations only
     do k = lo(3),hi(3),ir(3)

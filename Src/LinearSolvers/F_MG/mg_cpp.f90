@@ -13,6 +13,11 @@ module cpp_mg_module
      integer, pointer :: bc(:,:) => Null()
      type(multifab) :: rh
      type(multifab) :: uu
+     type(multifab), pointer :: coeffs(:) => Null()
+     real(dp_t), pointer :: xa(:) => Null()
+     real(dp_t), pointer :: xb(:) => Null()
+     real(dp_t), pointer :: pxa(:) => Null()
+     real(dp_t), pointer :: pxb(:) => Null()
   end type mg_server
 
   integer, parameter :: max_mgt = 10
@@ -43,7 +48,7 @@ contains
 
     call mgt_verify(mgt, str)
     if ( n < 1 .or. n > nboxes(mgts(mgt)%lay) ) then
-       call bl_error( trim(str) // ": Box out of bounds")
+       call bl_error( trim(str) // ": Box out of bounds", n)
     end if
     bx = make_box(lo, hi)
     if ( bx /= get_box(mgts(mgt)%lay, n)) then
@@ -84,11 +89,11 @@ subroutine mgt_alloc(mgt, dm, nlevel)
 
 end subroutine mgt_alloc
 
-subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm)
+subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, nb, dm
-  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm), pm(dm)
+  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm), pm(dm), pmap(nb+1)
 
   type(box) :: bxs(nb)
   type(boxarray) :: ba
@@ -108,11 +113,19 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm)
      bxs(i) = make_box(lo(i,:), hi(i,:))
   end do
   call build(ba, bxs)
-  call build(mgts(mgt)%lay, ba, pd = mgts(mgt)%pd, pmask = pmask)
+  call build(mgts(mgt)%lay, ba, pd = mgts(mgt)%pd, pmask = pmask, &
+       mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
   allocate(mgts(mgt)%bc(dm,2))
+
+  print *, shape(bc)
+  print *, shape(transpose(bc))
+  print *, shape(mgts(mgt)%bc)
+
   do i = 1, dm
-     mgts(mgt)%bc = transpose(bc)
+     print *, 'i', i, bc(:,i)
   end do
+
+  mgts(mgt)%bc = transpose(bc)
 
   nc = 1
   call build(mgts(mgt)%uu, mgts(mgt)%lay, nc, ng = 1)
@@ -125,13 +138,112 @@ subroutine mgt_finalize(mgt)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt
+  type(layout) :: la
+  integer :: dm, i, nlevels
+  integer :: ns
 
   call mgt_verify(mgt, "MGT_FINALIZE")
-  call mg_tower_build(mgts(mgt)%mgt, mgts(mgt)%lay, mgts(mgt)%pd, mgts(mgt)%bc)
+  if ( .not. built_q(mgts(mgt)%lay) ) then
+     call bl_error("MGT_FINALIZE: layout not built")
+  end if
+
+  dm = mgts(mgt)%dim
+  la = mgts(mgt)%lay
+
+  ns = 1 + dm*3
+  call mg_tower_build(mgts(mgt)%mgt, la, mgts(mgt)%pd, mgts(mgt)%bc, &
+       ns = ns &
+       )
+
+  nlevels = mgts(mgt)%mgt%nlevels
+
+  allocate(mgts(mgt)%coeffs(nlevels))
+  call multifab_build(mgts(mgt)%coeffs(nlevels), la, 1+dm, 1)
+  do i = nlevels - 1, 1, -1
+     call multifab_build(mgts(mgt)%coeffs(i), mgts(mgt)%mgt%ss(i)%la, 1+dm, 1)
+     call setval(mgts(mgt)%coeffs(i), 0.0_dp_t, all=.true.)
+  end do
+
   mgts(mgt)%final = .true.
 
 end subroutine mgt_finalize
 
+subroutine mgt_finalize_stencil(mgt, xa, xb, pxa, pxb)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt
+  real(dp_t), intent(in) :: xa(*), xb(*), pxa(*), pxb(*)
+  integer :: nlevels, i
+  type(boxarray) :: pdv
+  integer :: dm
+  type(box) :: pd
+  integer :: stencil_order
+
+  call mgt_verify(mgt, "MGT_SOLVE")
+  if ( .not. mgts(mgt)%final ) then
+     call bl_error("MGT_SOLVE: MGT not finalized")
+  end if
+
+  dm = mgts(mgt)%dim
+  allocate(mgts(mgt)%xa(dm), mgts(mgt)%xb(dm))
+  allocate(mgts(mgt)%pxa(dm), mgts(mgt)%pxb(dm))
+
+  ! May be un-needed but salt away for now.
+  mgts(mgt)%pxa = pxa(1:dm)
+  mgts(mgt)%pxb = pxb(1:dm)
+  mgts(mgt)%xa  = xa(1:dm)
+  mgts(mgt)%xb  = xb(1:dm)
+
+print *, 'pxa', mgts(mgt)%pxa
+print *, 'pxb', mgts(mgt)%pxb
+print *, 'xa ', mgts(mgt)%xa
+print *, 'xb ', mgts(mgt)%xb
+
+  nlevels = mgts(mgt)%mgt%nlevels
+  pd = get_pd(mgts(mgt)%lay)
+
+  do i = nlevels - 1, 1, -1
+     pdv = get_boxarray(mgts(mgt)%mgt%ss(i)%la)
+     call stencil_fill_cc(mgts(mgt)%mgt%ss(i), mgts(mgt)%coeffs(i), mgts(mgt)%mgt%dh(:,i), &
+          pdv, mgts(mgt)%mgt%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), pd, &
+          stencil_order, mgts(mgt)%bc)
+  end do
+
+end subroutine mgt_finalize_stencil
+
+subroutine mgt_set_ss_2d(mgt, lev, n, a, b, aa, bb1, bb2, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: a, b
+  real(kind=dp_t), intent(in) :: aa(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: bb1(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: bb2(plo(1):phi(1), plo(2):phi(2))
+end subroutine mgt_set_ss_2d
+subroutine mgt_set_ss_3d(mgt, lev, n, a, b, aaa, bb1, bb2, bb3, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: a, b
+  real(kind=dp_t), intent(in) :: aaa(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: bb1(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: bb2(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: bb3(plo(1):phi(1), plo(2):phi(2))
+end subroutine mgt_set_ss_3d
+
+subroutine mgt_set_rh_1d(mgt, lev, n, rh, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: rh(plo(1):phi(1))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_SET_RH", n, lo, hi)
+
+  rp => dataptr(mgts(mgt)%rh, n)
+  rp(lo(1):hi(1), 1,1,1) = rh(lo(1):hi(1))
+
+end subroutine mgt_set_rh_1d
 subroutine mgt_set_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
@@ -145,7 +257,33 @@ subroutine mgt_set_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   rp(lo(1):hi(1), lo(2):hi(2),1,1) = rh(lo(1):hi(1), lo(2):hi(2))
 
 end subroutine mgt_set_rh_2d
+subroutine mgt_set_rh_3d(mgt, lev, n, rh, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: rh(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_SET_RH", n, lo, hi)
 
+  rp => dataptr(mgts(mgt)%rh, n)
+  rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1) = rh(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+
+end subroutine mgt_set_rh_3d
+
+subroutine mgt_get_rh_1d(mgt, lev, n, rh, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(inout) :: rh(plo(1):phi(1))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_GET_RH", n, lo, hi)
+
+  rp => dataptr(mgts(mgt)%rh, n)
+  rh(lo(1):hi(1)) = rp(lo(1):hi(1), 1,1,1)
+
+end subroutine mgt_get_rh_1d
 subroutine mgt_get_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
@@ -159,7 +297,33 @@ subroutine mgt_get_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   rh(lo(1):hi(1), lo(2):hi(2)) = rp(lo(1):hi(1), lo(2):hi(2),1,1)
 
 end subroutine mgt_get_rh_2d
+subroutine mgt_get_rh_3d(mgt, lev, n, rh, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(inout) :: rh(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_GET_RH", n, lo, hi)
 
+  rp => dataptr(mgts(mgt)%rh, n)
+  rh(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) = rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
+
+end subroutine mgt_get_rh_3d
+
+subroutine mgt_set_uu_1d(mgt, lev, n, uu, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: uu(plo(1):phi(1))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_SET_UU", n, lo, hi)
+
+  up => dataptr(mgts(mgt)%uu, n)
+  up(lo(1):hi(1), 1,1,1) = uu(lo(1):hi(1))
+
+end subroutine mgt_set_uu_1d
 subroutine mgt_set_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
@@ -173,7 +337,33 @@ subroutine mgt_set_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   up(lo(1):hi(1), lo(2):hi(2),1,1) = uu(lo(1):hi(1), lo(2):hi(2))
 
 end subroutine mgt_set_uu_2d
+subroutine mgt_set_uu_3d(mgt, lev, n, uu, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: uu(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_SET_UU", n, lo, hi)
 
+  up => dataptr(mgts(mgt)%uu, n)
+  up(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+
+end subroutine mgt_set_uu_3d
+
+subroutine mgt_get_uu_1d(mgt, lev, n, uu, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_GET_UU", n, lo, hi)
+
+  up => dataptr(mgts(mgt)%uu, n)
+  uu(lo(1):hi(1)) = up(lo(1):hi(1), 1,1,1)
+
+end subroutine mgt_get_uu_1d
 subroutine mgt_get_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
@@ -187,14 +377,34 @@ subroutine mgt_get_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   uu(lo(1):hi(1), lo(2):hi(2)) = up(lo(1):hi(1), lo(2):hi(2),1,1)
 
 end subroutine mgt_get_uu_2d
+subroutine mgt_get_uu_3d(mgt, lev, n, uu, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  
+  call mgt_verify_n(mgt, "MGT_GET_UU", n, lo, hi)
+
+  up => dataptr(mgts(mgt)%uu, n)
+  uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) = up(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
+
+end subroutine mgt_get_uu_3d
 
 subroutine mgt_dealloc(mgt)
   use cpp_mg_module
   implicit none
   integer, intent(inout) :: mgt
+  integer :: i
   
   call mgt_verify(mgt, "MGT_DEALLOC")
+  if ( .not. mgts(mgt)%final ) then
+     call bl_error("MGT_DEALLOC: MGT not finalized")
+  end if
 
+  do i = mgts(mgt)%mgt%nlevels, 1, -1
+     call destroy(mgts(mgt)%coeffs(i))
+  end do
   call mg_tower_destroy(mgts(mgt)%mgt)
   call destroy(mgts(mgt)%rh)
   call destroy(mgts(mgt)%uu)
@@ -304,3 +514,14 @@ subroutine mgt_set_min_width(mgt, min_width)
   mgts(mgt)%mgt%min_width = min_width
 
 end subroutine mgt_set_min_width
+
+subroutine mgt_set_verbose(mgt, verbose)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt
+  integer, intent(in) :: verbose
+
+  call mgt_not_final(mgt, "MGT_SET_MIN_WIDTH")
+  mgts(mgt)%mgt%verbose = verbose
+
+end subroutine mgt_set_verbose

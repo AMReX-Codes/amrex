@@ -6,6 +6,7 @@ module mg_module
   use itsol_module
   use sparse_solve_module
   use bl_timer_module
+  use bl_prof_module
 
   implicit none
 
@@ -126,7 +127,9 @@ contains
     integer :: n, i, id
     type(layout) :: la1, la2
     logical :: nodal_flag
+    type(bl_prof_timer), save :: bpt
 
+    call build(bpt, "mg_tower_build")
     ! Paste in optional arguments
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
@@ -272,6 +275,8 @@ contains
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
     if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
 
+    call destroy(bpt)
+
   end subroutine mg_tower_build
 
   subroutine mg_tower_print(mgt, str, unit, skip)
@@ -402,7 +407,9 @@ contains
     integer, intent(in) :: lev
     integer stat
     integer i
+    type(bl_prof_timer), save :: bpt
 
+    call build(bpt, "mg_tower_bottom_solve")
     stat = 0
     select case ( mgt%bottom_solver )
     case (0)
@@ -443,7 +450,7 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     end if
-
+    call destroy(bpt)
   end subroutine mg_tower_bottom_solve
 
   subroutine mg_defect(ss, dd, ff, uu, mm)
@@ -451,11 +458,15 @@ contains
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mg_defect")
 
     call itsol_stencil_apply(ss, dd, uu, mm)
 
     call saxpy(dd, ff, -1.0_dp_t, dd)
 
+    call destroy(bpt)
   end subroutine mg_defect
 
   subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type)
@@ -521,6 +532,9 @@ contains
     integer        , pointer :: mp_crse(:,:,:,:)
 
     integer :: mg_restriction_mode
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mg_tower_restriction")
 
     ir = 2
 
@@ -575,6 +589,8 @@ contains
           end select
        end do
     end do
+
+    call destroy(bpt)
   end subroutine mg_tower_restriction
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
@@ -591,6 +607,9 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, nn
     integer :: lo(mgt%dim)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mg_tower_smoother")
 
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )
@@ -696,6 +715,7 @@ contains
        call multifab_internal_sync(uu)
     end if
 
+    call destroy(bpt)
   end subroutine mg_tower_smoother
 
   subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
@@ -708,6 +728,10 @@ contains
     type(box) :: nbox, nbox1
     integer :: i, n, ir(mgt%dim)
     logical :: nodal_flag
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mg_tower_prolongation")
+
     ir = 2
 
     nodal_flag = nodal_q(uu)
@@ -748,6 +772,7 @@ contains
       end do
     endif
 
+    call destroy(bpt)
   end subroutine mg_tower_prolongation
 
   function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
@@ -816,6 +841,9 @@ contains
     logical :: do_diag
     real(dp_t) :: nrm, nrm1, nrm2, nrm3
     integer :: lbl
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mg_tower_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -914,6 +942,7 @@ contains
        end if
     end if
 
+    call destroy(bpt)
   end subroutine mg_tower_cycle
 
   subroutine mini_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
@@ -976,7 +1005,10 @@ contains
     real(dp_t) :: ynorm, Anorm, nrm(3)
     integer :: n_qq, i_qq
     logical :: ldef
+    type(bl_prof_timer), save :: bpt
     character(len=128) :: defbase
+
+    call build(bpt, "mg_tower_solve")
 
     ldef = .false.; if ( present(defect_history) ) ldef = defect_history
     if ( ldef ) then
@@ -1063,6 +1095,8 @@ contains
     end if
 
     if ( present(num_iter) ) num_iter = it
+
+    call bl_prof_timer_destroy(bpt)
 
   end subroutine mg_tower_solve
 
