@@ -13,7 +13,6 @@ f90sources += t_main.f90
 f90sources += t_knapsack.f90
 f90sources += t_bx.f90
 f90sources += t_cls.f90
-f90sources += bl_prof.f90
 
 programs += main.f90
 
