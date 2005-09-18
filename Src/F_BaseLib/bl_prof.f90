@@ -62,6 +62,8 @@ module bl_prof_module
   private f_activation
   private p_activation
   private t_activation
+  private greater_d
+  private benchmark
 
 contains
 
@@ -74,6 +76,12 @@ contains
     logical :: r
     r = bpt_on
   end function bl_prof_get_state
+
+  subroutine benchmark
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "bl_prof_benchmark")
+    call destroy(bpt)
+  end subroutine benchmark
 
   subroutine bl_prof_initialize(on)
     logical, intent(in), optional :: on
@@ -92,6 +100,7 @@ contains
     the_stack(1)%a_p%reg = 1
     call timer_start(the_stack(1)%a_p%rec)
     the_stack(1)%a_p%running = .true.
+    call benchmark()
   end subroutine bl_prof_initialize
 
   recursive subroutine f_activation(a)
@@ -134,7 +143,7 @@ contains
 
     if ( .not. bpt_on ) return
     !! reverse the sense
-    lstart = .false.; if ( present(no_start) ) lstart = .not. no_start
+    lstart = .true.; if ( present(no_start) ) lstart = .not. no_start
     !! If not registered, then register
     if ( bpt%reg == BL_PROF_NOT_REG ) then
        do i = 1, size(timers)
@@ -177,7 +186,7 @@ contains
        deallocate(the_stack)
        the_stack => new_stack
     else if ( stk_p > size(the_stack) ) then
-       call bl_error("BL_PROF_BUILD: stack super-overflow", stk_p-size(the_stack))
+       call bl_error("BL_PROF_TIMER_BUILD: stack super-overflow", stk_p-size(the_stack))
     end if
     stk_p = stk_p + 1
     the_stack(stk_p)%a_p => a_p
@@ -237,6 +246,8 @@ contains
        open(unit = un, file = trim(fname), &
             form = "formatted", access = "sequential", &
             status = "replace", action = "write")
+       write(unit = un, fmt = &
+            '("REGION",TR20,"COUNT",TR10,"TOTAL", TR10, "CHILD", TR11, "SELF", TR12, "AVG")')
     end if
 
     call p_activation(the_call_tree, un, 0)
@@ -251,17 +262,27 @@ contains
     integer :: i
     r = 0.0_dp_t
     do i = 1, size(a%children)
-       r = r + timer_value(a%children(i)%rec)
+       r = r + timer_value(a%children(i)%rec, total = .true.)
     end do
   end function t_activation
 
+  function greater_d(a,b) result(r)
+    logical :: r
+    real(kind=dp_t), intent(in) :: a, b
+    r = a > b
+  end function greater_d
+
   recursive subroutine p_activation(a, un, skip)
     use bl_IO_module
+    use sort_d_module
     type(activation_n), intent(in) :: a
     integer, intent(in) :: un, skip
-    integer :: i, cnt
+    integer :: i, cnt, ii
     character(len=20) :: nm
     real(dp_t) :: cum, cum_chidren, self, avg
+    real(dp_t), allocatable :: ctm(:)
+    integer, allocatable :: itm(:)
+    
     nm(1:skip) = repeat(' ', skip)
     nm(skip+1:) = trim(timers(a%reg)%name)
     cnt = a%rec%cnt
@@ -270,11 +291,17 @@ contains
     self = cum - cum_chidren
     avg  = self/cnt
     if ( parallel_ioprocessor() ) then
-       write(unit = un, fmt = '(A,1x,i10,3(G20.10))') nm, &
-            cnt, cum, self, avg
+       write(unit = un, fmt = '(A,1x,i10,4(F15.3))') nm, &
+            cnt, cum, cum_chidren, self, avg
     end if
+    allocate(ctm(size(a%children)),itm(size(a%children)))
     do i = 1, size(a%children)
-       call p_activation(a%children(i), un, skip+1)
+       ctm(i) = timer_value(a%children(i)%rec, total = .true.)
+    end do
+    call sort(ctm, itm, greater_d)
+    do i = 1, size(a%children)
+       ii = itm(i)
+       call p_activation(a%children(ii), un, skip+1)
     end do
   end subroutine p_activation
 
@@ -300,10 +327,8 @@ subroutine t_bl_prof
 
   call bl_prof_initialize(on = .true.)
   call build(bpt, "t_bl_prof")
-  call start(bpt)
   call t()
   call t()
-  call stop(bpt)
   call destroy(bpt)
   call bl_prof_glean("bl_prof_res")
   call bl_prof_finalize
@@ -312,9 +337,8 @@ contains
 
   subroutine t
     type(bl_prof_timer), save :: bpt
-    call build(bpt, "t")
+    call build(bpt, "t", no_start = .true.)
     call start(bpt)
-    call stop(bpt)
     call destroy(bpt)
   end subroutine t
 
