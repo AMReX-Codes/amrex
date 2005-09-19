@@ -771,8 +771,8 @@ contains
 
            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
 
-             lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1) )
-             hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1) )
+             lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1) )
+             hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1) )
              lo_k_not = ( (k == lof(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1) )
              hi_k_not = ( (k == hif(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1) )
 
@@ -847,8 +847,8 @@ contains
 
            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
 
-             lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1) )
-             hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1) )
+             lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1) )
+             hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1) )
              lo_j_not = ( (j == lof(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1) )
              hi_j_not = ( (j == hif(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1) )
 
