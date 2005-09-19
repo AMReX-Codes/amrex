@@ -62,6 +62,7 @@ module bl_prof_module
   private f_activation
   private p_activation
   private t_activation
+  private s_activation
   private greater_d
   private benchmark
 
@@ -229,12 +230,15 @@ contains
 
   subroutine bl_prof_glean(fname, note)
     use bl_IO_module
+    use sort_d_module
     character(len=*), intent(in) :: fname
     character(len=*), intent(in), optional :: note
     integer :: un
     character(len=8) :: date
     character(len=10) :: time
-    integer :: i
+    integer :: i, ii
+    real(dp_t), allocatable :: sm(:,:)
+    integer, allocatable :: ism(:)
 
     if ( stk_p /= 1 ) then
        call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
@@ -246,6 +250,23 @@ contains
        open(unit = un, file = trim(fname), &
             form = "formatted", access = "sequential", &
             status = "replace", action = "write")
+    end if
+
+    allocate(sm(size(timers),2),ism(size(timers)))
+    sm = 0.0_dp_t
+    call s_activation(the_call_tree, sm)
+
+    if ( parallel_ioprocessor() ) then
+       !! Print the summary information
+       call sort(sm(:,2), ism, greater_d)
+       write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF")')
+       do i = 1, size(ism)
+          ii = ism(i)
+          write(unit = un, fmt = '(a20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
+       end do
+    end if
+
+    if ( parallel_ioprocessor() ) then
        write(unit = un, fmt = &
             '("REGION",TR20,"COUNT",TR10,"TOTAL", TR10, "CHILD", TR11, "SELF", TR12, "AVG")')
     end if
@@ -271,6 +292,21 @@ contains
     real(kind=dp_t), intent(in) :: a, b
     r = a > b
   end function greater_d
+
+  recursive subroutine s_activation(a, sm)
+    type(activation_n), intent(in) :: a
+    real(dp_t), intent(inout) :: sm(:,:)
+    real(dp_t) :: cum, self, cum_children
+    integer :: i
+    cum = timer_value(a%rec, total = .true.)
+    cum_children = t_activation(a)
+    self = cum - cum_children
+    sm(a%reg,1) = sm(a%reg,1) + cum
+    sm(a%reg,2) = sm(a%reg,2) + self
+    do i = 1, size(a%children)
+       call s_activation(a%children(i), sm)
+    end do
+  end subroutine s_activation
 
   recursive subroutine p_activation(a, un, skip)
     use bl_IO_module
