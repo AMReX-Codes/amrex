@@ -4128,6 +4128,9 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_norm_l1_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -4163,6 +4166,7 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
+    call destroy(bpt)
   end function multifab_norm_l1_c
   function multifab_norm_l1(mf, all) result(r)
     real(dp_t)                    :: r
@@ -4183,6 +4187,9 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_sum_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -4218,6 +4225,7 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
+    call destroy(bpt)
   end function multifab_sum_c
   function multifab_sum(mf, mask, all) result(r)
     real(dp_t)                            :: r
@@ -4240,6 +4248,9 @@ contains
     real(dp_t) :: r1
     logical :: lall
     integer :: lnc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_norm_l2_c")
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
@@ -4277,6 +4288,7 @@ contains
     end if
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
+    call destroy(bpt)
   end function multifab_norm_l2_c
   function multifab_norm_l2(mf, mask, all) result(r)
     real(dp_t)                            :: r
@@ -4298,6 +4310,9 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_norm_inf_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -4333,6 +4348,7 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_MAX)
+    call destroy(bpt)
   end function multifab_norm_inf_c
   function multifab_norm_inf(mf, mask, all) result(r)
     real(dp_t)                            :: r
