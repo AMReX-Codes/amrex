@@ -1087,7 +1087,7 @@ contains
     integer ierr, l_comm
     integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
-    call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, comm, ierr)
+    call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, l_comm, ierr)
   end subroutine parallel_alltoall_d
   ! AlltoAll
   subroutine parallel_alltoall_dv(a, ac, ad, b, bc, bd, comm)
@@ -1096,10 +1096,8 @@ contains
     integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
     integer, intent(in), optional :: comm
     integer ierr, l_comm
-    integer :: n
-    n = size(a)
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
-    call MPI_Alltoall(b, bc, bd, MPI_DOUBLE_PRECISION, a, ac, ad, MPI_DOUBLE_PRECISION, comm, ierr)
+    call MPI_Alltoallv(b, bc, bd, MPI_DOUBLE_PRECISION, a, ac, ad, MPI_DOUBLE_PRECISION, l_comm, ierr)
   end subroutine parallel_alltoall_dv
 
   ! Broadcast
