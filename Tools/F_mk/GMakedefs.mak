@@ -239,9 +239,11 @@ ifeq ($(ARCH),Linux)
           F90FLAGS += -O3
           FFLAGS += -O3
           CFLAGS += -O3
-          F90FLAGS += -ipo
-          FFLAGS += -ipo
-          CFLAGS += -ipo
+	  ifndef PROF
+            F90FLAGS += -ipo
+            FFLAGS += -ipo
+            CFLAGS += -ipo
+	  endif
 	endif
       endif
       ifdef PROF
@@ -269,9 +271,11 @@ ifeq ($(ARCH),Linux)
           F90FLAGS += -O3
           FFLAGS += -O3
           CFLAGS += -O3
-          F90FLAGS += -ipo
-          FFLAGS += -ipo
-          CFLAGS += -ipo
+          ifndef PROF
+            F90FLAGS += -ipo
+            FFLAGS += -ipo
+            CFLAGS += -ipo
+          endif
 	endif
 #       LDFLAGS += -static
       endif
@@ -295,11 +299,8 @@ ifeq ($(ARCH),Linux)
 #         F90FLAGS += -g
           F90FLAGS += -O3
           ifndef PROF
-#           CFLAGS += -ip
             CFLAGS += -ipo
-#           FFLAGS += -ip
             FFLAGS += -ipo
-#	    F90FLAGS += -ip
             F90FLAGS += -ipo
           endif
         endif
@@ -415,6 +416,7 @@ ifeq ($(ARCH),CRAYX1)
   endif
   f2kcli_suf := _crayx1
 endif
+
 ifeq ($(ARCH),AIX)
   F_C_LINK := LOWERCASE
   COMP = xlf
@@ -437,7 +439,7 @@ ifeq ($(ARCH),AIX)
       FFLAGS += -O2
       F90FLAGS += -O2
     else
-      FFLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
+      FFLAGS   += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
       F90FLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
     endif
   else

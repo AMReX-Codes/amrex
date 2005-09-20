@@ -1,9 +1,17 @@
 module bl_prof_module
 
+  use bl_types
+  use parallel
   use bl_error_module
-  use bl_timer_module
 
   implicit none
+
+  interface
+     subroutine wall_second(s)
+       use bl_types
+       real(kind=dp_t) :: s
+     end subroutine wall_second
+  end interface
 
   !! A registry of unique numbers corresponding to the names of the
   !! timers
@@ -21,10 +29,22 @@ module bl_prof_module
      integer :: reg = BL_PROF_NOT_REG
   end type bl_prof_timer
 
+  type, private :: timer_rec
+     real(dp_t) :: cum  = 0.0_dp_t
+     real(dp_t) :: max  = -Huge(1.0_dp_t)
+     real(dp_t) :: min  = +Huge(1.0_dp_t)
+     integer :: cnt = 0
+     integer :: cmx = -Huge(1)
+     integer :: cmn = +Huge(1)
+  end type timer_rec
+
   type, private :: activation_n
      integer :: reg = BL_PROF_NOT_REG
-     type(timer) :: rec
+     type(timer_rec) :: rec
+     type(timer_rec) :: rec_global
+     real(dp_t) :: strt = 0.0_dp_t
      logical :: running = .false.
+     logical :: fixed   = .false.
      type(activation_n), pointer :: children(:) => Null()
   end type activation_n
 
@@ -65,6 +85,9 @@ module bl_prof_module
   private s_activation
   private greater_d
   private benchmark
+  private p_value
+  private p_stop
+  private p_start
 
 contains
 
@@ -99,8 +122,7 @@ contains
     allocate(the_call_tree%children(0))
     the_stack(1)%a_p => the_call_tree
     the_stack(1)%a_p%reg = 1
-    call timer_start(the_stack(1)%a_p%rec)
-    the_stack(1)%a_p%running = .true.
+    call p_start(the_stack(1)%a_p)
     call benchmark()
   end subroutine bl_prof_initialize
 
@@ -210,12 +232,35 @@ contains
     stk_p = stk_p - 1
   end subroutine bl_prof_timer_destroy
 
+  subroutine p_start(a)
+    type(activation_n), intent(inout) :: a
+    if ( a%running ) &
+         call bl_error("P_START: should not be be running before start")
+    call wall_second(a%strt)
+    a%running = .true.
+  end subroutine p_start
+
+  subroutine p_stop(a)
+    type(activation_n), intent(inout) :: a
+    real(dp_t) :: time
+    if ( .not. a%running ) &
+         call bl_error("P_STOP: should be be running before start")
+    call wall_second(time)
+    time = time - a%strt
+    a%strt = 0.0_dp_t
+    a%rec%cum  = a%rec%cum + time
+    a%rec%max  = max(a%rec%max, time)
+    a%rec%min  = min(a%rec%min, time)
+    a%rec%cnt  = a%rec%cnt + 1
+    a%running = .false.
+  end subroutine p_stop
+
   subroutine bl_prof_timer_start(bpt)
     type(bl_prof_timer), intent(inout) :: bpt
 
     if ( .not. bpt_on ) return
-    the_stack(stk_p)%a_p%running = .true.
-    call timer_start(the_stack(stk_p)%a_p%rec)
+
+    call p_start(the_stack(stk_p)%a_p)
 
   end subroutine bl_prof_timer_start
 
@@ -223,7 +268,7 @@ contains
     type(bl_prof_timer), intent(inout) :: bpt
 
     if ( .not. bpt_on ) return
-    call timer_stop(the_stack(stk_p)%a_p%rec)
+    call p_stop(the_stack(stk_p)%a_p)
     the_stack(stk_p)%a_p%running = .false.
 
   end subroutine bl_prof_timer_stop
@@ -243,7 +288,7 @@ contains
     if ( stk_p /= 1 ) then
        call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
     end if
-    call timer_stop(the_stack(1)%a_p%rec)
+    call p_stop(the_stack(1)%a_p)
 
     if ( parallel_ioprocessor() ) then
        un = unit_new()
@@ -269,7 +314,7 @@ contains
     if ( parallel_ioprocessor() ) then
        write(unit = un, fmt = '()')
        write(unit = un, fmt = &
-            '("REGION",TR20,"COUNT",TR10,"TOTAL", TR10, "CHILD", TR11, "SELF", TR12, "AVG")')
+            '("REGION",TR20,"COUNT",TR7,"TOTAL", TR7, "CHILD", TR8, "SELF", TR9, "AVG",TR9,"MAX",TR9,"MIN")')
     end if
 
     call p_activation(the_call_tree, un, 0)
@@ -278,13 +323,43 @@ contains
     end if
   end subroutine bl_prof_glean
 
+  function p_value(a, global) result(r)
+    type(activation_n), intent(inout) :: a
+    type(timer_rec) :: r
+    logical, intent(in) :: global
+    real(kind=dp_t), parameter :: MIL_SEC = 1.0e3_dp_t
+
+    if ( global ) then
+       if ( a%fixed ) then
+          r = a%rec_global
+       end if
+       call parallel_reduce(r%cum, a%rec%cum, MPI_MAX)
+       call parallel_reduce(r%max, a%rec%max, MPI_MAX)
+       call parallel_reduce(r%min, a%rec%min, MPI_MAX)
+       call parallel_reduce(r%cnt, a%rec%cnt, MPI_SUM)
+       call parallel_reduce(r%cmx, a%rec%cnt, MPI_MAX)
+       call parallel_reduce(r%cmn, a%rec%cnt, MPI_MIN)
+       a%rec_global = r
+       a%fixed = .true.
+    else
+       r = a%rec
+    end if
+
+    r%cum = r%cum*MIL_SEC
+    r%max = r%max*MIL_SEC
+    r%min = r%min*MIL_SEC
+
+  end function p_value
+
   function t_activation(a) result(r)
     real(dp_t) :: r
-    type(activation_n), intent(in) :: a
+    type(activation_n), intent(inout) :: a
     integer :: i
+    type(timer_rec) :: trec
     r = 0.0_dp_t
     do i = 1, size(a%children)
-       r = r + timer_value(a%children(i)%rec, total = .true.)
+       trec = p_value(a%children(i), .true.)
+       r = r + trec%cum
     end do
   end function t_activation
 
@@ -295,11 +370,13 @@ contains
   end function greater_d
 
   recursive subroutine s_activation(a, sm)
-    type(activation_n), intent(in) :: a
+    type(activation_n), intent(inout) :: a
     real(dp_t), intent(inout) :: sm(:,:)
     real(dp_t) :: cum, self, cum_children
     integer :: i
-    cum = timer_value(a%rec, total = .true.)
+    type(timer_rec) :: trec
+    trec = p_value(a, .true.)
+    cum = trec%cum
     cum_children = t_activation(a)
     self = cum - cum_children
     sm(a%reg,1) = sm(a%reg,1) + cum
@@ -312,28 +389,29 @@ contains
   recursive subroutine p_activation(a, un, skip)
     use bl_IO_module
     use sort_d_module
-    type(activation_n), intent(in) :: a
+    type(activation_n), intent(inout) :: a
     integer, intent(in) :: un, skip
-    integer :: i, cnt, ii
+    integer :: i, ii
     character(len=20) :: nm
-    real(dp_t) :: cum, cum_chidren, self, avg
+    real(dp_t) :: cum_chidren, self, avg
     real(dp_t), allocatable :: ctm(:)
     integer, allocatable :: itm(:)
-    
+    type(timer_rec) :: trec
+
     nm(1:skip) = repeat(' ', skip)
     nm(skip+1:) = trim(timers(a%reg)%name)
-    cnt = a%rec%cnt
-    cum = timer_value(a%rec, total = .true.)
+    trec = p_value(a, .true.)
     cum_chidren = t_activation(a)
-    self = cum - cum_chidren
-    avg  = self/cnt
+    self = trec%cum - cum_chidren
+    avg  = self/trec%cnt
     if ( parallel_ioprocessor() ) then
-       write(unit = un, fmt = '(A,1x,i10,4(F15.3))') nm, &
-            cnt, cum, cum_chidren, self, avg
+       write(unit = un, fmt = '(A,1x,i10,6(F12.3))') nm, &
+            trec%cnt, trec%cum, cum_chidren, self, avg, trec%max, trec%min
     end if
     allocate(ctm(size(a%children)),itm(size(a%children)))
     do i = 1, size(a%children)
-       ctm(i) = timer_value(a%children(i)%rec, total = .true.)
+       trec = p_value(a%children(i), .true.)
+       ctm(i) = trec%cum
     end do
     call sort(ctm, itm, greater_d)
     do i = 1, size(a%children)

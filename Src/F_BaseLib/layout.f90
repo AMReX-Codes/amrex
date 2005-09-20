@@ -1010,7 +1010,7 @@ contains
           write(unit=un, fmt='(" L_CON")')
           do i = 1, bxasc%l_con%ncpy
              call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i4,":(",i4,"<-",i4,"): ")', advance = 'no') &
+             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"): ")', advance = 'no') &
                   i, &
                   bxasc%l_con%cpy(i)%nd, &
                   bxasc%l_con%cpy(i)%ns
@@ -1041,7 +1041,7 @@ contains
           write(unit=un, fmt='(" SND")')
           do i = 1, bxasc%r_con%nsnd
              call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i4,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
+             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
                   advance = 'no') &
                   i, &
                   bxasc%r_con%snd(i)%nd, &
@@ -1057,7 +1057,7 @@ contains
           write(unit=un, fmt='(" RCV")')
           do i = 1, bxasc%r_con%nrcv
              call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i4,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
+             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
                   advance = 'no') &
                   i, &
                   bxasc%r_con%rcv(i)%nd, &
