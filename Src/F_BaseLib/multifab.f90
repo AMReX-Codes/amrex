@@ -396,6 +396,8 @@ module multifab_module
   logical, private :: l_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: z_fb_async = .false. ! Do both recv's and send's asynchronously?
 
+  private cpy_d
+
 contains
 
   subroutine multifab_get_behavior(fb_async, fb_fancy)
@@ -1938,6 +1940,15 @@ contains
     end do
   end subroutine mf_fb_easy_z
 
+  subroutine cpy_d(p1,p2)
+    real(dp_t), intent(inout) :: p1(:,:,:,:)
+    real(dp_t), intent(in)    :: p2(:,:,:,:)
+    integer :: i, j, k, n
+    do n = 1, size(p1,4); do k = 1, size(p1,3); do j = 1, size(p1,2); do i = 1, size(p1,1)
+       p1(i,j,k,n) = p2(i,j,k,n)
+    end do; end do; end do; end do
+  end subroutine cpy_d
+
   subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, lnocomm)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
@@ -1960,7 +1971,8 @@ contains
        dbx = bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  = p2
+       call cpy_d(p1,  p2)
+       ! p1 = p2
     end do
     !$OMP END PARALLEL DO
 
