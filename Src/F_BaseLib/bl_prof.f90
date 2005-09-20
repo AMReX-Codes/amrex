@@ -267,6 +267,7 @@ contains
     end if
 
     if ( parallel_ioprocessor() ) then
+       write(unit = un, fmt = '()')
        write(unit = un, fmt = &
             '("REGION",TR20,"COUNT",TR10,"TOTAL", TR10, "CHILD", TR11, "SELF", TR12, "AVG")')
     end if
