@@ -4,6 +4,7 @@ module layout_module
   use boxarray_module
   use knapsack_module
   use bl_mem_stat_module
+  use bl_prof_module
 
   implicit none
 
@@ -746,6 +747,9 @@ contains
     integer               :: shft(3**b%dim,b%dim)
     type(boxarray)        :: tba, cba, dba
     logical               :: lcross
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "periodic")
 
     lcross = .false.; if ( present(cross) ) lcross = cross
 
@@ -790,6 +794,8 @@ contains
 
     bxai = tba
 
+    call destroy(bpt)
+
   end subroutine boxarray_bndry_periodic
 
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
@@ -807,8 +813,11 @@ contains
     type(layout)         :: la
     integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(bl_prof_timer), save :: bpt
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
+
+    call build(bpt, "boxassoc_build")
 
     la%lap => lap
 
@@ -958,6 +967,8 @@ contains
        end if
     end do
     call mem_stats_alloc(bxa_ms)
+
+    call destroy(bpt)
 
   end subroutine boxassoc_build
 
