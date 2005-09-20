@@ -2001,24 +2001,19 @@ contains
 
     if ( do_atav ) then
        np = parallel_nprocs()
-       allocate(rcnt(np), rdsp(np), scnt(np), sdsp(np))
-       rcnt = 0
-       scnt = 0
-       rdsp = 0
-       sdsp = 0
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, bxasc%r_con%nsp
           ii = bxasc%r_con%str(i)%pr
           scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = 1 + nc*bxasc%r_con%rtr(i)%pr
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
        end do
        do i = 1, bxasc%r_con%nrp
           ii = bxasc%r_con%rtr(i)%pr
           rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = 1 + nc*bxasc%r_con%str(i)%pv
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
        end do
-
        call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-
     else
        allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
 
@@ -2041,7 +2036,6 @@ contains
           end do
        end if
        call parallel_wait(rst)
-
     end if
 
     do i = 1, bxasc%r_con%nrcv
