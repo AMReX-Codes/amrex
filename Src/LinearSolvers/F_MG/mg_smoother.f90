@@ -77,7 +77,7 @@ contains
     hi = ubound(uu)-ng
 
     if ( lskwd ) then
-    !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
+       !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
@@ -118,7 +118,7 @@ contains
                   uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end do
        end do
-    !$OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
     end if
 
   end subroutine gs_rb_smoother_2d
@@ -135,9 +135,10 @@ contains
     logical, intent(in), optional :: skwd
     integer :: i, j, k, ioff
     integer :: hi(size(lo))
-    real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
     logical :: lskwd
+!   real(dp_t) :: dd(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3))
+    real(dp_t) :: dd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
@@ -147,13 +148,14 @@ contains
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
-             ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
+             ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
 
                 dd = ss(i,j,k,0)*uu(i,j,k)
                 dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
                 dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
                 dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+
                 if (hi(1) > lo(1)) then
                    if (bc_skewed(mm(i,j,k),1,+1)) then
                       dd = dd + ss(i,j,k,XBC)*uu(i+2,j,k)
