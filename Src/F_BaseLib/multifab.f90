@@ -630,6 +630,10 @@ contains
     logical, intent(in), optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_build")
+
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
@@ -648,6 +652,7 @@ contains
            alloc = local(mf, i))
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
+    call destroy(bpt)
   end subroutine multifab_build
 
   subroutine imultifab_build(mf, la, nc, ng, nodal)
@@ -1584,6 +1589,10 @@ contains
     integer :: i
     type(box) :: bx
     logical lall
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_setval_c")
+
     lall = .FALSE.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
@@ -1596,6 +1605,7 @@ contains
        end if
     end do
     !$OMP END PARALLEL DO
+    call destroy(bpt)
   end subroutine multifab_setval_c
   subroutine imultifab_setval_c(mf, val, c, nc, all)
     type(imultifab), intent(inout) :: mf
@@ -1960,6 +1970,10 @@ contains
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1)
     type(box)               :: sbx, dbx
     type(boxassoc)          :: bxasc
+    integer, allocatable, dimension(:) :: rcnt, rdsp, scnt, sdsp
+    integer :: np
+
+    logical, parameter :: do_atav = .true.
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
@@ -1985,28 +1999,50 @@ contains
        g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
-    !
-    ! Always do recv's asynchronously.
-    !
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-
-    if ( d_fb_async ) then
+    if ( do_atav ) then
+       np = parallel_nprocs()
+       allocate(rcnt(np), rdsp(np), scnt(np), sdsp(np))
+       rcnt = 0
+       scnt = 0
+       rdsp = 0
+       sdsp = 0
        do i = 1, bxasc%r_con%nsp
-          sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = 1 + nc*bxasc%r_con%rtr(i)%pr
        end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = 1 + nc*bxasc%r_con%str(i)%pv
+       end do
+
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+
     else
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-    end if
+       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
 
-    call parallel_wait(rst)
+       ! Always do recv's asynchronously.
+
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+
+       if ( d_fb_async ) then
+          do i = 1, bxasc%r_con%nsp
+             sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
+                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+          end do
+       else
+          do i = 1, bxasc%r_con%nsp
+             call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+          end do
+       end if
+       call parallel_wait(rst)
+
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2015,7 +2051,9 @@ contains
        p =  reshape(g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
     end do
 
-    if ( d_fb_async) call parallel_wait(sst)
+    if ( .not. do_atav ) then
+       if ( d_fb_async) call parallel_wait(sst)
+    end if
 
   end subroutine mf_fb_fancy_double
 

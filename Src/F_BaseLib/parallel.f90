@@ -154,6 +154,11 @@ module parallel
      module procedure parallel_gather_zv
   end interface parallel_gather
 
+  interface parallel_alltoall
+     module procedure parallel_alltoall_d
+     module procedure parallel_alltoall_dv
+  end interface
+
 contains
 
   function parallel_q() result(r)
@@ -1075,26 +1080,26 @@ contains
   end subroutine parallel_recv_zv
 
   ! AlltoAll
-  subroutine parallel_alltoall_d(a, b, comm)
-    real(kind=dp_t), intent(out) :: b(:)
-    real(kind=dp_t), intent(in) :: a
+  subroutine parallel_alltoall_d(a, b, n, comm)
+    real(kind=dp_t), intent(in) :: b(*)
+    real(kind=dp_t), intent(inout) :: a(*)
     integer, intent(in), optional :: comm
     integer ierr, l_comm
-    integer :: n
-    n = 1
+    integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, comm, ierr)
   end subroutine parallel_alltoall_d
   ! AlltoAll
-  subroutine parallel_alltoall_dv(a, b, comm)
-    real(kind=dp_t), intent(out) :: b(:)
-    real(kind=dp_t), intent(in) :: a(:)
+  subroutine parallel_alltoall_dv(a, ac, ad, b, bc, bd, comm)
+    real(kind=dp_t), intent(in) :: b(*)
+    real(kind=dp_t), intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
     integer, intent(in), optional :: comm
     integer ierr, l_comm
     integer :: n
     n = size(a)
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
-    call MPI_Alltoall(b, n, MPI_DOUBLE_PRECISION, a, n, MPI_DOUBLE_PRECISION, comm, ierr)
+    call MPI_Alltoall(b, bc, bd, MPI_DOUBLE_PRECISION, a, ac, ad, MPI_DOUBLE_PRECISION, comm, ierr)
   end subroutine parallel_alltoall_dv
 
   ! Broadcast
