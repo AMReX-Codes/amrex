@@ -175,6 +175,11 @@ module parallel
      module procedure parallel_gather_zv
   end interface parallel_gather
 
+  interface parallel_alltoall
+     module procedure parallel_alltoall_d
+     module procedure parallel_alltoall_dv
+  end interface
+
   interface
      subroutine sys_abort()
      end subroutine sys_abort
@@ -973,28 +978,25 @@ contains
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_zv
 
-
-
-  subroutine parallel_alltoall_d(a, b, comm)
-    real(kind=dp_t), intent(in) :: b
-    real(kind=dp_t), intent(out) :: a(:)
-    integer, intent(in), optional :: comm
-    integer ierr, l_comm
-    integer :: n
-    n = 1
-    l_comm = m_comm; if ( present(comm) ) l_comm = comm
-    a(1) = b
-  end subroutine parallel_alltoall_d
   ! AlltoAll
-  subroutine parallel_alltoall_dv(a, b, comm)
-    real(kind=dp_t), intent(out) :: a(:)
-    real(kind=dp_t), intent(in) :: b(:)
+  subroutine parallel_alltoall_d(a, b, n, comm)
+    real(kind=dp_t), intent(in) :: b(*)
+    real(kind=dp_t), intent(inout) :: a(*)
     integer, intent(in), optional :: comm
     integer ierr, l_comm
-    integer :: n
-    n = size(a)
+    integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(1:n) = b(1:n)
+  end subroutine parallel_alltoall_d
+  ! AlltoAll
+  subroutine parallel_alltoall_dv(a, ac, ad, b, bc, bd, comm)
+    real(kind=dp_t), intent(in) :: b(*)
+    real(kind=dp_t), intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_dv
 
   subroutine parallel_bcast_d(a, root, comm)
