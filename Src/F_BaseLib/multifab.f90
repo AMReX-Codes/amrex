@@ -396,7 +396,7 @@ module multifab_module
   logical, private :: l_fb_async = .false. ! Do both recv's and send's asynchronously?
   logical, private :: z_fb_async = .false. ! Do both recv's and send's asynchronously?
 
-  private cpy_d
+  private cpy_d, cpy_i, cpy_l, cpy_z
 
 contains
 
@@ -1958,6 +1958,30 @@ contains
        p1(i,j,k,n) = p2(i,j,k,n)
     end do; end do; end do; end do
   end subroutine cpy_d
+  subroutine cpy_i(p1,p2)
+    integer, intent(inout) :: p1(:,:,:,:)
+    integer, intent(in)    :: p2(:,:,:,:)
+    integer :: i, j, k, n
+    do n = 1, size(p1,4); do k = 1, size(p1,3); do j = 1, size(p1,2); do i = 1, size(p1,1)
+       p1(i,j,k,n) = p2(i,j,k,n)
+    end do; end do; end do; end do
+  end subroutine cpy_i
+  subroutine cpy_l(p1,p2)
+    logical, intent(inout) :: p1(:,:,:,:)
+    logical, intent(in)    :: p2(:,:,:,:)
+    integer :: i, j, k, n
+    do n = 1, size(p1,4); do k = 1, size(p1,3); do j = 1, size(p1,2); do i = 1, size(p1,1)
+       p1(i,j,k,n) = p2(i,j,k,n)
+    end do; end do; end do; end do
+  end subroutine cpy_l
+  subroutine cpy_z(p1,p2)
+    complex(dp_t), intent(inout) :: p1(:,:,:,:)
+    complex(dp_t), intent(in)    :: p2(:,:,:,:)
+    integer :: i, j, k, n
+    do n = 1, size(p1,4); do k = 1, size(p1,3); do j = 1, size(p1,2); do i = 1, size(p1,1)
+       p1(i,j,k,n) = p2(i,j,k,n)
+    end do; end do; end do; end do
+  end subroutine cpy_z
 
   subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, lnocomm)
     type(multifab), intent(inout) :: mf
@@ -1973,7 +1997,7 @@ contains
     integer, allocatable, dimension(:) :: rcnt, rdsp, scnt, sdsp
     integer :: np
 
-    logical, parameter :: do_atav = .true.
+    logical, parameter :: do_atav = .false.
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
@@ -2073,7 +2097,8 @@ contains
        dbx = bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  = p2
+       ! p1  = p2
+       call cpy_i(p1, p2)
     end do
     !$OMP END PARALLEL DO
 
@@ -2142,7 +2167,8 @@ contains
        dbx = bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  = p2
+       ! p1  = p2
+       call cpy_l(p1, p2)
     end do
     !$OMP END PARALLEL DO
 
@@ -2211,7 +2237,8 @@ contains
        dbx = bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  = p2
+       ! p1  = p2
+       call cpy_z(p1, p2)
     end do
     !$OMP END PARALLEL DO
 
