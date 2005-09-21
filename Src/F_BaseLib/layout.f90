@@ -806,14 +806,18 @@ contains
     type(boxassoc),   intent(inout)        :: bxasc
     logical,          intent(in), optional :: cross
 
-    integer              :: i, j, ii, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer              :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
-    type(box)            :: abx, bx
-    type(boxarray)       :: bxa, bxai
-    type(layout)         :: la
-    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
-    type(bl_prof_timer), save :: bpt
+    integer                        :: i, j, ii, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                        :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
+    type(box)                      :: abx, bx
+    type(boxarray)                 :: bxa, bxai
+    type(layout)                   :: la
+    integer                        :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer, parameter             :: chunksize = 1000
+    integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
+    logical                        :: first
+    type(bl_prof_timer), save      :: bpt
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
 
@@ -835,60 +839,55 @@ contains
     bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
+    li_r = 1; i_r = 1; i_s = 1
     !
     ! We here consider all copies I <- J.
     !
-    do i = 1, bxa%nboxes
-       lcnt = 0
-       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
-       do j = 1, bxa%nboxes
-          if ( remote(la,i) .and. remote(la,j) ) cycle
-          bx = box_nodalize(get_box(bxa, j), nodal)
-          do ii = 1, bxai%nboxes
-             abx = intersection(bx, bxai%bxs(ii))
-             if ( empty(abx) ) cycle
-             if ( local(la,i) .and. local(la, j) ) then
-                lcnt   = lcnt   + 1
-                lcnt_r = lcnt_r + 1
-             else if ( local(la, j) ) then
-                cnt_s               = cnt_s + 1
-                parr(lap%prc(i), 2) = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2) = pvol(lap%prc(i), 2) + volume(abx)
-             else if ( local(la, i) ) then
-                cnt_r               = cnt_r + 1
-                parr(lap%prc(j), 1) = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1) = pvol(lap%prc(j), 1) + volume(abx)
-             end if
-          end do
-       end do
-       call destroy(bxai)
-    end do
-    !
-    ! Fill in the boxassoc structure.
-    !
-    bxasc%l_con%ncpy = lcnt_r
-    bxasc%r_con%nsnd = cnt_s
-    bxasc%r_con%nrcv = cnt_r
-    allocate(bxasc%l_con%cpy(lcnt_r))
-    allocate(bxasc%r_con%snd(cnt_s))
-    allocate(bxasc%r_con%rcv(cnt_r))
-    li_r = 1; i_r = 1; i_s = 1
+    allocate(bxasc%l_con%cpy(chunksize))
+    allocate(bxasc%r_con%snd(chunksize))
+    allocate(bxasc%r_con%rcv(chunksize))
 
     do i = 1, bxa%nboxes
-       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
+       lcnt = 0
+       first = .true.
        do j = 1, bxa%nboxes
           if ( remote(la,i) .and. remote(la,j) ) cycle
+          if ( first ) then
+             call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
+             first = .false.
+          end if
           bx = box_nodalize(get_box(bxa, j), nodal)
           do ii = 1, bxai%nboxes
              abx = intersection(bx, bxai%bxs(ii))
              if ( empty(abx) ) cycle
              if ( local(la,i) .and. local(la, j) ) then
+
+                if ( li_r > size(bxasc%l_con%cpy) ) then
+                   allocate(n_cpy(size(bxasc%l_con%cpy) + chunksize))
+                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                   deallocate(bxasc%l_con%cpy)
+                   bxasc%l_con%cpy => n_cpy
+                end if
+
+                lcnt                      = lcnt   + 1
+                lcnt_r                    = lcnt_r + 1
                 bxasc%l_con%cpy(li_r)%nd  = i
                 bxasc%l_con%cpy(li_r)%ns  = j
                 bxasc%l_con%cpy(li_r)%sbx = abx
                 bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
                 li_r                      = li_r + 1
-             else if ( local(la,j) ) then
+             else if ( local(la, j) ) then
+
+                if ( i_s > size(bxasc%r_con%snd) ) then
+                   allocate(n_snd(size(bxasc%r_con%snd) + chunksize))
+                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                   deallocate(bxasc%r_con%snd)
+                   bxasc%r_con%snd => n_snd
+                end if
+
+                cnt_s                    = cnt_s + 1
+                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
+                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(abx)
                 bxasc%r_con%snd(i_s)%nd  = i
                 bxasc%r_con%snd(i_s)%ns  = j
                 bxasc%r_con%snd(i_s)%sbx = abx
@@ -896,7 +895,18 @@ contains
                 bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
                 bxasc%r_con%snd(i_s)%s1  = volume(abx)
                 i_s                      = i_s + 1
-             else if ( local(la,i) ) then
+             else if ( local(la, i) ) then
+
+                if ( i_r > size(bxasc%r_con%rcv) ) then
+                   allocate(n_rcv(size(bxasc%r_con%rcv) + chunksize))
+                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                   deallocate(bxasc%r_con%rcv)
+                   bxasc%r_con%rcv => n_rcv
+                end if
+
+                cnt_r                    = cnt_r + 1
+                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
+                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(abx)
                 bxasc%r_con%rcv(i_r)%nd  = i
                 bxasc%r_con%rcv(i_r)%ns  = j
                 bxasc%r_con%rcv(i_r)%sbx = abx
@@ -909,8 +919,28 @@ contains
              end if
           end do
        end do
-       call destroy(bxai)
+       if ( .not. first ) call destroy(bxai)
     end do
+
+    bxasc%l_con%ncpy = lcnt_r
+    bxasc%r_con%nsnd = cnt_s
+    bxasc%r_con%nrcv = cnt_r
+
+    allocate(n_cpy(lcnt_r))
+    allocate(n_snd(cnt_s))
+    allocate(n_rcv(cnt_r))
+
+    n_cpy(1:lcnt_r) = bxasc%l_con%cpy(1:lcnt_r)
+    n_snd(1:cnt_s)  = bxasc%r_con%snd(1:cnt_s)
+    n_rcv(1:cnt_r)  = bxasc%r_con%rcv(1:cnt_r)
+
+    deallocate(bxasc%l_con%cpy)
+    deallocate(bxasc%r_con%snd)
+    deallocate(bxasc%r_con%rcv)
+
+    bxasc%l_con%cpy => n_cpy
+    bxasc%r_con%snd => n_snd
+    bxasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
