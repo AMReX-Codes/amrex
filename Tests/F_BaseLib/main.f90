@@ -16,7 +16,7 @@ program main
 ! call t_domain
 ! call t_box_chop
 ! call t_box_mod
-  call t_boxassoc
+! call t_boxassoc
 ! call t_mt_random_numbers
 ! call t_box_conn
 ! call t_boxarray
@@ -24,7 +24,7 @@ program main
 ! call t_timer
 ! call t_knap
 ! call t_ml_mf_read()
-! call t_bl_prof()
+  call t_bl_prof()
 
   call boxlib_finalize()
 

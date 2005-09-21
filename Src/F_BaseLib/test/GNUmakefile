@@ -14,6 +14,7 @@ f90sources += t_knapsack.f90
 f90sources += t_bx.f90
 f90sources += t_cls.f90
 f90sources += t_bxasc.f90
+f90sources += t_bl_prof.f90
 
 programs += main.f90
 
