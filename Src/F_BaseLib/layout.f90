@@ -812,7 +812,7 @@ contains
     type(boxarray)                 :: bxa, bxai
     type(layout)                   :: la
     integer                        :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer, parameter             :: chunksize = 1000
+    integer                        :: chunksize
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
@@ -837,6 +837,8 @@ contains
     allocate(ppvol(0:parallel_nprocs()-1,2))
 
     bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
+
+    chunksize = ((bxa%nboxes / parallel_nprocs()) + 1) * 10
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
     li_r = 1; i_r = 1; i_s = 1
