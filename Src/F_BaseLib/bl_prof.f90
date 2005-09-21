@@ -324,7 +324,7 @@ contains
        close(unit = un)
     end if
 
-    if ( parallel_q() ) then
+    if ( parallel_nprocs() > 1 ) then
        do i = 0, parallel_nprocs() - 1
           if ( parallel_myproc() == i ) then
              un = unit_new()
