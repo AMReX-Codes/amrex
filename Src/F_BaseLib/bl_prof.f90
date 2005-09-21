@@ -297,8 +297,8 @@ contains
             action = "write")
     end if
 
-    allocate(sm(size(timers),2),ism(size(timers)))
-    sm = 0.0_dp_t
+    allocate(sm(size(timers),4),ism(size(timers)))
+    sm(:,1) = 0.0_dp_t; sm(:,2) = 0.0_dp_t; sm(:,3) = -Huge(sm); sm(:,4) = +Huge(sm)
     call s_activation(the_call_tree, sm, local = .false.)
 
     if ( parallel_ioprocessor() ) then
@@ -306,10 +306,10 @@ contains
        write(unit = un, fmt = '("* GLOBAL")')
        write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
        call sort(sm(:,2), ism, greater_d)
-       write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF")')
+       write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF",TR12,"MAX",TR12,"MIN")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(A20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
+          write(unit = un, fmt = '(A20,4F15.3)') trim(timers(ii)%name), sm(ii,:)
        end do
     end if
 
@@ -335,14 +335,14 @@ contains
                 write(unit = un, fmt = '("* LOCAL ", i5 )') i
              end if
              write(unit = un, fmt = '(/,/, "** PROCESSOR ", i5 )') i
-             sm = 0.0_dp_t
+             sm(:,1) = 0.0_dp_t; sm(:,2) = 0.0_dp_t; sm(:,3) = -Huge(sm); sm(:,4) = +Huge(sm)
              call s_activation(the_call_tree, sm, local = .true.)
              !! Print the summary information
              call sort(sm(:,2), ism, greater_d)
-             write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF")')
+             write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF",TR12,"MAX",TR12,"MIN")')
              do j = 1, size(ism)
                 ii = ism(j)
-                write(unit = un, fmt = '(a20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
+                write(unit = un, fmt = '(a20,4F15.3)') trim(timers(ii)%name), sm(ii,:)
              end do
              write(unit = un, fmt = '()')
              write(unit = un, fmt = &
@@ -415,6 +415,8 @@ contains
     self = cum - cum_children
     sm(a%reg,1) = sm(a%reg,1) + cum
     sm(a%reg,2) = sm(a%reg,2) + self
+    sm(a%reg,3) = max(sm(a%reg,3),trec%max)
+    sm(a%reg,4) = min(sm(a%reg,4),trec%min)
     do i = 1, size(a%children)
        call s_activation(a%children(i), sm, local)
     end do
