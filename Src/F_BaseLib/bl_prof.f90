@@ -281,7 +281,7 @@ contains
     integer :: un
     character(len=8) :: date
     character(len=10) :: time
-    integer :: i, ii
+    integer :: i, ii, j
     real(dp_t), allocatable :: sm(:,:)
     integer, allocatable :: ism(:)
 
@@ -292,22 +292,24 @@ contains
 
     if ( parallel_ioprocessor() ) then
        un = unit_new()
-       open(unit = un, file = trim(fname), &
-            form = "formatted", access = "sequential", &
-            status = "replace", action = "write")
+       open(unit = un, file = trim(fname), form = "formatted", access = "sequential", &
+            status = "replace", &
+            action = "write")
     end if
 
     allocate(sm(size(timers),2),ism(size(timers)))
     sm = 0.0_dp_t
-    call s_activation(the_call_tree, sm)
+    call s_activation(the_call_tree, sm, local = .false.)
 
     if ( parallel_ioprocessor() ) then
        !! Print the summary information
+       write(unit = un, fmt = '("* GLOBAL")')
+       write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
        call sort(sm(:,2), ism, greater_d)
        write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(a20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
+          write(unit = un, fmt = '(A20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
        end do
     end if
 
@@ -317,25 +319,61 @@ contains
             '("REGION",TR20,"COUNT",TR7,"TOTAL", TR7, "CHILD", TR8, "SELF", TR9, "AVG",TR9,"MAX",TR9,"MIN")')
     end if
 
-    call p_activation(the_call_tree, un, 0)
+    call p_activation(the_call_tree, un, 0, local = .false.)
     if ( parallel_ioprocessor() ) then
        close(unit = un)
     end if
+
+    if ( parallel_q() ) then
+       do i = 0, parallel_nprocs() - 1
+          if ( parallel_myproc() == i ) then
+             un = unit_new()
+             open(unit = un, file = trim(fname), form = "formatted", access = "sequential", &
+                  position = "append", status = "old", &
+                  action = "write")
+             if ( i == 0 ) then
+                write(unit = un, fmt = '("* LOCAL ", i5 )') i
+             end if
+             write(unit = un, fmt = '(/,/, "** PROCESSOR ", i5 )') i
+             sm = 0.0_dp_t
+             call s_activation(the_call_tree, sm, local = .true.)
+             !! Print the summary information
+             call sort(sm(:,2), ism, greater_d)
+             write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF")')
+             do j = 1, size(ism)
+                ii = ism(j)
+                write(unit = un, fmt = '(a20,2F15.3)') trim(timers(ii)%name), sm(ii,:)
+             end do
+             write(unit = un, fmt = '()')
+             write(unit = un, fmt = &
+                  '("REGION",TR20,"COUNT",TR7,"TOTAL", TR7, "CHILD", TR8, "SELF", TR9, "AVG",TR9,"MAX",TR9,"MIN")')
+             call p_activation(the_call_tree, un, 0, local = .true.)
+             close(unit = un)
+          end if
+          call parallel_barrier()
+       end do
+    end if
   end subroutine bl_prof_glean
 
-  function p_value(a, global) result(r)
+  function p_value(a, local) result(r)
     type(activation_n), intent(inout) :: a
     type(timer_rec) :: r
-    logical, intent(in) :: global
+    logical, intent(in) :: local
     real(kind=dp_t), parameter :: MIL_SEC = 1.0e3_dp_t
     integer :: i
-    if ( global ) then
+    if ( local ) then
+       a%rec%cld = 0.0_dp_t
+       do i = 1, size(a%children)
+          a%rec%cld = a%rec%cld + a%children(i)%rec%cum
+       end do
+       r = a%rec
+    else
        if ( a%fixed ) then
           r = a%rec_global
           goto 999
        end if
        r%cnt = a%rec%cnt
-       r%cld = 0.0_dp_t
+       a%rec%cld = 0.0_dp_t
        do i = 1, size(a%children)
           a%rec%cld = a%rec%cld + a%children(i)%rec%cum
        end do
@@ -347,8 +385,6 @@ contains
        call parallel_reduce(r%cmn, a%rec%cnt, MPI_MIN)
        a%rec_global = r
        a%fixed = .true.
-    else
-       r = a%rec
     end if
 
 999 continue
@@ -366,28 +402,30 @@ contains
     r = a > b
   end function greater_d
 
-  recursive subroutine s_activation(a, sm)
+  recursive subroutine s_activation(a, sm, local)
     type(activation_n), intent(inout) :: a
     real(dp_t), intent(inout) :: sm(:,:)
+    logical, intent(in) :: local
     real(dp_t) :: cum, self, cum_children
     integer :: i
     type(timer_rec) :: trec
-    trec = p_value(a, .true.)
+    trec = p_value(a, local)
     cum = trec%cum
     cum_children = trec%cld
     self = cum - cum_children
     sm(a%reg,1) = sm(a%reg,1) + cum
     sm(a%reg,2) = sm(a%reg,2) + self
     do i = 1, size(a%children)
-       call s_activation(a%children(i), sm)
+       call s_activation(a%children(i), sm, local)
     end do
   end subroutine s_activation
 
-  recursive subroutine p_activation(a, un, skip)
+  recursive subroutine p_activation(a, un, skip, local)
     use bl_IO_module
     use sort_d_module
     type(activation_n), intent(inout) :: a
     integer, intent(in) :: un, skip
+    logical, intent(in) :: local
     integer :: i, ii
     character(len=20) :: nm
     real(dp_t) :: cum_chidren, self, avg, cum
@@ -397,24 +435,24 @@ contains
 
     nm(1:skip) = repeat(' ', skip)
     nm(skip+1:) = trim(timers(a%reg)%name)
-    trec = p_value(a, .true.)
+    trec = p_value(a, local)
     cum = trec%cum
     cum_chidren = trec%cld
     self = cum - cum_chidren
     avg  = self/trec%cnt
-    if ( parallel_ioprocessor() ) then
+    if ( local .or. parallel_ioprocessor() ) then
        write(unit = un, fmt = '(A,1x,i10,6(F12.3))') nm, &
             trec%cnt, cum, cum_chidren, self, avg, trec%max, trec%min
     end if
     allocate(ctm(size(a%children)),itm(size(a%children)))
     do i = 1, size(a%children)
-       trec = p_value(a%children(i), .true.)
+       trec = p_value(a%children(i), local)
        ctm(i) = trec%cum
     end do
     call sort(ctm, itm, greater_d)
     do i = 1, size(a%children)
        ii = itm(i)
-       call p_activation(a%children(ii), un, skip+1)
+       call p_activation(a%children(ii), un, skip+1, local)
     end do
   end subroutine p_activation
 
