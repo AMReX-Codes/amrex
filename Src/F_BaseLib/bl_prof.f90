@@ -334,6 +334,7 @@ contains
           r = a%rec_global
           goto 999
        end if
+       r%cnt = a%rec%cnt
        call parallel_reduce(r%cum, a%rec%cum, MPI_MAX)
        call parallel_reduce(r%max, a%rec%max, MPI_MAX)
        call parallel_reduce(r%min, a%rec%min, MPI_MIN)
