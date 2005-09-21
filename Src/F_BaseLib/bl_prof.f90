@@ -332,11 +332,11 @@ contains
     if ( global ) then
        if ( a%fixed ) then
           r = a%rec_global
+          goto 999
        end if
        call parallel_reduce(r%cum, a%rec%cum, MPI_MAX)
        call parallel_reduce(r%max, a%rec%max, MPI_MAX)
-       call parallel_reduce(r%min, a%rec%min, MPI_MAX)
-       call parallel_reduce(r%cnt, a%rec%cnt, MPI_SUM)
+       call parallel_reduce(r%min, a%rec%min, MPI_MIN)
        call parallel_reduce(r%cmx, a%rec%cnt, MPI_MAX)
        call parallel_reduce(r%cmn, a%rec%cnt, MPI_MIN)
        a%rec_global = r
@@ -344,6 +344,8 @@ contains
     else
        r = a%rec
     end if
+
+999 continue
 
     r%cum = r%cum*MIL_SEC
     r%max = r%max*MIL_SEC
