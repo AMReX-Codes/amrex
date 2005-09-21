@@ -33,6 +33,7 @@ module bl_prof_module
      real(dp_t) :: cum  = 0.0_dp_t
      real(dp_t) :: max  = -Huge(1.0_dp_t)
      real(dp_t) :: min  = +Huge(1.0_dp_t)
+     real(dp_t) :: cld  = 0.0_dp_t
      integer :: cnt = 0
      integer :: cmx = -Huge(1)
      integer :: cmn = +Huge(1)
@@ -81,7 +82,6 @@ module bl_prof_module
 
   private f_activation
   private p_activation
-  private t_activation
   private s_activation
   private greater_d
   private benchmark
@@ -328,13 +328,18 @@ contains
     type(timer_rec) :: r
     logical, intent(in) :: global
     real(kind=dp_t), parameter :: MIL_SEC = 1.0e3_dp_t
-
+    integer :: i
     if ( global ) then
        if ( a%fixed ) then
           r = a%rec_global
           goto 999
        end if
        r%cnt = a%rec%cnt
+       r%cld = 0.0_dp_t
+       do i = 1, size(a%children)
+          a%rec%cld = a%rec%cld + a%children(i)%rec%cum
+       end do
+       call parallel_reduce(r%cld, a%rec%cld, MPI_MAX)
        call parallel_reduce(r%cum, a%rec%cum, MPI_MAX)
        call parallel_reduce(r%max, a%rec%max, MPI_MAX)
        call parallel_reduce(r%min, a%rec%min, MPI_MIN)
@@ -351,20 +356,9 @@ contains
     r%cum = r%cum*MIL_SEC
     r%max = r%max*MIL_SEC
     r%min = r%min*MIL_SEC
+    r%cld = r%cld*MIL_SEC
 
   end function p_value
-
-  function t_activation(a) result(r)
-    real(dp_t) :: r
-    type(activation_n), intent(inout) :: a
-    integer :: i
-    type(timer_rec) :: trec
-    r = 0.0_dp_t
-    do i = 1, size(a%children)
-       trec = p_value(a%children(i), .true.)
-       r = r + trec%cum
-    end do
-  end function t_activation
 
   function greater_d(a,b) result(r)
     logical :: r
@@ -380,7 +374,7 @@ contains
     type(timer_rec) :: trec
     trec = p_value(a, .true.)
     cum = trec%cum
-    cum_children = t_activation(a)
+    cum_children = trec%cld
     self = cum - cum_children
     sm(a%reg,1) = sm(a%reg,1) + cum
     sm(a%reg,2) = sm(a%reg,2) + self
@@ -396,7 +390,7 @@ contains
     integer, intent(in) :: un, skip
     integer :: i, ii
     character(len=20) :: nm
-    real(dp_t) :: cum_chidren, self, avg
+    real(dp_t) :: cum_chidren, self, avg, cum
     real(dp_t), allocatable :: ctm(:)
     integer, allocatable :: itm(:)
     type(timer_rec) :: trec
@@ -404,12 +398,13 @@ contains
     nm(1:skip) = repeat(' ', skip)
     nm(skip+1:) = trim(timers(a%reg)%name)
     trec = p_value(a, .true.)
-    cum_chidren = t_activation(a)
-    self = trec%cum - cum_chidren
+    cum = trec%cum
+    cum_chidren = trec%cld
+    self = cum - cum_chidren
     avg  = self/trec%cnt
     if ( parallel_ioprocessor() ) then
        write(unit = un, fmt = '(A,1x,i10,6(F12.3))') nm, &
-            trec%cnt, trec%cum, cum_chidren, self, avg, trec%max, trec%min
+            trec%cnt, cum, cum_chidren, self, avg, trec%max, trec%min
     end if
     allocate(ctm(size(a%children)),itm(size(a%children)))
     do i = 1, size(a%children)
@@ -437,35 +432,3 @@ subroutine bl_prof_build_c(reg, name, n)
   call int2str(cname, name, n)
   reg = 0
 end subroutine bl_prof_build_c
-
-subroutine t_bl_prof
-  use bl_prof_module
-  implicit none
-  type(bl_prof_timer), save :: bpt
-
-  call bl_prof_initialize(on = .true.)
-  call build(bpt, "t_bl_prof")
-  call t()
-  call t()
-  call destroy(bpt)
-  call bl_prof_glean("bl_prof_res")
-  call bl_prof_finalize
-
-contains
-
-  subroutine t
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "t", no_start = .true.)
-    call start(bpt)
-    call destroy(bpt)
-  end subroutine t
-
-  subroutine g
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "t")        ! (sic)
-    call start(bpt)
-    call stop(bpt)
-    call destroy(bpt)
-  end subroutine g
-
-end subroutine t_bl_prof

@@ -9,7 +9,9 @@ subroutine t_bl_prof
   call build(bpt, "t_bl_prof")
   b = (/(i,i=1,100)/)
   call t()
-  a = sin(b)
+  do i = 1, 100
+     a = sin(b)
+  end do
   call t1()
   call destroy(bpt)
   call bl_prof_glean("bl_prof_res")
