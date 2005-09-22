@@ -811,46 +811,40 @@ contains
     type(box)                      :: abx, bx
     type(boxarray)                 :: bxa, bxai
     type(layout)                   :: la
-    integer                        :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer                        :: chunksize
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
+    integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     logical                        :: first
     type(bl_prof_timer), save      :: bpt
 
-    if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: alread built")
+    if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: already built")
 
     call build(bpt, "boxassoc_build")
 
-    la%lap => lap
-
-    bxa = get_boxarray(la)
-
-    bxasc%dim    = bxa%dim
-    bxasc%grwth  = ng
-    bxasc%nboxes = bxa%nboxes
+    la%lap       => lap
+    bxa          =  get_boxarray(la)
+    bxasc%dim    =  bxa%dim
+    bxasc%grwth  =  ng
+    bxasc%nboxes =  bxa%nboxes
 
     allocate(bxasc%nodal(bxasc%dim))
     allocate(parr(0:parallel_nprocs()-1,2))
     allocate(pvol(0:parallel_nprocs()-1,2))
     allocate(ppvol(0:parallel_nprocs()-1,2))
-
-    bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
-
-    chunksize = ((bxa%nboxes / parallel_nprocs()) + 1) * 10
-
-    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
-    li_r = 1; i_r = 1; i_s = 1
-    !
-    ! We here consider all copies I <- J.
-    !
     allocate(bxasc%l_con%cpy(chunksize))
     allocate(bxasc%r_con%snd(chunksize))
     allocate(bxasc%r_con%rcv(chunksize))
 
+    bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
+
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
+    !
+    ! Consider all copies I <- J.
+    !
     do i = 1, bxa%nboxes
-       lcnt = 0
        first = .true.
        do j = 1, bxa%nboxes
           if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -863,15 +857,12 @@ contains
              abx = intersection(bx, bxai%bxs(ii))
              if ( empty(abx) ) cycle
              if ( local(la,i) .and. local(la, j) ) then
-
                 if ( li_r > size(bxasc%l_con%cpy) ) then
                    allocate(n_cpy(size(bxasc%l_con%cpy) + chunksize))
                    n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
                    deallocate(bxasc%l_con%cpy)
                    bxasc%l_con%cpy => n_cpy
                 end if
-
-                lcnt                      = lcnt   + 1
                 lcnt_r                    = lcnt_r + 1
                 bxasc%l_con%cpy(li_r)%nd  = i
                 bxasc%l_con%cpy(li_r)%ns  = j
@@ -879,14 +870,12 @@ contains
                 bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
                 li_r                      = li_r + 1
              else if ( local(la, j) ) then
-
                 if ( i_s > size(bxasc%r_con%snd) ) then
                    allocate(n_snd(size(bxasc%r_con%snd) + chunksize))
                    n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
                    deallocate(bxasc%r_con%snd)
                    bxasc%r_con%snd => n_snd
                 end if
-
                 cnt_s                    = cnt_s + 1
                 parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
                 pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(abx)
@@ -898,14 +887,12 @@ contains
                 bxasc%r_con%snd(i_s)%s1  = volume(abx)
                 i_s                      = i_s + 1
              else if ( local(la, i) ) then
-
                 if ( i_r > size(bxasc%r_con%rcv) ) then
                    allocate(n_rcv(size(bxasc%r_con%rcv) + chunksize))
                    n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
                    deallocate(bxasc%r_con%rcv)
                    bxasc%r_con%rcv => n_rcv
                 end if
-
                 cnt_r                    = cnt_r + 1
                 parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
                 pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(abx)
@@ -924,24 +911,35 @@ contains
        if ( .not. first ) call destroy(bxai)
     end do
 
+    if ( .false. ) then
+       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       if ( parallel_IOProcessor() ) then
+          print*, '*** chunksize = ', chunksize
+          print*, '*** max(lcnt_r) = ', lcnt_r_max
+          print*, '*** max(cnt_s) = ', cnt_s_max
+          print*, '*** max(cnt_r) = ', cnt_r_max
+       end if
+    end if
+
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
     bxasc%r_con%nrcv = cnt_r
 
     allocate(n_cpy(lcnt_r))
-    allocate(n_snd(cnt_s))
-    allocate(n_rcv(cnt_r))
-
     n_cpy(1:lcnt_r) = bxasc%l_con%cpy(1:lcnt_r)
-    n_snd(1:cnt_s)  = bxasc%r_con%snd(1:cnt_s)
-    n_rcv(1:cnt_r)  = bxasc%r_con%rcv(1:cnt_r)
-
     deallocate(bxasc%l_con%cpy)
-    deallocate(bxasc%r_con%snd)
-    deallocate(bxasc%r_con%rcv)
-
     bxasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s)  = bxasc%r_con%snd(1:cnt_s)
+    deallocate(bxasc%r_con%snd)
     bxasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r)  = bxasc%r_con%rcv(1:cnt_r)
+    deallocate(bxasc%r_con%rcv)
     bxasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
@@ -1112,19 +1110,25 @@ contains
     type(layout),     intent(in)    :: la_src, la_dst
     logical,          intent(in)    :: nd_dst(:), nd_src(:)
 
-    integer              :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer              :: sh(MAX_SPACEDIM+1)
-    type(box)            :: bx
-    type(boxarray)       :: bxa_src, bxa_dst
-    integer              :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
+    integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                        :: sh(MAX_SPACEDIM+1)
+    type(box)                      :: bx
+    type(boxarray)                 :: bxa_src, bxa_dst
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
+    integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
+    integer, parameter             :: chunksize = 100
+    type(bl_prof_timer), save      :: bpt
 
-    if ( built_q(cpasc) ) call bl_error("COPYASSOC_BUILD: alread built")
+    if ( built_q(cpasc) ) call bl_error("COPYASSOC_BUILD: already built")
 
-    bxa_src = get_boxarray(la_src)
-    bxa_dst = get_boxarray(la_dst)
+    call build(bpt, "copyassoc_build")
 
-    cpasc%dim     = bxa_src%dim
+    bxa_src       =  get_boxarray(la_src)
+    bxa_dst       =  get_boxarray(la_dst)
+    cpasc%dim     =  bxa_src%dim
     cpasc%lap_dst => la_dst%lap
     cpasc%lap_src => la_src%lap
 
@@ -1133,75 +1137,105 @@ contains
     allocate(parr(0:parallel_nprocs()-1,2))
     allocate(pvol(0:parallel_nprocs()-1,2))
     allocate(ppvol(0:parallel_nprocs()-1,2))
+    allocate(cpasc%l_con%cpy(chunksize))
+    allocate(cpasc%r_con%snd(chunksize))
+    allocate(cpasc%r_con%rcv(chunksize))
 
     cpasc%nd_dst = nd_dst
     cpasc%nd_src = nd_src
 
-    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
-
-    do i = 1, bxa_dst%nboxes
-       lcnt = 0
-       do j = 1, bxa_src%nboxes
-          if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
-          bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
-          if ( empty(bx) ) cycle
-          if ( local(la_dst,i) .and. local(la_src,j) ) then
-             lcnt   = lcnt   + 1
-             lcnt_r = lcnt_r + 1
-          else if ( local(la_src,j) ) then
-             cnt_s               = cnt_s + 1
-             parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
-             pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
-          else if ( local(la_dst,i) ) then
-             cnt_r               = cnt_r + 1
-             parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
-             pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
-          end if
-       end do
-    end do
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
-    ! Fill in the copyassoc structure.
+    ! Consider all copies I <- J.
     !
-    cpasc%l_con%ncpy = lcnt_r
-    cpasc%r_con%nsnd = cnt_s
-    cpasc%r_con%nrcv = cnt_r
-    allocate(cpasc%l_con%cpy(lcnt_r))
-    allocate(cpasc%r_con%snd(cnt_s))
-    allocate(cpasc%r_con%rcv(cnt_r))
-    li_r = 1; i_r = 1; i_s = 1
-
     do i = 1, bxa_dst%nboxes
        do j = 1, bxa_src%nboxes
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
           bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
           if ( empty(bx) ) cycle
-          if ( local(la_dst,i) .and. local(la_src,j) ) then
+          if ( local(la_dst, i) .and. local(la_src, j) ) then
+             if ( li_r > size(cpasc%l_con%cpy) ) then
+                allocate(n_cpy(size(cpasc%l_con%cpy) + chunksize))
+                n_cpy(1:li_r-1) = cpasc%l_con%cpy(1:li_r-1)
+                deallocate(cpasc%l_con%cpy)
+                cpasc%l_con%cpy => n_cpy
+             end if
+             lcnt_r                    = lcnt_r + 1
              cpasc%l_con%cpy(li_r)%nd  = i
              cpasc%l_con%cpy(li_r)%ns  = j
              cpasc%l_con%cpy(li_r)%sbx = bx
              cpasc%l_con%cpy(li_r)%dbx = bx
              li_r                      = li_r + 1
-          else if ( local(la_src,j) ) then
-             cpasc%r_con%snd(i_s)%nd  = i
-             cpasc%r_con%snd(i_s)%ns  = j
-             cpasc%r_con%snd(i_s)%sbx = bx
-             cpasc%r_con%snd(i_s)%dbx = bx
-             cpasc%r_con%snd(i_s)%pr  = get_proc(la_dst,i)
-             cpasc%r_con%snd(i_s)%s1  = volume(bx)
-             i_s                      = i_s + 1
-          else if ( local(la_dst,i) ) then
-             cpasc%r_con%rcv(i_r)%nd  = i
-             cpasc%r_con%rcv(i_r)%ns  = j
-             cpasc%r_con%rcv(i_r)%sbx = bx
-             cpasc%r_con%rcv(i_r)%dbx = bx
-             cpasc%r_con%rcv(i_r)%pr  = get_proc(la_src,j)
-             sh                       = 1
-             sh(1:cpasc%dim)          = extent(bx)
-             cpasc%r_con%rcv(i_r)%sh  = sh
-             i_r                      = i_r + 1
+          else if ( local(la_src, j) ) then
+             if ( i_s > size(cpasc%r_con%snd) ) then
+                allocate(n_snd(size(cpasc%r_con%snd) + chunksize))
+                n_snd(1:i_s-1) = cpasc%r_con%snd(1:i_s-1)
+                deallocate(cpasc%r_con%snd)
+                cpasc%r_con%snd => n_snd
+             end if
+             cnt_s                      = cnt_s + 1
+             parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
+             pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
+             cpasc%r_con%snd(i_s)%nd    = i
+             cpasc%r_con%snd(i_s)%ns    = j
+             cpasc%r_con%snd(i_s)%sbx   = bx
+             cpasc%r_con%snd(i_s)%dbx   = bx
+             cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
+             cpasc%r_con%snd(i_s)%s1    = volume(bx)
+             i_s                        = i_s + 1
+          else if ( local(la_dst, i) ) then
+             if ( i_r > size(cpasc%r_con%rcv) ) then
+                allocate(n_rcv(size(cpasc%r_con%rcv) + chunksize))
+                n_rcv(1:i_r-1) = cpasc%r_con%rcv(1:i_r-1)
+                deallocate(cpasc%r_con%rcv)
+                cpasc%r_con%rcv => n_rcv
+             end if
+             cnt_r                      = cnt_r + 1
+             parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
+             pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
+             cpasc%r_con%rcv(i_r)%nd    = i
+             cpasc%r_con%rcv(i_r)%ns    = j
+             cpasc%r_con%rcv(i_r)%sbx   = bx
+             cpasc%r_con%rcv(i_r)%dbx   = bx
+             cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
+             sh                         = 1
+             sh(1:cpasc%dim)            = extent(bx)
+             cpasc%r_con%rcv(i_r)%sh    = sh
+             i_r                        = i_r + 1
           end if
        end do
     end do
+
+    if ( .false. ) then
+       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       if ( parallel_IOProcessor() ) then
+          print*, '*** chunksize = ', chunksize
+          print*, '*** max(lcnt_r) = ', lcnt_r_max
+          print*, '*** max(cnt_s) = ', cnt_s_max
+          print*, '*** max(cnt_r) = ', cnt_r_max
+       end if
+    end if
+
+    cpasc%l_con%ncpy = lcnt_r
+    cpasc%r_con%nsnd = cnt_s
+    cpasc%r_con%nrcv = cnt_r
+
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = cpasc%l_con%cpy(1:lcnt_r)
+    deallocate(cpasc%l_con%cpy)
+    cpasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s)  = cpasc%r_con%snd(1:cnt_s)
+    deallocate(cpasc%r_con%snd)
+    cpasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r)  = cpasc%r_con%rcv(1:cnt_r)
+    deallocate(cpasc%r_con%rcv)
+    cpasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1257,6 +1291,8 @@ contains
           pi_s = pi_s + 1
        end if
     end do
+
+    call destroy(bpt)
 
   end subroutine copyassoc_build
 
