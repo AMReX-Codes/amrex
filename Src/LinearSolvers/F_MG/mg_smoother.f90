@@ -55,7 +55,7 @@ contains
     end if
   end subroutine gs_rb_smoother_1d
 
-  subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_2d_1(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -185,9 +185,9 @@ contains
     end if
 
 
-  end subroutine gs_rb_smoother_2d
+  end subroutine gs_rb_smoother_2d_1
 
-  subroutine gs_rb_smoother_2d_old(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_2d_2(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -203,12 +203,129 @@ contains
     integer, parameter ::  XBC = 5, YBC = 6
     real (kind = dp_t) :: dd
     logical :: lskwd
+    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     hi = ubound(uu)-ng
 
+    !! assumption: ss(i,j,0) vanishes only for 1x1 problems
+    if ( all(lo == hi) ) then
+       i = lo(1); j = lo(2)
+       if ( mod(i + j,2) == n ) then
+          dd = ss(i,j,0)*uu(i,j) &
+               + ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j) &
+               + ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1)
+          if ( abs(ss(i,j,0)) .gt. 0.0_dp_t ) then
+             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+          end if
+       end if
+       return
+    end if
+    !! Assumption; bc_skewed is never true if hi==lo
+
+    do i = lo(1), hi(1)
+       tb(i,1) = uu(i,lo(2)+2)
+       tb(i,2) = uu(i,hi(2)-2)
+    end do
+    do j = lo(2), hi(2)
+       lr(j,1) = uu(lo(1)+2,j)
+       lr(j,2) = uu(hi(1)-2,j)
+    end do
+
+    !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
+    do j = lo(2),hi(2)
+       ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          dd = ss(i,j,0)*uu(i,j) &
+               + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
+               + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
+          uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    j = lo(2)
+    ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
+    do i = lo(1) + ioff, hi(1), 2
+       if (bc_skewed(mm(i,j),2,+1)) then
+          uu(i,j) = uu(i,j) - ss(i,j,YBC)*tb(i,1)*omega/ss(i,j,0)
+       end if
+    end do
+    j = hi(2)
+    ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
+    do i = lo(1) + ioff, hi(1), 2
+       if (bc_skewed(mm(i,j),2,-1)) then
+          uu(i,j) = uu(i,j) - ss(i,j,YBC)*tb(i,2)*omega/ss(i,j,0)
+       end if
+    end do
+    i = lo(1)
+    ioff = 0; if ( mod(lo(2) + i, 2) /= n ) ioff = 1
+    do j = lo(2) + ioff, hi(2), 2
+       if (bc_skewed(mm(i,j),1,+1)) then
+          uu(i,j) = uu(i,j) - ss(i,j,XBC)*lr(j,1)*omega/ss(i,j,0)
+       end if
+    end do
+    i = hi(1)
+    ioff = 0; if ( mod(lo(2) + i, 2) /= n ) ioff = 1
+    do j = lo(2) + ioff, hi(2), 2
+       if (bc_skewed(mm(i,j),1,-1)) then
+          uu(i,j) = uu(i,j) - ss(i,j,XBC)*lr(j,2)*omega/ss(i,j,0)
+       end if
+    end do
+
+  end subroutine gs_rb_smoother_2d_2
+
+  subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    integer, intent(in) :: ng
+    integer, intent(in) :: lo(:)
+    integer, intent(in) :: n
+    real (kind = dp_t), intent(in) :: omega
+    real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
+    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
+    integer            ,intent(in) :: mm(lo(1):,lo(2):)
+    logical, intent(in), optional :: skwd
+    integer :: j, i
+    integer :: hi(size(lo))
+    integer :: ioff
+    integer, parameter ::  XBC = 5, YBC = 6
+    real (kind = dp_t) :: dd
+    logical :: lskwd
+    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
+
+    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
+
+    hi = ubound(uu)-ng
+
+    !! assumption: ss(i,j,0) vanishes only for 1x1 problems
+    if ( all(lo == hi) ) then
+       i = lo(1); j = lo(2)
+       if ( mod(i + j,2) == n ) then
+          dd = ss(i,j,0)*uu(i,j) &
+               + ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j) &
+               + ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1)
+          if ( abs(ss(i,j,0)) .gt. 0.0_dp_t ) then
+             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+          end if
+       end if
+       return
+    end if
+    !! Assumption; bc_skewed is never true if hi==lo
+
     if ( lskwd ) then
+
+       do i = lo(1), hi(1)
+          tb(i,1) = uu(i,lo(2)+2)
+          tb(i,2) = uu(i,hi(2)-2)
+       end do
+       do j = lo(2), hi(2)
+          lr(j,1) = uu(lo(1)+2,j)
+          lr(j,2) = uu(hi(1)-2,j)
+       end do
+
        !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
@@ -217,23 +334,21 @@ contains
              dd = ss(i,j,0)*uu(i,j) &
                   + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
                   + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
-             if (hi(1) > lo(1)) then
+             if ( i == lo(1) .or. i == hi(1) .or. j == lo(2) .or. j == hi(2) ) then
                 if (bc_skewed(mm(i,j),1,+1)) then
-                   dd = dd + ss(i,j,XBC)*uu(i+2,j)
-                else if (bc_skewed(mm(i,j),1,-1)) then
-                   dd = dd + ss(i,j,XBC)*uu(i-2,j)
+                   dd = dd + ss(i,j,XBC)*lr(j,1)
                 end if
-             end if
-             if (hi(2) > lo(2)) then
+                if (bc_skewed(mm(i,j),1,-1)) then
+                   dd = dd + ss(i,j,XBC)*lr(j,2)
+                end if
                 if (bc_skewed(mm(i,j),2,+1)) then
-                   dd = dd + ss(i,j,YBC)*uu(i,j+2)
-                else if (bc_skewed(mm(i,j),2,-1)) then
-                   dd = dd + ss(i,j,YBC)*uu(i,j-2)
+                   dd = dd + ss(i,j,YBC)*tb(i,1)
+                end if
+                if (bc_skewed(mm(i,j),2,-1)) then
+                   dd = dd + ss(i,j,YBC)*tb(i,2)
                 end if
              end if
-
-             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) &
-                  uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end do
        end do
        !$OMP END PARALLEL DO
@@ -253,9 +368,9 @@ contains
        !$OMP END PARALLEL DO
     end if
 
-  end subroutine gs_rb_smoother_2d_old
+  end subroutine gs_rb_smoother_2d
 
-  subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_3d_2(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -671,9 +786,9 @@ contains
        end if
     end if
 
-  end subroutine gs_rb_smoother_3d
+  end subroutine gs_rb_smoother_3d_2
 
-  subroutine gs_rb_smoother_3d_old(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_3d_1(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -689,12 +804,184 @@ contains
     logical :: lskwd
     !   real(dp_t) :: dd(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3))
     real(dp_t) :: dd
+    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     hi = ubound(uu)-ng
 
+    if ( all(lo == hi) ) then
+       k = lo(3); j = lo(2); i = lo(1)
+       if ( mod(i + j + k, 2) == n ) then
+          dd = ss(i,j,k,0)*uu(i,j,k)
+          dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+          dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+          dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+          if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+          end if
+       end if
+       return
+    end if
+
+    do k = lo(3), hi(3)
+       do i = lo(1), hi(1)
+          tb(i,k,1) = uu(i,lo(2)+2,k)
+          tb(i,k,2) = uu(i,hi(2)-2,k)
+       end do
+    end do
+    do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          lr(j,k,1) = uu(lo(1)+2,j,k)
+          lr(j,k,2) = uu(hi(1)-2,j,k)
+       end do
+    end do
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          fb(i,j,1) = uu(i,j,lo(3)+2)
+          fb(i,j,2) = uu(i,j,hi(3)-2)
+       end do
+    end do
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+    do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+          do i = lo(1)+ioff, hi(1), 2
+             dd = ss(i,j,k,0)*uu(i,j,k)
+             dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+             dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+             dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    ioff = 0; if ( mod(i + j + k, 2) /= n ) ioff = 1
+
+    k = lo(3)
+    do j = lo(2), hi(2)
+       ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),3,+1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,ZBC)*fb(i,j,1)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+    k = hi(3)
+    do j = lo(2), hi(2)
+       ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),3,-1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,ZBC)*fb(i,j,2)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+    j = lo(2)
+    do k = lo(3), hi(3)
+       ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),2,+1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,YBC)*tb(i,k,1)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+    j = hi(2)
+    do k = lo(3), hi(3)
+       ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),2,-1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,YBC)*tb(i,k,2)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+    i = lo(1)
+    do k = lo(3), hi(3)
+       ioff = 0; if ( mod(lo(2) + i + k, 2) /= n ) ioff = 1
+       do j = lo(2) + ioff, hi(2), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),1,+1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,XBC)*lr(j,k,1)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+    i = hi(1)
+    do k = lo(3), hi(3)
+       ioff = 0; if ( mod(lo(2) + i + k, 2) /= n ) ioff = 1
+       do j = lo(2) + ioff, hi(2), 2
+          !! if ( mod(i + j + k, 2) /= n ) stop
+          if (bc_skewed(mm(i,j,k),1,-1)) then
+             uu(i,j,k) = uu(i,j,k) - ss(i,j,k,XBC)*lr(j,k,2)*omega/ss(i,j,k,0)
+          end if
+       end do
+    end do
+
+  end subroutine gs_rb_smoother_3d_1
+
+  subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    integer, intent(in) :: ng
+    integer, intent(in) :: lo(:)
+    integer, intent(in) :: n
+    real (kind = dp_t), intent(in) :: omega
+    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):,lo(3):)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
+    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
+    logical, intent(in), optional :: skwd
+    integer :: i, j, k, ioff
+    integer :: hi(size(lo))
+    integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
+    logical :: lskwd
+    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t) :: dd
+
+    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
+
+    hi = ubound(uu)-ng
+
+    if ( all(lo == hi) ) then
+       k = lo(3); j = lo(2); i = lo(1)
+       if ( mod(i + j + k, 2) == n ) then
+          dd = ss(i,j,k,0)*uu(i,j,k)
+          dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+          dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+          dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+          if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+          end if
+       end if
+       return
+    end if
+
     if ( lskwd ) then
+       do k = lo(3), hi(3)
+          do i = lo(1), hi(1)
+             tb(i,k,1) = uu(i,lo(2)+2,k)
+             tb(i,k,2) = uu(i,hi(2)-2,k)
+          end do
+       end do
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             lr(j,k,1) = uu(lo(1)+2,j,k)
+             lr(j,k,2) = uu(hi(1)-2,j,k)
+          end do
+       end do
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             fb(i,j,1) = uu(i,j,lo(3)+2)
+             fb(i,j,2) = uu(i,j,hi(3)-2)
+          end do
+       end do
+
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
@@ -706,31 +993,27 @@ contains
                 dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
                 dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
 
-                if (hi(1) > lo(1)) then
+                if ( i == lo(1) .or. i == hi(1) .or. j == lo(2) .or. j == hi(2) .or. k == lo(3) .or. k == hi(3) ) then
                    if (bc_skewed(mm(i,j,k),1,+1)) then
-                      dd = dd + ss(i,j,k,XBC)*uu(i+2,j,k)
-                   else if (bc_skewed(mm(i,j,k),1,-1)) then
-                      dd = dd + ss(i,j,k,XBC)*uu(i-2,j,k)
+                      dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
                    end if
-                end if
-
-                if (hi(2) > lo(2)) then
+                   if (bc_skewed(mm(i,j,k),1,-1)) then
+                      dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
+                   end if
                    if (bc_skewed(mm(i,j,k),2,+1)) then
-                      dd = dd + ss(i,j,k,YBC)*uu(i,j+2,k)
-                   else if (bc_skewed(mm(i,j,k),2,-1)) then
-                      dd = dd + ss(i,j,k,YBC)*uu(i,j-2,k)
+                      dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
                    end if
-                end if
-
-                if (hi(3) > lo(3)) then
+                   if (bc_skewed(mm(i,j,k),2,-1)) then
+                      dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
+                   end if
                    if (bc_skewed(mm(i,j,k),3,+1)) then
-                      dd = dd + ss(i,j,k,ZBC)*uu(i,j,k+2)
-                   else if (bc_skewed(mm(i,j,k),3,-1)) then
-                      dd = dd + ss(i,j,k,ZBC)*uu(i,j,k-2)
+                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
+                   end if
+                   if (bc_skewed(mm(i,j,k),3,-1)) then
+                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
                    end if
                 end if
-                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) &
-                     uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
              end do
           end do
        end do
@@ -754,7 +1037,7 @@ contains
        !$OMP END PARALLEL DO
     end if
 
-  end subroutine gs_rb_smoother_3d_old
+  end subroutine gs_rb_smoother_3d
 
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
     integer, intent(in) :: lo(:)
@@ -861,7 +1144,7 @@ contains
                      + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
                      + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
 
-                !         Add faces (only non-zero for non-uniform dx)
+                ! Add faces (only non-zero for non-uniform dx)
                 dd = dd + &
                      ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
                      + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
