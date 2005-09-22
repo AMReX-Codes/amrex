@@ -7,6 +7,10 @@ module bl_prof_module
   implicit none
 
   interface
+     subroutine cpu_second(s)
+       use bl_types
+       real(kind=dp_t) :: s
+     end subroutine cpu_second
      subroutine wall_second(s)
        use bl_types
        real(kind=dp_t) :: s
@@ -89,6 +93,8 @@ module bl_prof_module
   private p_stop
   private p_start
 
+  logical, private, save :: wall = .true.
+
 contains
 
   subroutine bl_prof_set_state(on)
@@ -113,6 +119,7 @@ contains
     if ( associated(timers) .or. associated(the_stack) ) then
        call bl_error("BL_PROF_INITIALIZE: must be called once only")
     end if
+    if ( parallel_q() ) wall = .false.
     !! Hand initialize the data structures
     allocate(timers(1))
     timers(1)%reg = 1
@@ -236,7 +243,11 @@ contains
     type(activation_n), intent(inout) :: a
     if ( a%running ) &
          call bl_error("P_START: should not be be running before start")
-    call wall_second(a%strt)
+    if ( wall ) then
+       call wall_second(a%strt)
+    else
+       call cpu_second(a%strt)
+    end if
     a%running = .true.
   end subroutine p_start
 
@@ -245,7 +256,11 @@ contains
     real(dp_t) :: time
     if ( .not. a%running ) &
          call bl_error("P_STOP: should be be running before start")
-    call wall_second(time)
+    if ( wall ) then
+       call wall_second(time)
+    else
+       call cpu_second(time)
+    end if
     time = time - a%strt
     a%strt = 0.0_dp_t
     a%rec%cum  = a%rec%cum + time
