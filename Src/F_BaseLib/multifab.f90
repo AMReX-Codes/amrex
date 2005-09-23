@@ -1997,7 +1997,7 @@ contains
     integer, allocatable, dimension(:) :: rcnt, rdsp, scnt, sdsp
     integer :: np
 
-    logical, parameter :: do_atav = .false.
+    logical, parameter :: Do_AllToAllV = .false.
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
@@ -2023,7 +2023,7 @@ contains
        g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    if ( do_atav ) then
+    if ( Do_AllToAllV ) then
        np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
@@ -2069,9 +2069,7 @@ contains
        p =  reshape(g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
     end do
 
-    if ( .not. do_atav ) then
-       if ( d_fb_async) call parallel_wait(sst)
-    end if
+    if ( .not. Do_AllToAllV .and. d_fb_async ) call parallel_wait(sst)
 
   end subroutine mf_fb_fancy_double
 
@@ -3087,10 +3085,11 @@ contains
 
     type(copyassoc)      :: cpasc
     real(dp_t), pointer  :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable :: rst(:), sst(:)
+    integer, allocatable :: rst(:), sst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1102
-    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1)
+    integer              :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     type(box)            :: sbx, dbx
+    logical, parameter   :: Do_AllToAllV = .true.
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
@@ -3105,7 +3104,8 @@ contains
        if ( present(filter) ) then
           call filter(pdst, psrc)
        else
-          pdst = psrc
+          call cpy_d(pdst, psrc)
+          !pdst = psrc
        end if
     end do
     !$OMP END PARALLEL DO
@@ -3119,28 +3119,45 @@ contains
        g_snd_d(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
-    !
-    ! Always do recv's asynchronously.
-    !
-    do i = 1, cpasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
-            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-    end do
-
-    if ( d_fb_async ) then
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, cpasc%r_con%nsp
-          sst(i) = parallel_isend_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv:), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+          ii = cpasc%r_con%str(i)%pr
+          scnt(ii) = nc*cpasc%r_con%str(i)%sz
+          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
        end do
+       do i = 1, cpasc%r_con%nrp
+          ii = cpasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
     else
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       allocate(rst(cpasc%r_con%nrp), sst(cpasc%r_con%nsp))
+       !
+       ! Always do recv's asynchronously.
+       !
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
        end do
-    end if
 
-    call parallel_wait(rst)
+       if ( d_fb_async ) then
+          do i = 1, cpasc%r_con%nsp
+             sst(i) = parallel_isend_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv:), &
+                  nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+          end do
+       else
+          do i = 1, cpasc%r_con%nsp
+             call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
+                  nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+          end do
+       end if
+
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
@@ -3149,11 +3166,11 @@ contains
        if ( present(filter) ) then
           call filter(p, reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
        else
-          p =  reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
+          p = reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
        end if
     end do
 
-    if ( d_fb_async) call parallel_wait(sst)
+    if ( .not. Do_AllToAllV .and. d_fb_async) call parallel_wait(sst)
 
   end subroutine mf_copy_fancy_double
 
@@ -3193,7 +3210,8 @@ contains
        if ( present(filter) ) then
           call filter(pdst, psrc)
        else
-          pdst = psrc
+          call cpy_i(pdst, psrc)
+          !pdst = psrc
        end if
     end do
     !$OMP END PARALLEL DO
@@ -3281,7 +3299,8 @@ contains
        if ( present(filter) ) then
           call filter(pdst, psrc)
        else
-          pdst = psrc
+          call cpy_l(pdst, psrc)
+          !pdst = psrc
        end if
     end do
     !$OMP END PARALLEL DO
@@ -3369,7 +3388,8 @@ contains
        if ( present(filter) ) then
           call filter(pdst, psrc)
        else
-          pdst = psrc
+          call cpy_z(pdst, psrc)
+          !pdst = psrc
        end if
     end do
     !$OMP END PARALLEL DO
