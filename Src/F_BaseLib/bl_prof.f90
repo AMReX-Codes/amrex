@@ -312,8 +312,8 @@ contains
             action = "write")
     end if
 
-    allocate(sm(size(timers),4),ism(size(timers)))
-    sm(:,1) = 0.0_dp_t; sm(:,2) = 0.0_dp_t; sm(:,3) = -Huge(sm); sm(:,4) = +Huge(sm)
+    allocate(sm(size(timers),0:4),ism(size(timers)))
+    sm(:,0) = 0.0_dp_t; sm(:,1) = 0.0_dp_t; sm(:,2) = 0.0_dp_t; sm(:,3) = -Huge(sm); sm(:,4) = +Huge(sm)
     call s_activation(the_call_tree, sm, local = .false.)
 
     if ( parallel_ioprocessor() ) then
@@ -321,10 +321,10 @@ contains
        write(unit = un, fmt = '("* GLOBAL")')
        write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
        call sort(sm(:,2), ism, greater_d)
-       write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF",TR12,"MAX",TR12,"MIN")')
+       write(unit = un, fmt = '("REGION",TR20,"COUNT", TR7,"TOTAL", TR20, "SELF",TR21,"MAX",TR9,"MIN")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(A20,4F15.3)') trim(timers(ii)%name), sm(ii,:)
+          write(unit = un, fmt = '(A20,1x,I10,F12.3,TR12,F12.3,TR12,2F12.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
        end do
     end if
 
@@ -419,7 +419,7 @@ contains
 
   recursive subroutine s_activation(a, sm, local)
     type(activation_n), intent(inout) :: a
-    real(dp_t), intent(inout) :: sm(:,:)
+    real(dp_t), intent(inout) :: sm(:,0:)
     logical, intent(in) :: local
     real(dp_t) :: cum, self, cum_children
     integer :: i
@@ -428,6 +428,7 @@ contains
     cum = trec%cum
     cum_children = trec%cld
     self = cum - cum_children
+    sm(a%reg,0) = sm(a%reg,0) + trec%cnt
     sm(a%reg,1) = sm(a%reg,1) + cum
     sm(a%reg,2) = sm(a%reg,2) + self
     sm(a%reg,3) = max(sm(a%reg,3),trec%max)
