@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.24 2005-03-22 21:22:53 lijewski Exp $
+// $Id: main.cpp,v 1.25 2005-09-27 18:12:04 car Exp $
 //
 
 #include <fstream>
@@ -63,12 +63,17 @@ main (int   argc, char* argv[])
 
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
   Box container;
+  int ba_coarsen = 1        ; pp.query("ba_coarsen", ba_coarsen);
 #if (BL_SPACEDIM == 2)
   std::string boxfile("grids/gr.2_small_a") ; pp.query("boxes", boxfile);
 #elif (BL_SPACEDIM == 3)
   std::string boxfile("grids/gr.3_small_a") ; pp.query("boxes", boxfile);
 #endif
   BoxArray bs(readBoxList(boxfile,container));
+  if ( ba_coarsen > 1 )
+    {
+      bs.coarsen(ba_coarsen);
+    }
   Geometry geom( container );
   Real H[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; n++ )
@@ -127,7 +132,7 @@ main (int   argc, char* argv[])
   bool dump_norm=true       ; pp.query("dump_norm", dump_norm);
   bool dump_Lp=false        ; pp.query("dump_Lp",dump_Lp);
   bool dump_Mf=false        ; pp.query("dump_Mf", dump_Mf);
-  bool dump_VisMF=true      ; pp.query("dump_VisMF", dump_VisMF);
+  bool dump_VisMF=false      ; pp.query("dump_VisMF", dump_VisMF);
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
   bool dump_rhs_ascii=false     ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
   int res;
