@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.85 2005-09-09 20:35:16 car Exp $
+# Make.defs $Id: Make.defs,v 1.86 2005-09-27 16:42:11 car Exp $
 #
 
 #
@@ -185,7 +185,7 @@ ifeq ($(COMP),gcc)
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifneq ($(__gcc_major_version),3)
+    ifeq ($(__gcc_major_version),2)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
 endif
@@ -203,7 +203,7 @@ ifeq ($(COMP),g++)
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifneq ($(__gcc_major_version),3)
+    ifeq ($(__gcc_major_version),2)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
 endif
