@@ -522,6 +522,16 @@ contains
     r = .NOT. box_equal(bx1, bx2)
   end function box_not_equal
 
+  function box_intersection_and_empty(bx1, bx2,is_empty) result(r)
+    type(box), intent(in) :: bx1, bx2
+    logical, intent(out) :: is_empty
+    type(box) :: r
+    r%dim = min(bx1%dim, bx2%dim)
+    r%lo(1:r%dim) = max(bx1%lo(1:r%dim), bx2%lo(1:r%dim))
+    r%hi(1:r%dim) = min(bx1%hi(1:r%dim), bx2%hi(1:r%dim))
+    is_empty = any(r%lo(1:r%dim) > r%hi(1:r%dim))
+  end function box_intersection_and_empty
+
   function box_intersection(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     type(box) :: r
