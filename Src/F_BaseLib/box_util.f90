@@ -59,7 +59,10 @@ contains
     integer :: i
  
     un = unit_new()
-    open(unit=un, file=str, status = 'old', action = 'read')
+    open(unit=un, file=str, status = 'old', action = 'read', err = 100)
+    go to 101
+100 call bl_error("READ_A_MGLIB_GRID_BA: failed to open: ", str)
+101 continue
     call box_read(bx, un)
     read(unit=un, fmt=*) n
     allocate(bxs(n))
@@ -94,7 +97,10 @@ contains
     integer :: tml
     tml = Huge(tml); if ( present(max_lev_of_mba) ) tml = max_lev_of_mba
     un = unit_new()
-    open(unit=un, file=str, status = 'old', action = 'read')
+    open(unit=un, file=str, status = 'old', action = 'read', err = 100)
+    go to 101
+100 call bl_error("READ_A_HGPROJ_GRID: failed to open: ", str)
+101 continue
     read(unit=un, fmt=*) nl
     nl = min(tml, nl)
     call build(mba, nl)
@@ -141,7 +147,10 @@ contains
     integer :: i, j
     type(box), allocatable :: bxs(:)
     un = unit_new()
-    open(unit=un, file=str, status='old', action = 'read')
+    open(unit=un, file=str, status='old', action = 'read', err = 100)
+    go to 101
+100 call bl_error("READ_A_MGLIB_GRID_BA: failed to open: ", str)
+101 continue
     read(unit=un, fmt=*) dm
     read(unit=un, fmt=*) nl
     call build(mba, nl, dm)
