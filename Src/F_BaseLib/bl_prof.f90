@@ -179,7 +179,7 @@ contains
        do i = 1, size(timers)
           if ( timers(i)%reg == BL_PROF_NOT_REG ) exit
           if ( timers(i)%name == name ) then
-             call bl_error("BL_PROF_TIMER_BUILD: name already registered", name)
+             call bl_error("BL_PROF_TIMER_BUILD: name already registered: ", name)
           end if
        end do
        if ( i > size(timers) ) then
