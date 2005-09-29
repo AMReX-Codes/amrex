@@ -801,6 +801,9 @@ contains
     real(kind=dp_t) lxa(st%dim), lxb(st%dim)
     integer :: lorder
     real(kind=dp_t) :: lal, lbe
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_fill")
 
     pd = get_pd(get_layout(st%ss))
 
@@ -926,6 +929,8 @@ contains
     if ( fill /= ST_FILL_USER_DEFINED .and. present(coeffs) ) then
        call saxpy(st%ss, 1, alpha, coeffs, 1)
     end if
+
+    call destroy(bpt)
   end subroutine stencil_fill
 
   subroutine stencil_set_extrap_bc(st, max_order)
@@ -1519,6 +1524,9 @@ contains
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
     integer i,id
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_fill_cc")
 
     ! Store the incoming values.
 
@@ -1553,8 +1561,10 @@ contains
        end select
     end do
 
-!    call print(ss,unit=22)
-!    call mask_pretty_print(mask,unit=22)
+    !    call print(ss,unit=22)
+    !    call mask_pretty_print(mask,unit=22)
+    
+    call destroy(bpt)
 
   end subroutine stencil_fill_cc
 
