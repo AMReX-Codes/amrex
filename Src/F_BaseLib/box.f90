@@ -249,7 +249,15 @@ contains
   function box_empty(bx) result(r)
     logical :: r
     type(box), intent(in) :: bx
-    r = ( bx%dim == 0) .or. ( any(bx%lo(1:bx%dim) > bx%hi(1:bx%dim)) )
+    if ( bx%dim == 3 ) then
+        r = bx%lo(1) > bx%hi(1) .or. bx%lo(2) > bx%hi(2) .or. bx%lo(3) > bx%hi(3)
+    else if ( bx%dim == 2 ) then
+        r = bx%lo(1) > bx%hi(1) .or. bx%lo(2) > bx%hi(2)
+    else if ( bx%dim == 1 ) then
+        r = bx%lo(1) > bx%hi(1)
+    else
+        r = .false.
+    end if
   end function box_empty
 
   !! Builds a box given a low and high end of index space.  It is an error
@@ -522,22 +530,68 @@ contains
     r = .NOT. box_equal(bx1, bx2)
   end function box_not_equal
 
-  function box_intersection_and_empty(bx1, bx2,is_empty) result(r)
-    type(box), intent(in) :: bx1, bx2
-    logical, intent(out) :: is_empty
-    type(box) :: r
-    r%dim = min(bx1%dim, bx2%dim)
-    r%lo(1:r%dim) = max(bx1%lo(1:r%dim), bx2%lo(1:r%dim))
-    r%hi(1:r%dim) = min(bx1%hi(1:r%dim), bx2%hi(1:r%dim))
-    is_empty = any(r%lo(1:r%dim) > r%hi(1:r%dim))
-  end function box_intersection_and_empty
+  subroutine box_intersection_and_empty(bxo, is_empty, bx1, bx2)
+    type(box), intent(in) :: bx1, bx2(:)
+    type(box), intent(inout) :: bxo(:)
+    logical, intent(inout) :: is_empty(:)
+    integer :: i, dm, l1, l2, l3, h1, h2, h3, n
+    n = size(bx2)
+    if ( n == 0 ) return
+    dm = min(bx1%dim, bx2(1)%dim)
+    l1 = bx1%lo(1); l2 = bx1%lo(2); l3 = bx1%lo(3)
+    h1 = bx1%hi(1); h2 = bx1%hi(2); h3 = bx1%hi(3)
+    if ( dm == 3 ) then
+       do i = 1, n
+          bxo(i)%dim = dm
+          bxo(i)%lo(1) = max(l1, bx2(i)%lo(1))
+          bxo(i)%hi(1) = min(h1, bx2(i)%hi(1))
+          bxo(i)%lo(2) = max(l2, bx2(i)%lo(2))
+          bxo(i)%hi(2) = min(h2, bx2(i)%hi(2))
+          bxo(i)%lo(3) = max(l3, bx2(i)%lo(3))
+          bxo(i)%hi(3) = min(h3, bx2(i)%hi(3))
+          is_empty(i) = bxo(i)%lo(1) > bxo(i)%hi(1) .or. bxo(i)%lo(2) > bxo(i)%hi(2) .or. bxo(i)%lo(3) > bxo(i)%hi(3)
+       end do
+    else if ( dm == 2 ) then
+       do i = 1, size(bx2)
+          bxo(i)%dim = dm
+          bxo(i)%lo(1) = max(l1, bx2(i)%lo(1))
+          bxo(i)%hi(1) = min(h1, bx2(i)%hi(1))
+          bxo(i)%lo(2) = max(l2, bx2(i)%lo(2))
+          bxo(i)%hi(2) = min(h2, bx2(i)%hi(2))
+          is_empty(i) = bxo(i)%lo(1) > bxo(i)%hi(1) .or. bxo(i)%lo(2) > bxo(i)%hi(2)
+       end do
+    else if ( dm == 1 ) then
+       do i = 1, size(bx2)
+          bxo(i)%dim = dm
+          bxo(i)%lo(1) = max(l1, bx2(i)%lo(1))
+          bxo(i)%hi(1) = min(h1, bx2(i)%hi(1))
+          is_empty(i) = bxo(i)%lo(1) > bxo(i)%hi(1)
+       end do
+    else
+       is_empty = .true.
+    end if
+  end subroutine box_intersection_and_empty
 
   function box_intersection(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     type(box) :: r
     r%dim = min(bx1%dim, bx2%dim)
-    r%lo(1:r%dim) = max(bx1%lo(1:r%dim), bx2%lo(1:r%dim))
-    r%hi(1:r%dim) = min(bx1%hi(1:r%dim), bx2%hi(1:r%dim))
+    if ( r%dim == 3 ) then
+       r%lo(1) = max(bx1%lo(1), bx2%lo(1))
+       r%hi(1) = min(bx1%hi(1), bx2%hi(1))
+       r%lo(2) = max(bx1%lo(2), bx2%lo(2))
+       r%hi(2) = min(bx1%hi(2), bx2%hi(2))
+       r%lo(3) = max(bx1%lo(3), bx2%lo(3))
+       r%hi(3) = min(bx1%hi(3), bx2%hi(3))
+    else if ( r%dim == 2 ) then
+       r%lo(1) = max(bx1%lo(1), bx2%lo(1))
+       r%hi(1) = min(bx1%hi(1), bx2%hi(1))
+       r%lo(2) = max(bx1%lo(2), bx2%lo(2))
+       r%hi(2) = min(bx1%hi(2), bx2%hi(2))
+    else if ( r%dim == 1 ) then
+       r%lo(1) = max(bx1%lo(1), bx2%lo(1))
+       r%hi(1) = min(bx1%hi(1), bx2%hi(1))
+    end if
   end function box_intersection
 
   function box_intersects(bx1, bx2) result(r)

@@ -424,9 +424,6 @@ contains
        call itsol_cg_solve(&
             ss, uu, rh, mm, &
             mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
-       do i = 1, 2
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
-       end do
     case (3)
           call copy(mgt%rh1, rh)
           if ( parallel_IOProcessor() ) then
@@ -606,8 +603,10 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, nn
-    integer :: lo(mgt%dim)
+    integer :: lo(mgt%dim), hi(mgt%dim)
     type(bl_prof_timer), save :: bpt
+    ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
+    integer :: nnn, iii, jjj, kkk
 
     call build(bpt, "mgt_smoother")
 
@@ -633,8 +632,13 @@ contains
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                            mp(:,:,1,1), lo, mgt%ng, nn)
                    case (3)
+                      ! allocate(tsp(size(sp,4),size(sp,1),size(sp,2),size(sp,3)))
+                      ! do nnn = 1, size(sp,4); do kkk = 1, size(sp,3); do jjj = 1, size(sp,2); do iii = 1, size(sp,1)
+                      !    tsp(nnn,iii,jjj,kkk) = sp(iii+lo(1)-1,jjj+lo(2)-1,kkk+lo(3)-1,nnn)
+                      ! end do; end do; end do; end do;
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
                            mp(:,:,:,1), lo, mgt%ng, nn)
+                      ! deallocate(tsp)
                    end select
                 end do
              end do
