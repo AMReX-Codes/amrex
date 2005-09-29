@@ -37,6 +37,7 @@ subroutine t_ba_self_intersection
   integer :: i, f, n
   type(box) :: bx
   type(bl_prof_timer), save :: bpt, bpt_r, bpt_s
+  integer :: cnt, cnt1
   
   call build(bpt, "t_ba_self_intersection")
 
@@ -49,12 +50,17 @@ subroutine t_ba_self_intersection
 
   ba = mba%bas(1)
 
+  cnt = 0
+  cnt1 = 0
   call build(bpt_s, "ba_s")
   do i = 1, nboxes(ba)
      bx = grow(get_box(ba,i),1)
      call self_intersection(bx, ba)
+     call self_intersection_1(bx, ba)
   end do
   call destroy(bpt_s)
+  print *, 'cnt = ', cnt
+  print *, 'cnt1 = ', cnt1
 
   call destroy(mba)
   call destroy(bpt)
@@ -68,11 +74,27 @@ contains
     type(box) :: bx1
     call build(bpt_i, "ba_i")
     do i = 1, nboxes(ba)
-       bx1 = intersection(bx, get_box(ba,i))
+       bx1 = intersection(bx, ba%bxs(i))
+       if ( empty(bx1) ) cycle
+       cnt = cnt + 1
     end do
     call destroy(bpt_i)
 
   end subroutine self_intersection
+
+  subroutine self_intersection_1(bx, ba)
+    type(box), intent(in) :: bx
+    type(boxarray), intent(in) :: ba
+    integer :: i
+    type(bl_prof_timer), save :: bpt_i
+    type(box) :: bx1(size(ba%bxs))
+    logical   :: is_empty(size(ba%bxs))
+    call build(bpt_i, "ba_i1")
+    call box_intersection_and_empty(bx1, is_empty, bx, ba%bxs)
+    call destroy(bpt_i)
+    cnt1 = cnt1 + count(.not.is_empty)
+
+  end subroutine self_intersection_1
 
 end subroutine t_ba_self_intersection
 
