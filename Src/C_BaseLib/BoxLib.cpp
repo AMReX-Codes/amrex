@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.30 2002-11-14 18:43:29 car Exp $
+// $Id: BoxLib.cpp,v 1.31 2005-09-30 17:07:58 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -134,7 +134,8 @@ BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
    const int istr[], const int* NSTR
    )
 {
-  std::string res = Fint_2_string(istr, *NSTR);
+  std::string res = "FORTRAN:";
+  res += Fint_2_string(istr, *NSTR);
   BoxLib::Error(res.c_str());
 }
 
@@ -143,7 +144,8 @@ BL_FORT_PROC_DECL(BL_WARNING_CPP,bl_warning_cpp)
    const int istr[], const int* NSTR
    )
 {
-  std::string res = Fint_2_string(istr, *NSTR);
+  std::string res = "FORTRAN:";
+  res += Fint_2_string(istr, *NSTR);
   BoxLib::Warning(res.c_str());
 }
 
@@ -152,7 +154,8 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
    const int istr[], const int* NSTR
    )
 {
-  std::string res = Fint_2_string(istr, *NSTR);
+  std::string res = "FORTRAN";
+  res += Fint_2_string(istr, *NSTR);
   BoxLib::Abort(res.c_str());
 }
 
