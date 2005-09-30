@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.16 2004-09-03 23:59:19 vince Exp $
+// $Id: StationData.cpp,v 1.17 2005-09-30 16:47:39 car Exp $
 //
 #include <winstd.H>
 
@@ -59,7 +59,7 @@ StationData::init ()
                 }
                 else
                 {
-                    std::cout << "StationData::init(): `"
+                    std::cerr << "StationData::init(): `"
                               << m_vars[i]
                               << "' is not a state or derived variable\n";
                     BoxLib::Abort();
