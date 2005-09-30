@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.31 2005-09-30 17:07:58 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.32 2005-09-30 17:41:56 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -154,7 +154,7 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
    const int istr[], const int* NSTR
    )
 {
-  std::string res = "FORTRAN";
+  std::string res = "FORTRAN:";
   res += Fint_2_string(istr, *NSTR);
   BoxLib::Abort(res.c_str());
 }
