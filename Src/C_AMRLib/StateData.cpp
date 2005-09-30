@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.40 2003-02-06 18:14:29 lijewski Exp $
+// $Id: StateData.cpp,v 1.41 2005-09-30 16:50:20 car Exp $
 //
 #include <winstd.H>
 
@@ -91,7 +91,10 @@ StateData::restart (std::istream&          is,
                     bool                   bReadSpecial)
 {
     if (bReadSpecial)
+      {
+	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
         ParallelDescriptor::Abort();  // not implemented
+      }
 
     desc = &d;
 
