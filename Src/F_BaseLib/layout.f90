@@ -819,6 +819,10 @@ contains
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     logical                        :: first
     type(bl_prof_timer), save      :: bpt
+    type(box), allocatable :: abxx(:)
+    logical, allocatable   :: is_empty(:)
+
+    integer :: mxsize = 0
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: already built")
 
@@ -838,6 +842,8 @@ contains
     allocate(bxasc%r_con%snd(chunksize))
     allocate(bxasc%r_con%rcv(chunksize))
 
+    allocate(is_empty(26),abxx(26))
+
     bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
@@ -851,11 +857,15 @@ contains
           if ( first ) then
              call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
              first = .false.
+             if ( size(is_empty) < bxai%nboxes) then
+                deallocate(is_empty,abxx)
+                allocate(is_empty(bxai%nboxes),abxx(bxai%nboxes))
+             end if
           end if
           bx = box_nodalize(get_box(bxa, j), nodal)
-          do ii = 1, bxai%nboxes
-             abx = intersection(bx, bxai%bxs(ii))
-             if ( empty(abx) ) cycle
+          call box_intersection_and_empty(abxx, is_empty, bx, bxai%bxs)
+          do ii = 1, bxai%nboxes; if ( is_empty(ii) ) cycle
+             abx = abxx(ii)
              if ( local(la,i) .and. local(la, j) ) then
                 if ( li_r > size(bxasc%l_con%cpy) ) then
                    allocate(n_cpy(size(bxasc%l_con%cpy) + chunksize))
@@ -997,6 +1007,7 @@ contains
        end if
     end do
     call mem_stats_alloc(bxa_ms)
+
 
     call destroy(bpt)
 

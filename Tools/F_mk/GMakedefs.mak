@@ -78,6 +78,11 @@ ifeq ($(COMP),g95)
     FFLAGS += -freal=nan
     CFLAGS += -g
   endif
+  ifdef PROF
+    F90FLAGS += -pg
+    FFLAGS += -pg
+    CFLAGS += -pg
+  endif
   ifdef mpi_include
     fpp_flags += -I $(mpi_include)
   endif
@@ -239,11 +244,11 @@ ifeq ($(ARCH),Linux)
           F90FLAGS += -O3
           FFLAGS += -O3
           CFLAGS += -O3
-	  ifndef PROF
+#  ifndef PROF
             F90FLAGS += -ipo
             FFLAGS += -ipo
             CFLAGS += -ipo
-	  endif
+#  endif
 	endif
       endif
       ifdef PROF

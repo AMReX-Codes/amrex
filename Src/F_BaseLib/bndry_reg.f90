@@ -139,11 +139,18 @@ contains
     type(bndry_reg), intent(inout) :: br
     logical, intent(in), optional :: all
     integer :: i, f
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "br_copy")
+
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), mf, all=all)
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine bndry_reg_copy
   subroutine bndry_reg_copy_c(br, cb, mf, cm, nc, all)
     type(multifab), intent(in) :: mf
@@ -152,11 +159,18 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
     integer :: i, f
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "br_copy_c")
+
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), cb, mf, cm, nc = nc, all=all)
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine bndry_reg_copy_c
 
   subroutine bndry_reg_setval(br, val, all)

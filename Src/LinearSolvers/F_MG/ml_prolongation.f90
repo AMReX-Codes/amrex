@@ -299,6 +299,9 @@ contains
     integer   :: dm, i, n, lnc, dir, face
 
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_intrp_bcs_c")
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
@@ -360,6 +363,8 @@ contains
     end do
 
     call multifab_fill_boundary(fine)
+
+    call destroy(bpt)
 
   end subroutine ml_interp_bcs_c
 

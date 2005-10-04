@@ -256,7 +256,7 @@ contains
     else if ( bx%dim == 1 ) then
         r = bx%lo(1) > bx%hi(1)
     else
-        r = .false.
+        r = .true.
     end if
   end function box_empty
 
