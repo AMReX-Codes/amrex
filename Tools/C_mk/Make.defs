@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.86 2005-09-27 16:42:11 car Exp $
+# Make.defs $Id: Make.defs,v 1.87 2005-10-04 17:33:05 lijewski Exp $
 #
 
 #
@@ -319,6 +319,7 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
+
 endif
 
 ifeq ($(FCOMP),Intel)
@@ -412,8 +413,12 @@ ifeq ($(FCOMP),Intel)
    _ifc += -mp -module $(fmoddir)
     FC = $(_ifc)
     fC = $(_ifc)
+   NEEDS_FLUSH_F := TRUE
 endif
 
+ifeq ($(NEEDS_FLUSH_F),TRUE)
+  fEXE_sources += bl_flush.f
+endif
 #
 # We can do library closure with KCC 3.x.
 #
