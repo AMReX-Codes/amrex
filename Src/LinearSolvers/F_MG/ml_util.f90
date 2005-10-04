@@ -2,6 +2,7 @@ module ml_util_module
 
   use stencil_module
   use stencil_nodal_module
+  use bl_prof_module
 
   implicit none
 
@@ -20,6 +21,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: ng, nc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fill_fluxes")
 
 
     nc = uu%nc
@@ -50,6 +54,9 @@ contains
           end select
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine ml_fill_fluxes
 
   subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
@@ -66,7 +73,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: ng
+    type(bl_prof_timer), save :: bpt
 
+    call build(bpt, "ml_fill_fluxes_c")
 
     ng = uu%ng
 
@@ -93,6 +102,7 @@ contains
                mp(:,:,:,1), ng, ratio, face, dim)
        end select
     end do
+    call destroy(bpt)
   end subroutine ml_fill_fluxes_c
 
   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
@@ -107,6 +117,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: ng, nc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fill_ff")
 
     nc = uu%nc
     ng = uu%ng
@@ -136,6 +149,9 @@ contains
           end select
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine ml_fill_fine_fluxes
 
   subroutine ml_fine_contrib(flux, res, mm, ratio, crse_domain, side)

@@ -527,6 +527,9 @@ contains
     integer i
     !   integer :: nn = 21
     logical :: skwd
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_ap_st_c")
 
     if ( uu%ng /= 1 ) then
        call bl_error("STENCIL_APPLY_ST_C: uu%ng /= 1", uu%ng)
@@ -574,6 +577,7 @@ contains
           end select
        end select
     end do
+    call destroy(bpt)
   end subroutine stencil_apply_st_c
 
   subroutine stencil_apply_st(st, rr, uu, c, mask)
@@ -590,6 +594,9 @@ contains
     integer i, n
 !   integer :: nn = 21
     logical :: skwd
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_ap_st")
 
     call multifab_fill_boundary(uu)
     if ( st%extrap_bc) then
@@ -670,6 +677,7 @@ contains
           end do
        end do
     end if
+    call destroy(bpt)
   end subroutine stencil_apply_st
 
   subroutine stencil_flux_fill_st(st, br, uu, rr, c, mask)
@@ -1004,35 +1012,20 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
     integer i, n
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_extrap_bc")
 
     if ( st%extrap_max_order < 1 ) then
        call bl_error("STENCIL_EXTRAP_BC: extrap_max_order < 1: ", st%extrap_max_order)
     end if
 
     if ( present(c) ) then
-    do i = 1, uu%nboxes
-       if ( multifab_remote(uu, i) ) cycle
-       up => dataptr(uu, i)
-       mp => dataptr(st%mm, i)
-       n = c
-          select case ( st%dim )
-          case (1)
-             call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
-                  st%extrap_max_order, st%type == ST_CROSS)
-          case (2)
-             call extrap_2d(up(:,:,1,n), mp(:,:,1,1), st%xa, st%xb, st%dh, &
-                  st%extrap_max_order, st%type == ST_CROSS)
-          case (3)
-             call extrap_3d(up(:,:,:,n), mp(:,:,:,1), st%xa, st%xb, st%dh, &
-                  st%extrap_max_order, st%type == ST_CROSS)
-          end select
-    end do
-    else
-    do i = 1, uu%nboxes
-       if ( multifab_remote(uu, i) ) cycle
-       up => dataptr(uu, i)
-       mp => dataptr(st%mm, i)
-       do n = 1, uu%nc
+       do i = 1, uu%nboxes
+          if ( multifab_remote(uu, i) ) cycle
+          up => dataptr(uu, i)
+          mp => dataptr(st%mm, i)
+          n = c
           select case ( st%dim )
           case (1)
              call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
@@ -1045,8 +1038,29 @@ contains
                   st%extrap_max_order, st%type == ST_CROSS)
           end select
        end do
-    end do
+    else
+       do i = 1, uu%nboxes
+          if ( multifab_remote(uu, i) ) cycle
+          up => dataptr(uu, i)
+          mp => dataptr(st%mm, i)
+          do n = 1, uu%nc
+             select case ( st%dim )
+             case (1)
+                call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
+                     st%extrap_max_order, st%type == ST_CROSS)
+             case (2)
+                call extrap_2d(up(:,:,1,n), mp(:,:,1,1), st%xa, st%xb, st%dh, &
+                     st%extrap_max_order, st%type == ST_CROSS)
+             case (3)
+                call extrap_3d(up(:,:,:,n), mp(:,:,:,1), st%xa, st%xb, st%dh, &
+                     st%extrap_max_order, st%type == ST_CROSS)
+             end select
+          end do
+       end do
     end if
+
+    call destroy(bpt)
+
   end subroutine stencil_extrap_bc
 
   subroutine extrap_1d(ph, mm, xa, xb, dh, max_order, cross)

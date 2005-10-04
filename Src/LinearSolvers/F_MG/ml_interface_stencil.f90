@@ -3,6 +3,7 @@ module ml_interface_stencil_module
   use bl_types
   use multifab_module
   use stencil_module
+  use bl_prof_module
 
   implicit none
 
@@ -47,6 +48,9 @@ contains
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_interf")
 
     dm = res%dim
     dir = dim
@@ -103,6 +107,9 @@ contains
           end if
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine ml_interface
   subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim, efactor)
     type(multifab), intent(inout) :: res
@@ -129,6 +136,9 @@ contains
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_interf_c")
 
     dm = res%dim
     dir = dim
@@ -183,6 +193,7 @@ contains
           end if
        end do
     end do
+    call destroy(bpt)
   end subroutine ml_interface_c
 
   subroutine ml_interface_1d(res, lor, fine_flux, lof, cc, loc, &

@@ -615,6 +615,7 @@ contains
        case ( MG_SMOOTHER_GS_RB )
           do nn = 0, 1
              call multifab_fill_boundary(uu)
+             !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
              do i = 1, mgt%nboxes
                 if ( multifab_remote(ff, i) ) cycle
                 up => dataptr(uu, i)
@@ -642,6 +643,7 @@ contains
                    end select
                 end do
              end do
+             !$OMP END PARALLEL DO
           end do
        case ( MG_SMOOTHER_JACOBI )
           call multifab_fill_boundary(uu)
