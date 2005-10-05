@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.77 2003-07-18 04:57:11 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.78 2005-10-05 22:45:56 car Exp $
 //
 #include <winstd.H>
 
@@ -568,6 +568,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         Real            mult,
                         FrOp            op)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInit()");
+
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
@@ -791,6 +793,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         Real             mult,
                         FrOp             op)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInit(FAB)");
+
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -822,6 +826,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 void
 FluxRegister::CrseInitFinish (FrOp op)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInitFinish()");
+
     if (ParallelDescriptor::NProcs() == 1) return;
 
     Arena* oldarena = BoxLib::ResetArena(&CIArena);
@@ -1109,6 +1115,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FineAdd");
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG
