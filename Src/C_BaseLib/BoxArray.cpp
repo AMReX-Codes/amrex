@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.34 2003-06-24 17:18:21 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.35 2005-10-05 19:25:04 lijewski Exp $
 //
 #include <iostream>
 
@@ -531,4 +531,73 @@ BoxLib::intersect (const BoxArray& lhs,
 		   const BoxArray& rhs)
 {
     return BoxArray(BoxLib::intersect(lhs.boxList(), rhs.boxList()));
+}
+
+std::vector< std::pair<int,Box> >
+BoxArray::intersections (const Box& bx) const
+{
+    BL_ASSERT(isDisjoint());
+
+    if (!m_ref->hash.isAllocated())
+    {
+        //
+        // Calculate the bounding box & maximum extent of the boxes.
+        //
+        IntVect maxext(D_DECL(0,0,0));
+
+        Box boundingbox;
+
+        if (size() > 0)
+        {
+            boundingbox = m_ref->m_abox.get(0);
+
+            for (int i = 0; i < size(); i++)
+            {
+                Box& b = m_ref->m_abox.get(i);
+
+                boundingbox.minBox(b);
+
+                D_TERM(maxext[0] = std::max(maxext[0],b.length(0));,
+                       maxext[1] = std::max(maxext[1],b.length(1));,
+                       maxext[2] = std::max(maxext[2],b.length(2));)
+            }
+        }
+
+        m_ref->crsn = maxext;
+
+        boundingbox.coarsen(maxext);
+
+        m_ref->hash.resize(boundingbox, 1);
+
+        for (int i = 0; i < size(); i++)
+        {
+            m_ref->hash(BoxLib::coarsen(m_ref->m_abox.get(i).smallEnd(), maxext)).push_back(i);
+        }
+    }
+
+    Box cbx = BoxLib::coarsen(bx, m_ref->crsn);
+
+    IntVect sm = BoxLib::max(cbx.smallEnd() - 1, m_ref->hash.box().smallEnd());
+    IntVect bg = BoxLib::min(cbx.bigEnd(),       m_ref->hash.box().bigEnd());
+
+    cbx = Box(sm,bg);
+
+    std::vector< std::pair<int,Box> > isects;
+
+    for (IntVect iv = cbx.smallEnd(); iv <= cbx.bigEnd(); cbx.next(iv))
+    {
+        std::vector<int>& v = m_ref->hash(iv);
+
+        Box isect;
+
+        for (int i = 0; i < v.size(); i++)
+        {
+            isect = bx & m_ref->m_abox.get(v[i]);
+
+            if (isect.ok())
+                isects.push_back(std::pair<int,Box>(v[i],isect));
+        }
+    }
+
+    return isects;
 }
