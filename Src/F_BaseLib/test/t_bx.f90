@@ -29,28 +29,27 @@ subroutine t_ba_self_intersection
   type(boxarray) :: ba
   integer :: dm
   integer :: ng
-  integer :: pd_xyz(MAX_SPACEDIM), ext(MAX_SPACEDIM), pext(MAX_SPACEDIM)
-  integer :: ba_maxsize
-  logical pmask(MAX_SPACEDIM)
+  integer, allocatable, dimension(:) :: ext, plo, phi, vsz, crsn, vrng
   type(ml_boxarray) :: mba
   character(len=64) :: test_set
   integer :: i, f, n, j, k, sz
-  type(box) :: bx
-  type(bl_prof_timer), save :: bpt, bpt_r, bpt_s
+  type(box) :: bx, cbx
+  type(bl_prof_timer), save :: bpt, bpt_r, bpt_s, bpt_b
   integer :: cnt, cnt1, cnt2
+  integer(ll_t) :: vol, vol1, vol2
   integer, pointer :: ipv(:)
   integer :: tsz, mxsz
-
-  integer :: crsn
+  logical :: verbose
 
   type bin
      integer, pointer :: iv(:) => Null()
   end type bin
 
   type(bin), allocatable, dimension(:,:,:) :: bins
-  
+
   call build(bpt, "t_ba_self_intersection")
 
+  verbose = .true.
   ng = 1
   test_set = "grids.5034"
 
@@ -59,80 +58,96 @@ subroutine t_ba_self_intersection
   call destroy(bpt_r)
 
   ba = mba%bas(1)
+  dm = ba%dim
 
-  cnt = 0
-  cnt1 = 0
-  cnt2 = 0
-  call build(bpt_s, "ba_s")
+  allocate(ext(dm), plo(dm), phi(dm), vsz(dm), crsn(dm), vrng(dm))
 
-  crsn = 32
+  cnt = 0; cnt1 = 0; cnt2 = 0
+  vol = 0; vol1 = 0; vol2 = 0
+  crsn = 15
 
+  call build(bpt_b, "build hash")
   bx = boxarray_bbox(ba)
-  print *, 'pd ', mba%pd(1)
-  print *, 'cpd ', coarsen(mba%pd(1),crsn)
+  cbx = coarsen(bx,crsn)
+  plo = lwb(cbx)
+  phi = upb(cbx)
 
-  pext = extent(coarsen(mba%pd(1),crsn))
-  print *, 'prod(ext)', product(pext)
+  vsz = -Huge(1)
+  do n = 1, nboxes(ba)
+     vsz = max(vsz,extent(get_box(ba,n)))
+  end do
+  print *, 'max extent', vsz
+  print *, 'crsn max extent', int_coarsen(vsz,crsn+1)
+  vrng = int_coarsen(vsz,crsn+1)
+  print *, 'vrng = ', vrng
 
-  allocate(bins(0:pext(1)-1,0:pext(2)-1,0:pext(3)-1))
-
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
+  allocate(bins(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3)))
+  do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
      allocate(bins(i,j,k)%iv(0))
   end do;end do; end do
 
-  sz = 0
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
-     sz = sz + size(bins(i,j,k)%iv)
-  end do;end do; end do
-  print *, 'tot bins ', sz
-
-  print *, 'size(bins)', size(bins)
-
-  print *, 'bbox(ba) ', bx
-  print *, 'extents(bx)', extent(bx)
-
   do n = 1, nboxes(ba)
-     ext = lwb(coarsen(get_box(ba,n),crsn))
+     ext = int_coarsen(lwb(get_box(ba,n)),crsn)
+     if ( .not. contains(cbx, ext) ) then
+        call bl_error("Not Contained!")
+     end if
      sz = size(bins(ext(1),ext(2),ext(3))%iv)
      allocate(ipv(sz+1))
      ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
      ipv(sz+1) = n
-     if ( sz + 1 /= size(ipv) ) stop 'die'
      deallocate(bins(ext(1),ext(2),ext(3))%iv)
      bins(ext(1),ext(2),ext(3))%iv => ipv
-     if ( sz + 1 /= size(bins(ext(1),ext(2),ext(3))%iv) ) stop 'die1'
   end do
+  call destroy(bpt_b)
 
-  mxsz = -Huge(1)
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
-     mxsz = max(mxsz, size(bins(i,j,k)%iv))
-  end do;end do; end do
-  print *, 'max bin sz ', mxsz
+  if ( verbose ) then
+     call print(bx, 'bbox(ba) ')
+     call print(cbx, 'coarsen(bbox(ba),crsn) ')
+     print *, 'extents(bx)', extent(bx)
+     print *, 'extents(cbx)', extent(cbx)
+     print *, 'plo ', plo
+     print *, 'phi ', phi
+     mxsz = -Huge(1)
+     do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
+        mxsz = max(mxsz, size(bins(i,j,k)%iv))
+     end do;end do; end do
+     print *, 'max bin sz ', mxsz
 
-  sz = Huge(1)
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
-     sz = min(sz, size(bins(i,j,k)%iv))
-  end do;end do; end do
-  print *, 'min bin sz ', sz
+     sz = Huge(1)
+     do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
+        sz = min(sz, size(bins(i,j,k)%iv))
+     end do;end do; end do
+     print *, 'min bin sz ', sz
 
-  sz = 0
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
-     sz = sz + size(bins(i,j,k)%iv)
-  end do;end do; end do
-  print *, 'tot bins ', sz
+     sz = 0
+     do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
+        sz = sz + size(bins(i,j,k)%iv)
+     end do;end do; end do
+     print *, 'tot bins ', sz
 
+     if ( sz /= nboxes(ba) ) then
+        call bl_error("sz /= nboxes(ba): ", sz)
+     end if
+  end if
+
+  call build(bpt_s, "ba_s")
   do i = 1, nboxes(ba)
-     bx = grow(get_box(ba,i),1)
+     bx = grow(get_box(ba,i), ng)
      call self_intersection(bx, ba)
      call self_intersection_1(bx, ba)
      call chk_box(bx)
   end do
   call destroy(bpt_s)
+
+  ! Just a check of the result
   print *, 'cnt = ', cnt
   print *, 'cnt1 = ', cnt1
   print *, 'cnt2 = ', cnt2
+  print *, 'vol = ', vol
+  print *, 'vol1 = ', vol1
+  print *, 'vol2 = ', vol2
 
-  do k = 0, pext(3)-1; do j = 0, pext(2)-1; do i = 0, pext(1)-1
+  do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
      deallocate(bins(i,j,k)%iv)
   end do;end do; end do
 
@@ -150,13 +165,14 @@ contains
     bx1 = coarsen(bx,crsn)
     lo = lwb(bx1)
     hi = upb(bx1)
-    do k = max(lo(3)-1,0), min(hi(3), pext(3)-1)
-       do j = max(lo(2)-1,0), min(hi(2), pext(2)-1)
-          do i = max(lo(1)-1,0), min(hi(1), pext(1)-1)
+    do k = max(lo(3)-vrng(3)-1,plo(3)), min(hi(3)+vrng(3), phi(3))
+       do j = max(lo(2)-vrng(2)-1,plo(2)), min(hi(2)+vrng(2), phi(2))
+          do i = max(lo(1)-vrng(1)-1,plo(1)), min(hi(1)+vrng(1), phi(1))
              do n = 1, size(bins(i,j,k)%iv)
                 bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
                 cnt2 = cnt2 + 1
+                vol2 = vol2 + volume(bx1)
              end do
           end do
        end do
@@ -175,6 +191,7 @@ contains
        bx1 = intersection(bx, ba%bxs(i))
        if ( empty(bx1) ) cycle
        cnt = cnt + 1
+       vol = vol + volume(bx1)
     end do
     call destroy(bpt_i)
 
@@ -189,9 +206,12 @@ contains
     logical   :: is_empty(size(ba%bxs))
     call build(bpt_i, "ba_i1")
     call box_intersection_and_empty(bx1, is_empty, bx, ba%bxs)
-    call destroy(bpt_i)
+    do i = 1, size(bx1)
+       if ( is_empty(i) ) cycle
+       vol1 = vol1 + volume(bx1(i))
+    end do
     cnt1 = cnt1 + count(.not.is_empty)
-
+    call destroy(bpt_i)
   end subroutine self_intersection_1
 
 end subroutine t_ba_self_intersection
