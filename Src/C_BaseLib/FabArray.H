@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.169 2005-04-23 19:49:49 car Exp $
+// $Id: FabArray.H,v 1.170 2005-10-05 21:22:14 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -941,41 +941,33 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     for (int i = 0; i < size(); i++)
     {
-        if (distributionMap[i] == MyProc)
+        std::vector< std::pair<int,Box> > isects = src.boxarray.intersections(boxarray[i]);
+
+        for (int ii = 0; ii < isects.size(); ii++)
         {
-            for (int ii = 0; ii < src.boxarray.size(); ii++)
+            const Box bx  = isects[ii].second;
+            const int iii = isects[ii].first;
+
+            if (distributionMap[i] == MyProc)
             {
-                if (src.boxarray[ii].intersects(boxarray[i]))
+                if (src.distributionMap[iii] == MyProc)
                 {
-                    Box bx = src.boxarray[ii] & boxarray[i];
-
-                    if (src.distributionMap[ii] == MyProc)
-                    {
-                        fabparray[i].copy(src[ii],bx,scomp,bx,dcomp,ncomp);
-                    }
-                    else
-                    {
-                        tag.box      = bx;
-                        tag.fabIndex = i;
-
-                        RcvTags[src.distributionMap[ii]].push_back(tag);
-                    }
+                    fabparray[i].copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                }
+                else
+                {
+                    tag.box      = bx;
+                    tag.fabIndex = i;
+                    RcvTags[src.distributionMap[iii]].push_back(tag);
                 }
             }
-        }
-        else
-        {
-            for (int ii = 0; ii < src.boxarray.size(); ii++)
+            else
             {
-                if (src.distributionMap[ii] == MyProc)
+                if (src.distributionMap[iii] == MyProc)
                 {
-                    if (src.boxarray[ii].intersects(boxarray[i]))
-                    {
-                        tag.box      = src.boxarray[ii] & boxarray[i];
-                        tag.fabIndex = ii;
-
-                        SndTags[distributionMap[i]].push_back(tag);
-                    }
+                    tag.box      = bx;
+                    tag.fabIndex = iii;
+                    SndTags[distributionMap[i]].push_back(tag);
                 }
             }
         }
