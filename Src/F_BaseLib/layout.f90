@@ -86,6 +86,16 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type copyassoc
+
+  type box_intersector
+     integer :: i
+     type(box) :: bx
+  end type box_intersector
+
+  type box_hash_bin
+     integer, pointer :: iv(:) => Null()
+  end type box_hash_bin
+
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
@@ -110,6 +120,12 @@ module layout_module
      type(coarsened_layout), pointer :: crse_la => Null()
      type(pn_layout), pointer :: pn_children => Null()
      type(derived_layout), pointer :: dlay => Null()
+     ! Box Hashing
+     integer :: crsn = -1
+     integer :: plo(MAX_SPACEDIM) = 0
+     integer :: phi(MAX_SPACEDIM) = 0
+     integer :: vshft(MAX_SPACEDIM) = 0
+     type(box_hash_bin), pointer :: bins(:,:,:) => Null()
   end type layout_rep
 
   !! A layout that is derived by coarsening an existing layout,
@@ -346,6 +362,7 @@ contains
     type(derived_layout), pointer :: dla, odla
     type(boxassoc), pointer :: bxa, obxa
     type(copyassoc), pointer :: cpa, ncpa, pcpa
+    integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
     end if
@@ -386,6 +403,19 @@ contains
        deallocate(bxa)
        bxa => obxa
     end do
+
+    ! remove any boxarray hash
+
+    if ( associated(lap%bins) ) then
+       do k = lbound(lap%bins,3), ubound(lap%bins,3)
+          do j = lbound(lap%bins,2), ubound(lap%bins,2)
+             do i = lbound(lap%bins,1), ubound(lap%bins,1)
+                deallocate(lap%bins(i,j,k)%iv)
+             end do
+          end do
+       end do
+       deallocate(lap%bins)
+    end if
     !
     ! Remove all copyassoc's associated with this layout_rep.
     !
@@ -1364,4 +1394,121 @@ contains
     r = cpasc%dim /= 0
   end function copyassoc_built_q
 
-end module layout_module
+  subroutine init_box_hash_bin(la, crsn)
+    type(layout), intent(inout) :: la
+    integer, intent(in), optional :: crsn
+    type(boxarray) :: ba
+    integer, dimension(MAX_SPACEDIM) :: ext, vsz
+    integer :: dm, i, j, k, n
+    type(box) :: bx, cbx
+    integer :: lcrsn
+    integer :: sz
+    type(box_hash_bin), pointer :: bins(:,:,:)
+    integer, pointer :: ipv(:)
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "i_bx_hash")
+
+    dm = la%lap%dim
+    ba = get_boxarray(la)
+    vsz = 0; vsz(1:dm) = -Huge(1)
+    do n = 1, nboxes(ba)
+       vsz(1:dm) = max(vsz(1:dm),extent(get_box(ba,n)))
+    end do
+    if ( present(crsn) ) then
+       lcrsn = crsn
+    else
+       lcrsn = maxval(vsz)
+    end if
+    la%lap%crsn = lcrsn
+    bx = boxarray_bbox(ba)
+    cbx = coarsen(bx, lcrsn)
+    la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
+    la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
+    la%lap%vshft = int_coarsen(vsz, lcrsn+1)
+    allocate(la%lap%bins(la%lap%plo(1):la%lap%phi(1),la%lap%plo(2):la%lap%phi(2),la%lap%plo(3):la%lap%phi(3)))
+    bins => la%lap%bins
+    do k = la%lap%plo(3), la%lap%phi(3)
+       do j = la%lap%plo(2), la%lap%phi(2)
+          do i = la%lap%plo(1), la%lap%phi(1)
+             allocate(bins(i,j,k)%iv(0))
+          end do
+       end do
+    end do
+    do n = 1, nboxes(ba)
+       ext = 0; ext(1:dm) = int_coarsen(lwb(get_box(ba,n)), lcrsn)
+       if ( .not. contains(cbx, ext(1:dm)) ) then
+          call bl_error("BUILD_BOX_HASH_BIN: Not Contained!")
+       end if
+       sz = size(bins(ext(1),ext(2),ext(3))%iv)
+       allocate(ipv(sz+1))
+       ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
+       ipv(sz+1) = n
+       deallocate(bins(ext(1),ext(2),ext(3))%iv)
+       bins(ext(1),ext(2),ext(3))%iv => ipv
+    end do
+    call destroy(bpt)
+  end subroutine init_box_hash_bin
+
+  function layout_get_box_intersector(la, bx) result(bi)
+    type(box_intersector), pointer :: bi(:)
+    type(layout), intent(inout) :: la
+    type(box), intent(in) :: bx
+    type(box_hash_bin), pointer :: bins(:,:,:)
+    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
+    integer :: dm
+    type(box) :: bx1
+    integer :: i, j, k, n
+    type(boxarray) :: ba
+    integer, parameter :: MAX_BI = 100
+    integer :: cnt
+    type(box_intersector) :: tbi(MAX_BI)
+    dm = la%lap%dim
+    ba = get_boxarray(la)
+    bins => la%lap%bins
+    bx1 = coarsen(bx, la%lap%crsn)
+    lo = 0; lo(1:dm) = lwb(bx1)
+    hi = 0; hi(1:dm) = upb(bx1)
+    cnt = 0
+    select case ( dm ) 
+    case (3)
+       do k = max(lo(3)-la%lap%vshft(3)-1,la%lap%plo(3)), min(hi(3)+la%lap%vshft(3), la%lap%phi(3))
+          do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
+             do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+                do n = 1, size(bins(i,j,k)%iv)
+                   bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+                   if ( empty(bx1) ) cycle
+                   cnt = cnt + 1
+                   tbi(cnt)%i = bins(i,j,k)%iv(n)
+                   tbi(cnt)%bx = bx1
+                end do
+             end do
+          end do
+       end do
+    case (2)
+       do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
+          do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+             do n = 1, size(bins(i,j,k)%iv)
+                bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+                if ( empty(bx1) ) cycle
+                cnt = cnt + 1
+                tbi(cnt)%i = bins(i,j,k)%iv(n)
+                tbi(cnt)%bx = bx1
+             end do
+          end do
+       end do
+    case (1)
+       do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+          do n = 1, size(bins(i,j,k)%iv)
+             bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+             if ( empty(bx1) ) cycle
+             cnt = cnt + 1
+             tbi(cnt)%i = bins(i,j,k)%iv(n)
+             tbi(cnt)%bx = bx1
+          end do
+       end do
+    end select
+    allocate(bi(cnt))
+    bi(1:cnt) = tbi(1:cnt)
+  end function layout_get_box_intersector
+
+  end module layout_module

@@ -24,6 +24,7 @@ end subroutine t_bx
 subroutine t_ba_self_intersection
   use ml_boxarray_module
   use box_util_module
+  use layout_module
   use bl_prof_module
   implicit none
   type(boxarray) :: ba
@@ -35,11 +36,12 @@ subroutine t_ba_self_intersection
   integer :: i, f, n, j, k, sz
   type(box) :: bx, cbx
   type(bl_prof_timer), save :: bpt, bpt_r, bpt_s, bpt_b
-  integer :: cnt, cnt1, cnt2
-  integer(ll_t) :: vol, vol1, vol2
+  integer :: cnt, cnt1, cnt2, cnt3
+  integer(ll_t) :: vol, vol1, vol2, vol3
   integer, pointer :: ipv(:)
   integer :: tsz, mxsz
   logical :: verbose
+  type(layout) :: la
 
   type bin
      integer, pointer :: iv(:) => Null()
@@ -58,13 +60,17 @@ subroutine t_ba_self_intersection
   call destroy(bpt_r)
 
   ba = mba%bas(1)
+  call build(la, ba, pd = mba%pd(1))
+
   dm = ba%dim
 
   allocate(ext(dm), plo(dm), phi(dm), vsz(dm), crsn(dm), vrng(dm))
 
-  cnt = 0; cnt1 = 0; cnt2 = 0
-  vol = 0; vol1 = 0; vol2 = 0
-  crsn = 15
+  cnt = 0; cnt1 = 0; cnt2 = 0; cnt3 = 0
+  vol = 0; vol1 = 0; vol2 = 0; vol3 = 0
+  crsn = 32
+
+  call init_box_hash_bin(la)
 
   call build(bpt_b, "build hash")
   bx = boxarray_bbox(ba)
@@ -136,6 +142,7 @@ subroutine t_ba_self_intersection
      call self_intersection(bx, ba)
      call self_intersection_1(bx, ba)
      call chk_box(bx)
+     call la_chk_box(la, bx)
   end do
   call destroy(bpt_s)
 
@@ -143,17 +150,36 @@ subroutine t_ba_self_intersection
   print *, 'cnt = ', cnt
   print *, 'cnt1 = ', cnt1
   print *, 'cnt2 = ', cnt2
+  print *, 'cnt3 = ', cnt3
   print *, 'vol = ', vol
   print *, 'vol1 = ', vol1
   print *, 'vol2 = ', vol2
+  print *, 'vol3 = ', vol3
 
   do k = plo(3), phi(3); do j = plo(2), phi(2); do i = plo(1), phi(1)
      deallocate(bins(i,j,k)%iv)
   end do;end do; end do
 
+  call destroy(la)
   call destroy(mba)
   call destroy(bpt)
 contains
+
+  subroutine la_chk_box(la, bx)
+    type(layout), intent(inout) :: la
+    type(box), intent(in) :: bx
+    type(box_intersector), pointer :: bi(:)
+    integer :: i
+    type(bl_prof_timer), save :: bpt_h1
+    call build(bpt_h1, "ba_h1")
+    bi => layout_get_box_intersector(la, bx)
+    do i = 1, size(bi)
+       cnt3 = cnt3 + 1
+       vol3 = vol3 + volume(bi(i)%bx)
+    end do
+    deallocate(bi)
+    call destroy(bpt_h1)
+  end subroutine la_chk_box
 
   subroutine chk_box(bx)
     type(box), intent(in) :: bx
