@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.70 2002-12-11 17:02:16 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.71 2005-10-05 21:44:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -626,8 +626,6 @@ BuildFBsirec (const SI&       si,
     //
     SICache.push_front(si);
 
-    //cout << "*** FB Cache Size = " << SICache.size() << endl;
-
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
@@ -640,22 +638,22 @@ BuildFBsirec (const SI&       si,
     {
         const int i = mfi.index();
 
-        for (int j = 0; j < mf.size(); j++)
+        std::vector< std::pair<int,Box> > isects = ba.intersections(mf[mfi].box());
+
+        for (int ii = 0; ii < isects.size(); ii++)
         {
-            if (i != j)
+            const Box bx  = isects[ii].second;
+            const int iii = isects[ii].first;
+
+            if (i != iii)
             {
-                if (ba[j].intersects(mf[mfi].box()))
-                {
-                    Box bx = ba[j] & mf[mfi].box();
+                sirec.push_back(SIRec(i,iii,bx));
 
-                    sirec.push_back(SIRec(i,j,bx));
-
-                    if (DMap[j] != MyProc)
-                        //
-                        // If we intersect them then they'll intersect us.
-                        //
-                        cache[DMap[j]] += 1;
-                }
+                if (DMap[iii] != MyProc)
+                    //
+                    // If we intersect them then they'll intersect us.
+                    //
+                    cache[DMap[iii]] += 1;
             }
         }
 
