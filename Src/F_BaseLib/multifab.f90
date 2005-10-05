@@ -3093,7 +3093,7 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) SHARED(filter)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -3199,7 +3199,7 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) SHARED(filter)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -3288,7 +3288,7 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) SHARED(filter)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -3377,7 +3377,7 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) SHARED(filter)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -3473,7 +3473,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall)
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(lall,filter)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
@@ -3547,7 +3547,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(filter)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
@@ -3620,7 +3620,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(filter)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
@@ -3693,7 +3693,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
 
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc) SHARED(filter)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lall ) then
@@ -4905,7 +4905,7 @@ contains
     if ( ncomp(mf) < cm + nc - 1 ) then
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
-    !$OMP PARALLEL DO PRIVATE(i,mp,xo)
+    !!OMP PARALLEL DO PRIVATE(i,mp,xo) SHARED(c_1d,c_2d,c_3d)
     do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
@@ -4918,7 +4918,7 @@ contains
           call c_3d(fb(:,:,:,cf:cf+nc-1), lo, mp(:,:,:,cm:cm+nc-1), xo)
        end select
     end do
-    !$OMP END PARALLEL DO
+    !!OMP END PARALLEL DO
   contains
     subroutine c_1d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
