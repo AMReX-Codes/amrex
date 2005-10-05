@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.32 2003-06-24 17:18:21 lijewski Exp $
+// $Id: BoxArray.H,v 1.33 2005-10-05 19:25:04 lijewski Exp $
 //
 #include <cstddef>
 
@@ -9,6 +9,7 @@
 #include <BoxList.H>
 #include <Array.H>
 #include <Pointers.H>
+#include <BaseFab.H>
 
 class BoxArray;
 
@@ -253,6 +254,8 @@ public:
 
     void reserve (long _truesize);
 
+    std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+
 protected:
 
     class Ref
@@ -277,9 +280,13 @@ protected:
 
         void define (std::istream& is);
         //
-        // The data -- an Array of Boxes.
+        // The data.
         //
-        Array<Box> m_abox;   
+        Array<Box> m_abox;
+
+        mutable IntVect crsn;
+
+        mutable BaseFab< std::vector<int> > hash;
     };
     //
     // Make `this' unique.
