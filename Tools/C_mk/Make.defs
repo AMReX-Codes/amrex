@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.87 2005-10-04 17:33:05 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.88 2005-10-06 17:59:26 lijewski Exp $
 #
 
 #
@@ -416,9 +416,6 @@ ifeq ($(FCOMP),Intel)
    NEEDS_FLUSH_F := TRUE
 endif
 
-ifeq ($(NEEDS_FLUSH_F),TRUE)
-  fEXE_sources += bl_flush.f
-endif
 #
 # We can do library closure with KCC 3.x.
 #
@@ -557,6 +554,10 @@ else
 endif
 else
     PrecisionSuffix :=
+endif
+
+ifeq ($(NEEDS_FLUSH_F),TRUE)
+  fEXE_sources += bl_flush.f
 endif
 
 CPlusPlusSourceFiles =

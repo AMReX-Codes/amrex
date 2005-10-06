@@ -25,6 +25,8 @@ ifeq ($(COMP),mpKCC)
   CXXDEBF += +K0 --no_exceptions
 endif
 
+NEEDS_FLUSH_F := TRUE
+
 FC = xlf
 fC = $(FC)
 
