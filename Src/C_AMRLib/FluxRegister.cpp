@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.78 2005-10-05 22:45:56 car Exp $
+// $Id: FluxRegister.cpp,v 1.79 2005-10-06 17:26:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -800,26 +800,26 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
     
     Arena* oldarena = BoxLib::ResetArena(&CIArena);
-
-    for (int k = 0; k < grids.size(); k++)
     {
         const Orientation lo(dir,Orientation::low);
-        const Orientation hi(dir,Orientation::high);
 
-        const Box lobox = bndry[lo].box(k) & subbox;
-        const Box hibox = bndry[hi].box(k) & subbox;
+        std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
 
-        if (lobox.ok())
+        for (int i = 0; i < isects.size(); i++)
         {
-            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,op);
-        }
-
-        if (hibox.ok())
-        {
-            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult,op);
+            DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
         }
     }
+    {
+        const Orientation hi(dir,Orientation::high);
 
+        std::vector< std::pair<int,Box> > isects = bndry[hi].boxArray().intersections(subbox);
+
+        for (int i = 0; i < isects.size(); i++)
+        {
+            DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
+        }
+    }
     BoxLib::ResetArena(oldarena);
 }
 
