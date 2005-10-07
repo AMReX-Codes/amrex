@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.170 2005-10-05 21:22:14 lijewski Exp $
+// $Id: FabArray.H,v 1.171 2005-10-07 17:01:13 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1334,12 +1334,12 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                       const Box& destFabBox,
-                                       BoxList*   returnedUnfilledBoxes,
-                                       int        srccomp,
-                                       int        destcomp,
-                                       int        numcomp,
-                                       bool       bUseValidBox)
+                                     const Box& destFabBox,
+                                     BoxList*   returnedUnfilledBoxes,
+                                     int        srccomp,
+                                     int        destcomp,
+                                     int        numcomp,
+                                     bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -1349,12 +1349,14 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
         unfilledBoxDomain.add(destFabBox);
     }
 
-    for (int i = 0, N = fabArrays[fabarrayid.Id()]->size(); i < N; i++)
+    std::vector< std::pair<int,Box> > isects = fabArrays[fabarrayid.Id()]->boxArray().intersections(destFabBox);
+
+    for (int ii = 0; ii < isects.size(); ii++)
     {
         AddBoxDoIt(fabarrayid,
                    destFabBox,
                    returnedUnfilledBoxes,
-                   i,
+                   isects[ii].first,
                    srccomp,
                    destcomp,
                    numcomp,
@@ -1375,13 +1377,13 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                       const Box& destFabBox,
-                                       BoxList*   returnedUnfilledBoxes,
-                                       int        fabarrayindex,
-                                       int        srccomp,
-                                       int        destcomp,
-                                       int        numcomp,
-                                       bool       bUseValidBox)
+                                     const Box& destFabBox,
+                                     BoxList*   returnedUnfilledBoxes,
+                                     int        fabarrayindex,
+                                     int        srccomp,
+                                     int        destcomp,
+                                     int        numcomp,
+                                     bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -1414,9 +1416,9 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                       const Box& destFabBox,
-                                       BoxList*   returnedUnfilledBoxes,
-                                       bool       bUseValidBox)
+                                     const Box& destFabBox,
+                                     BoxList*   returnedUnfilledBoxes,
+                                     bool       bUseValidBox)
 {
     return AddBox(fabarrayid,
                   destFabBox,
