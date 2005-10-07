@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.35 2005-10-05 19:25:04 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.36 2005-10-07 21:50:29 lijewski Exp $
 //
 #include <iostream>
 
@@ -536,8 +536,6 @@ BoxLib::intersect (const BoxArray& lhs,
 std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
-    BL_ASSERT(isDisjoint());
-
     if (!m_ref->hash.isAllocated())
     {
         //
