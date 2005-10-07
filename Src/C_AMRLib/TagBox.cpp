@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.67 2003-08-14 22:26:57 lijewski Exp $
+// $Id: TagBox.cpp,v 1.68 2005-10-07 17:02:09 car Exp $
 //
 #include <winstd.H>
 
@@ -406,6 +406,8 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mapPeriodic()");
+
     if (!geom.isAnyPeriodic()) return;
 
     FabArrayCopyDescriptor<TagBox> facd;
