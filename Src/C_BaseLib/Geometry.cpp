@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.64 2005-04-28 16:31:12 lijewski Exp $
+// $Id: Geometry.cpp,v 1.65 2005-10-07 17:02:00 car Exp $
 //
 #include <winstd.H>
 
@@ -279,6 +279,8 @@ Geometry::getFPB (MultiFab&  mf,
                   int        scomp,
                   int        ncomp) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getFPB(mf)");
+
     BL_ASSERT(isAnyPeriodic());
     //
     // Have we already made one with appropriate characteristics?
@@ -325,6 +327,8 @@ FPB&
 Geometry::buildFPB (MultiFab&  mf,
                     const FPB& fpb) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::buildFPB(mf)");
+
     BL_ASSERT(isAnyPeriodic());
 
     m_FPBCache.push_front(fpb);
@@ -389,6 +393,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       ncomp,
                                 bool      corners) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillPeriodicBoundary(mf)");
+
     if (!isAnyPeriodic()) return;
 
     MultiFabCopyDescriptor mfcd;
