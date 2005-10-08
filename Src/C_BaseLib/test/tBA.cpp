@@ -33,9 +33,9 @@ GetBndryCells(const BoxArray& ba,
 
     Real end = ParallelDescriptor::second() - beg;
 
-    std::cout << "BoxArray(bl).size() = " << bl.size() << " for ngrow = " << ngrow << std::endl;
+    std::cout << "size before simplify() = " << bl.size() << " for ngrow = " << ngrow << std::endl;
 
-    std::cout << "GetBndryCells() time = " << end << std::endl;
+    std::cout << "GetBndryCells(before simplify) time = " << end << std::endl;
 
     beg = ParallelDescriptor::second();
 
@@ -44,6 +44,8 @@ GetBndryCells(const BoxArray& ba,
     end = ParallelDescriptor::second() - beg;
 
     std::cout << "GetBndryCells() simplify() time = " << end << std::endl;
+
+    std::cout << "size after simplify() = " << bl.size() << " for ngrow = " << ngrow << std::endl;
 
     return BoxArray(bl);
 }
@@ -118,8 +120,5 @@ main ()
     intersections_old(ba);
     intersections_new(ba);
 
-    BoxArray nba;
-    nba = GetBndryCells(ba, 1, bb);
-    nba = GetBndryCells(ba, 2, bb);
-    nba = GetBndryCells(ba, 3, bb);
+    BoxArray nba = GetBndryCells(ba, 1, bb);
 }
