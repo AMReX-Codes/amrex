@@ -1,7 +1,45 @@
 #include <iostream>
 #include <fstream>
 #include <BoxArray.H>
+#include <BoxDomain.H>
 #include <ParallelDescriptor.H>
+
+static
+BoxArray
+GetBndryCells(const BoxArray& ba,
+              int             ngrow,
+              const Box&      domain)
+{
+    const Real beg = ParallelDescriptor::second();
+
+    const BoxList blgrids = BoxList(ba);
+
+    BoxDomain bd;
+
+    for (int i = 0; i < ba.size(); ++i)
+    {
+	BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]);
+
+	for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
+	    bd.add(BoxLib::complementIn(*bli,blgrids));
+    }
+
+    BoxList bl;
+
+    for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
+    {
+        bl.push_back(*bdi);
+    }
+
+    Real end = ParallelDescriptor::second() - beg;
+
+//    bl.simplify();
+
+    std::cout << "BoxArray(bl).size() = " << bl.size() << " for ngrow = " << ngrow << std::endl;
+
+    return BoxArray(bl);
+}
+
 
 static
 void
@@ -68,6 +106,13 @@ main ()
 
 //    ba.writeOn(std::cout); std::cout << std::endl;
 
+    Box bb = ba.minimalBox();
+
     intersections_old(ba);
     intersections_new(ba);
+
+    BoxArray nba;
+    nba = GetBndryCells(ba, 1, bb);
+    nba = GetBndryCells(ba, 2, bb);
+    nba = GetBndryCells(ba, 3, bb);
 }
