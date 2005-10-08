@@ -10,7 +10,7 @@ GetBndryCells(const BoxArray& ba,
               int             ngrow,
               const Box&      domain)
 {
-    const Real beg = ParallelDescriptor::second();
+    Real beg = ParallelDescriptor::second();
 
     const BoxList blgrids = BoxList(ba);
 
@@ -33,13 +33,20 @@ GetBndryCells(const BoxArray& ba,
 
     Real end = ParallelDescriptor::second() - beg;
 
-//    bl.simplify();
-
     std::cout << "BoxArray(bl).size() = " << bl.size() << " for ngrow = " << ngrow << std::endl;
+
+    std::cout << "GetBndryCells() time = " << end << std::endl;
+
+    beg = ParallelDescriptor::second();
+
+    bl.simplify();
+
+    end = ParallelDescriptor::second() - beg;
+
+    std::cout << "GetBndryCells() simplify() time = " << end << std::endl;
 
     return BoxArray(bl);
 }
-
 
 static
 void
