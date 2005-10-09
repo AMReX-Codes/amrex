@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.36 2005-10-07 21:50:29 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.37 2005-10-09 02:23:00 lijewski Exp $
 //
 #include <iostream>
 
@@ -536,31 +536,25 @@ BoxLib::intersect (const BoxArray& lhs,
 std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
-    if (!m_ref->hash.isAllocated())
+    if (!m_ref->hash.isAllocated() && size() > 0)
     {
         //
         // Calculate the bounding box & maximum extent of the boxes.
         //
         IntVect maxext(D_DECL(0,0,0));
 
-        Box boundingbox;
+        Box boundingbox = m_ref->m_abox.get(0);
 
-        if (size() > 0)
+        for (int i = 0; i < size(); i++)
         {
-            boundingbox = m_ref->m_abox.get(0);
+            Box& b = m_ref->m_abox.get(i);
 
-            for (int i = 0; i < size(); i++)
-            {
-                Box& b = m_ref->m_abox.get(i);
+            boundingbox.minBox(b);
 
-                boundingbox.minBox(b);
-
-                D_TERM(maxext[0] = std::max(maxext[0],b.length(0));,
-                       maxext[1] = std::max(maxext[1],b.length(1));,
-                       maxext[2] = std::max(maxext[2],b.length(2));)
-            }
-        }
-
+            D_TERM(maxext[0] = std::max(maxext[0],b.length(0));,
+                   maxext[1] = std::max(maxext[1],b.length(1));,
+                   maxext[2] = std::max(maxext[2],b.length(2));)
+                }
         m_ref->crsn = maxext;
 
         boundingbox.coarsen(maxext);
@@ -573,27 +567,29 @@ BoxArray::intersections (const Box& bx) const
         }
     }
 
-    Box cbx = BoxLib::coarsen(bx, m_ref->crsn);
-
-    IntVect sm = BoxLib::max(cbx.smallEnd() - 1, m_ref->hash.box().smallEnd());
-    IntVect bg = BoxLib::min(cbx.bigEnd(),       m_ref->hash.box().bigEnd());
-
-    cbx = Box(sm,bg);
-
     std::vector< std::pair<int,Box> > isects;
 
-    for (IntVect iv = cbx.smallEnd(); iv <= cbx.bigEnd(); cbx.next(iv))
+    if (m_ref->hash.isAllocated())
     {
-        std::vector<int>& v = m_ref->hash(iv);
+        Box     cbx = BoxLib::coarsen(bx, m_ref->crsn);
+        IntVect sm  = BoxLib::max(cbx.smallEnd() - 1, m_ref->hash.box().smallEnd());
+        IntVect bg  = BoxLib::min(cbx.bigEnd(),       m_ref->hash.box().bigEnd());
 
-        Box isect;
+        cbx = Box(sm,bg);
 
-        for (int i = 0; i < v.size(); i++)
+        for (IntVect iv = cbx.smallEnd(); iv <= cbx.bigEnd(); cbx.next(iv))
         {
-            isect = bx & m_ref->m_abox.get(v[i]);
+            std::vector<int>& v = m_ref->hash(iv);
 
-            if (isect.ok())
-                isects.push_back(std::pair<int,Box>(v[i],isect));
+            Box isect;
+
+            for (int i = 0; i < v.size(); i++)
+            {
+                isect = bx & m_ref->m_abox.get(v[i]);
+
+                if (isect.ok())
+                    isects.push_back(std::pair<int,Box>(v[i],isect));
+            }
         }
     }
 
