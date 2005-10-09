@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.19 2001-08-01 18:14:13 lijewski Exp $
+// $Id: IntVect.cpp,v 1.20 2005-10-09 03:08:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -85,24 +85,6 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT0
 #undef LGT1
 #undef LGT2
-}
-
-IntVect&
-IntVect::min (const IntVect& p)
-{
-    D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
-           vect[1] = std::min(vect[1], p.vect[1]),
-           vect[2] = std::min(vect[2], p.vect[2]));
-    return *this;
-}
-
-IntVect&
-IntVect::max (const IntVect& p)
-{
-    D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
-           vect[1] = std::max(vect[1], p.vect[1]),
-           vect[2] = std::max(vect[2], p.vect[2]));
-    return *this;
 }
 
 IntVect&
