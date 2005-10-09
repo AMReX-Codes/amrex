@@ -1,7 +1,7 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.22 2004-11-30 19:21:09 lijewski Exp $
+// $Id: IntVect.H,v 1.23 2005-10-09 03:08:33 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -577,6 +577,26 @@ IntVect
 IntVect::operator/ (int s) const
 {
     return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
+}
+
+inline
+IntVect&
+IntVect::max (const IntVect& p)
+{
+    D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+           vect[1] = std::max(vect[1], p.vect[1]),
+           vect[2] = std::max(vect[2], p.vect[2]));
+    return *this;
+}
+
+inline
+IntVect&
+IntVect::min (const IntVect& p)
+{
+    D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+           vect[1] = std::min(vect[1], p.vect[1]),
+           vect[2] = std::min(vect[2], p.vect[2]));
+    return *this;
 }
 
 #endif /*BL_INTVECT_H*/
