@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.88 2005-10-06 17:59:26 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.89 2005-10-10 18:01:23 car Exp $
 #
 
 #
@@ -214,7 +214,8 @@ ifeq ($(FCOMP),g77)
     fOPTF += -O
     FDEBF += -g
     fDEBF += -g
-    XTRALIBS += -lg2c
+    _f77_lib:=$(shell g77 -print-file-name=libg2c.a)
+    override XTRALIBS += $(_f77_lib)
     FDEBF +=   -ffortran-bounds-check 
     FDEBF += -Wimplicit
     fDEBF += -Wimplicit
