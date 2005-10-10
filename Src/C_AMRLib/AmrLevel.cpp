@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.98 2005-04-22 17:24:16 car Exp $
+// $Id: AmrLevel.cpp,v 1.99 2005-10-10 18:20:36 car Exp $
 //
 #include <winstd.H>
 
@@ -9,7 +9,6 @@
 
 #include <AmrLevel.H>
 #include <Derive.H>
-#include <BoxDomain.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
