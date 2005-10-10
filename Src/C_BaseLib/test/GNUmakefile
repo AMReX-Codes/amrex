@@ -1,20 +1,18 @@
 #
-# $Id: GNUmakefile,v 1.13 2004-10-11 20:33:17 car Exp $
+# $Id: GNUmakefile,v 1.14 2005-10-10 22:29:27 lijewski Exp $
 #
 
 #
 # Set these to the appropriate value.
 #
-COMP         = KCC
-COMP         = g++
-DIM          = 2
+DIM          = 3
 PRECISION    = DOUBLE
 COMP = PathScale
 FCOMP = PathScale
 COMP  = Intel
 FCOMP = Intel
-DEBUG        = FALSE
 DEBUG        = TRUE
+DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 USE_THREADS  = TRUE
@@ -25,6 +23,10 @@ PROFILE      = FALSE
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
 
+#FOPTF += -pg
+#fOPTF += -pg
+#CXXOPTF += -pg
+#LDFLAGS += -pg
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
@@ -37,7 +39,7 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 #_progs  := tread
 #_progs  := tWorkQueue
 #_progs  := tParmParse
-_progs  := tMF
+_progs  := tBA
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
