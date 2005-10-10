@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.30 2001-08-06 19:40:27 car Exp $
+// $Id: BoxList.H,v 1.31 2005-10-10 21:25:33 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -49,6 +49,10 @@ namespace BoxLib
       given size.
     */
     BoxList accrete (const BoxList& bl, int sz);
+    //
+    // Return BoxList which covers the same area but has no overlapping boxes.
+    //
+    BoxList removeOverlap (const BoxList& bl);
 }
 
 //

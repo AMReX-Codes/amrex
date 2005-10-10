@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.27 2004-04-30 21:11:23 vince Exp $
+// $Id: BoxList.cpp,v 1.28 2005-10-10 21:25:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -87,6 +87,14 @@ BoxLib::accrete (const BoxList& bl,
 {
     BoxList nbl(bl);
     return nbl.accrete(sz);
+}
+
+BoxList
+BoxLib::removeOverlap (const BoxList& bl)
+{
+    BoxArray ba(bl);
+
+    return ba.removeOverlap();
 }
 
 bool

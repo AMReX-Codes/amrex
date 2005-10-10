@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.37 2005-10-09 02:23:00 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.38 2005-10-10 21:25:33 lijewski Exp $
 //
 #include <iostream>
 
@@ -543,18 +543,18 @@ BoxArray::intersections (const Box& bx) const
         //
         IntVect maxext(D_DECL(0,0,0));
 
-        Box boundingbox = m_ref->m_abox.get(0);
+        Box boundingbox = m_ref->m_abox[0];
 
         for (int i = 0; i < size(); i++)
         {
-            Box& b = m_ref->m_abox.get(i);
+            Box& b = m_ref->m_abox[i];
 
             boundingbox.minBox(b);
 
             D_TERM(maxext[0] = std::max(maxext[0],b.length(0));,
                    maxext[1] = std::max(maxext[1],b.length(1));,
-                   maxext[2] = std::max(maxext[2],b.length(2));)
-                }
+                   maxext[2] = std::max(maxext[2],b.length(2)););
+        }
         m_ref->crsn = maxext;
 
         boundingbox.coarsen(maxext);
@@ -563,7 +563,7 @@ BoxArray::intersections (const Box& bx) const
 
         for (int i = 0; i < size(); i++)
         {
-            m_ref->hash(BoxLib::coarsen(m_ref->m_abox.get(i).smallEnd(), maxext)).push_back(i);
+            m_ref->hash(BoxLib::coarsen(m_ref->m_abox[i].smallEnd(), maxext)).push_back(i);
         }
     }
 
@@ -585,7 +585,7 @@ BoxArray::intersections (const Box& bx) const
 
             for (int i = 0; i < v.size(); i++)
             {
-                isect = bx & m_ref->m_abox.get(v[i]);
+                isect = bx & m_ref->m_abox[v[i]];
 
                 if (isect.ok())
                     isects.push_back(std::pair<int,Box>(v[i],isect));
@@ -594,4 +594,62 @@ BoxArray::intersections (const Box& bx) const
     }
 
     return isects;
+}
+
+BoxList
+BoxArray::removeOverlap ()
+{
+    if (!m_ref.unique()) uniqify();
+
+    const Box EmptyBox;
+
+    for (int i = 0; i < size(); i++)
+    {
+        const Box b = m_ref->m_abox[i];
+
+        if (b.ok())
+        {
+            std::vector< std::pair<int,Box> > isects = intersections(b);
+
+            for (int j = 0; j < isects.size(); j++)
+            {
+                if (isects[j].first == i) continue;
+
+                BoxList diff = BoxLib::boxDiff(m_ref->m_abox[isects[j].first], isects[j].second);
+
+                m_ref->m_abox[isects[j].first] = EmptyBox;
+
+                for (BoxList::const_iterator it = diff.begin(); it != diff.end(); ++it)
+                {
+                    m_ref->m_abox.push_back(*it);
+
+                    m_ref->hash(BoxLib::coarsen(it->smallEnd(),m_ref->crsn)).push_back(size()-1);
+                }
+            }
+        }
+    }
+    //
+    // Now attempt to simplify the list of Boxes by just simplify()ing within hash bins.
+    //
+    BoxList nbl;
+    Box     bb = m_ref->hash.box();
+
+    for (IntVect iv = bb.smallEnd(); iv <= bb.bigEnd(); bb.next(iv))
+    {
+        std::vector<int>& v = m_ref->hash(iv);
+
+        BoxList pieces;
+
+        for (int i = 0; i < v.size(); i++)
+            if (m_ref->m_abox[v[i]].ok())
+                pieces.push_back(m_ref->m_abox[v[i]]);
+
+        pieces.simplify();
+
+        nbl.catenate(pieces);
+    }
+
+    BL_ASSERT(nbl.isDisjoint);
+
+    return nbl;
 }

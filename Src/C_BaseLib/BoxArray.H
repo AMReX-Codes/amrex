@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.33 2005-10-05 19:25:04 lijewski Exp $
+// $Id: BoxArray.H,v 1.34 2005-10-10 21:25:33 lijewski Exp $
 //
 #include <cstddef>
 
@@ -255,6 +255,8 @@ public:
     void reserve (long _truesize);
 
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+
+    BoxList removeOverlap (); // Do NOT call unless you REALLY know what you're doing.
 
 protected:
 
