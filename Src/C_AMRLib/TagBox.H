@@ -1,7 +1,7 @@
 #ifndef _TagBox_H_
 #define _TagBox_H_
 //
-// $Id: TagBox.H,v 1.18 2003-02-28 22:42:15 lijewski Exp $
+// $Id: TagBox.H,v 1.19 2005-10-10 18:20:36 car Exp $
 //
 #include <IntVect.H>
 #include <Box.H>
@@ -9,7 +9,6 @@
 #include <BaseFab.H>
 #include <FabArray.H>
 #include <BoxArray.H>
-#include <BoxDomain.H>
 #include <PArray.H>
 #include <Geometry.H>
 
@@ -20,6 +19,8 @@
 
   This class is used to tag cells in a Box that need addition refinement.
 */
+
+class BoxDomain;
 
 class TagBox
     :

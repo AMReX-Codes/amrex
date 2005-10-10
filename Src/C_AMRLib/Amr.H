@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.32 2005-06-21 21:42:03 lijewski Exp $
+// $Id: Amr.H,v 1.33 2005-10-10 18:20:36 car Exp $
 //
 
 #include <fstream>
@@ -16,6 +16,7 @@
 
 class AmrLevel;
 class LevelBld;
+class BoxDomain;
 
 //
 //@Man:
