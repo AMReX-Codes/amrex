@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.100 2005-10-10 21:00:23 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.101 2005-10-11 16:07:18 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -750,7 +750,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Initialize()");
 
-    const bool verbose = true;
+    const bool verbose = false;
 
     const Real strt_time = ParallelDescriptor::second();
 
