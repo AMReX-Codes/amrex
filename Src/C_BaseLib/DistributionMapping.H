@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.25 2005-05-26 20:48:13 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.26 2005-10-11 19:07:23 lijewski Exp $
 //
 #include <vector>
 
@@ -38,6 +38,10 @@ class DistributionMapping
     //@ManDoc: The default constructor.
     //
     DistributionMapping ();
+    //
+    //@ManDoc: Create object with specified mapping.  The sentinel is already included.
+    //
+    DistributionMapping (const Array<int>& pmap);
     //
     //@ManDoc: Build mapping out of BoxArray over nprocs processors.
     //

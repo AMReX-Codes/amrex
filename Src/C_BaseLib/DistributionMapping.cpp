@@ -216,6 +216,11 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 DistributionMapping::DistributionMapping ()
 {}
 
+DistributionMapping::DistributionMapping (const Array<int>& pmap)
+    :
+    m_procmap(pmap)
+{}
+
 DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
     m_procmap(boxes.size()+1)
