@@ -22,3 +22,4 @@ bc10=periodic
 bc11=periodic
 #bc20=periodic
 #bc21=periodic
+file="3d_4_level.grids"
