@@ -878,9 +878,9 @@ void
 restrict_level (MultiFab&                   dest,
                 MultiFab&                   r,
                 const IntVect&              rat,
-                const amr_restrictor& restric,
+                const amr_restrictor&       restric,
                 const level_interface&      lev_interface,
-                const amr_boundary*   bdy)
+                const amr_boundary*         bdy)
 {
     BL_PROFILE("restrict_level()");
 
@@ -893,29 +893,22 @@ restrict_level (MultiFab&                   dest,
     const BoxArray& dest_ba = dest.boxArray();
 
     task_list tl;
-    for (int jgrid = 0; jgrid < dest.size(); jgrid++)
+    for (int igrid = 0; igrid < r.size(); igrid++)
     {
-	const Box& region = dest_ba[jgrid];
+        const Box rbox = restric.box(r_ba[igrid], rat);
 
-	for (int igrid = 0; igrid < r.size(); igrid++)
-	{
+        std::vector< std::pair<int,Box> > isects = dest_ba.intersections(rbox);
+
+        for (int i = 0; i < isects.size(); i++)
+        {
+            const int jgrid  = isects[i].first;
+
 	    if ( ! ( is_local(dest, jgrid) || is_local(r, igrid) ) ) continue;
 
-	    Box cbox = restric.box(r_ba[igrid], rat);
+            const Box cbox = isects[i].second;
 
-	    if (region.intersects(cbox))
-	    {
-		cbox &= region;
-		tl.add_task(new task_restric_fill(tl,
-                                                  restric,
-                                                  dest,
-                                                  jgrid,
-                                                  r,
-                                                  igrid,
-                                                  cbox,
-                                                  rat));
-	    }
-	}
+            tl.add_task(new task_restric_fill(tl, restric, dest, jgrid, r, igrid, cbox, rat));
+        }
     }
     tl.execute("restrict_level");
     HG_TEST_NORM( dest, "restrict_level a1");
