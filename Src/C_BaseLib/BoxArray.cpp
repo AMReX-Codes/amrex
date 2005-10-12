@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.39 2005-10-11 17:01:08 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.40 2005-10-12 04:26:31 lijewski Exp $
 //
 #include <iostream>
 
@@ -288,17 +288,15 @@ BoxArray::grow (int dir,
 bool
 BoxArray::contains (const IntVect& v) const
 {
-    for (int i = 0; i < size(); i++)
-        if (m_ref->m_abox.get(i).contains(v))
-            return true;
-    return false;
+    if ( size() == 0 ) return false;
+    std::vector< std::pair<int,Box> > isects = intersections(Box(v, v, get(0).ixType()));
+    return isects.size() > 0;
 }
 
 bool
 BoxArray::contains (const Box& b) const
 {
     BoxArray bnew = BoxLib::complementIn(b, *this);
-
     return bnew.size() == 0;
 }
 
@@ -396,9 +394,11 @@ bool
 BoxArray::isDisjoint () const
 {
     for (int i = 0; i < size(); i++)
-        for (int j = i + 1; j < size(); j++)
-            if (get(i).intersects(get(j)))
-                return false;
+    {
+        std::vector< std::pair<int,Box> > isects = intersections(get(i));
+        if ( !(isects.size() == 1 && isects[0].second == get(i)) )
+            return false;
+    }
     return true;
 }
 
@@ -516,21 +516,40 @@ BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
-    return BoxArray(BoxLib::complementIn(b, ba.boxList()));
+    std::vector< std::pair<int,Box> > isects = ba.intersections(b);
+    BoxList bl;
+    for (int i = 0; i < isects.size(); ++i)
+    {
+        bl.push_back(isects[i].second);
+    }
+    return BoxArray(BoxLib::complementIn(b, bl));
 }
 
 BoxArray
 BoxLib::intersect (const BoxArray& ba,
 		   const Box&      b)
 {
-    return BoxArray(BoxLib::intersect(ba.boxList(), b));
+    std::vector< std::pair<int,Box> > isects = ba.intersections(b);
+    BoxArray r(isects.size());
+    for ( int i = 0; i < isects.size(); ++i )
+    {
+        r.set(i, isects[i].second);
+    }
+    return r;
 }
 
 BoxArray
 BoxLib::intersect (const BoxArray& lhs,
 		   const BoxArray& rhs)
 {
-    return BoxArray(BoxLib::intersect(lhs.boxList(), rhs.boxList()));
+    BoxList bl;
+    for (int i = 0; i < lhs.size(); i++)
+    {
+        BoxArray ba = BoxLib::intersect(lhs[i], rhs);
+        BoxList  tmp = ba.boxList();
+        bl.catenate(tmp);
+    }
+    return BoxArray(bl);
 }
 
 std::vector< std::pair<int,Box> >
@@ -648,8 +667,6 @@ BoxArray::removeOverlap ()
 
         nbl.catenate(pieces);
     }
-
-    BL_ASSERT(nbl.isDisjoint);
 
     return nbl;
 }
