@@ -3,6 +3,7 @@
 #define _INTERFACE_H_
 
 #include <map>
+#include <set>
 
 #include "amr_defs.H"
 
@@ -80,6 +81,25 @@ public:
     mutable InterfaceResidualMap m_interface_residual_f;
     mutable InterfaceResidualMap m_interface_residual_e;
     mutable InterfaceResidualMap m_interface_residual_c;
+    //
+    // A Box comparison class.  Uses lexicographical comparison of smallEnd().
+    // Hence Boxes are considered equal if they have the same smallEnd().
+    // For that reason only really useful in either std::multiset of std::multimap.
+    //
+    struct BoxCmp
+    {
+        bool operator () (const Box& lhs,
+                          const Box& rhs) const
+        {
+            return lhs.smallEnd().lexLT(rhs.smallEnd());
+        }
+    };
+
+    typedef std::multiset<Box,BoxCmp>                    BoxMSet;
+    typedef std::multiset<Box,BoxCmp>::iterator          BoxMSetIter;
+    typedef std::multiset<Box,BoxCmp>::const_iterator    BoxMSetConstIter;
+    typedef std::pair<BoxMSetIter,BoxMSetIter>           BoxMSetIterPair;
+    typedef std::pair<BoxMSetConstIter,BoxMSetConstIter> BoxMSetConstIterPair;
 
 private:
 
@@ -119,8 +139,8 @@ private:
 #endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
 
-    void  add (std::list<Box>& bl, Box b, int startgrid);
-    void xfer (const std::list<Box>& bl, int idim);
+    void  add (BoxMSet& bmset, Box b, int startgrid);
+    void xfer (const BoxMSet& bmset, int idim);
 private:
     //
     // Not defined.

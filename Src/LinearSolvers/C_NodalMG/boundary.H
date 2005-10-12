@@ -49,7 +49,7 @@ public:
                                         const level_interface& lev_interface,
                                         int w) const = 0;
 
-    virtual void duplicate (std::list<Box>&,
+    virtual void duplicate (level_interface::BoxMSet&,
                             const Box&) const = 0;
 
     virtual bool singular () const  = 0;
@@ -124,7 +124,8 @@ protected:
 class inviscid_fluid_boundary;
 
 class mixed_boundary
-    : public amr_boundary
+    :
+    public amr_boundary
 {
 public:
 
@@ -149,8 +150,8 @@ public:
                                         const level_interface& lev_interface,
                                         int                    w) const;
 
-    virtual void duplicate (std::list<Box>& bl,
-                            const Box&      domain) const;
+    virtual void duplicate (level_interface::BoxMSet& bmset,
+                            const Box&                domain) const;
 
     virtual bool singular () const;
 

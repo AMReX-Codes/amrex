@@ -11,16 +11,25 @@ const level_interface default_level_interface;
 
 inline
 void
-ins (std::list<Box>& bl, const Box& b)
+ins (level_interface::BoxMSet& bmset, const Box& b)
 {
-    BL_PROFILE("inteface ins()");
-    if (std::find(bl.begin(),bl.end(),b) == bl.end())
-	bl.push_back(b);
+    BL_PROFILE("interface ins()");
+    bool found = false;
+    level_interface::BoxMSetConstIterPair er_it = bmset.equal_range(b);
+    for (level_interface::BoxMSetConstIter it = er_it.first; it != er_it.second; ++it)
+    {
+        if (*it == b)
+        {
+            found = true; break;
+        }
+    }
+    if (!found) bmset.insert(b);
 }
 
 level_interface::~level_interface()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::~level_interface()");
+
     if (!ok())
 	return;
 
@@ -189,6 +198,7 @@ level_interface::alloc (const BoxArray&     Im,
                         const amr_boundary* bdy)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::alloc()");
+
     if (ok()) BoxLib::Error( "level_interface::alloc: this object already allocated" );
 
     status = 3;
@@ -200,7 +210,7 @@ level_interface::alloc (const BoxArray&     Im,
     //
     // Add edges in 2D or faces in 3D:
     //
-    std::list<Box> bl;
+    BoxMSet bmset;
     for (int igrid = 0; igrid < im.size(); igrid++)
     {
 	for (int i = 0; i < BL_SPACEDIM; i++)
@@ -209,14 +219,14 @@ level_interface::alloc (const BoxArray&     Im,
 	    t[i] = IndexType::NODE;
 	    Box lo = BoxLib::bdryLo(im[igrid],i).convert(t);
 	    Box hi = BoxLib::bdryHi(im[igrid],i).convert(t);
-	    add(bl,lo,0);
-	    add(bl,hi,0);
+	    add(bmset,lo,0);
+	    add(bmset,hi,0);
 	}
     }
 
-    bdy->duplicate(bl, dom);
-    xfer(bl, FACEDIM);
-    bl.clear();
+    bdy->duplicate(bmset, dom);
+    xfer(bmset, FACEDIM);
+    bmset.clear();
 
 #if (BL_SPACEDIM == 3)
     //
@@ -233,14 +243,14 @@ level_interface::alloc (const BoxArray&     Im,
 		t[i] = IndexType::NODE;
 	    Box lo = BoxLib::bdryLo(bx[2][iface], i).convert(t);
 	    Box hi = BoxLib::bdryHi(bx[2][iface], i).convert(t);
-	    add(bl, lo, 0);
-	    add(bl, hi, 0);
+	    add(bmset, lo, 0);
+	    add(bmset, hi, 0);
 	}
     }
 
-    bdy->duplicate(bl, dom);
-    xfer(bl, 1);
-    bl.clear();
+    bdy->duplicate(bmset, dom);
+    xfer(bmset, 1);
+    bmset.clear();
 #endif
     //
     // Add corners:
@@ -252,14 +262,14 @@ level_interface::alloc (const BoxArray&     Im,
 	{
 	    if (t[i] == IndexType::NODE)
 		continue;
-	    ins(bl, BoxLib::bdryLo(bx[1][iedge], i));
-	    ins(bl, BoxLib::bdryHi(bx[1][iedge], i));
+	    ins(bmset, BoxLib::bdryLo(bx[1][iedge], i));
+	    ins(bmset, BoxLib::bdryHi(bx[1][iedge], i));
 	}
     }
 
-    bdy->duplicate(bl, dom);
-    xfer(bl, 0);
-    bl.clear();
+    bdy->duplicate(bmset, dom);
+    xfer(bmset, 0);
+    bmset.clear();
     //
     // Initialize face direction array.
     //
@@ -601,12 +611,14 @@ level_interface::alloc (const BoxArray&     Im,
 }
 
 void
-level_interface::add (std::list<Box>& bl,
-                      Box             b,
-                      int             startgrid)
+level_interface::add (BoxMSet& bmset,
+                      Box      b,
+                      int      startgrid)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add()");
+
     const IntVect t = b.type();
+
     for (int igrid = startgrid; igrid < im.size() + em.size(); igrid++)
     {
 	Box ibox;
@@ -624,15 +636,15 @@ level_interface::add (std::list<Box>& bl,
 		    if (ibox.smallEnd(i) > b.smallEnd(i))
 		    {
 			Box c = b.chop(i, ibox.smallEnd(i));
-			add(bl, b, igrid + 1);
-			add(bl, c, igrid);
+			add(bmset, b, igrid + 1);
+			add(bmset, c, igrid);
 			return;
 		    }
 		    if (ibox.bigEnd(i) < b.bigEnd(i))
 		    {
 			Box c = b.chop(i, ibox.bigEnd(i) + 1);
-			add(bl, b, igrid);
-			add(bl, c, igrid + 1);
+			add(bmset, b, igrid);
+			add(bmset, c, igrid + 1);
 			return;
 		    }
 		}
@@ -640,26 +652,25 @@ level_interface::add (std::list<Box>& bl,
 	    BoxLib::Abort("level_interface::add(): Can't happen.");
 	}
     }
-    ins(bl, b);
+    ins(bmset, b);
 }
 
 void
-level_interface::xfer (const std::list<Box>& bl,
-                       int                   idim)
+level_interface::xfer (const BoxMSet& bmset,
+                       int            idim)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::xfer()");
-    nbx[idim] = bl.size();
+    nbx[idim] = bmset.size();
     bx[idim]  = new Box[nbx[idim]];
     ge[idim]  = new unsigned int[nbx[idim]];
     flg[idim] = new bool[nbx[idim]];
 
-    std::list<Box>::const_iterator bn = bl.begin();
+    BoxMSetConstIter bn = bmset.begin();
 
-    for (int i = 0; bn != bl.end(); ++bn, ++i)
+    for (int i = 0; bn != bmset.end(); ++bn, ++i)
     {
 	bx[idim][i] = *bn;
-	const Box btmp =
-	    BoxLib::grow(*bn,bn->type()).convert(IntVect::TheCellVector());
+	const Box btmp = BoxLib::grow(*bn,bn->type()).convert(IntVect::TheCellVector());
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp))
 	{
@@ -691,50 +702,39 @@ level_interface::xfer (const std::list<Box>& bl,
 	else
 	{
 	    bool is_in = dom.contains(tmp);
-	    ge[idim][i]  =
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
+	    ge[idim][i]  = ( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
 #if (BL_SPACEDIM == 2)
 	    tmp += IntVect(1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
 	    tmp += IntVect(-1, 1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
 	    tmp += IntVect(1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
 #else
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
 	    tmp += IntVect(-1, 1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
 	    tmp += IntVect(-1, -1, 1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 4;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 4;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 5;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 5;
 	    tmp += IntVect(-1, 1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 6;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 6;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |=
-		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 7;
+	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 7;
 #endif
 	}
     }
