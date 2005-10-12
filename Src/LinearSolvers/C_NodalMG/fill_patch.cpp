@@ -92,14 +92,19 @@ task_fill_patch::~task_fill_patch () {}
 bool
 task_fill_patch::fill_patch_blindly ()
 {
+    BL_PROFILE("task_fill_patch::fill_patch_blindly()");
+
     const BoxArray& r_ba = r.boxArray();
 
-    for (int igrid = 0; igrid < r.size(); igrid++)
+    std::vector< std::pair<int,Box> > isects = r_ba.intersections(region);
+
+    for (int i = 0; i < isects.size(); i++)
     {
-	if (is_local(r, igrid))
-	{
-	    BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
-	}
+        const int igrid = isects[i].first;
+
+#ifndef NDEBUG
+	if (is_local(r, igrid)) BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
+#endif
 	if (r_ba[igrid].contains(region))
 	{
 	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
@@ -112,31 +117,32 @@ task_fill_patch::fill_patch_blindly ()
 	    return true;
 	}
     }
-    for (int igrid = 0; igrid < r.size(); igrid++)
-    {
-	if (is_local(r, igrid))
-	{
-	    BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
-	}
-	if (r_ba[igrid].intersects(region))
-	{
-            Box tb = r_ba[igrid] & region;
 
-	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
-                                                               target,
-                                                               target_proc_id(),
-                                                               tb,
-                                                               r,
-                                                               igrid,
-                                                               m_did_work)));
-	}
+    for (int i = 0; i < isects.size(); i++)
+    {
+        const int igrid = isects[i].first;
+        const Box tb    = isects[i].second;
+
+#ifndef NDEBUG
+	if (is_local(r, igrid)) BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
+#endif
+        depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
+                                                           target,
+                                                           target_proc_id(),
+                                                           tb,
+                                                           r,
+                                                           igrid,
+                                                           m_did_work)));
     }
+
     return false;
 }
 
 bool
 task_fill_patch::fill_exterior_patch_blindly ()
 {
+    BL_PROFILE("task_fill_patch::fill_exterior_patch_blindly()");
+
     const BoxArray& em = lev_interface.exterior_mesh();
 
     for (int igrid = 0; igrid < em.size(); igrid++)
@@ -160,9 +166,9 @@ task_fill_patch::fill_exterior_patch_blindly ()
                                                                  m_did_work)));
 		return true;
 	    }
-	    if (tb.intersects(region))
+            tb &= region;
+	    if (tb.ok())
 	    {
-		tb &= region;
 		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
                                                                  bdy,
                                                                  target,
@@ -182,6 +188,8 @@ task_fill_patch::fill_exterior_patch_blindly ()
 void
 task_fill_patch::fill_patch ()
 {
+    BL_PROFILE("task_fill_patch::fill_patch()");
+
     if (!region.ok()) return;
 
     if (target != 0)
