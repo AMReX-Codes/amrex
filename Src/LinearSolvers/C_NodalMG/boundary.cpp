@@ -1442,16 +1442,16 @@ mixed_boundary::check_against_boundary_ (BoxList&        bl,
 }
 
 void
-mixed_boundary::duplicate (std::list<Box>& bl,
-			   const Box&      domain) const
+mixed_boundary::duplicate (level_interface::BoxMSet& bmset,
+			   const Box&                domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
 	if (ptr->bc[i][0] == periodic)
 	{
-	    for (std::list<Box>::reverse_iterator bn = bl.rbegin();
-                 bn != bl.rend();
-                 ++bn)
+            std::list<Box> pieces;
+
+	    for (level_interface::BoxMSetConstIter bn = bmset.begin(); bn != bmset.end(); ++bn)
 	    {
 		if (bn->type(i) == IndexType::NODE)
 		{
@@ -1459,22 +1459,37 @@ mixed_boundary::duplicate (std::list<Box>& bl,
 		    {
 			Box btmp = *bn;
 			btmp.shift(i, domain.length(i));
-                        if (std::find(bl.begin(),bl.end(),btmp) == bl.end())
-			{
-			    bl.push_back(btmp);
-			}
+                        bool found = false;
+                        level_interface::BoxMSetConstIterPair er_it = bmset.equal_range(btmp);
+                        for (level_interface::BoxMSetConstIter it = er_it.first; it != er_it.second; ++it)
+                        {
+                            if (*it == btmp)
+                            {
+                                found = true; break;
+                            }
+                        }
+                        if (!found) pieces.push_back(btmp);
 		    }
 		    else if (bn->bigEnd(i) - 1 == domain.bigEnd(i))
 		    {
 			Box btmp = *bn;
 			btmp.shift(i, -domain.length(i));
-                        if (std::find(bl.begin(),bl.end(),btmp) == bl.end())
-			{
-			    bl.push_back(btmp);
-			}
+                        bool found = false;
+                        level_interface::BoxMSetConstIterPair er_it = bmset.equal_range(btmp);
+                        for (level_interface::BoxMSetConstIter it = er_it.first; it != er_it.second; ++it)
+                        {
+                            if (*it == btmp)
+                            {
+                                found = true; break;
+                            }
+                        }
+                        if (!found) pieces.push_back(btmp);
 		    }
 		}
 	    }
+
+            for (std::list<Box>::iterator it = pieces.begin(); it != pieces.end(); ++it)
+                bmset.insert(*it);
 	}
     }
 }
