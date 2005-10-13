@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.40 2005-10-12 04:26:31 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.41 2005-10-13 16:51:04 lijewski Exp $
 //
 #include <iostream>
 
@@ -517,7 +517,7 @@ BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
     std::vector< std::pair<int,Box> > isects = ba.intersections(b);
-    BoxList bl;
+    BoxList bl(b.ixType());
     for (int i = 0; i < isects.size(); ++i)
     {
         bl.push_back(isects[i].second);
@@ -542,7 +542,8 @@ BoxArray
 BoxLib::intersect (const BoxArray& lhs,
 		   const BoxArray& rhs)
 {
-    BoxList bl;
+    if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
+    BoxList bl(lhs[0].ixType());
     for (int i = 0; i < lhs.size(); i++)
     {
         BoxArray ba = BoxLib::intersect(lhs[i], rhs);
