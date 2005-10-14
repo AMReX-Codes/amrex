@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.20 2005-10-09 03:08:33 lijewski Exp $
+// $Id: IntVect.cpp,v 1.21 2005-10-14 17:22:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -201,30 +201,23 @@ BoxLib::coarsen (const IntVect& p,
 		 int            s)
 {
     BL_ASSERT(s > 0);
-    return IntVect(
-        D_DECL((p[0]<0) ? -abs(p[0]+1)/s-1 : p[0]/s ,
-               (p[1]<0) ? -abs(p[1]+1)/s-1 : p[1]/s ,
-               (p[2]<0) ? -abs(p[2]+1)/s-1 : p[2]/s ));
+    IntVect v = p;
+    return v.coarsen(IntVect(D_DECL(s,s,s)));
 }
 
 IntVect
 BoxLib::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
-    BL_ASSERT(p2 > IntVect::TheZeroVector());
-    return IntVect( D_DECL(
-        (p1[0]<0)?-abs(p1[0]+1)/p2[0]-1:p1[0]/p2[0],
-        (p1[1]<0)?-abs(p1[1]+1)/p2[1]-1:p1[1]/p2[1],
-        (p1[2]<0)?-abs(p1[2]+1)/p2[2]-1:p1[2]/p2[2]) );
+    IntVect v = p1;
+    return v.coarsen(p2);
 }
 
 IntVect&
 IntVect::coarsen (int s)
 {
     BL_ASSERT(s > 0);
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-        vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
-    return *this;
+    return this->coarsen(IntVect(D_DECL(s,s,s)));
 }
 
 IntVect&
