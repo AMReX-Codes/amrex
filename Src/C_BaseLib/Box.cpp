@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.24 2003-06-24 17:18:21 lijewski Exp $
+// $Id: Box.cpp,v 1.25 2005-10-14 17:22:40 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -556,19 +556,13 @@ BoxLib::refine (const Box& b,
                 int        refinement_ratio)
 {
     Box result = b;
-    return result.refine(refinement_ratio);
+    return result.refine(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
 Box&
 Box::refine (int refinement_ratio)
 {
-    IntVect shft(IntVect::TheUnitVector());
-    shft -= btype.ixType();
-    smallend.scale(refinement_ratio);
-    bigend += shft; // Bigend does more than just multiply.
-    bigend.scale(refinement_ratio);
-    bigend -= shft;
-    return *this;
+    return this->refine(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
 Box
@@ -586,7 +580,7 @@ Box::refine (const IntVect& refinement_ratio)
     shft -= btype.ixType();
     smallend *= refinement_ratio;
     bigend += shft;
-    bigend   *= refinement_ratio;
+    bigend *= refinement_ratio;
     bigend -= shft;
     return *this;
 }
@@ -688,32 +682,15 @@ BoxLib::coarsen (const Box& b,
                  int        refinement_ratio)
 {
     Box result = b;
-    return result.coarsen(refinement_ratio);
+    return result.coarsen(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
 Box&
 Box::coarsen (int refinement_ratio)
 {
-    smallend.coarsen(refinement_ratio);
-    if (btype.any())
-    {
-        IntVect off(IntVect::TheZeroVector());
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (btype[dir])
-                if (bigend[dir]%refinement_ratio)
-                    off.setVal(dir,1);
-        }
-        bigend.coarsen(refinement_ratio);
-        bigend += off;
-    }
-    else
-    {
-        bigend.coarsen(refinement_ratio);
-    }
-
-    return *this;
+    return this->coarsen(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
+
 Box
 BoxLib::coarsen (const Box&     b,
                  const IntVect& refinement_ratio)
@@ -733,12 +710,8 @@ Box::coarsen (const IntVect& refinement_ratio)
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             if (btype[dir])
-            {
-                int b = bigend[dir];
-                int r = refinement_ratio[dir];
-                if (b%r)
+                if (bigend[dir]%refinement_ratio[dir])
                     off.setVal(dir,1);
-            }
         }
         bigend.coarsen(refinement_ratio);
         bigend += off;
