@@ -897,8 +897,6 @@ restrict_level (MultiFab&                   dest,
     HG_TEST_NORM( dest, "restrict_level a");
     HG_TEST_NORM(    r, "restrict_level r");
 
-    const Real strt_time = ParallelDescriptor::second();
-
     const BoxArray& r_ba    = r.boxArray();
     const BoxArray& dest_ba = dest.boxArray();
 
@@ -932,12 +930,4 @@ restrict_level (MultiFab&                   dest,
 
     HG_TEST_NORM( dest, "restrict_level a2");
     HG_TEST_NORM(    r, "restrict_level r2");
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "restrict_level(): time: " << run_time << std::endl;
 }
