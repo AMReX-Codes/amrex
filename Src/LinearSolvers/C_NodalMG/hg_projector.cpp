@@ -989,98 +989,74 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          const Geometry&   crse_geom,
                                          Real              H[],
                                          int               Lev_min,
-                                         bool               is_coarse)
+                                         bool              is_coarse)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_sync_reg()");
 
-    int for_fill_sync_reg;
-    if ( is_coarse )
-    {
-	for_fill_sync_reg = 1;
-    }
-    else
-    {
-	for_fill_sync_reg = 2;
-    }
+    int for_fill_sync_reg = is_coarse ? 1 : 2;
 
     if ( is_coarse )
     {
         const int mglev_crse = ml_index[Lev_min];
-        const Box domain = mg_domain[mglev_crse];
+        const Box domain     = mg_domain[mglev_crse];
 
-        BoxArray fine_grids(mesh()[Lev_min+1]);
+        BoxArray fine_grids_coarsened(mesh()[Lev_min+1]);
+
+        fine_grids_coarsened.coarsen(gen_ratio[Lev_min]);
 
         for (MFIter mfi(Sigma_local[Lev_min]); mfi.isValid(); ++mfi)
 	{
-	    for (int fine = 0; fine < fine_grids.size(); fine++)
-	    {
-		Box coarsened_grid(
-		    BoxLib::coarsen(fine_grids[fine], gen_ratio[Lev_min]));
-		if (coarsened_grid.intersects(mfi.validbox()))
-		{
-		    Box subbox = mfi.validbox() & coarsened_grid;
-		    Sigma_local[Lev_min][mfi].setVal(0, subbox, 0, 1);
-		}
-	    }
+            std::vector< std::pair<int,Box> > isects = fine_grids_coarsened.intersections(mfi.validbox());
+
+            for (int i = 0; i < isects.size(); i++)
+            {
+                Sigma_local[Lev_min][mfi].setVal(0, isects[i].second, 0, 1);
+            }
 	}
 
         if (rhs_local.defined(Lev_min))
 	{
 	    for (MFIter mfi(rhs_local[Lev_min]); mfi.isValid(); ++mfi)
 	    {
-		for (int fine = 0; fine < fine_grids.size(); fine++)
-		{
-		    Box coarsened_grid(
-			BoxLib::coarsen(fine_grids[fine], gen_ratio[Lev_min]));
-		    if (coarsened_grid.intersects(mfi.validbox()))
-		    {
-			Box subbox = mfi.validbox() & coarsened_grid;
-			for (int dir = 0; dir < BL_SPACEDIM; dir++)
-			{
-			    if (subbox.smallEnd()[dir] ==
-				domain.smallEnd()[dir])
-			    {
-				subbox.growLo(dir, 1);
-			    }
-			    if (subbox.bigEnd()[dir] ==
-				domain.bigEnd()[dir])
-			    {
-				subbox.growHi(dir, 1);
-			    }
-			}
-			rhs_local[Lev_min][mfi].setVal(0, subbox, 0, 1);
-		    }
-		}
-	    }
+                std::vector< std::pair<int,Box> > isects = fine_grids_coarsened.intersections(mfi.validbox());
+
+                for (int i = 0; i < isects.size(); i++)
+                {
+                    Box subbox = isects[i].second;
+
+                    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                    {
+                        if (subbox.smallEnd()[dir] == domain.smallEnd()[dir])
+                            subbox.growLo(dir, 1);
+                        if (subbox.bigEnd()[dir] == domain.bigEnd()[dir])
+                            subbox.growHi(dir, 1);
+                    }
+
+                    rhs_local[Lev_min][mfi].setVal(0, subbox, 0, 1);
+                }
+            }
 	}
 
 	for (int n = 0; n < BL_SPACEDIM; n++)
 	{
 	    for (MFIter mfi(u_local[n][Lev_min]); mfi.isValid(); ++mfi)
 	    {
-		for (int fine = 0; fine < fine_grids.size(); fine++)
-		{
-		    Box coarsened_grid(
-			BoxLib::coarsen(fine_grids[fine], gen_ratio[Lev_min]));
-		    if (coarsened_grid.intersects(mfi.validbox()))
-		    {
-			Box subbox = mfi.validbox() & coarsened_grid;
-			for (int dir = 0; dir < BL_SPACEDIM; dir++)
-			{
-			    if (subbox.smallEnd()[dir] ==
-				domain.smallEnd()[dir])
-			    {
-				subbox.growLo(dir, 1);
-			    }
-			    if (subbox.bigEnd()[dir] ==
-				domain.bigEnd()[dir])
-			    {
-				subbox.growHi(dir, 1);
-			    }
-			}
-			u_local[n][Lev_min][mfi].setVal(0, subbox, 0, 1);
-		    }
-		}
+                std::vector< std::pair<int,Box> > isects = fine_grids_coarsened.intersections(mfi.validbox());
+
+                for (int i = 0; i < isects.size(); i++)
+                {
+                    Box subbox = isects[i].second;
+
+                    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                    {
+                        if (subbox.smallEnd()[dir] == domain.smallEnd()[dir])
+                            subbox.growLo(dir, 1);
+                        if (subbox.bigEnd()[dir] == domain.bigEnd()[dir])
+                            subbox.growHi(dir, 1);
+                    }
+
+                    u_local[n][Lev_min][mfi].setVal(0, subbox, 0, 1);
+                }
 	    }
 	}
     }
@@ -1211,6 +1187,8 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::manual_project()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
@@ -1226,8 +1204,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     PArray<MultiFab> rhs_local_fine(Lev_max+1, PArrayManage);
     PArray<MultiFab> Sigma_local(Lev_max+1, PArrayManage);
 
-    const inviscid_fluid_boundary* ifbc =
-        dynamic_cast<const inviscid_fluid_boundary*>(&boundary);
+    const inviscid_fluid_boundary* ifbc = dynamic_cast<const inviscid_fluid_boundary*>(&boundary);
     BL_ASSERT(ifbc != 0);
 
     if (Sync_resid_crse != 0)
@@ -1238,29 +1215,20 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	    for (int n = 0; n < BL_SPACEDIM; n++)
 	    {
 		u_local_crse[n].resize(Lev_max+1, PArrayManage);
-		u_local_crse[n].set(level,
-				    new MultiFab(u[n][level].boxArray(), 1, 1));
+		u_local_crse[n].set(level, new MultiFab(u[n][level].boxArray(), 1, 1));
 		u_local_crse[n][level].setVal(0.);
-		for (MFIter u_crse_mfi(u_local_crse[n][level]);
-		     u_crse_mfi.isValid(); ++u_crse_mfi)
+		for (MFIter u_crse_mfi(u_local_crse[n][level]); u_crse_mfi.isValid(); ++u_crse_mfi)
 		{
 		    Box copybox(u_crse_mfi.validbox());
-		    if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n]
-			&& ifbc->getLoBC(n) == inflow)
+		    if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] && ifbc->getLoBC(n) == inflow)
 		    {
 			copybox.growLo(n, 1);
 		    }
-		    if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n]
-			&& ifbc->getHiBC(n) == inflow)
+		    if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] && ifbc->getHiBC(n) == inflow)
 		    {
 			copybox.growHi(n, 1);
 		    }
-                    u_local_crse[n][level][u_crse_mfi].copy(u[n][level][u_crse_mfi],
-                                                            copybox,
-                                                            0,
-                                                            copybox,
-                                                            0,
-                                                            1);
+                    u_local_crse[n][level][u_crse_mfi].copy(u[n][level][u_crse_mfi], copybox, 0, copybox, 0, 1);
 		}
 	    }
 	}
@@ -1273,29 +1241,20 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	    for (int n = 0; n < BL_SPACEDIM; n++)
 	    {
 		u_local_fine[n].resize(Lev_max+1, PArrayManage);
-		u_local_fine[n].set(level,
-				    new MultiFab(u[n][level].boxArray(), 1, 1));
+		u_local_fine[n].set(level, new MultiFab(u[n][level].boxArray(), 1, 1));
 		u_local_fine[n][level].setVal(0.);
-		for (MFIter u_fine_mfi(u_local_fine[n][level]);
-		     u_fine_mfi.isValid(); ++u_fine_mfi)
+		for (MFIter u_fine_mfi(u_local_fine[n][level]); u_fine_mfi.isValid(); ++u_fine_mfi)
 		{
 		    Box copybox(u_fine_mfi.validbox());
-		    if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n]
-			&& ifbc->getLoBC(n) == inflow)
+		    if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] && ifbc->getLoBC(n) == inflow)
 		    {
 			copybox.growLo(n, 1);
 		    }
-		    if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n]
-			&& ifbc->getHiBC(n) == inflow)
+		    if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] && ifbc->getHiBC(n) == inflow)
 		    {
 			copybox.growHi(n, 1);
 		    }
-                    u_local_fine[n][level][u_fine_mfi].copy(u[n][level][u_fine_mfi],
-                                                            copybox,
-                                                            0,
-                                                            copybox,
-                                                            0,
-                                                            1);
+                    u_local_fine[n][level][u_fine_mfi].copy(u[n][level][u_fine_mfi], copybox, 0, copybox, 0, 1);
 		}
 	    }
     }
@@ -1307,9 +1266,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	Sigma_local[level].setVal(0.);
 	for (MFIter s_mfi(Sigma_local[level]); s_mfi.isValid(); ++s_mfi)
 	{
-	    Sigma_local[level][s_mfi].copy(Sigma[level][s_mfi],
-                                           s_mfi.validbox(), 0,
-                                           s_mfi.validbox(), 0, 1);
+	    Sigma_local[level][s_mfi].copy(Sigma[level][s_mfi], s_mfi.validbox(), 0, s_mfi.validbox(), 0, 1);
 	}
     }
 
@@ -1366,8 +1323,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	}
 	else
 	{
-	    alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H,
-		  Lev_min, Lev_max, 0);
+	    alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
             //
 	    // Source is set to 0 at this point.
             //
@@ -1385,13 +1341,10 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	int level = Lev_min;
 	rhs_local_crse.set(level, new MultiFab(rhs[level].boxArray(), 1, 1));
 	rhs_local_crse[level].setVal(0.);
-	for (MFIter rhs_crse_mfi(rhs_local_crse[level]);
-	     rhs_crse_mfi.isValid(); ++rhs_crse_mfi)
+	for (MFIter rhs_crse_mfi(rhs_local_crse[level]); rhs_crse_mfi.isValid(); ++rhs_crse_mfi)
 	{
 	    Box copybox(rhs_crse_mfi.validbox());
-            rhs_local_crse[level][rhs_crse_mfi].copy(rhs[level][rhs_crse_mfi],
-                                                     copybox, 0,
-                                                     copybox, 0, 1);
+            rhs_local_crse[level][rhs_crse_mfi].copy(rhs[level][rhs_crse_mfi], copybox, 0, copybox, 0, 1);
 	}
     }
 
@@ -1401,12 +1354,10 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	int level = Lev_min;
 	rhs_local_fine.set(level, new MultiFab(rhs[level].boxArray(), 1, 1));
 	rhs_local_fine[level].setVal(0.);
-	for (MFIter rhs_fine_mfi(rhs_local_fine[level]);
-	     rhs_fine_mfi.isValid(); ++rhs_fine_mfi)
+	for (MFIter rhs_fine_mfi(rhs_local_fine[level]); rhs_fine_mfi.isValid(); ++rhs_fine_mfi)
 	{
 	    Box copybox(rhs_fine_mfi.validbox());
-            rhs_local_fine[level][rhs_fine_mfi].copy(rhs[level][rhs_fine_mfi],
-                                                     copybox,0,copybox,0,1);
+            rhs_local_fine[level][rhs_fine_mfi].copy(rhs[level][rhs_fine_mfi], copybox,0,copybox,0,1);
 	}
     }
 
@@ -1426,8 +1377,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 		BL_ASSERT(Lev_max == Lev_min+1);
 		const int mglev_crse = ml_index[Lev_min];
 		const int mglev_fine = ml_index[Lev_max];
-		int rat = mg_domain[mglev_fine].length(i) /
-		    mg_domain[mglev_crse].length(i);
+		int rat = mg_domain[mglev_fine].length(i) / mg_domain[mglev_crse].length(i);
 		h[i] *= rat;
 	    }
 	}
@@ -1445,6 +1395,14 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     {
 	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
+
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "holy_grail_amr_projector::manual_project(): time: " << run_time << std::endl;
 }
 
 void
