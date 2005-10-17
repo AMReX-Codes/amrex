@@ -799,13 +799,16 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	proj.manual_project(u, p, null_amr_real, rhs, rhoinv,
 			    0, 0, crse_geom,
 			    true,
-			    h, tol, 0, 3);
+			    h, tol, 2, 3);
 	t1 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
-	std::cout << "First time is " << t1 - t0 << std::endl;
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    std::cout << "First time is " << t1 - t0 << std::endl;
+        }
     }
     /*
     if (m.size() < 3)
