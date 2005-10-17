@@ -412,6 +412,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_interface()");
 
+    const Real strt_time = ParallelDescriptor::second();
+
     BL_ASSERT(type(dest) == IntVect::TheNodeVector());
     BL_ASSERT(dest.nComp() == fine.nComp());
 
@@ -437,8 +439,7 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
             lev_interface.m_fill_interface_3[i] = 1;
         }
     }
-//    std::cout << "bilinear_restrictor::fill_interface: dest.size(): " << dest.size() << std::endl;
-//    std::cout << "bilinear_restrictor::fill_interface: lev_interface.m_fill_interface_1.size(): " << lev_interface.m_fill_interface_1.size() << std::endl;
+
     BL_ASSERT(lev_interface.m_fill_interface_1.size() == dest.size());
     BL_ASSERT(lev_interface.m_fill_interface_2.size() == dest.size());
     BL_ASSERT(lev_interface.m_fill_interface_2.size() == dest.size());
@@ -677,19 +678,11 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
         }
     }
 
-    if (ParallelDescriptor::IOProcessor() && false)
-    {
-        int sum_1 = 0, sum_2 = 0, sum_3 = 0;
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      run_time = ParallelDescriptor::second() - strt_time;
 
-        for (int jgrid = 0; jgrid < dest.size(); jgrid++)
-        {
-            if (lev_interface.m_fill_interface_1[jgrid]) sum_1++;
-            if (lev_interface.m_fill_interface_2[jgrid]) sum_2++;
-            if (lev_interface.m_fill_interface_3[jgrid]) sum_3++;
-        }
+    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        std::cout << "m_fill_interface_1: used " << sum_1 << " out of " << dest.size() << "\n";
-        std::cout << "m_fill_interface_2: used " << sum_2 << " out of " << dest.size() << "\n";
-        std::cout << "m_fill_interface_1: used " << sum_3 << " out of " << dest.size() << "\n";
-    }
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "bilinear_restrictor::fill_interface(): time: " << run_time << std::endl;
 }
