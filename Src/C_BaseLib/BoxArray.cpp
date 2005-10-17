@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.43 2005-10-13 23:04:50 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.44 2005-10-17 03:11:14 lijewski Exp $
 //
 #include <iostream>
 
@@ -288,9 +288,13 @@ BoxArray::grow (int dir,
 bool
 BoxArray::contains (const IntVect& v) const
 {
-    for (int i = 0; i < size(); i++)
-        if (get(i).contains(v))
-            return true;
+    if (size() > 0)
+    {
+        std::vector< std::pair<int,Box> > isects = intersections(Box(v,v,get(0).ixType()));
+        for (int i = 0; i < isects.size(); i++)
+            if (get(isects[i].first).contains(v))
+                return true;
+    }
     return false;
 }
 
