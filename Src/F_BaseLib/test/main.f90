@@ -2,6 +2,8 @@ program main
   use BoxLib
   use bl_prof_module
   implicit none
+  external log2
+  integer log2, i
 
   call boxlib_initialize()
   call bl_prof_initialize(on = .true.)
@@ -28,7 +30,6 @@ program main
 ! call t_ml_mf_read()
 ! call t_bl_prof()
   call t_ba_self_intersection
-
   call bl_prof_glean("bl_prof_res")
   call bl_prof_finalize()
   call boxlib_finalize()
