@@ -54,6 +54,7 @@ subroutine t_ba_self_intersection
   verbose = .true.
   ng = 1
   test_set = "grids.5034"
+  test_set = "grids.1071"
 
   call build(bpt_r, "ba_read")
   call read_a_mglib_grid(mba, test_set)
@@ -242,3 +243,16 @@ contains
 
 end subroutine t_ba_self_intersection
 
+function log2(vin) result(r)
+  implicit none
+  integer :: r
+  integer, intent(in) :: vin
+  integer :: v
+  r = 0
+  v = vin
+  do
+     v = ishft(v, -1)
+     if ( v == 0 ) exit
+     r = r + 1
+  end do
+end function log2
