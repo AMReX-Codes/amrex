@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.45 2005-10-18 15:49:57 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.46 2005-10-18 15:57:34 lijewski Exp $
 //
 #include <iostream>
 
@@ -308,7 +308,7 @@ BoxArray::contains (const Box& b) const
 bool
 BoxArray::contains (const BoxArray& bl) const
 {
-    if (size() == 0) return false;
+    if (size() == 0 || bl.size() == 0) return false;
     for (int i = 0; i < bl.size(); i++)
        if (!contains(bl.m_ref->m_abox.get(i)))
            return false;
