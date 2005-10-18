@@ -310,19 +310,27 @@ level_interface::alloc (const BoxArray&     Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.size(); igrid++)
-		    {
-			if (im[igrid].contains(b))
-			{
+                    std::vector< std::pair<int,Box> > isects = im.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
+                        if (im[igrid].contains(b))
+                        {
 			    fgr[iface][i] = igrid;
 			    break;
-			}
-		    }
+                        }
+                    }
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.size(); igrid++)
-		    {
+                    std::vector< std::pair<int,Box> > isects = em.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
 			if (em[igrid].contains(b))
 			{
 			    fgr[iface][i] = -2 - igrid;
@@ -330,7 +338,7 @@ level_interface::alloc (const BoxArray&     Im,
 				flg[idim][iface] = true;
 			    break;
 			}
-		    }
+                    }
 		}
 	    }
 	    b.shift(id, 1);
@@ -366,8 +374,12 @@ level_interface::alloc (const BoxArray&     Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.size(); igrid++)
-		    {
+                    std::vector< std::pair<int,Box> > isects = im.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
 			if (im[igrid].contains(b))
 			{
 			    egr[iedge][i] = igrid;
@@ -377,8 +389,12 @@ level_interface::alloc (const BoxArray&     Im,
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.size(); igrid++)
-		    {
+                    std::vector< std::pair<int,Box> > isects = em.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
 			if (em[igrid].contains(b))
 			{
 			    egr[iedge][i] = -2 - igrid;
@@ -423,8 +439,12 @@ level_interface::alloc (const BoxArray&     Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.size(); igrid++)
-		    {
+                    std::vector< std::pair<int,Box> > isects = im.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
 			if (im[igrid].contains(b))
 			{
 			    cgr[icor][i] = igrid;
@@ -434,8 +454,12 @@ level_interface::alloc (const BoxArray&     Im,
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.size(); igrid++)
-		    {
+                    std::vector< std::pair<int,Box> > isects = em.intersections(b);
+
+                    for (int j = 0; j < isects.size(); j++)
+                    {
+                        const int igrid = isects[j].first;
+
 			if (em[igrid].contains(b))
 			{
 			    cgr[icor][i] = -2 - igrid;
@@ -474,8 +498,6 @@ level_interface::alloc (const BoxArray&     Im,
 
     for (int igrid = 0; igrid < im.size(); igrid++)
     {
-	//pf[igrid] = im.boxn(igrid);
-	//pf[igrid].grow(-1);
 	pf[igrid] = im[igrid];
 	pf[igrid].convert(IntVect::TheNodeVector()).grow(-1);
     }
@@ -510,9 +532,8 @@ level_interface::alloc (const BoxArray&     Im,
 		int igrid;
 		if ((igrid = fgr[iface][i]) >= 0)
 		{
-		    if (pf[igrid].intersects(nodebx[idim][iface])) {
+		    if (pf[igrid].intersects(nodebx[idim][iface]))
 			ax[idim][iface] = igrid;
-                    }
 		}
 	    }
 	}
@@ -541,18 +562,18 @@ level_interface::alloc (const BoxArray&     Im,
                         int first = -1;
 			for (int iface = 0; iface < nbx[2] && first==-1; iface++)
                         {
-			  if (ax[2][iface] == igrid) first = iface;
+                            if (ax[2][iface] == igrid) first = iface;
                         }
                         if (first != -1)
                         {
-                          BoxList face_list(nodebx[2][first]);
-			  for (int iface = 0; iface < nbx[2]; iface++)
-			    if (ax[2][iface] == igrid && iface != first) 
-                              face_list.push_back(nodebx[2][iface]);
-                          BoxArray face_array(face_list);
+                            BoxList face_list(nodebx[2][first]);
+                            for (int iface = 0; iface < nbx[2]; iface++)
+                                if (ax[2][iface] == igrid && iface != first) 
+                                    face_list.push_back(nodebx[2][iface]);
+                            BoxArray face_array(face_list);
 
-  				if (face_array.contains(nodebx[1][iedge]))
-				    ax[1][iedge] = -1;
+                            if (face_array.contains(nodebx[1][iedge]))
+                                ax[1][iedge] = -1;
                         }
 		    }
 		}
