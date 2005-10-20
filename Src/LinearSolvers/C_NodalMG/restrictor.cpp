@@ -102,6 +102,7 @@ task_fab_get::task_fab_get (task_list&      tl_,
     bx(bx_),
     tf(0)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_fab_get()");
     depend_on(tf = m_task_list.add_task(new task_copy_local(m_task_list,
                                                             target,
                                                             target_proc_id(),
@@ -195,6 +196,7 @@ task_restriction_fill::task_restriction_fill (const RESTFUN  ref_,
     arg1(1),
     arg2(1)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(1)");
     depend_on(tf = m_task_list.add_task(tf_));
     arg1[0] = i1_;
     arg2[0] = i2_;
@@ -221,6 +223,7 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
     arg1(i1_),
     arg2(1)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(2)");
     depend_on(tf = m_task_list.add_task(tf_));
     arg2[0] = 0;
 }
@@ -247,12 +250,14 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
     arg1(i1_.getVect(), BL_SPACEDIM),
     arg2(i2_)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(3)");
     depend_on(tf = m_task_list.add_task(tf_));
 }
 
 bool
 task_restriction_fill::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
     if (is_local(m, ind))
     {
         BL_ASSERT(!tf.null());
