@@ -417,8 +417,6 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_interface()");
 
-    const Real strt_time = ParallelDescriptor::second();
-
     BL_ASSERT(type(dest) == IntVect::TheNodeVector());
     BL_ASSERT(dest.nComp() == fine.nComp());
 
@@ -466,18 +464,16 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 
             *did_work = 0;
 
-            for (int iface = 0;
-                 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
+            for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
             {
-                if (lev_interface.flag(level_interface::FACEDIM, iface))
-                    continue;
+                if (lev_interface.flag(level_interface::FACEDIM, iface)) continue;
 
-                Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-                const IntVect t =
-                    lev_interface.box(level_interface::FACEDIM, iface).type();
-                const unsigned int geo =
-                    lev_interface.geo(level_interface::FACEDIM, iface);
+                Box cbox               = lev_interface.node_box(level_interface::FACEDIM, iface);
+                const IntVect t        = lev_interface.box(level_interface::FACEDIM, iface).type();
+                const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
+
                 cbox.coarsen(rat);
+
                 if (region.intersects(cbox))
                 {
                     //
@@ -495,27 +491,22 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
                         //
                         if (fine.nGrow() >= ratmax - 1)
                         {
-                            int igrid =
-                                lev_interface.grid(
-                                    level_interface::FACEDIM, iface, 0);
+                            int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
                             if (igrid < 0)
-                                igrid = lev_interface.grid( level_interface::FACEDIM, iface, 1);
+                                igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 
                             task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
 
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl,
-                                            dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, 0, 0, did_work));
                         }
                         else
                         {
                             task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface,
                                                                  bdy, level_interface::FACEDIM, iface, did_work);
 
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, 0, 0, did_work));
                         }
                     }
                     else
@@ -536,9 +527,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
                             //
                             task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
 
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, idim, idir, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, idim, idir, did_work));
                         }
                         else
                         {
@@ -553,9 +543,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
                             task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fb, fine, lev_interface, bdy,
                                                                  level_interface::FACEDIM, iface, did_work);
 
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, idim, idir, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANFR2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, idim, idir, did_work));
                         }
                     }
                 }
@@ -574,8 +563,9 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
             {
                 if (lev_interface.flag(1, iedge)) continue;
 
-                Box cbox = lev_interface.node_box(1, iedge);
+                Box cbox        = lev_interface.node_box(1, iedge);
                 const IntVect t = lev_interface.box(1, iedge).type();
+
                 cbox.coarsen(rat);
 
                 if (region.intersects(cbox))
@@ -596,9 +586,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 
                         task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
 
-                        tl.add_task(new task_restriction_fill(
-                                        &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                        rat, integrate, 0, 0, did_work));
+                        tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                              rat, integrate, 0, 0, did_work));
                     }
                     else
                     {
@@ -609,16 +598,14 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
                             //
                             // Fine grid on all sides.
                             //
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, 0, 0, did_work));
                         }
                         else
                         {
                             Array<int> ga = lev_interface.geo_array(1, iedge);
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANER2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, t, ga, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANER2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, t, ga, did_work));
                         }
                     }
                 }
@@ -652,9 +639,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 
                         task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid, did_work);
 
-                        tl.add_task(new task_restriction_fill(
-                                        &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                        rat, integrate, 0, 0, did_work));
+                        tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                              rat, integrate, 0, 0, did_work));
                     }
                     else
                     {
@@ -665,16 +651,14 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
                             //
                             // Fine grid on all sides.
                             //
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, 0, 0, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, 0, 0, did_work));
                         }
                         else
                         {
                             Array<int> ga = lev_interface.geo_array(0, icor);
-                            tl.add_task(new task_restriction_fill(
-                                            &FORT_FANCR2, tl, dest, jgrid, cbox, tfab,
-                                            rat, integrate, ga, did_work));
+                            tl.add_task(new task_restriction_fill(&FORT_FANCR2, tl, dest, jgrid, cbox, tfab,
+                                                                  rat, integrate, ga, did_work));
                         }
                     }
                 }
@@ -682,12 +666,4 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
             tl.execute("bilinear_restrictor::fill_interface(3)");
         }
     }
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "bilinear_restrictor::fill_interface(): time: " << run_time << std::endl;
 }
