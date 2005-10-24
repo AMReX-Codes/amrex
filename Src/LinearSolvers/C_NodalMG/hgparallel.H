@@ -202,6 +202,14 @@ task::is_started () const
 }
 
 inline
+void
+task::depend_on (const task_proxy& t1)
+{
+    if (!t1.null())
+        dependencies.push_back(t1);
+}
+
+inline
 bool
 task::is_finished () const
 {
@@ -306,6 +314,24 @@ task_list::get_then_advance (int proc)
     task::sequence_number sno = seq_no[proc];
     seq_no[proc] = sno + 1;
     return sno;
+}
+
+inline
+task::task_proxy
+task_list::add_task (task* t)
+{
+    BL_ASSERT(t != 0);
+
+    if (t->is_finished())
+    {
+        delete t;
+        return task::task_proxy(0);
+    }
+    else
+    {
+        tasks.push_back(task::task_proxy(t));
+        return tasks.back();
+    }
 }
 
 class task_copy_base
