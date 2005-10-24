@@ -89,6 +89,10 @@ module ml_multifab_module
      module procedure ml_multifab_get_box
   end interface
 
+  interface get_boxarray
+     module procedure ml_multifab_get_boxarray
+  end interface
+
   interface get_pbox
      module procedure ml_multifab_get_pbox
   end interface
@@ -137,6 +141,13 @@ contains
     integer, intent(in) :: lev, n
     r = get_box(mmf%mf(lev), n)
   end function ml_multifab_get_box
+
+  function ml_multifab_get_boxarray(mmf, lev) result(r)
+    type(boxarray) :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev
+    r = get_boxarray(mmf%mf(lev))
+  end function ml_multifab_get_boxarray
 
   function ml_multifab_get_pbox(mmf, lev, n) result(r)
     type(box) :: r
@@ -315,6 +326,9 @@ contains
     type(ml_multifab), intent(in) :: y
     integer, intent(in) :: compx, compy
     integer :: n
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "ml_multifab_dot_cc")
+
     if ( x%mla /= y%mla ) call bl_error("ML_DOT: incommensurate")
     n = x%nlevel
     r = dot(x%mf(n), compx, y%mf(n), compy)
@@ -322,6 +336,8 @@ contains
        r = r/product(x%mla%mba%rr(n,:)) &
             + dot(x%mf(n), compx, y%mf(n), compy, mask=x%mla%mask(n))
     end do
+
+    call destroy(bpt)
   end function ml_multifab_dot_cc
 
   function ml_multifab_sum(x) result(r)
@@ -393,9 +409,14 @@ contains
     integer, intent(in) :: c
     real(dp_t), intent(in), optional :: off
     integer :: n
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "ml_multifab_rescale_c")
+
     do n = 1, x%nlevel
        call rescale(x%mf(n), c, val, off)
     end do
+
+    call destroy(bpt)
   end subroutine ml_multifab_rescale_c
   subroutine ml_multifab_rescale(x, val, off)
     real(dp_t), intent(in) :: val

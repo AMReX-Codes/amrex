@@ -3801,8 +3801,8 @@ contains
     real(dp_t), pointer :: ma(:,:,:,:)
     logical, pointer :: lmp(:,:,:,:)
     real(dp_t) :: r1
-    integer :: i
     logical :: lall
+    integer :: n, i, j, k
 
     r1 = 0_dp_t
     if ( present(mask) ) then
@@ -3810,23 +3810,23 @@ contains
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp => dataptr(mf, i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
-             lmp => dataptr(mask, i, get_ibox(mask, i), 1)
+          do n = 1, mf%nboxes
+             if ( remote(mf,n) ) cycle
+             mp => dataptr(mf, n, get_ibox(mf, n), comp)
+             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+             lmp => dataptr(mask, n, get_ibox(mask, n), 1)
              r1 = r1 + sum(mp*mp1, mask = lmp)
           end do
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
+          do n = 1, mf%nboxes
+             if ( remote(mf,n) ) cycle
 
-             mp => dataptr(mf, i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
-             ma => dataptr(tmask, i, get_ibox(tmask, i))
+             mp => dataptr(mf, n, get_ibox(mf, n), comp)
+             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+             ma => dataptr(tmask, n, get_ibox(tmask, n))
 
              r1 = r1 + sum(ma*mp*mp1)
           end do
@@ -3839,28 +3839,35 @@ contains
        lall = .FALSE.; if ( present(all) ) lall = all
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
+          do n = 1, mf%nboxes
+             if ( remote(mf,n) ) cycle
              if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), comp)
-                mp1 => dataptr(mf1, i, get_pbox(mf1, i), comp1)
+                mp => dataptr(mf, n, get_pbox(mf, n), comp)
+                mp1 => dataptr(mf1, n, get_pbox(mf1, n), comp1)
              else
-                mp => dataptr(mf, i, get_ibox(mf, i), comp)
-                mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
+                mp => dataptr(mf, n, get_ibox(mf, n), comp)
+                mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
              end if
-             r1 = r1 + sum(mp*mp1)
+!            r1 = r1 + sum(mp*mp1)
+             do k = 1, ubound(mp,3)
+                do j = 1, ubound(mp,2)
+                   do i = 1, ubound(mp,1)
+                      r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
+                   end do
+                end do
+             end do
           end do
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
           if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
           call build_nodal_dot_mask(tmask, mf)
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
+          do n = 1, mf%nboxes
+             if ( remote(mf,n) ) cycle
 
-             mp => dataptr(mf, i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp1)
-             ma => dataptr(tmask, i, get_ibox(tmask, i))
+             mp => dataptr(mf, n, get_ibox(mf, n), comp)
+             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+             ma => dataptr(tmask, n, get_ibox(tmask, n))
 
              r1 = r1 + sum(ma*mp*mp1)
           end do
