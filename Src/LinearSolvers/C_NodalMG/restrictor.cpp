@@ -102,7 +102,6 @@ task_fab_get::task_fab_get (task_list&      tl_,
     bx(bx_),
     tf(0)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_fab_get()");
     depend_on(tf = m_task_list.add_task(new task_copy_local(m_task_list,
                                                             target,
                                                             target_proc_id(),
@@ -196,7 +195,6 @@ task_restriction_fill::task_restriction_fill (const RESTFUN  ref_,
     arg1(1),
     arg2(1)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(1)");
     depend_on(tf = m_task_list.add_task(tf_));
     arg1[0] = i1_;
     arg2[0] = i2_;
@@ -223,7 +221,6 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
     arg1(i1_),
     arg2(1)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(2)");
     depend_on(tf = m_task_list.add_task(tf_));
     arg2[0] = 0;
 }
@@ -250,14 +247,12 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
     arg1(i1_.getVect(), BL_SPACEDIM),
     arg2(i2_)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_restriction_fill(3)");
     depend_on(tf = m_task_list.add_task(tf_));
 }
 
 bool
 task_restriction_fill::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
     if (is_local(m, ind))
     {
         BL_ASSERT(!tf.null());
@@ -409,11 +404,11 @@ bilinear_restrictor::fill (FArrayBox&       patch,
 }
 
 void
-bilinear_restrictor::fill_interface (MultiFab&                 dest,
-				     MultiFab&                 fine,
-				     const level_interface&    lev_interface,
-				     const amr_boundary* bdy,
-				     const IntVect&            rat) const
+bilinear_restrictor::fill_interface (MultiFab&              dest,
+				     MultiFab&              fine,
+				     const level_interface& lev_interface,
+				     const amr_boundary*    bdy,
+				     const IntVect&         rat) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_interface()");
 
@@ -665,5 +660,21 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
             }
             tl.execute("bilinear_restrictor::fill_interface(3)");
         }
+    }
+
+    if (ParallelDescriptor::IOProcessor() && false)
+    {
+        int sum_1 = 0, sum_2 = 0, sum_3 = 0;
+
+        for (int jgrid = 0; jgrid < dest.size(); jgrid++)
+        {
+            if (lev_interface.m_fill_interface_1[jgrid]) sum_1++;
+            if (lev_interface.m_fill_interface_2[jgrid]) sum_2++;
+            if (lev_interface.m_fill_interface_3[jgrid]) sum_3++;
+        }
+
+        std::cout << "m_fill_interface_1: used " << sum_1 << " out of " << dest.size() << "\n";
+        std::cout << "m_fill_interface_2: used " << sum_2 << " out of " << dest.size() << "\n";
+        std::cout << "m_fill_interface_3: used " << sum_3 << " out of " << dest.size() << "\n";
     }
 }

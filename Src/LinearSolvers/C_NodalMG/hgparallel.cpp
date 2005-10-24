@@ -75,7 +75,6 @@ HG::MPI_finish ()
 #endif
 }
 
-
 // task
 task::task (task_list& tl_, char* did_work)
     :
@@ -168,13 +167,6 @@ task::depends_on_q (const task* t1) const
     return false;
 }
 
-void
-task::depend_on (const task_proxy& t1)
-{
-    if (!t1.null())
-        dependencies.push_back(t1);
-}
-
 bool
 task::ready ()
 {
@@ -191,6 +183,8 @@ task::_do_depend ()
         //
         return;
 
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::_do_depend()");
+
     for (std::list<task::task_proxy>::const_iterator cit = m_task_list.begin();
 	 cit != m_task_list.end();
          ++cit)
@@ -202,7 +196,6 @@ task::_do_depend ()
     }
 }
 
-
 // task_list
 task_list::task_list ()
     :
@@ -211,23 +204,6 @@ task_list::task_list ()
 {}
 
 task_list::~task_list () {}
-
-task::task_proxy
-task_list::add_task (task* t)
-{
-    BL_ASSERT(t != 0);
-
-    if (t->is_finished())
-    {
-        delete t;
-        return task::task_proxy(0);
-    }
-    else
-    {
-        tasks.push_back(task::task_proxy(t));
-        return tasks.back();
-    }
-}
 
 void
 task_list::print_dependencies (std::ostream& os) const
@@ -607,7 +583,6 @@ task_copy::ready ()
     return false;
 }
 
-
 // task_local_base
 task_local_base::task_local_base (task_list&      tl_,
                                   FArrayBox*      fab_,
