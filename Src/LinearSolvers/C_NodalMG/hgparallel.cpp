@@ -243,20 +243,10 @@ task_list::execute (const char* msg)
         }
     }
 
-    if (verbose)
-    {
-#ifdef HG_DEBUG
-        HG_DEBUG_OUT("Processing List ");
-        HG_DEBUG_OUT(HG::mpi_comm);
-        HG_DEBUG_OUT(" with " << tasks.size() << " elements " << std::endl);
-        print_dependencies(debug_out);
-#endif
-    }
-
     int live_tasks = 0;
-    long total_snd = 0, total_rcv = 0, maxpacket = 0;
 
 restart:
+
     while (!tasks.empty())
     {
         std::list<task::task_proxy>::iterator tli = tasks.begin();
@@ -266,8 +256,6 @@ restart:
             task::task_proxy t = *tli;
 
             BL_ASSERT(!t.null());
-
-            if (verbose) t->hint();
 
             if (t->depend_ready())
             {
@@ -284,9 +272,6 @@ restart:
                         continue;
                     }
 
-                    total_snd += sndcnt;
-                    total_rcv += rcvcnt;
-                    maxpacket  = std::max(maxpacket,std::max(sndcnt,rcvcnt));
                     live_tasks++;
                 }
                 if (t->ready())
@@ -301,27 +286,11 @@ restart:
             ++tli;
         }
     }
+
     BL_ASSERT(live_tasks == 0);
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         seq_no[i] = 1;
-
-#ifdef HG_DEBUG
-    if (verbose && maxpacket > 0)
-    {
-        char buf[512];
-
-        sprintf(buf,
-                "CPU(%d) %s: Sent: %ld Rcvd: %ld MaxPkt: %ld",
-                ParallelDescriptor::MyProc(),
-                msg,
-                total_snd,
-                total_rcv,
-                maxpacket);
-
-        std::cout << buf << std::endl;
-    }
-#endif
 }
 
 inline
