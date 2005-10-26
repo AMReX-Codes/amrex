@@ -79,7 +79,7 @@ public:
     explicit task (task_list& task_list_, char* did_work = 0);
     virtual ~task ();
     virtual bool ready ();
-    virtual bool startup (long& sdncnt, long& rcvcnt);
+    virtual bool startup ();
     bool is_started () const ;
     virtual bool depends_on_q (const task* t1) const;
     bool is_finished () const;
@@ -351,7 +351,7 @@ public:
 
     virtual ~task_copy_base();
     virtual bool depends_on_q (const task* t) const;
-    virtual bool startup (long&,long&);
+    virtual bool startup ();
     virtual bool need_to_communicate (int& with) const;
     virtual void hint () const;
 
@@ -425,7 +425,7 @@ public:
                      char*           did_work);
 
     virtual ~task_local_base ();
-    virtual bool startup (long&, long&);
+    virtual bool startup ();
     virtual bool depends_on_q (const task* t1) const;
     virtual bool need_to_communicate (int& with) const;
     virtual void hint () const;

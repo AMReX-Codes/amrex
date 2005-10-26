@@ -94,7 +94,7 @@ task::~task ()
 }
 
 bool
-task::startup (long&, long&)
+task::startup ()
 {
     return m_started = true;
 }
@@ -263,9 +263,7 @@ restart:
                 {
                     if (live_tasks > HG::max_live_tasks) goto restart;
 
-                    long sndcnt = 0, rcvcnt = 0;
-
-                    if (!t->startup(sndcnt, rcvcnt))
+                    if (!t->startup())
                     {
                         t.set_finished();
                         tasks.erase(tli++);
@@ -330,14 +328,14 @@ task_copy_base::~task_copy_base ()
 bool
 task_copy_base::depends_on_q (const task* t1) const
 {
-    if (!mfeq(m_dmf, m_smf)) return false;
-
-    if (const task_copy_base* t1tc = dynamic_cast<const task_copy_base*>(t1))
+    if (mfeq(m_dmf, m_smf))
     {
-        if (m_sgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_dbx)) return true;
-        if (m_dgrid == t1tc->m_dgrid && m_dbx.intersects(t1tc->m_dbx)) return true;
-        if (m_sgrid == t1tc->m_sgrid && m_sbx.intersects(t1tc->m_sbx)) return true;
-        if (m_dgrid == t1tc->m_sgrid && m_dbx.intersects(t1tc->m_sbx)) return true;
+        if (const task_copy_base* t1tc = dynamic_cast<const task_copy_base*>(t1))
+        {
+            if (m_sgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_dbx)) return true;
+            if (m_dgrid == t1tc->m_dgrid && m_dbx.intersects(t1tc->m_dbx)) return true;
+            if (m_dgrid == t1tc->m_sgrid && m_dbx.intersects(t1tc->m_sbx)) return true;
+        }
     }
 
     return false;
@@ -366,7 +364,7 @@ task_copy_base::need_to_communicate (int& with) const
 }
 
 bool
-task_copy_base::startup (long& sndcnt, long& rcvcnt)
+task_copy_base::startup ()
 {
     m_started = true;
 
@@ -376,16 +374,12 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
     {
         if (is_local(m_dmf, m_dgrid))
         {
-            m_tmp = new FArrayBox(m_sbx, m_smf.nComp());
-            rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
-
+            m_tmp     = new FArrayBox(m_sbx, m_smf.nComp());
             m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
-                                                  rcvcnt,
+                                                  m_tmp->box().numPts()*m_tmp->nComp(),
                                                   processor_number(m_smf,m_sgrid),
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            rcvcnt *= sizeof(double);
-
             if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -394,15 +388,11 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
         {
             m_tmp = new FArrayBox(m_sbx, m_smf.nComp());
             m_tmp->copy(m_smf[m_sgrid], m_sbx);
-            sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
-
             m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
-                                                  sndcnt,
+                                                  m_tmp->box().numPts()*m_tmp->nComp(),
                                                   processor_number(m_dmf,m_dgrid),
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            sndcnt *= sizeof(double);
-
             if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -602,7 +592,7 @@ task_local_base::need_to_communicate (int& with) const
 }
 
 bool
-task_local_base::startup (long& sndcnt, long& rcvcnt)
+task_local_base::startup ()
 {
     m_started = true;
 
@@ -613,15 +603,13 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
         if (m_fab != 0)
         {
             m_tmp = new FArrayBox(m_bx, m_smf.nComp());
-            rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
+            long rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
 
             m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
                                                   rcvcnt,
                                                   processor_number(m_smf,m_sgrid),
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            rcvcnt *= sizeof(double);
-
             if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -630,15 +618,13 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
         {
             m_tmp = new FArrayBox(m_bx, m_smf.nComp());
             m_tmp->copy(m_smf[m_sgrid], m_bx);
-            sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
+            long sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
 
             m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
                                                   sndcnt,
                                                   m_target_proc_id,
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            sndcnt *= sizeof(double);
-
             if (m_did_work) *m_did_work = 1;
 
             BL_ASSERT(m_request != MPI_REQUEST_NULL);

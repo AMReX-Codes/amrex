@@ -699,7 +699,7 @@ public:
     virtual ~task_restric_fill ();
     virtual bool ready ();
     virtual void hint () const;
-    virtual bool startup (long& sndcnt, long& rcvcnt);
+    virtual bool startup ();
     virtual bool need_to_communicate (int& with) const;
 
 private:
@@ -780,7 +780,7 @@ task_restric_fill::need_to_communicate (int& with) const
 }
 
 bool
-task_restric_fill::startup (long& sndcnt, long& rcvcnt)
+task_restric_fill::startup ()
 {
     m_started = true;
 
@@ -790,31 +790,23 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
     {
         if (is_local(m_d, m_dgrid))
         {
-            m_tmp = new FArrayBox(m_box, m_d.nComp());
-            rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
-
+            m_tmp     = new FArrayBox(m_box, m_d.nComp());
             m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
-                                                  rcvcnt,
+                                                  m_tmp->box().numPts()*m_tmp->nComp(),
                                                   processor_number(m_r,m_rgrid),
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            rcvcnt *= sizeof(double);
-
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_r, m_rgrid))
         {
             m_tmp = new FArrayBox(m_box, m_d.nComp());
 	    m_restric.fill(*m_tmp, m_box, m_r[m_rgrid], m_rat);
-            sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
-
             m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
-                                                  sndcnt,
+                                                  m_tmp->box().numPts()*m_tmp->nComp(),
                                                   processor_number(m_d, m_dgrid),
                                                   m_sno,
                                                   HG::mpi_comm).req();
-            sndcnt *= sizeof(double);
-
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
