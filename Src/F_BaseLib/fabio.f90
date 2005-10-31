@@ -389,6 +389,10 @@ contains
 
     nl = size(mfs)
     nc = ncomp(mfs(1))
+    if ( nc == 0 ) then
+       call bl_warn("FABIO_ML_MULTIFAB_WRITE_D: no components in mfs")
+       return
+    end if
     dm = mfs(1)%dim
     allocate(plo(dm),phi(dm),ldx(dm),lo(dm),hi(dm))
     if ( present(bounding_box) ) then

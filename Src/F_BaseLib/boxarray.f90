@@ -308,7 +308,10 @@ contains
     type(boxarray), intent(inout) :: ba
 !    if ( associated(ba%bxs) ) then
        call mem_stats_dealloc(boxarray_ms, ba%nboxes)
-       deallocate(ba%bxs)
+       if ( associated(ba%bxs) ) then
+          deallocate(ba%bxs) 
+          ba%bxs => Null()
+       end if
        ba%dim = 0
        ba%nboxes = 0
 !    end if

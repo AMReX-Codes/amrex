@@ -328,6 +328,10 @@ module multifab_module
      module procedure multifab_plus_plus_s_c
   end interface
 
+  interface div
+     module procedure multifab_div_s_c
+  end interface
+
   interface div_div
      module procedure multifab_div_div
      module procedure multifab_div_div_s
@@ -2302,14 +2306,14 @@ contains
     if ( lng > mf%ng )      call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
 
-    if ( lng < 1 ) return
+    if ( lng < 1 ) goto 999
 
     if ( d_fb_fancy ) then
       call mf_fb_fancy_double(mf, c, nc, lng, lcross, lnocomm)
     else
       call mf_fb_easy_double(mf, c, nc, lng, lnocomm)
     end if
-    call destroy(bpt)
+999 call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
   subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
@@ -3849,13 +3853,9 @@ contains
                 mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
              end if
 !            r1 = r1 + sum(mp*mp1)
-             do k = 1, ubound(mp,3)
-                do j = 1, ubound(mp,2)
-                   do i = 1, ubound(mp,1)
-                      r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
-                   end do
-                end do
-             end do
+             do k = 1, ubound(mp,3); do j = 1, ubound(mp,2); do i = 1, ubound(mp,1)
+                r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
+             end do; end do; end do
           end do
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
@@ -4646,6 +4646,35 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_div_div_s_c
+
+  subroutine multifab_div_s_c(a, ia, b, ib, val, nc, all)
+    integer, intent(in) :: ia, ib
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)    :: b
+    real(dp_t), intent(in)  :: val
+    real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    if ( val == 0.0_dp_t ) then
+       call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
+    end if
+    !$OMP PARALLEL DO PRIVATE(i,ap)
+    do i = 1, a%nboxes
+       if ( remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, ia, nc)
+          bp => dataptr(a, i, ib, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), ia, nc)
+          bp => dataptr(a, i, get_ibox(b, i), ib, nc)
+       end if
+       ap = bp/val
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_div_s_c
 
   subroutine multifab_mult_mult(a, b, all)
     type(multifab), intent(inout) :: a

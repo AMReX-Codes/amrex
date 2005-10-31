@@ -321,17 +321,17 @@ contains
        write(unit = un, fmt = '("* GLOBAL")')
        write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
        call sort(sm(:,2), ism, greater_d)
-       write(unit = un, fmt = '("REGION",TR20,"COUNT", TR7,"TOTAL", TR20, "SELF",TR21,"MAX",TR9,"MIN")')
+       write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(A20,1x,I10,F12.3,TR12,F12.3,TR12,2F12.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
+          write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
        end do
     end if
 
     if ( parallel_ioprocessor() ) then
        write(unit = un, fmt = '()')
        write(unit = un, fmt = &
-            '("REGION",TR20,"COUNT",TR7,"TOTAL", TR7, "CHILD", TR8, "SELF", TR9, "AVG",TR9,"MAX",TR9,"MIN")')
+            '("REGION",TR20,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
     end if
 
     call p_activation(the_call_tree, un, 0, local = .false.)
@@ -459,7 +459,7 @@ contains
     self = cum - cum_chidren
     avg  = self/trec%cnt
     if ( local .or. parallel_ioprocessor() ) then
-       write(unit = un, fmt = '(A,1x,i10,6(F12.3))') nm, &
+       write(unit = un, fmt = '(A,1x,i10,6(F13.3))') nm, &
             trec%cnt, cum, cum_chidren, self, avg, trec%max, trec%min
     end if
     allocate(ctm(size(a%children)),itm(size(a%children)))
