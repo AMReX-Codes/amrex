@@ -59,8 +59,13 @@ module ml_multifab_module
 
   interface saxpy
      module procedure ml_multifab_saxpy_3_c
+     module procedure ml_multifab_saxpy_3_cc
      module procedure ml_multifab_saxpy_3
      module procedure ml_multifab_saxpy_5
+  end interface
+
+  interface div
+     module procedure ml_multifab_div_s_c
   end interface
 
   interface div_div
@@ -162,6 +167,17 @@ contains
     r = mmf%dim /= 0
   end function ml_multifab_built_q
 
+  subroutine ml_multifab_saxpy_3_cc(a, ia, b1, b, ib, nc)
+    real(dp_t), intent(in) :: b1
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in)  :: b
+    integer, intent(in) :: ia, ib
+    integer, intent(in), optional :: nc
+    integer :: n
+    do n = 1, a%nlevel
+       call multifab_saxpy_3_cc(a%mf(n), ia, b1, b%mf(n), ib, nc)
+    end do
+  end subroutine ml_multifab_saxpy_3_cc
   subroutine ml_multifab_saxpy_3_c(a, ia, b1, b)
     real(dp_t), intent(in) :: b1
     type(ml_multifab), intent(inout) :: a
@@ -207,6 +223,17 @@ contains
        call div_div(a%mf(n), b)
     end do
   end subroutine ml_multifab_div_div_s
+
+  subroutine ml_multifab_div_s_c(a, ia, b, ib, val)
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in) :: b
+    real(kind=dp_t), intent(in)  :: val
+    integer, intent(in) :: ia, ib
+    integer :: n
+    do n = 1, a%nlevel
+       call div(a%mf(n), ia, b%mf(n), ib, val)
+    end do
+  end subroutine ml_multifab_div_s_c
 
   subroutine ml_multifab_sub_sub_s(a, b)
     type(ml_multifab), intent(inout) :: a
