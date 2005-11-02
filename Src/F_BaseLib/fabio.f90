@@ -200,6 +200,7 @@ contains
        end do
        write(unit=un, fmt='(")")')
     end if
+    call parallel_barrier()
 
     offset = -Huge(offset)
     ! Each processor writes his own FABS
@@ -417,6 +418,7 @@ contains
     if ( parallel_IOProcessor() ) then
        call fabio_mkdir(dirname)
     end if
+    call parallel_barrier()
 
     do i = 1, size(mfs)
        write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
