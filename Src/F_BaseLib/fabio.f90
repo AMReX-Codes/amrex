@@ -391,7 +391,9 @@ contains
     nl = size(mfs)
     nc = ncomp(mfs(1))
     if ( nc == 0 ) then
-       call bl_warn("FABIO_ML_MULTIFAB_WRITE_D: no components in mfs")
+       if ( parallel_IOProcessor() ) then
+          call bl_warn("FABIO_ML_MULTIFAB_WRITE_D: no components in mfs")
+       end if
        return
     end if
     dm = mfs(1)%dim
