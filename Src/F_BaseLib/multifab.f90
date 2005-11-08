@@ -2001,7 +2001,7 @@ contains
     integer, allocatable, dimension(:) :: rcnt, rdsp, scnt, sdsp
     integer :: np
 
-    logical, parameter :: Do_AllToAllV = .false.
+    logical, parameter :: Do_AllToAllV = .true.
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
