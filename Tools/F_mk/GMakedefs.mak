@@ -220,13 +220,13 @@ ifeq ($(ARCH),Linux)
       F90FLAGS += -openmp -fpp2
     endif
     ifdef MPI
-      F90 := mpif90
-      FC  := mpif77
-      CC  := mpicc
-      FFLAGS   += -I $(MPIHOME)/include
-      F90FLAGS += -I $(MPIHOME)/include
-      LDFLAGS  += -L$(MPIHOME)/lib
-      mpi_libraries += -lmpich
+#     F90 := mpif90
+#     FC  := mpif77
+#     CC  := mpicc
+#     FFLAGS   += -I $(MPIHOME)/include
+#     F90FLAGS += -I $(MPIHOME)/include
+#     LDFLAGS  += -L$(MPIHOME)/lib
+#     mpi_libraries += -lmpich
     endif
     ifeq ($(_comp),Intel9)
       ifndef NDEBUG
