@@ -35,6 +35,8 @@ csources    =
 libraries   =
 xtr_libraries =
 mpi_libraries =
+mpi_include_dir =
+mpi_lib_dir =
 
 
 CPPFLAGS += -DBL_$(ARCH)
@@ -83,12 +85,6 @@ ifeq ($(COMP),g95)
     FFLAGS += -pg
     CFLAGS += -pg
   endif
-  ifdef mpi_include
-    fpp_flags += -I $(mpi_include)
-  endif
-  ifdef mpi_lib
-    fld_flags += -L $(mpi_lib)
-  endif
   ifeq ($(ARCH),Darwin)
     xtr_libraries += -lSystemStubs
   endif
@@ -116,11 +112,6 @@ ifeq ($(COMP),gfortran)
 endif
 
 ifeq ($(ARCH),Darwin)
-  ifdef MPI
-     F90FLAGS += -I$(HOME)/MacMPI_X 
-     FFLAGS += -I$(HOME)/MacMPI_X 
-     CFLAGS += -I$(HOME)/MacMPI_X 
-  endif
   ifeq ($(COMP),IBM)
     F_C_LINK := LOWERCASE
     FC := xlf
@@ -149,15 +140,10 @@ ifeq ($(ARCH),Linux)
     F90 = f95
   endif
   ifeq ($(COMP),PathScale)
-    ifdef MPI
-      FC = mpif90
-      F90 = mpif90
-    else
-      FC = pathf90
-      F90 = pathf90
-    endif
-    FC += -module $(mdir) -I$(mdir) -I$(MPIHOME)/include
-    F90 += -module $(mdir) -I$(mdir) -I$(MPIHOME)/include
+    FC = pathf90
+    F90 = pathf90
+    FFLAGS   += -module $(mdir) -I$(mdir) 
+    F90FLAGS += -module $(mdir) -I$(mdir)
     CC  = pathcc
     F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
@@ -218,15 +204,6 @@ ifeq ($(ARCH),Linux)
     ifdef OMP
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
-    endif
-    ifdef MPI
-#     F90 := mpif90
-#     FC  := mpif77
-#     CC  := mpicc
-#     FFLAGS   += -I $(MPIHOME)/include
-#     F90FLAGS += -I $(MPIHOME)/include
-#     LDFLAGS  += -L$(MPIHOME)/lib
-#     mpi_libraries += -lmpich
     endif
     ifeq ($(_comp),Intel9)
       ifndef NDEBUG
@@ -311,41 +288,25 @@ ifeq ($(ARCH),Linux)
         endif
       else
 #       F90FLAGS += -CU -CV -CS -CA -CB
-        ifdef MPI
-          FFLAGS   +=
-          F90FLAGS +=
-          CFLAGS   += 
+        CFLAGS += -g
+        FFLAGS += -g
+        F90FLAGS += -g
+        ifdef OMP
+          FFLAGS   +=     -CV -CS -CA -CB
+          F90FLAGS +=     -CV -CS     -CB
         else
-          CFLAGS += -g
-          FFLAGS += -g
-          F90FLAGS += -g
-          ifdef OMP
-            FFLAGS   +=     -CV -CS -CA -CB
-            F90FLAGS +=     -CV -CS     -CB
-          else
-            FFLAGS   += -CB -CU
-#           FFLAGS   +=         -CV -CS -CA
-#           FFLAGS   +=                 -CA
-            F90FLAGS += -CB -CU -CV -CS
-#           F90FLAGS +=                 -CA
-          endif
+          FFLAGS   += -CB -CU
+#         FFLAGS   +=         -CV -CS -CA
+#         FFLAGS   +=                 -CA
+          F90FLAGS += -CB -CU -CV -CS
+#         F90FLAGS +=                 -CA
         endif
       endif
 
       ifdef PROF
         F90FLAGS += -pg
       endif
-
-      ifdef MPI
-        mpi_libraries += -lPEPCF90
-      endif
       fld_flags  += -Vaxlib
-    endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
-    endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
     endif
   endif
   ifeq ($(COMP),NAG)
@@ -393,12 +354,6 @@ ifeq ($(ARCH),Linux)
       FFLAGS   += -g --pca --nsav       --ap # --chk aesu # --chkglobal
       F90FLAGS += -g --pca --nsav --f95 --ap --chk aes  # --chkglobal
     endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
-    endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
-    endif
     ifdef OMP
       FFLAGS += --parallel --openmp 
       F90FLAGS += --parallel --openmp
@@ -428,13 +383,8 @@ ifeq ($(ARCH),AIX)
   ifdef OMP
     rsuf := _r
   endif
-  ifdef MPI
-    F90 = mpxlf95$(rsuf)
-    FC  = mpxlf$(rsuf)
-  else
-    F90 = xlf95$(rsuf)
-    FC  = xlf$(rsuf)
-  endif
+  F90 = xlf95$(rsuf)
+  FC  = xlf$(rsuf)
   F90FLAGS += -qsuffix=f=f90 -qnosave
   F90FLAGS += -qmoddir=$(mdir)
   F90FLAGS += -I$(mdir)
@@ -498,9 +448,6 @@ ifeq ($(ARCH),IRIX64)
   F90FLAGS += -64
   FFLAGS += -64
   CFLAGS += -64
-  ifdef MPI
-    mpi_libraries = -lmpi
-  endif
   ifdef OMP
     F90FLAGS += -mp
     FFLAGS += -mp
@@ -526,6 +473,18 @@ ifeq ($(ARCH),OSF1)
       F90FLAGS += -check omp_bindings
     endif
   endif
+endif
+
+ifdef MPI
+  include $(FPARALLEL)/mk/GMakeMPI.mak
+endif
+
+ifdef mpi_include_dir
+  fpp_flags += -I $(mpi_include_dir)
+endif
+
+ifdef mpi_lib_dir
+  fld_flags += -L $(mpi_lib_dir)
 endif
 
 f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
@@ -564,3 +523,5 @@ COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+
+
