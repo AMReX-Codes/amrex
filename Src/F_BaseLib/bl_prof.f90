@@ -354,14 +354,15 @@ contains
              call s_activation(the_call_tree, sm, local = .true.)
              !! Print the summary information
              call sort(sm(:,2), ism, greater_d)
-             write(unit = un, fmt = '("REGION",TR24,"TOTAL", TR11, "SELF",TR12,"MAX",TR12,"MIN")')
+             write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
              do j = 1, size(ism)
                 ii = ism(j)
-                write(unit = un, fmt = '(a20,4F15.3)') trim(timers(ii)%name), sm(ii,:)
+                write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') &
+                     trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
              end do
              write(unit = un, fmt = '()')
              write(unit = un, fmt = &
-                  '("REGION",TR20,"COUNT",TR7,"TOTAL", TR7, "CHILD", TR8, "SELF", TR9, "AVG",TR9,"MAX",TR9,"MIN")')
+                  '("REGION",TR20,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
              call p_activation(the_call_tree, un, 0, local = .true.)
              close(unit = un)
           end if
