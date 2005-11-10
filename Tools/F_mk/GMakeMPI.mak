@@ -55,6 +55,13 @@ ifeq ($(HOST),hive)
   BL_NEED_FARG=t
 endif
 
+ifeq ($(HOST),greenstreet)
+  MPIHOME=/usr/local/anag/pkg/mpich-1.2.6-intel90
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_libraries += -lmpich
+endif
+
 ifeq ($(HOST),lookfar)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
