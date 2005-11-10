@@ -43,6 +43,7 @@ ifeq ($(HOST),harmonic)
     CFLAGS += -DBL_FORT_USE_DBL_UNDERSCORE
     CFLAGS += -UBL_FORT_USE_UNDERSCORE
   endif
+  BL_NEED_FARG=t
 endif
 
 ifeq ($(HOST),hive)
