@@ -69,3 +69,6 @@ ifeq ($(HOST),lookfar)
     CFLAGS += -UBL_FORT_USE_UNDERSCORE
   endif
 endif
+
+include $(FPARALLEL)/extern/mpi/GPackage.mak
+
