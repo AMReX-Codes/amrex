@@ -17,6 +17,11 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
     F90 = mpif90
+    ifdef MPIHOME
+      mpi_include_dir = $(MPIHOME)/include
+    else
+      $(error MPIHOME probably needs to be declared for PathScale)
+    endif
   endif
 endif
 

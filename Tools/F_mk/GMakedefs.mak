@@ -145,7 +145,7 @@ ifeq ($(ARCH),Linux)
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
     CC  = pathcc
-    F_C_LINK := DBL_UNDERSCORE
+#   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
       F90FLAGS += -g
       FFLAGS += -g
