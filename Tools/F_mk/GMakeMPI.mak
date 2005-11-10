@@ -13,6 +13,10 @@ ifeq ($(ARCH),AIX)
   mpi_libraries = -lmpi
 endif
 
+ifeq ($(ARCH),Darwin)
+  $(error SORRY, no MPI for Darwin/Mac as yet)
+endif
+
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
@@ -23,6 +27,11 @@ ifeq ($(ARCH),Linux)
       $(error MPIHOME probably needs to be declared for PathScale)
     endif
   endif
+  ifeq ($(COMP),g95)
+    F90FLAGS += -fno-second-underscore
+    FFLAGS   += -fno-second-underscore
+    override F_C_LINK := UNDERSCORE
+  endif
 endif
 
 # Host changes.....
@@ -31,6 +40,9 @@ ifeq ($(HOST),naphta)
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich
+  ifeq ($(COMP),g95)
+    $(error SORRY NO MPI WITH G95)
+  endif
 endif
 
 ifeq ($(HOST),harmonic)
