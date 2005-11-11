@@ -71,6 +71,7 @@ module ml_multifab_module
   interface div_div
      module procedure ml_multifab_div_div
      module procedure ml_multifab_div_div_s
+     module procedure ml_multifab_div_div_c_s
   end interface
 
   interface sub_sub
@@ -223,6 +224,15 @@ contains
        call div_div(a%mf(n), b)
     end do
   end subroutine ml_multifab_div_div_s
+  subroutine ml_multifab_div_div_c_s(a, ia, b)
+    type(ml_multifab), intent(inout) :: a
+    integer, intent(in) :: ia
+    real(kind=dp_t), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call div_div(a%mf(n), ia, b)
+    end do
+  end subroutine ml_multifab_div_div_c_s
 
   subroutine ml_multifab_div_s_c(a, ia, b, ib, val)
     type(ml_multifab), intent(inout) :: a
