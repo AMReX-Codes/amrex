@@ -95,12 +95,16 @@ module ml_multifab_module
      module procedure ml_multifab_get_box
   end interface
 
-  interface get_boxarray
-     module procedure ml_multifab_get_boxarray
+  interface get_ibox
+     module procedure ml_multifab_get_ibox
   end interface
 
   interface get_pbox
      module procedure ml_multifab_get_pbox
+  end interface
+
+  interface get_boxarray
+     module procedure ml_multifab_get_boxarray
   end interface
 
   interface nlevels
@@ -148,12 +152,12 @@ contains
     r = get_box(mmf%mf(lev), n)
   end function ml_multifab_get_box
 
-  function ml_multifab_get_boxarray(mmf, lev) result(r)
-    type(boxarray) :: r
+  function ml_multifab_get_ibox(mmf, lev, n) result(r)
+    type(box) :: r
     type(ml_multifab), intent(in) :: mmf
-    integer, intent(in) :: lev
-    r = get_boxarray(mmf%mf(lev))
-  end function ml_multifab_get_boxarray
+    integer, intent(in) :: lev, n
+    r = get_ibox(mmf%mf(lev), n)
+  end function ml_multifab_get_ibox
 
   function ml_multifab_get_pbox(mmf, lev, n) result(r)
     type(box) :: r
@@ -161,6 +165,13 @@ contains
     integer, intent(in) :: lev, n
     r = get_pbox(mmf%mf(lev), n)
   end function ml_multifab_get_pbox
+
+  function ml_multifab_get_boxarray(mmf, lev) result(r)
+    type(boxarray) :: r
+    type(ml_multifab), intent(in) :: mmf
+    integer, intent(in) :: lev
+    r = get_boxarray(mmf%mf(lev))
+  end function ml_multifab_get_boxarray
 
   function ml_multifab_built_q(mmf) result(r)
     logical :: r
