@@ -4,7 +4,7 @@ ifeq ($(COMP),PathScale)
   CXX = pathCC
   CC  = pathcc
   ifeq ($(USE_MPI),TRUE)
-    CXX = mpiCC
+#    CXX = mpiCC
     CXX = mpicxx
 #    CC  = pathcc
   endif
