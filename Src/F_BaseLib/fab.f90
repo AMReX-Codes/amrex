@@ -1325,7 +1325,7 @@ contains
     call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
-       write(unit=un) 'NOT ASSOCIATED'
+       write(unit=un, fmt=*) 'NOT ASSOCIATED'
     else
        select case (fb%dim)
        case (1)
@@ -1453,7 +1453,7 @@ contains
     call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
-       write(unit=un) 'NOT ASSOCIATED'
+       write(unit=un, fmt=*) 'NOT ASSOCIATED'
     else
        select case (fb%dim)
        case (1)
@@ -1581,7 +1581,7 @@ contains
     call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
-       write(unit=un) 'NOT ASSOCIATED'
+       write(unit=un, fmt=*) 'NOT ASSOCIATED'
     else
        select case (fb%dim)
        case (1)
@@ -1709,7 +1709,7 @@ contains
     call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
-       write(unit=un) 'NOT ASSOCIATED'
+       write(unit=un, fmt=*) 'NOT ASSOCIATED'
     else
        select case (fb%dim)
        case (1)
