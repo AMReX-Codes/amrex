@@ -55,6 +55,8 @@ subroutine t_ba_self_intersection
   ng = 1
   test_set = "grids.5034"
   test_set = "grids.1071"
+  test_set = "grids.213"
+  test_set = "grids.60"
 
   call build(bpt_r, "ba_read")
   call read_a_mglib_grid(mba, test_set)
