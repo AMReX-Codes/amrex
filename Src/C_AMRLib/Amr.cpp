@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.142 2005-08-29 16:27:16 lijewski Exp $
+// $Id: Amr.cpp,v 1.143 2006-01-05 23:53:10 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1752,6 +1752,8 @@ Amr::grid_places (int              lbase,
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::grid_places()");
     int i, max_crse = std::min(finest_level,max_level-1);
 
+    const Real strttime = ParallelDescriptor::second();
+
     if (lbase == 0)
     {
         //
@@ -2048,6 +2050,19 @@ Amr::grid_places (int              lbase,
         // Don't forget to get rid of space used for collate()ing.
         //
         delete [] pts;
+    }
+
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "grid_places() time: " << stoptime << '\n';
+        }
     }
 }
 
