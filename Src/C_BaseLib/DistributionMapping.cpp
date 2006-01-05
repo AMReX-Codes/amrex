@@ -558,6 +558,19 @@ knapsack (const std::vector<long>& pts, int nprocs)
 
     double efficiency = sum_weight/(nprocs*max_weight);
 
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "knapsack initial_efficiency: " << efficiency << '\n';
+        }
+    }
+
 top:
 
     std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
@@ -647,7 +660,7 @@ top:
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "knapsack efficiency: " << efficiency << '\n';
+            std::cout << "knapsack final_efficiency: " << efficiency << '\n';
             std::cout << "knapsack time: " << stoptime << '\n';
         }
     }
