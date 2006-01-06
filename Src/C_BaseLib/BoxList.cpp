@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.28 2005-10-10 21:25:33 lijewski Exp $
+// $Id: BoxList.cpp,v 1.29 2006-01-06 22:58:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -249,23 +249,7 @@ BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
     BoxList newb(b.ixType());
-    newb.push_back(b);
-    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end() && newb.isNotEmpty(); ++bli)
-    {
-        for (BoxList::iterator newbli = newb.begin(); newbli != newb.end(); )
-        {
-            if ( newbli->intersects(*bli))
-            {
-                BoxList tm = BoxLib::boxDiff(*newbli, *bli);
-                newb.catenate(tm);
-                newb.remove(newbli++);
-            }
-            else
-            {
-                ++newbli;
-            }
-        }
-    }
+    newb.complementIn(b,bl);
     return newb;
 }
 
@@ -279,10 +263,11 @@ BoxList::complementIn (const Box&     b,
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
         {
-            if ( newbli->intersects(*bli) )
+            if (newbli->intersects(*bli))
             {
                 BoxList tm = BoxLib::boxDiff(*newbli, *bli);
-                lbox.splice(lbox.end(), tm.lbox);
+//                lbox.splice(lbox.end(), tm.lbox);
+                lbox.splice(lbox.begin(), tm.lbox);
                 lbox.erase(newbli++);
             }
             else
