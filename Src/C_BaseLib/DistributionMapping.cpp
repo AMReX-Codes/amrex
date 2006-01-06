@@ -27,7 +27,7 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 
 static int    metis_opt                  = 0;
 static int    verbose                    = 0;
-static double max_efficiency             = .90;
+static double max_efficiency             = 0.95;
 static bool   only_heaviest_cpu          = false;
 static bool   do_not_minimize_comm_costs = true;
 //
@@ -476,7 +476,7 @@ public:
     }
     void erase (std::list<WeightedBox>::iterator& it)
     {
-        m_weight -= (*it).weight();
+        m_weight -= it->weight();
         m_lb->erase(it);
     }
     void push_back (const WeightedBox& bx)
