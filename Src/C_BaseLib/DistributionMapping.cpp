@@ -466,10 +466,10 @@ public:
 
 class WeightedBoxList
 {
-    std::list<WeightedBox> m_lb;
-    long              m_weight;
+    std::list<WeightedBox>* m_lb;
+    long                    m_weight;
 public:
-    WeightedBoxList() : m_weight(0) {}
+    WeightedBoxList (std::list<WeightedBox>* lb) : m_lb(lb), m_weight(0) {}
     long weight () const
     {
         return m_weight;
@@ -477,17 +477,17 @@ public:
     void erase (std::list<WeightedBox>::iterator& it)
     {
         m_weight -= (*it).weight();
-        m_lb.erase(it);
+        m_lb->erase(it);
     }
     void push_back (const WeightedBox& bx)
     {
         m_weight += bx.weight();
-        m_lb.push_back(bx);
+        m_lb->push_back(bx);
     }
-    std::list<WeightedBox>::const_iterator begin () const { return m_lb.begin(); }
-    std::list<WeightedBox>::iterator begin ()             { return m_lb.begin(); }
-    std::list<WeightedBox>::const_iterator end () const   { return m_lb.end();   }
-    std::list<WeightedBox>::iterator end ()               { return m_lb.end();   }
+    std::list<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
+    std::list<WeightedBox>::iterator begin ()             { return m_lb->begin(); }
+    std::list<WeightedBox>::const_iterator end () const   { return m_lb->end();   }
+    std::list<WeightedBox>::iterator end ()               { return m_lb->end();   }
 
     bool operator< (const WeightedBoxList& rhs) const
     {
@@ -521,10 +521,12 @@ knapsack (const std::vector<long>& pts, int nprocs)
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
-    std::priority_queue<WeightedBoxList> wblq;
+    std::priority_queue<WeightedBoxList>   wblq;
+    std::vector< std::list<WeightedBox>* > vbbs(nprocs);
     for (int i  = 0; i < nprocs; ++i)
     {
-        wblq.push(WeightedBoxList());
+        vbbs[i] = new std::list<WeightedBox>;
+        wblq.push(WeightedBoxList(vbbs[i]));
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
     for (unsigned int i = 0; i < pts.size(); ++i)
@@ -647,6 +649,8 @@ top:
         std::cout << "knapsack final efficiency: " << efficiency << '\n';
         std::cout << "knapsack time: " << stoptime << '\n';
     }
+
+    for (int i  = 0; i < nprocs; i++) delete vbbs[i];
 
     return result;
 }
