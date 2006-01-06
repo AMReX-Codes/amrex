@@ -184,3 +184,30 @@ main ()
     else
         std::cout << "nba1 & nba2 do NOT cover the same area" << std::endl;
 }
+
+BoxList
+newComplementIn (const Box&     b,
+		 const BoxArray& ba)
+{
+  BoxList newb(b.ixType());
+  newb.push_back(b);
+  for (BoxList::iterator newbli = newb.begin(); newbli != newb.end(); )
+    {
+      Box bx = *newbli;
+      std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+      if ( isects.size() > 0 )
+	{
+	  for ( int i = 0; i < isects.size(); i++ )
+	    {
+	      BoxList tm = BoxLib::boxDiff(*newbli, isects[i].second);
+	      newb.catenate(tm);
+	    }
+	  newb.remove(newbli++);
+	}
+      else
+	{
+	  ++newbli;
+	}
+    }
+  return newb;
+}
