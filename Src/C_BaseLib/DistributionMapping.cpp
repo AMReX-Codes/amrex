@@ -27,7 +27,7 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 
 static int    metis_opt                  = 0;
 static int    verbose                    = 0;
-static double max_efficiency             = .95;
+static double max_efficiency             = .90;
 static bool   only_heaviest_cpu          = false;
 static bool   do_not_minimize_comm_costs = true;
 //
@@ -558,19 +558,8 @@ knapsack (const std::vector<long>& pts, int nprocs)
 
     double efficiency = sum_weight/(nprocs*max_weight);
 
-    if (verbose)
-    {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "knapsack initial_efficiency: " << efficiency << '\n';
-        }
-    }
-
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "knapsack initial efficiency: " << efficiency << '\n';
 top:
 
     std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
@@ -651,18 +640,12 @@ top:
         ++cit;
     }
 
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        const Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "knapsack final_efficiency: " << efficiency << '\n';
-            std::cout << "knapsack time: " << stoptime << '\n';
-        }
+        std::cout << "knapsack final efficiency: " << efficiency << '\n';
+        std::cout << "knapsack time: " << stoptime << '\n';
     }
 
     return result;
