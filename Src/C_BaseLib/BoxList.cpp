@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.29 2006-01-06 22:58:21 lijewski Exp $
+//
 //
 #include <winstd.H>
 
@@ -258,6 +258,48 @@ BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
     clear();
+
+    Box minbox = bl.minimalBox();
+    BoxList tmpbl = BoxLib::boxDiff(b,minbox);
+    catenate(tmpbl);
+
+    BoxList mesh;
+    BoxArray ba(bl);
+    mesh.push_back(minbox);
+    IntVect maxext(D_DECL(0,0,0));
+    for (int i = 0; i < ba.size(); i++)
+        maxext = BoxLib::max(maxext, ba[i].length());
+    maxext *= 2;
+    mesh.maxSize(maxext);
+
+    for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
+    {
+        std::vector< std::pair<int,Box> > isects = ba.intersections(*bli);
+
+        if (!isects.empty())
+        {
+            tmpbl.clear();
+            for (int i = 0; i < isects.size(); i++)
+                tmpbl.push_back(isects[i].second);
+            BoxList tm;
+            tm.complementIn_base(*bli,tmpbl);
+            catenate(tm);
+        }
+        else
+        {
+            push_back(*bli);
+        }
+    }
+
+    return *this;
+}
+
+
+BoxList&
+BoxList::complementIn_base (const Box&     b,
+                            const BoxList& bl)
+{
+    clear();
     push_back(b);
     for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
     {
@@ -266,7 +308,6 @@ BoxList::complementIn (const Box&     b,
             if (newbli->intersects(*bli))
             {
                 BoxList tm = BoxLib::boxDiff(*newbli, *bli);
-//                lbox.splice(lbox.end(), tm.lbox);
                 lbox.splice(lbox.begin(), tm.lbox);
                 lbox.erase(newbli++);
             }
