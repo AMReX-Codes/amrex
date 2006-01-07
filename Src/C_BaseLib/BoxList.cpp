@@ -257,6 +257,8 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
+#if 0
+    std::cout << "Entered complementIn()\n";
     clear();
 
     Box minbox = bl.minimalBox();
@@ -290,8 +292,12 @@ BoxList::complementIn (const Box&     b,
             push_back(*bli);
         }
     }
+    std::cout << "Exiting complementIn()\n";
 
     return *this;
+#else
+    return complementIn_base(b,bl);
+#endif
 }
 
 
