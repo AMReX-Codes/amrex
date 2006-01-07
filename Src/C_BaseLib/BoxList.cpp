@@ -257,8 +257,6 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
-#if 0
-    std::cout << "Entered complementIn()\n";
     clear();
 
     Box minbox = bl.minimalBox();
@@ -267,7 +265,8 @@ BoxList::complementIn (const Box&     b,
 
     BoxList mesh;
     BoxArray ba(bl);
-    mesh.push_back(minbox);
+    if (minbox.ok())
+        mesh.push_back(minbox);
     IntVect maxext(D_DECL(0,0,0));
     for (int i = 0; i < ba.size(); i++)
         maxext = BoxLib::max(maxext, ba[i].length());
@@ -292,12 +291,8 @@ BoxList::complementIn (const Box&     b,
             push_back(*bli);
         }
     }
-    std::cout << "Exiting complementIn()\n";
 
     return *this;
-#else
-    return complementIn_base(b,bl);
-#endif
 }
 
 
