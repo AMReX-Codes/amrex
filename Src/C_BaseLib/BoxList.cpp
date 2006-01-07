@@ -275,7 +275,11 @@ BoxList::complementIn (const Box&     b,
 
     for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
     {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(*bli);
+        const Box bx = *bli & b;
+
+        if (!bx.ok()) continue;
+
+        std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
 
         if (!isects.empty())
         {
@@ -283,12 +287,12 @@ BoxList::complementIn (const Box&     b,
             for (int i = 0; i < isects.size(); i++)
                 tmpbl.push_back(isects[i].second);
             BoxList tm;
-            tm.complementIn_base(*bli,tmpbl);
+            tm.complementIn_base(bx,tmpbl);
             catenate(tm);
         }
         else
         {
-            push_back(*bli);
+            push_back(bx);
         }
     }
 
