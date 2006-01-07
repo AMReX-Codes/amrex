@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.31 2005-10-10 21:25:33 lijewski Exp $
+// $Id: BoxList.H,v 1.32 2006-01-07 01:22:09 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -295,6 +295,11 @@ private:
     // The IndexType of Boxes in the BoxList.
     //
     IndexType btype;
+    //
+    // This is a helper function for the real complementIn().
+    //
+    BoxList& complementIn_base (const Box&     b,
+                                const BoxList& bl);
 };
 
 inline
