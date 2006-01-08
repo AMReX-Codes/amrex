@@ -1,9 +1,10 @@
 //
-// $Id: BoxDomain.cpp,v 1.18 2001-08-06 19:40:27 car Exp $
+// $Id: BoxDomain.cpp,v 1.19 2006-01-08 18:21:45 lijewski Exp $
 //
 #include <iostream>
 
 #include <BoxDomain.H>
+#include <Profiler.H>
 
 BoxDomain&
 BoxDomain::intersect (const Box& b)
@@ -113,6 +114,8 @@ BoxDomain::BoxDomain (const Box& bx)
 void
 BoxDomain::add (const Box& b)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add()");
+
     BL_ASSERT(b.ixType() == ixType());
 
     std::list<Box> check;
@@ -152,12 +155,16 @@ void
 BoxDomain::add (const BoxList& bl)
 {
     for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
+    {
         add(*bli);
+    }
 }
 
 BoxDomain&
 BoxDomain::rmBox (const Box& b)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::rmBox()");
+
     BL_ASSERT(b.ixType() == ixType());
 
     std::list<Box> tmp;

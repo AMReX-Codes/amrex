@@ -8,6 +8,7 @@
 
 #include <BoxArray.H>
 #include <BoxList.H>
+#include <Profiler.H>
 
 void
 BoxList::join (const BoxList& blist)
@@ -257,6 +258,8 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn()");
+
     clear();
 
     Box minbox = bl.minimalBox();
@@ -541,6 +544,7 @@ BoxList::simplify ()
 int
 BoxList::minimize ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::minimize()");
     int cnt = 0;
     for (int n; (n=simplify()) > 0; )
         cnt += n;
@@ -566,6 +570,8 @@ BoxList::minimalBox () const
 BoxList&
 BoxList::maxSize (const IntVect& chunk)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::maxSize()");
+
     for (iterator bli = begin(); bli != end(); ++bli)
     {
         const int* len = bli->length().getVect();

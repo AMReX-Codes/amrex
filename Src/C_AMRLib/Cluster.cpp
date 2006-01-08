@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.19 2003-06-24 17:18:22 lijewski Exp $
+// $Id: Cluster.cpp,v 1.20 2006-01-08 18:21:23 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -184,6 +184,8 @@ FindCut (const int* hist,
          int        hi,
          CutStatus& status)
 {
+    BL_PROFILE("Cluster::FindCut()");
+
     const int MINOFF     = 2;
     const int CUT_THRESH = 2;
 
@@ -458,8 +460,9 @@ ClusterList::boxList (BoxList& blst) const
 void
 ClusterList::chop (Real eff)
 {
-    for (std::list<Cluster*>::iterator cli = lst.begin();
-         cli != lst.end(); )
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::chop()");
+
+    for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         if ((*cli)->eff() < eff)
         {
@@ -475,6 +478,8 @@ ClusterList::chop (Real eff)
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::intersect()");
+
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         Cluster* c = *cli;
