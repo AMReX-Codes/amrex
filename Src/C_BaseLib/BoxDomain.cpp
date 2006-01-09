@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.20 2006-01-09 02:32:32 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.21 2006-01-09 04:23:37 lijewski Exp $
 //
 #include <iostream>
 
@@ -155,11 +155,10 @@ void
 BoxDomain::add (const BoxList& bl)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add(BoxList)");
-
-    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
-    {
-        add(*bli);
-    }
+    BoxList bl2 = bl;
+    bl2.catenate(*this);
+    BoxList nbl = BoxLib::removeOverlap(bl2);
+    this->catenate(nbl);
 }
 
 BoxDomain&
