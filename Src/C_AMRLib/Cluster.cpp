@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.20 2006-01-08 18:21:23 lijewski Exp $
+// $Id: Cluster.cpp,v 1.21 2006-01-09 05:00:30 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -479,12 +479,19 @@ void
 ClusterList::intersect (const BoxDomain& dom)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::intersect()");
+    //
+    // Make a BoxArray covering dom.
+    // We'll use this to speed up the contains() test below.
+    //
+    BoxList bl = dom.boxList();
+    BoxArray domba(bl);
+    bl.clear();
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         Cluster* c = *cli;
 
-        if (dom.contains(c->box()))
+        if (domba.contains(c->box()))
         {
             ++cli;
         }
