@@ -94,7 +94,6 @@ BoxList
 BoxLib::removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
-
     return ba.removeOverlap();
 }
 
@@ -173,47 +172,39 @@ BoxList::isDisjoint () const
 bool
 BoxList::contains (const IntVect& v) const
 {
-    bool contained = false;
-    for (const_iterator bli = begin(); bli != end() && !contained; ++bli)
-    {
+    for (const_iterator bli = begin(); bli != end(); ++bli)
         if (bli->contains(v))
-	{
-            contained = true;
-	}
-    }
-    return contained;
+            return true;
+    return false;
 }
 
 bool
 BoxList::contains (const BoxList&  bl) const
 {
+    BoxArray tba(*this);
     for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
-    {
-	if ( !contains(*bli) )
-	{
-	    return false;
-	}
-    }
+        if (!tba.contains(*bli))
+            return false;
     return true;
 }
 
 bool
 BoxList::contains (const BoxArray&  ba) const
 {
-    for (int i = 0; i < ba.size(); i++)
-        if (!contains(ba[i]))
-            return false;
-    return true;
+    BoxArray tba(*this);
+    return tba.contains(ba);
 }
 
 BoxList&
 BoxList::intersect (const Box& b)
 {
-    for (iterator bli= begin(); bli != end(); )
+    for (iterator bli = begin(); bli != end(); )
     {
-        if (bli->intersects(b))
+        Box bx = *bli & b;
+
+        if (bx.ok())
         {
-            *bli &= b;
+            *bli = bx;
             ++bli;
         }
         else
@@ -233,10 +224,9 @@ BoxList::intersect (const BoxList& b)
     {
         for (const_iterator rhs = b.begin(); rhs != b.end(); ++rhs)
         {
-            if ( lhs->intersects(*rhs) )
-            {
-                bl.push_back(*lhs & *rhs);
-            }
+            Box bx = *lhs & *rhs;
+            if (bx.ok())
+                bl.push_back(bx);
         }
     }
 
@@ -270,11 +260,7 @@ BoxList::complementIn (const Box&     b,
     BoxArray ba(bl);
     if (minbox.ok())
         mesh.push_back(minbox);
-    IntVect maxext(D_DECL(0,0,0));
-    for (int i = 0; i < ba.size(); i++)
-        maxext = BoxLib::max(maxext, ba[i].length());
-    maxext *= 2;
-    mesh.maxSize(maxext);
+    mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
 
     for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
     {
@@ -291,6 +277,7 @@ BoxList::complementIn (const Box&     b,
                 tmpbl.push_back(isects[i].second);
             BoxList tm;
             tm.complementIn_base(bx,tmpbl);
+            tm.simplify();
             catenate(tm);
         }
         else
