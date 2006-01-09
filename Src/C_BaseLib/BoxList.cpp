@@ -462,6 +462,7 @@ BoxLib::boxDiff (const Box& b1in,
 int
 BoxList::simplify ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
     //
     // Try to merge adjacent boxes.
     //

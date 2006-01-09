@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.19 2006-01-08 18:21:45 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.20 2006-01-09 02:32:32 lijewski Exp $
 //
 #include <iostream>
 
@@ -114,7 +114,7 @@ BoxDomain::BoxDomain (const Box& bx)
 void
 BoxDomain::add (const Box& b)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add()");
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add(Box)");
 
     BL_ASSERT(b.ixType() == ixType());
 
@@ -154,6 +154,8 @@ BoxDomain::add (const Box& b)
 void
 BoxDomain::add (const BoxList& bl)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add(BoxList)");
+
     for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
     {
         add(*bli);
