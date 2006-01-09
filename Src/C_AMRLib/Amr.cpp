@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.144 2006-01-09 04:59:39 lijewski Exp $
+// $Id: Amr.cpp,v 1.145 2006-01-09 19:18:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1854,9 +1854,7 @@ Amr::grid_places (int              lbase,
     p_n_comp[lbase].accrete(n_proper);
     Geometry tmp2(pc_domain[lbase]);
     Amr::ProjPeriodic(p_n_comp[lbase], tmp2);
-    p_n_comp[lbase].simplify();
     p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
-    p_n[lbase].simplify();
     fd1.clear();
 
     for (i = lbase+1; i <= max_crse;  i++)
@@ -1874,7 +1872,6 @@ Amr::grid_places (int              lbase,
         Geometry tmp3(pc_domain[i]);
         Amr::ProjPeriodic(p_n_comp[i], tmp3);
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
-        p_n[i].simplify();
     }
     //
     // Now generate grids from finest level down.
@@ -1946,7 +1943,6 @@ Amr::grid_places (int              lbase,
                         blt->growHi(idir,nerr);
                 }
             }
-
             Box mboxF       = BoxLib::grow(bl_tagged.minimalBox(),1);
             BoxList blFcomp = BoxLib::complementIn(mboxF,bl_tagged);
             IntVect iv      = IntVect(D_DECL(nerr/ref_ratio[levf][0],
