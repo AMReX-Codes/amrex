@@ -1,6 +1,4 @@
-//
-//
-//
+
 #include <winstd.H>
 
 #include <algorithm>
@@ -29,8 +27,8 @@ BoxList::catenate (BoxList& blist)
 bool
 BoxList::contains (const Box& b) const
 {
+    BL_ASSERT(ixType() == b.ixType());
     BoxList bnew = BoxLib::complementIn(b,*this);
-
     return bnew.isEmpty();
 }
 
@@ -54,6 +52,7 @@ BoxList
 BoxLib::intersect (const BoxList& bl,
 		   const Box&     b)
 {
+    BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
     return newbl.intersect(b);
 }
@@ -62,6 +61,7 @@ BoxList
 BoxLib::intersect (const BoxList& bl,
                    const BoxList& br)
 {
+    BL_ASSERT(bl.ixType() == br.ixType());
     BoxList newbl(bl);
     return newbl.intersect(br);
 }
@@ -181,6 +181,7 @@ BoxList::contains (const IntVect& v) const
 bool
 BoxList::contains (const BoxList&  bl) const
 {
+    BL_ASSERT(ixType() == bl.ixType());
     BoxArray tba(*this);
     for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
         if (!tba.contains(*bli))
@@ -198,6 +199,7 @@ BoxList::contains (const BoxArray&  ba) const
 BoxList&
 BoxList::intersect (const Box& b)
 {
+    BL_ASSERT(ixType() == b.ixType());
     for (iterator bli = begin(); bli != end(); )
     {
         Box bx = *bli & b;
@@ -218,6 +220,8 @@ BoxList::intersect (const Box& b)
 BoxList&
 BoxList::intersect (const BoxList& b)
 {
+    BL_ASSERT(ixType() == b.ixType());
+
     BoxList bl(b.ixType());
 
     for (iterator lhs = begin(); lhs != end(); ++lhs)
@@ -239,6 +243,7 @@ BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
+    BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
     return newb;
@@ -248,6 +253,8 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
+    BL_ASSERT(bl.ixType() == b.ixType());
+
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn()");
 
     clear();
@@ -256,7 +263,7 @@ BoxList::complementIn (const Box&     b,
     BoxList tmpbl = BoxLib::boxDiff(b,minbox);
     catenate(tmpbl);
 
-    BoxList mesh;
+    BoxList mesh(b.ixType());
     BoxArray ba(bl);
     if (minbox.ok())
         mesh.push_back(minbox);
@@ -275,8 +282,8 @@ BoxList::complementIn (const Box&     b,
             tmpbl.clear();
             for (int i = 0; i < isects.size(); i++)
                 tmpbl.push_back(isects[i].second);
-            BoxList tm;
-            tm.complementIn_base(bx,tmpbl);
+            BoxList tm(b.ixType());
+            tm.complementIn_base(bx, tmpbl);
             tm.simplify();
             catenate(tm);
         }
@@ -294,6 +301,7 @@ BoxList&
 BoxList::complementIn_base (const Box&     b,
                             const BoxList& bl)
 {
+    BL_ASSERT(bl.ixType() == b.ixType());
     clear();
     push_back(b);
     for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
@@ -405,6 +413,8 @@ BoxList
 BoxLib::boxDiff (const Box& b1in,
 		 const Box& b2)
 {
+   BL_ASSERT(b1in.sameType(b2));
+  
    Box b1(b1in);
    BoxList b_list(b1.ixType());
 
@@ -542,7 +552,7 @@ BoxList::minimize ()
 Box
 BoxList::minimalBox () const
 {
-    Box minbox;
+    Box minbox(IntVect::TheUnitVector(), IntVect::TheZeroVector(), ixType());
     if ( !isEmpty() )
     {
         const_iterator bli = begin();
