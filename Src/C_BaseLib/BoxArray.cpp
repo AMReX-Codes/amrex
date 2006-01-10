@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.47 2006-01-09 19:17:24 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.48 2006-01-10 22:05:28 car Exp $
 //
 #include <iostream>
 
@@ -301,6 +301,8 @@ BoxArray::contains (const IntVect& v) const
 bool
 BoxArray::contains (const Box& b) const
 {
+    if (size() == 0) return false;
+    BL_ASSERT(get(0).sameType(b));
     BoxArray bnew = BoxLib::complementIn(b, *this);
     return bnew.size() == 0;
 }
