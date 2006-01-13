@@ -9,7 +9,7 @@ ifeq ($(COMP),PathScale)
 #    CC  = pathcc
   endif
   CXXOPTF += -O3 -OPT:Olimit=20000
-  CXXDEBF += -O0 -OPT:Olimit=0
+  CXXDEBF += -O0 -OPT:Olimit=0 -g
 else
 ifeq ($(COMP),KCC)
   CXX      = KCC
@@ -44,8 +44,8 @@ ifeq ($(FCOMP),PathScale)
   fC = pathf90 -fixedform -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  CXXDEBF += -O0 -g
-  CXXOPTF += -O3
+  FOPTF += -O3
+  fOPTF += -O3
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
 #  LDFLAGS += -static
