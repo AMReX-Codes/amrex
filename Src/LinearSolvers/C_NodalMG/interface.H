@@ -139,8 +139,8 @@ private:
 #endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
 
-    void  add (BoxMSet& bmset, Box b, int startgrid);
-    void xfer (const BoxMSet& bmset, int idim);
+  //    void  add (BoxMSet& bmset, Box b, int startgrid);
+  void xfer (const BoxMSet& bmset, int idim);
 private:
     //
     // Not defined.

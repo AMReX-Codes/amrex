@@ -26,6 +26,65 @@ ins (level_interface::BoxMSet& bmset, const Box& b)
     if (!found) bmset.insert(b);
 }
 
+bool
+cmp(const std::pair<int,Box>& a, const std::pair<int,Box>& b)
+{
+  return a.first < b.first;
+}
+
+void
+add (level_interface::BoxMSet& bmset,
+     const BoxArray& bim, 
+     Box      b,
+     int      startgrid)
+{
+    BL_PROFILE("interface::add()");
+
+    const IntVect t = b.type();
+    Box tb(b.smallEnd(), b.bigEnd());
+    
+    std::vector< std::pair<int,Box> > prs = bim.intersections(BoxLib::grow(tb,1));
+    std::sort(prs.begin(), prs.end(), cmp);
+#if 1
+    for ( int j = 0; j < prs.size(); ++j ) 
+      {
+	int igrid = prs[j].first;
+	if ( igrid < startgrid ) continue;
+        Box ibox = bim[igrid];
+#else
+    for (int igrid = startgrid; igrid < bim.size(); igrid++)
+    {
+      Box ibox = bim[igrid];
+#endif
+	ibox.convert(t);
+	if (ibox.intersects(b) && !ibox.contains(b))
+	{
+	    for (int i = 0; i < BL_SPACEDIM; i++)
+	    {
+		if (t[i] == IndexType::CELL)
+		{
+		    if (ibox.smallEnd(i) > b.smallEnd(i))
+		    {
+			Box c = b.chop(i, ibox.smallEnd(i));
+			add(bmset, bim, b, igrid + 1);
+			add(bmset, bim, c, igrid);
+			return;
+		    }
+		    if (ibox.bigEnd(i) < b.bigEnd(i))
+		    {
+			Box c = b.chop(i, ibox.bigEnd(i) + 1);
+			add(bmset, bim, b, igrid);
+			add(bmset, bim, c, igrid + 1);
+			return;
+		    }
+		}
+	    }
+	    BoxLib::Abort("level_interface::add(): Can't happen.");
+	}
+    }
+    ins(bmset, b);
+}
+
 level_interface::~level_interface()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::~level_interface()");
@@ -207,6 +266,20 @@ level_interface::alloc (const BoxArray&     Im,
     im  = Im;
     BL_ASSERT( bdy != 0 );
     bdy->boundary_mesh(em, grid_ref, im, dom);
+
+    BoxArray bim;
+    {
+      std::vector<Box> tbim;
+      for ( int i = 0; i < im.size(); ++i )
+	{
+	  tbim.push_back(im[i]);
+	}
+      for ( int i = 0; i < em.size(); ++i )
+	{
+	  tbim.push_back(em[i]);
+	}
+      bim = BoxArray(&tbim[0], tbim.size());
+    }
     //
     // Add edges in 2D or faces in 3D:
     //
@@ -219,8 +292,8 @@ level_interface::alloc (const BoxArray&     Im,
 	    t[i] = IndexType::NODE;
 	    Box lo = BoxLib::bdryLo(im[igrid],i).convert(t);
 	    Box hi = BoxLib::bdryHi(im[igrid],i).convert(t);
-	    add(bmset,lo,0);
-	    add(bmset,hi,0);
+	    add(bmset,bim,lo,0);
+	    add(bmset,bim,hi,0);
 	}
     }
 
@@ -243,8 +316,8 @@ level_interface::alloc (const BoxArray&     Im,
 		t[i] = IndexType::NODE;
 	    Box lo = BoxLib::bdryLo(bx[2][iface], i).convert(t);
 	    Box hi = BoxLib::bdryHi(bx[2][iface], i).convert(t);
-	    add(bmset, lo, 0);
-	    add(bmset, hi, 0);
+	    add(bmset, bim,lo, 0);
+	    add(bmset, bim,hi, 0);
 	}
     }
 
@@ -631,50 +704,6 @@ level_interface::alloc (const BoxArray&     Im,
     }
 }
 
-void
-level_interface::add (BoxMSet& bmset,
-                      Box      b,
-                      int      startgrid)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add()");
-
-    const IntVect t = b.type();
-
-    for (int igrid = startgrid; igrid < im.size() + em.size(); igrid++)
-    {
-	Box ibox;
-	if (igrid < im.size())
-	    ibox = im[igrid];
-	else
-	    ibox = em[igrid-im.size()];
-	ibox.convert(t);
-	if (ibox.intersects(b) && !ibox.contains(b))
-	{
-	    for (int i = 0; i < BL_SPACEDIM; i++)
-	    {
-		if (t[i] == IndexType::CELL)
-		{
-		    if (ibox.smallEnd(i) > b.smallEnd(i))
-		    {
-			Box c = b.chop(i, ibox.smallEnd(i));
-			add(bmset, b, igrid + 1);
-			add(bmset, c, igrid);
-			return;
-		    }
-		    if (ibox.bigEnd(i) < b.bigEnd(i))
-		    {
-			Box c = b.chop(i, ibox.bigEnd(i) + 1);
-			add(bmset, b, igrid);
-			add(bmset, c, igrid + 1);
-			return;
-		    }
-		}
-	    }
-	    BoxLib::Abort("level_interface::add(): Can't happen.");
-	}
-    }
-    ins(bmset, b);
-}
 
 void
 level_interface::xfer (const BoxMSet& bmset,
