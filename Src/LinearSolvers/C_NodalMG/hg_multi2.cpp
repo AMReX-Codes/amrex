@@ -187,6 +187,8 @@ task_fres::task_fres (F_FRES          f_,
 bool
 task_fres::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
@@ -306,6 +308,8 @@ task_eres::task_eres (F_ERES            f_,
 bool
 task_eres::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
@@ -423,6 +427,8 @@ task_cres::task_cres (F_CRES           f_,
 bool
 task_cres::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();

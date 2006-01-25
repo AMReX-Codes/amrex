@@ -117,6 +117,8 @@ task_interpolate_patch::task_interpolate_patch (task_list&              tl_,
 bool
 task_interpolate_patch::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     if (is_local(dmf, dgrid))
     {
         BL_ASSERT(is_started());
