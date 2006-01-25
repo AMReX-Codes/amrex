@@ -782,6 +782,8 @@ task_restric_fill::need_to_communicate (int& with) const
 bool
 task_restric_fill::startup ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::startup()");
+
     m_started = true;
 
     bool result = true;
@@ -821,6 +823,8 @@ task_restric_fill::startup ()
 bool
 task_restric_fill::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     BL_ASSERT(is_started());
 
     if (m_local) return true;

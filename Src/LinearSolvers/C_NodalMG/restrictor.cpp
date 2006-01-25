@@ -253,6 +253,8 @@ task_restriction_fill::task_restriction_fill (const RESTFUN     ref_,
 bool
 task_restriction_fill::ready ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+
     if (is_local(m, ind))
     {
         BL_ASSERT(!tf.null());
