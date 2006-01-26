@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.65 2004-01-07 21:18:19 car Exp $
+// $Id: Utility.cpp,v 1.66 2006-01-26 00:12:17 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -458,6 +458,7 @@ BoxLib::OutOfMemory ()
     BoxLib::Error("Sorry, out of memory, bye ...");
 }
 
+#if 0
 #ifdef WIN32
 pid_t
 BoxLib::Execute (const char* cmd)
@@ -466,7 +467,7 @@ BoxLib::Execute (const char* cmd)
   return -1;
 }
 #else
-extern "C" pid_t fork();
+//extern "C" pid_t fork();
 
 pid_t
 BoxLib::Execute (const char* cmd)
@@ -483,6 +484,7 @@ BoxLib::Execute (const char* cmd)
 
     return pid;
 }
+#endif
 #endif
 
 
