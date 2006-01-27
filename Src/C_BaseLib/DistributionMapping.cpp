@@ -28,7 +28,6 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 static int    metis_opt                  = 0;
 static int    verbose                    = 0;
 static double max_efficiency             = 0.95;
-static bool   only_heaviest_cpu          = false;
 static bool   do_not_minimize_comm_costs = true;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
@@ -105,8 +104,6 @@ DistributionMapping::Initialize ()
     pp.query("verbose", verbose);
 
     pp.query("efficiency", max_efficiency);
-
-    pp.query("only_heaviest_cpu", only_heaviest_cpu);
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
@@ -656,22 +653,12 @@ top:
 }
 
 static
-int
-HeaviestCPU (const std::vector<long>& percpu)
-{
-  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
-}
-
-static
 void
 SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
              const std::vector< std::vector<int> >&                    nbrs,
              std::vector<int>&                                         procmap,
-             std::vector<long>&                                        percpu,
-             bool&                                                     swapped)
+             std::vector<long>&                                        percpu)
 {
-    int Hvy = only_heaviest_cpu ? HeaviestCPU(percpu) : 0;
-
     for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
          it != samesize.end();
          ++it)
@@ -691,10 +678,6 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 // Don't consider Boxes on the same CPU.
                 //
                 if (procmap[*lit1] == procmap[*lit2]) continue;
-                //
-                // Only swaps between CPU of highest latency to another.
-                //
-                if (only_heaviest_cpu && procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
                 //
                 // Will swapping these boxes decrease latency?
                 //
@@ -752,20 +735,11 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 const long cost_old = percpu_lit1+percpu_lit2;
                 const long cost_new = percpu[procmap[*lit1]]+percpu[procmap[*lit2]];
 
-                bool oldswapped = swapped;
-
-                if (cost_new < cost_old)
-                {
-                    Hvy     = only_heaviest_cpu ? HeaviestCPU(percpu) : 0;
-                    swapped = true;
-                }
-                else
+                if (cost_new >= cost_old)
                 {
                     //
                     // Undo our changes ...
                     //
-                    swapped = oldswapped;
-
                     std::swap(procmap[*lit1],procmap[*lit2]);
 
                     percpu[procmap[*lit1]] = percpu_lit1;
@@ -813,9 +787,11 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     {
         std::list<int> li;
 
-        for (int j = 0; j < grown.size(); j++)
-            if (i != j && grown[i].intersects(ba[j]))
-                li.push_back(j);
+        std::vector< std::pair<int,Box> > isects = ba.intersections(grown[i]);
+
+        for (int j = 0; j < isects.size(); j++)
+            if (isects[j].first != i)
+                li.push_back(isects[j].first);
 
         nbrs[i].resize(li.size());
 
@@ -916,20 +892,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                       << '\n';
         }
     }
-    //
-    // Now need to swap boxes of equal size & see if global minimum decreases.
-    //
-    bool swapped;
-    //
-    // Then minimize number of off-CPU messages.
-    //
-    do
-    {
-        swapped = false;
 
-        SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
-    }
-    while (swapped);
+    SwapAndTest(samesize,nbrs,procmap,percpu);
+    SwapAndTest(samesize,nbrs,procmap,percpu);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -959,15 +924,11 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         }
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        const Real stoptime = ParallelDescriptor::second() - strttime;
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "MinimizeCommCosts() time: " << stoptime << '\n';
+        std::cout << "MinimizeCommCosts() time: " << stoptime << '\n';
     }
 }
 
