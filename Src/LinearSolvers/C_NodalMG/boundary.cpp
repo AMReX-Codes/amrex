@@ -679,7 +679,7 @@ task_fill_bord::task_fill_bord (F_B        f_,
 bool
 task_fill_bord::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
     BL_ASSERT(m_tmp == 0);
     BL_ASSERT(is_started());
     BL_ASSERT(m_local);

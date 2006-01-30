@@ -251,7 +251,7 @@ task_fecavg::task_fecavg (FECAVG         f_,
 bool
 task_fecavg::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
 
     BL_ASSERT(!m_finished);
 
@@ -361,7 +361,7 @@ task_fecavg_2::task_fecavg_2 (FECAVG           f_,
 bool
 task_fecavg_2::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
 
     BL_ASSERT(!m_finished);
 
@@ -482,7 +482,7 @@ task_fdiv::task_fdiv (F_FDIV         f_,
 bool
 task_fdiv::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
 
     BL_ASSERT(!m_finished);
 
@@ -596,7 +596,7 @@ task_ediv::task_ediv (EDIV            f_,
 bool
 task_ediv::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
 
     BL_ASSERT(!m_finished);
 
@@ -706,7 +706,7 @@ task_cdiv::task_cdiv (CDIV              f_,
 bool
 task_cdiv::ready ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
+  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
 
     BL_ASSERT(!m_finished);
 
