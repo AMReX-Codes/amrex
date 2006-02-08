@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.66 2006-01-26 00:12:17 lijewski Exp $
+// $Id: Utility.cpp,v 1.67 2006-02-08 21:37:26 car Exp $
 //
 
 #include <cstdlib>
@@ -35,7 +35,7 @@ const char* path_sep_str = "/";
 #include <malloc.h>
 #endif
 
-#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)
+#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E) && !defined(BL_XT3)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -171,7 +171,34 @@ BoxLib::second (double* r)
     return rr;
 }
 
+#elif defined(BL_XT3)
+
+#include <catamount/dclock.h>
+#include <unistd.h>
+
+static
+double
+get_initial_wall_clock_time ()
+{
+    return dclock();
+}
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+
+double
+BoxLib::wsecond (double* t_)
+{
+    double t = dclock() - BL_Initial_Wall_Clock_Time;
+    if (t_)
+        *t_ = t;
+    return t;
+}
+
 #elif defined(BL_ARCH_CRAY)
+
 
 #include <unistd.h>
 
