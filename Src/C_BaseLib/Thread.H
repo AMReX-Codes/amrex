@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.22 2005-07-13 19:56:31 lijewski Exp $
+// $Id: Thread.H,v 1.23 2006-02-08 21:38:05 car Exp $
 //
 
 //#include <cstdio>
@@ -65,7 +65,7 @@ public:
 private:
     Mutex(const Mutex&);
     void operator=(const Mutex&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(PGI) )
+#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
     void* operator new(size_t size);
 #endif
 protected:
@@ -113,7 +113,7 @@ public:
 private:
     Lock(const Lock&);
     void operator=(const Lock&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(PGI) )
+#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
     void* operator new(size_t size);
 #endif
     M& m_mutex;
@@ -176,7 +176,7 @@ public:
 private:
     TryLock(const TryLock&);
     void operator=(const TryLock&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(PGI) )
+#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
     void* operator new(size_t size);
 #endif
     M& m_mutex;
