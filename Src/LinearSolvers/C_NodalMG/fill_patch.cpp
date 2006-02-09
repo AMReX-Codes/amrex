@@ -1,3 +1,4 @@
+#include <iostream>
 
 #include "fill_patch.H"
 #include <Profiler.H>
