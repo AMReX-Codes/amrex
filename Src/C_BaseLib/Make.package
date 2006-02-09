@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.39 2006-01-26 00:09:26 lijewski Exp $
+# $Id: Make.package,v 1.40 2006-02-09 21:40:58 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -27,7 +27,9 @@ C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
+ifeq ($(PROFILE),TRUE)
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
+endif
 C$(BOXLIB_BASE)_headers += Profiler.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
