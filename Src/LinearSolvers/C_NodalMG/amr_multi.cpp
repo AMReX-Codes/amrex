@@ -1,4 +1,7 @@
 #include <winstd.H>
+
+#include <iostream>
+
 #include <cmath>
 
 #include "amr_multi.H"

@@ -1,3 +1,4 @@
+#include <iostream>
 
 #include "restrictor.H"
 #include "fill_patch.H"
