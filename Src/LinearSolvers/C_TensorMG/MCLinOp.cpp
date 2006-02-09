@@ -1,11 +1,12 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.20 2005-01-26 23:20:51 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.21 2006-02-09 21:08:25 car Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
 #include <winstd.H>
 
+#include <iostream>
 #include <cstdlib>
 
 #include <ParmParse.H>
