@@ -41,6 +41,12 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
+    ifeq ($(HOST),naphta)
+      mpihome=$(HOME)/mpich2
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+    endif
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
     endif
