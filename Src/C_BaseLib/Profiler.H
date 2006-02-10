@@ -1,7 +1,7 @@
 #ifndef _BL_PROFILER_H_
 #define _BL_PROFILER_H_
 //
-// $Id: Profiler.H,v 1.9 2006-02-09 21:40:58 car Exp $
+// $Id: Profiler.H,v 1.10 2006-02-10 22:18:40 car Exp $
 //
 
 #ifdef BL_PROFILING
@@ -57,15 +57,13 @@ Profiler bl_prf_##var(bl_prf_tag_##var, true)
 
 #else
 
-#include <string>
-
 class Profiler 
 {
 public:
   class Tag
   {
   public:
-    explicit Tag(const std::string&) {}
+    explicit Tag(const char* str) {}
   };
   Profiler(const Tag&, bool) {}
   static void Initialize() {}
