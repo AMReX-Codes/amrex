@@ -1,6 +1,7 @@
-
 #ifndef _RegType_H_
 #define _RegType_H_
+
+#include <string>
 
 enum RegType
 {
