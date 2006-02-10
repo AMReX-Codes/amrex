@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.29 2005-09-09 20:35:16 car Exp $
+# $Id: Make.rules,v 1.30 2006-02-10 17:10:11 car Exp $
 #
 
 clean::
@@ -7,7 +7,7 @@ clean::
 	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
 
 realclean: clean
-	$(RM) TAGS tags
+	$(RM) TAGS tags BROWSE
 	$(RM) -r d o f ii_files *~
 	$(RM) *.ex *.ii *.o mon.out gmon.out
 	$(RM) work.pc work.pcl
@@ -18,7 +18,10 @@ tags:	$(allSources)
 TAGS:	$(allSources)
 	etags $^
 
-.PHONY:	all clean TAGS realclean tags
+BROWSE:	$(T_headesr) $(T_sources) $(CEXE_headers) $(CEXE_sources)
+	ebrowse $^
+
+.PHONY:	all clean TAGS realclean tags BROWSE
 #
 # Rules for building executable.
 #
