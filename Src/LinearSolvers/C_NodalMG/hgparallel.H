@@ -91,6 +91,8 @@ public:
     sequence_number get_sequence_number () const;
     void set_sequence_number (sequence_number sno);
 
+  MPI_Request get_request () const;
+
 protected:
 
     friend class task_proxy;
@@ -107,6 +109,7 @@ protected:
     bool                  m_finished;
     bool                  m_started;
     char*                 m_did_work;
+    MPI_Request           m_request;
 
 private:
     //
@@ -115,6 +118,13 @@ private:
     task (const task&);
     task& operator= (const task&);
 };
+
+inline
+MPI_Request 
+task::get_request () const
+{
+  return m_request;
+}
 
 inline
 task::task_proxy::task_proxy (task* t_)
@@ -236,10 +246,13 @@ public:
     task_list ();
     ~task_list ();
     task::task_proxy add_task (task* t);
-    //
+
     // Executes once through the task list, return true if any elements left.
-    //
+
     void execute (const char* msg);
+#if 0
+    void execute_1 (const char* msg);
+#endif
 
     std::list<task::task_proxy>::const_iterator begin () const;
     std::list<task::task_proxy>::iterator begin ();
@@ -357,7 +370,6 @@ public:
 
 protected:
 
-  MPI_Request     m_request;
   FArrayBox*      m_tmp;
   MultiFab&       m_dmf;
   const int       m_dgrid;
@@ -432,7 +444,6 @@ public:
 
 protected:
 
-    MPI_Request     m_request;
     FArrayBox*      m_tmp;
     FArrayBox*      m_fab;
     const MultiFab& m_smf;

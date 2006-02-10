@@ -707,7 +707,6 @@ private:
     //
     // The data.
     //
-    MPI_Request           m_request;
     const amr_restrictor& m_restric;
     FArrayBox*            m_tmp;
     MultiFab&             m_d;
