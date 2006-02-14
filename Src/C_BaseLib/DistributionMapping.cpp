@@ -657,7 +657,8 @@ void
 SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
              const std::vector< std::vector<int> >&                    nbrs,
              std::vector<int>&                                         procmap,
-             std::vector<long>&                                        percpu)
+             std::vector<long>&                                        percpu,
+             bool&                                                     swapped)
 {
     for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
          it != samesize.end();
@@ -744,6 +745,10 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
 
                     percpu[procmap[*lit1]] = percpu_lit1;
                     percpu[procmap[*lit2]] = percpu_lit2;
+                }
+                else
+                {
+                    swapped = true;
                 }
             }
         }
@@ -868,60 +873,23 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
-
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
-
         std::cout << "Initial off-CPU connection count: " << cnt << '\n';
-
-        if (verbose > 1)
-        {
-            std::cout << "Initial per-CPU latency distribution:\n";
-
-            long mn = cnt, mx = 0;
-
-            for (int i = 0; i < percpu.size(); i++)
-            {
-                mn = std::min(mn,percpu[i]);
-                mx = std::max(mx,percpu[i]);
-
-                std::cout << "CPU: " << i << '\t' << percpu[i] << '\n';
-            }
-
-            std::cout << "Knapsack: initial communication efficiency: "
-                      << double(mn)/double(mx)
-                      << '\n';
-        }
     }
 
-    SwapAndTest(samesize,nbrs,procmap,percpu);
-    SwapAndTest(samesize,nbrs,procmap,percpu);
+    bool swapped;
+    do
+    {
+        swapped = false;
+        SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
+    }
+    while (swapped);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
-
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
-
         std::cout << "Final off-CPU connection count: " << cnt << '\n';
-
-        if (verbose > 1)
-        {
-            std::cout << "Final per-CPU latency distribution:\n";
-
-            long mn = cnt, mx = 0;
-
-            for (int i = 0; i < percpu.size(); i++)
-            {
-                mn = std::min(mn,percpu[i]);
-                mx = std::max(mx,percpu[i]);
-
-                std::cout << "CPU " << i << ":\t" << percpu[i] << '\n';
-            }
-
-            std::cout << "Knapsack: final communication efficiency: "
-                      << double(mn)/double(mx)
-                      << '\n';
-        }
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -937,7 +905,9 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
                                            int                      nprocs)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::KnapSackProcessorMap(vector,");
+
     BL_ASSERT(pts.size() > 0);
+
     m_procmap.resize(pts.size()+1);
 
     if (int(pts.size()) <= nprocs || nprocs < 2)
