@@ -878,12 +878,14 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     }
 
     bool swapped;
+    int  passcnt = 0;
     do
     {
         swapped = false;
         SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
+        passcnt++;
     }
-    while (swapped);
+    while (swapped && passcnt < 3);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
