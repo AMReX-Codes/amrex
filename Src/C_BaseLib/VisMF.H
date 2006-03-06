@@ -1,8 +1,12 @@
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
 //
-// $Id: VisMF.H,v 1.51 2001-07-31 17:56:27 lijewski Exp $
+// $Id: VisMF.H,v 1.52 2006-03-06 19:24:44 car Exp $
 //
+
+#include <iosfwd>
+#include <string>
+
 #include <MultiFab.H>
 
 //
