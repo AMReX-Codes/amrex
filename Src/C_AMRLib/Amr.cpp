@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.145 2006-01-09 19:18:48 lijewski Exp $
+// $Id: Amr.cpp,v 1.146 2006-03-13 21:04:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1649,11 +1649,12 @@ Amr::printGridInfo (std::ostream& os,
 {
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
-        const BoxArray& bs      = amr_level[lev].boxArray();
-        int             numgrid = bs.size();
-        long            ncells  = amr_level[lev].countCells();
-        double          ntot    = geom[lev].Domain().d_numPts();
-        Real            frac    = 100.0*(Real(ncells) / ntot);
+        const BoxArray&           bs      = amr_level[lev].boxArray();
+        int                       numgrid = bs.size();
+        long                      ncells  = amr_level[lev].countCells();
+        double                    ntot    = geom[lev].Domain().d_numPts();
+        Real                      frac    = 100.0*(Real(ncells) / ntot);
+        const DistributionMapping& map    = amr_level[lev].get_new_data(0).DistributionMap();
 
         os << "  Level "
            << lev
@@ -1671,14 +1672,15 @@ Amr::printGridInfo (std::ostream& os,
             const Box& b = bs[k];
 
             os << ' ' << lev << ": " << b << "   ";
-
+                
             for (int i = 0; i < BL_SPACEDIM; i++)
                 os << b.length(i) << ' ';
 
-            os << '\n';
+            os << ":: " << map[k] << '\n';
         }
     }
-    os << std::endl;		// Make sure we flush!
+
+    os << std::endl;            // Make sure we flush!
 }
 
 void
