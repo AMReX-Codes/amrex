@@ -121,6 +121,15 @@ ifeq ($(WHICHLINUX), PCCLUSTER)
              #  this should be made into a link to the current version  ^^^^^^
 endif
 
+ifeq ($(WHICHLINUX), COLUMBIA)
+# FC  := fort -assume nounderscore
+# fC  := $(FC)
+# override FORTLINK := LOWERCASE
+  FOPTF = -O2 -ipo -IPF_FMA -ftz -IPF_fltacc
+  fOPTF = -O2 -ipo -IPF_FMA -ftz -IPF_fltacc
+  CXXOPTF = -O2 -ftz -ipo -IPF_fltacc -IPF_fma
+endif
+
 ifeq ($(WHICHLINUX), ALPHACLUSTER)
   FC  := fort -assume nounderscore
 #  FC  := fort

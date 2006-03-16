@@ -51,7 +51,12 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
     ifneq ($(WHICHLINUX), JACQUARD)
-      BL_MPI_LIBS += -lmpich
+      ifneq ($(WHICHLINUX), COLUMBIA)
+        BL_MPI_LIBS += -lmpich
+      endif
+    endif
+    ifeq ($(WHICHLINUX), COLUMBIA)
+      BL_MPI_LIBS += -lmpi
     endif
     ifeq ($(WHICHLINUX), GENERICLINUX)
       LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
