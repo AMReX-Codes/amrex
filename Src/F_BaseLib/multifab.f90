@@ -3445,6 +3445,21 @@ contains
 
   end subroutine mf_copy_fancy_z
 
+  subroutine dull_copy_d(out, in)
+    real(dp_t), intent(inout) :: out(:,:,:,:)
+    real(dp_t), intent(in) :: in(:,:,:,:)
+    integer :: i, j, k, n
+    do n = 1, size(in,4)
+       do k = 1, size(in, 3)
+          do j = 1, size(in,2)
+             do i = 1, size(in, 1)
+                out(i,j,k,n) = in(i,j,k,n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine dull_copy_d
+
   subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
@@ -3490,7 +3505,7 @@ contains
           if ( present(filter) ) then
              call filter(pdst, psrc)
           else
-             pdst = psrc
+             call dull_copy_d(pdst, psrc)
           end if
        end do
        !$OMP END PARALLEL DO
