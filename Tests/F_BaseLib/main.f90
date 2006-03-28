@@ -29,7 +29,8 @@ program main
 ! call t_knap
 ! call t_ml_mf_read()
 ! call t_bl_prof()
-  call t_ba_self_intersection
+! call t_ba_self_intersection
+  call t_knapsack
   call bl_prof_glean("bl_prof_res")
   call bl_prof_finalize()
   call boxlib_finalize()
