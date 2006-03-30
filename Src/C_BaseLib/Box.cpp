@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.25 2005-10-14 17:22:40 lijewski Exp $
+// $Id: Box.cpp,v 1.26 2006-03-30 21:52:12 vince Exp $
 //
 #include <iostream>
 #include <limits>
@@ -770,6 +770,19 @@ operator>> (std::istream& is,
 	    is >> typ;
 	}
         is.ignore(BL_IGNORE_MAX,')');
+    }
+    else if (c == '<')
+    {
+	is.putback(c);
+        is >> lo >> hi;
+	is >> c;
+	// Read an optional IndexType
+	is.putback(c);
+	if ( c == '<' )
+	{
+	    is >> typ;
+	}
+        //is.ignore(BL_IGNORE_MAX,'>');
     }
     else
     {
