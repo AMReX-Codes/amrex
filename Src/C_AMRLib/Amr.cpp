@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.146 2006-03-13 21:04:11 lijewski Exp $
+// $Id: Amr.cpp,v 1.147 2006-03-31 22:27:35 marc Exp $
 //
 #include <winstd.H>
 
@@ -744,7 +744,7 @@ Amr::writePlotFile (const std::string& root,
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(30);
+        old_prec = HeaderFile.precision(15);
     }
 
     for (int k = 0; k <= finest_level; k++)
@@ -1186,7 +1186,7 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(30);
+        old_prec = HeaderFile.precision(15);
 
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'
