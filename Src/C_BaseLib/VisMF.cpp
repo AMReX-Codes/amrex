@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.94 2004-10-06 23:54:50 vince Exp $
+// $Id: VisMF.cpp,v 1.95 2006-03-31 21:42:50 marc Exp $
 //
 
 #include <winstd.H>
@@ -422,6 +422,7 @@ VisMF::Header::Header (const MultiFab& mf,
     m_max(m_ba.size())
 {
 #ifdef BL_USE_MPI
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Header()");
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
@@ -610,6 +611,7 @@ VisMF::Write (const MultiFab&    mf,
               VisMF::How         how,
               bool               set_ghost)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Write()");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int MyProc = ParallelDescriptor::MyProc();
