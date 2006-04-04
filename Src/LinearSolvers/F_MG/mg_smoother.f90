@@ -97,17 +97,11 @@ contains
 
        do i = lo(1), hi(1)
           if (bc_skewed(mm(i,lo(2)),2,+1)) tb(i,1) = uu(i,lo(2)+2)
-       end do
-
-       do i = lo(1), hi(1)
           if (bc_skewed(mm(i,hi(2)),2,-1)) tb(i,2) = uu(i,hi(2)-2)
        end do
 
        do j = lo(2), hi(2)
           if (bc_skewed(mm(lo(1),j),1,+1)) lr(j,1) = uu(lo(1)+2,j)
-       end do
-
-       do j = lo(2), hi(2)
           if (bc_skewed(mm(hi(1),j),1,-1)) lr(j,2) = uu(hi(1)-2,j)
        end do
 
@@ -195,20 +189,20 @@ contains
 
     do k = lo(3), hi(3)
        do i = lo(1), hi(1)
-          tb(i,k,1) = uu(i,lo(2)+2,k)
-          tb(i,k,2) = uu(i,hi(2)-2,k)
+          if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
+          if (bc_skewed(mm(i,hi(2),k),2,-1)) tb(i,k,2) = uu(i,hi(2)-2,k)
        end do
     end do
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
-          lr(j,k,1) = uu(lo(1)+2,j,k)
-          lr(j,k,2) = uu(hi(1)-2,j,k)
+          if (bc_skewed(mm(lo(1),j,k),1,+1)) lr(j,k,1) = uu(lo(1)+2,j,k)
+          if (bc_skewed(mm(hi(1),j,k),1,-1)) lr(j,k,2) = uu(hi(1)-2,j,k)
        end do
     end do
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          fb(i,j,1) = uu(i,j,lo(3)+2)
-          fb(i,j,2) = uu(i,j,hi(3)-2)
+          if (bc_skewed(mm(i,j,lo(3)),3,+1)) fb(i,j,1) = uu(i,j,lo(3)+2)
+          if (bc_skewed(mm(i,j,hi(3)),3,-1)) fb(i,j,2) = uu(i,j,hi(3)-2)
        end do
     end do
 
@@ -299,22 +293,23 @@ contains
     end if
 
     if ( lskwd ) then
+
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
-             tb(i,k,1) = uu(i,lo(2)+2,k)
-             tb(i,k,2) = uu(i,hi(2)-2,k)
+             if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
+             if (bc_skewed(mm(i,hi(2),k),2,-1)) tb(i,k,2) = uu(i,hi(2)-2,k)
           end do
        end do
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
-             lr(j,k,1) = uu(lo(1)+2,j,k)
-             lr(j,k,2) = uu(hi(1)-2,j,k)
+             if (bc_skewed(mm(lo(1),j,k),1,+1)) lr(j,k,1) = uu(lo(1)+2,j,k)
+             if (bc_skewed(mm(hi(1),j,k),1,-1)) lr(j,k,2) = uu(hi(1)-2,j,k)
           end do
        end do
-       do j = lo(2), hi(2)
+       do j = lo(2), hi(2) 
           do i = lo(1), hi(1)
-             fb(i,j,1) = uu(i,j,lo(3)+2)
-             fb(i,j,2) = uu(i,j,hi(3)-2)
+             if (bc_skewed(mm(i,j,lo(3)),3,+1)) fb(i,j,1) = uu(i,j,lo(3)+2)
+             if (bc_skewed(mm(i,j,hi(3)),3,-1)) fb(i,j,2) = uu(i,j,hi(3)-2)
           end do
        end do
 
