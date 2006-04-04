@@ -96,12 +96,19 @@ contains
     if ( lskwd ) then
 
        do i = lo(1), hi(1)
-          tb(i,1) = uu(i,lo(2)+2)
-          tb(i,2) = uu(i,hi(2)-2)
+          if (bc_skewed(mm(i,lo(2)),2,+1)) tb(i,1) = uu(i,lo(2)+2)
        end do
+
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,hi(2)),2,-1)) tb(i,2) = uu(i,hi(2)-2)
+       end do
+
        do j = lo(2), hi(2)
-          lr(j,1) = uu(lo(1)+2,j)
-          lr(j,2) = uu(hi(1)-2,j)
+          if (bc_skewed(mm(lo(1),j),1,+1)) lr(j,1) = uu(lo(1)+2,j)
+       end do
+
+       do j = lo(2), hi(2)
+          if (bc_skewed(mm(hi(1),j),1,-1)) lr(j,2) = uu(hi(1)-2,j)
        end do
 
        !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
