@@ -910,7 +910,9 @@ contains
     type(multifab), intent(in) :: mf
     logical, optional :: all
     integer :: i
-    if ( all ) then
+    logical :: lall
+    lall = .false.; if (present(all) ) lall = all
+    if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
           r = r + volume(get_pbox(mf, i))
@@ -924,7 +926,9 @@ contains
     type(imultifab), intent(in) :: mf
     logical, optional :: all
     integer :: i
-    if ( all ) then
+    logical :: lall
+    lall = .false.; if (present(all) ) lall = all
+    if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
           r = r + volume(get_pbox(mf, i))
@@ -938,7 +942,9 @@ contains
     type(lmultifab), intent(in) :: mf
     logical, optional :: all
     integer :: i
-    if ( all ) then
+    logical :: lall
+    lall = .false.; if (present(all) ) lall = all
+    if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
           r = r + volume(get_pbox(mf, i))
@@ -952,7 +958,9 @@ contains
     type(zmultifab), intent(in) :: mf
     logical, optional :: all
     integer :: i
-    if ( all ) then
+    logical :: lall
+    lall = .false.; if (present(all) ) lall = all
+    if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
           r = r + volume(get_pbox(mf, i))
