@@ -380,7 +380,7 @@ contains
     if ( x%mla /= y%mla ) call bl_error("ML_DOT: incommensurate")
     n = x%nlevel
     r = dot(x%mf(n), compx, y%mf(n), compy)
-    do n = x%nlevel-1,1,-1
+    do n = x%nlevel-1, 1, -1
        r = r/product(x%mla%mba%rr(n,:)) &
             + dot(x%mf(n), compx, y%mf(n), compy, mask=x%mla%mask(n))
     end do
@@ -395,7 +395,8 @@ contains
     n = x%nlevel
     r = multifab_sum(x%mf(n))
     do n = x%nlevel-1, 1, -1
-       r = r/product(x%mla%mba%rr(n,:)) + multifab_sum(x%mf(n), mask = x%mla%mask(n))
+       r = r/product(x%mla%mba%rr(n,:)) &
+            + multifab_sum(x%mf(n), mask = x%mla%mask(n))
     end do
   end function ml_multifab_sum
 
