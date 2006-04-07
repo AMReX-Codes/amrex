@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.96 2006-03-31 21:48:09 marc Exp $
+// $Id: VisMF.cpp,v 1.97 2006-04-07 20:51:59 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -423,20 +423,14 @@ VisMF::Header::Header (const MultiFab& mf,
 {
 #ifdef BL_USE_MPI
     BL_PROFILE("VisMF::Header::Header()");
-    //
-    // Note that m_min and m_max are only calculated on CPU owning the fab.
-    // We pass this data back to IOProcessor() so it sees the whole Header.
-    //
-    const int SeqNo  = ParallelDescriptor::SeqNum();
+
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-    int nFabs = 0;
-
+    //
+    // Calculate m_min and m_max on the CPU owning the fab.
+    //
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        nFabs++;
-
         const int idx = mfi.index();
 
         m_min[idx].resize(m_ncomp);
@@ -451,104 +445,75 @@ VisMF::Header::Header (const MultiFab& mf,
         }
     }
 
-    if (!ParallelDescriptor::IOProcessor())
+    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
+    Array<int> offset(ParallelDescriptor::NProcs(),0);
+
+    const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
+
+    for (int i = 0; i < mf.size(); i++)
+        nmtags[pmap[i]]++;
+
+    for (int i = 0; i < nmtags.size(); i++)
+        //
+        // Each Fab corresponds to 2*m_ncomp Reals.
+        //
+        nmtags[i] *= 2*m_ncomp;
+
+    for (int i = 1; i < offset.size(); i++)
+        offset[i] = offset[i-1] + nmtags[i-1];
+
+    Array<Real> senddata(nmtags[ParallelDescriptor::MyProc()]);
+
+    if (senddata.empty())
+        //
+        // Can't let senddata be empty as senddata.dataPtr() will fail.
+        //
+        senddata.resize(1);
+
+    int ioffset = 0;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        if (nFabs)
+        const int idx = mfi.index();
+
+        for (int i = 0; i < m_ncomp; i++)
         {
-            Array<Real> senddata(2*m_ncomp*nFabs);
-
-            int offset = 0;
-
-            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-            {
-                const int idx = mfi.index();
-
-                for (int i = 0; i < m_ncomp; i++)
-                {
-                    senddata[offset+i]         = m_min[idx][i];
-                    senddata[offset+m_ncomp+i] = m_max[idx][i];
-                }
-
-                offset += 2*m_ncomp;
-            }
-
-            BL_ASSERT(offset == 2*m_ncomp*nFabs);
-
-            BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
-                                     2*m_ncomp*nFabs,
-                                     ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                     IOProc,
-                                     SeqNo,
-                                     ParallelDescriptor::Communicator()) );
-
-            BL_ASSERT(offset == 2*m_ncomp*nFabs);
+            senddata[ioffset+i]         = m_min[idx][i];
+            senddata[ioffset+m_ncomp+i] = m_max[idx][i];
         }
+
+        ioffset += 2*m_ncomp;
     }
-    else
+
+    BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
+
+    Array<Real> recvdata(mf.size()*2*m_ncomp);
+
+    MPI_Gatherv(senddata.dataPtr(),
+                nmtags[ParallelDescriptor::MyProc()],
+                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                recvdata.dataPtr(),
+                nmtags.dataPtr(),
+                offset.dataPtr(),
+                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                IOProc,
+                ParallelDescriptor::Communicator());
+
+    if (ParallelDescriptor::IOProcessor())
     {
-        const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
+        const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-        Array<int>           fabs(NProcs,0);
-        Array<int>           indx(NProcs);
-        Array<MPI_Request>   reqs(NProcs,MPI_REQUEST_NULL);
-        Array<MPI_Status>    status(NProcs);
-        Array< Array<Real> > data(NProcs);
-
-        for (int i = 0, N = procmap.size(); i < N; i++)
-            fabs[procmap[i]]++;
-
-        fabs[IOProc] = 0;
-
-        int NWaits = 0;
-
-        for (int i = 0; i < NProcs; i++)
+        for (int idx = 0; idx < mf.size(); idx++)
         {
-            if (fabs[i])
+            const int offset = 2*idx*m_ncomp;
+
+            m_min[idx].resize(m_ncomp);
+            m_max[idx].resize(m_ncomp);
+
+            for (int i = 0; i < m_ncomp; i++)
             {
-                NWaits++;
-
-                data[i].resize(2*m_ncomp*fabs[i]);
-
-                BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
-                                          2*m_ncomp*fabs[i],
-                                          ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                          i,
-                                          SeqNo,
-                                          ParallelDescriptor::Communicator(),
-                                          &reqs[i]) );
-            }
-        }
-
-        for (int completed; NWaits > 0; NWaits -= completed)
-        {
-            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
-                                         reqs.dataPtr(),
-                                         &completed,
-                                         indx.dataPtr(),
-                                         status.dataPtr()) );
-
-            for (int k = 0; k < completed; k++)
-            {
-                int Ncpu = indx[k], offset = 0;
-
-                for (int idx = 0, N = procmap.size(); idx < N; idx++)
-                {
-                    if (procmap[idx] == Ncpu)
-                    {
-                        m_min[idx].resize(m_ncomp);
-                        m_max[idx].resize(m_ncomp);
-
-                        for (int i = 0; i < m_ncomp; i++)
-                        {
-                            m_min[idx][i] = data[Ncpu][offset+i];
-                            m_max[idx][i] = data[Ncpu][offset+m_ncomp+i];
-                        }
-
-                        offset += 2*m_ncomp;
-                    }
-                }
-
-                BL_ASSERT(offset == 2*m_ncomp*fabs[Ncpu]);
+                m_min[idx][i] = recvdata[offset+i];
+                m_max[idx][i] = recvdata[offset+m_ncomp+i];
             }
         }
     }
