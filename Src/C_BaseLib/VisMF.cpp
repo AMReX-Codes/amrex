@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.97 2006-04-07 20:51:59 lijewski Exp $
+// $Id: VisMF.cpp,v 1.98 2006-04-08 00:01:42 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -501,20 +501,33 @@ VisMF::Header::Header (const MultiFab& mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
+        for (int i = 0; i < mf.size(); i++)
+        {
+            m_min[i].resize(m_ncomp);
+            m_max[i].resize(m_ncomp);
+        }
+
         const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-        for (int idx = 0; idx < mf.size(); idx++)
+        for (int i = 0; i < nmtags.size(); i++)
         {
-            const int offset = 2*idx*m_ncomp;
+            int cnt = 0;
 
-            m_min[idx].resize(m_ncomp);
-            m_max[idx].resize(m_ncomp);
-
-            for (int i = 0; i < m_ncomp; i++)
+            for (int j = 0; j < mf.size(); j++)
             {
-                m_min[idx][i] = recvdata[offset+i];
-                m_max[idx][i] = recvdata[offset+m_ncomp+i];
+                if (pmap[j] == i)
+                {
+                    for (int k = 0; k < m_ncomp; k++)
+                    {
+                        m_min[j][k] = recvdata[offset[i]+cnt+k];
+                        m_max[j][k] = recvdata[offset[i]+cnt+k+m_ncomp];
+                    }
+
+                    cnt++;
+                }
             }
+
+            BL_ASSERT(2*cnt*m_ncomp == nmtags[i]);
         }
     }
 #else
@@ -577,6 +590,7 @@ VisMF::Write (const MultiFab&    mf,
               bool               set_ghost)
 {
     BL_PROFILE("VisMF::Write()");
+
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -631,99 +645,73 @@ VisMF::Write (const MultiFab&    mf,
         hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
 
 #ifdef BL_USE_MPI
-    const int SeqNo  = ParallelDescriptor::SeqNum();
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    if (!ParallelDescriptor::IOProcessor())
+    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
+    Array<int> offset(ParallelDescriptor::NProcs(),0);
+
+    const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
+
+    for (int i = 0; i < mf.size(); i++)
+        nmtags[pmap[i]]++;
+
+    for (int i = 1; i < offset.size(); i++)
+        offset[i] = offset[i-1] + nmtags[i-1];
+
+    Array<long> senddata(nmtags[ParallelDescriptor::MyProc()]);
+
+    if (senddata.empty())
+        //
+        // Can't let senddata be empty as senddata.dataPtr() will fail.
+        //
+        senddata.resize(1);
+
+    int ioffset = 0;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
+
+    BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
+
+    Array<long> recvdata(mf.size());
+
+    MPI_Gatherv(senddata.dataPtr(),
+                nmtags[ParallelDescriptor::MyProc()],
+                ParallelDescriptor::Mpi_typemap<long>::type(),
+                recvdata.dataPtr(),
+                nmtags.dataPtr(),
+                offset.dataPtr(),
+                ParallelDescriptor::Mpi_typemap<long>::type(),
+                IOProc,
+                ParallelDescriptor::Communicator());
+
+    if (ParallelDescriptor::IOProcessor())
     {
-        int nFabs = 0, idx = 0;
+        const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-            nFabs++;
-
-        if (nFabs)
+        for (int i = 0; i < nmtags.size(); i++)
         {
-            Array<long> senddata(nFabs);
+            int cnt = 0;
 
-            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-                senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
-
-            BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
-                                     nFabs,
-                                     MPI_LONG,
-                                     IOProc,
-                                     SeqNo,
-                                     ParallelDescriptor::Communicator()));
-        }
-
-        BL_ASSERT(idx == nFabs);
-    }
-    else
-    {
-        const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
-
-        Array<int>           fabs(NProcs,0);
-        Array<int>           indx(NProcs);
-        Array<MPI_Request>   reqs(NProcs,MPI_REQUEST_NULL);
-        Array<MPI_Status>    status(NProcs);
-        Array< Array<long> > data(NProcs);
-
-        for (int i = 0, N = procmap.size(); i < N; i++)
-            fabs[procmap[i]]++;
-
-        fabs[IOProc] = 0;
-
-        int NWaits = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            if (fabs[i])
+            for (int j = 0; j < mf.size(); j++)
             {
-                NWaits++;
-
-                data[i].resize(fabs[i]);
-
-                BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
-                                          fabs[i],
-                                          MPI_LONG,
-                                          i,
-                                          SeqNo,
-                                          ParallelDescriptor::Communicator(),
-                                          &reqs[i]));
-            }
-        }
-
-        for (int completed; NWaits > 0; NWaits -= completed)
-        {
-            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
-                                         reqs.dataPtr(),
-                                         &completed,
-                                         indx.dataPtr(),
-                                         status.dataPtr()));
-
-            for (int k = 0; k < completed; k++)
-            {
-                int Ncpu = indx[k], offset = 0;
-
-                for (int idx = 0, N = procmap.size(); idx < N; idx++)
+                if (pmap[j] == i)
                 {
-                    if (procmap[idx] == Ncpu)
-                    {
-                        hdr.m_fod[idx].m_head = data[Ncpu][offset++];
+                    hdr.m_fod[j].m_head = recvdata[offset[i]+cnt];
 
-                        std::string name = mf_name;
+                    std::string name = mf_name;
+                    name += VisMF::FabFileSuffix;
+                    sprintf(buf, "%04d", i);
+                    name += buf;
 
-                        name += VisMF::FabFileSuffix;
-                        sprintf(buf, "%04d", Ncpu);
-                        name += buf;
+                    hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
-                        hdr.m_fod[idx].m_name = VisMF::BaseName(name);
-                    }
+                    cnt++;
                 }
-
-                BL_ASSERT(offset == fabs[Ncpu]);
             }
+
+            BL_ASSERT(cnt == nmtags[i]);
         }
     }
 #endif /*BL_USE_MPI*/
