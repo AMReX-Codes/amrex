@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.98 2006-04-08 00:01:42 lijewski Exp $
+// $Id: VisMF.cpp,v 1.99 2006-04-18 23:19:55 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -489,15 +489,15 @@ VisMF::Header::Header (const MultiFab& mf,
 
     Array<Real> recvdata(mf.size()*2*m_ncomp);
 
-    MPI_Gatherv(senddata.dataPtr(),
-                nmtags[ParallelDescriptor::MyProc()],
-                ParallelDescriptor::Mpi_typemap<Real>::type(),
-                recvdata.dataPtr(),
-                nmtags.dataPtr(),
-                offset.dataPtr(),
-                ParallelDescriptor::Mpi_typemap<Real>::type(),
-                IOProc,
-                ParallelDescriptor::Communicator());
+    BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
+                                nmtags[ParallelDescriptor::MyProc()],
+                                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                recvdata.dataPtr(),
+                                nmtags.dataPtr(),
+                                offset.dataPtr(),
+                                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                IOProc,
+                                ParallelDescriptor::Communicator()) );
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -676,15 +676,15 @@ VisMF::Write (const MultiFab&    mf,
 
     Array<long> recvdata(mf.size());
 
-    MPI_Gatherv(senddata.dataPtr(),
-                nmtags[ParallelDescriptor::MyProc()],
-                ParallelDescriptor::Mpi_typemap<long>::type(),
-                recvdata.dataPtr(),
-                nmtags.dataPtr(),
-                offset.dataPtr(),
-                ParallelDescriptor::Mpi_typemap<long>::type(),
-                IOProc,
-                ParallelDescriptor::Communicator());
+    BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
+                                nmtags[ParallelDescriptor::MyProc()],
+                                ParallelDescriptor::Mpi_typemap<long>::type(),
+                                recvdata.dataPtr(),
+                                nmtags.dataPtr(),
+                                offset.dataPtr(),
+                                ParallelDescriptor::Mpi_typemap<long>::type(),
+                                IOProc,
+                                ParallelDescriptor::Communicator()) );
 
     if (ParallelDescriptor::IOProcessor())
     {
