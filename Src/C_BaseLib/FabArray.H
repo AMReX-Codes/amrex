@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.172 2006-03-06 22:23:50 car Exp $
+// $Id: FabArray.H,v 1.173 2006-04-19 04:30:29 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -921,8 +921,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            const Box& bx = fai.validbox();
-            get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+            get(fai).copy(src[fai],fai.validbox(),scomp,fai.validbox(),dcomp,ncomp);
         }
 
         return;
@@ -931,12 +930,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    Array<value_type*>              fab_data(NProcs);
-    Array<int>                      indx(NProcs);
-    Array<MPI_Status>               status(NProcs);
-    Array<MPI_Request>              reqs(NProcs);
     Array< std::vector<FabComTag> > SndTags(NProcs);
     Array< std::vector<FabComTag> > RcvTags(NProcs);
+
+    Array<int> sendcount(NProcs,0);
+    Array<int> recvcount(NProcs,0);
+    Array<int> senddspls(NProcs,0);
+    Array<int> recvdspls(NProcs,0);
 
     FabComTag tag;
 
@@ -946,8 +946,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int ii = 0; ii < isects.size(); ii++)
         {
-            const Box bx  = isects[ii].second;
-            const int iii = isects[ii].first;
+            const Box& bx  = isects[ii].second;
+            const int  iii = isects[ii].first;
 
             if (distributionMap[i] == MyProc)
             {
@@ -976,94 +976,97 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if (NProcs == 1) return;
 
-    const int seqno = ParallelDescriptor::SeqNum();
+    size_t Nsend = 0;
 
-    int NWaits = 0;
-    //
-    // Post one receive for each chunk being sent by other CPUs.
-    //
     for (int i = 0; i < NProcs; i++)
     {
-        reqs[i] = MPI_REQUEST_NULL;
-
-        if (!RcvTags[i].empty())
-        {
-            NWaits++;
-
-            size_t N = 0;
-
-            for (unsigned int j = 0; j < RcvTags[i].size(); j++)
-                N += RcvTags[i][j].box.numPts() * ncomp;
-
-            BL_ASSERT(N < std::numeric_limits<size_t>::max());
-
-            fab_data[i] = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-
-            reqs[i] = ParallelDescriptor::Arecv(fab_data[i],N,i,seqno).req();
-        }
+        int N = 0;
+        for (int j = 0; j < SndTags[i].size(); j++)
+            N += SndTags[i][j].box.numPts() * ncomp;
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+        sendcount[i] = N;
+        Nsend       += N;
     }
 
+    BL_ASSERT((Nsend*sizeof(value_type)) < std::numeric_limits<size_t>::max());
+
+    value_type* senddata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nsend*sizeof(value_type)));
+
+    size_t Nrecv = 0;
+
+    for (int i = 0; i < NProcs; i++)
+    {
+        int N = 0;
+        for (int j = 0; j < RcvTags[i].size(); j++)
+            N += RcvTags[i][j].box.numPts() * ncomp;
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+        recvcount[i] = N;
+        Nrecv       += N;
+    }
+
+    BL_ASSERT((Nrecv*sizeof(value_type)) < std::numeric_limits<size_t>::max());
+
+    value_type* recvdata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nrecv*sizeof(value_type)));
+
+    for (int i = 1; i < senddspls.size(); i++)
+        senddspls[i] = senddspls[i-1] + sendcount[i-1];
+
+    for (int i = 1; i < recvdspls.size(); i++)
+        recvdspls[i] = recvdspls[i-1] + recvcount[i-1];
+    //
+    // Stuff FAB data into senddata.
+    //
     FAB fab;
-    //
-    // Send the agglomerated FAB data.
-    //
+
+    value_type* senddptr = senddata;
+
     for (int i = 0; i < NProcs; i++)
     {
-        if (!SndTags[i].empty())
+        for (int j = 0; j < SndTags[i].size(); j++)
         {
-            size_t N = 0;
-
-            for (unsigned int j = 0; j < SndTags[i].size(); j++)
-                    N += SndTags[i][j].box.numPts() * ncomp;
-
-            BL_ASSERT(N < std::numeric_limits<size_t>::max());
-
-            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-            value_type* dptr = data;
-
-            for (unsigned int j = 0; j < SndTags[i].size(); j++)
-            {
-                const Box& bx = SndTags[i][j].box;
-                fab.resize(bx, ncomp);
-                fab.copy(src[SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
-                int count = bx.numPts() * ncomp;
-                memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
-                dptr += count;
-            }
-
-            BL_ASSERT(data+N == dptr);
-
-            ParallelDescriptor::Send(data, N, i, seqno);
-
-            BoxLib::The_Arena()->free(data);
+            const Box& bx = SndTags[i][j].box;
+            fab.resize(bx, ncomp);
+            fab.copy(src[SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
+            int N = bx.numPts() * ncomp;
+            memcpy(senddptr, fab.dataPtr(), N*sizeof(value_type));
+            senddptr += N;
         }
     }
+
+    BL_ASSERT(senddata+Nsend == senddptr);
+
+    BL_MPI_REQUIRE( MPI_Alltoallv(senddata,
+                                  sendcount.dataPtr(),
+                                  senddspls.dataPtr(),
+                                  ParallelDescriptor::Mpi_typemap<value_type>::type(),
+                                  recvdata,
+                                  recvcount.dataPtr(),
+                                  recvdspls.dataPtr(),
+                                  ParallelDescriptor::Mpi_typemap<value_type>::type(),
+                                  ParallelDescriptor::Communicator()) );
+    
+    BoxLib::The_Arena()->free(senddata);
     //
-    // Now receive and unpack FAB data.
+    // Now unpack FAB data.
     //
-    for (int completed; NWaits > 0; NWaits -= completed)
+    value_type* recvdptr = recvdata;
+
+    for (int i = 0; i < NProcs; i++)
     {
-        ParallelDescriptor::Waitsome(reqs, completed, indx, status);
-
-        for (int k = 0; k < completed; k++)
+        for (int j = 0; j < RcvTags[i].size(); j++)
         {
-            value_type* dptr = fab_data[indx[k]];
-
-            BL_ASSERT(!(dptr == 0));
-
-            for (unsigned int j = 0; j < RcvTags[indx[k]].size(); j++)
-            {
-                const Box& bx = RcvTags[indx[k]][j].box;
-                fab.resize(bx, ncomp);
-                int N = bx.numPts() * ncomp;
-                memcpy(fab.dataPtr(), dptr, N*sizeof(value_type));
-                fabparray[RcvTags[indx[k]][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
-                dptr += N;
-            }
-
-            BoxLib::The_Arena()->free(fab_data[indx[k]]);
+            const Box& bx = RcvTags[i][j].box;
+            fab.resize(bx, ncomp);
+            int N = bx.numPts() * ncomp;
+            memcpy(fab.dataPtr(), recvdptr, N*sizeof(value_type));
+            fabparray[RcvTags[i][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
+            recvdptr += N;
         }
     }
+
+    BL_ASSERT(recvdata+Nrecv == recvdptr);
+
+    BoxLib::The_Arena()->free(recvdata);
 }
 
 template <class FAB>
