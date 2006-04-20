@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.174 2006-04-20 18:21:41 lijewski Exp $
+// $Id: FabArray.H,v 1.175 2006-04-20 20:15:38 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1684,44 +1684,37 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     std::pair<FCDMapIter,FCDMapIter> match;
 
-    for (int i = 0; i < NProcs; i++) 
+    Array<int> offset(NProcs,0);
+
+    for (int i = 0; i < fabComTagList.size(); i++)
     {
-        if (Rcvs[i]) 
+        const FabComTag& tag  = fabComTagList[i];
+        const int        proc = tag.procThatHasData;
+
+        match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
+
+        FCDMapIter fmi = match.first;
+
+        for ( ; fmi != match.second; ++fmi)
         {
-            value_type* dptr = &recvbuf[rdispls[i]];
+            FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
-            for (unsigned int j = 0; j < fabComTagList.size(); j++)
+            BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
+
+            if (fcdp->subBox == tag.box)
             {
-                if (fabComTagList[j].procThatHasData == i)
-                {
-                    const FabComTag& tag = fabComTagList[j];
-
-                    match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
-
-                    FCDMapIter fmi = match.first;
-
-                    for ( ; fmi != match.second; ++fmi)
-                    {
-                        FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
-
-                        BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
-
-                        if (fcdp->subBox == tag.box)
-                        {
-                            value_type* dataPtr = fcdp->localFabSource->dataPtr();
-                            BL_ASSERT(!(dataPtr == 0));
-                            BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                            const int N = tag.box.numPts()*tag.nComp;
-                            memcpy(dataPtr, dptr, N*sizeof(value_type));
-                            dptr += N;
-                            break;
-                        }
-                    }
-
-                    BL_ASSERT(!(fmi == match.second));
-                }
+                value_type* dst = fcdp->localFabSource->dataPtr();
+                value_type* src = &recvbuf[rdispls[proc] + offset[proc]];
+                const int   cnt = tag.box.numPts()*tag.nComp;
+                BL_ASSERT(!(dst == 0));
+                BL_ASSERT(fcdp->localFabSource->box() == tag.box);
+                memcpy(dst, src, cnt*sizeof(value_type));
+                offset[proc] += cnt;
+                break;
             }
         }
+
+        BL_ASSERT(!(fmi == match.second));
     }
 
     BoxLib::The_Arena()->free(recvbuf);
