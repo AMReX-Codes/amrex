@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.175 2006-04-20 20:15:38 lijewski Exp $
+// $Id: FabArray.H,v 1.176 2006-04-24 21:11:03 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -976,6 +976,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if (NProcs == 1) return;
 
+#ifdef BL_USE_MPI
     size_t Nsend = 0;
 
     for (int i = 0; i < NProcs; i++)
@@ -1067,6 +1068,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     BL_ASSERT(recvdata+Nrecv == recvdptr);
 
     BoxLib::The_Arena()->free(recvdata);
+#endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
