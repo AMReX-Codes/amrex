@@ -6,7 +6,11 @@ f90sources += mt19937ar.f90
 f90sources += bl_constants.f90
 f90sources += bl_error.f90  
 f90sources += bl_IO.f90
-f90sources += bl_prof.f90
+ifdef PROF
+  f90sources += bl_prof.f90
+else
+  f90sources += bl_prof_stubs.f90
+endif
 f90sources += bl_mem_stat.f90
 f90sources += bl_parmparse.f90
 f90sources += bl_space.f90  
