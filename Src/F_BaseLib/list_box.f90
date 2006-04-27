@@ -617,7 +617,7 @@ contains
     type(list_box) :: l1
 
     call build(l1)
-    do while ( associated(begin(l)) )
+    do while ( associated(l%head) )
        call push_front(l1, front(l))
        call pop_front(l)
     end do
