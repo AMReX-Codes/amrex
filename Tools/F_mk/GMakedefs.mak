@@ -80,7 +80,7 @@ ifeq ($(COMP),g95)
     FFLAGS += -freal=nan
     CFLAGS += -g
   endif
-  ifdef PROF
+  ifdef GPROF
     F90FLAGS += -pg
     FFLAGS += -pg
     CFLAGS += -pg
@@ -221,14 +221,14 @@ ifeq ($(ARCH),Linux)
           F90FLAGS += -O3
           FFLAGS += -O3
           CFLAGS += -O3
-#  ifndef PROF
+#  ifndef GPROF
             F90FLAGS += -ipo
             FFLAGS += -ipo
             CFLAGS += -ipo
 #  endif
 	endif
       endif
-      ifdef PROF
+      ifdef GPROF
         F90FLAGS += -pg
       endif
       F90FLAGS += -stand f95
@@ -253,7 +253,7 @@ ifeq ($(ARCH),Linux)
           F90FLAGS += -O3
           FFLAGS += -O3
           CFLAGS += -O3
-          ifndef PROF
+          ifndef GPROF
             F90FLAGS += -ipo
             FFLAGS += -ipo
             CFLAGS += -ipo
@@ -261,7 +261,7 @@ ifeq ($(ARCH),Linux)
 	endif
 #       LDFLAGS += -static
       endif
-      ifdef PROF
+      ifdef GPROF
         F90FLAGS += -pg
       endif
       # F90FLAGS += -stand f95
@@ -280,7 +280,7 @@ ifeq ($(ARCH),Linux)
           FFLAGS += -O3
 #         F90FLAGS += -g
           F90FLAGS += -O3
-          ifndef PROF
+          ifndef GPROF
             CFLAGS += -ipo
             FFLAGS += -ipo
             F90FLAGS += -ipo
@@ -303,7 +303,7 @@ ifeq ($(ARCH),Linux)
         endif
       endif
 
-      ifdef PROF
+      ifdef GPROF
         F90FLAGS += -pg
       endif
       fld_flags  += -Vaxlib
@@ -332,7 +332,7 @@ ifeq ($(ARCH),Linux)
       FFLAGS += -gline
       F90FLAGS += -gline
     endif
-    ifdef PROF
+    ifdef GPROF
       FFLAGS += -pg
       F90FLAGS += -pg
       CFLAGS += -pg
@@ -390,7 +390,7 @@ ifeq ($(ARCH),AIX)
   F90FLAGS += -I$(mdir)
   FC  += -qnosave
   ifdef NDEBUG
-    ifdef PROF
+    ifdef GPROF
       FFLAGS += -O2
       F90FLAGS += -O2
     else
@@ -410,7 +410,7 @@ ifeq ($(ARCH),AIX)
     FFLAGS += -qsmp=omp
     F90FLAGS += -qsmp=omp
   endif
-  ifdef PROF
+  ifdef GPROF
     FFLAGS += -pg
     F90FLAGS += -pg
   endif
