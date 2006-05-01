@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.48 2004-01-20 21:53:31 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.49 2006-05-01 19:19:13 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -559,7 +559,7 @@ bldTable (const char*&           str,
     std::string       tmp_str;
 
     PType    token;
-    const int SCRATCH_STR_LEN  = 200;
+    const int SCRATCH_STR_LEN  = 100000;
     char      tokname[SCRATCH_STR_LEN];
 
     for (;;)
