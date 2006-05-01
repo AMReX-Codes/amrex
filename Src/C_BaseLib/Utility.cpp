@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.67 2006-02-08 21:37:26 car Exp $
+// $Id: Utility.cpp,v 1.68 2006-05-01 20:26:34 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -482,7 +482,11 @@ BoxLib::OutOfMemory ()
 #ifdef BL_T3E
     malloc_stats(0);
 #endif
+#ifdef BL_BGL
+    ParallelDescriptor::Abort(12);
+#else
     BoxLib::Error("Sorry, out of memory, bye ...");
+#endif
 }
 
 #if 0
