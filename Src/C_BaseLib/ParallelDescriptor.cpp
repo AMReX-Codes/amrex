@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.99 2005-01-04 23:33:22 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.100 2006-05-01 20:26:34 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -218,7 +218,11 @@ ParallelDescriptor::Abort ()
 void
 ParallelDescriptor::Abort (int errorcode)
 {
+#ifdef BL_BGL
+    MPI_Abort(Communicator(), errcode);
+#else
     BoxLib::Abort(ErrorString(errorcode));
+#endif
 }
 
 const char*
