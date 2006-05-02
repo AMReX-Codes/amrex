@@ -1,14 +1,10 @@
 #undef  BL_LANG_CC
 #define BL_LANG_FORT
 
-//#include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "INTERP_F.H"
 #include "ArrayLim.H"
-
-#include "ONE_D.H"
-
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
 #define SDIM BL_SPACEDIM
