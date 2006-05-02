@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.53 2002-10-24 21:56:00 lijewski Exp $
+// $Id: Utility.H,v 1.54 2006-05-02 16:39:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -287,14 +287,6 @@ namespace BoxLib
 */
 #define BL_LANG_FORT 1
 #endif /*BL_LANG_FORT*/
-
-#ifdef BL_LANG_CC
-#undef BL_LANG_CC
-/*@ManDoc:
-  The macro BL\_LANG\_CC indicates that C++ code is being compiled.
-*/
-#define BL_LANG_CC 1
-#endif /*BL_LANG_CC*/
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #undef BL_FORT_USE_UNDERSCORE

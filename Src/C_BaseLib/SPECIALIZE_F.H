@@ -42,6 +42,6 @@ extern "C"
                           const int&  ncomp);
 }
 
-#endif /*BL_LANG_CC*/
+#endif
 
 #endif /*SPECIALIZE_H*/

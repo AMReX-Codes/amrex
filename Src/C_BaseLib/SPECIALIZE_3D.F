@@ -1,5 +1,4 @@
 
-#undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
