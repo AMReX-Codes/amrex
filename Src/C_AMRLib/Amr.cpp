@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.147 2006-03-31 22:27:35 marc Exp $
+// $Id: Amr.cpp,v 1.148 2006-05-02 21:25:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -626,28 +626,39 @@ Amr::~Amr ()
 void
 Amr::setRecordGridInfo (const std::string& filename)
 {
-    record_grid_info= true;
-    gridlog.open(filename.c_str(),std::ios::out|std::ios::app);
-    if (!gridlog.good())
-        BoxLib::FileOpenFailed(filename);
+    record_grid_info = true;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        gridlog.open(filename.c_str(),std::ios::out|std::ios::app);
+        if (!gridlog.good())
+            BoxLib::FileOpenFailed(filename);
+    }
+    ParallelDescriptor::Barrier();
 }
 
 void
 Amr::setRecordRunInfo (const std::string& filename)
 {
-    record_run_info= true;
-    runlog.open(filename.c_str(),std::ios::out|std::ios::app);
-    if (!runlog.good())
-        BoxLib::FileOpenFailed(filename);
+    record_run_info = true;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        runlog.open(filename.c_str(),std::ios::out|std::ios::app);
+        if (!runlog.good())
+            BoxLib::FileOpenFailed(filename);
+    }
+    ParallelDescriptor::Barrier();
 }
-
 void
 Amr::setRecordDataInfo (int i, const std::string& filename)
 {
-    datalog.set(i,new std::ofstream);
-    datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
-    if (!datalog[i].good())
-        BoxLib::FileOpenFailed(filename);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        datalog.set(i,new std::ofstream);
+        datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
+        if (!datalog[i].good())
+            BoxLib::FileOpenFailed(filename);
+    }
+    ParallelDescriptor::Barrier();
 }
 
 void
@@ -739,11 +750,9 @@ Amr::writePlotFile (const std::string& root,
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
-
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
-
         old_prec = HeaderFile.precision(15);
     }
 
@@ -753,7 +762,6 @@ Amr::writePlotFile (const std::string& root,
     if (ParallelDescriptor::IOProcessor())
     {
         HeaderFile.precision(old_prec);
-
         if (!HeaderFile.good())
             BoxLib::Error("Amr::writePlotFile() failed");
     }
@@ -1181,7 +1189,7 @@ Amr::checkPoint ()
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
 
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
