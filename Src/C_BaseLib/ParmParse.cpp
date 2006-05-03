@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.49 2006-05-01 19:19:13 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.50 2006-05-03 18:19:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -223,14 +223,13 @@ eat_garbage (const char*& str)
 
 PType
 getToken (const char*& str,
-	  char*       ostr)
+	  std::string& ostr)
 {
-#define ERROR_MESS 							\
-   ostr[k++] = '\0';							\
+#define ERROR_MESS 							    \
    std::cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
-   std::cerr << "STATE = " << state_name[state]				\
-             << ", next char = " << ch << '\n';				\
-   std::cerr << ", rest of input = \n" << str << '\n';		\
+   std::cerr << "STATE = " << state_name[state]				    \
+             << ", next char = " << ch << '\n';				    \
+   std::cerr << ", rest of input = \n" << str << '\n';		            \
    BoxLib::Abort()
    //
    // Eat white space and comments.
@@ -247,9 +246,9 @@ getToken (const char*& str,
    // Start token scan.
    //
    lexState state = START;
-   int k = 0;			// index of output string
-   int pcnt = 0;		// Tracks nested parens
-   while (1)
+   int      k     = 0; // index of output string
+   int      pcnt  = 0; // Tracks nested parens
+   while (true)
    {
        char ch = *str;
        if ( ch == 0 )
@@ -261,8 +260,7 @@ getToken (const char*& str,
        case START:
            if ( ch == '=' )
            {
-               ostr[k++] = ch; str++;
-               ostr[k++] = 0;
+               ostr += ch; str++;
                return pEQ_sign;
            }
            else if ( ch == '"' )
@@ -272,7 +270,7 @@ getToken (const char*& str,
            }
 	   else if ( ch == '(' )
 	   {
-	       ostr[k++] = ch; str++; pcnt = 1;
+	       ostr += ch; str++; pcnt = 1;
 	       state = LIST;
 	   }
 	   else if ( ch == '{' )
@@ -287,71 +285,67 @@ getToken (const char*& str,
 	   }
            else if ( isalpha(ch) )
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
                state = IDENTIFIER;
            }
            else
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
                state = STRING;
            }
            break;
        case IDENTIFIER:
            if ( isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' )
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
            }
            else if ( isspace(ch) || ch == '=' )
            {
-               ostr[k++] = 0;
                return pDefn;
            }
            else
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
                state = STRING;
            }
            break;
        case LIST:
 	   if ( ch == '(' )
 	   {
-	       ostr[k++] = ch; str++; pcnt++;
+	       ostr += ch; str++; pcnt++;
 	   }
 	   else if ( ch == ')' )
 	   {
-	       ostr[k++] = ch; str++; pcnt--;
+	       ostr += ch; str++; pcnt--;
 	       if ( pcnt == 0 )
-	       {
-		   ostr[k++] = 0;
+               {
 		   return pValue;
-	       }
+               }
 	   }
 	   else
 	   {
-	       ostr[k++] = ch; str++;
+	       ostr += ch; str++;
 	   }
 	   break;
        case STRING:
            if ( isspace(ch) || ch == '=' )
            {
-               ostr[k++] = 0;
                return pValue;
            }
            else
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
            }
            break;
        case QUOTED_STRING:
            if ( ch == '"' )
            {
                str++;
-               ostr[k++] = 0;
                return pValue;
            }
            else
            {
-               ostr[k++] = ch; str++;
+               ostr += ch; str++;
            }
            break;
        default:
@@ -550,21 +544,19 @@ addTable (std::string& def,
 }
 
 void
-bldTable (const char*&           str,
+bldTable (const char*&                    str,
 	  std::list<ParmParse::PP_entry>& tab)
 {
-    std::string       cur_name;
+    std::string            cur_name;
     std::list<std::string> cur_list;
-    ParmParse::Table  cur_table;
-    std::string       tmp_str;
-
-    PType    token;
-    const int SCRATCH_STR_LEN  = 100000;
-    char      tokname[SCRATCH_STR_LEN];
+    ParmParse::Table       cur_table;
+    std::string            tmp_str;
 
     for (;;)
     {
-	token = getToken(str, tokname);
+        std::string tokname;
+
+	PType token = getToken(str,tokname);
 
 	switch (token)
 	{
@@ -619,7 +611,6 @@ bldTable (const char*&           str,
 	case pValue:
 	    if ( cur_name.empty() )
 	    {
-		tokname[SCRATCH_STR_LEN-1] = 0;
 		std::string msg("ParmParse::bldTable(): value with no defn: ");
 		msg += tokname;
 		BoxLib::Abort(msg.c_str());
