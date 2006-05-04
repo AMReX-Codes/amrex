@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.91 2006-03-16 19:04:34 vince Exp $
+# Make.defs $Id: Make.defs,v 1.92 2006-05-04 19:57:30 sepp Exp $
 #
 
 #
@@ -393,6 +393,9 @@ ifeq ($(FCOMP),Intel)
        IFC_MAJOR_VERSION := 9
        IFC_MINOR_VERSION := 0
        LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
+# JFG 2006/05/04: CAR commented out the first line above and added
+# the first line below for the 64 bit Intel compilers on hive
+#      LIBRARY_LOCATIONS += /usr/local/intel/fce/9.0/lib
    endif
    endif
    endif
@@ -402,6 +405,9 @@ ifeq ($(FCOMP),Intel)
    ifneq ($(IFC_MAJOR_VERSION),7)
      _ifc = ifort
      override XTRALIBS += -lifcore -lguide
+# JFG 2006/05/04: CAR commented out the first line above and added
+# the first line below for the 64 bit Intel compilers on hive
+#    override XTRALIBS += -lifcore
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    endif
