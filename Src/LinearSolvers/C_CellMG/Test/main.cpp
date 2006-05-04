@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.25 2005-09-27 18:12:04 car Exp $
+// $Id: main.cpp,v 1.26 2006-05-04 20:07:51 lijewski Exp $
 //
 
 #include <fstream>
@@ -59,7 +59,8 @@ main (int   argc, char* argv[])
 
   ParmParse pp;
 
-  std::cout << "maxthreads = " << BoxLib::theWorkQueue().max_threads() << std::endl;
+  if ( ParallelDescriptor::IOProcessor() )
+    std::cout << "maxthreads = " << BoxLib::theWorkQueue().max_threads() << std::endl;
 
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
   Box container;
@@ -281,6 +282,8 @@ main (int   argc, char* argv[])
 
 	  if ( mg )
 	    {
+                const Real run_strt = ParallelDescriptor::second();
+
 	      MultiGrid mg(lp);
 	      mg.setNumIter(numiter);
 	      mg.setMaxIter(maxiter);
@@ -298,6 +301,14 @@ main (int   argc, char* argv[])
 		  lp.bndryData(bd);
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
+
+                  const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+                  Real      run_stop = ParallelDescriptor::second() - run_strt;
+
+                  ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
+
+                  if (ParallelDescriptor::IOProcessor())
+                      std::cout << "Run time = " << run_stop << std::endl;
 	    }
 	  if ( cg )
 	    {
