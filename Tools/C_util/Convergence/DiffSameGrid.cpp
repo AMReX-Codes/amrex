@@ -1,15 +1,14 @@
 
 //
-// $Id: DiffSameGrid.cpp,v 1.13 2001-12-03 22:39:22 lijewski Exp $
+// $Id: DiffSameGrid.cpp,v 1.14 2006-05-08 21:41:33 lijewski Exp $
 //
 
 #include <new>
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -33,8 +32,8 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << 'This utility performs a diff operation between two'     << endl
-         << 'plotfiles which have the exact same grids.'             << endl;
+    cout << "This utility performs a diff operation between two"     << endl
+         << "plotfiles which have the exact same grids."             << endl;
     cout << '\n';
     cout << "Usage:" << '\n';
     cout << progName << '\n';
@@ -49,23 +48,32 @@ PrintUsage (const char* progName)
     exit(1);
 }
 
+static
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+			const AmrData& amrd2)
+{
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    int length = derives1.size();
+    if (length != derives2.size())
+	return false;
+    for (int i=0; i<length; ++i)
+	if (derives1[i] != derives2[i])
+	    return false;
+    return true;
+}
+
 int
 main (int   argc,
       char* argv[])
 {
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
+    BoxLib::Initialize(argc,argv);
 
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -74,7 +82,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile1, iFile2, difFile;
+    std::string iFile1, iFile2, difFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -83,11 +91,11 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("infile1", iFile1);
-    if (iFile1.isNull())
+    if (iFile1.empty())
         BoxLib::Abort("You must specify `infile1'");
 
     pp.query("infile2", iFile2);
-    if (iFile2.isNull())
+    if (iFile2.empty())
         BoxLib::Abort("You must specify `infile2'");
 
     pp.query("diffile", difFile);
@@ -122,7 +130,7 @@ main (int   argc,
 
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
-    const Array<aString>& derives = amrDataI.PlotVarNames();
+    const Array<std::string>& derives = amrDataI.PlotVarNames();
     Array<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
@@ -142,7 +150,7 @@ main (int   argc,
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         const BoxArray& baE = amrDataE.boxArray(iLevel);
 
-        if (baI.length() != baE.length())
+        if (baI.size() != baE.size())
         {
             cout << "ERROR: BoxArray lengths are not the same at level " 
                  << iLevel << endl;
@@ -172,11 +180,11 @@ main (int   argc,
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
-        for (MultiFabIterator mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
-                Real grdL2 = mfi().norm(norm, iComp, 1);
+                Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
 
                 if (norm != 0)
                 {
@@ -184,7 +192,7 @@ main (int   argc,
                 }
                 else
                 {
-                    norms[iComp] = Max(norms[iComp], grdL2);
+                    norms[iComp] = std::max(norms[iComp], grdL2);
                 }
                 
             }
@@ -214,7 +222,7 @@ main (int   argc,
                         }
                         else
                         {
-                            norms[iComp] = Max(norms[iComp], tmp[iComp]);
+                            norms[iComp] = std::max(norms[iComp], tmp[iComp]);
                         }
                 }
         }
@@ -252,7 +260,7 @@ main (int   argc,
     }
 
 
-    if (!difFile.isNull())
+    if (!difFile.empty())
         WritePlotFile(error, amrDataI, difFile, verbose);
     
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -262,21 +270,9 @@ main (int   argc,
     // This calls ParallelDescriptor::EndParallel() and exit()
     //
     DataServices::Dispatch(DataServices::ExitRequest, NULL);
-}
 
+    BoxLib::Finalize();
 
-bool
-amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
-{
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
-	return false;
-    for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
-    return true;
+    return 0;
 }
 
