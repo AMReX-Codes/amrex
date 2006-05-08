@@ -1,12 +1,3 @@
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
-
-#ifndef        WIN32
-#include <unistd.h>
-#endif
 
 #include "MultiFab.H"
 #include "ArrayView.H"
@@ -16,29 +7,22 @@
 #include "TV_TempWrite.H"
 #include "MFNorm.H"
 
-#include <new>
-using std::setprecision;
-#include <iostream>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-
 static
 void 
 PrintUsage(int argc, char *argv[])
 {
-    cout << "Usage: " << endl;
-    cout << argv[0] << " iFile0=mf0 iFile1=mf1 [options] \n\tOptions:" << endl;
-    cout << "\t   comp0 = Starting component for MultiFab in infile0" << endl
-         << "\t           (default is comp0=0)" << endl;
-    cout << "\t   comp1 = Starting component for MultiFab in infile1" << endl
-         << "\t           (default is comp1=0)" << endl;
-    cout << "\t   ncomp = Number of components" << endl
-         << "\t           (default is ncomp=mfab0.nComp())" << endl;
-    cout << "\t outfile = Name of file to dump result of diff" << endl;
-    cout << "\t   ngrow = Number of grow cells to include in result" << endl;
-    cout << "\t           (default is ngrow=0)" << endl;
-    cout << endl;
+    std::cout << "Usage: " << std::endl;
+    std::cout << argv[0] << " iFile0=mf0 iFile1=mf1 [options] \n\tOptions:" << std::endl;
+    std::cout << "\t   comp0 = Starting component for MultiFab in infile0" << std::endl
+         << "\t           (default is comp0=0)" << std::endl;
+    std::cout << "\t   comp1 = Starting component for MultiFab in infile1" << std::endl
+         << "\t           (default is comp1=0)" << std::endl;
+    std::cout << "\t   ncomp = Number of components" << std::endl
+         << "\t           (default is ncomp=mfab0.nComp())" << std::endl;
+    std::cout << "\t outfile = Name of file to dump result of diff" << std::endl;
+    std::cout << "\t   ngrow = Number of grow cells to include in result" << std::endl;
+    std::cout << "\t           (default is ngrow=0)" << std::endl;
+    std::cout << std::endl;
     exit(0);
 }
 
@@ -119,9 +103,9 @@ int main (int   argc,
 
     if (mf0.nComp() < comp0 + nComp  || mf1.nComp() < comp1 + nComp)
     {
-	cerr << "nComp's incompatible" << endl;
-        cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp() 
-             << "), (" << comp1 + nComp << "," << mf1.nComp() << ")" << endl;
+	std::cerr << "nComp's incompatible" << std::endl;
+        std::cerr << "(need,have): (" << comp0 + nComp << "," << mf0.nComp() 
+             << "), (" << comp1 + nComp << "," << mf1.nComp() << ")" << std::endl;
 	return 0;
     }
 
@@ -163,8 +147,8 @@ int main (int   argc,
 
     if(ParallelDescriptor::IOProcessor())
     {
-	cout << "Norms of diff (0,1,2): "
-	     << norm0 << ", " << norm1 << ", " << norm2 << endl;
+	std::cout << "Norms of diff (0,1,2): "
+	     << norm0 << ", " << norm1 << ", " << norm2 << std::endl;
     }
     
     if (!outfile.empty())
@@ -176,7 +160,7 @@ int main (int   argc,
 
 	if (norm0 == 0 && norm1 == 0 && norm2 == 0)
 	{
-	    cout << "MultiFabs equal!" << endl;
+	    std::cout << "MultiFabs equal!" << std::endl;
 	    return 1;
 
 	} else {
@@ -186,5 +170,7 @@ int main (int   argc,
     }
 
     BoxLib::Finalize();
+
+    return 0;
 }
 

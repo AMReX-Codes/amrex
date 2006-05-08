@@ -1,23 +1,12 @@
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
 #include "MultiFab.H"
 #include "MFNorm.H"
 
-#include <new>
-using std::setprecision;
 #include <iostream>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-
 //
 // What's the slowest way I can think of to compute all the norms??
 //
