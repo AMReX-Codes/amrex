@@ -1,16 +1,9 @@
 
-//
-// $ $
-//
-
 #include <winstd.H>
-#include <new>
+#include <fstream>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-using std::ios;
-using std::set_new_handler;
-
 #include <unistd.h>
 
 #include "Box.H"
@@ -19,7 +12,6 @@ using std::set_new_handler;
 #include "Utility.H"
 #include "ArrayLim.H"
 #include "VisMF.H"
-
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
@@ -27,83 +19,47 @@ using std::set_new_handler;
 #define pubsetbuf setbuf
 #endif
 
-
-
-// ============================================================
-// ===== Routine:  void PrintUsage (const char* progName) =====
-// ============================================================
-
 static
 void
 PrintUsage (const char* progName)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "This utility reads a fixed grids file and coarsens the\n"
+        std::cout << "This utility reads a fixed grids file and coarsens the\n"
              << "grids by a specified amount.  If there is more than one\n"
              << "level of refinement, then different coarsening ratios\n"
              << "are input for each level.  This is useful in the process\n"
              << "of converting from output grid format to the fixed_grids\n"
              << "format.\n";
-        cout << '\n';
-        cout << "Usage:" << '\n';
-        cout << progName << '\n';
-        cout << "    infile  = inputFileName" << '\n';
-        cout << "  crsratio  = Coarsening ratio for each level" << '\n';
-        cout << "   [-help]" << '\n';
-        cout << '\n';
+        std::cout << '\n';
+        std::cout << "Usage:" << '\n';
+        std::cout << progName << '\n';
+        std::cout << "    infile  = inputFileName" << '\n';
+        std::cout << "  crsratio  = Coarsening ratio for each level" << '\n';
+        std::cout << "   [-help]" << '\n';
+        std::cout << '\n';
     }
     exit(1);
 }
-
-
-
-// =======================================================
-// ===== Routine:  int main (int argc, char* argv[]) =====
-// =======================================================
 
 int
 main (int   argc,
       char* argv[])
 {
-    //-------------//
-    // Print Usage //
-    //-------------//
-
     if (argc == 1)
         PrintUsage(argv[0]);
 
+    BoxLib::Initialize(argc,argv);
 
-    //----------------------------------//
-    // Make sure to catch new failures. //
-    //----------------------------------//
+    ParmParse pp;
 
-    set_new_handler(Utility::OutOfMemory);
-
-
-    //-----------------------------------//
-    // Initialize and Parse Command Line //
-    //-----------------------------------//
-
-    // Parallel Initialization
-
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
-
-    // Parse Command Line
-
-    ParmParse pp(argc-1,argv+1);
-
-    if (pp.contains("help"))                          // Print usage
+    if (pp.contains("help"))
         PrintUsage(argv[0]);
 
-
-    // Scan the arguments.
-
-    aString iFile;
+    std::string iFile;
 
     pp.query("infile", iFile);                             // Input File
-    if (iFile.isNull() && ParallelDescriptor::IOProcessor())
+    if (iFile.empty() && ParallelDescriptor::IOProcessor())
         BoxLib::Abort("You must specify `infile'");
 
     int nCrsRatio = pp.countval("crsratio");
@@ -119,12 +75,12 @@ main (int   argc,
     // Open the Grid File and Read Header //
     //------------------------------------//
 
-    ifstream is;
+    std::ifstream is;
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
-    is.open(iFile.c_str(), ios::in);
+    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+    is.open(iFile.c_str(), std::ios::in);
     if (is.fail())
-        Utility::FileOpenFailed(iFile);
+        BoxLib::FileOpenFailed(iFile);
 
     int nRefLevels;
     is >> nRefLevels;
@@ -132,7 +88,7 @@ main (int   argc,
     if (nCrsRatio != nRefLevels)
         BoxLib::Abort("nCrsRatio != nRefLevels");
 
-    cout << nRefLevels << endl;
+    std::cout << nRefLevels << std::endl;
         
 
     //----------------------------------------------------//
@@ -143,21 +99,18 @@ main (int   argc,
     for (int lev = 0; lev < nRefLevels; lev++)
     {
         is >> nGrds;
-        cout << nGrds << endl;
+        std::cout << nGrds << std::endl;
 
         Box inBox;
         for (int bx=0; bx < nGrds; bx++)
         {
             is >> inBox;
             inBox.coarsen(crsRatio[lev]);
-            cout << inBox << endl;
+            std::cout << inBox << std::endl;
         }
     }
 
-    //
-    // Close the Input File
-    //
-    if (ParallelDescriptor::IOProcessor())
-        is.close();
+    BoxLib::Finalize();
 
+    return 0;
 }
