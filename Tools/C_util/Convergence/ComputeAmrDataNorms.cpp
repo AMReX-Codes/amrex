@@ -1,3 +1,6 @@
+
+#include <string>
+
 #include "ComputeAmrDataNorms.H"
 
 #include "WritePlotFile.H"
@@ -16,13 +19,13 @@ ComputeAmrDataNorms (AmrData&     amrData,
 		     Array<Real>& norm2,
 		     bool         verbose)
 {
-    aString oFile, iFileDir, oFileDir;
+    std::string oFile, iFileDir, oFileDir;
     
     if (verbose)
     {
 	ParmParse pp;
 	pp.query("outfile", oFile);
-	if (oFile.isNull())
+	if (oFile.empty())
 	    BoxLib::Abort("You must specify `outfile' if run in verbose mode");
     }
     
@@ -67,14 +70,14 @@ ComputeAmrDataNorms (AmrData&     amrData,
 	{
 	    int ref_ratio = amrData.RefRatio()[iLevel];	    
 	    BoxArray baF = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
-	    for (MultiFabIterator mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	    {
-		for (int iGrid=0; iGrid<baF.length(); ++iGrid)
+		for (int iGrid=0; iGrid<baF.size(); ++iGrid)
 		{
 		    Box ovlp = baF[iGrid] & mfi.validbox();
 		    if (ovlp.ok())
 		    {
-			mfi().setVal(0.0, ovlp, 0, nComp);
+                        (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
 			covered_volume += ovlp.numPts()*refMult[iLevel];
 		    }
 		}
@@ -84,7 +87,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 
 	// Compute volume at this level
 	Real level_volume = 0.0;
-	for (int iGrid=0; iGrid<ba.length(); ++iGrid)
+	for (int iGrid=0; iGrid<ba.size(); ++iGrid)
 	    level_volume += ba[iGrid].numPts()*refMult[iLevel];
 	level_volume -= covered_volume;
 
@@ -95,9 +98,9 @@ ComputeAmrDataNorms (AmrData&     amrData,
 	    
 	    // Get norms at this level
 	    Array<Real> n0(nComp,0.0), n1(nComp,0.0), n2(nComp,0.0);
-	    for (MultiFabIterator mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	    {
-		FArrayBox& fab = mfi();
+		FArrayBox& fab = (*error[iLevel])[mfi];
 		const Box& fabbox = mfi.validbox();
 		FArrayBox vwFab(fabbox,nComp);
 		FArrayBox vwFabSqrd(fabbox,nComp);
@@ -112,7 +115,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 		
 		for (int iComp=0; iComp<nComp; ++iComp)
 		{
-		    n0[iComp] = Max(n0[iComp], fab.norm(fabbox, 0, iComp, 1));
+		    n0[iComp] = std::max(n0[iComp], fab.norm(fabbox, 0, iComp, 1));
 		    n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
 		    n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
 		}
@@ -126,7 +129,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 		ParallelDescriptor::ReduceRealSum(n1[iComp]);
 		ParallelDescriptor::ReduceRealSum(n2[iComp]);
 		
-		norm0[iComp] = Max(norm0[iComp],n0[iComp]);
+		norm0[iComp] = std::max(norm0[iComp],n0[iComp]);
 		norm1[iComp] += n1[iComp];
 		norm2[iComp] += n2[iComp];
 	    }
@@ -140,7 +143,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
     
     if (ParallelDescriptor::IOProcessor() && verbose)
     {
-	cout << "Writing zeroed state to " << oFile << '\n';
+	std::cout << "Writing zeroed state to " << oFile << '\n';
 	WritePlotFile(error, amrData, oFile, verbose);
     }
 
