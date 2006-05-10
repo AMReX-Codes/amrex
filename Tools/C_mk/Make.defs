@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.93 2006-05-10 17:47:55 car Exp $
+# Make.defs $Id: Make.defs,v 1.94 2006-05-10 18:02:35 car Exp $
 #
 
 #
@@ -413,10 +413,9 @@ ifeq ($(FCOMP),Intel)
    endif
    ifneq ($(IFC_MAJOR_VERSION),7)
      _ifc = ifort
-     override XTRALIBS += -lifcore -lguide
-# JFG 2006/05/04: CAR commented out the first line above and added
-# the first line below for the 64 bit Intel compilers on hive
-#    override XTRALIBS += -lifcore
+     override XTRALIBS += -lifcore
+#    override XTRALIBS += -lguide
+#    CAR: Might be needed ^^^^^^^ in some instances.
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    endif
