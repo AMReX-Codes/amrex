@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.92 2006-05-04 19:57:30 sepp Exp $
+# Make.defs $Id: Make.defs,v 1.93 2006-05-10 17:47:55 car Exp $
 #
 
 #
@@ -299,14 +299,18 @@ ifeq ($(COMP),Intel)
        CXXDEBF += -wd1572
 #      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
    else
-   ifeq ($(findstring Version 9, $(__icc_version)), Version 9)
+   ifeq ($(findstring Version 9.0, $(__icc_version)), Version 9.0)
        ICC_VERSION := 9.0
        ICC_MAJOR_VERSION := 9
        ICC_MINOR_VERSION := 0
        _icpc := icpc
-#      CXXOPTF += -wd1572
-#      CXXDEBF += -wd1572
-#      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
+   else
+   ifeq ($(findstring Version 9.1, $(__icc_version)), Version 9.1)
+       ICC_VERSION := 9.1
+       ICC_MAJOR_VERSION := 9
+       ICC_MINOR_VERSION := 1
+       _icpc := icpc
+   endif
    endif
    endif
    endif
@@ -361,7 +365,7 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 6.0
        IFC_MAJOR_VERSION := 6
        IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
+#      LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
    else
    ifeq ($(findstring Version 7, $(__ifc_version)), Version 7)
        IFC_MAJOR_VERSION := 7
@@ -374,28 +378,33 @@ ifeq ($(FCOMP),Intel)
          IFC_MINOR_VERSION := 1
        endif
        endif
-       LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
+#      LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
    else
    ifeq ($(findstring Version 8.0, $(__ifc_version)), Version 8.0)
        IFC_VERSION := 8.0
        IFC_MAJOR_VERSION := 8
        IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
+#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
    else
    ifeq ($(findstring Version 8.1, $(__ifc_version)), Version 8.1)
        IFC_VERSION := 8.1
        IFC_MAJOR_VERSION := 8
        IFC_MINOR_VERSION := 1
-       LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
+#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
    else
    ifeq ($(findstring Version 9.0, $(__ifc_version)), Version 9.0)
        IFC_VERSION := 9.0
        IFC_MAJOR_VERSION := 9
        IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
-# JFG 2006/05/04: CAR commented out the first line above and added
-# the first line below for the 64 bit Intel compilers on hive
-#      LIBRARY_LOCATIONS += /usr/local/intel/fce/9.0/lib
+#      LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
+   else
+   ifeq ($(findstring Version 9.1, $(__ifc_version)), Version 9.1)
+       IFC_VERSION := 9.1
+       IFC_MAJOR_VERSION := 9
+       IFC_MINOR_VERSION := 1
+#      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
+#  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
+   endif
    endif
    endif
    endif
@@ -420,6 +429,7 @@ ifeq ($(FCOMP),Intel)
      FDEBF += -ftrapuv
      fDEBF += -ftrapuv
    endif
+   LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
    endif
