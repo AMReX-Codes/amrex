@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.99 2006-04-18 23:19:55 lijewski Exp $
+// $Id: VisMF.cpp,v 1.100 2006-05-11 21:22:31 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -503,31 +503,25 @@ VisMF::Header::Header (const MultiFab& mf,
     {
         for (int i = 0; i < mf.size(); i++)
         {
-            m_min[i].resize(m_ncomp);
-            m_max[i].resize(m_ncomp);
+            if (pmap[i] != IOProc)
+            {
+                m_min[i].resize(m_ncomp);
+                m_max[i].resize(m_ncomp);
+            }
         }
 
-        const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
-
-        for (int i = 0; i < nmtags.size(); i++)
+        for (int j = 0; j < mf.size(); j++)
         {
-            int cnt = 0;
-
-            for (int j = 0; j < mf.size(); j++)
+            if (pmap[j] != IOProc)
             {
-                if (pmap[j] == i)
+                for (int k = 0; k < m_ncomp; k++)
                 {
-                    for (int k = 0; k < m_ncomp; k++)
-                    {
-                        m_min[j][k] = recvdata[offset[i]+cnt+k];
-                        m_max[j][k] = recvdata[offset[i]+cnt+k+m_ncomp];
-                    }
-
-                    cnt++;
+                    m_min[j][k] = recvdata[offset[pmap[j]]+k];
+                    m_max[j][k] = recvdata[offset[pmap[j]]+k+m_ncomp];
                 }
-            }
 
-            BL_ASSERT(2*cnt*m_ncomp == nmtags[i]);
+                offset[pmap[j]] += 2*m_ncomp;
+            }
         }
     }
 #else
