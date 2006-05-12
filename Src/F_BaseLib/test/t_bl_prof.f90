@@ -1,4 +1,5 @@
 subroutine t_bl_prof
+  use parallel
   use bl_prof_module
   implicit none
   type(bl_prof_timer), save :: bpt
