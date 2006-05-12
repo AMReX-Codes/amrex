@@ -209,6 +209,7 @@ module layout_module
 
   interface get_proc
      module procedure layout_get_proc
+     module procedure layout_get_proc_v
   end interface
 
   interface get_pd
@@ -324,6 +325,14 @@ contains
     integer :: lmapping
 
     lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
+    if ( present(explicit_mapping) ) then
+       if ( present(mapping) ) then
+          if ( mapping /= LA_EXPLICIT ) then
+             call bl_error("LAYOUT_REP_BUILD:explicit_mapping doesn't match mapping")
+          end if
+       end if
+       lmapping = LA_EXPLICIT
+    end if
     call boxarray_build_copy(lap%bxa, ba)
     lap%dim    = lap%bxa%dim
     lap%nboxes = lap%bxa%nboxes
@@ -651,6 +660,12 @@ contains
     r = la%lap%prc(i)
   end function layout_get_proc
 
+  function layout_get_proc_v(la) result(r)
+    type(layout), intent(in) :: la
+    integer :: r(size(la%lap%prc))
+    r = la%lap%prc
+  end function layout_get_proc_v
+
   subroutine layout_roundrobin(prc, bxs)
     integer, intent(out), dimension(:) :: prc
     type(box), intent(in), dimension(:) :: bxs
@@ -689,7 +704,7 @@ contains
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
-    integer :: un
+    integer :: un, i
     un = unit_stdout(unit)
     call unit_skip(unit, skip)
     write(unit=un, fmt='("LAYOUT[(* ")', advance = 'no')
@@ -710,7 +725,13 @@ contains
        write(unit=un, fmt='(" NBOXES  = ",i2)') la%lap%nboxes
        call unit_skip(unit, skip)
        write(unit=un, fmt='(" PD      = ",i2)', advance = 'no')
-       call print(la%lap%pd, advance = 'NO')
+       call print(la%lap%pd, unit = unit)
+       do i = 1, nboxes(la)
+          call unit_skip(unit, skip = unit_get_skip(skip) + 1)
+          write(unit=un, fmt = '(I0,": ")', advance = 'no') i
+          call print(get_box(la,i), unit = unit, advance = 'no')
+          write(unit=un, fmt = '(" ",I0)') get_proc(la,i)
+       end do
        write(unit=un, fmt = '(" *)]")')
     end if
   end subroutine layout_print
