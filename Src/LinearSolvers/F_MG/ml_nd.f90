@@ -82,7 +82,7 @@ contains
        !  the residual at a non-finest AMR level.
 
        pdc = layout_get_pd(mla%la(n-1))
-       call bndry_reg_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, nodal = nodal)
+       call bndry_reg_rr_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, nodal = nodal)
 
     end do
 

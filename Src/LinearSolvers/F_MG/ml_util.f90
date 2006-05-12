@@ -25,7 +25,6 @@ contains
 
     call build(bpt, "ml_fill_fluxes")
 
-
     nc = uu%nc
     ng = uu%ng
 
@@ -35,7 +34,7 @@ contains
 
     call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
-       if ( multifab_remote(flux, i) ) cycle
+       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
@@ -85,7 +84,7 @@ contains
 
     call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
-       if ( multifab_remote(flux, i) ) cycle
+       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i, cf)
        up => dataptr(uu, i, cu)
        sp => dataptr(ss, i)
@@ -130,7 +129,7 @@ contains
 
     call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
-       if ( multifab_remote(flux, i) ) cycle
+       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
@@ -184,7 +183,7 @@ contains
     dir = iabs(side)
 
     do i = 1, flux%nboxes
-       if ( multifab_remote(flux, i) ) cycle
+       if ( remote(flux, i) ) cycle
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
        fp => dataptr(flux, i)
@@ -193,6 +192,8 @@ contains
        do n = 1, nc
           if (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) then
              select case(flux%dim)
+             case (1)
+                call bl_error("ML_FILL_FLUXES: no 1 D case")
              case (2)
                 call fine_edge_resid_2d(fp(:,:,1,n), rp(:,:,1,1), mp(:,:,1,1), ratio, side, lof)
              case (3)
