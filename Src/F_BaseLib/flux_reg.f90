@@ -108,9 +108,6 @@ contains
 
        end do
     end do
-
-    deallocate(lo,hi,nd_flag)
-
   end subroutine flux_reg_build
 
   subroutine flux_reg_copy(br, mf, all)
@@ -134,7 +131,7 @@ contains
     lnc = 1; if ( present(nc) ) lnc = nc
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), cb, mf, cm, all=all)
+          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, all=all)
        end do
     end do
   end subroutine flux_reg_copy_c
