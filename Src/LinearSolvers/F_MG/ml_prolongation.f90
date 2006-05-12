@@ -39,7 +39,7 @@ contains
 
     call layout_build_coarse(lacfine, fine%la, ir)
 
-    call multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = fine%nodal)
+    call build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = fine%nodal)
 
     call copy(cfine, 1, crse, 1, crse%nc)
 
@@ -281,9 +281,7 @@ contains
        end do
     end do
   end subroutine ml_prolongation_3d_nodal
-  !
-  ! TODO -- this needs to be parallelized.
-  !
+
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, side, nc)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
@@ -310,26 +308,27 @@ contains
     face = sign(1, side)
 
     do i = 1, fine%nboxes
+       if ( remote(fine,i) ) cycle
 
-       cbox = get_ibox(crse,i)
+       cbox = get_ibox(crse, i)
        loc  = lwb(cbox) - crse%ng
        hic  = upb(cbox) + crse%ng
 
-       cbox_refined = box_refine_v(cbox,ir)
+       cbox_refined = refine(cbox, ir)
 
-       fbox = get_ibox(fine,i)
+       fbox = get_ibox(fine, i)
        lof  = lwb(fbox) - fine%ng 
 
        if ( .not. nodal_q(crse) ) then
-          fbox_grown = box_grow_n_d_f(fbox,1,dir,face)
-          fbox_grown = box_intersection(fbox_grown,fine_domain)
+          fbox_grown = grow(fbox, 1, dir, face)
+          fbox_grown = intersection(fbox_grown, fine_domain)
        else
           fbox_grown = fbox
        end if
 
-       if ( box_intersects(fbox_grown,cbox_refined) ) then
-          lo = lwb(box_intersection(cbox_refined,fbox_grown))
-          hi = upb(box_intersection(cbox_refined,fbox_grown))
+       if ( intersects(fbox_grown, cbox_refined) ) then
+          lo = lwb(intersection(cbox_refined, fbox_grown))
+          hi = upb(intersection(cbox_refined, fbox_grown))
           fp => dataptr(fine, i)
           cp => dataptr(crse, i)
           do n = 0, lnc - 1
@@ -340,6 +339,8 @@ contains
                         cp(:,1,1,cc+n), loc, hic, lo, hi, ir, side)
                 else if ( nodal_q(crse) ) then
                    call bl_error("ML_INTERP_BCS: nodal 1d not provided")
+                else
+                   call bl_error("ML_INTERP_BCS: nodal or cell centered only")
                 end if
              case (2)
                 if ( cell_centered_q(crse) ) then
@@ -348,6 +349,8 @@ contains
                 else if ( nodal_q(crse) ) then
                    call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, &
                         cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
+                else
+                   call bl_error("ML_INTERP_BCS: nodal or cell centered only")
                 end if
              case (3)
                 if ( cell_centered_q(crse) ) then
@@ -356,6 +359,8 @@ contains
                 else if ( nodal_q(crse) )  then
                    call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, &
                         cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
+                else
+                   call bl_error("ML_INTERP_BCS: nodal or cell centered only")
                 end if
              end select
           end do

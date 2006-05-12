@@ -40,8 +40,8 @@ contains
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
 
-    type(box   ) :: pd,pdc
-    type(layout) :: la
+    type(box) :: pd, pdc
+    type(layout) :: la, lac
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
     logical :: fine_converged,need_grad_phi
@@ -88,8 +88,9 @@ contains
        !  the residual at a non-finest AMR level.
 
        pdc = layout_get_pd(mla%la(n-1))
-       call bndry_reg_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, width = 0)
-       call bndry_reg_build(brs_bcs(n), la, ref_ratio(n-1,:), pdc, width = 2)
+       lac = mla%la(n-1)
+       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
+       call bndry_reg_rr_build_1(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
 
     end do
 
@@ -241,6 +242,7 @@ contains
 
           ! Interpolate uu to supply boundary conditions for new residual calculation
           call bndry_reg_copy(brs_bcs(n), uu(n-1))
+!         call bndry_reg_copy_from_other(brs_bcs(n))
           do i = 1, dm
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
@@ -348,7 +350,7 @@ contains
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor() ) then
                    write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
-                        iter,n,norm_inf(res(n))
+                        iter,n,tres
                 end if
              end do
              tres = ml_norm_inf(res,fine_mask)
@@ -388,6 +390,7 @@ contains
        call multifab_destroy(uu_hold(n))
     end do
 
+
     if (need_grad_phi) then
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
@@ -413,10 +416,10 @@ contains
        call bndry_reg_destroy(brs_bcs(n))
     end do
 
+
   contains
 
-    subroutine crse_fine_residual_cc(n,mgt,uu,crse_res,brs_flx,pdc,ref_ratio)
-
+    subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
       type(bndry_reg), intent(inout) :: brs_flx
@@ -425,7 +428,7 @@ contains
       type(box)      , intent(in   ) :: pdc
       integer        , intent(in   ) :: ref_ratio(:)
 
-      integer :: i,dm,mglev
+      integer :: i, dm, mglev
 
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
@@ -433,12 +436,14 @@ contains
       do i = 1, dm
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
               uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i)
-         call ml_interface(crse_res, brs_flx%bmf(i,0), uu(n-1), &
-              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, -1, i, ONE)
-
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,1), &
               uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i)
-         call ml_interface(crse_res, brs_flx%bmf(i,1), uu(n-1), &
+      end do
+      call bndry_reg_copy_to_other(brs_flx)
+      do i = 1, dm
+         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
+              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, -1, i, ONE)
+         call ml_interface(crse_res, brs_flx%obmf(i,1), uu(n-1), &
               mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, +1, i, ONE)
       end do
 
@@ -472,12 +477,13 @@ contains
     function ml_norm_inf(rr, mask) result(r)
       type( multifab), intent(in) :: rr(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t)                  :: r
+      real(dp_t)                  :: r, r1
       integer                     :: n,nlevs
       nlevs = size(rr)
       r = norm_inf(rr(nlevs))
-      do n = 1,nlevs-1
-         r = max(norm_inf(rr(n),mask(n)), r)
+      do n = nlevs-1, 1, -1
+         r1 = norm_inf(rr(n), mask(n))
+         r = max(r1, r)
       end do
     end function ml_norm_inf
 

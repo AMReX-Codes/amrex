@@ -26,7 +26,7 @@ contains
 
     call layout_build_coarse(lacfine, fine%la, ir)
 
-    call multifab_build(cfine, lacfine, nc = lnc, ng = 0)
+    call build(cfine, lacfine, nc = lnc, ng = 0)
 
     do i = 1, fine%nboxes
        if ( remote(fine, i) ) cycle
