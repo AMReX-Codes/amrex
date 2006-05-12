@@ -1033,16 +1033,6 @@ contains
     logical :: llegacy
 !   logical :: lfixw
 !   integer :: maxdig
-    character(len=2) :: findex
-    ! how many digits, including possible sign
-!    maxdig = max(maxval(abs(lwb(bx))),maxval(upb(bx)))
-!    maxdig = ceiling(log10(real(maxdig+1)))
-!    lfixw = maxdig <= box_print_fixed_width
-!    if ( lfixw ) then
-!       write(findex, fmt='("I",i1)') box_print_fixed_width
-!    else
-       findex = 'I0'
-!    end if
     un = unit_stdout(unit)
     adv = unit_advance(advance)
     llegacy = .FALSE.; if ( present(legacy) ) llegacy = legacy
@@ -1060,9 +1050,11 @@ contains
          write(unit=un, fmt='("(* ", A, " *)")', advance = 'no') str
       end if
       if ( bx%dim > 0 ) then
-         write(unit=un, fmt='("{", 3('//findex//',:,", "))', advance = 'no') bx%lo(1:bx%dim)
-         write(unit=un, fmt='("}, {", 3('//findex//',:,", "))', advance = 'no') bx%hi(1:bx%dim)
+         write(unit=un, fmt='("{", 3(I0,:,", "))', advance = 'no') bx%lo(1:bx%dim)
+         write(unit=un, fmt='("}, {", 3(I0,:,", "))', advance = 'no') bx%hi(1:bx%dim)
          write(unit=un, fmt='("}]")', advance = 'no' )
+      else
+         write(unit=un, fmt='("]")', advance = 'no' )
       end if
     end subroutine write_a_box
     subroutine write_a_legacy_box(nodal)
@@ -1094,9 +1086,9 @@ contains
       integer, intent(in) :: vc(:)
       write(unit=un, fmt='("(")', advance='no')
       do i = 1, bx%dim-1
-         write(unit=un, fmt='('//findex//', ",")', advance = 'no' ) vc(i)
+         write(unit=un, fmt='(I0, ",")', advance = 'no' ) vc(i)
       end do
-      write(unit=un, fmt='('//findex//', ")")', advance = 'no' ) vc(bx%dim)
+      write(unit=un, fmt='(I0, ")")', advance = 'no' ) vc(bx%dim)
     end subroutine write_a_legacy_intvect
   end subroutine box_print
 
