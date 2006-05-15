@@ -29,6 +29,10 @@ module ml_layout_module
      module procedure ml_layout_not_equal
   end interface
 
+  interface print
+     module procedure ml_layout_print
+  end interface
+
   interface nlevels
      module procedure ml_layout_nlevels
   end interface
@@ -164,5 +168,55 @@ contains
     mla%nlevel = 0
     deallocate(mla%pmask)
   end subroutine ml_layout_destroy
+
+  subroutine ml_layout_print(mla, str, unit, skip)
+    use bl_IO_module
+    type(ml_layout), intent(in) :: mla
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    integer, intent(in), optional :: skip
+    integer :: i, j
+    integer :: un
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt = '("MLLAYOUT[(*")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(" ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') mla%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NLEVEL  = ",i2)') mla%nlevel
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" *) {")')
+    do i = 1, mla%nlevel
+       call unit_skip(un, unit_get_skip(skip)+1)
+       write(unit=un, fmt = '("(* LEVEL ", i2)') i
+       call unit_skip(un, unit_get_skip(skip)+1)
+       write(unit=un, fmt = '(" PD = ")', advance = 'no')
+       call print(mla%mba%pd(i), unit=un, advance = 'NO')
+       write(unit=un, fmt = '(" *) {")')
+       do j = 1, nboxes(mla%mba%bas(i))
+           call unit_skip(un, unit_get_skip(skip)+2)
+           write(unit=un, fmt = '("{")', advance = 'no')
+           call print(get_box(mla%mba%bas(i),j), unit = unit, advance = 'NO')
+           write(unit=un, fmt = '(", ", I0, "}")', advance = 'no') get_proc(mla%la(i), j)
+           if ( j == nboxes(mla%mba%bas(i)) ) then
+              call unit_skip(un, unit_get_skip(skip)+1)
+              write(unit=un, fmt = '("}")')
+           else
+              write(unit=un, fmt = '(",")')
+           end if
+       end do
+       if ( i == mla%nlevel ) then
+          call unit_skip(un, skip)
+          write(unit=un, fmt = '("}]")')
+       else
+          write(unit=un, fmt = '(",")')
+       end if
+    end do
+  end subroutine ml_layout_print
 
 end module ml_layout_module
