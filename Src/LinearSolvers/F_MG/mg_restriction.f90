@@ -294,7 +294,7 @@ contains
 
        ng = lom_fine(1) - lof(1)
        call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
-     
+
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
        do n = 0, ir(2)-1
          fac1 = (ir(2)-n) * fac0
@@ -319,7 +319,7 @@ contains
                if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
 
                  if (ifine == lof(1)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),1,-1)) then
+                    (.not. bc_neumann(mm_fine(ifine,jfine),1,-1) ) ) then
                     add_lo_x = .false. 
                  else if (ifine == lof(1)+1 .and. &
                            bc_neumann(mm_fine(ifine,jfine),1,-1)) then
@@ -327,7 +327,7 @@ contains
                  end if
 
                  if (jfine == lof(2)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),2,-1)) then
+                    (.not. bc_neumann(mm_fine(ifine,jfine),2,-1) ) ) then
                     add_lo_y = .false. 
                  else if (jfine == lof(2)+1 .and. &
                            bc_neumann(mm_fine(ifine,jfine),2,-1)) then
@@ -335,14 +335,14 @@ contains
                  end if
 
                  if (ifine == hif(1)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),1,+1)) then
+                    (.not. bc_neumann(mm_fine(ifine,jfine),1,+1) ) ) then
                     add_hi_x = .false.
                  else if (ifine == hif(1)-1 .and. &
                            bc_neumann(mm_fine(ifine,jfine),1,+1)) then
                     irght = ileft
                  end if
                  if (jfine == hif(2)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),2,+1)) then
+                    (.not. bc_neumann(mm_fine(ifine,jfine),2,+1) ) ) then
                     add_hi_y = .false.
                  else if (jfine == hif(2)-1 .and. &
                            bc_neumann(mm_fine(ifine,jfine),2,+1)) then
