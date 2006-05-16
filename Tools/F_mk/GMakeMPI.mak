@@ -44,6 +44,15 @@ ifeq ($(HOST),naphta)
     $(error SORRY NO MPI WITH G95)
   endif
 endif
+ifeq ($(HOST),lijewski)
+  MPIHOME=/home/lijewski/mpich2
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich
+  ifeq ($(COMP),g95)
+    $(error SORRY NO MPI WITH G95)
+  endif
+endif
 
 ifeq ($(HOST),harmonic)
   MPIHOME=/usr/local/mpich_gm
