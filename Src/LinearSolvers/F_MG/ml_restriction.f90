@@ -110,7 +110,7 @@ contains
      out = out + in 
   end subroutine ml_restrict_copy_sum
 
-  subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
+  subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
     type(multifab),  intent(inout) :: fine
     type(multifab),  intent(inout) :: crse
     type(imultifab), intent(in   ) :: mm_fine
@@ -118,11 +118,12 @@ contains
     integer,         intent(in)    :: ir(:)
     integer,         intent(in)    :: face_type(:,:,:)
     logical,         intent(in), optional :: inject
+    logical,         intent(in), optional :: zero_only
 
     integer             :: i, j, n, id
     integer             :: lo (fine%dim), hi (fine%dim), loc(fine%dim), lof(fine%dim)
     integer             :: lom_fine(fine%dim), lom_crse(fine%dim)
-    logical             :: linject
+    logical             :: linject, lzero_only
     type(box)           :: fbox, cbox, isect
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
@@ -132,10 +133,11 @@ contains
     type(imultifab)     :: mm_cfine
 
     if ( crse%nc .ne. fine%nc ) then
-       call bl_error('ml_restriction: crse & fine must have same # of components')
+       call bl_error('ml_nodal_restriction: crse & fine must have same # of components')
     end if
 
-    linject = .false. ; if ( present(inject) ) linject = inject
+    linject    = .false. ; if ( present(inject   ) ) linject    = inject
+    lzero_only = .false. ; if ( present(zero_only) ) lzero_only = zero_only
 
     call layout_build_coarse(lacfine, fine%la, ir)
     call  multifab_build(cfine,    lacfine, nc =    crse%nc, ng = 0, nodal =    crse%nodal)
@@ -169,6 +171,7 @@ contains
        call setval(cfine, 0.0_dp_t)
     end if
 
+    if ( .not. lzero_only ) then
     do i = 1, fine%nboxes
        if ( remote(fine, i) ) cycle
        lo       = lwb(get_ibox(cfine,   i))
@@ -199,10 +202,12 @@ contains
        end do
     end do
 
-    if ( linject ) then
-       call multifab_copy(crse, cfine)
-    else
-       call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
+      if ( linject ) then
+         call multifab_copy(crse, cfine)
+      else
+         call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
+      end if
+
     end if
 
     call destroy(mm_cfine)
@@ -210,7 +215,7 @@ contains
 
   end subroutine ml_nodal_restriction
 
- subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
+ subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
   type(multifab),  intent(inout) :: fine
   type(multifab),  intent(inout) :: crse
   type(imultifab), intent(in   ) :: mm_fine
@@ -218,11 +223,12 @@ contains
   integer,         intent(in)    :: ir(:)
   integer,         intent(in)    :: face_type(:,:,:)
   logical,         intent(in), optional :: inject
+  logical,         intent(in), optional :: zero_only
   if ( crse%nc .ne. fine%nc ) then
      call bl_error('ml_restriction: crse & fine must have same # of components')
   end if
   if ( nodal_q(fine) ) then
-     call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
+     call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
   else
      call ml_cc_restriction(crse, fine, ir)
   end if
