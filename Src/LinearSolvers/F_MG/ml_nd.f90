@@ -316,18 +316,28 @@ contains
                   soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
           end do
 
-          if ( mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) then
+          if ( mgt(nlevs)%verbose > 0 ) then
              do n = 1,nlevs
-                write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,norm_inf(res(n))
+                tres = norm_inf(res(n))
+                if ( parallel_IOProcessor() ) then
+                   write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,tres
+                end if
              end do
-             write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, ml_norm_inf(res,fine_mask)
+             tres = ml_norm_inf(res,fine_mask)
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
+             end if
           end if
 
        else
 
           fine_converged = .false.
-          if ( mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) &
-               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, norm_inf(res(nlevs))
+          if ( mgt(nlevs)%verbose > 0 ) then
+             tres = norm_inf(res(nlevs))
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+             end if
+          end if
 
        end if
 
