@@ -190,7 +190,8 @@ contains
        rp => dataptr(res, i)
        mp => dataptr(mm, i)
        do n = 1, nc
-          if (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) then
+          if ( (res%la%lap%pmask(dir)) .or. &
+               (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
              select case(flux%dim)
              case (1)
                 call bl_error("ML_FILL_FLUXES: no 1 D case")
