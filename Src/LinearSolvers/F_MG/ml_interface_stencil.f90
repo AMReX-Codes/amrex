@@ -161,11 +161,6 @@ contains
     real (kind = dp_t) :: crse_flux
 
     !   Hi i side
-    !print *, 'dim = ', dim, 'face = ', face
-    !print *, 'cc = ', cc(:,7)
-    !print *, 'res = ',res(:,7)
-    !print *, 'size(fine_flux) ', size(fine_flux)
-    !print *, 'fine_flux = ', fine_flux
     if ( dim == 1 ) then
        if (face == 1) then
           i = lo(1)
@@ -198,7 +193,6 @@ contains
           end do
        end if
     end if
-    !print *, 'res=', res(:,7)
   end subroutine ml_interface_2d
 
   subroutine ml_interface_3d(res, lor, fine_flux, lof, cc, loc, &
@@ -340,8 +334,10 @@ contains
           mbox = get_ibox(mm_fine,i)
           lomf = lwb(mbox) - mm_fine%ng
 
-          if ((.not. (lof(dir) == lo_dom(dir) .or. lof(dir) == hi_dom(dir))) .and. & 
-               box_intersects(cbox,fbox)) then
+          if (box_intersects(cbox,fbox)) then
+            if ( ss%la%lap%pmask(dir) .or. &
+               (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+
              lo(:) = lwb(box_intersection(cbox,fbox))
              hi(:) = upb(box_intersection(cbox,fbox))
 
@@ -379,6 +375,7 @@ contains
                         lo, hi, ir, side)
                 end select
              end do
+            end if
           end if
        end do
     end do
@@ -463,9 +460,7 @@ contains
           end if
 
           if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux
-            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) &
-               res(i,j) = res(i,j) + fine_flux(i,j)
+            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
 
         end if
@@ -492,9 +487,7 @@ contains
           end if
 
           if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux
-            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) &
-               res(i,j) = res(i,j) + fine_flux(i,j)
+            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
 
         end if
@@ -522,9 +515,7 @@ contains
           end if
 
           if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux
-            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) &
-               res(i,j) = res(i,j) + fine_flux(i,j)
+            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
 
         end if
@@ -552,9 +543,7 @@ contains
           end if
 
           if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux
-            if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) &
-               res(i,j) = res(i,j) + fine_flux(i,j)
+            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
 
         end if
