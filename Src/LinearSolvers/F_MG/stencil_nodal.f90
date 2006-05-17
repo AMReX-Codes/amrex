@@ -33,11 +33,79 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer                  :: i
+
+    type(box)                :: pd_periodic, bx, nbx, bx1
+!   type(boxarray)           :: periodic_edges
+    type(boxarray)           :: bxa_periodic, bxa_temp
+    integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo
+    integer                  :: shift_vect(ss%dim)
+    logical                  :: is_any_periodic
+
     !
     ! Do this just to set everything in the mask to zero.
     !
     call setval(mask,BC_INT)
+
+    is_any_periodic = .false.
+    do i = 1,ss%dim
+      if (ss%la%lap%pmask(i)) is_any_periodic = .true.
+    end do
+
+    !
+    ! Construct a new boxarray that has periodically translated boxes as well
+    !   as the original boxes
+    !
+
+    pd_periodic = ss%la%lap%pd
+    call boxarray_build_copy(bxa_periodic,ss%la%lap%bxa)
+
+    if (is_any_periodic) then
+
+      do i = 1,ss%dim
+        if (ss%la%lap%pmask(i)) &
+          pd_periodic = box_grow_n_d_f(box_grow_n_d_f(pd_periodic,1,i,-1),1,i,1)
+      end do
+
+      ib_lo = 1; if (ss%la%lap%pmask(1)) ib_lo = -1
+
+      jb_lo = 1 
+      if (ss%dim .ge. 2) then
+        if (ss%la%lap%pmask(2)) jb_lo = -1
+      end if
+
+      kb_lo = 1  
+      if (ss%dim .ge. 3) then
+        if (ss%la%lap%pmask(3)) kb_lo = -1
+      end if
+  
+      do kb = kb_lo, 1
+      do jb = jb_lo, 1
+      do ib = ib_lo, 1
+        call boxarray_build_copy(bxa_temp,ss%la%lap%bxa)
+
+        shift_vect(:) = 0
+        if (                 ss%la%lap%pmask(1)) shift_vect(1) = ib * box_extent_d(ss%la%lap%pd,1)
+        if (ss%dim > 1) then
+          if (ss%la%lap%pmask(2)) shift_vect(2) = jb * box_extent_d(ss%la%lap%pd,2)
+        end if
+        if (ss%dim > 2) then
+          if (ss%la%lap%pmask(3)) shift_vect(3) = kb * box_extent_d(ss%la%lap%pd,3)
+        end if
+
+        call boxarray_shift(bxa_temp,shift_vect)
+
+        do i = 1, bxa_temp%nboxes
+          bx1 = box_intersection(bxa_temp%bxs(i),pd_periodic)
+          if ( .not. empty(bx1) ) &
+            call boxarray_add_clean(bxa_periodic,bx1)
+        end do
+
+        call boxarray_destroy(bxa_temp)
+      end do
+      end do
+      end do
+  
+    end if
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
@@ -46,7 +114,9 @@ contains
        cp => dataptr(sg,   i)
        mp => dataptr(mask, i)
 
-       call stencil_set_bc_nodal(ss, i, mask, face_type)
+       bx  = get_box(ss,i)
+       nbx = get_ibox(ss, i)
+       call stencil_set_bc_nodal(ss%dim, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
 
        select case (ss%dim)
        case (1)
@@ -62,22 +132,28 @@ contains
 
   end subroutine stencil_fill_nodal
 
-  subroutine stencil_set_bc_nodal(ss, idx, mask, face_type)
-    type(multifab),  intent(in)    :: ss
+  subroutine stencil_set_bc_nodal(sdim, bx, nbx, idx, mask, face_type, pd_periodic, bxa_periodic)
+    integer,         intent(in   ) :: sdim
+    type(box),       intent(in   ) :: bx, nbx
+!   type(multifab),  intent(in   ) :: ss
     type(imultifab), intent(inout) :: mask
-    integer,         intent(in)    :: idx
-    integer,         intent(in)    :: face_type(:,:,:)
+    integer,         intent(in   ) :: idx
+    integer,         intent(in   ) :: face_type(:,:,:)
+    type(box),       intent(in   ) :: pd_periodic
+    type(boxarray),  intent(in   ) :: bxa_periodic
 
     integer, pointer :: mp(:,:,:,:)
-    type(box)        :: bx, bx1, nbx
-    type(boxarray)   :: ba, dba, pba
+    type(box)        :: bx1, bx2
+    type(boxarray)   :: ba, pba
     integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo
 
-    type(box)        :: bxs(3**ss%dim), sbx
-    integer          :: shft(3**ss%dim,ss%dim), cnt, i, j
+    type(box)        :: bxs(3**sdim), sbx
+    integer          :: shft(3**sdim,sdim), cnt, i, j
 
-    bx  = get_box(ss,idx)
-    nbx = get_ibox(ss, idx)
+    logical          :: nodal(sdim)
+
+    nodal = .true.
+
     !
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
     !
@@ -91,9 +167,6 @@ contains
        if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
        if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
 
-       if ((face_type(idx,dm,1) == BC_NEU) .or. (face_type(idx,dm,1) == BC_DIR)) then
-          call boxarray_add_clean(dba, bx1)
-       end if
        !
        ! Hi side
        !
@@ -103,9 +176,6 @@ contains
        if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
        if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
 
-       if ((face_type(idx,dm,2) == BC_NEU) .or. (face_type(idx,dm,2) == BC_DIR)) then
-          call boxarray_add_clean(dba, bx1)
-       end if
     end do
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
@@ -119,11 +189,12 @@ contains
              bx1 = shift(bx,ib,1)
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
-             bx1 = box_intersection(bx1, ss%la%lap%pd)
+             bx1 = box_intersection(bx1, pd_periodic)
              if ( empty(bx1) ) cycle
-             call boxarray_boxarray_diff(ba, bx1, ss%la%lap%bxa)
+             call boxarray_boxarray_diff(ba, bx1, bxa_periodic)
              do ii = 1, ba%nboxes
-                bx1 = box_intersection(box_nodalize(ba%bxs(ii),ss%nodal), nbx)
+                bx2 = box_nodalize(ba%bxs(ii),nodal)
+                bx1 = box_intersection(box_nodalize(ba%bxs(ii),nodal), nbx)
                 if ( empty(bx1) ) cycle
                 mp => dataptr(mask%fbs(idx), bx1)
                 mp = ibset(mp, BC_BIT(BC_DIR,1,0))
@@ -132,29 +203,6 @@ contains
           end do
        end do
     end do
-    !
-    ! Reset any Fine-Fine boundaries due to periodicity.
-    !
-    call multifab_internal_sync_shift(ss%la%lap%pd, nbx, ss%la%lap%pmask, ss%nodal, shft, cnt)
-    !
-    ! The "i == 1" component here is the box "nbx" itself which we ignore.
-    !
-    do i = 2, cnt
-       sbx = shift(nbx, shft(i,:))
-       do j = 1, ss%nboxes
-          bx1 = intersection(get_ibox(ss,j), sbx)
-          if ( empty(bx1) ) cycle
-          bx1 = shift(bx1, -shft(i,:))
-          call boxarray_boxarray_diff(pba, bx1, dba)
-          do ii = 1, pba%nboxes
-             mp => dataptr(mask%fbs(idx), pba%bxs(ii))
-             mp = BC_INT
-          end do
-          call destroy(pba)
-       end do
-    end do
-
-    if ( built_q(dba) ) call destroy(dba)
 
   end subroutine stencil_set_bc_nodal
 
@@ -631,6 +679,7 @@ contains
             fac = (ratio(2)-n)*fac0
 
             j = (jc-lod(2))*ratio(2) + n
+
             if (j < ny) then
                if (jc==lod(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
@@ -638,11 +687,13 @@ contains
             end if
 
             j = (jc-lod(2))*ratio(2) - n
+
             if (j > 0) then
                if (jc==hid(2).and..not.bc_dirichlet(mm(i,j),1,0)) &
                  fac = HALF * fac
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
             end if
+
          end do
 
       end do
