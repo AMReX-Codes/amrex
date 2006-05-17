@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.148 2006-05-02 21:25:33 lijewski Exp $
+// $Id: Amr.cpp,v 1.149 2006-05-17 21:34:13 vince Exp $
 //
 #include <winstd.H>
 
@@ -2041,6 +2041,28 @@ Amr::grid_places (int              lbase,
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
             new_bx.maxSize(largest_grid_size);
+#ifdef BL_FIX_GATHERV_ERROR
+	      int wcount(0), iLGS(largest_grid_size[0]);
+              //while(new_bx.size()< ParallelDescriptor::NProcs() && wcount++ < 8) {
+              //while(new_bx.size() < 192 && wcount++ < 4) {
+              while(new_bx.size() < 64 && wcount++ < 4) {
+                iLGS /= 2;
+               if(ParallelDescriptor::IOProcessor()) {
+	        std::cout << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
+			  << "   largest_grid_size was:  " << largest_grid_size[0]
+			  << std::endl;
+	        std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
+			  << new_bx.size() << std::endl;
+	       }
+
+                new_bx.maxSize(iLGS);
+
+               if(ParallelDescriptor::IOProcessor()) {
+	        std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
+			  << new_bx.size() << std::endl;
+	       }
+	      }
+#endif
             //
             // Refine up to levf.
             //
