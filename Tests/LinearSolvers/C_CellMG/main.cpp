@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.26 2006-05-04 20:07:51 lijewski Exp $
+// $Id: main.cpp,v 1.27 2006-05-18 21:15:24 car Exp $
 //
 
 #include <fstream>
@@ -17,6 +17,10 @@
 #include <VisMF.H>
 
 #include <WorkQueue.H>
+
+#ifdef MG_USE_FBOXLIB
+#include <MGT_Solver.H>
+#endif
 
 //#include <WritePlotFile.H>
 
@@ -136,6 +140,7 @@ main (int   argc, char* argv[])
   bool dump_VisMF=false      ; pp.query("dump_VisMF", dump_VisMF);
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
   bool dump_rhs_ascii=false     ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
+  bool use_fboxlib=false    ; pp.query("use_fboxlib", use_fboxlib);
   int res;
   if ( !ABec )
     {
@@ -269,6 +274,17 @@ main (int   argc, char* argv[])
 	} 
 
       // Build operator, set coeffs, build solver, solve
+#ifdef MG_USE_FBOXLIB
+      if ( use_fboxlib )
+	{
+	  int nlevels = 1;
+	  BCRec phys_bc;
+	  const DistributionMapping& dmap = rhs.DistributionMap();
+	  MGT_Solver mgt_solver(nlevels, bs, container, phys_bc, H, dmap, geom);
+	}
+      else
+#endif
+	{
 	  ABecLaplacian lp(bd, H);
 	  lp.setScalars(alpha, beta);
 	  lp.setCoefficients(acoefs, bcoefs);
@@ -282,7 +298,7 @@ main (int   argc, char* argv[])
 
 	  if ( mg )
 	    {
-                const Real run_strt = ParallelDescriptor::second();
+	      const Real run_strt = ParallelDescriptor::second();
 
 	      MultiGrid mg(lp);
 	      mg.setNumIter(numiter);
@@ -302,13 +318,13 @@ main (int   argc, char* argv[])
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 
-                  const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-                  Real      run_stop = ParallelDescriptor::second() - run_strt;
+	      const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+	      Real      run_stop = ParallelDescriptor::second() - run_strt;
 
-                  ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
+	      ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
 
-                  if (ParallelDescriptor::IOProcessor())
-                      std::cout << "Run time = " << run_stop << std::endl;
+	      if (ParallelDescriptor::IOProcessor())
+		std::cout << "Run time = " << run_stop << std::endl;
 	    }
 	  if ( cg )
 	    {
@@ -367,10 +383,10 @@ main (int   argc, char* argv[])
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-
 	  // Look at operator
 	  if ( dump_Lp )
 	    std::cout << lp << std::endl;
+	}
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
   // Write solution, and rhs
@@ -391,11 +407,11 @@ main (int   argc, char* argv[])
       temp.copy(rhs,  0, 1, 1);
       if ( dump_Mf )
 	{
-	    // writePlotFile("soln", temp, geom, IntVect(D_DECL(2,2,2)), temp.min(0)); FIXME
+	  // writePlotFile("soln", temp, geom, IntVect(D_DECL(2,2,2)), temp.min(0)); FIXME
 	}
       if ( dump_VisMF )
 	{
-	    VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
+	  VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
 	}
     }
   
@@ -447,4 +463,3 @@ readBoxList(const std::string file, Box& domain)
   boxspec.close();
   return retval;
 }
-

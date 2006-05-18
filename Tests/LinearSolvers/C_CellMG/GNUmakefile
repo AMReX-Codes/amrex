@@ -1,3 +1,7 @@
+PBOXLIB_HOME := ../..
+FBOXLIB_HOME =
+FBOXLIB_HOME = ../../../fParallel
+
 PRECISION = DOUBLE
 PROFILE = TRUE
 PROFILE = FALSE
@@ -7,21 +11,21 @@ DIM	= 3
 DIM	= 2
 COMP = KCC
 COMP = g++
+
 COMP=Intel
 FCOMP=Intel
+
 USE_MPI=TRUE
 USE_MPI=FALSE
 USE_THREADS=TRUE
 USE_THREADS=FALSE
+
 STRICTLY=TRUE
 
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
 
-PBOXLIB_HOME := ../..
-
 EBASE = main
-LBASE = 
 
 include $(PBOXLIB_HOME)/mk/Make.defs
 
@@ -32,6 +36,7 @@ include Make.package
 include $(PBOXLIB_HOME)/bndrylib/Make.package
 include $(PBOXLIB_HOME)/mglib/Make.package
 include $(PBOXLIB_HOME)/BoxLib/Make.package
+
 #include $(PBOXLIB_HOME)/util/Make.package
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
@@ -42,8 +47,24 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
 vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
+
 #INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
 #vpathdir += $(PBOXLIB_HOME)/util
+
+ifdef FBOXLIB_HOME
+  DEFINES += -DMG_USE_FBOXLIB
+
+  include $(PBOXLIB_HOME)/MGT_Solver/Make.package
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
+  vpathdir += $(PBOXLIB_HOME)/MGT_Solver
+
+  include $(FBOXLIB_HOME)/mg/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
+  Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
+  Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
+  vpathdir += $(Flocs)
+endif
+
 
 
 # We need these from amrlib 
@@ -70,23 +91,6 @@ ifeq ($(DEBUG),TRUE)
   CEXE_headers += TV_TempWrite.H
 endif
 
-ifeq ($(MACHINE),OSF1)
-  3RD=1
-  3RD=
-  ifdef 3RD
-    # FOR RUNNING 3RD ONLY
-    LDFLAGS += --link_command_prefix 3rd
-    #CXXDEBF = +K0 --link_command_prefix 3rd -non_shared
-    LDFLAGS += -non_shared -v
-    #LIBRARIES += -ldnet_stub
-    #FDEBF += -automatic
-    # FOR RUNNING 3RD ONLY
-  endif
-  DEFINES += -DBL3_NANOSLEEP
-  LIBRARIES+=-lrt
-  FFLAGS += -automatic
-endif
-
 CXXFLAGS +=
 CXXOPTF +=
 CXXDEBF +=
@@ -95,9 +99,13 @@ CFLAGS +=
 COPTF +=
 CDEBF +=
 
+vpath %.c   : . $(vpathdir)
+vpath %.h   : . $(vpathdir)
 vpath %.cpp : . $(vpathdir)
+vpath %.H   : . $(vpathdir)
 vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
+vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
