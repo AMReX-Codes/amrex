@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.30 2005-09-07 21:11:47 jbb Exp $
+c $Id: INTERP_3D.F,v 1.31 2006-05-19 00:14:09 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1346,7 +1346,7 @@ c                the remaining positive proportionally.
                    enddo
                    enddo
 
-                   if (sumP > 0.d0) then
+                   if (sumP .gt. 0.d0) then
 
                     alpha = (crseTot - abs(sumN)) / sumP
 
