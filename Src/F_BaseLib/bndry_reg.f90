@@ -177,7 +177,8 @@ contains
           cnt = 1
           do j = 1, nb
              do k = 1, nboxes(lac)
-                bx = intersection(bxs1(j), grow(get_box(lac,k),1,i,ff))
+!               bx = intersection(bxs1(j), grow(get_box(lac,k),1,i,ff))
+                bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
                 if ( .not. empty(bx) ) then
                    lo = lwb(bx)
                    hi = upb(bx)
