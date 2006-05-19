@@ -143,12 +143,8 @@ contains
              end do
              call build(bxs1(j), lo1, hi1)
              do k = 1, nboxes(lac)
-! print *, i, f, j, k
-! call print(bxs1(j), "bxs1")
-! call print(get_box(lac,k), "gblk")
-! call print(grow(get_box(lac,k),1,i,ff), "grow")
-                bx = intersection(bxs1(j), grow(get_box(lac, k),1,i,ff))
-! call print(bx, "bx")
+!               bx = intersection(bxs1(j), grow(get_box(lac, k),1,i,ff))
+                bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
                 if ( .not. empty(bx) ) then
                    cnt = cnt + 1
                 end if
