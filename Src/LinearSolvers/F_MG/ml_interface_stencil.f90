@@ -276,42 +276,34 @@ contains
   end subroutine ml_interface_3d
 
   subroutine ml_crse_contrib(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
+
     type(multifab), intent(inout) :: res
-    type(multifab), intent(inout) :: flux
+    type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
     type(imultifab),intent(in   ) :: mm_crse
     type(imultifab),intent(in   ) :: mm_fine
-    integer, intent(in) :: ir(:)
-    type(box), intent(in) :: crse_domain
-    type(box) :: rbox, fbox, cbox, sbox, mbox, mcbox
-    integer :: lo (res%dim), hi (res%dim)
-    integer :: loc(res%dim)
-    integer :: lof(res%dim), hif(res%dim)
-    integer :: lor(res%dim)
-    integer :: los(res%dim)
-    integer :: lomf(res%dim)
-    integer :: lomc(res%dim)
-    integer :: lo_dom(res%dim), hi_dom(res%dim)
-    integer :: side
-    integer :: dir
-    integer :: i, j, n
+    type(box),      intent(in   ) :: crse_domain
+    integer,        intent(in   ) :: ir(:)
+    integer                       :: side
 
-    integer :: dm
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer,         pointer :: mp(:,:,:,:)
-    integer,         pointer :: mcp(:,:,:,:)
+    type(box) :: rbox, fbox, cbox, sbox, mbox, mcbox, isect
+    integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
+    integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
+    integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
+    integer   :: dir, i, j, n
 
-    dm  = res%dim
+    real(kind=dp_t), pointer :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
+    integer,         pointer :: mp(:,:,:,:),mcp(:,:,:,:)
+
     dir = iabs(side)
 
     lo_dom = lwb(crse_domain)
     hi_dom = upb(crse_domain)+1
 
     do j = 1, crse%nboxes
+
+       if ( remote(crse,j) ) cycle
 
        cbox = get_ibox(crse,j)
        loc = lwb(cbox) - crse%ng
@@ -327,55 +319,50 @@ contains
 
        do i = 1, flux%nboxes
 
-          fbox   = get_ibox(flux,i)
-          lof = lwb(fbox)
-          hif = upb(fbox)
+          fbox  = get_ibox(flux,i)
+          isect = intersection(cbox,fbox)
 
+          if ( empty(isect) ) cycle
+
+          lof  = lwb(fbox)
+          hif  = upb(fbox)
           mbox = get_ibox(mm_fine,i)
           lomf = lwb(mbox) - mm_fine%ng
 
-          if (box_intersects(cbox,fbox)) then
-            if ( ss%la%lap%pmask(dir) .or. &
-               (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+          if ( ss%la%lap%pmask(dir) .or. (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
 
-             lo(:) = lwb(box_intersection(cbox,fbox))
-             hi(:) = upb(box_intersection(cbox,fbox))
-
-             fp => dataptr(flux   , i)
-             mp => dataptr(mm_fine, i)
-
+             lo  = lwb(isect)
+             hi  = upb(isect)
+             fp  => dataptr(flux   , i)
+             mp  => dataptr(mm_fine, i)
              cp  => dataptr(crse   , j)
              rp  => dataptr(res    , j)
              sp  => dataptr(ss     , j)
              mcp => dataptr(mm_crse, j)
 
              do n = 1, 1
-                select case (dm)
+                select case (res%dim)
                 case (1)
                    call ml_interface_1d_nodal(rp(:,1,1,n), lor, &
                         fp(:,1,1,n), lof, hif, &
                         cp(:,1,1,n), loc, &
-                        sp(:,1,1,:), los, &
-                        lo, hi, ir, side)
+                        sp(:,1,1,:), los, lo, hi, ir, side)
                 case (2)
                    call ml_interface_2d_nodal(rp(:,:,1,n), lor, &
-                         fp(:,:,1,n), lof , hif, &
-                         cp(:,:,1,n), loc , &
-                         sp(:,:,1,:), los , &
-                         mp(:,:,1,1), lomf, &
-                        mcp(:,:,1,1), lomc, &
-                        lo, hi, ir, side)
+                        fp(:,:,1,n), lof , hif, &
+                        cp(:,:,1,n), loc , &
+                        sp(:,:,1,:), los , &
+                        mp(:,:,1,1), lomf, &
+                        mcp(:,:,1,1), lomc, lo, hi, ir, side)
                 case (3)
                    call ml_interface_3d_nodal(rp(:,:,:,n), lor, &
-                         fp(:,:,:,n), lof , hif, &
-                         cp(:,:,:,n), loc , &
-                         sp(:,:,:,:), los , &
-                         mp(:,:,:,1), lomf, &
-                        mcp(:,:,:,1), lomc, &
-                        lo, hi, ir, side)
+                        fp(:,:,:,n), lof , hif, &
+                        cp(:,:,:,n), loc , &
+                        sp(:,:,:,:), los , &
+                        mp(:,:,:,1), lomf, &
+                        mcp(:,:,:,1), lomc, lo, hi, ir, side)
                 end select
              end do
-            end if
           end if
        end do
     end do
@@ -439,116 +426,85 @@ contains
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
-    !   Lo i side
     if (side == -1) then
 
        do j = lo(2),hi(2)
-
-        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
-
-          if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
-             crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
-          else if (j == hif(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,+1)) then
-             crse_flux = (ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j))) * HALF
-          else
-             crse_flux = ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j)) &
-                  +ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j))
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
+             else if (j == hif(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux = (ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j))) * HALF
+             else
+                crse_flux = ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j)) &
+                     +ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j))
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
-
-          if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
-          end if
-
-        end if
-
        end do
 
-       !   Hi i side
     else if (side ==  1) then
        do j = lo(2),hi(2)
-
-        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
-
-          if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
-             crse_flux = (ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
-          else if (j == hif(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,+1)) then
-             crse_flux = (ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j))) * HALF
-          else
-             crse_flux = ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j)) &
-                  +ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j))
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (j == lof(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux = (ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
+             else if (j == hif(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux = (ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j))) * HALF
+             else
+                crse_flux = ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j)) &
+                     +ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j))
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
-
-          if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
-          end if
-
-        end if
-
        end do
 
-       !   Lo j side
     else if (side == -2) then
 
        do i = lo(1),hi(1)
-
-        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
-
-          if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
-             crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
-          else if (i == hif(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,+1)) then
-             crse_flux = (ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
-          else
-             crse_flux = ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j)) &
-                  +ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j+1) - TWO*cc(i,j))
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
+                crse_flux = (ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
+             else if (i == hif(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,+1)) then
+                crse_flux = (ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j))) * HALF
+             else
+                crse_flux = ss(i,j,8)*(cc(i+1,j+1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j)) &
+                     +ss(i,j,6)*(cc(i-1,j+1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j+1) - TWO*cc(i,j))
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
-
-          if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
-          end if
-
-        end if
-
        end do
 
-       !   Hi j side
     else if (side ==  2) then
 
        do i = lo(1),hi(1)
-
-        if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0)) then
-
-          if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
-             crse_flux = (ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j)) ) * HALF
-          else if (i == hif(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,+1)) then
-             crse_flux = (ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j)) ) * HALF
-          else
-             crse_flux = ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j)) &
-                  +ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
-                  HALF * cc(i,j-1) - TWO*cc(i,j))
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (i == lof(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
+                crse_flux = (ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j)) ) * HALF
+             else if (i == hif(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,+1)) then
+                crse_flux = (ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j)) ) * HALF
+             else
+                crse_flux = ss(i,j,3)*(cc(i+1,j-1) + HALF*cc(i+1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j)) &
+                     +ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
+                     HALF * cc(i,j-1) - TWO*cc(i,j))
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
-
-          if (.not. bc_dirichlet(mm_crse(i,j),1,0)) then
-            res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
-          end if
-
-        end if
-
        end do
+
     end if
 
   end subroutine ml_interface_2d_nodal
@@ -590,13 +546,13 @@ contains
     if (side == -1 .or. side == 1) then
 
        if (side == -1) then
-          ioff = i+1
+          ioff   = i+1
           sig_mm =  3
           sig_pm =  8
           sig_mp = 15
           sig_pp = 20
        else
-          ioff = i-1
+          ioff   = i-1
           sig_mm =  1
           sig_pm =  6
           sig_mp = 13
