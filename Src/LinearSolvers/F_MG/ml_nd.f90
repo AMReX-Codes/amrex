@@ -38,7 +38,7 @@ contains
     type(bndry_reg), allocatable :: brs_flx(:)
 
     type(box   ) :: pd,pdc
-    type(layout) :: la, lac
+    type(layout) :: la
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
     logical :: fine_converged
@@ -83,8 +83,7 @@ contains
        !  the residual at a non-finest AMR level.
 
        pdc = layout_get_pd(mla%la(n-1))
-       lac = mla%la(n-1)
-       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nodal = nodal)
+       call bndry_reg_rr_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, nodal = nodal)
 
     end do
 
@@ -428,17 +427,16 @@ contains
 !     Compute the crse contributions at edges and corners and add to fine contributions
 !        in temp_crse_res (need to do this in a temporary for periodic issues)
       call setval(temp_crse_res,ZERO,all=.true.)
+
       do i = 1,dm
          call ml_crse_contrib(temp_crse_res, brs_flx%bmf(i,0), crse_soln, &
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
-              mgt(n  )%mm(mglev_fine), &
-              pdc,ref_ratio, -i)
+              mgt(n  )%mm(mglev_fine), pdc,ref_ratio, -i)
          call ml_crse_contrib(temp_crse_res, brs_flx%bmf(i,1), crse_soln, &
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
-              mgt(n  )%mm(mglev_fine), &
-              pdc,ref_ratio, +i)
+              mgt(n  )%mm(mglev_fine), pdc,ref_ratio, +i)
       end do
 
       do i = 1,dm
