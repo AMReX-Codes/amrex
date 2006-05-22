@@ -292,10 +292,15 @@ contains
     integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
-    integer   :: dir, i, j, n
+    integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM)
+    integer   :: dir, i, j, n, proc
 
-    real(kind=dp_t), pointer :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
-    integer,         pointer :: mp(:,:,:,:),mcp(:,:,:,:)
+    real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
+    integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
+    integer,         parameter :: tag = 1103
+
+    real(kind=dp_t), dimension(:,:,:,:), allocatable :: flxpt
+    integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
     dir = iabs(side)
 
@@ -304,64 +309,120 @@ contains
 
     do j = 1, crse%nboxes
 
-       if ( remote(crse,j) ) cycle
-
-       cbox = get_ibox(crse,j)
-       loc = lwb(cbox) - crse%ng
-
-       mcbox = get_ibox(mm_crse,j)
-       lomc = lwb(mcbox) - mm_crse%ng
-
-       rbox = get_ibox(res,j)
-       lor = lwb(rbox) - res%ng
-
-       sbox = get_ibox(ss,j)
-       los = lwb(sbox) - ss%ng
+       cbox  = get_ibox(crse,j);    loc  = lwb(cbox)  - crse%ng
+       mcbox = get_ibox(mm_crse,j); lomc = lwb(mcbox) - mm_crse%ng
+       rbox  = get_ibox(res,j);     lor  = lwb(rbox)  - res%ng
+       sbox  = get_ibox(ss,j);      los  = lwb(sbox)  - ss%ng
 
        do i = 1, flux%nboxes
+
+          if ( remote(crse,j) .and. remote(flux,i) ) cycle
 
           fbox  = get_ibox(flux,i)
           isect = intersection(cbox,fbox)
 
           if ( empty(isect) ) cycle
 
-          lof  = lwb(fbox)
-          hif  = upb(fbox)
-          mbox = get_ibox(mm_fine,i)
-          lomf = lwb(mbox) - mm_fine%ng
+          lof = lwb(fbox); hif = upb(fbox)
 
-          if ( ss%la%lap%pmask(dir) .or. (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+          if ( ss%la%lap%pmask(dir) .or. &
+               (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
 
-             lo  = lwb(isect)
-             hi  = upb(isect)
-             fp  => dataptr(flux   , i)
-             mp  => dataptr(mm_fine, i)
-             cp  => dataptr(crse   , j)
-             rp  => dataptr(res    , j)
-             sp  => dataptr(ss     , j)
-             mcp => dataptr(mm_crse, j)
+             lo = lwb(isect); hi = upb(isect)
 
-             select case (res%dim)
-             case (1)
-                call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lof, hif, &
-                     cp(:,1,1,1), loc, &
-                     sp(:,1,1,:), los, lo, hi, ir, side)
-             case (2)
-                call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lof , hif, &
-                     cp(:,:,1,1), loc , &
-                     sp(:,:,1,:), los , &
-                     mp(:,:,1,1), lomf, &
-                     mcp(:,:,1,1), lomc, lo, hi, ir, side)
-             case (3)
-                call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lof , hif, &
-                     cp(:,:,:,1), loc , &
-                     sp(:,:,:,:), los , &
-                     mp(:,:,:,1), lomf, &
-                     mcp(:,:,:,1), lomc, lo, hi, ir, side)
-             end select
+             if ( local(crse,j) .and. local(flux,i) ) then
+
+                mbox =  get_ibox(mm_fine,i)
+                lomf =  lwb(mbox) - mm_fine%ng
+                fp   => dataptr(flux   , i)
+                mp   => dataptr(mm_fine, i)
+                cp   => dataptr(crse   , j)
+                rp   => dataptr(res    , j)
+                sp   => dataptr(ss     , j)
+                mcp  => dataptr(mm_crse, j)
+
+                select case (res%dim)
+                case (1)
+                   call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
+                        fp(:,1,1,1), lof, hif, &
+                        cp(:,1,1,1), loc, &
+                        sp(:,1,1,:), los, lo, hi, ir, side)
+                case (2)
+                   call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
+                        fp(:,:,1,1), lof , hif, &
+                        cp(:,:,1,1), loc , &
+                        sp(:,:,1,:), los , &
+                        mp(:,:,1,1), lomf, &
+                        mcp(:,:,1,1), lomc, lo, hi, ir, side)
+                case (3)
+                   call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
+                        fp(:,:,:,1), lof , hif, &
+                        cp(:,:,:,1), loc , &
+                        sp(:,:,:,:), los , &
+                        mp(:,:,:,1), lomf, &
+                        mcp(:,:,:,1), lomc, lo, hi, ir, side)
+                end select
+
+             else if ( local(flux,i) ) then
+                !
+                ! Got to send flux & mm_fine to processor owning crse.
+                !
+                ! Need flux on isect; need mm_fine on refine(isect).
+                !
+                fp => dataptr(flux, i, isect)
+                proc = get_proc(crse%la, j)
+                call parallel_send(fp, proc, tag)
+                mp => dataptr(mm_fine, i, refine(isect,ir))
+                call parallel_send(mp, proc, tag)
+             else
+                !
+                ! We own crse.  Got to get flux & mm_fine.
+                !
+                ! flux will be defined on isect; mm_fine on refine(isect).
+                !
+                lod = 1;                     hid = 1
+                lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
+                allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:flux%nc))
+                mbox = refine(isect,ir)
+                lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
+                allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:mm_fine%nc))
+                proc = get_proc(flux%la, i)
+                call parallel_recv(flxpt, proc, tag)
+                call parallel_recv(mmfpt, proc, tag)
+
+                lof  =  lwb(isect)
+                hif  =  upb(isect)
+                lomf =  lwb(mbox)
+                cp   => dataptr(crse   , j)
+                rp   => dataptr(res    , j)
+                sp   => dataptr(ss     , j)
+                mcp  => dataptr(mm_crse, j)
+
+                select case (res%dim)
+                case (1)
+                   call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
+                        flxpt(:,1,1,1), lof, hif, &
+                        cp(:,1,1,1), loc, &
+                        sp(:,1,1,:), los, lo, hi, ir, side)
+                case (2)
+                   call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
+                        flxpt(:,:,1,1), lof , hif, &
+                        cp(:,:,1,1), loc , &
+                        sp(:,:,1,:), los , &
+                        mmfpt(:,:,1,1), lomf, &
+                        mcp(:,:,1,1), lomc, lo, hi, ir, side)
+                case (3)
+                   call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
+                        flxpt(:,:,:,1), lof , hif, &
+                        cp(:,:,:,1), loc , &
+                        sp(:,:,:,:), los , &
+                        mmfpt(:,:,:,1), lomf, &
+                        mcp(:,:,:,1), lomc, lo, hi, ir, side)
+                end select
+
+                deallocate(flxpt)
+                deallocate(mmfpt)
+             end if
           end if
        end do
     end do
