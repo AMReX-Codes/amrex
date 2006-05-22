@@ -631,9 +631,9 @@ contains
 
   subroutine fine_edge_resid_2d(dd, res, mm, ratio, side, lod)
     integer           , intent(in   ) :: lod(2)
-    real (kind = dp_t), intent(  out) ::  dd(lod(1):,lod(2):)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):,lod(2):)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:)
-    integer           , intent(in   ) ::  mm(0:,0:)
+    integer           , intent(in   ) :: mm(0:,0:)
     integer, intent(in) :: ratio(:), side
     integer :: nx, ny, nxc, nyc
     integer :: hid(2)
@@ -859,7 +859,7 @@ contains
 
   subroutine fine_edge_resid_3d(dd, res, mm, ratio, side, lod)
     integer, intent(in) :: lod(:)
-    real (kind = dp_t), intent(  out) ::  dd(lod(1):,lod(2):,lod(3):)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):,lod(2):,lod(3):)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:,-1:)
     integer           , intent(in   ) ::  mm(0:,0:,0:)
     integer, intent(in) :: ratio(:),side
