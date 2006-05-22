@@ -293,7 +293,7 @@ contains
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
     integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM)
-    integer   :: dir, i, j, n, proc
+    integer   :: dir, i, j, n, proc, ii
 
     real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
     integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
@@ -367,23 +367,31 @@ contains
                 !
                 ! Got to send flux & mm_fine to processor owning crse.
                 !
-                ! Need flux on isect; need mm_fine on refine(isect).
+                ! Need flux on isect; need mm_fine on isect*ir.
                 !
                 fp => dataptr(flux, i, isect)
                 proc = get_proc(crse%la, j)
                 call parallel_send(fp, proc, tag)
-                mp => dataptr(mm_fine, i, refine(isect,ir))
+                do ii = 1, res%dim
+                   isect%lo(ii) = isect%lo(ii) * ir(ii)
+                   isect%hi(ii) = isect%hi(ii) * ir(ii)
+                end do
+                mp => dataptr(mm_fine, i, isect)
                 call parallel_send(mp, proc, tag)
              else
                 !
                 ! We own crse.  Got to get flux & mm_fine.
                 !
-                ! flux will be defined on isect; mm_fine on refine(isect).
+                ! flux will be defined on isect; mm_fine on isect*ir.
                 !
                 lod = 1;                     hid = 1
                 lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
                 allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:flux%nc))
-                mbox = refine(isect,ir)
+                mbox = isect
+                do ii = 1, res%dim
+                   mbox%lo(ii) = isect%lo(ii) * ir(ii)
+                   mbox%hi(ii) = isect%hi(ii) * ir(ii)
+                end do
                 lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
                 allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:mm_fine%nc))
                 proc = get_proc(flux%la, i)
@@ -426,6 +434,7 @@ contains
           end if
        end do
     end do
+
   end subroutine ml_crse_contrib
 
   subroutine ml_interface_1d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
