@@ -128,6 +128,8 @@ contains
        end select
     end do
 
+    call destroy(bxa_periodic)
+
 !   call mask_pretty_print(mask, "mask", nodal = .true.)
 
   end subroutine stencil_fill_nodal
