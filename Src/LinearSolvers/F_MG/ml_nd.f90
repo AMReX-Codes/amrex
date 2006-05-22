@@ -38,7 +38,7 @@ contains
     type(bndry_reg), allocatable :: brs_flx(:)
 
     type(box   ) :: pd,pdc
-    type(layout) :: la
+    type(layout) :: la,lac
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
     logical :: fine_converged
@@ -83,7 +83,8 @@ contains
        !  the residual at a non-finest AMR level.
 
        pdc = layout_get_pd(mla%la(n-1))
-       call bndry_reg_rr_build(brs_flx(n), la, ref_ratio(n-1,:), pdc, nodal = nodal)
+       lac = mla%la(n-1)
+       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nodal = nodal)
 
     end do
 
