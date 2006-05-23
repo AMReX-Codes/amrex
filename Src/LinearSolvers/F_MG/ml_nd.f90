@@ -38,7 +38,7 @@ contains
     type(bndry_reg), allocatable :: brs_flx(:)
 
     type(box   ) :: pd,pdc
-    type(layout) :: la,lac
+    type(layout) :: la, lac
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
     logical :: fine_converged
@@ -189,19 +189,8 @@ contains
              end if
 
              ! Restrict FINE Res to COARSE Res
-             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),& 
-                  mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:), &
-                  inject = .false., zero_only = .true.)
-
-             call setval(temp_res(n-1),ZERO,all=.true.)
-             call ml_restriction(temp_res(n-1), res(n), mgt(n)%mm(mglev),&
+             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                                  mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
-             do i = 1,dm
-               if (temp_res(n-1)%la%lap%pmask(i)) then
-                 call periodic_add_copy(temp_res(n-1),i)
-               end if
-             end do
-             call saxpy(res(n-1),ONE,temp_res(n-1))
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
@@ -428,16 +417,17 @@ contains
 !     Compute the crse contributions at edges and corners and add to fine contributions
 !        in temp_crse_res (need to do this in a temporary for periodic issues)
       call setval(temp_crse_res,ZERO,all=.true.)
-
       do i = 1,dm
          call ml_crse_contrib(temp_crse_res, brs_flx%bmf(i,0), crse_soln, &
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
-              mgt(n  )%mm(mglev_fine), pdc,ref_ratio, -i)
+              mgt(n  )%mm(mglev_fine), &
+              pdc,ref_ratio, -i)
          call ml_crse_contrib(temp_crse_res, brs_flx%bmf(i,1), crse_soln, &
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
-              mgt(n  )%mm(mglev_fine), pdc,ref_ratio, +i)
+              mgt(n  )%mm(mglev_fine), &
+              pdc,ref_ratio, +i)
       end do
 
       do i = 1,dm
