@@ -430,93 +430,18 @@ contains
               pdc,ref_ratio, +i)
       end do
 
-      do i = 1,dm
-        if (crse_res%la%lap%pmask(i)) then
-          call periodic_add_copy(temp_crse_res,i)
-        end if
-      end do
-
 !     Add to res(n-1).
       call saxpy(crse_res,ONE,temp_crse_res)
+      do i = 1,dm
+        if (crse_res%la%lap%pmask(i)) then
+          call periodic_add_copy(crse_res,temp_crse_res,i)
+        end if
+      end do
 
 !     Clear temp_crse_res (which is temp_res(n-1) from calling routine) just in case...
       call setval(temp_crse_res,ZERO,all=.true.)
 
     end subroutine crse_fine_residual_nodal
-
-    subroutine periodic_add_copy(res,dir)
-
-      type(multifab), intent(inout) :: res
-      integer       , intent(in   ) :: dir
-
-      type(box)           :: domain,bxi,bxj,bx_lo,bx_hi
-      real(dp_t), pointer :: ap(:,:,:,:)
-      real(dp_t), pointer :: bp(:,:,:,:)
-      integer             :: i,j
-      logical             :: nodal(res%dim)
-
-      nodal = .true.
-      domain = box_nodalize(res%la%lap%pd,nodal)
-
-      ! Add values at hi end of domain to lo end.
-      do j = 1, res%nboxes
-  
-        bxj = get_ibox(res,j)
-        if (bxj%lo(dir) == domain%lo(dir)) then
-          call box_set_upb_d(bxj,dir,domain%lo(dir))
-          do i = 1, res%nboxes
-            bxi = get_ibox(res,i)
-            if (bxi%hi(dir) == domain%hi(dir)) then
-              call box_set_lwb_d(bxi,dir,domain%lo(dir))
-              call box_set_upb_d(bxi,dir,domain%lo(dir))
-  
-              bx_lo = box_intersection(bxi,bxj)
-              bx_hi = bx_lo
-              
-              call box_set_lwb_d(bx_hi,dir,domain%hi(dir))
-              call box_set_upb_d(bx_hi,dir,domain%hi(dir))
-  
-              if (.not. box_empty(bx_lo)) then
-                ap => dataptr(res,j,bx_lo)
-                bp => dataptr(res,i,bx_hi)
-                ap = ap + bp
-              end if
-            end if
-          end do
-        end if
-
-      end do
-  
-      ! Copy values from lo end of domain to hi end.
-      do j = 1, res%nboxes
-
-        bxj = get_ibox(res,j)
-        if (bxj%lo(dir) == domain%lo(dir)) then
-          call box_set_upb_d(bxj,dir,domain%lo(dir))
-          do i = 1, res%nboxes
-            bxi = get_ibox(res,i)
-            if (bxi%hi(dir) == domain%hi(dir)) then
-              call box_set_lwb_d(bxi,dir,domain%lo(dir))
-              call box_set_upb_d(bxi,dir,domain%lo(dir))
-  
-              bx_lo = box_intersection(bxi,bxj)
-              bx_hi = bx_lo
-              
-              call box_set_lwb_d(bx_hi,dir,domain%hi(dir))
-              call box_set_upb_d(bx_hi,dir,domain%hi(dir))
-  
-              if (.not. box_empty(bx_lo)) then
-                ap => dataptr(res,j,bx_lo)
-                bp => dataptr(res,i,bx_hi)
-                  bp = ap
-              end if
-            end if
-          end do
-        end if
-
-      end do
-
-    end subroutine periodic_add_copy
 
     function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
       logical :: r
