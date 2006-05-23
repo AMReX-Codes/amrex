@@ -293,7 +293,7 @@ contains
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
     integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM)
-    integer   :: dir, i, j, n, proc, ii
+    integer   :: dir, i, j, n, proc
 
     real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
     integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
@@ -372,10 +372,8 @@ contains
                 fp => dataptr(flux, i, isect)
                 proc = get_proc(crse%la, j)
                 call parallel_send(fp, proc, tag)
-                do ii = 1, res%dim
-                   isect%lo(ii) = isect%lo(ii) * ir(ii)
-                   isect%hi(ii) = isect%hi(ii) * ir(ii)
-                end do
+                isect%lo(1:res%dim) = isect%lo(1:res%dim) * ir(1:res%dim)
+                isect%hi(1:res%dim) = isect%hi(1:res%dim) * ir(1:res%dim)
                 mp => dataptr(mm_fine, i, isect)
                 call parallel_send(mp, proc, tag)
              else
@@ -388,10 +386,8 @@ contains
                 lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
                 allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:flux%nc))
                 mbox = isect
-                do ii = 1, res%dim
-                   mbox%lo(ii) = isect%lo(ii) * ir(ii)
-                   mbox%hi(ii) = isect%hi(ii) * ir(ii)
-                end do
+                mbox%lo(1:res%dim) = mbox%lo(1:res%dim) * ir(1:res%dim)
+                mbox%hi(1:res%dim) = mbox%hi(1:res%dim) * ir(1:res%dim)
                 lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
                 allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:mm_fine%nc))
                 proc = get_proc(flux%la, i)
