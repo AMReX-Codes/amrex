@@ -275,7 +275,7 @@ contains
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
     if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
 
   end subroutine mg_tower_build
 
@@ -447,7 +447,7 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     end if
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_bottom_solve
 
   subroutine mg_defect(ss, dd, ff, uu, mm)
@@ -463,7 +463,7 @@ contains
 
     call saxpy(dd, ff, -1.0_dp_t, dd)
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_defect
 
   subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type)
@@ -587,7 +587,7 @@ contains
        end do
     end do
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_restriction
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
@@ -721,7 +721,7 @@ contains
        call multifab_internal_sync(uu)
     end if
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_smoother
 
   subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
@@ -778,7 +778,7 @@ contains
       end do
     endif
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_prolongation
 
   function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
@@ -948,7 +948,7 @@ contains
        end if
     end if
 
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_cycle
 
   subroutine mini_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
