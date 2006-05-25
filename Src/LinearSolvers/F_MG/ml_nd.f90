@@ -432,11 +432,8 @@ contains
 
 !     Add to res(n-1).
       call saxpy(crse_res,ONE,temp_crse_res)
-      do i = 1,dm
-        if (crse_res%la%lap%pmask(i)) then
-          call periodic_add_copy(crse_res,temp_crse_res,i)
-        end if
-      end do
+
+      call periodic_add_copy(crse_res,temp_crse_res)
 
 !     Clear temp_crse_res (which is temp_res(n-1) from calling routine) just in case...
       call setval(temp_crse_res,ZERO,all=.true.)

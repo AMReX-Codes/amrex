@@ -206,9 +206,7 @@ contains
          call multifab_copy(crse, cfine)
       else
          call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
-         do i = 1,crse%dim
-           if (crse%la%lap%pmask(i)) call periodic_add_copy(crse,cfine,i)
-         end do
+         call periodic_add_copy(crse,cfine)
       end if
 
     end if
@@ -218,129 +216,110 @@ contains
 
   end subroutine ml_nodal_restriction
 
-  subroutine periodic_add_copy(dst,src,dir)
+  subroutine periodic_add_copy(dst,src)
 
-      type(multifab), intent(inout) :: dst
-      type(multifab), intent(in   ) :: src
-      integer       , intent(in   ) :: dir
+    type(multifab), intent(inout) :: dst
+    type(multifab), intent(in   ) :: src
 
-      type(box)             :: domain,bxi,bxj,bx_lo,bx_hi
-      real(dp_t), pointer   :: ap(:,:,:,:), bp(:,:,:,:)
-      integer               :: i,j,proc,lod(MAX_SPACEDIM),hid(MAX_SPACEDIM)
-      logical               :: nodal(dst%dim)
-      integer,    parameter :: tag = 1111
+    type(box)             :: domain,bxi,bxj,bx_to,bx_from
+    type(box)             :: domain_edge_from, domain_edge_to
+    real(dp_t), pointer   :: ap(:,:,:,:), bp(:,:,:,:)
+    integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM)
+    logical               :: nodal(dst%dim)
+    integer               :: shift_vector(3)
+    integer,    parameter :: tag = 1111
 
-      real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
+    real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
 
-      if ( dst%nc .ne. src%nc ) then
-         call bl_error('periodic_add_copy: src & dst must have same # of components')
-      end if
+    if ( dst%nc .ne. src%nc ) then
+       call bl_error('periodic_add_copy: src & dst must have same # of components')
+    end if
 
-      nodal = .true.
+    if ( all(dst%la%lap%pmask .eqv. .false.) ) return
 
-      domain = box_nodalize(dst%la%lap%pd,nodal)
+    nodal  = .true.
 
-      do j = 1, dst%nboxes
-         !
-         ! Add values at hi end of domain to lo end.
-         !
-         bxj = get_ibox(dst,j)
+    domain = box_nodalize(dst%la%lap%pd,nodal)
 
-         if (bxj%lo(dir) == domain%lo(dir)) then
-            call box_set_upb_d(bxj,dir,domain%lo(dir))
-            do i = 1, src%nboxes
-               if ( remote(dst,j) .and. remote(src,i) ) cycle
-               bxi = get_ibox(src,i)
-               if (bxi%hi(dir) == domain%hi(dir)) then
-                  call box_set_lwb_d(bxi,dir,domain%lo(dir))
-                  call box_set_upb_d(bxi,dir,domain%lo(dir))
-                  bx_lo = box_intersection(bxi,bxj)
-                  if (.not. box_empty(bx_lo)) then
-                     bx_hi = bx_lo
-                     call box_set_lwb_d(bx_hi,dir,domain%hi(dir))
-                     call box_set_upb_d(bx_hi,dir,domain%hi(dir))
+    do kdir = -1,1
 
-                     if ( local(dst,j) .and. local(src,i) ) then
-                        ap => dataptr(dst,j,bx_lo)
-                        bp => dataptr(src,i,bx_hi)
-                        ap =  ap + bp
-                     else if ( local(src,i) ) then
-                        !
-                        ! We own src.  Got to send it to processor owning dst.
-                        !
-                        bp   => dataptr(src,i,bx_hi)
-                        proc =  get_proc(dst%la,j)
-                        call parallel_send(bp, proc, tag)
-                     else
-                        !
-                        ! We own dst.  Got to get src from processor owning it.
-                        !
-                        lod = 1; hid = 1
-                        lod(1:src%dim) = lwb(bx_hi); hid(1:src%dim) = upb(bx_hi)
-                        proc = get_proc(src%la,i)
-                        allocate(pt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:dst%nc))
-                        call parallel_recv(pt, proc, tag)
-                        ap => dataptr(dst,j,bx_lo)
-                        ap =  ap + pt
-                        deallocate(pt)
-                     end if
+       if ( dst%dim < 3  .and. kdir /= 0                                         ) cycle
+       if ( dst%dim == 3 .and. (.not. dst%la%lap%pmask(dst%dim)) .and. kdir /= 0 ) cycle
 
-                  end if
-               end if
-            end do
-         end if
-         !
-         ! Add values at lo end of domain to hi end.
-         !
-         bxj = get_ibox(dst,j)
+       if ( dst%dim == 3 ) shift_vector(3) = kdir * (box_extent_d(domain,dst%dim) - 1)
 
-         if (bxj%hi(dir) == domain%hi(dir)) then
-            call box_set_lwb_d(bxj,dir,domain%hi(dir))
-            do i = 1, src%nboxes
-               if ( remote(dst,j) .and. remote(src,i) ) cycle
-               bxi = get_ibox(src,i)
-               if (bxi%lo(dir) == domain%lo(dir)) then
-                  call box_set_lwb_d(bxi,dir,domain%hi(dir))
-                  call box_set_upb_d(bxi,dir,domain%hi(dir))
-                  bx_hi = box_intersection(bxi,bxj)
-                  if (.not. box_empty(bx_hi)) then
-                     bx_lo = bx_hi
-                     call box_set_lwb_d(bx_lo,dir,domain%lo(dir))
-                     call box_set_upb_d(bx_lo,dir,domain%lo(dir))
+       do jdir = -1,1
 
-                     if ( local(dst,j) .and. local(src,i) ) then
-                        ap => dataptr(dst,j,bx_hi)
-                        bp => dataptr(src,i,bx_lo)
-                        ap =  ap + bp
-                     else if ( local(src,i) ) then
-                        !
-                        ! We own src.  Got to send it to processor owning dst.
-                        !
-                        bp   => dataptr(src,i,bx_lo)
-                        proc =  get_proc(dst%la,j)
-                        call parallel_send(bp, proc, tag)
-                     else
-                        !
-                        ! We own dst.  Got to get src from processor owning it.
-                        !
-                        lod = 1; hid = 1
-                        lod(1:src%dim) = lwb(bx_lo); hid(1:src%dim) = upb(bx_lo)
-                        proc = get_proc(src%la,i)
-                        allocate(pt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:dst%nc))
-                        call parallel_recv(pt, proc, tag)
-                        ap => dataptr(dst,j,bx_hi)
-                        ap =  ap + pt
-                        deallocate(pt)
-                     end if
+          if ( .not. dst%la%lap%pmask(2) .and. jdir /= 0 ) cycle
 
-                  end if
-               end if
-            end do
-         end if
+          do idir = -1,1
 
-      end do
-  
+             if ( .not. dst%la%lap%pmask(1) .and. idir /= 0                      ) cycle
+             if ( dst%dim == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
+             if ( dst%dim == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
+
+             shift_vector(1) = idir * (box_extent_d(domain,1) - 1)
+             shift_vector(2) = jdir * (box_extent_d(domain,2) - 1)
+
+             domain_edge_from = intersection(domain,shift(domain, shift_vector))
+             domain_edge_to   = intersection(domain,shift(domain,-shift_vector))
+
+             do j = 1, dst%nboxes
+                !
+                ! Add values from domain_edge_from side to domain_edge_to side
+                !
+                bxj = intersection(get_ibox(dst,j),domain_edge_to)
+
+                if ( .not. empty(bxj) ) then
+                   do i = 1, src%nboxes
+                      if ( remote(dst,j) .and. remote(src,i) ) cycle
+                      bxi = intersection(get_ibox(src,i),domain_edge_from)
+                      if ( .not. empty(bxi) ) then
+                         bxi     = shift(bxi,-shift_vector)
+                         bx_from = box_intersection(bxi,bxj)
+                         if ( .not. empty(bx_from) ) then
+                            bx_to   = bx_from
+                            bx_from = shift(bx_from,shift_vector)
+
+                            ! print *,'ADDING FROM BOX ',bx_from%lo(1),bx_from%lo(2),bx_from%hi(1),bx_from%hi(2)
+                            ! print *,'         TO BOX ',bx_to%lo(1)  ,bx_to%lo(2)  ,bx_to%hi(1)  ,bx_to%hi(2)
+
+                            if ( local(dst,j) .and. local(src,i) ) then
+                               ap => dataptr(dst,j,bx_to)
+                               bp => dataptr(src,i,bx_from)
+                               ap =  ap + bp
+                            else if ( local(src,i) ) then
+                               !
+                               ! We own src.  Got to send it to processor owning dst.
+                               !
+                               bp   => dataptr(src,i,bx_from)
+                               proc =  get_proc(dst%la,j)
+                               call parallel_send(bp, proc, tag)
+                            else
+                               !
+                               ! We own dst.  Got to get src from processor owning it.
+                               !
+                               lo = 1; hi = 1
+                               lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
+                               proc = get_proc(src%la,i)
+                               allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:dst%nc))
+                               call parallel_recv(pt, proc, tag)
+                               ap => dataptr(dst,j,bx_to)
+                               ap =  ap + pt
+                               deallocate(pt)
+                            end if
+
+                         end if
+                      end if
+                   end do
+                end if
+             end do
+          end do
+       end do
+    end do
+
  end subroutine periodic_add_copy
+
 
  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
   type(multifab),  intent(inout) :: fine
