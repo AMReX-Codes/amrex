@@ -206,7 +206,7 @@ contains
          call multifab_copy(crse, cfine)
       else
          call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
-         call periodic_add_copy(crse,cfine)
+         call periodic_add_copy_1(crse,cfine)
       end if
 
     end if
@@ -216,7 +216,15 @@ contains
 
   end subroutine ml_nodal_restriction
 
-  subroutine periodic_add_copy(dst,src)
+  subroutine periodic_add_copy_1(dst,src)
+
+    !
+    ! This version assumes that src is NOT synced up on each edge to start with  - for example,
+    !            if a node in grid A on the lo-x side has value a and 
+    !  the equivalent node in grid B on the hi-x side has value b and
+    !  the equivalent node in grid C on the hi-x side has value c ,
+    !  then the final value of the node in each grid A, B and C will be (a+b+c)
+    !
 
     type(multifab), intent(inout) :: dst
     type(multifab), intent(in   ) :: src
@@ -224,7 +232,7 @@ contains
     type(box)             :: domain,bxi,bxj,bx_to,bx_from
     type(box)             :: domain_edge_from, domain_edge_to
     real(dp_t), pointer   :: ap(:,:,:,:), bp(:,:,:,:)
-    integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM)
+    integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
     logical               :: nodal(dst%dim)
     integer               :: shift_vector(3)
     integer,    parameter :: tag = 1111
@@ -232,34 +240,36 @@ contains
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
 
     if ( dst%nc .ne. src%nc ) then
-       call bl_error('periodic_add_copy: src & dst must have same # of components')
+       call bl_error('periodic_add_copy_1: src & dst must have same # of components')
     end if
 
     if ( all(dst%la%lap%pmask .eqv. .false.) ) return
 
     nodal  = .true.
 
+    dm = dst%dim
+
     domain = box_nodalize(dst%la%lap%pd,nodal)
 
     do kdir = -1,1
 
-       if ( dst%dim < 3  .and. kdir /= 0                                         ) cycle
-       if ( dst%dim == 3 .and. (.not. dst%la%lap%pmask(dst%dim)) .and. kdir /= 0 ) cycle
+       if ( dm < 3  .and. kdir /= 0                                    ) cycle
+       if ( dm == 3 .and. (.not. dst%la%lap%pmask(dm)) .and. kdir /= 0 ) cycle
 
-       if ( dst%dim == 3 ) shift_vector(3) = kdir * (box_extent_d(domain,dst%dim) - 1)
+       if ( dm == 3 ) shift_vector(3) = kdir * (box_extent_d(domain,dm) - 1)
 
        do jdir = -1,1
 
           if ( .not. dst%la%lap%pmask(2) .and. jdir /= 0 ) cycle
+          shift_vector(2) = jdir * (box_extent_d(domain,2) - 1)
 
           do idir = -1,1
 
              if ( .not. dst%la%lap%pmask(1) .and. idir /= 0                      ) cycle
-             if ( dst%dim == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
-             if ( dst%dim == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
+             if ( dm == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
+             if ( dm == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
 
              shift_vector(1) = idir * (box_extent_d(domain,1) - 1)
-             shift_vector(2) = jdir * (box_extent_d(domain,2) - 1)
 
              domain_edge_from = intersection(domain,shift(domain, shift_vector))
              domain_edge_to   = intersection(domain,shift(domain,-shift_vector))
@@ -318,26 +328,146 @@ contains
        end do
     end do
 
- end subroutine periodic_add_copy
+  end subroutine periodic_add_copy_1
 
+  subroutine periodic_add_copy_2(dst,src)
+    !
+    ! This version assumes that src IS synced up on each edge to start with  - for example,
+    !  if a node in grid A on the lo-x side has value a, and the equivalent node in grid B 
+    !  but on the hi-x side has value b, and the equivalent node in grid C on the hi-x side
+    !  has value b also, then the final value of the nodes in A,B and C will be (a+b)
+    !
 
- subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
-  type(multifab),  intent(inout) :: fine
-  type(multifab),  intent(inout) :: crse
-  type(imultifab), intent(in   ) :: mm_fine
-  type(imultifab), intent(in   ) :: mm_crse
-  integer,         intent(in)    :: ir(:)
-  integer,         intent(in)    :: face_type(:,:,:)
-  logical,         intent(in), optional :: inject
-  logical,         intent(in), optional :: zero_only
-  if ( crse%nc .ne. fine%nc ) then
-     call bl_error('ml_restriction: crse & fine must have same # of components')
-  end if
-  if ( nodal_q(fine) ) then
-     call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
-  else
-     call ml_cc_restriction(crse, fine, ir)
-  end if
-end subroutine ml_restriction
+    type(multifab), intent(inout) :: dst
+    type(multifab), intent(in   ) :: src
+
+    type(multifab)        :: temp_dst
+    type(box)             :: domain,bxi,bxj,bx_to,bx_from
+    type(box)             :: domain_edge_from, domain_edge_to
+    real(dp_t), pointer   :: ap(:,:,:,:)
+    real(dp_t), pointer   :: bp(:,:,:,:)
+    integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
+    logical               :: nodal(dst%dim)
+    integer               :: shift_vector(3)
+    integer,  parameter   :: tag = 1111
+
+    real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
+
+    if ( dst%nc .ne. src%nc ) then
+       call bl_error('periodic_add_copy_1: src & dst must have same # of components')
+    end if
+
+    if ( all(dst%la%lap%pmask .eqv. .false.) ) return
+
+    nodal  = .true.
+
+    dm = dst%dim
+
+    domain = box_nodalize(dst%la%lap%pd,nodal)
+
+    call multifab_build(temp_dst,dst%la,1,0,nodal)
+
+    do kdir = -1,1
+
+       if ( dm < 3  .and. kdir /= 0                                    ) cycle
+       if ( dm == 3 .and. (.not. dst%la%lap%pmask(dm)) .and. kdir /= 0 ) cycle
+
+       if ( dm == 3 ) shift_vector(3) = kdir * (box_extent_d(domain,dm) - 1)
+
+       do jdir = -1,1
+
+          if ( .not. dst%la%lap%pmask(2) .and. jdir /= 0 ) cycle
+          shift_vector(2) = jdir * (box_extent_d(domain,2) - 1)
+
+          do idir = -1,1
+
+             if ( .not. dst%la%lap%pmask(1) .and. idir /= 0                      ) cycle
+             if ( dm == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
+             if ( dm == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
+
+             shift_vector(1) = idir * (box_extent_d(domain,1) - 1)
+
+             domain_edge_from = intersection(domain,shift(domain, shift_vector))
+             domain_edge_to   = intersection(domain,shift(domain,-shift_vector))
+
+             call setval(temp_dst,ZERO)
+
+             do j = 1, temp_dst%nboxes
+                !
+                ! Add values from domain_edge_from side to domain_edge_to side
+                !
+                bxj = intersection(get_ibox(temp_dst,j),domain_edge_to)
+
+                if ( .not. empty(bxj) ) then
+                   do i = 1, src%nboxes
+                      if ( remote(temp_dst,j) .and. remote(src,i) ) cycle
+                      bxi = intersection(get_ibox(src,i),domain_edge_from)
+                      if ( .not. empty(bxi) ) then
+                         bxi     = shift(bxi,-shift_vector)
+                         bx_from = box_intersection(bxi,bxj)
+                         if ( .not. empty(bx_from) ) then
+                            bx_to   = bx_from
+                            bx_from = shift(bx_from,shift_vector)
+
+!                           print *,'FROM / TO ',i,j
+!                           print *,'ADDING FROM BOX ',bx_from%lo(1),bx_from%lo(2),bx_from%hi(1),bx_from%hi(2)
+!                           print *,'         TO BOX ',bx_to%lo(1)  ,bx_to%lo(2)  ,bx_to%hi(1)  ,bx_to%hi(2)
+
+                            if ( local(temp_dst,j) .and. local(src,i) ) then
+                               ap => dataptr(temp_dst,j,bx_to)
+                               bp => dataptr(src,i,bx_from)
+                               ap =  bp
+                            else if ( local(src,i) ) then
+                               !
+                               ! We own src.  Got to send it to processor owning dst.
+                               !
+                               bp   => dataptr(src,i,bx_from)
+                               proc =  get_proc(temp_dst%la,j)
+                               call parallel_send(bp, proc, tag)
+                            else
+                               !
+                               ! We own temp_dst.  Got to get src from processor owning it.
+                               !
+                               lo = 1; hi = 1
+                               lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
+                               proc = get_proc(src%la,i)
+                               allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:temp_dst%nc))
+                               call parallel_recv(pt, proc, tag)
+                               ap => dataptr(temp_dst,j,bx_to)
+                               ap =  pt
+                               deallocate(pt)
+                            end if
+                         end if
+                      end if
+                   end do
+                end if
+             end do
+             call saxpy(dst,ONE,temp_dst)
+          end do
+       end do
+    end do
+ 
+    call multifab_destroy(temp_dst)
+
+  end subroutine periodic_add_copy_2
+
+  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+    type(multifab),  intent(inout) :: fine
+    type(multifab),  intent(inout) :: crse
+    type(imultifab), intent(in   ) :: mm_fine
+    type(imultifab), intent(in   ) :: mm_crse
+    integer,         intent(in)    :: ir(:)
+    integer,         intent(in)    :: face_type(:,:,:)
+    logical,         intent(in), optional :: inject
+    logical,         intent(in), optional :: zero_only
+    if ( crse%nc .ne. fine%nc ) then
+       call bl_error('ml_restriction: crse & fine must have same # of components')
+    end if
+    if ( nodal_q(fine) ) then
+       call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+    else
+       call ml_cc_restriction(crse, fine, ir)
+    end if
+ end subroutine ml_restriction
 
 end module ml_restriction_module

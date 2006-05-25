@@ -433,7 +433,7 @@ contains
 !     Add to res(n-1).
       call saxpy(crse_res,ONE,temp_crse_res)
 
-      call periodic_add_copy(crse_res,temp_crse_res)
+      call periodic_add_copy_2(crse_res,temp_crse_res)
 
 !     Clear temp_crse_res (which is temp_res(n-1) from calling routine) just in case...
       call setval(temp_crse_res,ZERO,all=.true.)
