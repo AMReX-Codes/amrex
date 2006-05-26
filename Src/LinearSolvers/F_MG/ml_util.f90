@@ -32,7 +32,7 @@ contains
        call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
     end if
 
-    call multifab_fill_boundary(uu)
+!    call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)

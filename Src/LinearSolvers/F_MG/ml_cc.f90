@@ -433,6 +433,8 @@ contains
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
+      call multifab_fill_boundary(uu(n))
+
       do i = 1, dm
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
               uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i)
