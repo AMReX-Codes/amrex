@@ -101,7 +101,6 @@ contains
           do j = 1, nb
 
              rbox = coarsen(box_nodalize(get_box(la,j), nodal), rr)
-
              lo = lwb(rbox)
              hi = upb(rbox)
 
@@ -145,6 +144,7 @@ contains
              do k = 1, nboxes(lac)
 !               bx = intersection(bxs1(j), grow(get_box(lac, k),1,i,ff))
                 bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
+                bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
                 if ( .not. empty(bx) ) then
                    cnt = cnt + 1
                 end if
@@ -158,11 +158,9 @@ contains
              end do
 
              call build(bxs(j), lo, hi)
-! call print(bxs(j), "bxs")
 
           end do
 
-! print *, 'CNT = ', cnt
           call build(baa, bxs, sort = .false.)
           call build(br%laf(i,f), baa, explicit_mapping = get_proc(la))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
@@ -174,7 +172,8 @@ contains
           do j = 1, nb
              do k = 1, nboxes(lac)
 !               bx = intersection(bxs1(j), grow(get_box(lac,k),1,i,ff))
-                bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
+!               bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
+                bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
                 if ( .not. empty(bx) ) then
                    lo = lwb(bx)
                    hi = upb(bx)
@@ -191,7 +190,6 @@ contains
                 end if
              end do
           end do
-! print *, 'PRCC = ', prcc
           call build(baa, bxsc, sort = .false.)
           call build(br%olaf(i,f), baa, explicit_mapping = prcc)
           deallocate(bxsc, prcc)
@@ -199,15 +197,6 @@ contains
           call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
        end do
     end do
-! if ( parallel_ioprocessor() ) then
-! do i = 1, dm
-!    do f = 0, 1
-!       call print(br%laf(i,f), unit = 50)
-!       call print(br%olaf(i,f), unit = 51)
-! end do
-! end do
-! end if
-! call parallel_barrier()
   end subroutine bndry_reg_rr_build_1
 
   subroutine bndry_reg_rr_build(br, la, rr, pd, nc, width, nodal)
