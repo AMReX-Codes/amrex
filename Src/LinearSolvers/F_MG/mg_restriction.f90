@@ -485,7 +485,7 @@ contains
                     jbot = jfine-n
                     jtop = jfine+n
                     kdwn = kfine-l
-                    kup  = kfine+n
+                    kup  = kfine+l
                  
                     if (ifine == lof(1)+1 .and. &
                      .not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
