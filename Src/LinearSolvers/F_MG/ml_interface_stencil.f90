@@ -77,6 +77,8 @@ contains
 
        do i = 1, flux%nboxes
 
+          if ( remote(flux, i) ) cycle
+
           fbox = get_ibox(flux,i)
           lof = lwb(fbox)
 
