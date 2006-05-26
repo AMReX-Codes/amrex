@@ -302,7 +302,9 @@ contains
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: flxpt
     integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
-    real(dp_t) :: snrm(2)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_crse_contrib")
 
     dir = iabs(side)
 
@@ -434,6 +436,8 @@ contains
           end if
        end do
     end do
+
+    call destroy(bpt)
 
   end subroutine ml_crse_contrib
 

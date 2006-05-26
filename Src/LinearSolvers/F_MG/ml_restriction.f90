@@ -1,6 +1,7 @@
 module ml_restriction_module
 
   use bl_types
+  use bl_prof_module
   use multifab_module
   use mg_restriction_module
 
@@ -49,7 +50,7 @@ contains
 
     call copy(crse, cc, cfine, 1, lnc)
 
-    call multifab_destroy(cfine)
+    call destroy(cfine)
 
   end subroutine ml_cc_restriction_c
 
@@ -99,7 +100,7 @@ contains
 
     call copy(crse, cfine)
 
-    call multifab_destroy(cfine)
+    call destroy(cfine)
 
   end subroutine ml_edge_restriction
 
@@ -172,43 +173,42 @@ contains
     end if
 
     if ( .not. lzero_only ) then
-    do i = 1, fine%nboxes
-       if ( remote(fine, i) ) cycle
-       lo       = lwb(get_ibox(cfine,   i))
-       hi       = upb(get_ibox(cfine,   i))
-       lof      = lwb(get_pbox(fine,    i))
-       loc      = lwb(get_pbox(cfine,   i))
-       lom_crse = lwb(get_pbox(mm_cfine,i))
-       lom_fine = lwb(get_pbox(mm_fine, i))
-       do n = 1, fine%nc
-          cp      => dataptr(cfine,   i, n, 1)
-          fp      => dataptr(fine,    i, n, 1)
-          mp_crse => dataptr(mm_cfine,i, n, 1)
-          mp_fine => dataptr(mm_fine, i, n, 1)
-          select case (fine%dim)
-          case (1)
-             call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
-                  mp_fine(:,1,1,1), lom_fine, &
-                  mp_crse(:,1,1,1), lom_crse, lo, hi, ir, linject, rmode)
-          case (2)
-             call nodal_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
-                  mp_fine(:,:,1,1), lom_fine, &
-                  mp_crse(:,:,1,1), lom_crse, lo, hi, ir, linject, rmode)
-          case (3)
-             call nodal_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
-                  mp_fine(:,:,:,1), lom_fine, &
-                  mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
-          end select
+       do i = 1, fine%nboxes
+          if ( remote(fine, i) ) cycle
+          lo       = lwb(get_ibox(cfine,   i))
+          hi       = upb(get_ibox(cfine,   i))
+          lof      = lwb(get_pbox(fine,    i))
+          loc      = lwb(get_pbox(cfine,   i))
+          lom_crse = lwb(get_pbox(mm_cfine,i))
+          lom_fine = lwb(get_pbox(mm_fine, i))
+          do n = 1, fine%nc
+             cp      => dataptr(cfine,   i, n, 1)
+             fp      => dataptr(fine,    i, n, 1)
+             mp_crse => dataptr(mm_cfine,i, n, 1)
+             mp_fine => dataptr(mm_fine, i, n, 1)
+             select case (fine%dim)
+             case (1)
+                call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
+                     mp_fine(:,1,1,1), lom_fine, &
+                     mp_crse(:,1,1,1), lom_crse, lo, hi, ir, linject, rmode)
+             case (2)
+                call nodal_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
+                     mp_fine(:,:,1,1), lom_fine, &
+                     mp_crse(:,:,1,1), lom_crse, lo, hi, ir, linject, rmode)
+             case (3)
+                call nodal_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
+                     mp_fine(:,:,:,1), lom_fine, &
+                     mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
+             end select
+          end do
        end do
-    end do
 
-      if ( linject ) then
-         call multifab_copy(crse, cfine)
-      else
-         call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
-         call periodic_add_copy(crse,cfine,synced=.false.)
-      end if
-
+       if ( linject ) then
+          call multifab_copy(crse, cfine)
+       else
+          call multifab_copy(crse, cfine, filter = ml_restrict_copy_sum)
+          call periodic_add_copy(crse,cfine,synced=.false.)
+       end if
     end if
 
     call destroy(mm_cfine)
@@ -222,7 +222,7 @@ contains
     type(multifab), intent(in   ) :: src
     logical,        intent(in   ) :: synced
     !
-    ! if (synced .eqv. .true)
+    ! if ( synced )
     !
     !   This version assumes that src IS synced up on each edge to start with  - for example,
     !   if a node in grid A on the lo-x side has value a, and the equivalent node in grid B 
@@ -249,11 +249,15 @@ contains
 
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
 
+    type(bl_prof_timer), save :: bpt
+
     if ( dst%nc .ne. src%nc ) then
        call bl_error('periodic_add_copy: src & dst must have same # of components')
     end if
 
     if ( all(dst%la%lap%pmask .eqv. .false.) ) return
+
+    call build(bpt, "periodic_add_copy")
 
     dm     = dst%dim
     nodal  = .true.
@@ -349,7 +353,9 @@ contains
        end do
     end do
  
-    if ( synced ) call multifab_destroy(temp_dst)
+    if ( synced ) call destroy(temp_dst)
+
+    call destroy(bpt)
 
   end subroutine periodic_add_copy
 
@@ -362,14 +368,17 @@ contains
     integer,         intent(in)    :: face_type(:,:,:)
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
+    type(bl_prof_timer), save :: bpt
     if ( crse%nc .ne. fine%nc ) then
        call bl_error('ml_restriction: crse & fine must have same # of components')
     end if
+    call build(bpt, "ml_restriction")
     if ( nodal_q(fine) ) then
        call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
     else
        call ml_cc_restriction(crse, fine, ir)
     end if
+    call destroy(bpt)
  end subroutine ml_restriction
 
 end module ml_restriction_module

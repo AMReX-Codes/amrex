@@ -53,9 +53,7 @@ contains
           end select
        end do
     end do
-
     call destroy(bpt)
-
   end subroutine ml_fill_fluxes
 
   subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
@@ -118,7 +116,7 @@ contains
     integer :: ng, nc
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "ml_fill_ff")
+    call build(bpt, "ml_fill_fine_fluxes")
 
     nc = uu%nc
     ng = uu%ng
@@ -170,6 +168,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: nc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fine_contrib")
 
     nc = res%nc
 
@@ -203,6 +204,7 @@ contains
           end if
        end do
     end do
+    call destroy(bpt)
   end subroutine ml_fine_contrib
 
 end module ml_util_module
