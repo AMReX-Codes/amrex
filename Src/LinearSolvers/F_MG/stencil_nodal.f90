@@ -35,12 +35,14 @@ contains
     integer        , pointer :: mp(:,:,:,:)
 
     type(box)                :: pd_periodic, bx, nbx, bx1
-!   type(boxarray)           :: periodic_edges
     type(boxarray)           :: bxa_periodic, bxa_temp
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo
     integer                  :: shift_vect(ss%dim)
     logical                  :: is_any_periodic
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_fill_nodal")
     !
     ! Do this just to set everything in the mask to zero.
     !
@@ -50,12 +52,10 @@ contains
     do i = 1,ss%dim
       if (ss%la%lap%pmask(i)) is_any_periodic = .true.
     end do
-
     !
     ! Construct a new boxarray that has periodically translated boxes as well
     !   as the original boxes
     !
-
     pd_periodic = ss%la%lap%pd
     call boxarray_build_copy(bxa_periodic,ss%la%lap%bxa)
 
@@ -129,6 +129,7 @@ contains
     end do
 
     call destroy(bxa_periodic)
+    call destroy(bpt)
 
 !   call mask_pretty_print(mask, "mask", nodal = .true.)
 
@@ -155,7 +156,6 @@ contains
     logical          :: nodal(sdim)
 
     nodal = .true.
-
     !
     ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
     !
@@ -168,7 +168,6 @@ contains
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
        if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
-
        !
        ! Hi side
        !
@@ -177,7 +176,6 @@ contains
        mp => dataptr(mask%fbs(idx), bx1)
        if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
        if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
-
     end do
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.

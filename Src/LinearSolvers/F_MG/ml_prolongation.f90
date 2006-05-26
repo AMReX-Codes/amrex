@@ -1,6 +1,7 @@
 module ml_prolongation_module
 
   use bl_types
+  use bl_prof_module
   use multifab_module
 
   implicit none
@@ -30,10 +31,13 @@ contains
     type(layout)        :: lacfine
     type(multifab)      :: cfine
     logical             :: lnodal
+    type(bl_prof_timer), save :: bpt
 
     if ( crse%nc .ne. fine%nc ) then
        call bl_error('ml_prolongation: crse & fine must have same # of components')
     end if
+
+    call build(bpt, "ml_prolongation")
 
     lnodal = nodal_q(fine)
 
@@ -75,7 +79,8 @@ contains
        end do
     end do
 
-    call multifab_destroy(cfine)
+    call destroy(cfine)
+    call destroy(bpt)
 
   end subroutine ml_prolongation
 
@@ -299,7 +304,7 @@ contains
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "ml_intrp_bcs_c")
+    call build(bpt, "ml_interp_bcs_c")
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
