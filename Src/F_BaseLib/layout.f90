@@ -800,7 +800,7 @@ contains
     logical               :: lcross
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "periodic")
+    call build(bpt, "ba_bndry_periodic")
 
     lcross = .false.; if ( present(cross) ) lcross = cross
 
