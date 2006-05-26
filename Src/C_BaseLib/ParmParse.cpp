@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.50 2006-05-03 18:19:29 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.51 2006-05-26 18:11:14 car Exp $
 //
 #include <winstd.H>
 
@@ -246,7 +246,6 @@ getToken (const char*& str,
    // Start token scan.
    //
    lexState state = START;
-   int      k     = 0; // index of output string
    int      pcnt  = 0; // Tracks nested parens
    while (true)
    {
