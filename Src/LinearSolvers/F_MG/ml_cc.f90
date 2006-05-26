@@ -1,5 +1,6 @@
 module ml_cc_module
 
+  use bl_prof_module
   use bl_constants_module
   use stencil_module
   use mg_module
@@ -48,6 +49,10 @@ contains
 
     real(dp_t) :: Anorm, bnorm, res_norm
     real(dp_t) :: tres
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_cc")
 
     if ( present(need_grad_phi_in) ) then
        need_grad_phi = need_grad_phi_in 
@@ -416,6 +421,7 @@ contains
        call bndry_reg_destroy(brs_bcs(n))
     end do
 
+    call destroy(bpt)
 
   contains
 

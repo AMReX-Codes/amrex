@@ -1,5 +1,6 @@
 module ml_nd_module
 
+  use bl_prof_module
   use bl_constants_module
   use stencil_module
   use mg_module
@@ -48,6 +49,10 @@ contains
     real(dp_t) :: tres
 
     logical, allocatable :: nodal(:)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_nd")
 
     dm = rh(1)%dim
     allocate(nodal(dm))
@@ -370,6 +375,8 @@ contains
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_flx(n))
     end do
+
+    call destroy(bpt)
 
   contains
 
