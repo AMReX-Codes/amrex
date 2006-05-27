@@ -108,27 +108,38 @@ contains
      use bl_types
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
-     out = out + in 
+     integer                   :: i, j, k, n
+     !
+     ! out = out + in 
+     !
+     do n = 1, size(out,4)
+        do k = 1, size(out,3)
+           do j = 1, size(out,2)
+              do i = 1, size(out,1)
+                 out(i,j,k,n) = out(i,j,k,n) + in(i,j,k,n)
+              end do
+           end do
+        end do
+     end do
   end subroutine ml_restrict_copy_sum
 
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
-    type(multifab),  intent(inout) :: fine
-    type(multifab),  intent(inout) :: crse
-    type(imultifab), intent(in   ) :: mm_fine
-    type(imultifab), intent(in   ) :: mm_crse
-    integer,         intent(in)    :: ir(:)
-    integer,         intent(in)    :: face_type(:,:,:)
+    type(multifab),  intent(inout)        :: crse
+    type(multifab),  intent(inout)        :: fine
+    type(imultifab), intent(in   )        :: mm_fine
+    type(imultifab), intent(in   )        :: mm_crse
+    integer,         intent(in)           :: ir(:)
+    integer,         intent(in)           :: face_type(:,:,:)
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
 
-    integer             :: i, j, n, id
+    integer             :: i, j, n, id, rmode
     integer             :: lo (fine%dim), hi (fine%dim), loc(fine%dim), lof(fine%dim)
     integer             :: lom_fine(fine%dim), lom_crse(fine%dim)
     logical             :: linject, lzero_only
     type(box)           :: fbox, cbox, isect
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
-    integer             :: rmode
     type(layout)        :: lacfine
     type(multifab)      :: cfine
     type(imultifab)     :: mm_cfine
@@ -141,12 +152,8 @@ contains
     lzero_only = .false. ; if ( present(zero_only) ) lzero_only = zero_only
 
     call layout_build_coarse(lacfine, fine%la, ir)
-    call  multifab_build(cfine,    lacfine, nc =    crse%nc, ng = 0, nodal =    crse%nodal)
-    call imultifab_build(mm_cfine, lacfine, nc = mm_crse%nc, ng = 0, nodal = mm_crse%nodal)
-    call copy(   cfine,    crse)
-    call copy(mm_cfine, mm_crse)
-
-    rmode = 0
+    call  multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
+    call copy(cfine, crse)
 
     if ( .not. linject ) then
        do i = 1, fine%nboxes
@@ -173,6 +180,9 @@ contains
     end if
 
     if ( .not. lzero_only ) then
+       rmode = 0
+       call imultifab_build(mm_cfine, lacfine, nc = mm_crse%nc, ng = 0, nodal = mm_crse%nodal)
+       call copy(mm_cfine, mm_crse)
        do i = 1, fine%nboxes
           if ( remote(fine, i) ) cycle
           lo       = lwb(get_ibox(cfine,   i))
@@ -203,6 +213,8 @@ contains
           end do
        end do
 
+       call destroy(mm_cfine)
+
        if ( linject ) then
           call multifab_copy(crse, cfine)
        else
@@ -211,12 +223,11 @@ contains
        end if
     end if
 
-    call destroy(mm_cfine)
     call destroy(cfine)
 
   end subroutine ml_nodal_restriction
 
-  subroutine periodic_add_copy(dst,src,synced) ! _2 -> .true. && _1 => .false.
+  subroutine periodic_add_copy(dst,src,synced)
 
     type(multifab), intent(inout) :: dst
     type(multifab), intent(in   ) :: src
