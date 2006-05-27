@@ -2484,6 +2484,10 @@ contains
 
     optional filter
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mf_internal_sync_c")
+
     lnc  = 1;        if ( present(nc)  ) lnc  = nc
     lall = .false. ; if ( present(all) ) lall = all
 
@@ -2536,6 +2540,7 @@ contains
           end do
        end do
     end do
+    call destroy(bpt)
   end subroutine multifab_internal_sync_c
 
   subroutine multifab_internal_sync(mf, all, filter)
