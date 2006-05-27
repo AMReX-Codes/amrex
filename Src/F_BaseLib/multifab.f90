@@ -2459,7 +2459,7 @@ contains
   !! by copying values from the lower index number fabs to the higher index
   !! numbered boxes.  Works cell centered and node centered.  Though in a typical
   !! cell-centered multifab, there are no overlaps to reconcile.
-  !! if ALL is true then even ghost cell data is 'reconciled'
+  !! If ALL is true then even ghost cell data is 'reconciled'
   !!
   subroutine multifab_internal_sync_c(mf, c, nc, all, filter)
     type(multifab), intent(inout)               :: mf
@@ -2502,6 +2502,7 @@ contains
        call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
        do jj = 1, cnt
           do i = j, mf%nboxes
+             if ( remote(mf,j) .and. remote(mf,i) ) cycle
              !
              ! Do not overwrite ourselves.
              !
