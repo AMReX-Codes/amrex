@@ -2520,7 +2520,8 @@ contains
                 if ( present(filter) ) then
                    call filter(pdst, psrc)
                 else
-                   pdst = psrc
+                   call cpy_d(pdst, psrc)
+                   ! pdst = psrc
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
@@ -2599,6 +2600,7 @@ contains
        call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
        do jj = 1, cnt
           do i = j, mf%nboxes
+             if ( remote(mf,j) .and. remote(mf,i) ) cycle
              !
              ! Do not overwrite ourselves.
              !
@@ -2616,7 +2618,8 @@ contains
                 if ( present(filter) ) then
                    call filter(pdst, psrc)
                 else
-                   pdst = psrc
+                   call cpy_l(pdst, psrc)
+                   ! pdst = psrc
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
@@ -3379,21 +3382,6 @@ contains
 
   end subroutine mf_copy_fancy_z
 
-  subroutine dull_copy_d(out, in)
-    real(dp_t), intent(inout) :: out(:,:,:,:)
-    real(dp_t), intent(in) :: in(:,:,:,:)
-    integer :: i, j, k, n
-    do n = 1, size(in,4)
-       do k = 1, size(in, 3)
-          do j = 1, size(in,2)
-             do i = 1, size(in, 1)
-                out(i,j,k,n) = in(i,j,k,n)
-             end do
-          end do
-       end do
-    end do
-  end subroutine dull_copy_d
-
   subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, nocomm, filter)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
@@ -3440,7 +3428,7 @@ contains
           if ( present(filter) ) then
              call filter(pdst, psrc)
           else
-             call dull_copy_d(pdst, psrc)
+             call cpy_d(pdst, psrc)
           end if
        end do
        !$OMP END PARALLEL DO
