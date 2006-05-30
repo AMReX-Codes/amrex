@@ -39,6 +39,7 @@ contains
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo
     integer                  :: shift_vect(ss%dim)
     logical                  :: is_any_periodic
+    type(list_box)           :: lb
 
     type(bl_prof_timer), save :: bpt
 
@@ -48,63 +49,74 @@ contains
     !
     call setval(mask,BC_INT)
 
-    is_any_periodic = .false.
-    do i = 1,ss%dim
-      if (ss%la%lap%pmask(i)) is_any_periodic = .true.
-    end do
+    is_any_periodic = any(ss%la%lap%pmask)
     !
     ! Construct a new boxarray that has periodically translated boxes as well
-    !   as the original boxes
+    ! as the original boxes.
     !
     pd_periodic = ss%la%lap%pd
+
     call boxarray_build_copy(bxa_periodic,ss%la%lap%bxa)
 
     if (is_any_periodic) then
+       !
+       ! First trim out all boxes that can't effect periodicity.
+       !
+       do i = 1,nboxes(bxa_periodic)
+          if ( .not. contains(pd_periodic, get_box(bxa_periodic,i), strict = .true.) ) then
+             call push_back(lb, get_box(bxa_periodic,i))
+          end if
+       end do
 
-      do i = 1,ss%dim
-        if (ss%la%lap%pmask(i)) &
-          pd_periodic = box_grow_n_d_f(box_grow_n_d_f(pd_periodic,1,i,-1),1,i,1)
-      end do
+       do i = 1,ss%dim
+          if (ss%la%lap%pmask(i)) then
+             pd_periodic = grow(grow(pd_periodic,1,i,-1),1,i,1)
+          end if
+       end do
 
-      ib_lo = 1; if (ss%la%lap%pmask(1)) ib_lo = -1
+       ib_lo = 1
+       if ( ss%la%lap%pmask(1) ) ib_lo = -1
 
-      jb_lo = 1 
-      if (ss%dim .ge. 2) then
-        if (ss%la%lap%pmask(2)) jb_lo = -1
-      end if
+       jb_lo = 1
+       if ( ss%dim .ge. 2) then
+          if ( ss%la%lap%pmask(2) ) jb_lo = -1
+       end if
 
-      kb_lo = 1  
-      if (ss%dim .ge. 3) then
-        if (ss%la%lap%pmask(3)) kb_lo = -1
-      end if
-  
-      do kb = kb_lo, 1
-      do jb = jb_lo, 1
-      do ib = ib_lo, 1
-        call boxarray_build_copy(bxa_temp,ss%la%lap%bxa)
+       kb_lo = 1
+       if ( ss%dim .ge. 3) then
+          if ( ss%la%lap%pmask(3) ) kb_lo = -1
+       end if
 
-        shift_vect(:) = 0
-        if (                 ss%la%lap%pmask(1)) shift_vect(1) = ib * box_extent_d(ss%la%lap%pd,1)
-        if (ss%dim > 1) then
-          if (ss%la%lap%pmask(2)) shift_vect(2) = jb * box_extent_d(ss%la%lap%pd,2)
-        end if
-        if (ss%dim > 2) then
-          if (ss%la%lap%pmask(3)) shift_vect(3) = kb * box_extent_d(ss%la%lap%pd,3)
-        end if
+       do kb = kb_lo, 1
+          do jb = jb_lo, 1
+             do ib = ib_lo, 1
+                call copy(bxa_temp,lb)
 
-        call boxarray_shift(bxa_temp,shift_vect)
+                shift_vect = 0
 
-        do i = 1, bxa_temp%nboxes
-          bx1 = box_intersection(bxa_temp%bxs(i),pd_periodic)
-          if ( .not. empty(bx1) ) &
-            call boxarray_add_clean(bxa_periodic,bx1)
-        end do
+                if ( ss%la%lap%pmask(1) )    shift_vect(1) = ib * extent(ss%la%lap%pd,1)
 
-        call boxarray_destroy(bxa_temp)
-      end do
-      end do
-      end do
-  
+                if ( ss%dim > 1 ) then
+                   if ( ss%la%lap%pmask(2) ) shift_vect(2) = jb * extent(ss%la%lap%pd,2)
+                end if
+                if ( ss%dim > 2 ) then
+                   if ( ss%la%lap%pmask(3) ) shift_vect(3) = kb * extent(ss%la%lap%pd,3)
+                end if
+
+                call boxarray_shift(bxa_temp,shift_vect)
+
+                do i = 1, bxa_temp%nboxes
+                   bx1 = intersection(bxa_temp%bxs(i),pd_periodic)
+                   if ( .not. empty(bx1) ) then
+                      call boxarray_add_clean(bxa_periodic,bx1)
+                   end if
+                end do
+
+                call destroy(bxa_temp)
+             end do
+          end do
+       end do
+
     end if
 
     do i = 1, ss%nboxes
@@ -138,7 +150,6 @@ contains
   subroutine stencil_set_bc_nodal(sdim, bx, nbx, idx, mask, face_type, pd_periodic, bxa_periodic)
     integer,         intent(in   ) :: sdim
     type(box),       intent(in   ) :: bx, nbx
-!   type(multifab),  intent(in   ) :: ss
     type(imultifab), intent(inout) :: mask
     integer,         intent(in   ) :: idx
     integer,         intent(in   ) :: face_type(:,:,:)
