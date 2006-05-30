@@ -4,6 +4,7 @@ module boxarray_module
   use bl_types
   use box_module
   use list_box_module
+  use bl_prof_module
   use bl_mem_stat_module
 
   implicit none
@@ -1099,11 +1100,13 @@ contains
     type(box), intent(in) :: bx
     type(list_box) :: check, tmp, tmpbl, bl
     type(list_box_node), pointer :: cp, lp
+    type(bl_prof_timer), save :: bpt
 
     if ( empty(ba) ) then
        call boxarray_build_bx(ba, bx)
        return
     end if
+    call build(bpt, "boxarray_add_clean")
     call build(bl, ba%bxs)
     call push_back(check, bx)
     lp => begin(bl)
@@ -1125,6 +1128,7 @@ contains
     call boxlist_simplify(bl)
     call boxarray_build_copy_l(ba, bl)
     call destroy(bl)
+    call destroy(bpt)
 
   end subroutine boxarray_add_clean
 
