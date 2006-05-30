@@ -38,8 +38,8 @@ contains
     type(boxarray)           :: bxa_periodic, bxa_temp
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo
     integer                  :: shift_vect(ss%dim)
-    logical                  :: is_any_periodic
-    type(list_box)           :: lb
+    type(list_box)           :: lb,nbxs
+    type(box), allocatable   :: bxs(:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -48,8 +48,6 @@ contains
     ! Do this just to set everything in the mask to zero.
     !
     call setval(mask,BC_INT)
-
-    is_any_periodic = any(ss%la%lap%pmask)
     !
     ! Construct a new boxarray that has periodically translated boxes as well
     ! as the original boxes.
@@ -58,7 +56,7 @@ contains
 
     call boxarray_build_copy(bxa_periodic,ss%la%lap%bxa)
 
-    if (is_any_periodic) then
+    if ( any(ss%la%lap%pmask) ) then
        !
        ! First trim out all boxes that can't effect periodicity.
        !
@@ -75,7 +73,7 @@ contains
        end do
 
        ib_lo = 1
-       if ( ss%la%lap%pmask(1) ) ib_lo = -1
+       if ( ss%la%lap%pmask(1) )    ib_lo = -1
 
        jb_lo = 1
        if ( ss%dim .ge. 2) then
@@ -108,7 +106,7 @@ contains
                 do i = 1, bxa_temp%nboxes
                    bx1 = intersection(bxa_temp%bxs(i),pd_periodic)
                    if ( .not. empty(bx1) ) then
-                      call boxarray_add_clean(bxa_periodic,bx1)
+                      call push_back(nbxs, bx1)
                    end if
                 end do
 
@@ -116,6 +114,19 @@ contains
              end do
           end do
        end do
+
+       call destroy(lb)
+
+       allocate(bxs(size(nbxs)))
+
+       do i = 1, size(bxs)
+          bxs(i) = front(nbxs)
+          call pop_front(nbxs)
+       end do
+
+       call boxarray_add_clean_boxes(bxa_periodic,bxs,simplify = .false.)
+
+       call destroy(nbxs)
 
     end if
 
