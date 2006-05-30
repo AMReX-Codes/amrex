@@ -1179,35 +1179,45 @@ contains
     end subroutine read_a_legacy_box
 
   end subroutine box_read
+  !
+  ! Used by layout.
+  !
+  subroutine box_periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt,sync_shift)
 
-  subroutine box_periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
-
-    type(box), intent(in)  :: dmn,b
-    logical,   intent(in)  :: nodal(:),pmask(:)
-    integer,   intent(in)  :: ng
-    integer,   intent(out) :: shft(:,:),cnt
-    type(box), intent(out) :: bxs(:)
+    type(box), intent(in)           :: dmn,b
+    logical,   intent(in)           :: nodal(:),pmask(:)
+    integer,   intent(in)           :: ng
+    integer,   intent(out)          :: shft(:,:),cnt
+    type(box), intent(out)          :: bxs(:)
+    logical,   intent(in), optional :: sync_shift
 
     type(box) :: dom, bx, src
     integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
+    logical   :: lsync_shift
 
-    cnt = 0
+    lsync_shift = .false.; if ( present(sync_shift) ) lsync_shift = sync_shift
 
-    if (all(pmask .eqv. .false.)) return
+    if ( .not. lsync_shift ) cnt = 0
 
-    bx  = grow(box_nodalize(b,nodal),ng)
+    if ( all(pmask .eqv. .false.) ) return
+
     dom = box_nodalize(dmn,nodal)
 
-    if (contains(dom,bx)) return
+    if ( lsync_shift ) then
+       bx = b
+    else
+       bx = grow(box_nodalize(b,nodal),ng)
+    end if
 
-    l(:) = 0; where(nodal) l = 1
+    if ( contains(dom,bx,strict = any(nodal)) ) return
 
-    nbeg = 0
-    nend = 0
+    l = 0; where(nodal) l = 1
+
+    nbeg           = 0
+    nend           = 0
     nbeg(1:bx%dim) = -1
     nend(1:bx%dim) = +1
-
-    ldom = (/ extent(dom,1)-l(1), extent(dom,2)-l(2), extent(dom,3)-l(3) /)
+    ldom           = (/ extent(dom,1)-l(1), extent(dom,2)-l(2), extent(dom,3)-l(3) /)
 
     do ri = nbeg(1), nend(1)
        if (ri /= 0 .and. (.not. is_periodic(1))) cycle
@@ -1225,7 +1235,7 @@ contains
 
              src = intersection(dom,bx)
 
-             if (.not. empty(src)) then
+             if ( .not. empty(src) ) then
                 cnt = cnt + 1
                 bxs(cnt) = src
                 r = (/ri*ldom(1),rj*ldom(2),rk*ldom(3)/)
@@ -1251,6 +1261,77 @@ contains
     end function is_periodic
 
   end subroutine box_periodic_shift
+  !
+  ! Used by multifab_internal_sync.
+  !
+  subroutine box_internal_sync_shift(dmn, bx, pmask, nodal, shft, cnt)
+    type(box), intent(in)  :: dmn,bx
+    integer,   intent(out) :: shft(:,:),cnt
+    logical,   intent(in)  :: pmask(:),nodal(:)
+
+    type(box) :: dom,src,bxs(3**bx%dim + 1)
+    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
+    !
+    ! First a zero shift to represent the original box.
+    !
+    cnt = 1; shft(cnt,:) = 0
+
+    call box_periodic_shift(dmn,bx,nodal,pmask,0,shft,bxs,cnt,sync_shift = .true.)
+
+!     if ( all(pmask .eqv. .false.) ) return
+
+!     dom = box_nodalize(dmn,nodal)
+
+!     if ( contains(dom,bx,strict = any(nodal)) ) return
+
+!     l = 0; where(nodal) l = 1
+    
+!     nbeg           = 0
+!     nend           = 0
+!     nbeg(1:bx%dim) = -1
+!     nend(1:bx%dim) = +1
+!     src            = bx
+!     ldom           = (/ extent(dom,1)-l(1),extent(dom,2)-l(2),extent(dom,3)-l(3) /)
+
+!     do ri = nbeg(1), nend(1)
+!        if (ri /= 0 .and. (.not. is_periodic(1))) cycle
+!        if (ri /= 0 .and. is_periodic(1)) src = shift(src,ri*ldom(1),1)
+
+!        do rj = nbeg(2), nend(2)
+!           if (rj /= 0 .and. (.not. is_periodic(2))) cycle
+!           if (rj /= 0 .and. is_periodic(2)) src = shift(src,rj*ldom(2),2)
+
+!           do rk = nbeg(3), nend(3)
+!              if (rk /= 0 .and. (.not. is_periodic(3))) cycle
+!              if (rk /= 0 .and. is_periodic(3)) src = shift(src,rk*ldom(3),3)
+
+!              if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
+
+!              if (intersects(dom,src)) then
+!                 cnt = cnt + 1
+!                 r = (/ri*ldom(1),rj*ldom(2),rk*ldom(3)/)
+!                 shft(cnt,1:bx%dim) = r(1:bx%dim)
+!              end if
+
+!              if (rk /= 0 .and. is_periodic(3)) src = shift(src,-rk*ldom(3),3)
+!           end do
+
+!           if (rj /= 0 .and. is_periodic(2)) src = shift(src,-rj*ldom(2),2)
+!        end do
+
+!        if (ri /= 0 .and. is_periodic(1)) src = shift(src,-ri*ldom(1),1)
+!     end do
+
+!     contains
+
+!       function is_periodic(i) result(r)
+!         integer, intent(in) :: i
+!         logical             :: r
+!         r = .false.
+!         if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
+!       end function is_periodic
+
+  end subroutine box_internal_sync_shift
 
   function box_projectable(bx, rr) result(r)
     logical :: r
