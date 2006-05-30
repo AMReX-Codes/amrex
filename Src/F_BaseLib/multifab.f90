@@ -2382,97 +2382,21 @@ contains
     logical, intent(in), optional  :: nocomm, cross
     call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
   end subroutine zmultifab_fill_boundary
-
-  subroutine multifab_internal_sync_shift(dmn, bx, pmask, nodal, shft, cnt)
-    type(box), intent(in)  :: dmn,bx
-    integer,   intent(out) :: shft(:,:),cnt
-    logical,   intent(in)  :: pmask(:),nodal(:)
-
-    type(box) :: dom,src
-    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
-    !
-    ! First a zero shift to represent the original box.
-    !
-    cnt = 1
-    shft(cnt,:) = 0
-
-    if (all(pmask .eqv. .false.)) return
-
-    dom = box_nodalize(dmn,nodal)
-
-    if (any(nodal .eqv. .true.)) then
-       if (box_contains_strict(dom,bx)) return
-    else
-       if (box_contains(dom,bx)) return
-    end if
-
-    l(:) = 0; where(nodal) l = 1
-    
-    nbeg           = 0
-    nend           = 0
-    nbeg(1:bx%dim) = -1
-    nend(1:bx%dim) = +1
-    src            = bx
-    ldom           = (/ extent(dom,1)-l(1),extent(dom,2)-l(2),extent(dom,3)-l(3) /)
-
-    do ri = nbeg(1), nend(1)
-       if (ri /= 0 .and. (.not. is_periodic(1))) cycle
-       if (ri /= 0 .and. is_periodic(1)) src = shift(src,ri*ldom(1),1)
-
-       do rj = nbeg(2), nend(2)
-          if (rj /= 0 .and. (.not. is_periodic(2))) cycle
-          if (rj /= 0 .and. is_periodic(2)) src = shift(src,rj*ldom(2),2)
-
-          do rk = nbeg(3), nend(3)
-             if (rk /= 0 .and. (.not. is_periodic(3))) cycle
-             if (rk /= 0 .and. is_periodic(3)) src = shift(src,rk*ldom(3),3)
-
-             if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
-
-             if (intersects(dom,src)) then
-                cnt = cnt + 1
-                r = (/ri*ldom(1),rj*ldom(2),rk*ldom(3)/)
-                shft(cnt,1:bx%dim) = r(1:bx%dim)
-             end if
-
-             if (rk /= 0 .and. is_periodic(3)) src = shift(src,-rk*ldom(3),3)
-          end do
-
-          if (rj /= 0 .and. is_periodic(2)) src = shift(src,-rj*ldom(2),2)
-       end do
-
-       if (ri /= 0 .and. is_periodic(1)) src = shift(src,-ri*ldom(1),1)
-    end do
-
-    contains
-
-      function is_periodic(i) result(r)
-        integer, intent(in) :: i
-        logical             :: r
-        r = .false.
-        if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
-      end function is_periodic
-
-  end subroutine multifab_internal_sync_shift
-  !!
-  !! Internal Sync makes sure that any overlapped values are reconciled
-  !! by copying values from the lower index number fabs to the higher index
-  !! numbered boxes.  Works cell centered and node centered.  Though in a typical
-  !! cell-centered multifab, there are no overlaps to reconcile.
-  !! If ALL is true then even ghost cell data is 'reconciled'
-  !!
-  subroutine multifab_internal_sync_c(mf, c, nc, all, filter)
+  !
+  ! Helper function for multifab_internal_sync()
+  !
+  subroutine mf_internal_sync_easy(mf, c, lnc, lall, filter)
     type(multifab), intent(inout)               :: mf
     integer, intent(in)                         :: c
-    integer, intent(in), optional               :: nc
-    logical, intent(in), optional               :: all
+    integer, intent(in)                         :: lnc
+    logical, intent(in)                         :: lall
     type(box)                                   :: ibx, jbx, abx
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
-    integer                                     :: i, j, jj, proc, cnt, lnc
+    integer                                     :: i, j, jj, proc, cnt
     integer                                     :: shft(3**mf%dim,mf%dim)
     integer, parameter                          :: tag = 1104
-    logical                                     :: lall
+    logical                                     :: first
 
     interface
        subroutine filter(out, in)
@@ -2484,34 +2408,29 @@ contains
 
     optional filter
 
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "mf_internal_sync_c")
-
-    lnc  = 1;        if ( present(nc)  ) lnc  = nc
-    lall = .false. ; if ( present(all) ) lall = all
-
-    if ( mf%nc < (c+lnc-1) ) call bl_error('MULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
-
     do j = 1, mf%nboxes
        if ( lall ) then
           jbx = get_pbox(mf,j)
        else
           jbx = get_ibox(mf,j)
        end if
-       call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
-       do jj = 1, cnt
-          do i = j, mf%nboxes
-             if ( remote(mf,j) .and. remote(mf,i) ) cycle
+       first = .true.
+       do i = j, mf%nboxes
+          if ( remote(mf,j) .and. remote(mf,i) ) cycle
+          if ( first ) then
+             call box_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
+             first = .false.
+          end if
+          if ( lall ) then
+             ibx = get_pbox(mf,i)
+          else
+             ibx = get_ibox(mf,i)
+          end if
+          do jj = 1, cnt
              !
              ! Do not overwrite ourselves.
              !
-             if (i == j .and. .not. any(shft(jj,:) /= 0)) cycle
-             if ( lall ) then
-                ibx = get_pbox(mf,i)
-             else
-                ibx = get_ibox(mf,i)
-             end if
+             if ( i == j .and. all(shft(jj,:) == 0) ) cycle
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
              if ( empty(abx) ) cycle
              if ( local(mf, i) .and. local(mf, j) ) then
@@ -2521,7 +2440,6 @@ contains
                    call filter(pdst, psrc)
                 else
                    call cpy_d(pdst, psrc)
-                   ! pdst = psrc
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
@@ -2542,12 +2460,51 @@ contains
           end do
        end do
     end do
+
+  end subroutine mf_internal_sync_easy
+  !!
+  !! Internal Sync makes sure that any overlapped values are reconciled
+  !! by copying values from the lower index number fabs to the higher index
+  !! numbered boxes.  Works cell centered and node centered.  Though in a typical
+  !! cell-centered multifab, there are no overlaps to reconcile.
+  !! If ALL is true then even ghost cell data is 'reconciled'
+  !!
+  subroutine multifab_internal_sync_c(mf, c, nc, all, filter)
+    type(multifab), intent(inout)               :: mf
+    integer, intent(in)                         :: c
+    integer, intent(in), optional               :: nc
+    logical, intent(in), optional               :: all
+    type(box)                                   :: ibx, jbx, abx
+    real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
+    integer                                     :: i, j, jj, proc, cnt, lnc
+    integer                                     :: shft(3**mf%dim,mf%dim)
+    integer, parameter                          :: tag = 1104
+    logical                                     :: lall
+    type(bl_prof_timer), save                   :: bpt
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    lnc  = 1;        if ( present(nc)  ) lnc  = nc
+    lall = .false. ; if ( present(all) ) lall = all
+
+    if ( mf%nc < (c+lnc-1) ) call bl_error('MULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
+
+    call build(bpt, "mf_internal_sync_c")
+    call mf_internal_sync_easy(mf, c, lnc, lall, filter)
     call destroy(bpt)
   end subroutine multifab_internal_sync_c
 
   subroutine multifab_internal_sync(mf, all, filter)
-    type(multifab), intent(inout)               :: mf
-    logical, intent(in), optional               :: all
+    type(multifab), intent(inout) :: mf
+    logical, intent(in), optional :: all
     interface
        subroutine filter(out, in)
          use bl_types
@@ -2597,7 +2554,7 @@ contains
        else
           jbx = get_ibox(mf,j)
        end if
-       call multifab_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
+       call box_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
        do jj = 1, cnt
           do i = j, mf%nboxes
              if ( remote(mf,j) .and. remote(mf,i) ) cycle
@@ -2619,7 +2576,6 @@ contains
                    call filter(pdst, psrc)
                 else
                    call cpy_l(pdst, psrc)
-                   ! pdst = psrc
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
@@ -2643,8 +2599,8 @@ contains
   end subroutine lmultifab_internal_sync_c
 
   subroutine lmultifab_internal_sync(mf, all, filter)
-    type(lmultifab), intent(inout)           :: mf
-    logical, intent(in), optional            :: all
+    type(lmultifab), intent(inout) :: mf
+    logical, intent(in), optional  :: all
     interface
        subroutine filter(out, in)
          logical, intent(inout) :: out(:,:,:,:)
