@@ -1132,12 +1132,17 @@ contains
 
   end subroutine boxarray_add_clean
 
-  subroutine boxarray_add_clean_boxes(ba, bxs)
+  subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bxs(:)
+    logical, intent(in), optional :: simplify
+    logical :: lsimplify
     type(list_box) :: check, tmp, tmpbl, bl
     type(list_box_node), pointer :: cp, lp
     integer :: i
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "boxarray_add_clean_boxes")
+    lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
     if ( empty(ba) ) then
        call boxarray_build_bx(ba, bxs(1))
     end if
@@ -1161,9 +1166,12 @@ contains
        end do
        call splice(bl, check)
     end do
-    call boxlist_simplify(bl)
+    if ( lsimplify ) then
+       call boxlist_simplify(bl)
+    end if
     call boxarray_build_copy_l(ba, bl)
     call destroy(bl)
+    call destroy(bpt)
 
   end subroutine boxarray_add_clean_boxes
 
