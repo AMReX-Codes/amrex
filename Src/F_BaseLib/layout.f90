@@ -813,7 +813,7 @@ contains
 
     shfts = 0
 
-    call box_periodic_shift(dmn, b, nodal, pmask, ng, shft, bxs, cnt)
+    call box_periodic_shift(dmn, b, nodal, pmask, ng, shft, cnt, bxs)
 
     if ( cnt > 0 ) then
        if ( lcross ) then
