@@ -394,8 +394,8 @@ ifeq ($(ARCH),AIX)
       FFLAGS += -O2
       F90FLAGS += -O2
     else
-      FFLAGS   += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
-      F90FLAGS += -O3 -qstrict -qtune=pwr3 -qarch=pwr3
+      FFLAGS   += -O3 -qstrict -qtune=auto -qarch=auto -qcache=auto
+      F90FLAGS += -O3 -qstrict -qtune=auto -qarch=auto -qcache=auto
     endif
   else
     FFLAGS += -g
