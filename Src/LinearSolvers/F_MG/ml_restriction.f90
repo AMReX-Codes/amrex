@@ -250,7 +250,7 @@ contains
     !
     type(multifab)        :: temp_dst
     type(box)             :: domain,bxi,bxj,bx_to,bx_from
-    type(box)             :: domain_edge_from, domain_edge_to
+    type(box)             :: domain_edge_src, domain_edge_dst
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
     integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
@@ -296,68 +296,61 @@ contains
 
              shift_vector(1) = idir * (box_extent_d(domain,1) - 1)
 
-             domain_edge_from = intersection(domain,shift(domain, shift_vector))
-             domain_edge_to   = intersection(domain,shift(domain,-shift_vector))
+             domain_edge_src = intersection(domain,shift(domain, shift_vector))
+             domain_edge_dst = intersection(domain,shift(domain,-shift_vector))
 
              if ( synced ) call setval(temp_dst,ZERO)
-
+             !
+             ! Add values from domain_edge_src side to domain_edge_dst side
+             !
              do j = 1, dst%nboxes
-                !
-                ! Add values from domain_edge_from side to domain_edge_to side
-                !
-                bxj = intersection(get_ibox(dst,j),domain_edge_to)
-
-                if ( .not. empty(bxj) ) then
-                   do i = 1, src%nboxes
-                      if ( remote(dst,j) .and. remote(src,i) ) cycle
-                      bxi = intersection(get_ibox(src,i),domain_edge_from)
-                      if ( .not. empty(bxi) ) then
-                         bxi     = shift(bxi,-shift_vector)
-                         bx_from = box_intersection(bxi,bxj)
-                         if ( .not. empty(bx_from) ) then
-                            bx_to   = bx_from
-                            bx_from = shift(bx_from,shift_vector)
-
-                            if ( local(dst,j) .and. local(src,i) ) then
-
-                               if ( synced ) then
-                                  ap => dataptr(temp_dst,j,bx_to)
-                                  bp => dataptr(src,i,bx_from)
-                                  ap =  bp
-                               else
-                                  ap => dataptr(dst,j,bx_to)
-                                  bp => dataptr(src,i,bx_from)
-                                  ap =  ap + bp
-                               end if
-                            else if ( local(src,i) ) then
-                               !
-                               ! We own src.  Got to send it to processor owning dst.
-                               !
-                               bp   => dataptr(src,i,bx_from)
-                               proc =  get_proc(dst%la,j)
-                               call parallel_send(bp, proc, tag)
-                            else
-                               !
-                               ! We own dst.  Got to get src from processor owning it.
-                               !
-                               lo = 1; hi = 1
-                               lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
-                               proc = get_proc(src%la,i)
-                               allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:dst%nc))
-                               call parallel_recv(pt, proc, tag)
-                               if ( synced ) then
-                                  ap => dataptr(temp_dst,j,bx_to)
-                                  ap =  pt
-                               else
-                                  ap => dataptr(dst,j,bx_to)
-                                  ap =  ap + pt
-                               end if
-                               deallocate(pt)
-                            end if
-                         end if
+                bxj = intersection(get_ibox(dst,j),domain_edge_dst)
+                if ( empty(bxj) ) cycle
+                do i = 1, src%nboxes
+                   if ( remote(dst,j) .and. remote(src,i) ) cycle
+                   bxi = intersection(get_ibox(src,i),domain_edge_src)
+                   if ( empty(bxi) ) cycle
+                   bxi     = shift(bxi,-shift_vector)
+                   bx_from = intersection(bxi,bxj)
+                   if ( empty(bx_from) ) cycle
+                   bx_to   = bx_from
+                   bx_from = shift(bx_from,shift_vector)
+                   if ( local(dst,j) .and. local(src,i) ) then
+                      if ( synced ) then
+                         ap => dataptr(temp_dst,j,bx_to)
+                         bp => dataptr(src,i,bx_from)
+                         ap =  bp
+                      else
+                         ap => dataptr(dst,j,bx_to)
+                         bp => dataptr(src,i,bx_from)
+                         ap =  ap + bp
                       end if
-                   end do
-                end if
+                   else if ( local(src,i) ) then
+                      !
+                      ! We own src.  Got to send it to processor owning dst.
+                      !
+                      bp   => dataptr(src,i,bx_from)
+                      proc =  get_proc(dst%la,j)
+                      call parallel_send(bp, proc, tag)
+                   else
+                      !
+                      ! We own dst.  Got to get src from processor owning it.
+                      !
+                      lo = 1; hi = 1
+                      lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
+                      proc = get_proc(src%la,i)
+                      allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:dst%nc))
+                      call parallel_recv(pt, proc, tag)
+                      if ( synced ) then
+                         ap => dataptr(temp_dst,j,bx_to)
+                         ap =  pt
+                      else
+                         ap => dataptr(dst,j,bx_to)
+                         ap =  ap + pt
+                      end if
+                      deallocate(pt)
+                   end if
+                end do
              end do
              if ( synced ) call saxpy(dst,ONE,temp_dst)
           end do
