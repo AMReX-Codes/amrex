@@ -76,6 +76,17 @@ module layout_module
      type(boxassoc), pointer :: next => Null()
   end type boxassoc
 
+  type syncassoc
+     integer :: dim    = 0                  ! spatial dimension 1, 2, or 3
+     integer :: nboxes = 0                  ! number of boxes
+     integer :: grwth  = 0                  ! growth factor
+     logical :: lall   = .false.            ! use valid region or everything
+     logical, pointer :: nodal(:) => Null() ! nodal flag
+     type(local_conn)  :: l_con
+     type(remote_conn) :: r_con
+     type(syncassoc), pointer :: next => Null()
+  end type syncassoc
+
   type copyassoc
      integer           :: dim = 0             ! spatial dimension 1, 2, or 3
      logical, pointer  :: nd_dst(:) => Null() ! dst nodal flag
@@ -117,6 +128,7 @@ module layout_module
      integer, pointer, dimension(:) :: prc => Null()
      type(boxarray) :: bxa
      type(boxassoc), pointer :: bxasc => Null()
+     type(syncassoc), pointer :: snasc => Null()
      type(coarsened_layout), pointer :: crse_la => Null()
      type(pn_layout), pointer :: pn_children => Null()
      type(derived_layout), pointer :: dlay => Null()
@@ -158,6 +170,7 @@ module layout_module
   interface built_q
      module procedure layout_built_q
      module procedure boxassoc_built_q
+     module procedure syncassoc_built_q
      module procedure copyassoc_built_q
   end interface
 
@@ -369,7 +382,8 @@ contains
     type(coarsened_layout), pointer :: clp, oclp
     type(pn_layout), pointer :: pnp, opnp
     type(derived_layout), pointer :: dla, odla
-    type(boxassoc), pointer :: bxa, obxa
+    type(boxassoc),  pointer :: bxa, obxa
+    type(syncassoc), pointer :: snxa, osnxa
     type(copyassoc), pointer :: cpa, ncpa, pcpa
     integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
@@ -405,6 +419,9 @@ contains
        deallocate(dla)
        dla  => odla
     end do
+    !
+    ! Get rid of boxassocs
+    !
     bxa => lap%bxasc
     do while ( associated(bxa) )
        obxa => bxa%next
@@ -412,9 +429,19 @@ contains
        deallocate(bxa)
        bxa => obxa
     end do
-
+    !
+    ! Get rid of syncassocs
+    !
+    snxa => lap%snasc
+    do while ( associated(snxa) )
+       osnxa => snxa%next
+       call syncassoc_destroy(snxa)
+       deallocate(snxa)
+       snxa => osnxa
+    end do
+    !
     ! remove any boxarray hash
-
+    !
     if ( associated(lap%bins) ) then
        do k = lbound(lap%bins,3), ubound(lap%bins,3)
           do j = lbound(lap%bins,2), ubound(lap%bins,2)
@@ -754,6 +781,15 @@ contains
     end if
   end function boxassoc_check
 
+  function syncassoc_check(snxa, ng, nodal, lall) result(r)
+    logical                     :: r
+    type(syncassoc), intent(in) :: snxa
+    integer, intent(in)         :: ng
+    logical, intent(in)         :: nodal(:)
+    logical, intent(in)         :: lall
+    r = snxa%grwth == ng .and. all(snxa%nodal .eqv. nodal) .and. (snxa%lall .eqv. lall)
+  end function syncassoc_check
+
   function layout_boxassoc(la, ng, nodal, cross) result(r)
     type(boxassoc) :: r
     type(layout) , intent(inout) :: la
@@ -770,7 +806,9 @@ contains
        end if
        bp => bp%next
     end do
-    ! didn't find; so have to go looking for it
+    !
+    ! Didn't find; so have to go looking for it.
+    !
     allocate (bp)
     call boxassoc_build(bp, la%lap, ng, nodal, cross)
     bp%next => la%lap%bxasc
@@ -778,11 +816,43 @@ contains
     r = bp
   end function layout_boxassoc
 
+  function layout_syncassoc(la, ng, nodal, lall) result(r)
+    type(syncassoc)              :: r
+    type(layout) , intent(inout) :: la
+    integer, intent(in)          :: ng
+    logical, intent(in)          :: nodal(:)
+    logical, intent(in)          :: lall
+    type(syncassoc), pointer     :: sp
+
+    sp => la%lap%snasc
+    do while ( associated(sp) )
+       if ( syncassoc_check(sp, ng, nodal, lall) ) then
+          r = sp
+          return
+       end if
+       sp => sp%next
+    end do
+    !
+    ! Didn't find; so have to go looking for it.
+    !
+    allocate (sp)
+    call syncassoc_build(sp, la%lap, ng, nodal, lall)
+    sp%next => la%lap%snasc
+    la%lap%snasc => sp
+    r = sp
+  end function layout_syncassoc
+
   function boxassoc_built_q(bxasc) result(r)
     logical :: r
     type(boxassoc), intent(in) :: bxasc
     r = bxasc%dim /= 0
   end function boxassoc_built_q
+
+  function syncassoc_built_q(snasc) result(r)
+    logical :: r
+    type(syncassoc), intent(in) :: snasc
+    r = snasc%dim /= 0
+  end function syncassoc_built_q
 
   subroutine boxarray_bndry_periodic(bxai, dmn, b, nodal, pmask, ng, shfts, cross)
     type(boxarray), intent(out)          :: bxai
@@ -872,8 +942,6 @@ contains
     type(bl_prof_timer), save      :: bpt
     type(box), allocatable :: abxx(:)
     logical, allocatable   :: is_empty(:)
-
-    integer :: mxsize = 0
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: already built")
 
@@ -1059,10 +1127,295 @@ contains
     end do
     call mem_stats_alloc(bxa_ms)
 
-
     call destroy(bpt)
 
   end subroutine boxassoc_build
+
+  subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
+
+    type(layout), intent(in)                 :: la
+    integer, intent(in)                      :: ng
+    logical, intent(in)                      :: nodal(:)
+    logical, intent(in)                      :: lall
+    type(local_conn), pointer, intent(inout) :: filled(:)
+
+    type(box)                      :: ibx, jbx, abx
+    integer                        :: i, j, k, jj, cnt
+    integer                        :: shft(2*3**(la%lap%dim),la%lap%dim)
+    integer, parameter             :: chunksize = 10
+    type(local_copy_desc)          :: lcd
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(list_box)                 :: lb1, lb2
+    type(boxarray)                 :: bxa, ba1, ba2
+    type(box), allocatable         :: bxs(:)
+
+    bxa = get_boxarray(la)
+
+    allocate(filled(bxa%nboxes))
+
+    do i = 1, bxa%nboxes
+       filled(i)%ncpy = 0
+       allocate(filled(i)%cpy(chunksize))
+    end do
+
+    do j = 1, bxa%nboxes
+       jbx = box_nodalize(bxa%bxs(j), nodal)
+       if ( lall ) jbx = grow(jbx,ng)
+       call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
+       do i = j, bxa%nboxes
+          ibx = box_nodalize(bxa%bxs(i), nodal)
+          if ( lall ) ibx = grow(ibx,ng)
+          do jj = 1, cnt
+             !
+             ! Do not overwrite ourselves.
+             !
+             if ( i == j .and. all(shft(jj,:) == 0) ) cycle
+             abx = intersection(ibx, shift(jbx,shft(jj,:)))
+             if ( empty(abx) ) cycle
+             !
+             ! Find parts of abx that haven't been written to already.
+             !
+             do k = 1, filled(i)%ncpy
+                call push_back(lb1, filled(i)%cpy(k)%dbx)
+             end do
+             lb2 = boxlist_boxlist_diff(abx, lb1)
+             do while ( .not. empty(lb2) )
+                filled(i)%ncpy = filled(i)%ncpy + 1
+                if ( filled(i)%ncpy > size(filled(i)%cpy) ) then
+                   allocate(n_cpy(size(filled(i)%cpy) + chunksize))
+                   n_cpy(1:filled(i)%ncpy-1) = filled(i)%cpy(1:filled(i)%ncpy-1)
+                   deallocate(filled(i)%cpy)
+                   filled(i)%cpy => n_cpy
+                end if
+                lcd%ns  = j
+                lcd%nd  = i
+                lcd%sbx = shift(front(lb2), -shft(jj,:))
+                lcd%dbx = front(lb2)
+                filled(i)%cpy(filled(i)%ncpy) = lcd
+                call pop_front(lb2)
+             end do
+
+             call destroy(lb1)
+             call destroy(lb2)
+          end do
+       end do
+    end do
+    !
+    ! Test that we're a unique cover; i.e. no overlap.  Is there a better way to do this?
+    !
+    if ( .false. ) then
+       do i = 1, bxa%nboxes
+          if ( filled(i)%ncpy > 0 ) then
+             allocate(bxs(filled(i)%ncpy))
+             do j = 1, filled(i)%ncpy
+                bxs(j) = filled(i)%cpy(j)%dbx
+             end do
+             call boxarray_add_clean_boxes(ba1, bxs, simplify = .false.)
+             call boxarray_build_v(ba2, bxs, sort = .false.)
+             if ( .not. boxarray_same_q(ba1, ba2) ) then
+                print*, "*** NOT a unique covering !!!"
+                call print(ba1, "ba1")
+                call print(ba2, "ba2")
+                stop
+             end if
+             deallocate(bxs)
+             call destroy(ba1)
+             call destroy(ba2)
+          end if
+       end do
+    end if
+
+  end subroutine internal_sync_unique_cover
+
+  subroutine syncassoc_build(snasc, lap, ng, nodal, lall)
+
+    integer,          intent(in)         :: ng
+    logical,          intent(in)         :: nodal(:)
+    type(layout_rep), intent(in), target :: lap
+    type(syncassoc),  intent(inout)      :: snasc
+    logical,          intent(in)         :: lall
+
+    integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    type(box)                      :: dbx, sbx
+    type(boxarray)                 :: bxa
+    type(layout)                   :: la
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, cnt
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
+    integer, parameter             :: chunksize = 100
+    integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
+    type(local_conn), pointer      :: filled(:)
+    type(bl_prof_timer), save      :: bpt
+
+    if ( built_q(snasc) ) call bl_error("SYNCASSOC_BUILD: already built")
+
+    call build(bpt, "syncassoc_build")
+
+    la%lap       => lap
+    bxa          =  get_boxarray(la)
+    snasc%dim    =  bxa%dim
+    snasc%grwth  =  ng
+    snasc%nboxes =  bxa%nboxes
+
+    allocate(snasc%nodal(snasc%dim))
+    allocate(parr(0:parallel_nprocs()-1,2))
+    allocate(pvol(0:parallel_nprocs()-1,2))
+    allocate(ppvol(0:parallel_nprocs()-1,2))
+    allocate(snasc%l_con%cpy(chunksize))
+    allocate(snasc%r_con%snd(chunksize))
+    allocate(snasc%r_con%rcv(chunksize))
+
+    snasc%lall  = lall
+    snasc%nodal = nodal
+
+    call internal_sync_unique_cover(la, snasc%grwth, snasc%nodal, snasc%lall, filled)
+
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
+
+    do jj = 1, bxa%nboxes
+       if ( filled(jj)%ncpy > 0 ) then
+          do ii = 1, filled(jj)%ncpy
+             i   = filled(jj)%cpy(ii)%nd
+             j   = filled(jj)%cpy(ii)%ns
+             sbx = filled(jj)%cpy(ii)%sbx
+             dbx = filled(jj)%cpy(ii)%dbx
+             if ( local(la, i) .and. local(la, j) ) then
+                if ( li_r > size(snasc%l_con%cpy) ) then
+                   allocate(n_cpy(size(snasc%l_con%cpy) + chunksize))
+                   n_cpy(1:li_r-1) = snasc%l_con%cpy(1:li_r-1)
+                   deallocate(snasc%l_con%cpy)
+                   snasc%l_con%cpy => n_cpy
+                end if
+                lcnt_r                    = lcnt_r + 1
+                snasc%l_con%cpy(li_r)%nd  = i
+                snasc%l_con%cpy(li_r)%ns  = j
+                snasc%l_con%cpy(li_r)%sbx = sbx
+                snasc%l_con%cpy(li_r)%dbx = dbx
+                li_r                      = li_r + 1
+             else if ( local(la, j) ) then ! must send
+                if ( i_s > size(snasc%r_con%snd) ) then
+                   allocate(n_snd(size(snasc%r_con%snd) + chunksize))
+                   n_snd(1:i_s-1) = snasc%r_con%snd(1:i_s-1)
+                   deallocate(snasc%r_con%snd)
+                   snasc%r_con%snd => n_snd
+                end if
+                cnt_s                    = cnt_s + 1
+                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
+                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(dbx)
+                snasc%r_con%snd(i_s)%nd  = i
+                snasc%r_con%snd(i_s)%ns  = j
+                snasc%r_con%snd(i_s)%sbx = sbx
+                snasc%r_con%snd(i_s)%dbx = dbx
+                snasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                snasc%r_con%snd(i_s)%s1  = volume(dbx)
+                i_s                      = i_s + 1
+             else if ( local(la, i) ) then  ! must recv
+                if ( i_r > size(snasc%r_con%rcv) ) then
+                   allocate(n_rcv(size(snasc%r_con%rcv) + chunksize))
+                   n_rcv(1:i_r-1) = snasc%r_con%rcv(1:i_r-1)
+                   deallocate(snasc%r_con%rcv)
+                   snasc%r_con%rcv => n_rcv
+                end if
+                cnt_r                    = cnt_r + 1
+                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
+                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(dbx)
+                snasc%r_con%rcv(i_r)%nd  = i
+                snasc%r_con%rcv(i_r)%ns  = j
+                snasc%r_con%rcv(i_r)%sbx = sbx
+                snasc%r_con%rcv(i_r)%dbx = dbx
+                snasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                sh                       = 1
+                sh(1:snasc%dim)          = extent(dbx)
+                snasc%r_con%rcv(i_r)%sh  = sh
+                i_r                      = i_r + 1
+             end if
+          end do
+       end if
+    end do
+
+    do i = 1, bxa%nboxes
+       deallocate(filled(i)%cpy)
+    end do
+    deallocate(filled)
+
+    snasc%l_con%ncpy = lcnt_r
+    snasc%r_con%nsnd = cnt_s
+    snasc%r_con%nrcv = cnt_r
+
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = snasc%l_con%cpy(1:lcnt_r)
+    deallocate(snasc%l_con%cpy)
+    snasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s)  = snasc%r_con%snd(1:cnt_s)
+    deallocate(snasc%r_con%snd)
+    snasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r)  = snasc%r_con%rcv(1:cnt_r)
+    deallocate(snasc%r_con%rcv)
+    snasc%r_con%rcv => n_rcv
+    !
+    ! This region packs the src/recv boxes into processor order
+    !
+    do i = 0, parallel_nprocs()-1
+       ppvol(i,1) = sum(pvol(0:i-1,1))
+       ppvol(i,2) = sum(pvol(0:i-1,2))
+    end do
+    !
+    ! Pack Receives maintaining original ordering
+    !
+    do i_r = 1, cnt_r
+       i = snasc%r_con%rcv(i_r)%pr
+       snasc%r_con%rcv(i_r)%pv = ppvol(i,1)
+       pv = volume(snasc%r_con%rcv(i_r)%dbx)
+       snasc%r_con%rcv(i_r)%av = snasc%r_con%rcv(i_r)%pv + pv
+       ppvol(i,1) = ppvol(i,1) + pv
+    end do
+    !
+    ! Pack Sends maintaining original ordering
+    !
+    do i_s = 1, cnt_s
+       i = snasc%r_con%snd(i_s)%pr
+       snasc%r_con%snd(i_s)%pv = ppvol(i,2)
+       pv = volume(snasc%r_con%snd(i_s)%dbx)
+       snasc%r_con%snd(i_s)%av = snasc%r_con%snd(i_s)%pv + pv
+       ppvol(i,2) = ppvol(i,2) + pv
+    end do
+    !
+    ! Now compute the volume of data the each processor expects
+    !
+    pcnt_r = count(parr(:,1) /= 0 )
+    pcnt_s = count(parr(:,2) /= 0 )
+    snasc%r_con%nrp  = pcnt_r
+    snasc%r_con%nsp  = pcnt_s
+    snasc%r_con%rvol = sum(pvol(:,1))
+    snasc%r_con%svol = sum(pvol(:,2))
+    allocate(snasc%r_con%str(pcnt_s))
+    allocate(snasc%r_con%rtr(pcnt_r))
+    pi_r = 1; pi_s = 1; rpv  = 0; spv  = 0
+    do i = 0, size(pvol,dim=1)-1
+       if ( pvol(i,1) /= 0 ) then
+          snasc%r_con%rtr(pi_r)%sz = pvol(i,1)
+          snasc%r_con%rtr(pi_r)%pr = i
+          snasc%r_con%rtr(pi_r)%pv = rpv
+          rpv  = rpv + pvol(i,1)
+          pi_r = pi_r + 1
+       end if
+       if ( pvol(i,2) /= 0 ) then
+          snasc%r_con%str(pi_s)%sz = pvol(i,2)
+          snasc%r_con%str(pi_s)%pr = i
+          snasc%r_con%str(pi_s)%pv = spv
+          spv  = spv + pvol(i,2)
+          pi_s = pi_s + 1
+       end if
+    end do
+
+    call destroy(bpt)
+
+  end subroutine syncassoc_build
 
   subroutine boxassoc_destroy(bxasc)
     type(boxassoc), intent(inout) :: bxasc
@@ -1075,6 +1428,17 @@ contains
     deallocate(bxasc%r_con%rtr)
     call mem_stats_dealloc(bxa_ms)
   end subroutine boxassoc_destroy
+
+  subroutine syncassoc_destroy(snasc)
+    type(syncassoc), intent(inout) :: snasc
+    if ( .not. built_q(snasc) ) call bl_error("SYNCASSOC_DESTROY: not built")
+    deallocate(snasc%nodal)
+    deallocate(snasc%l_con%cpy)
+    deallocate(snasc%r_con%snd)
+    deallocate(snasc%r_con%rcv)
+    deallocate(snasc%r_con%str)
+    deallocate(snasc%r_con%rtr)
+  end subroutine syncassoc_destroy
 
   subroutine boxassoc_print(bxasc, str, unit, skip)
     use bl_IO_module

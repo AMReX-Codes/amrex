@@ -395,6 +395,9 @@ module multifab_module
   logical, private :: l_cp_fancy = .true.
   logical, private :: z_cp_fancy = .true.
 
+  logical, private :: d_is_fancy = .true.
+  logical, private :: l_is_fancy = .true.
+
   private cpy_d, cpy_i, cpy_l, cpy_z
 
 contains
@@ -2261,23 +2264,23 @@ contains
     logical :: lnocomm, lcross
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_fill_boundary_c")
-
     lcross  = .false.; if ( present(cross)  ) lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     lng     = mf%ng;   if ( present(ng)     ) lng     = ng
 
-    if ( lng > mf%ng )      call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
+    if ( lng < 1          ) return
 
-    if ( lng < 1 ) goto 999
+    call build(bpt, "mf_fill_boundary_c")
 
     if ( d_fb_fancy ) then
       call mf_fb_fancy_double(mf, c, nc, lng, lcross, lnocomm)
     else
       call mf_fb_easy_double(mf, c, nc, lng, lnocomm)
     end if
-999 call destroy(bpt)
+
+    call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
   subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
@@ -2382,13 +2385,106 @@ contains
     logical, intent(in), optional  :: nocomm, cross
     call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, nocomm, cross)
   end subroutine zmultifab_fill_boundary
-  !
-  ! Helper function for multifab_internal_sync()
-  !
-  subroutine mf_internal_sync_easy(mf, c, lnc, lall, filter)
+
+  subroutine mf_internal_sync_fancy(mf, c, nc, lall, filter)
     type(multifab), intent(inout)               :: mf
     integer, intent(in)                         :: c
-    integer, intent(in)                         :: lnc
+    integer, intent(in)                         :: nc
+    logical, intent(in)                         :: lall
+    type(box)                                   :: sbx, dbx
+    real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc, p
+    integer                                     :: i, j, ii, jj, proc, cnt, sh(MAX_SPACEDIM+1), np
+    integer, parameter                          :: tag = 1104
+    type(syncassoc)                             :: snasc
+    integer,    allocatable                     :: rst(:)
+    integer, allocatable, dimension(:)          :: rcnt, rdsp, scnt, sdsp
+    logical, parameter                          :: Do_AllToAllV = .true.
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    do i = 1, snasc%l_con%ncpy
+       ii  = snasc%l_con%cpy(i)%nd
+       jj  = snasc%l_con%cpy(i)%ns
+       sbx = snasc%l_con%cpy(i)%sbx
+       dbx = snasc%l_con%cpy(i)%dbx
+       pdst  => dataptr(mf%fbs(ii), dbx, c, nc)
+       psrc  => dataptr(mf%fbs(jj), sbx, c, nc)
+       if ( present(filter) ) then
+          call filter(pdst, psrc)
+       else
+          call cpy_d(pdst,  psrc)
+       end if
+    end do
+    !$OMP END PARALLEL DO
+
+    call mf_reserve_double_space(snasc%r_con, nc)
+
+    do i = 1, snasc%r_con%nsnd
+       p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
+       g_snd_d(1 + nc*snasc%r_con%snd(i)%pv:nc*snasc%r_con%snd(i)%av) = reshape(p, nc*snasc%r_con%snd(i)%s1)
+    end do
+
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, snasc%r_con%nsp
+          ii = snasc%r_con%str(i)%pr
+          scnt(ii) = nc*snasc%r_con%str(i)%sz
+          sdsp(ii) = nc*snasc%r_con%str(i)%pv
+       end do
+       do i = 1, snasc%r_con%nrp
+          ii = snasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    else
+       allocate(rst(snasc%r_con%nrp))
+       !
+       ! Always do recv's asynchronously.
+       !
+       do i = 1, snasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv:), &
+               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+       end do
+
+       do i = 1, snasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
+               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+       end do
+
+       call parallel_wait(rst)
+    end if
+
+    do i = 1, snasc%r_con%nrcv
+       sh = snasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, snasc%r_con%rcv(i)%nd, snasc%r_con%rcv(i)%dbx, c, nc)
+       if ( present(filter) ) then
+          call filter(p, reshape(g_rcv_d(1 + nc*snasc%r_con%rcv(i)%pv:nc*snasc%r_con%rcv(i)%av), sh))
+       else
+          p =  reshape(g_rcv_d(1 + nc*snasc%r_con%rcv(i)%pv:nc*snasc%r_con%rcv(i)%av), sh)
+       end if
+    end do
+
+  end subroutine mf_internal_sync_fancy
+
+  subroutine mf_internal_sync_easy(mf, c, nc, lall, filter)
+    type(multifab), intent(inout)               :: mf
+    integer, intent(in)                         :: c
+    integer, intent(in)                         :: nc
     logical, intent(in)                         :: lall
     type(box)                                   :: ibx, jbx, abx
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
@@ -2434,8 +2530,8 @@ contains
              abx = intersection(ibx, shift(jbx,shft(jj,:)))
              if ( empty(abx) ) cycle
              if ( local(mf, i) .and. local(mf, j) ) then
-                pdst => dataptr(mf, i, abx, c, lnc)
-                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                pdst => dataptr(mf, i, abx, c, nc)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, nc)
                 if ( present(filter) ) then
                    call filter(pdst, psrc)
                 else
@@ -2443,11 +2539,11 @@ contains
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
-                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
+                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, nc)
                 call parallel_send(psrc, proc, tag)
              else if ( local(mf, i) ) then  ! must recv
                 proc = get_proc(mf%la,j)
-                pdst => dataptr(mf, i, abx, c, lnc)
+                pdst => dataptr(mf, i, abx, c, nc)
                 if ( present(filter) ) then
                    allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
                    call parallel_recv(pt, proc, tag)
@@ -2470,17 +2566,14 @@ contains
   !! If ALL is true then even ghost cell data is 'reconciled'
   !!
   subroutine multifab_internal_sync_c(mf, c, nc, all, filter)
-    type(multifab), intent(inout)               :: mf
-    integer, intent(in)                         :: c
-    integer, intent(in), optional               :: nc
-    logical, intent(in), optional               :: all
-    type(box)                                   :: ibx, jbx, abx
-    real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
-    integer                                     :: i, j, jj, proc, cnt, lnc
-    integer                                     :: shft(3**mf%dim,mf%dim)
-    integer, parameter                          :: tag = 1104
-    logical                                     :: lall
-    type(bl_prof_timer), save                   :: bpt
+    type(multifab), intent(inout) :: mf
+    integer, intent(in)           :: c
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+
+    integer                   :: lnc
+    logical                   :: lall
+    type(bl_prof_timer), save :: bpt
 
     interface
        subroutine filter(out, in)
@@ -2489,7 +2582,6 @@ contains
          real(dp_t), intent(in   ) ::  in(:,:,:,:)
        end subroutine filter
     end interface
-
     optional filter
 
     lnc  = 1;        if ( present(nc)  ) lnc  = nc
@@ -2497,8 +2589,12 @@ contains
 
     if ( mf%nc < (c+lnc-1) ) call bl_error('MULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
 
-    call build(bpt, "mf_internal_sync_c")
-    call mf_internal_sync_easy(mf, c, lnc, lall, filter)
+    call build(bpt, "mf_internal_sync")
+    if ( d_is_fancy ) then
+       call mf_internal_sync_fancy(mf, c, lnc, lall, filter)
+    else
+       call mf_internal_sync_easy(mf, c, lnc, lall, filter)
+    end if
     call destroy(bpt)
   end subroutine multifab_internal_sync_c
 
@@ -2522,17 +2618,19 @@ contains
   !! cell-centered multifab, there are no overlaps to reconcile.
   !!
   subroutine lmultifab_internal_sync_c(mf, c, nc, all, filter)
-    type(lmultifab), intent(inout)           :: mf
-    integer, intent(in)                      :: c
-    integer, intent(in), optional            :: nc
-    logical, intent(in), optional            :: all
+    type(lmultifab), intent(inout) :: mf
+    integer, intent(in)            :: c
+    integer, intent(in), optional  :: nc
+    logical, intent(in), optional  :: all
+
     type(box)                                :: ibx, jbx, abx
     logical, dimension(:,:,:,:), pointer     :: pdst, psrc
     logical, dimension(:,:,:,:), allocatable :: pt
     integer                                  :: i, j, jj, proc, cnt, lnc
     integer                                  :: shft(3**mf%dim,mf%dim)
-    integer, parameter                       :: tag = 1104
+    integer, parameter                       :: tag = 1204
     logical                                  :: lall
+    type(bl_prof_timer), save                :: bpt
 
     interface
        subroutine filter(out, in)
@@ -2547,6 +2645,8 @@ contains
     lall = .false. ; if ( present(all) ) lall = all
 
     if ( mf%nc < (c+lnc-1) ) call bl_error('LMULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
+
+    call build(bpt, "lmf_internal_sync")
 
     do j = 1, mf%nboxes
        if ( lall ) then
@@ -2596,6 +2696,7 @@ contains
           end do
        end do
     end do
+    call destroy(bpt)
   end subroutine lmultifab_internal_sync_c
 
   subroutine lmultifab_internal_sync(mf, all, filter)
