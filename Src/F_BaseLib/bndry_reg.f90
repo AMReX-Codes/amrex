@@ -125,7 +125,6 @@ contains
                 call bl_error("BUILD_BNDRY_REG: This can't be happening")
              end select
 
-
              ! Grow in the other directions for interping bc's
              ! Grow by lw if possible; if not lw then lw-1, etc; then none.
              ! Note that this makes sure not to leave the physical boundary,
@@ -142,8 +141,6 @@ contains
              end do
              call build(bxs1(j), lo1, hi1)
              do k = 1, nboxes(lac)
-!               bx = intersection(bxs1(j), grow(get_box(lac, k),1,i,ff))
-                bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
                 bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
                 if ( .not. empty(bx) ) then
                    cnt = cnt + 1
@@ -171,8 +168,6 @@ contains
           cnt = 1
           do j = 1, nb
              do k = 1, nboxes(lac)
-!               bx = intersection(bxs1(j), grow(get_box(lac,k),1,i,ff))
-!               bx = intersection(bxs1(j), grow(box_nodalize(get_box(lac,k),nodal),1,i,ff))
                 bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
                 if ( .not. empty(bx) ) then
                    lo = lwb(bx)
@@ -273,7 +268,6 @@ contains
              case default
                 call bl_error("BUILD_BNDRY_REG: This can't be happening")
              end select
-
 
              ! Grow in the other directions for interping bc's
              ! Grow by lw if possible; if not lw then lw-1, etc; then none.
