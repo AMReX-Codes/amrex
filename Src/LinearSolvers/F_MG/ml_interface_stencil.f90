@@ -290,7 +290,7 @@ contains
     integer,        intent(in   ) :: ir(:)
     integer                       :: side
 
-    type(box) :: rbox, fbox, cbox, sbox, mbox, mcbox, isect
+    type(box) :: fbox, cbox, mbox, isect
     integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
@@ -315,10 +315,11 @@ contains
 
     do j = 1, crse%nboxes
 
-       cbox  = get_ibox(crse,j);    loc  = lwb(cbox)  - crse%ng
-       mcbox = get_ibox(mm_crse,j); lomc = lwb(mcbox) - mm_crse%ng
-       rbox  = get_ibox(res,j);     lor  = lwb(rbox)  - res%ng
-       sbox  = get_ibox(ss,j);      los  = lwb(sbox)  - ss%ng
+       cbox  = get_ibox(crse,j)
+       loc   = lwb(get_pbox(crse,j))
+       lomc  = lwb(get_pbox(mm_crse,j))
+       lor   = lwb(get_pbox(res,j))
+       los   = lwb(get_pbox(ss,j))
 
        do i = 1, flux%nboxes
 
@@ -329,19 +330,19 @@ contains
 
           if ( empty(isect) ) cycle
 
-          loflux = lwb(fbox); hiflux = upb(fbox)
+          loflux = lwb(fbox)
+          hiflux = upb(fbox)
 
-          if ( ss%la%lap%pmask(dir) .or. &
-               (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
+          if ( ss%la%lap%pmask(dir) .or. (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
 
-             lo = lwb(isect); hi = upb(isect)
+             lo = lwb(isect)
+             hi = upb(isect)
 
              if ( local(crse,j) .and. local(flux,i) ) then
 
                 lof  =  loflux
                 hif  =  hiflux
-                mbox =  get_ibox(mm_fine,i)
-                lomf =  lwb(mbox) - mm_fine%ng
+                lomf =  lwb(get_pbox(mm_fine,i))
                 fp   => dataptr(flux   , i)
                 mp   => dataptr(mm_fine, i)
                 cp   => dataptr(crse   , j)
