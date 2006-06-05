@@ -1133,11 +1133,11 @@ contains
 
   subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
 
-    type(layout), intent(in)                 :: la
-    integer, intent(in)                      :: ng
-    logical, intent(in)                      :: nodal(:)
-    logical, intent(in)                      :: lall
-    type(local_conn), pointer, intent(inout) :: filled(:)
+    type(layout), intent(in)  :: la
+    integer, intent(in)       :: ng
+    logical, intent(in)       :: nodal(:)
+    logical, intent(in)       :: lall
+    type(local_conn), pointer :: filled(:)
 
     type(box)                      :: ibx, jbx, abx
     integer                        :: i, j, k, jj, cnt
