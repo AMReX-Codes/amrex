@@ -157,6 +157,8 @@ module parallel
   interface parallel_alltoall
      module procedure parallel_alltoall_d
      module procedure parallel_alltoall_dv
+     module procedure parallel_alltoall_i
+     module procedure parallel_alltoall_iv
      module procedure parallel_alltoall_l
      module procedure parallel_alltoall_lv
   end interface
@@ -1101,6 +1103,26 @@ contains
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     call MPI_Alltoallv(b, bc, bd, MPI_DOUBLE_PRECISION, a, ac, ad, MPI_DOUBLE_PRECISION, l_comm, ierr)
   end subroutine parallel_alltoall_dv
+
+  subroutine parallel_alltoall_i(a, b, n, comm)
+    integer, intent(in) :: b(*)
+    integer, intent(inout) :: a(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer, intent(in) :: n
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoall(b, n, MPI_INTEGER, a, n, MPI_INTEGER, l_comm, ierr)
+  end subroutine parallel_alltoall_i
+  ! AlltoAll
+  subroutine parallel_alltoall_iv(a, ac, ad, b, bc, bd, comm)
+    integer, intent(in) :: b(*)
+    integer, intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoallv(b, bc, bd, MPI_INTEGER, a, ac, ad, MPI_INTEGER, l_comm, ierr)
+  end subroutine parallel_alltoall_iv
 
   ! AlltoAll
   subroutine parallel_alltoall_l(a, b, n, comm)
