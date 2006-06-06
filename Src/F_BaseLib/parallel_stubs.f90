@@ -178,6 +178,10 @@ module parallel
   interface parallel_alltoall
      module procedure parallel_alltoall_d
      module procedure parallel_alltoall_dv
+     module procedure parallel_alltoall_i
+     module procedure parallel_alltoall_iv
+     module procedure parallel_alltoall_l
+     module procedure parallel_alltoall_lv
   end interface
 
   interface
@@ -998,6 +1002,46 @@ contains
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_dv
+
+  subroutine parallel_alltoall_i(a, b, n, comm)
+    integer, intent(in) :: b(*)
+    integer, intent(inout) :: a(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer, intent(in) :: n
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(1:n) = b(1:n)
+  end subroutine parallel_alltoall_i
+  ! AlltoAll
+  subroutine parallel_alltoall_iv(a, ac, ad, b, bc, bd, comm)
+    integer, intent(in) :: b(*)
+    integer, intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
+  end subroutine parallel_alltoall_iv
+
+  subroutine parallel_alltoall_l(a, b, n, comm)
+    logical, intent(in) :: b(*)
+    logical, intent(inout) :: a(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer, intent(in) :: n
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(1:n) = b(1:n)
+  end subroutine parallel_alltoall_l
+  ! AlltoAll
+  subroutine parallel_alltoall_lv(a, ac, ad, b, bc, bd, comm)
+    logical, intent(in) :: b(*)
+    logical, intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
+  end subroutine parallel_alltoall_lv
 
   subroutine parallel_bcast_d(a, root, comm)
     real(kind=dp_t), intent(in) :: a
