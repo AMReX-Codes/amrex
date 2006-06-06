@@ -98,6 +98,21 @@ module layout_module
      type(layout_rep), pointer :: lap_src => Null()
   end type copyassoc
 
+  type fluxassoc
+     integer                   :: dim = 0             ! spatial dimension 1, 2, or 3
+     integer                   :: side
+     integer                   :: ir(3)
+     type(box)                 :: crse_domain
+     logical,          pointer :: nd_dst(:) => Null() ! dst nodal flag
+     logical,          pointer :: nd_src(:) => Null() ! src nodal flag
+     type(copyassoc)           :: flux
+     type(copyassoc)           :: mask
+     type(box),        pointer :: fbxs(:) => Null()
+     type(fluxassoc),  pointer :: next    => Null()
+     type(layout_rep), pointer :: lap_dst => Null()
+     type(layout_rep), pointer :: lap_src => Null()
+  end type fluxassoc
+
   type box_intersector
      integer :: i
      type(box) :: bx
@@ -110,7 +125,11 @@ module layout_module
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
-  type(copyassoc), pointer, save :: the_copyassoc_head => Null()
+  type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
+  !
+  ! Global list of fluxassoc's used by ml_crse_contrib()
+  !
+  type(fluxassoc), pointer, save, private :: the_fluxassoc_head => Null()
 
   type layout
      integer :: la_type = LA_UNDF
@@ -172,6 +191,7 @@ module layout_module
      module procedure boxassoc_built_q
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
+     module procedure fluxassoc_built_q
   end interface
 
   interface build
@@ -385,6 +405,7 @@ contains
     type(boxassoc),  pointer :: bxa, obxa
     type(syncassoc), pointer :: snxa, osnxa
     type(copyassoc), pointer :: cpa, ncpa, pcpa
+    type(fluxassoc), pointer :: fla, nfla, pfla
     integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
@@ -476,6 +497,31 @@ contains
        end if
        cpa => ncpa
     end do
+    !
+    ! Remove all fluxassoc's associated with this layout_rep.
+    !
+    fla  => the_fluxassoc_head
+    pfla => Null()
+    do while ( associated(fla) )
+       nfla => fla%next
+       if ( associated(lap, fla%lap_src) .or. associated(lap, fla%lap_dst) ) then
+          if ( associated(fla, the_fluxassoc_head) ) then
+             the_fluxassoc_head => fla%next
+          else
+             pfla%next => nfla
+          end if
+          call fluxassoc_destroy(fla)
+          deallocate(fla)
+       else
+          if ( .not. associated(pfla) ) then
+             pfla => the_fluxassoc_head
+          else
+             pfla => pfla%next
+          end if
+       end if
+       fla => nfla
+    end do
+
     deallocate(lap)
   end subroutine layout_rep_destroy
 
@@ -1722,18 +1768,317 @@ contains
 
   end subroutine copyassoc_build
 
+  subroutine fluxassoc_build(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir)
+
+    type(fluxassoc),  intent(inout) :: flasc
+    type(layout),     intent(in)    :: la_src, la_dst
+    logical,          intent(in)    :: nd_dst(:), nd_src(:)
+    integer,          intent(in)    :: side
+    type(box),        intent(in)    :: crse_domain
+    integer,          intent(in)    :: ir(:)
+
+    integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np, dir, dm
+    integer                        :: sh(MAX_SPACEDIM+1), fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
+    integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
+    type(box)                      :: cbox, fbox, isect
+    type(boxarray)                 :: bxa_src, bxa_dst
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
+    type(box), pointer             :: pfbxs(:) => Null()
+    integer, parameter             :: chunksize = 100
+    logical, parameter             :: Do_AllToAllV = .true.
+    type(bl_prof_timer), save      :: bpt
+
+    if ( built_q(flasc) ) call bl_error("FLUXASSOC_BUILD: already built")
+
+    call build(bpt, "fluxassoc_build")
+
+    dm                =  la_dst%lap%dim
+    np                =  parallel_nprocs()
+    dir               =  iabs(side)
+    lo_dom            =  lwb(crse_domain)
+    hi_dom            =  upb(crse_domain)+1
+    bxa_src           =  get_boxarray(la_src)
+    bxa_dst           =  get_boxarray(la_dst)
+    flasc%dim         =  dm
+    flasc%side        =  side
+    flasc%crse_domain =  crse_domain
+    flasc%lap_dst     => la_dst%lap
+    flasc%lap_src     => la_src%lap
+    flasc%ir(1:dm)    =  ir(1:dm)
+
+    allocate(flasc%nd_dst(dm))
+    allocate(flasc%nd_src(dm))
+
+    flasc%nd_dst = nd_dst
+    flasc%nd_src = nd_src
+
+    allocate(parr(0:np-1,2))
+    allocate(pvol(0:np-1,2))
+    allocate(mpvol(0:np-1,2))
+    allocate(ppvol(0:np-1,2))
+    allocate(flasc%flux%l_con%cpy(chunksize))
+    allocate(flasc%flux%r_con%snd(chunksize))
+    allocate(flasc%flux%r_con%rcv(chunksize))
+    allocate(flasc%mask%r_con%snd(chunksize))
+    allocate(flasc%mask%r_con%rcv(chunksize))
+    allocate(flasc%fbxs(chunksize))
+
+    parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
+
+    do j = 1, bxa_dst%nboxes
+       cbox = box_nodalize(get_box(bxa_dst,j), nd_dst)
+
+       do i = 1, bxa_src%nboxes
+          if ( remote(la_dst,j) .and. remote(la_src,i) ) cycle
+
+          fbox   = box_nodalize(get_box(bxa_src,i), nd_src)
+          isect  = intersection(cbox,fbox)
+          if ( empty(isect) ) cycle
+          loflux = lwb(fbox)
+
+          if ( la_dst%lap%pmask(dir) .or. (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
+
+             if ( local(la_dst,j) .and. local(la_src,i) ) then
+                if ( li_r > size(flasc%flux%l_con%cpy) ) then
+                   allocate(n_cpy(size(flasc%flux%l_con%cpy) + chunksize))
+                   n_cpy(1:li_r-1) = flasc%flux%l_con%cpy(1:li_r-1)
+                   deallocate(flasc%flux%l_con%cpy)
+                   flasc%flux%l_con%cpy => n_cpy
+                end if
+                lcnt_r                         = lcnt_r + 1
+                flasc%flux%l_con%cpy(li_r)%nd  = j
+                flasc%flux%l_con%cpy(li_r)%ns  = i
+                flasc%flux%l_con%cpy(li_r)%sbx = isect
+                flasc%flux%l_con%cpy(li_r)%dbx = isect
+                li_r                           = li_r + 1
+             else if ( local(la_src,i) ) then
+                if ( i_s > size(flasc%flux%r_con%snd) ) then
+                   allocate(n_snd(size(flasc%flux%r_con%snd) + chunksize))
+                   n_snd(1:i_s-1) = flasc%flux%r_con%snd(1:i_s-1)
+                   deallocate(flasc%flux%r_con%snd)
+                   flasc%flux%r_con%snd => n_snd
+                   allocate(n_snd(size(flasc%mask%r_con%snd) + chunksize))
+                   n_snd(1:i_s-1) = flasc%mask%r_con%snd(1:i_s-1)
+                   deallocate(flasc%mask%r_con%snd)
+                   flasc%mask%r_con%snd => n_snd
+                end if
+                cnt_s                         = cnt_s + 1
+                parr(la_dst%lap%prc(j), 2)    = parr(la_dst%lap%prc(j), 2) + 1
+                pvol(la_dst%lap%prc(j), 2)    = pvol(la_dst%lap%prc(j), 2) + volume(isect)
+                flasc%flux%r_con%snd(i_s)%nd  = j
+                flasc%flux%r_con%snd(i_s)%ns  = i
+                flasc%flux%r_con%snd(i_s)%sbx = isect
+                flasc%flux%r_con%snd(i_s)%dbx = isect
+                flasc%flux%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
+                flasc%flux%r_con%snd(i_s)%s1  = volume(isect)
+                isect%lo(1:dm)                = isect%lo(1:dm) * ir(1:dm)
+                isect%hi(1:dm)                = isect%hi(1:dm) * ir(1:dm)
+                mpvol(la_dst%lap%prc(j), 2)   = mpvol(la_dst%lap%prc(j), 2) + volume(isect)
+                flasc%mask%r_con%snd(i_s)%nd  = j
+                flasc%mask%r_con%snd(i_s)%ns  = i
+                flasc%mask%r_con%snd(i_s)%sbx = isect
+                flasc%mask%r_con%snd(i_s)%dbx = isect
+                flasc%mask%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
+                flasc%mask%r_con%snd(i_s)%s1  = volume(isect)
+                i_s                           = i_s + 1
+             else
+                if ( i_r > size(flasc%flux%r_con%rcv) ) then
+                   allocate(n_rcv(size(flasc%flux%r_con%rcv) + chunksize))
+                   n_rcv(1:i_r-1) = flasc%flux%r_con%rcv(1:i_r-1)
+                   deallocate(flasc%flux%r_con%rcv)
+                   flasc%flux%r_con%rcv => n_rcv
+                   allocate(n_rcv(size(flasc%mask%r_con%rcv) + chunksize))
+                   n_rcv(1:i_r-1) = flasc%mask%r_con%rcv(1:i_r-1)
+                   deallocate(flasc%mask%r_con%rcv)
+                   flasc%mask%r_con%rcv => n_rcv
+                   allocate(pfbxs(size(flasc%fbxs) + chunksize))
+                   pfbxs(1:i_r-1) = flasc%fbxs(1:i_r-1)
+                   deallocate(flasc%fbxs)
+                   flasc%fbxs => pfbxs
+                end if
+                cnt_r                         = cnt_r + 1
+                parr(la_src%lap%prc(i), 1)    = parr(la_src%lap%prc(i), 1) + 1
+                pvol(la_src%lap%prc(i), 1)    = pvol(la_src%lap%prc(i), 1) + volume(isect)
+                flasc%flux%r_con%rcv(i_r)%nd  = j
+                flasc%flux%r_con%rcv(i_r)%ns  = i
+                flasc%flux%r_con%rcv(i_r)%sbx = isect
+                flasc%flux%r_con%rcv(i_r)%dbx = isect
+                flasc%flux%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
+                sh                            = 1
+                sh(1:flasc%flux%dim)          = extent(isect)
+                flasc%flux%r_con%rcv(i_r)%sh  = sh
+                flasc%fbxs(i_r)               = fbox
+                isect%lo(1:dm)                = isect%lo(1:dm) * ir(1:dm)
+                isect%hi(1:dm)                = isect%hi(1:dm) * ir(1:dm)
+                mpvol(la_src%lap%prc(i), 1)   = mpvol(la_src%lap%prc(i), 1) + volume(isect)
+                flasc%mask%r_con%rcv(i_r)%nd  = j
+                flasc%mask%r_con%rcv(i_r)%ns  = i
+                flasc%mask%r_con%rcv(i_r)%sbx = isect
+                flasc%mask%r_con%rcv(i_r)%dbx = isect
+                flasc%mask%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
+                sh                            = 1
+                sh(1:flasc%mask%dim)          = extent(isect)
+                flasc%mask%r_con%rcv(i_r)%sh  = sh
+                i_r                           = i_r + 1
+             end if
+          end if
+       end do
+    end do
+
+    flasc%flux%dim        =  dm
+    flasc%flux%l_con%ncpy = lcnt_r
+    flasc%flux%r_con%nsnd = cnt_s
+    flasc%flux%r_con%nrcv = cnt_r
+
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = flasc%flux%l_con%cpy(1:lcnt_r)
+    deallocate(flasc%flux%l_con%cpy)
+    flasc%flux%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s)  = flasc%flux%r_con%snd(1:cnt_s)
+    deallocate(flasc%flux%r_con%snd)
+    flasc%flux%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r)  = flasc%flux%r_con%rcv(1:cnt_r)
+    deallocate(flasc%flux%r_con%rcv)
+    flasc%flux%r_con%rcv => n_rcv
+
+    do i = 0, np-1
+       ppvol(i,1) = sum(pvol(0:i-1,1))
+       ppvol(i,2) = sum(pvol(0:i-1,2))
+    end do
+
+    do i_r = 1, cnt_r
+       i = flasc%flux%r_con%rcv(i_r)%pr
+       flasc%flux%r_con%rcv(i_r)%pv = ppvol(i,1)
+       pv = volume(flasc%flux%r_con%rcv(i_r)%dbx)
+       flasc%flux%r_con%rcv(i_r)%av = flasc%flux%r_con%rcv(i_r)%pv + pv
+       ppvol(i,1) = ppvol(i,1) + pv
+    end do
+
+    do i_s = 1, cnt_s
+       i = flasc%flux%r_con%snd(i_s)%pr
+       flasc%flux%r_con%snd(i_s)%pv = ppvol(i,2)
+       pv = volume(flasc%flux%r_con%snd(i_s)%dbx)
+       flasc%flux%r_con%snd(i_s)%av = flasc%flux%r_con%snd(i_s)%pv + pv
+       ppvol(i,2) = ppvol(i,2) + pv
+    end do
+
+    flasc%flux%r_con%nrp  = count(parr(:,1) /= 0 )
+    flasc%flux%r_con%nsp  = count(parr(:,2) /= 0 )
+    flasc%flux%r_con%rvol = sum(pvol(:,1))
+    flasc%flux%r_con%svol = sum(pvol(:,2))
+    allocate(flasc%flux%r_con%rtr(flasc%flux%r_con%nrp))
+    allocate(flasc%flux%r_con%str(flasc%flux%r_con%nsp))
+    pi_r = 1; pi_s = 1; rpv = 0; spv = 0
+    do i = 0, size(pvol,dim=1)-1
+       if ( pvol(i,1) /= 0 ) then
+          flasc%flux%r_con%rtr(pi_r)%sz = pvol(i,1)
+          flasc%flux%r_con%rtr(pi_r)%pr = i
+          flasc%flux%r_con%rtr(pi_r)%pv = rpv
+          rpv  = rpv + pvol(i,1)
+          pi_r = pi_r + 1
+       end if
+       if ( pvol(i,2) /= 0 ) then
+          flasc%flux%r_con%str(pi_s)%sz = pvol(i,2)
+          flasc%flux%r_con%str(pi_s)%pr = i
+          flasc%flux%r_con%str(pi_s)%pv = spv
+          spv  = spv + pvol(i,2)
+          pi_s = pi_s + 1
+       end if
+    end do
+
+    flasc%mask%dim        = dm
+    flasc%mask%r_con%nsnd = cnt_s
+    flasc%mask%r_con%nrcv = cnt_r
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s)  = flasc%mask%r_con%snd(1:cnt_s)
+    deallocate(flasc%mask%r_con%snd)
+    flasc%mask%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r)  = flasc%mask%r_con%rcv(1:cnt_r)
+    deallocate(flasc%mask%r_con%rcv)
+    flasc%mask%r_con%rcv => n_rcv
+
+    do i = 0, np-1
+       ppvol(i,1) = sum(mpvol(0:i-1,1))
+       ppvol(i,2) = sum(mpvol(0:i-1,2))
+    end do
+
+    do i_r = 1, cnt_r
+       i = flasc%mask%r_con%rcv(i_r)%pr
+       flasc%mask%r_con%rcv(i_r)%pv = ppvol(i,1)
+       pv = volume(flasc%mask%r_con%rcv(i_r)%dbx)
+       flasc%mask%r_con%rcv(i_r)%av = flasc%mask%r_con%rcv(i_r)%pv + pv
+       ppvol(i,1) = ppvol(i,1) + pv
+    end do
+
+    do i_s = 1, cnt_s
+       i = flasc%mask%r_con%snd(i_s)%pr
+       flasc%mask%r_con%snd(i_s)%pv = ppvol(i,2)
+       pv = volume(flasc%mask%r_con%snd(i_s)%dbx)
+       flasc%mask%r_con%snd(i_s)%av = flasc%mask%r_con%snd(i_s)%pv + pv
+       ppvol(i,2) = ppvol(i,2) + pv
+    end do
+
+    flasc%mask%r_con%nrp  = count(parr(:,1) /= 0 )
+    flasc%mask%r_con%nsp  = count(parr(:,2) /= 0 )
+    flasc%mask%r_con%rvol = sum(mpvol(:,1))
+    flasc%mask%r_con%svol = sum(mpvol(:,2))
+    allocate(flasc%mask%r_con%rtr(flasc%mask%r_con%nrp))
+    allocate(flasc%mask%r_con%str(flasc%mask%r_con%nsp))
+    pi_r = 1; pi_s = 1; rpv = 0; spv = 0
+    do i = 0, size(mpvol,dim=1)-1
+       if ( mpvol(i,1) /= 0 ) then
+          flasc%mask%r_con%rtr(pi_r)%sz = mpvol(i,1)
+          flasc%mask%r_con%rtr(pi_r)%pr = i
+          flasc%mask%r_con%rtr(pi_r)%pv = rpv
+          rpv  = rpv + mpvol(i,1)
+          pi_r = pi_r + 1
+       end if
+       if ( mpvol(i,2) /= 0 ) then
+          flasc%mask%r_con%str(pi_s)%sz = mpvol(i,2)
+          flasc%mask%r_con%str(pi_s)%pr = i
+          flasc%mask%r_con%str(pi_s)%pv = spv
+          spv  = spv + mpvol(i,2)
+          pi_s = pi_s + 1
+       end if
+    end do
+
+    call destroy(bpt)
+
+  end subroutine fluxassoc_build
+
   subroutine copyassoc_destroy(cpasc)
     type(copyassoc), intent(inout) :: cpasc
-    if ( .not. built_q(cpasc) ) call bl_error("COPYASSOC_DESTROY: not built")
-    deallocate(cpasc%nd_dst)
-    deallocate(cpasc%nd_src)
-    deallocate(cpasc%l_con%cpy)
-    deallocate(cpasc%r_con%snd)
-    deallocate(cpasc%r_con%rcv)
-    deallocate(cpasc%r_con%str)
-    deallocate(cpasc%r_con%rtr)
+    if ( .not. built_q(cpasc) )        call bl_error("COPYASSOC_DESTROY: not built")
+    if ( associated(cpasc%nd_dst)    ) deallocate(cpasc%nd_dst)
+    if ( associated(cpasc%nd_src)    ) deallocate(cpasc%nd_src)
+    if ( associated(cpasc%l_con%cpy) ) deallocate(cpasc%l_con%cpy)
+    if ( associated(cpasc%r_con%snd) ) deallocate(cpasc%r_con%snd)
+    if ( associated(cpasc%r_con%rcv) ) deallocate(cpasc%r_con%rcv)
+    if ( associated(cpasc%r_con%str) ) deallocate(cpasc%r_con%str)
+    if ( associated(cpasc%r_con%rtr) ) deallocate(cpasc%r_con%rtr)
     cpasc%dim = 0
   end subroutine copyassoc_destroy
+
+  subroutine fluxassoc_destroy(flasc)
+    type(fluxassoc), intent(inout) :: flasc
+    if ( .not. built_q(flasc) )     call bl_error("FLUXASSOC_DESTROY: not built")
+    call copyassoc_destroy(flasc%flux)
+    call copyassoc_destroy(flasc%mask)
+    if ( associated(flasc%fbxs)   ) deallocate(flasc%fbxs)
+    if ( associated(flasc%nd_dst) ) deallocate(flasc%nd_dst)
+    if ( associated(flasc%nd_src) ) deallocate(flasc%nd_src)
+    flasc%dim = 0
+  end subroutine fluxassoc_destroy
 
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
     logical                     :: r
@@ -1745,6 +2090,23 @@ contains
     r = r .and. all(cpasc%nd_dst .eqv. nd_dst)
     r = r .and. all(cpasc%nd_src .eqv. nd_src)
   end function copyassoc_check
+
+  function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
+    logical                     :: r
+    type(fluxassoc), intent(in) :: flasc
+    type(layout),    intent(in) :: la_src, la_dst
+    logical,         intent(in) :: nd_dst(:), nd_src(:)
+    integer,         intent(in) :: side
+    type(box),       intent(in) :: crse_domain
+    integer,         intent(in) :: ir(:)
+    r =         associated(flasc%lap_dst, la_dst%lap)
+    r = r .and. associated(flasc%lap_src, la_src%lap)
+    r = r .and. all(flasc%nd_dst .eqv. nd_dst)
+    r = r .and. all(flasc%nd_src .eqv. nd_src)
+    r = r .and. (flasc%side .eq. side)
+    r = r .and. equal(flasc%crse_domain, crse_domain)
+    r = r .and. all(flasc%ir(1:flasc%dim) .eq. ir(1:flasc%dim))
+  end function fluxassoc_check
 
   function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
     type(copyassoc)                :: r
@@ -1773,11 +2135,47 @@ contains
     r = cp
   end function layout_copyassoc
 
+  function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
+    type(fluxassoc)             :: r
+    type(layout),    intent(in) :: la_dst
+    type(layout),    intent(in) :: la_src
+    logical,         intent(in) :: nd_dst(:), nd_src(:)
+    type(fluxassoc), pointer    :: fl
+    integer,         intent(in) :: side
+    type(box),       intent(in) :: crse_domain
+    integer,         intent(in) :: ir(:)
+    !
+    ! Do we have one stored?
+    !
+    fl => the_fluxassoc_head
+    do while ( associated(fl) )
+       if ( fluxassoc_check(fl, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) ) then
+          r = fl
+          return
+       end if
+       fl => fl%next
+    end do
+    !
+    ! Gotta build one.
+    !
+    allocate(fl)
+    call fluxassoc_build(fl, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir)
+    fl%next => the_fluxassoc_head
+    the_fluxassoc_head => fl
+    r = fl
+  end function layout_fluxassoc
+
   function copyassoc_built_q(cpasc) result(r)
     logical :: r
     type(copyassoc), intent(in) :: cpasc
     r = cpasc%dim /= 0
   end function copyassoc_built_q
+
+  function fluxassoc_built_q(flasc) result(r)
+    logical :: r
+    type(fluxassoc), intent(in) :: flasc
+    r = flasc%dim /= 0
+  end function fluxassoc_built_q
 
   subroutine init_box_hash_bin(la, crsn)
     type(layout), intent(inout) :: la
