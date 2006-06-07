@@ -8,6 +8,8 @@ module layout_module
 
   implicit none
 
+  logical, parameter, private :: verbose = .false.
+
   integer, private, parameter :: LA_UNDF = 0
   integer, private, parameter :: LA_BASE = 1
   integer, private, parameter :: LA_CRSN = 2
@@ -1086,36 +1088,20 @@ contains
        if ( .not. first ) call destroy(bxai)
     end do
 
-    if ( .false. ) then
+    if ( verbose ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        if ( parallel_IOProcessor() ) then
-          print*, '*** chunksize = ', chunksize
-          print*, '*** max(lcnt_r) = ', lcnt_r_max
-          print*, '*** max(cnt_s) = ', cnt_s_max
-          print*, '*** max(cnt_r) = ', cnt_r_max
+          print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** boxassoc_build(): max(cnt_r)  = ', cnt_r_max
        end if
     end if
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
     bxasc%r_con%nrcv = cnt_r
-
-    allocate(n_cpy(lcnt_r))
-    n_cpy(1:lcnt_r) = bxasc%l_con%cpy(1:lcnt_r)
-    deallocate(bxasc%l_con%cpy)
-    bxasc%l_con%cpy => n_cpy
-
-    allocate(n_snd(cnt_s))
-    n_snd(1:cnt_s)  = bxasc%r_con%snd(1:cnt_s)
-    deallocate(bxasc%r_con%snd)
-    bxasc%r_con%snd => n_snd
-
-    allocate(n_rcv(cnt_r))
-    n_rcv(1:cnt_r)  = bxasc%r_con%rcv(1:cnt_r)
-    deallocate(bxasc%r_con%rcv)
-    bxasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1249,7 +1235,7 @@ contains
     !
     ! Test that we're a unique cover; i.e. no overlap.  Is there a better way to do this?
     !
-    if ( .false. ) then
+    if ( verbose ) then
        do i = 1, bxa%nboxes
           if ( filled(i)%ncpy > 0 ) then
              allocate(bxs(filled(i)%ncpy))
@@ -1385,24 +1371,20 @@ contains
     end do
     deallocate(filled)
 
+    if ( verbose ) then
+       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       if ( parallel_IOProcessor() ) then
+          print*, '*** syncassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** syncassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** syncassoc_build(): max(cnt_r)  = ', cnt_r_max
+       end if
+    end if
+
     snasc%l_con%ncpy = lcnt_r
     snasc%r_con%nsnd = cnt_s
     snasc%r_con%nrcv = cnt_r
-
-    allocate(n_cpy(lcnt_r))
-    n_cpy(1:lcnt_r) = snasc%l_con%cpy(1:lcnt_r)
-    deallocate(snasc%l_con%cpy)
-    snasc%l_con%cpy => n_cpy
-
-    allocate(n_snd(cnt_s))
-    n_snd(1:cnt_s)  = snasc%r_con%snd(1:cnt_s)
-    deallocate(snasc%r_con%snd)
-    snasc%r_con%snd => n_snd
-
-    allocate(n_rcv(cnt_r))
-    n_rcv(1:cnt_r)  = snasc%r_con%rcv(1:cnt_r)
-    deallocate(snasc%r_con%rcv)
-    snasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1678,36 +1660,20 @@ contains
        end do
     end do
 
-    if ( .false. ) then
+    if ( verbose ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        if ( parallel_IOProcessor() ) then
-          print*, '*** chunksize = ', chunksize
-          print*, '*** max(lcnt_r) = ', lcnt_r_max
-          print*, '*** max(cnt_s) = ', cnt_s_max
-          print*, '*** max(cnt_r) = ', cnt_r_max
+          print*, '*** copyassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** copyassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** copyassoc_build(): max(cnt_r)  = ', cnt_r_max
        end if
     end if
 
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s
     cpasc%r_con%nrcv = cnt_r
-
-    allocate(n_cpy(lcnt_r))
-    n_cpy(1:lcnt_r) = cpasc%l_con%cpy(1:lcnt_r)
-    deallocate(cpasc%l_con%cpy)
-    cpasc%l_con%cpy => n_cpy
-
-    allocate(n_snd(cnt_s))
-    n_snd(1:cnt_s)  = cpasc%r_con%snd(1:cnt_s)
-    deallocate(cpasc%r_con%snd)
-    cpasc%r_con%snd => n_snd
-
-    allocate(n_rcv(cnt_r))
-    n_rcv(1:cnt_r)  = cpasc%r_con%rcv(1:cnt_r)
-    deallocate(cpasc%r_con%rcv)
-    cpasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1782,6 +1748,7 @@ contains
     integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
     type(box)                      :: cbox, fbox, isect
     type(boxarray)                 :: bxa_src, bxa_dst
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -1928,25 +1895,21 @@ contains
        end do
     end do
 
-    flasc%flux%dim        =  dm
+    if ( verbose ) then
+       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
+       if ( parallel_IOProcessor() ) then
+          print*, '*** fluxassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** fluxassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** fluxassoc_build(): max(cnt_r)  = ', cnt_r_max
+       end if
+    end if
+
+    flasc%flux%dim        = dm
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
     flasc%flux%r_con%nrcv = cnt_r
-
-    allocate(n_cpy(lcnt_r))
-    n_cpy(1:lcnt_r) = flasc%flux%l_con%cpy(1:lcnt_r)
-    deallocate(flasc%flux%l_con%cpy)
-    flasc%flux%l_con%cpy => n_cpy
-
-    allocate(n_snd(cnt_s))
-    n_snd(1:cnt_s)  = flasc%flux%r_con%snd(1:cnt_s)
-    deallocate(flasc%flux%r_con%snd)
-    flasc%flux%r_con%snd => n_snd
-
-    allocate(n_rcv(cnt_r))
-    n_rcv(1:cnt_r)  = flasc%flux%r_con%rcv(1:cnt_r)
-    deallocate(flasc%flux%r_con%rcv)
-    flasc%flux%r_con%rcv => n_rcv
 
     do i = 0, np-1
        ppvol(i,1) = sum(pvol(0:i-1,1))
