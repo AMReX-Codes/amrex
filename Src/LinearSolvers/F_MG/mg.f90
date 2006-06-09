@@ -41,6 +41,7 @@ module mg_module
      ! bottom solver defaults good for bicg
      integer :: bottom_solver = 1
      integer :: bottom_max_iter = 100
+     logical :: bottom_singular = .false.
      real(kind=dp_t) :: bottom_solver_eps = 1.0e-4_dp_t
 
      integer :: nboxes =  0
@@ -256,6 +257,7 @@ contains
 
     !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
     mgt%face_type = BC_INT
+    mgt%bottom_singular = .true.
     do id = 1,mgt%dim
        lo_dom = lwb(pd,id)
        hi_dom = upb(pd,id)
@@ -265,6 +267,14 @@ contains
 
           hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
           if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+       end do
+    end do
+    do id = 1,mgt%dim
+       do i = 1,mgt%nboxes
+         if (mgt%face_type(i,id,1) == BC_INT .or. &
+             mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
+         if (mgt%face_type(i,id,2) == BC_INT .or. &
+             mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
        end do
     end do
 
@@ -419,11 +429,16 @@ contains
     case (1)
        call itsol_bicgstab_solve(&
             ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
+            singular_in = mgt%bottom_singular)
     case (2)
        call itsol_cg_solve(&
             ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat)
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
+            singular_in = mgt%bottom_singular)
+       do i = 1, 2
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
     case (3)
           call copy(mgt%rh1, rh)
           if ( parallel_IOProcessor() ) then
