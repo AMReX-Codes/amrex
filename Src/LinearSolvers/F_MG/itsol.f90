@@ -140,27 +140,32 @@ contains
     call destroy(bpt)
   end subroutine itsol_defect
 
-  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
+  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat, singular_in)
     integer, intent(in) :: max_iter
     type(imultifab), intent(in) :: mm
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
     type(multifab), intent(in) :: aa
     integer, intent(out), optional :: stat
+    logical, intent(in), optional :: singular_in
     real(kind=dp_t) :: eps
     type(layout) :: la
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm, den
-    real(dp_t) :: rho_hg, rho_orig
+    real(dp_t) :: rho_hg, rho_orig, volume
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
+    logical :: singular
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
+
+    singular = .false.
+    if ( present(singular_in) ) singular = singular_in
 
     ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
     nodal_solve = .False.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
@@ -189,6 +194,16 @@ contains
 
     cnt = 0
     call itsol_defect(aa, rr, rh, uu, mm); cnt = cnt + 1
+
+    if (singular .and. nodal_solve) then
+      call setval(ss,ONE)
+      rho = dot(rr, ss)
+      volume = dot(ss,ss)
+      rho = rho / volume
+      call saxpy(rr,-rho,ss)
+      call setval(ss,ZERO,all=.true.)
+    end if
+
     call copy(rt, rr)
     rho = dot(rt, rr)
     rho_orig = rho
@@ -312,9 +327,10 @@ contains
 
   end subroutine itsol_BiCGStab_solve
 
-  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat)
-    integer, intent(in) :: max_iter, verbose
-    integer, intent(out), optional :: stat
+  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat, singular_in)
+    integer, intent(in   )           :: max_iter, verbose
+    integer, intent(  out), optional :: stat
+    logical, intent(in   ), optional :: singular_in
 
     type( multifab), intent(in) :: aa
     type( multifab), intent(inout) :: uu
@@ -327,14 +343,18 @@ contains
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve
+    logical :: singular 
     integer :: cnt
 
-    real(dp_t) :: rho_hg, rho_orig
+    real(dp_t) :: rho_hg, rho_orig, volume
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
 
     if ( present(stat) ) stat = 0
+
+    singular = .false.
+    if ( present(singular_in) ) singular = singular_in
 
     ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
     nodal_solve = .FALSE.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
@@ -353,7 +373,18 @@ contains
     call setval(pp, ZERO, all=.true.)
 
     cnt = 0
-    call itsol_defect(aa, rr, rh, uu, mm); cnt = cnt + 1
+    call itsol_defect(aa, rr, rh, uu, mm)  
+    cnt = cnt + 1
+
+    if (singular .and. nodal_solve) then
+      call setval(zz,ONE)
+      rho = dot(rr, zz)
+      volume = dot(zz,zz)
+      print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
+      rho = rho / volume
+      call saxpy(rr,-rho,zz)
+      call setval(zz,ZERO,all=.true.)
+    end if
 
     Anorm = stencil_norm(aa)
     bnorm = norm_inf(rh)
