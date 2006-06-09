@@ -313,13 +313,13 @@ contains
           end do
 
           do n = nlevs,2,-1
+             !  Restrict the finer residual onto the coarser grid
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
-          end do
 
-          do n = nlevs,2,-1
+             !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),rh(n),temp_res(n),temp_res(n-1), &
                   soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
