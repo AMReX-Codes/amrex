@@ -40,7 +40,7 @@ module bl_timer_module
      end subroutine wall_second_tick
   end interface
 
-  private :: cpu_second, wall_second
+!  private :: cpu_second, wall_second
  
 contains
 
