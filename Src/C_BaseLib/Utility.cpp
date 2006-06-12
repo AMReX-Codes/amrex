@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.68 2006-05-01 20:26:34 lijewski Exp $
+// $Id: Utility.cpp,v 1.69 2006-06-12 17:14:14 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -22,6 +22,10 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
+
+#ifdef BL_BGL
+#include <ParallelDescriptor.H>
+#endif
 
 #ifdef WIN32
 #include <direct.h>
