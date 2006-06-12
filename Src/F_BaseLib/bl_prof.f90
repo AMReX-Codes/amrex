@@ -92,6 +92,8 @@ module bl_prof_module
   private p_value
   private p_stop
   private p_start
+  private s_debug
+  private s_cksum
 
   logical, private, save :: wall = .true.
 
@@ -299,6 +301,9 @@ contains
     integer :: i, ii, j
     real(dp_t), allocatable :: sm(:,:)
     integer, allocatable :: ism(:)
+    integer, allocatable :: cksums(:)
+    integer              :: cksum(1)
+    logical              :: ok
 
     if ( stk_p /= 1 ) then
        call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
@@ -314,10 +319,32 @@ contains
 
     allocate(sm(size(timers),0:4),ism(size(timers)))
     sm(:,0) = 0.0_dp_t; sm(:,1) = 0.0_dp_t; sm(:,2) = 0.0_dp_t; sm(:,3) = -Huge(sm); sm(:,4) = +Huge(sm)
+
+    allocate(cksums(parallel_nprocs()))
+    cksum(1) = 0
+    call s_cksum(the_call_tree, cksum(1))
+    call parallel_gather(cksum, cksums, 1)
+    ok = .true.
+    if ( parallel_ioprocessor() ) then
+       do i = 2, size(cksums)
+          if ( cksums(i-1) /= cksums(i) ) then
+             ok = .false.
+             exit
+          end if
+       end do
+    end if
+    call parallel_bcast(ok)
+    if ( .not. ok) then
+       if ( parallel_ioprocessor() ) then
+          print*, "*** bl_prof_glean: proc trees are NOT identical !!!"
+       end if
+       return
+    end if
+
     call s_activation(the_call_tree, sm, local = .false.)
 
     if ( parallel_ioprocessor() ) then
-       !! Print the summary information
+       !! Print the summary informationreg
        write(unit = un, fmt = '("* GLOBAL")')
        write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
        call sort(sm(:,2), ism, greater_d)
@@ -418,6 +445,34 @@ contains
     r = a > b
   end function greater_d
 
+  recursive subroutine s_debug(a)
+    type(activation_n), intent(inout) :: a
+    integer :: i
+    write(unit = 100 + parallel_myproc(), fmt=*) timers(a%reg)%name
+    do i = 1, size(a%children)
+       call s_debug(a%children(i))
+    end do
+  end subroutine s_debug
+
+  recursive subroutine s_cksum(a, cksum)
+    type(activation_n), intent(inout) :: a
+    integer, intent(inout) :: cksum
+    integer :: i
+    call hash(timers(a%reg)%name, cksum)
+    do i = 1, size(a%children)
+       call s_cksum(a%children(i), cksum)
+    end do
+    contains
+      subroutine hash(s, cksum)
+        integer, intent(inout) :: cksum
+        character(len=*), intent(in) :: s
+        integer :: i
+        do i = 1, len_trim(s)
+           cksum = mod(64*cksum + ichar(s(i:i)), 1234567)
+        end do
+      end subroutine hash
+  end subroutine s_cksum
+
   recursive subroutine s_activation(a, sm, local)
     type(activation_n), intent(inout) :: a
     real(dp_t), intent(inout) :: sm(:,0:)
@@ -474,6 +529,8 @@ contains
        call p_activation(a%children(ii), un, skip+1, local)
     end do
   end subroutine p_activation
+
+
 
 end module bl_prof_module
 
