@@ -916,9 +916,6 @@ contains
     integer               :: shft(3**b%dim,b%dim)
     type(boxarray)        :: tba, cba, dba
     logical               :: lcross
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "ba_bndry_periodic")
 
     lcross = .false.; if ( present(cross) ) lcross = cross
 
@@ -962,8 +959,6 @@ contains
     if ( lcross ) call destroy(cba)
 
     bxai = tba
-
-    call destroy(bpt)
 
   end subroutine boxarray_bndry_periodic
 
