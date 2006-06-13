@@ -1166,39 +1166,55 @@ contains
     logical, intent(in)       :: lall
     type(local_conn), pointer :: filled(:)
 
-    type(box)                      :: ibx, jbx, abx
-    integer                        :: i, j, k, jj, cnt
+    type(box)                      :: jbx, abx
+    integer                        :: i, j, k, ii, jj, cnt
     integer                        :: shft(2*3**(la%lap%dim),la%lap%dim)
-    integer, parameter             :: chunksize = 10
+    integer, parameter             :: chunksize = 20
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
-    type(list_box)                 :: lb1, lb2
-    type(boxarray)                 :: bxa, ba1, ba2
+    type(list_box)                 :: lb1, lb2, bltmp
+    type(boxarray)                 :: bxa, ba1, ba2, batmp
     type(box), allocatable         :: bxs(:)
+    type(box_intersector), pointer :: bi(:)
+    type(layout)                   :: latmp
 
     bxa = get_boxarray(la)
+    !
+    ! Build a temporary layout to be used in intersection tests below.
+    !
+    do i = 1, nboxes(la)
+       jbx = box_nodalize(bxa%bxs(i), nodal)
+       if ( lall ) jbx = grow(jbx,ng)
+       call push_back(bltmp, jbx)
+    end do
+    call build(batmp, bltmp, sort = .false.)
+    call destroy(bltmp)
+    call build(latmp, batmp, explicit_mapping = get_proc(la))
+    call destroy(batmp)
+    call init_box_hash_bin(latmp)
 
     allocate(filled(bxa%nboxes))
-
     do i = 1, bxa%nboxes
        filled(i)%ncpy = 0
        allocate(filled(i)%cpy(chunksize))
     end do
 
     do j = 1, bxa%nboxes
-       jbx = box_nodalize(bxa%bxs(j), nodal)
-       if ( lall ) jbx = grow(jbx,ng)
+       jbx = get_box(latmp, j)
        call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
-       do i = j, bxa%nboxes
-          ibx = box_nodalize(bxa%bxs(i), nodal)
-          if ( lall ) ibx = grow(ibx,ng)
-          do jj = 1, cnt
+       do jj = 1, cnt
+          bi => layout_get_box_intersector(latmp, shift(jbx,shft(jj,:)))
+          do ii = 1, size(bi)
+             !
+             ! Only consider j -> i for i >= j
+             !
+             if ( bi(ii)%i < j ) cycle
+             i   = bi(ii)%i
+             abx = bi(ii)%bx
              !
              ! Do not overwrite ourselves.
              !
              if ( i == j .and. all(shft(jj,:) == 0) ) cycle
-             abx = intersection(ibx, shift(jbx,shft(jj,:)))
-             if ( empty(abx) ) cycle
              !
              ! Find parts of abx that haven't been written to already.
              !
@@ -1221,12 +1237,13 @@ contains
                 filled(i)%cpy(filled(i)%ncpy) = lcd
                 call pop_front(lb2)
              end do
-
              call destroy(lb1)
              call destroy(lb2)
           end do
+          deallocate(bi)
        end do
     end do
+    call destroy(latmp)
     !
     ! Test that we're a unique cover; i.e. no overlap.  Is there a better way to do this?
     !
