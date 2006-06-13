@@ -105,7 +105,7 @@ contains
     do i = 1, nboxes(lac)
        call push_back(blc, box_nodalize(get_box(lac,i),nodal))
     end do
-    call build(bac, blc)
+    call build(bac, blc, sort = .false.)
     call destroy(blc)
     call build(latmp, bac, explicit_mapping = get_proc(lac))
     call destroy(bac)
