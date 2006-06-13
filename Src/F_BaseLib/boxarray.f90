@@ -281,12 +281,17 @@ contains
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_bx
 
-  subroutine boxarray_build_l(ba, bl)
+  subroutine boxarray_build_l(ba, bl, sort)
     type(boxarray), intent(inout) :: ba
     type(list_box), intent(in) :: bl
+    logical, intent(in), optional :: sort
     type(list_box_node), pointer :: bln
+    logical :: lsort
     integer :: i
-
+    !
+    ! Default is to sort.
+    !
+    lsort = .true. ; if ( present(sort) ) lsort = sort
     if ( built_q(ba) ) call bl_error("BOXARRAY_BUILD_L: already built")
     ba%nboxes = size(bl)
     allocate(ba%bxs(ba%nboxes))
@@ -301,7 +306,7 @@ contains
        ba%dim = ba%bxs(1)%dim
     end if
     call boxarray_verify_dim(ba)
-    call boxarray_sort(ba)
+    if ( lsort ) call boxarray_sort(ba)
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_l
 
