@@ -37,8 +37,21 @@ module ml_layout_module
      module procedure ml_layout_nlevels
   end interface
 
+  interface get_box
+     module procedure ml_layout_get_box
+  end interface
+
+  interface built_q
+     module procedure ml_layout_built_q
+  end interface
 
 contains
+
+  function ml_layout_built_q(mla) result(r)
+    logical :: r
+    type(ml_layout), intent(in) :: mla
+    r = associated(mla%la)
+  end function ml_layout_built_q
 
   function ml_layout_nlevels(mla) result(r)
     integer :: r
@@ -71,6 +84,25 @@ contains
     integer, intent(in) :: n
     r = ml_boxarray_get_pd(mla%mba, n)
   end function ml_layout_get_pd
+
+  function ml_layout_get_box(mla, lev, n) result(r)
+    type(box) :: r
+    type(ml_layout), intent(in) :: mla
+    integer, intent(in) :: n, lev
+    r = get_box(mla%la(lev), n)
+  end function ml_layout_get_box
+
+  subroutine ml_layouy_build_n(mla, nlevel, dm)
+    type(ml_layout), intent(out) :: mla
+    integer, intent(in) :: nlevel, dm
+    
+    mla%nlevel = nlevel
+    mla%dim    = dm
+    allocate(mla%pmask(mla%dim))
+    allocate(mla%la(mla%nlevel))
+    allocate(mla%mask(mla%nlevel-1))
+
+  end subroutine ml_layouy_build_n
 
   subroutine ml_layout_build(mla, mba, pmask)
     type(ml_layout), intent(inout) :: mla
