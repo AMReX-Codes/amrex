@@ -68,6 +68,9 @@ contains
     type(boxarray) :: baa
     logical :: nd_flag(size(rr))
     integer :: lnc, cnt, k
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "br_rr_build_1")
 
     lnc = 1; if ( present(nc) ) lnc = nc
     lw = 0; if ( present(width) ) lw = width
@@ -192,6 +195,8 @@ contains
           call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
        end do
     end do
+
+    call destroy(bpt)
   end subroutine bndry_reg_rr_build_1
 
   subroutine bndry_reg_rr_build(br, la, rr, pd, nc, width, nodal)
@@ -213,6 +218,9 @@ contains
     type(boxarray) :: baa
     logical :: nd_flag(size(rr))
     integer :: lnc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "br_rr_build")
 
     lnc = 1; if ( present(nc) ) lnc = nc
     lw = 0; if ( present(width) ) lw = width
@@ -294,6 +302,7 @@ contains
 
        end do
     end do
+    call destroy(bpt)
   end subroutine bndry_reg_rr_build
 
   subroutine bndry_reg_build(br, la, pd, nc, nodal)
@@ -311,6 +320,9 @@ contains
     integer, allocatable :: lo(:),hi(:)
     logical, allocatable :: nd_flag(:)
     integer :: lnc
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "br_build")
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
@@ -373,6 +385,7 @@ contains
 
        end do
     end do
+    call destroy(bpt)
   end subroutine bndry_reg_build
 
   subroutine bndry_reg_copy(br, mf, all)
