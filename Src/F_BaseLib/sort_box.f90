@@ -1,7 +1,7 @@
 module sort_box_module
   ! Adapted from Meissner, Adams, et.al., and NR.
 
-  use box_module;  
+  use box_module
 
   implicit none
 
@@ -30,7 +30,7 @@ contains
     type(box), dimension(:), intent(in out) :: array
     interface
        function cmp(a,b) result(r)
-         use box_module;  
+         use box_module
          implicit none
          logical :: r
          type(box), intent(in) :: a, b
@@ -50,7 +50,7 @@ contains
       type(box), dimension(:), intent(in out) :: array
       interface
          function cmp(a,b) result(r)
-           use box_module;  
+           use box_module
            implicit none
            logical :: r
            type(box), intent(in) :: a, b
@@ -90,7 +90,7 @@ contains
       integer, intent(in) :: l
       interface
          function cmp(a,b) result(r)
-           use box_module;  
+           use box_module
            implicit none
            logical :: r
            type(box), intent(in) :: a, b
@@ -141,7 +141,7 @@ contains
     integer, dimension(:), intent(out) :: iarray
     interface
        function cmp(a,b) result(r)
-         use box_module;  
+         use box_module
          implicit none
          logical :: r
          type(box), intent(in) :: a, b
@@ -198,7 +198,7 @@ contains
       integer, dimension(:), intent(out) :: iarray
       interface
          function cmp(a,b) result(r)
-           use box_module;  
+           use box_module
            implicit none
            logical :: r
            type(box), intent(in) :: a, b
@@ -224,7 +224,7 @@ contains
       integer, intent(in) :: l
       interface
          function cmp(a,b) result(r)
-           use box_module;  
+           use box_module
            implicit none
            logical :: r
            type(box), intent(in) :: a, b
