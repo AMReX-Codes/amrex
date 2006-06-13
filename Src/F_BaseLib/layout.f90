@@ -2226,6 +2226,7 @@ contains
           end do
        end do
     case (2)
+       k = 0
        do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
           do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
              do n = 1, size(bins(i,j,k)%iv)
@@ -2238,6 +2239,8 @@ contains
           end do
        end do
     case (1)
+       k = 0
+       j = 0
        do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
           do n = 1, size(bins(i,j,k)%iv)
              bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
