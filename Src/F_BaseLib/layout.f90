@@ -970,21 +970,20 @@ contains
     type(boxassoc),   intent(inout)        :: bxasc
     logical,          intent(in), optional :: cross
 
-    integer                        :: i, j, ii, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                        :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     integer                        :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
-    type(box)                      :: abx, bx
-    type(boxarray)                 :: bxa, bxai
-    type(layout)                   :: la
-    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
+    type(box)                      :: abx
+    type(boxarray)                 :: bxa, bxai, batmp
+    type(layout)                   :: la, latmp
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
+    integer                        :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
     integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
-    logical                        :: first
+    type(list_box)                 :: bltmp
+    type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
-    type(box), allocatable :: abxx(:)
-    logical, allocatable   :: is_empty(:)
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: already built")
 
@@ -995,16 +994,26 @@ contains
     bxasc%dim    =  bxa%dim
     bxasc%grwth  =  ng
     bxasc%nboxes =  bxa%nboxes
+    np           =  parallel_nprocs()
 
     allocate(bxasc%nodal(bxasc%dim))
-    allocate(parr(0:parallel_nprocs()-1,2))
-    allocate(pvol(0:parallel_nprocs()-1,2))
-    allocate(ppvol(0:parallel_nprocs()-1,2))
+    allocate(parr(0:np-1,2))
+    allocate(pvol(0:np-1,2))
+    allocate(ppvol(0:np-1,2))
     allocate(bxasc%l_con%cpy(chunksize))
     allocate(bxasc%r_con%snd(chunksize))
     allocate(bxasc%r_con%rcv(chunksize))
-
-    allocate(is_empty(26),abxx(26))
+    !
+    ! Build a temporary layout to be used in intersection tests below.
+    !
+    do i = 1, nboxes(la)
+       call push_back(bltmp, box_nodalize(get_box(bxa, i), nodal))
+    end do
+    call build(batmp, bltmp, sort = .false.)
+    call destroy(bltmp)
+    call build(latmp, batmp, explicit_mapping = get_proc(la))
+    call destroy(batmp)
+    call init_box_hash_bin(latmp)
 
     bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
 
@@ -1013,21 +1022,13 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, bxa%nboxes
-       first = .true.
-       do j = 1, bxa%nboxes
-          if ( remote(la,i) .and. remote(la,j) ) cycle
-          if ( first ) then
-             call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
-             first = .false.
-             if ( size(is_empty) < bxai%nboxes) then
-                deallocate(is_empty,abxx)
-                allocate(is_empty(bxai%nboxes),abxx(bxai%nboxes))
-             end if
-          end if
-          bx = box_nodalize(get_box(bxa, j), nodal)
-          call box_intersection_and_empty(abxx, is_empty, bx, bxai%bxs)
-          do ii = 1, bxai%nboxes; if ( is_empty(ii) ) cycle
-             abx = abxx(ii)
+       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
+       do ii = 1, bxai%nboxes
+          bi => layout_get_box_intersector(latmp, bxai%bxs(ii))
+          do jj = 1, size(bi)
+             j   = bi(jj)%i
+             if ( remote(la,i) .and. remote(la,j) ) cycle
+             abx = bi(jj)%bx
              if ( local(la,i) .and. local(la, j) ) then
                 if ( li_r > size(bxasc%l_con%cpy) ) then
                    allocate(n_cpy(size(bxasc%l_con%cpy) + chunksize))
@@ -1079,9 +1080,12 @@ contains
                 i_r                      = i_r + 1
              end if
           end do
+          deallocate(bi)
        end do
-       if ( .not. first ) call destroy(bxai)
+       call destroy(bxai)
     end do
+
+    call destroy(latmp)
 
     if ( verbose ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1100,7 +1104,7 @@ contains
     !
     ! This region packs the src/recv boxes into processor order
     !
-    do i = 0, parallel_nprocs()-1
+    do i = 0, np-1
        ppvol(i,1) = sum(pvol(0:i-1,1))
        ppvol(i,2) = sum(pvol(0:i-1,2))
     end do
@@ -1283,7 +1287,7 @@ contains
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, cnt
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, cnt, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
     integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
@@ -1301,11 +1305,12 @@ contains
     snasc%dim    =  bxa%dim
     snasc%grwth  =  ng
     snasc%nboxes =  bxa%nboxes
+    np           =  parallel_nprocs()
 
     allocate(snasc%nodal(snasc%dim))
-    allocate(parr(0:parallel_nprocs()-1,2))
-    allocate(pvol(0:parallel_nprocs()-1,2))
-    allocate(ppvol(0:parallel_nprocs()-1,2))
+    allocate(parr(0:np-1,2))
+    allocate(pvol(0:np-1,2))
+    allocate(ppvol(0:np-1,2))
     allocate(snasc%l_con%cpy(chunksize))
     allocate(snasc%r_con%snd(chunksize))
     allocate(snasc%r_con%rcv(chunksize))
@@ -1400,7 +1405,7 @@ contains
     !
     ! This region packs the src/recv boxes into processor order
     !
-    do i = 0, parallel_nprocs()-1
+    do i = 0, np-1
        ppvol(i,1) = sum(pvol(0:i-1,1))
        ppvol(i,2) = sum(pvol(0:i-1,2))
     end do
