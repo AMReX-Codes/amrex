@@ -55,17 +55,20 @@ contains
     integer, intent(in), optional :: width
     logical, intent(in), optional :: nodal(:)
     type(box) :: rbox
-    integer :: i, j, id, f, ff
+    integer :: i, j, id, f, ff, kk
     integer :: dm
     integer :: nb
     integer :: lw
     integer :: lo(size(rr)), hi(size(rr))
     integer :: lo1(size(rr)), hi1(size(rr))
     type(box), allocatable :: bxs(:), bxs1(:), bxsc(:)
+    type(box_intersector), pointer :: bi(:)
     integer, allocatable :: prcc(:)
     type(box) :: lpd
     type(box) :: bx, bx1
-    type(boxarray) :: baa
+    type(boxarray) :: baa, bac
+    type(list_box) :: blc
+    type(layout) :: latmp
     logical :: nd_flag(size(rr))
     integer :: lnc, cnt, k
     type(bl_prof_timer), save :: bpt
@@ -96,6 +99,17 @@ contains
          dm /= box_dim(pd)) then
        call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
     end if
+    !
+    ! Build a layout to be used in intersection tests below.
+    !
+    do i = 1, nboxes(lac)
+       call push_back(blc, box_nodalize(get_box(lac,i),nodal))
+    end do
+    call build(bac, blc)
+    call destroy(blc)
+    call build(latmp, bac, explicit_mapping = get_proc(lac))
+    call destroy(bac)
+    call init_box_hash_bin(latmp)
 
     do i = 1, dm
        do f = 0, 1
@@ -143,12 +157,10 @@ contains
                 end if
              end do
              call build(bxs1(j), lo1, hi1)
-             do k = 1, nboxes(lac)
-                bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
-                if ( .not. empty(bx) ) then
-                   cnt = cnt + 1
-                end if
-             end do
+
+             bi => layout_get_box_intersector(latmp, bxs1(j))
+             cnt = cnt + size(bi)
+             deallocate(bi)
 
              do id = 1, dm
                 if ( id /= i ) then
@@ -170,23 +182,22 @@ contains
           allocate(prcc(cnt))
           cnt = 1
           do j = 1, nb
-             do k = 1, nboxes(lac)
-                bx = intersection(bxs1(j), box_nodalize(get_box(lac,k),nodal))
-                if ( .not. empty(bx) ) then
-                   lo = lwb(bx)
-                   hi = upb(bx)
-                   do id = 1, dm
-                      if ( id /= i ) then
-                         lo(id) = max(lo(id)-lw, lpd%lo(id))
-                         hi(id) = min(hi(id)+lw, lpd%hi(id))
-                      end if
-                   end do
-                   call build(bx1, lo, hi)
-                   bxsc(cnt) = bx1
-                   prcc(cnt) = get_proc(lac,k)
-                   cnt = cnt + 1
-                end if
+             bi => layout_get_box_intersector(latmp, bxs1(j))
+             do kk = 1, size(bi)
+                lo = lwb(bi(kk)%bx)
+                hi = upb(bi(kk)%bx)
+                do id = 1, dm
+                   if ( id /= i ) then
+                      lo(id) = max(lo(id)-lw, lpd%lo(id))
+                      hi(id) = min(hi(id)+lw, lpd%hi(id))
+                   end if
+                end do
+                call build(bx1, lo, hi)
+                bxsc(cnt) = bx1
+                prcc(cnt) = get_proc(lac,bi(kk)%i)
+                cnt = cnt + 1
              end do
+             deallocate(bi)
           end do
           call build(baa, bxsc, sort = .false.)
           call build(br%olaf(i,f), baa, explicit_mapping = prcc)
@@ -196,6 +207,7 @@ contains
        end do
     end do
 
+    call destroy(latmp)
     call destroy(bpt)
   end subroutine bndry_reg_rr_build_1
 
