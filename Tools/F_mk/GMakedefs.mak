@@ -135,6 +135,18 @@ ifeq ($(ARCH),FreeBSD)
 endif
 
 ifeq ($(ARCH),Linux)
+  ifeq ($(COMP),catamount)
+    CC  := cc -target=catamount
+    FC  := ftn -target=catamount
+    F90 := ftn -target=catamount
+    ifdef NDEBUG
+      FFLAGS   += -O
+      F90FLAGS += -O
+    else
+      FFLAGS   += -g
+      F90FLAGS += -g
+    endif
+  endif
   ifeq ($(COMP),SunStudio)
     FC = f95
     F90 = f95
