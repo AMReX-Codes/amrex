@@ -68,6 +68,7 @@ f90EXE_sources += fabio.f90
 #f90EXE_sources += plotfile.f90
 #f90EXE_sources += filler.f90
 f90EXE_sources += bl_space.f90
+f90EXE_sources += bl_prof_stubs.f90
 
 f90EXE_sources += mg_prolongation.f90
 f90EXE_sources += st_coeffs.f90

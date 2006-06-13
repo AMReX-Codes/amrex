@@ -18,7 +18,7 @@ module ml_cc_module
 
 contains
 
-  subroutine ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,need_grad_phi_in)
+  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, do_diagnostics, eps, need_grad_phi_in)
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -71,17 +71,17 @@ contains
 
     do n = 2,nlevs-1
        la = mla%la(n)
-       call multifab_build(uu_hold(n),la,1,1)
+       call build(uu_hold(n),la,1,1)
        call setval( uu_hold(n), ZERO,all=.true.)
     end do
 
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call multifab_build(    soln(n), la, 1, 1)
-       call multifab_build(      uu(n), la, 1, 1)
-       call multifab_build(     res(n), la, 1, 0)
-       call multifab_build(temp_res(n), la, 1, 0)
+       call build(    soln(n), la, 1, 1)
+       call build(      uu(n), la, 1, 1)
+       call build(     res(n), la, 1, 0)
+       call build(temp_res(n), la, 1, 0)
        call setval(    soln(n), ZERO,all=.true.)
        call setval(      uu(n), ZERO,all=.true.)
        call setval(     res(n), ZERO,all=.true.)
