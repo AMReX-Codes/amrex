@@ -147,6 +147,20 @@ ifeq ($(ARCH),Linux)
       F90FLAGS += -g
     endif
   endif
+
+  ifeq ($(COMP),PGI)
+    CC  := pgcc
+    FC  := pgf95 -module $(mdir) -I$(mdir) 
+    F90 := pgf95 -module $(mdir) -I$(mdir) 
+    ifdef NDEBUG
+      FFLAGS   += -O
+      F90FLAGS += -O
+    else
+      FFLAGS   += -g
+      F90FLAGS += -g
+    endif
+  endif
+
   ifeq ($(COMP),SunStudio)
     FC = f95
     F90 = f95
