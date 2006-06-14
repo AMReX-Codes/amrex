@@ -70,7 +70,7 @@ contains
     end if
     ! place the box in the least loaded processor.
     ! Note: before we start, the procs array satisfies a heap property.
-    pweights = weights()
+    pweights = weights(np)
     do i = 1, size(ibxs)
        call push_back(procs(iprocs(1)), isizes(i))
        call reheap_procs()
@@ -84,7 +84,7 @@ contains
              print *, 'dp=', dataptr(procs(i))
              print *, 'ss=', sizes(dataptr(procs(i)))
           end do
-          print *, 'weights = ', weights()
+          print *, 'weights = ', weights(np)
        end if
        ! For each box in the most loaded processor
        do i = 1, size(procs(iprocs(1)))
@@ -123,8 +123,8 @@ contains
        print *, 'np           = ', np
        print *, 'n            = ', size(ibxs)
        print *, 'max weight   = ', weight(1)
-       print *, 'total weight = ', sum(weights())
-       print *, 'efficiency   = ', sum(weights())/(np*weight(1))
+       print *, 'total weight = ', sum(weights(np))
+       print *, 'efficiency   = ', sum(weights(np))/(np*weight(1))
     end if
     do i = 1, size(procs)
        call destroy(procs(i))
@@ -148,12 +148,13 @@ contains
 
     end subroutine swap_balls
 
-    function weights() result(r)
-      real(kind=dp_t), dimension(size(procs)) :: r
+    function weights(np) result(r)
+      integer, intent(in) :: np
+      real(kind=dp_t), dimension(np) :: r
       integer :: j
 
       r = 0
-      do j = 1, size(procs)
+      do j = 1, np
          r(j) = weight(j)
       end do
 
@@ -191,7 +192,7 @@ contains
       integer :: iii(size(procs))
       real(kind=dp_t) :: iss(size(procs))
 
-      iss = weights()
+      iss = weights(np)
       call sort(iss, iii, greater_d)
       iprocs = iprocs(iii)
 
