@@ -186,7 +186,7 @@ module layout_module
      type(derived_layout), pointer :: next => Null()
   end type derived_layout
 
-  integer, private :: g_layout_next_id = 0;
+  integer, private :: g_layout_next_id = 0
 
   interface built_q
      module procedure layout_built_q
