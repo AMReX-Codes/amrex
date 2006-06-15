@@ -1582,15 +1582,18 @@ contains
     logical,          intent(in)    :: nd_dst(:), nd_src(:)
 
     integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer                        :: sh(MAX_SPACEDIM+1)
+    integer                        :: sh(MAX_SPACEDIM+1), jj
     type(box)                      :: bx
-    type(boxarray)                 :: bxa_src, bxa_dst
+    type(boxarray)                 :: bxa_src, bxa_dst, batmp
+    type(list_box)                 :: bltmp
+    type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     integer, parameter             :: chunksize = 100
+    type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(cpasc) ) call bl_error("COPYASSOC_BUILD: already built")
@@ -1614,16 +1617,28 @@ contains
 
     cpasc%nd_dst = nd_dst
     cpasc%nd_src = nd_src
+    !
+    ! Build a temporary layout to be used in intersection tests below.
+    !
+    do i = 1, nboxes(la_src)
+       call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
+    end do
+    call build(batmp, bltmp, sort = .false.)
+    call destroy(bltmp)
+    call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
+    call destroy(batmp)
+    call init_box_hash_bin(lasrctmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
     ! Consider all copies I <- J.
     !
     do i = 1, bxa_dst%nboxes
-       do j = 1, bxa_src%nboxes
+       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,i), nd_dst))
+       do jj = 1, size(bi)
+          j = bi(jj)%i
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
-          bx = intersection(box_nodalize(get_box(bxa_dst,i),nd_dst), box_nodalize(get_box(bxa_src,j),nd_src))
-          if ( empty(bx) ) cycle
+          bx = bi(jj)%bx
           if ( local(la_dst, i) .and. local(la_src, j) ) then
              if ( li_r > size(cpasc%l_con%cpy) ) then
                 allocate(n_cpy(size(cpasc%l_con%cpy) + chunksize))
@@ -1675,7 +1690,10 @@ contains
              i_r                        = i_r + 1
           end if
        end do
+       deallocate(bi)
     end do
+
+    call destroy(lasrctmp)
 
     if ( verbose ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1764,15 +1782,17 @@ contains
     integer                        :: sh(MAX_SPACEDIM+1), fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
     integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
     type(box)                      :: cbox, fbox, isect
-    type(boxarray)                 :: bxa_src, bxa_dst
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
+    type(layout)                   :: lasrctmp
+    type(boxarray)                 :: bxa_src, bxa_dst, batmp
+    type(list_box)                 :: bltmp
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, ii
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(box), pointer             :: pfbxs(:) => Null()
+    type(box_intersector), pointer :: bi(:)
     integer, parameter             :: chunksize = 100
-    logical, parameter             :: Do_AllToAllV = .true.
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("FLUXASSOC_BUILD: already built")
@@ -1809,18 +1829,27 @@ contains
     allocate(flasc%mask%r_con%snd(chunksize))
     allocate(flasc%mask%r_con%rcv(chunksize))
     allocate(flasc%fbxs(chunksize))
+    !
+    ! Build a temporary layout to be used in intersection tests below.
+    !
+    do i = 1, nboxes(la_src)
+       call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
+    end do
+    call build(batmp, bltmp, sort = .false.)
+    call destroy(bltmp)
+    call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
+    call destroy(batmp)
+    call init_box_hash_bin(lasrctmp)
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
     do j = 1, bxa_dst%nboxes
-       cbox = box_nodalize(get_box(bxa_dst,j), nd_dst)
-
-       do i = 1, bxa_src%nboxes
+       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
+       do ii = 1, size(bi)
+          i = bi(ii)%i
           if ( remote(la_dst,j) .and. remote(la_src,i) ) cycle
-
-          fbox   = box_nodalize(get_box(bxa_src,i), nd_src)
-          isect  = intersection(cbox,fbox)
-          if ( empty(isect) ) cycle
+          isect  = bi(ii)%bx
+          fbox   = get_box(lasrctmp,i)
           loflux = lwb(fbox)
 
           if ( la_dst%lap%pmask(dir) .or. (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
@@ -1910,7 +1939,10 @@ contains
              end if
           end if
        end do
+       deallocate(bi)
     end do
+
+    call destroy(lasrctmp)
 
     if ( verbose ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
