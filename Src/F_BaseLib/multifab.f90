@@ -7,10 +7,6 @@ module multifab_module
 
   implicit none
   !
-  ! Controls whether routines use alltoall() or send()/recv().
-  !
-  logical, parameter, private :: Do_AllToAllV = .true.
-  !
   ! Controls whether or not to use fancy cache-based routines.
   !
   logical, parameter, private :: Use_Fancy = .true.
@@ -380,6 +376,10 @@ module multifab_module
   type(mem_stats), private, save :: zmultifab_ms
 
   private :: build_nodal_dot_mask
+  private :: reshape_d_4_1, reshape_d_1_4
+  private :: reshape_i_4_1, reshape_i_1_4
+  private :: reshape_l_4_1, reshape_l_1_4
+  private :: reshape_z_4_1, reshape_z_1_4
 
 contains
 
@@ -1660,6 +1660,264 @@ contains
     end do
   end subroutine multifab_set_border_val
 
+  subroutine reshape_d_4_1(dst,ic,src,sh)
+    real(dp_t),intent(in)    :: src(:,:,:,:)
+    real(dp_t),intent(inout) :: dst(:)
+    integer,intent(in)       :: ic
+    integer,intent(in)       :: sh(:)
+    integer                  :: i,j,k,n,c
+    if ( size(sh) /= 1 ) call bl_error("reshape_d_4_1: how did this happen?")
+    c = ic
+    do n = 1, size(src,4)
+       do k = 1, size(src,3)
+          do j = 1, size(src,2)
+             do i = 1, size(src,1) 
+                dst(c) = src(i,j,k,n)
+                c = c + 1
+             end do
+          end do
+       end do
+    end do
+  end subroutine reshape_d_4_1
+
+  subroutine reshape_d_1_4(dst,src,ic,sh,filter)
+    real(dp_t),intent(in)    :: src(:)
+    real(dp_t),intent(inout) :: dst(:,:,:,:)
+    integer,intent(in)       :: ic
+    integer,intent(in)       :: sh(:)
+    integer                  :: i,j,k,n,c
+    real(dp_t), allocatable  :: ptmp(:,:,:,:)
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( size(sh) /= 4 ) call bl_error("reshape_d_1_4: how did this happen?")
+    c = ic
+    if ( present(filter) ) then
+       allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   ptmp(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+       call filter(dst, ptmp)
+       deallocate(ptmp)
+    else
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   dst(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine reshape_d_1_4
+
+  subroutine reshape_i_4_1(dst,ic,src,sh)
+    integer,intent(in)    :: src(:,:,:,:)
+    integer,intent(inout) :: dst(:)
+    integer,intent(in)    :: ic
+    integer,intent(in)    :: sh(:)
+    integer               :: i,j,k,n,c
+    if ( size(sh) /= 1 ) call bl_error("reshape_i_4_1: how did this happen?")
+    c = ic
+    do n = 1, size(src,4)
+       do k = 1, size(src,3)
+          do j = 1, size(src,2)
+             do i = 1, size(src,1)
+                dst(c) = src(i,j,k,n)
+                c = c + 1
+             end do
+          end do
+       end do
+    end do
+  end subroutine reshape_i_4_1
+
+  subroutine reshape_i_1_4(dst,src,ic,sh,filter)
+    integer,intent(in)    :: src(:)
+    integer,intent(inout) :: dst(:,:,:,:)
+    integer,intent(in)    :: ic
+    integer,intent(in)    :: sh(:)
+    integer               :: i,j,k,n,c
+    integer, allocatable  :: ptmp(:,:,:,:)
+    interface
+       subroutine filter(out, in)
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( size(sh) /= 4 ) call bl_error("reshape_i_1_4: how did this happen?")
+    c = ic
+    if ( present(filter) ) then
+       allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   ptmp(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+       call filter(dst, ptmp)
+       deallocate(ptmp)
+    else
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   dst(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine reshape_i_1_4
+
+  subroutine reshape_l_4_1(dst,ic,src,sh)
+    logical,intent(in)    :: src(:,:,:,:)
+    logical,intent(inout) :: dst(:)
+    integer,intent(in)    :: ic
+    integer,intent(in)    :: sh(:)
+    integer               :: i,j,k,n,c
+    if ( size(sh) /= 1 ) call bl_error("reshape_l_4_1: how did this happen?")
+    c = ic
+    do n = 1, size(src,4)
+       do k = 1, size(src,3)
+          do j = 1, size(src,2)
+             do i = 1, size(src,1)
+                dst(c) = src(i,j,k,n)
+                c = c + 1
+             end do
+          end do
+       end do
+    end do
+  end subroutine reshape_l_4_1
+
+  subroutine reshape_l_1_4(dst,src,ic,sh,filter)
+    logical,intent(in)    :: src(:)
+    logical,intent(inout) :: dst(:,:,:,:)
+    integer,intent(in)    :: ic
+    integer,intent(in)    :: sh(:)
+    integer               :: i,j,k,n,c
+    logical, allocatable  :: ptmp(:,:,:,:)
+    interface
+       subroutine filter(out, in)
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( size(sh) /= 4 ) call bl_error("reshape_l_1_4: how did this happen?")
+    c = ic
+    if ( present(filter) ) then
+       allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   ptmp(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+       call filter(dst, ptmp)
+       deallocate(ptmp)
+    else
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   dst(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine reshape_l_1_4
+
+  subroutine reshape_z_4_1(dst,ic,src,sh)
+    complex(dp_t),intent(in)    :: src(:,:,:,:)
+    complex(dp_t),intent(inout) :: dst(:)
+    integer,intent(in)          :: ic
+    integer,intent(in)          :: sh(:)
+    integer                     :: i,j,k,n,c
+    if ( size(sh) /= 1 ) call bl_error("reshape_z_4_1: how did this happen?")
+    c = ic
+    do n = 1, size(src,4)
+       do k = 1, size(src,3)
+          do j = 1, size(src,2)
+             do i = 1, size(src,1)
+                dst(c) = src(i,j,k,n);
+                c = c + 1
+             end do
+          end do
+       end do
+    end do
+  end subroutine reshape_z_4_1
+
+  subroutine reshape_z_1_4(dst,src,ic,sh,filter)
+    complex(dp_t),intent(in)    :: src(:)
+    complex(dp_t),intent(inout) :: dst(:,:,:,:)
+    integer,intent(in)          :: ic
+    integer,intent(in)          :: sh(:)
+    integer                     :: i,j,k,n,c
+    complex(dp_t), allocatable  :: ptmp(:,:,:,:)
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( size(sh) /= 4 ) call bl_error("reshape_z_1_4: how did this happen?")
+    c = ic
+    if ( present(filter) ) then
+       allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   ptmp(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+       call filter(dst, ptmp)
+       deallocate(ptmp)
+    else
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
+                   dst(i,j,k,n) = src(c)
+                   c = c + 1
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine reshape_z_1_4
+
   subroutine mf_fb_easy_double(mf, c, nc, ng)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
@@ -1835,60 +2093,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_double_space(bxasc%r_con, nc)
+    allocate(g_snd_d(nc*bxasc%r_con%svol))
+    allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_d(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, bxasc%r_con%nsp
+       ii = bxasc%r_con%str(i)%pr
+       scnt(ii) = nc*bxasc%r_con%str(i)%sz
+       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+    end do
+    do i = 1, bxasc%r_con%nrp
+       ii = bxasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-       p =  reshape(g_rcv_d(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+       call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
-
-    contains
-
-      subroutine mf_reserve_double_space(rcon, nc)
-        type(remote_conn), intent(in) :: rcon
-        integer,           intent(in) :: nc
-        if ( rcon%svol > 0 ) then
-           allocate(g_snd_d(nc*rcon%svol))
-        end if
-        if ( rcon%rvol > 0 ) then
-           allocate(g_rcv_d(nc*rcon%rvol))
-        end if
-      end subroutine mf_reserve_double_space
 
   end subroutine mf_fb_fancy_double
 
@@ -1919,60 +2152,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_integer_space(bxasc%r_con, nc)
+    allocate(g_snd_i(nc*bxasc%r_con%svol))
+    allocate(g_rcv_i(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_i(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, bxasc%r_con%nsp
+       ii = bxasc%r_con%str(i)%pr
+       scnt(ii) = nc*bxasc%r_con%str(i)%sz
+       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+    end do
+    do i = 1, bxasc%r_con%nrp
+       ii = bxasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-       p =  reshape(g_rcv_i(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+       call reshape_i_1_4(p, g_rcv_i, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
-
-  contains
-
-    subroutine mf_reserve_integer_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_i(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_i(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_integer_space
 
   end subroutine mf_fb_fancy_integer
 
@@ -2003,60 +2211,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_logical_space(bxasc%r_con, nc)
+    allocate(g_snd_l(nc*bxasc%r_con%svol))
+    allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_l(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, bxasc%r_con%nsp
+       ii = bxasc%r_con%str(i)%pr
+       scnt(ii) = nc*bxasc%r_con%str(i)%sz
+       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+    end do
+    do i = 1, bxasc%r_con%nrp
+       ii = bxasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-       p =  reshape(g_rcv_l(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+       call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
-
-  contains
-
-    subroutine mf_reserve_logical_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_l(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_l(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_logical_space
 
   end subroutine mf_fb_fancy_logical
 
@@ -2087,11 +2270,12 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_complex_space(bxasc%r_con, nc)
+    allocate(g_snd_z(nc*bxasc%r_con%svol))
+    allocate(g_rcv_z(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_z(1 + nc*bxasc%r_con%snd(i)%pv:nc*bxasc%r_con%snd(i)%av) = reshape(p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
     allocate(rst(bxasc%r_con%nrp))
@@ -2109,21 +2293,8 @@ contains
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
-       p =  reshape(g_rcv_z(1 + nc*bxasc%r_con%rcv(i)%pv:nc*bxasc%r_con%rcv(i)%av), sh)
+       call reshape_z_1_4(p, g_rcv_z, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
-
-  contains
-
-    subroutine mf_reserve_complex_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_z(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_z(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_complex_space
 
   end subroutine mf_fb_fancy_z
 
@@ -2297,64 +2468,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_double_space(snasc%r_con, nc)
+    allocate(g_snd_d(nc*snasc%r_con%svol))
+    allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
     do i = 1, snasc%r_con%nsnd
        p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
-       g_snd_d(1 + nc*snasc%r_con%snd(i)%pv:nc*snasc%r_con%snd(i)%av) = reshape(p, nc*snasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p, nc*snasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, snasc%r_con%nsp
-          ii = snasc%r_con%str(i)%pr
-          scnt(ii) = nc*snasc%r_con%str(i)%sz
-          sdsp(ii) = nc*snasc%r_con%str(i)%pv
-       end do
-       do i = 1, snasc%r_con%nrp
-          ii = snasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(snasc%r_con%nrp))
-       do i = 1, snasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv:), &
-               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, snasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
-               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, snasc%r_con%nsp
+       ii = snasc%r_con%str(i)%pr
+       scnt(ii) = nc*snasc%r_con%str(i)%sz
+       sdsp(ii) = nc*snasc%r_con%str(i)%pv
+    end do
+    do i = 1, snasc%r_con%nrp
+       ii = snasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, snasc%r_con%rcv(i)%nd, snasc%r_con%rcv(i)%dbx, c, nc)
-       if ( present(filter) ) then
-          call filter(p, reshape(g_rcv_d(1 + nc*snasc%r_con%rcv(i)%pv:nc*snasc%r_con%rcv(i)%av), sh))
-       else
-          p =  reshape(g_rcv_d(1 + nc*snasc%r_con%rcv(i)%pv:nc*snasc%r_con%rcv(i)%av), sh)
-       end if
+       call reshape_d_1_4(p, g_rcv_d, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
-
-    contains
-
-      subroutine mf_reserve_double_space(rcon, nc)
-        type(remote_conn), intent(in) :: rcon
-        integer,           intent(in) :: nc
-        if ( rcon%svol > 0 ) then
-           allocate(g_snd_d(nc*rcon%svol))
-        end if
-        if ( rcon%rvol > 0 ) then
-           allocate(g_rcv_d(nc*rcon%rvol))
-        end if
-      end subroutine mf_reserve_double_space
 
   end subroutine mf_internal_sync_fancy
 
@@ -3007,64 +3149,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_double_space(cpasc%r_con, nc)
+    allocate(g_snd_d(nc*cpasc%r_con%svol))
+    allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       g_snd_d(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, cpasc%r_con%nsp
+       ii = cpasc%r_con%str(i)%pr
+       scnt(ii) = nc*cpasc%r_con%str(i)%sz
+       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+    end do
+    do i = 1, cpasc%r_con%nrp
+       ii = cpasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       if ( present(filter) ) then
-          call filter(p, reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
-       else
-          p = reshape(g_rcv_d(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
-       end if
+       call reshape_d_1_4(p, g_rcv_d, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
-
-    contains
-
-      subroutine mf_reserve_double_space(rcon, nc)
-        type(remote_conn), intent(in) :: rcon
-        integer,           intent(in) :: nc
-        if ( rcon%svol > 0 ) then
-           allocate(g_snd_d(nc*rcon%svol))
-        end if
-        if ( rcon%rvol > 0 ) then
-           allocate(g_rcv_d(nc*rcon%rvol))
-        end if
-      end subroutine mf_reserve_double_space
 
   end subroutine mf_copy_fancy_double
 
@@ -3109,64 +3222,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_integer_space(cpasc%r_con, nc)
+    allocate(g_snd_i(nc*cpasc%r_con%svol))
+    allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       g_snd_i(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, cpasc%r_con%nsp
+       ii = cpasc%r_con%str(i)%pr
+       scnt(ii) = nc*cpasc%r_con%str(i)%sz
+       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+    end do
+    do i = 1, cpasc%r_con%nrp
+       ii = cpasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       if ( present(filter) ) then
-          call filter(p, reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
-       else
-          p =  reshape(g_rcv_i(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
-       end if
+       call reshape_i_1_4(p, g_rcv_i, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
-
-  contains
-
-    subroutine mf_reserve_integer_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_i(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_i(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_integer_space
 
   end subroutine mf_copy_fancy_integer
 
@@ -3211,64 +3295,35 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_logical_space(cpasc%r_con, nc)
+    allocate(g_snd_l(nc*cpasc%r_con%svol))
+    allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       g_snd_l(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    np = parallel_nprocs()
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+    do i = 1, cpasc%r_con%nsp
+       ii = cpasc%r_con%str(i)%pr
+       scnt(ii) = nc*cpasc%r_con%str(i)%sz
+       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+    end do
+    do i = 1, cpasc%r_con%nrp
+       ii = cpasc%r_con%rtr(i)%pr
+       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       if ( present(filter) ) then
-          call filter(p, reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
-       else
-          p =  reshape(g_rcv_l(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
-       end if
+       call reshape_l_1_4(p, g_rcv_l, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
-
-  contains
-
-    subroutine mf_reserve_logical_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_l(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_l(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_logical_space
 
   end subroutine mf_copy_fancy_logical
 
@@ -3313,11 +3368,12 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call mf_reserve_complex_space(cpasc%r_con, nc)
+    allocate(g_snd_z(nc*cpasc%r_con%svol))
+    allocate(g_rcv_z(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       g_snd_z(1 + nc*cpasc%r_con%snd(i)%pv:nc*cpasc%r_con%snd(i)%av) = reshape(p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
     allocate(rst(cpasc%r_con%nrp))
@@ -3335,25 +3391,8 @@ contains
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
-       if ( present(filter) ) then
-          call filter(p, reshape(g_rcv_z(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh))
-       else
-          p =  reshape(g_rcv_z(1 + nc*cpasc%r_con%rcv(i)%pv:nc*cpasc%r_con%rcv(i)%av), sh)
-       end if
+       call reshape_z_1_4(p, g_rcv_z, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
-
-  contains
-
-    subroutine mf_reserve_complex_space(rcon, nc)
-      type(remote_conn), intent(in) :: rcon
-      integer,           intent(in) :: nc
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_z(nc*rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_z(nc*rcon%rvol))
-      end if
-    end subroutine mf_reserve_complex_space
 
   end subroutine mf_copy_fancy_z
 
