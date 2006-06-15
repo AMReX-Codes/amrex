@@ -380,6 +380,8 @@ module multifab_module
   private :: reshape_i_4_1, reshape_i_1_4
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
+  private :: cpy_d, cpy_i, cpy_l, cpy_z
+
 
 contains
 
@@ -1660,6 +1662,112 @@ contains
     end do
   end subroutine multifab_set_border_val
 
+  subroutine cpy_d(out, in, filter)
+     real(dp_t), intent(inout) :: out(:,:,:,:)
+     real(dp_t), intent(in   ) ::  in(:,:,:,:)
+     integer                   :: i, j, k, n
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         real(dp_t), intent(inout) :: out(:,:,:,:)
+         real(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( present(filter) ) then
+       call filter(out,in)
+    else
+       do n = 1, size(out,4)
+          do k = 1, size(out,3)
+             do j = 1, size(out,2)
+                do i = 1, size(out,1)
+                   out(i,j,k,n) = in(i,j,k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine cpy_d
+
+  subroutine cpy_i(out, in, filter)
+     integer, intent(inout) :: out(:,:,:,:)
+     integer, intent(in   ) ::  in(:,:,:,:)
+     integer                :: i, j, k, n
+    interface
+       subroutine filter(out, in)
+         integer, intent(inout) :: out(:,:,:,:)
+         integer, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( present(filter) ) then
+       call filter(out,in)
+    else
+       do n = 1, size(out,4)
+          do k = 1, size(out,3)
+             do j = 1, size(out,2)
+                do i = 1, size(out,1)
+                   out(i,j,k,n) = in(i,j,k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine cpy_i
+
+  subroutine cpy_l(out, in, filter)
+     logical, intent(inout) :: out(:,:,:,:)
+     logical, intent(in   ) ::  in(:,:,:,:)
+     integer                :: i, j, k, n
+    interface
+       subroutine filter(out, in)
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( present(filter) ) then
+       call filter(out,in)
+    else
+       do n = 1, size(out,4)
+          do k = 1, size(out,3)
+             do j = 1, size(out,2)
+                do i = 1, size(out,1)
+                   out(i,j,k,n) = in(i,j,k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine cpy_l
+
+  subroutine cpy_z(out, in, filter)
+     complex(dp_t), intent(inout) :: out(:,:,:,:)
+     complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+     integer                   :: i, j, k, n
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         complex(dp_t), intent(inout) :: out(:,:,:,:)
+         complex(dp_t), intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+    optional filter
+    if ( present(filter) ) then
+       call filter(out,in)
+    else
+       do n = 1, size(out,4)
+          do k = 1, size(out,3)
+             do j = 1, size(out,2)
+                do i = 1, size(out,1)
+                   out(i,j,k,n) = in(i,j,k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine cpy_z
+
   subroutine reshape_d_4_1(dst,ic,src,sh)
     real(dp_t),intent(in)    :: src(:,:,:,:)
     real(dp_t),intent(inout) :: dst(:)
@@ -2460,11 +2568,7 @@ contains
        dbx  =  snasc%l_con%cpy(i)%dbx
        pdst => dataptr(mf%fbs(ii), dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), sbx, c, nc)
-       if ( present(filter) ) then
-          call filter(pdst, psrc)
-       else
-          pdst = psrc
-       end if
+       call cpy_d(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
 
@@ -2551,11 +2655,7 @@ contains
              if ( local(mf, i) .and. local(mf, j) ) then
                 pdst => dataptr(mf, i, abx, c, nc)
                 psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, nc)
-                if ( present(filter) ) then
-                   call filter(pdst, psrc)
-                else
-                   pdst = psrc
-                end if
+                call cpy_d(pdst, psrc, filter)
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
                 psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, nc)
@@ -2691,11 +2791,7 @@ contains
              if ( local(mf, i) .and. local(mf, j) ) then
                 pdst => dataptr(mf, i, abx, c, lnc)
                 psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                if ( present(filter) ) then
-                   call filter(pdst, psrc)
-                else
-                   pdst = psrc
-                end if
+                call cpy_l(pdst, psrc, filter)
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
                 psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
@@ -2918,11 +3014,7 @@ contains
           if ( local(mdst,i) .and. local(msrc,j) ) then
              pdst => dataptr(mdst, i, abx, dstcomp, nc)
              psrc => dataptr(msrc, j, abx, srccomp, nc)
-             if ( present(filter) ) then
-                call filter(pdst, psrc)
-             else
-                pdst = psrc
-             end if
+             call cpy_d(pdst, psrc, filter)
           else if ( local(msrc,j) ) then ! must send
              psrc => dataptr(msrc, j, abx, srccomp, nc)
              proc = get_proc(mdst%la, i)
@@ -2973,11 +3065,7 @@ contains
           if ( local(mdst,i) .and. local(msrc,j) ) then
              pdst => dataptr(mdst, i, abx, dstcomp, nc)
              psrc => dataptr(msrc, j, abx, srccomp, nc)
-             if ( present(filter) ) then
-                call filter(pdst, psrc)
-             else
-                pdst = psrc
-             end if
+             call cpy_i(pdst, psrc, filter)
           else if ( local(msrc,j) ) then ! must send
              psrc => dataptr(msrc, j, abx, srccomp, nc)
              proc = get_proc(mdst%la, i)
@@ -3028,11 +3116,7 @@ contains
           if ( local(mdst,i) .and. local(msrc,j) ) then
              pdst => dataptr(mdst, i, abx, dstcomp, nc)
              psrc => dataptr(msrc, j, abx, srccomp, nc)
-             if ( present(filter) ) then
-                call filter(pdst, psrc)
-             else
-                pdst = psrc
-             end if
+             call cpy_l(pdst, psrc, filter)
           else if ( local(msrc,j) ) then ! must send
              psrc => dataptr(msrc, j, abx, srccomp, nc)
              proc = get_proc(mdst%la, i)
@@ -3083,11 +3167,7 @@ contains
           if ( local(mdst,i) .and. local(msrc,j) ) then
              pdst => dataptr(mdst, i, abx, dstcomp, nc)
              psrc => dataptr(msrc, j, abx, srccomp, nc)
-             if ( present(filter) ) then
-                call filter(pdst, psrc)
-             else
-                pdst = psrc
-             end if
+             call cpy_z(pdst, psrc, filter)
           else if ( local(msrc,j) ) then ! must send
              psrc => dataptr(msrc, j, abx, srccomp, nc)
              proc = get_proc(mdst%la, i)
@@ -3141,11 +3221,7 @@ contains
        dbx  =  cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       if ( present(filter) ) then
-          call filter(pdst, psrc)
-       else
-          pdst = psrc
-       end if
+       call cpy_d(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
 
@@ -3214,11 +3290,7 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       if ( present(filter) ) then
-          call filter(pdst, psrc)
-       else
-          pdst = psrc
-       end if
+       call cpy_i(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
 
@@ -3287,11 +3359,7 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       if ( present(filter) ) then
-          call filter(pdst, psrc)
-       else
-          pdst = psrc
-       end if
+       call cpy_l(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
 
@@ -3360,11 +3428,7 @@ contains
        dbx  = cpasc%l_con%cpy(i)%dbx
        pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
-       if ( present(filter) ) then
-          call filter(pdst, psrc)
-       else
-          pdst = psrc
-       end if
+       call cpy_z(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
 
@@ -3438,11 +3502,7 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          if ( present(filter) ) then
-             call filter(pdst, psrc)
-          else
-             pdst = psrc
-          end if
+          call cpy_d(pdst, psrc, filter)
        end do
        !$OMP END PARALLEL DO
     else
@@ -3515,11 +3575,7 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          if ( present(filter) ) then
-             call filter(pdst, psrc)
-          else
-             pdst = psrc
-          end if
+          call cpy_i(pdst, psrc, filter)
        end do
        !$OMP END PARALLEL DO
     else
@@ -3592,11 +3648,7 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          if ( present(filter) ) then
-             call filter(pdst, psrc)
-          else
-             pdst = psrc
-          end if
+          call cpy_l(pdst, psrc, filter)
        end do
        !$OMP END PARALLEL DO
     else
@@ -3665,11 +3717,7 @@ contains
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
           end if
-          if ( present(filter) ) then
-             call filter(pdst, psrc)
-          else
-             pdst = psrc
-          end if
+          call cpy_z(pdst, psrc, filter)
        end do
        !$OMP END PARALLEL DO
     else
