@@ -123,7 +123,6 @@ module layout_module
   type box_hash_bin
      integer, pointer :: iv(:) => Null()
   end type box_hash_bin
-
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
@@ -1812,6 +1811,8 @@ contains
     flasc%lap_dst     => la_dst%lap
     flasc%lap_src     => la_src%lap
     flasc%ir(1:dm)    =  ir(1:dm)
+    flasc%flux%dim    =  dm
+    flasc%mask%dim    =  dm
 
     allocate(flasc%nd_dst(dm))
     allocate(flasc%nd_src(dm))
@@ -1955,7 +1956,6 @@ contains
        end if
     end if
 
-    flasc%flux%dim        = dm
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
     flasc%flux%r_con%nrcv = cnt_r
@@ -2005,7 +2005,6 @@ contains
        end if
     end do
 
-    flasc%mask%dim        = dm
     flasc%mask%r_con%nsnd = cnt_s
     flasc%mask%r_con%nrcv = cnt_r
 
