@@ -179,9 +179,9 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -Ofast
-      FFLAGS += -Ofast
-      CFLAGS += -Ofast
+      F90FLAGS += -O2
+      FFLAGS += -O2
+      CFLAGS += -O2
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
