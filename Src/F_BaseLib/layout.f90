@@ -1922,7 +1922,7 @@ contains
                 flasc%flux%r_con%rcv(i_r)%dbx = isect
                 flasc%flux%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
                 sh                            = 1
-                sh(1:flasc%flux%dim)          = extent(isect)
+                sh(1:dm)                      = extent(isect)
                 flasc%flux%r_con%rcv(i_r)%sh  = sh
                 flasc%fbxs(i_r)               = fbox
                 isect%lo(1:dm)                = isect%lo(1:dm) * ir(1:dm)
@@ -1934,7 +1934,7 @@ contains
                 flasc%mask%r_con%rcv(i_r)%dbx = isect
                 flasc%mask%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
                 sh                            = 1
-                sh(1:flasc%mask%dim)          = extent(isect)
+                sh(1:dm)                      = extent(isect)
                 flasc%mask%r_con%rcv(i_r)%sh  = sh
                 i_r                           = i_r + 1
              end if
