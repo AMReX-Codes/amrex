@@ -306,8 +306,7 @@ contains
     integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
     integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
-    integer, allocatable    :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
-    logical, parameter      :: Do_AllToAllV = .true.
+    integer,    allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     integer,    allocatable :: g_snd_i(:), g_rcv_i(:)
     type(fluxassoc)         :: fa
@@ -356,73 +355,53 @@ contains
     !
     ! Now send/recv the flux data
     !
-    call reserve_double_space(fa%flux%r_con)
+    allocate(g_snd_d(fa%flux%r_con%svol))
+    allocate(g_rcv_d(fa%flux%r_con%rvol))
 
     do i = 1, fa%flux%r_con%nsnd
        fp => dataptr(flux, fa%flux%r_con%snd(i)%ns, fa%flux%r_con%snd(i)%sbx)
        g_snd_d(1 + fa%flux%r_con%snd(i)%pv:fa%flux%r_con%snd(i)%av) = reshape(fp, fa%flux%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, fa%flux%r_con%nsp
-          ii = fa%flux%r_con%str(i)%pr
-          scnt(ii) = fa%flux%r_con%str(i)%sz
-          sdsp(ii) = fa%flux%r_con%str(i)%pv
-       end do
-       do i = 1, fa%flux%r_con%nrp
-          ii = fa%flux%r_con%rtr(i)%pr
-          rcnt(ii) = fa%flux%r_con%rtr(i)%sz
-          rdsp(ii) = fa%flux%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(fa%flux%r_con%nrp))
-       do i = 1, fa%flux%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+fa%flux%r_con%rtr(i)%pv:), &
-               fa%flux%r_con%rtr(i)%sz, fa%flux%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, fa%flux%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+fa%flux%r_con%str(i)%pv), &
-               fa%flux%r_con%str(i)%sz, fa%flux%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+
+    do i = 1, fa%flux%r_con%nsp
+       ii = fa%flux%r_con%str(i)%pr
+       scnt(ii) = fa%flux%r_con%str(i)%sz
+       sdsp(ii) = fa%flux%r_con%str(i)%pv
+    end do
+    do i = 1, fa%flux%r_con%nrp
+       ii = fa%flux%r_con%rtr(i)%pr
+       rcnt(ii) = fa%flux%r_con%rtr(i)%sz
+       rdsp(ii) = fa%flux%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
     !
     ! Now send/recv mask data.
     !
-    call reserve_integer_space(fa%mask%r_con)
+    allocate(g_snd_i(fa%mask%r_con%svol))
+    allocate(g_rcv_i(fa%mask%r_con%rvol))
 
     do i = 1, fa%mask%r_con%nsnd
        mp => dataptr(mm_fine, fa%mask%r_con%snd(i)%ns, fa%mask%r_con%snd(i)%sbx)
        g_snd_i(1 + fa%mask%r_con%snd(i)%pv:fa%mask%r_con%snd(i)%av) = reshape(mp, fa%mask%r_con%snd(i)%s1)
     end do
 
-    if ( Do_AllToAllV ) then
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, fa%mask%r_con%nsp
-          ii = fa%mask%r_con%str(i)%pr
-          scnt(ii) = fa%mask%r_con%str(i)%sz
-          sdsp(ii) = fa%mask%r_con%str(i)%pv
-       end do
-       do i = 1, fa%mask%r_con%nrp
-          ii = fa%mask%r_con%rtr(i)%pr
-          rcnt(ii) = fa%mask%r_con%rtr(i)%sz
-          rdsp(ii) = fa%mask%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
-    else
-       do i = 1, fa%mask%r_con%nrp
-          rst(i) = parallel_irecv_iv(g_rcv_i(1+fa%mask%r_con%rtr(i)%pv:), &
-               fa%mask%r_con%rtr(i)%sz, fa%mask%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, fa%mask%r_con%nsp
-          call parallel_send_iv(g_snd_i(1+fa%mask%r_con%str(i)%pv), &
-               fa%mask%r_con%str(i)%sz, fa%mask%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+
+    do i = 1, fa%mask%r_con%nsp
+       ii = fa%mask%r_con%str(i)%pr
+       scnt(ii) = fa%mask%r_con%str(i)%sz
+       sdsp(ii) = fa%mask%r_con%str(i)%pv
+    end do
+    do i = 1, fa%mask%r_con%nrp
+       ii = fa%mask%r_con%rtr(i)%pr
+       rcnt(ii) = fa%mask%r_con%rtr(i)%sz
+       rdsp(ii) = fa%mask%r_con%rtr(i)%pv
+    end do
+    call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
     !
     ! Got all the remote data.  Use it.
     !
@@ -474,192 +453,9 @@ contains
        deallocate(mmfpt)
     end do
 
-  contains
-
-    subroutine reserve_double_space(rcon)
-      type(remote_conn), intent(in) :: rcon
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_d(rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_d(rcon%rvol))
-      end if
-    end subroutine reserve_double_space
-
-    subroutine reserve_integer_space(rcon)
-      type(remote_conn), intent(in) :: rcon
-      if ( rcon%svol > 0 ) then
-         allocate(g_snd_i(rcon%svol))
-      end if
-      if ( rcon%rvol > 0 ) then
-         allocate(g_rcv_i(rcon%rvol))
-      end if
-    end subroutine reserve_integer_space
-
   end subroutine ml_crse_contrib_fancy
 
-  subroutine ml_crse_contrib_easy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
-
-    type(multifab), intent(inout) :: res
-    type(multifab), intent(in   ) :: flux
-    type(multifab), intent(in   ) :: crse
-    type(multifab), intent(in   ) :: ss
-    type(imultifab),intent(in   ) :: mm_crse
-    type(imultifab),intent(in   ) :: mm_fine
-    type(box),      intent(in   ) :: crse_domain
-    integer,        intent(in   ) :: ir(:)
-    integer                       :: side
-
-    type(box) :: fbox, cbox, mbox, isect
-    integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
-    integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
-    integer   :: lomf(res%dim), lomc(res%dim), lo_dom(res%dim), hi_dom(res%dim)
-    integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM), loflux(res%dim), hiflux(res%dim)
-    integer   :: dir, i, j, n, proc
-
-    real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
-    integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
-    integer,         parameter :: tag = 1103
-
-    real(kind=dp_t), dimension(:,:,:,:), allocatable :: flxpt
-    integer,         dimension(:,:,:,:), allocatable :: mmfpt
-
-    dir = iabs(side)
-
-    lo_dom = lwb(crse_domain)
-    hi_dom = upb(crse_domain)+1
-
-    do j = 1, crse%nboxes
-
-       cbox  = get_ibox(crse,j)
-       loc   = lwb(get_pbox(crse,j))
-       lomc  = lwb(get_pbox(mm_crse,j))
-       lor   = lwb(get_pbox(res,j))
-       los   = lwb(get_pbox(ss,j))
-
-       do i = 1, flux%nboxes
-
-          if ( remote(crse,j) .and. remote(flux,i) ) cycle
-
-          fbox  = get_ibox(flux,i)
-          isect = intersection(cbox,fbox)
-
-          if ( empty(isect) ) cycle
-
-          loflux = lwb(fbox)
-          hiflux = upb(fbox)
-
-          if ( ss%la%lap%pmask(dir) .or. (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
-
-             lo = lwb(isect)
-             hi = upb(isect)
-
-             if ( local(crse,j) .and. local(flux,i) ) then
-
-                lof  =  loflux
-                hif  =  hiflux
-                lomf =  lwb(get_pbox(mm_fine,i))
-                fp   => dataptr(flux   , i)
-                mp   => dataptr(mm_fine, i)
-                cp   => dataptr(crse   , j)
-                rp   => dataptr(res    , j)
-                sp   => dataptr(ss     , j)
-                mcp  => dataptr(mm_crse, j)
-
-                select case (res%dim)
-                case (1)
-                   call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
-                        fp(:,1,1,1), lof, hif, &
-                        cp(:,1,1,1), loc, &
-                        sp(:,1,1,:), los, lo, hi, ir, side, loflux, hiflux)
-                case (2)
-                   call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
-                        fp(:,:,1,1), lof , hif, &
-                        cp(:,:,1,1), loc , &
-                        sp(:,:,1,:), los , &
-                        mp(:,:,1,1), lomf, &
-                        mcp(:,:,1,1), lomc, lo, hi, ir, side, loflux, hiflux)
-                case (3)
-                   call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
-                        fp(:,:,:,1), lof , hif, &
-                        cp(:,:,:,1), loc , &
-                        sp(:,:,:,:), los , &
-                        mp(:,:,:,1), lomf, &
-                        mcp(:,:,:,1), lomc, lo, hi, ir, side, loflux, hiflux)
-                end select
-
-             else if ( local(flux,i) ) then
-                !
-                ! Got to send flux & mm_fine to processor owning crse.
-                !
-                ! Need flux on isect; need mm_fine on isect*ir.
-                !
-                fp => dataptr(flux, i, isect)
-                proc = get_proc(crse%la, j)
-                call parallel_send(fp, proc, tag)
-                isect%lo(1:res%dim) = isect%lo(1:res%dim) * ir(1:res%dim)
-                isect%hi(1:res%dim) = isect%hi(1:res%dim) * ir(1:res%dim)
-                mp => dataptr(mm_fine, i, isect)
-                call parallel_send(mp, proc, tag)
-             else
-                !
-                ! We own crse.  Got to get flux & mm_fine.
-                !
-                ! flux will be defined on isect; mm_fine on isect*ir.
-                !
-                lod = 1;                     hid = 1
-                lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
-                allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:flux%nc))
-                mbox = isect
-                mbox%lo(1:res%dim) = mbox%lo(1:res%dim) * ir(1:res%dim)
-                mbox%hi(1:res%dim) = mbox%hi(1:res%dim) * ir(1:res%dim)
-                lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
-                allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1:mm_fine%nc))
-                proc = get_proc(flux%la, i)
-                call parallel_recv(flxpt, proc, tag)
-                call parallel_recv(mmfpt, proc, tag)
-
-                lof  =  lwb(isect)
-                hif  =  upb(isect)
-                lomf =  lwb(mbox)
-                cp   => dataptr(crse   , j)
-                rp   => dataptr(res    , j)
-                sp   => dataptr(ss     , j)
-                mcp  => dataptr(mm_crse, j)
-
-                select case (res%dim)
-                case (1)
-                   call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
-                        flxpt(:,1,1,1), lof, hif, &
-                        cp(:,1,1,1), loc, &
-                        sp(:,1,1,:), los, lo, hi, ir, side, loflux, hiflux)
-                case (2)
-                   call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
-                        flxpt(:,:,1,1), lof , hif, &
-                        cp(:,:,1,1), loc , &
-                        sp(:,:,1,:), los , &
-                        mmfpt(:,:,1,1), lomf, &
-                        mcp(:,:,1,1), lomc, lo, hi, ir, side, loflux, hiflux)
-                case (3)
-                   call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
-                        flxpt(:,:,:,1), lof , hif, &
-                        cp(:,:,:,1), loc , &
-                        sp(:,:,:,:), los , &
-                        mmfpt(:,:,:,1), lomf, &
-                        mcp(:,:,:,1), lomc, lo, hi, ir, side, loflux, hiflux)
-                end select
-
-                deallocate(flxpt)
-                deallocate(mmfpt)
-             end if
-          end if
-       end do
-    end do
-
-  end subroutine ml_crse_contrib_easy
-
   subroutine ml_crse_contrib(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
-
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
@@ -669,19 +465,10 @@ contains
     type(box),      intent(in   ) :: crse_domain
     integer,        intent(in   ) :: ir(:)
     integer                       :: side
-
-    type(bl_prof_timer), save :: bpt
-
+    type(bl_prof_timer), save     :: bpt
     call build(bpt, "ml_crse_contrib")
-
-    if ( .true. ) then
-       call ml_crse_contrib_fancy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
-    else
-       call ml_crse_contrib_easy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
-    end if
-
+    call ml_crse_contrib_fancy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
     call destroy(bpt)
-
   end subroutine ml_crse_contrib
 
   subroutine ml_interface_1d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
