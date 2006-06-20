@@ -199,6 +199,7 @@ contains
       call setval(ss,ONE)
       rho = dot(rr, ss)
       volume = dot(ss,ss)
+!     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
       rho = rho / volume
       call saxpy(rr,-rho,ss)
       call setval(ss,ZERO,all=.true.)
@@ -380,7 +381,7 @@ contains
       call setval(zz,ONE)
       rho = dot(rr, zz)
       volume = dot(zz,zz)
-      print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
+!     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
       rho = rho / volume
       call saxpy(rr,-rho,zz)
       call setval(zz,ZERO,all=.true.)
@@ -440,7 +441,7 @@ contains
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, zz, rr, mm)
           rho_hg = dot(rr, zz)
-          if ( (rho_hg < rho_orig*eps) .or. &
+          if ( (abs(rho_hg) < abs(rho_orig)*eps) .or. &
               itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        else
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
