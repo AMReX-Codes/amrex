@@ -5,15 +5,23 @@
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
 #define mgt_finalize              MGT_FINALIZE
-#define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
+#define mgt_init_coeffs_lev       MGT_INIT_COEFFS_LEV
+#define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
+#define mgt_set_rh_1d             MGT_SET_RH_1D
+#define mgt_get_rh_1d             MGT_GET_RH_1D
+#define mgt_set_uu_1d             MGT_SET_UU_1D
+#define mgt_get_uu_1d             MGT_GET_UU_1D
+#define mgt_set_cf_1d             MGT_SET_CF_1D
 #define mgt_set_rh_2d             MGT_SET_RH_2D
 #define mgt_get_rh_2d             MGT_GET_RH_2D
 #define mgt_set_uu_2d             MGT_SET_UU_2D
 #define mgt_get_uu_2d             MGT_GET_UU_2D
+#define mgt_set_cf_2d             MGT_SET_CF_2D
 #define mgt_set_rh_3d             MGT_SET_RH_3D
 #define mgt_get_rh_3d             MGT_GET_RH_3D
 #define mgt_set_uu_3d             MGT_SET_UU_3D
 #define mgt_get_uu_3d             MGT_GET_UU_3D
+#define mgt_set_cf_3d             MGT_SET_CF_3D
 #define mgt_dealloc               MGT_DEALLOC
 #define mgt_solve_cc              MGT_SOLVE_CC
 #define mgt_set_nu1               MGT_SET_NU1
@@ -24,11 +32,18 @@
 #define mgt_set_bottom_solver_eps MGT_SET_BOTTOM_SOLVER_EPS
 #define mgt_set_max_nlevel        MGT_SET_MAX_NLEVEL
 #define mgt_set_verbose           MGT_SET_VERBOSE
+#define mgt_get_ipar_defaults     MGT_GET_IPAR_DEFAULTS
+#define mgt_get_rpar_defaults     MGT_GET_RPAR_DEFAULTS
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define mgt_alloc                 mgt_alloc_
 #define mgt_set_level             mgt_set_level_
 #define mgt_finalize              mgt_finalize_
-#define mgt_finalize_stencil      mgt_finalize_stencil_
+#define mgt_init_coeffs_lev       mgt_init_coeffs_lev_
+#define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
+#define mgt_set_rh_1d             mgt_set_rh_1d_
+#define mgt_get_rh_1d             mgt_get_rh_1d_
+#define mgt_set_uu_1d             mgt_set_uu_1d_
+#define mgt_get_uu_1d             mgt_get_uu_1d_
 #define mgt_set_rh_2d             mgt_set_rh_2d_
 #define mgt_get_rh_2d             mgt_get_rh_2d_
 #define mgt_set_uu_2d             mgt_set_uu_2d_
@@ -37,6 +52,7 @@
 #define mgt_get_rh_3d             mgt_get_rh_3d_
 #define mgt_set_uu_3d             mgt_set_uu_3d_
 #define mgt_get_uu_3d             mgt_get_uu_3d_
+#define mgt_set_cf_3d             mgt_set_cf_3d_
 #define mgt_dealloc               mgt_dealloc_
 #define mgt_solve_cc              mgt_solve_cc_
 #define mgt_set_nu1               mgt_set_nu1_
@@ -48,19 +64,29 @@
 #define mgt_set_max_nlevel        mgt_set_max_nlevel_
 #define mgt_set_min_width         mgt_set_min_width_
 #define mgt_set_verbose           mgt_set_verbose_
+#define mgt_get_ipar_defaults     mgt_get_ipar_defaults_
+#define mgt_get_rpar_defaults     mgt_get_rpar_defaults_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define mgt_alloc                 mgt_alloc__
 #define mgt_set_level             mgt_set_level__
 #define mgt_finalize              mgt_finalize__
-#define mgt_finalize_stencil      mgt_finalize_stencil__
+#define mgt_init_coeffs_lev       mgt_init_coeffs_lev__
+#define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
+#define mgt_set_rh_1d             mgt_set_rh_1d__
+#define mgt_get_rh_1d             mgt_get_rh_1d__
+#define mgt_set_uu_1d             mgt_set_uu_1d__
+#define mgt_get_uu_1d             mgt_get_uu_1d__
+#define mgt_set_cf_1d             mgt_set_cf_1d__
 #define mgt_set_rh_2d             mgt_set_rh_2d__
 #define mgt_get_rh_2d             mgt_get_rh_2d__
 #define mgt_set_uu_2d             mgt_set_uu_2d__
 #define mgt_get_uu_2d             mgt_get_uu_2d__
+#define mgt_set_cf_2d             mgt_set_cf_2d__
 #define mgt_set_rh_3d             mgt_set_rh_3d__
 #define mgt_get_rh_3d             mgt_get_rh_3d__
 #define mgt_set_uu_3d             mgt_set_uu_3d__
 #define mgt_get_uu_3d             mgt_get_uu_3d__
+#define mgt_set_cf_3d             mgt_set_cf_3d__
 #define mgt_dealloc               mgt_dealloc__
 #define mgt_solve_cc              mgt_solve_cc__
 #define mgt_set_nu1               mgt_set_nu1__
@@ -72,6 +98,8 @@
 #define mgt_set_max_nlevel        mgt_set_max_nlevel__
 #define mgt_set_min_width         mgt_set_min_width__
 #define mgt_set_verbose           mgt_set_verbose__
+#define mgt_get_ipar_defaults     mgt_get_ipar_defaults__
+#define mgt_get_rpar_defaults     mgt_get_rpar_defaults__
 #endif
 
 #ifdef __cplusplus
@@ -95,9 +123,11 @@ extern "C"
 		     const int* bc, const int* pm,
 		     const int* pmap);
 
-  void mgt_finalize(const int* mgt);
+  void mgt_finalize(const int* mgt, const int* nipar, const int* ipar, const int* nrpar, const double* rpar);
 
-  void mgt_finalize_stencil(const int* mgt,
+  void mgt_init_coeffs_lev(const int* mgt, const int* lev);
+  
+  void mgt_finalize_stencil_lev(const int* mgt, const int* lev,
 			    const double* xa, const double* xb,
 			    const double* pxa, const double* pxbb);
 
@@ -106,6 +136,10 @@ extern "C"
 		     const int* lo, const int* hi);
   
   void mgt_get_rh_1d(const int* mgt, const int* lev, const int* n, double* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_set_cf_1d(const int* mgt, const int* lev, const int* n, const double* cf,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
@@ -129,6 +163,10 @@ extern "C"
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
+  void mgt_set_cf_2d(const int* mgt, const int* lev, const int* n, const double* cf,
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
   void mgt_get_uu_2d(const int* mgt, const int* lev, const int* n, double* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
@@ -138,6 +176,10 @@ extern "C"
 		     const int* lo, const int* hi);
   
   void mgt_get_rh_3d(const int* mgt, const int* lev, const int* n, double* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_set_cf_3d(const int* mgt, const int* lev, const int* n, const double* cf,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
@@ -170,6 +212,11 @@ extern "C"
   void mgt_set_min_width(const int* mgt, const int* min_width);
 
   void mgt_set_verbose(const int* mgt, const int* verbose);
+  
+  void mgt_get_ipar_defaults(int* ipar, const int* nipar);
+
+  void mgt_get_rpar_defaults(double* rpar, const int* nipar);
+  
   
 #ifdef __cplusplus
 }

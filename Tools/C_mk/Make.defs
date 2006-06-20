@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.94 2006-05-10 18:02:35 car Exp $
+# Make.defs $Id: Make.defs,v 1.95 2006-06-20 16:42:36 car Exp $
 #
 
 #
@@ -228,8 +228,8 @@ ifeq ($(FCOMP),g77)
     fDEBF +=   -ffortran-bounds-check
 endif
 ifeq ($(FCOMP),gfortran)
-    FC := gfortran -fno-second-underscore
-    fC := gfortran -fno-second-underscore
+    FC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    fC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF +=
@@ -244,8 +244,8 @@ ifeq ($(FCOMP),g95)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O -g
     fOPTF += -O -g
-    FDEBF += -g
-    fDEBF += -g
+    FDEBF += -g -ftrace=full
+    fDEBF += -g -ftrace=full
 endif
 
 ifeq ($(COMP),Intel)
@@ -319,11 +319,12 @@ ifeq ($(COMP),Intel)
    endif
    ifeq ($(ICC_MAJOR_VERSION),9)
      CXXDEBF += -traceback 
-     CXXDEBF += -debug expr-source-pos 
-     CXXDEBF += -debug semantic-stepping -debug inline_debug_info
-     CXXDEBF += -debug inline_debug_info
+#    CXXDEBF += -debug expr-source-pos 
+#    CXXDEBF += -debug semantic-stepping
+#    CXXDEBF += -debug inline_debug_info
+#    CXXDEBF += -debug variable-locations
+     CXXDEBF += -debug extended
      CXXDEBF += -ftrapuv
-     # CXXDEBF += -debug variable-locations
    endif
    CXX = $(_icpc)
    CC  = $(_icc)

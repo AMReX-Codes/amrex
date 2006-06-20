@@ -9,8 +9,9 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 DIM	= 3
 DIM	= 2
-COMP = KCC
+
 COMP = g++
+FCOMP = g95
 
 COMP=Intel
 FCOMP=Intel
@@ -70,7 +71,7 @@ endif
 # We need these from amrlib 
 
 CEXE_sources += BCRec.cpp 
-CEXE_headers += BCRec.H BC_Types.H
+CEXE_headers += BCRec.H BC_TYPES.H
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
 vpathdir += $(PBOXLIB_HOME)/amrlib
 
@@ -88,7 +89,7 @@ ifeq ($(DEBUG),TRUE)
     DEFINES += -DBL_USE_ARRAYVIEW
     #DEFINES += -DBL_ARRAYVIEW_TAGBOX
   endif
-  CEXE_headers += TV_TempWrite.H
+  # CEXE_headers += TV_TempWrite.H
 endif
 
 CXXFLAGS +=

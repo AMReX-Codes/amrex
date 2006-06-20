@@ -50,6 +50,10 @@ module ml_boxarray_module
      module procedure ml_boxarray_get_nlevel
   end interface
 
+  interface nboxes
+     module procedure ml_boxarray_get_nboxes
+  end interface
+
   interface get_boxarray
      module procedure ml_boxarray_get_boxarray
   end interface
@@ -69,6 +73,13 @@ contains
     type(ml_boxarray), intent(in) :: mba
     r = mba%nlevel
   end function ml_boxarray_get_nlevel
+
+  function ml_boxarray_get_nboxes(mba, lev) result(r)
+    integer :: r
+    type(ml_boxarray), intent(in) :: mba
+    integer, intent(in) :: lev
+    r = nboxes(mba%bas(lev))
+  end function ml_boxarray_get_nboxes
 
   subroutine ml_boxarray_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms

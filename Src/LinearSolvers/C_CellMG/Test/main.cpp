@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.27 2006-05-18 21:15:24 car Exp $
+// $Id: main.cpp,v 1.28 2006-06-20 16:42:36 car Exp $
 //
 
 #include <fstream>
@@ -55,7 +55,7 @@ mfnorm_2_valid (const MultiFab& mf)
 BoxList readBoxList (std::string file, Box& domain);
 
 int
-main (int   argc, char* argv[])
+main (int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
 
@@ -63,8 +63,8 @@ main (int   argc, char* argv[])
 
   ParmParse pp;
 
-  if ( ParallelDescriptor::IOProcessor() )
-    std::cout << "maxthreads = " << BoxLib::theWorkQueue().max_threads() << std::endl;
+  //  if ( ParallelDescriptor::IOProcessor() )
+  //    std::cout << "maxthreads = " << BoxLib::theWorkQueue().max_threads() << std::endl;
 
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
   Box container;
@@ -80,10 +80,10 @@ main (int   argc, char* argv[])
       bs.coarsen(ba_coarsen);
     }
   Geometry geom( container );
-  Real H[BL_SPACEDIM];
+  Real dx[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; n++ )
     {
-      H[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/container.length(n);
+      dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/container.length(n);
     }
     
   // Allocate/initialize solution and right-hand-side, reset
@@ -145,7 +145,7 @@ main (int   argc, char* argv[])
   if ( !ABec )
     {
       // Build Laplacian operator, solver, then solve 
-      Laplacian lp(bd, H[0]);
+      Laplacian lp(bd, dx[0]);
       {
 	double d = lp.norm();
 	if ( ParallelDescriptor::IOProcessor() )
@@ -277,15 +277,33 @@ main (int   argc, char* argv[])
 #ifdef MG_USE_FBOXLIB
       if ( use_fboxlib )
 	{
-	  int nlevels = 1;
-	  BCRec phys_bc;
-	  const DistributionMapping& dmap = rhs.DistributionMap();
-	  MGT_Solver mgt_solver(nlevels, bs, container, phys_bc, H, dmap, geom);
+	  // Coefficient agglomoration
+	  std::vector<BoxArray> bav(1);
+	  std::vector<DistributionMapping> dmv(1);
+	  bool nodal = false;
+	  bav[0] = bs;
+	  dmv[0] = acoefs.DistributionMap();
+	  // Allocate a Solver
+	  std::vector<int> ipar = MGT_Solver::ipar_defaults();
+	  std::vector<double> rpar = MGT_Solver::rpar_defaults();
+	  MGT_Solver mgt_solver(bd, dx, bav, dmv, ipar, rpar, nodal);
+	  MultiFab* soln_p[1]; soln_p[0] = &soln;
+	  MultiFab* rhs_p[1]; rhs_p[0] = &rhs;
+	  MultiFab* aa_p[1]; aa_p[0] = &acoefs;
+	  MultiFab* bb_p[1][BL_SPACEDIM];
+	  for ( int i = 0; i < BL_SPACEDIM; ++i )
+	  {
+	      bb_p[0][i] = &bcoefs[i];
+	  }
+	  mgt_solver.set_coefficients(aa_p, bb_p);
+	  // Build Stencil
+	  // Now, Solve
+	  mgt_solver.solve(soln_p, rhs_p);
 	}
       else
 #endif
 	{
-	  ABecLaplacian lp(bd, H);
+	  ABecLaplacian lp(bd, dx);
 	  lp.setScalars(alpha, beta);
 	  lp.setCoefficients(acoefs, bcoefs);
           {

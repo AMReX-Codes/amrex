@@ -173,12 +173,12 @@ contains
        if ( .not. present(omega) ) then
           select case ( mgt%dim )
           case (2)
-             select case (smoother)
+             select case (mgt%smoother)
              case ( MG_SMOOTHER_JACOBI )
                 mgt%omega = 4.0_dp_t/5.0_dp_t
              end select
           case (3)
-             select case (smoother)
+             select case (mgt%smoother)
              case ( MG_SMOOTHER_JACOBI )
                 mgt%omega = 6.0_dp_t/7.0_dp_t
              case ( MG_SMOOTHER_GS_RB )
