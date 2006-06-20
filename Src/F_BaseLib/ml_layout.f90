@@ -17,6 +17,7 @@ module ml_layout_module
 
   interface build
      module procedure ml_layout_build
+     module procedure ml_layout_build_n
   end interface
   interface destroy
      module procedure ml_layout_destroy
@@ -35,6 +36,10 @@ module ml_layout_module
 
   interface nlevels
      module procedure ml_layout_nlevels
+  end interface
+
+  interface nboxes
+     module procedure ml_layout_nboxes
   end interface
 
   interface get_box
@@ -58,6 +63,13 @@ contains
     type(ml_layout), intent(in) :: mla
     r = mla%nlevel
   end function ml_layout_nlevels
+
+  function ml_layout_nboxes(mla, lev) result(r)
+    integer :: r
+    type(ml_layout), intent(in) :: mla
+    integer, intent(in) :: lev
+    r = nboxes(mla%mba, lev)
+  end function ml_layout_nboxes
 
   function ml_layout_equal(mla1, mla2) result(r)
     logical :: r
@@ -92,7 +104,7 @@ contains
     r = get_box(mla%la(lev), n)
   end function ml_layout_get_box
 
-  subroutine ml_layouy_build_n(mla, nlevel, dm)
+  subroutine ml_layout_build_n(mla, nlevel, dm)
     type(ml_layout), intent(out) :: mla
     integer, intent(in) :: nlevel, dm
     
@@ -101,8 +113,8 @@ contains
     allocate(mla%pmask(mla%dim))
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
-
-  end subroutine ml_layouy_build_n
+    call build(mla%mba, nlevel, dm)
+  end subroutine ml_layout_build_n
 
   subroutine ml_layout_build(mla, mba, pmask)
     type(ml_layout), intent(inout) :: mla

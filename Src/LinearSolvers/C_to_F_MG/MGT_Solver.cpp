@@ -26,9 +26,10 @@ mgt_set mgt_set_rh = mgt_set_rh_3d;
 MGT_Solver::MGT_Solver(const BndryData& bd, const double* dx, 
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
+		       const std::vector<int>& ipar, const std::vector<double>& rpar,
 		       bool nodal)
   :
-  m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal)
+  m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal), m_ipar(ipar), m_rpar(rpar)
 {
   BL_ASSERT( m_grids.size() == dmap.size() );
   m_nlevel = grids.size();
@@ -67,79 +68,58 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const double* dx,
 	  // bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
 	}
     }
-  int lev = 0;
-  const Array<int>& pmap = dmap[0].ProcessorMap();
-  Box domain = bd.getDomain();
-  mgt_set_level(&m_mgt, &lev, &nb, &dm, &lo[0], &hi[0], 
-		domain.loVect(), domain.hiVect(), &bc[0], pm, &pmap[0]);
-  mgt_finalize(&m_mgt);
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      const Array<int>& pmap = dmap[lev].ProcessorMap();
+      Box domain = bd.getDomain();
+      mgt_set_level(&m_mgt, &lev, &nb, &dm, &lo[0], &hi[0], 
+		    domain.loVect(), domain.hiVect(), &bc[0], pm, &pmap[0]);
+    }
+  int n_ipar = m_ipar.size();
+  int n_rpar = m_rpar.size();
+  double* rpar_p = n_rpar?&m_rpar[0]:0;
+  int* ipar_p = n_ipar?&m_ipar[0]:0;
+  mgt_finalize(&m_mgt, &n_ipar, ipar_p, &n_rpar, rpar_p);
 }
 
-#if 0
-MGT_Solver::MGT_Solver(int nlevel, const BoxArray& ba, const Box& domain, const BCRec& phys_bc, const double* dx,
-		       const DistributionMapping& dmap, const Geometry& geom)
-  : m_dm(BL_SPACEDIM),
-    m_nlevel(nlevel),
-    m_ba(ba),
-    m_domain(domain),
-    m_dmap(dmap),
-    m_geom(geom),
-    m_phys_rec(phys_bc)
+void
+MGT_Solver::set_coefficients(MultiFab* aa[], MultiFab* bb[][BL_SPACEDIM])
 {
-  mgt_alloc(&m_mgt, &m_dm, &m_nlevel);
-  int nb = m_ba.size();
-  std::vector<int> lo(nb*m_dm);
-  std::vector<int> hi(nb*m_dm);
-  for ( int i = 0; i < nb; ++i )
+  for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      for ( int j = 0; j < m_dm; ++j )
+      mgt_init_coeffs_lev(&m_mgt, &lev);
+      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
 	{
-	  lo[i + j*nb] = m_ba[i].smallEnd(j);
-	  hi[i + j*nb] = m_ba[i].bigEnd(j);
+	  xa[i] = xb[i] = m_dx[i]/2;
+	  pxa[i] = pxb[i] = 0;
 	}
-    }
-  int bc[m_dm*2];
-  int pm[m_dm];
-  for ( int i = 0; i < m_dm; ++i ) 
-    {
-      pm[i] = geom.isPeriodic(i)? 1 : 0;
-      if ( pm[i] )
+      for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
 	{
-	  bc[i*2 + 0] = 0;
-	  bc[i*2 + 1] = 0;
+	  FArrayBox* a = &((*(aa[lev]))[amfi]);
+	  FArrayBox* b[BL_SPACEDIM];
+	  for ( int i = 0; i < BL_SPACEDIM; ++i )
+	    {
+	      b[i] = &((*(bb[lev][i]))[amfi]);
+	    }
 	}
-      else
-	{
-	  bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-	  bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-	}
-    }
-  int lev = 1;
-  const Array<int>& pmap = dmap.ProcessorMap();
-  mgt_set_level(&m_mgt, &lev, &nb, &m_dm, &lo[0], &hi[0], 
-		m_domain.loVect(), m_domain.hiVect(), &bc[0], pm, &pmap[0]);
-  const int verbose = 4;
-  mgt_set_verbose(&m_mgt, &verbose);
-  for ( int i = 0; i < m_dm; ++i )
-    {
-      m_dx[i] = dx[i];
+      mgt_finalize_stencil_lev(&m_mgt, &lev, xa, xb, pxa, pxb);
     }
 }
-#endif
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
 {
-  for ( int i = 0; i < m_nlevel; ++i )
+  for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      int lev = i + 1;
-      for (MFIter umfi(*(uu[i])); umfi.isValid(); ++umfi)
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
 	{
-	  const FArrayBox& rhs = (*(rh[i]))[umfi];
-	  const FArrayBox& sol = (*(uu[i]))[umfi];
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
 	  const Real* rd = rhs.dataPtr();
 	  const Real* sd = sol.dataPtr();
-	  int n = umfi.index() + 1; // Fortran Index Correction
+	  int n = umfi.index();
 	  const int* lo = umfi.validbox().loVect();
 	  const int* hi = umfi.validbox().hiVect();
 	  const int* plo = rhs.box().loVect();
@@ -148,24 +128,14 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
 	  mgt_set_uu(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
 	}
     }
-  mgt_finalize(&m_mgt);
-  double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
-  double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-  for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-    {
-      xa[i] = xb[i] = m_dx[i]/2;
-      pxa[i] = pxb[i] = 0;
-    }
-  mgt_finalize_stencil(&m_mgt, xa, xb, pxa, pxb);
   mgt_solve_cc(&m_mgt);
-  for ( int i = 0; i < m_nlevel; ++i )
+  for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      int lev = i + 1;
-      for (MFIter umfi(*(uu[i])); umfi.isValid(); ++umfi)
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
 	{
-	  FArrayBox& sol = (*(uu[i]))[umfi];
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
 	  Real* sd = sol.dataPtr();
-	  int n = umfi.index() + 1; // Fortran Index Correction
+	  int n = umfi.index();
 	  const int* lo = umfi.validbox().loVect();
 	  const int* hi = umfi.validbox().hiVect();
 	  const int* plo = sol.box().loVect();
@@ -178,4 +148,22 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
 MGT_Solver::~MGT_Solver()
 {
   mgt_dealloc(&m_mgt);
+}
+
+std::vector<int>
+MGT_Solver::ipar_defaults()
+{
+  std::vector<int> ip(11);
+  int n = ip.size();
+  mgt_get_ipar_defaults(&ip[0], &n);
+  return ip;
+}
+
+std::vector<double>
+MGT_Solver::rpar_defaults()
+{
+  std::vector<double> dp(3);
+  int n = dp.size();
+  mgt_get_rpar_defaults(&dp[0], &n);
+  return dp;
 }
