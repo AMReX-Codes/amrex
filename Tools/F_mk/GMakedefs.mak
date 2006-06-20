@@ -432,6 +432,11 @@ ifeq ($(ARCH),AIX)
     F90FLAGS += -qlanglvl=95std
     F90FLAGS += -qinitauto=FF
   endif
+  #
+  # You might need the following on seaborg:
+  #
+  # LDFLAGS += -bmaxdata:0x80000000
+
   ifdef OMP
     FFLAGS += -qsmp=omp
     F90FLAGS += -qsmp=omp
