@@ -35,6 +35,9 @@ ifeq ($(ARCH),Linux)
 endif
 
 # Host changes.....
+ifeq ($(HOST),cfe3)
+  mpi_libraries += -lmpi
+endif
 ifeq ($(HOST),naphta)
   MPIHOME=/home/car/mpich2
   mpi_include_dir = $(MPIHOME)/include
