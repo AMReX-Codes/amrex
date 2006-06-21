@@ -163,7 +163,7 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
 
   allocate(mgts(mgt)%bc(dm,2))
 
-2  mgts(mgt)%bc = transpose(bc)
+  mgts(mgt)%bc = transpose(bc)
 
 end subroutine mgt_set_level
 
@@ -217,16 +217,11 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
   bottom_solver_eps = rpar(MGT_BOTTOM_SOLVER_EPS)
 
 ! print *, 'rpar ', rpar(0:2)
-! print *, 'ipar ', ipar(0:10)
-
 
   dm = mgts(mgt)%dim
 
   nc = 1
   nlev = mgts(mgt)%nlevel
-
-print *, 'nlev = ', nlev
-
 
   do i = 1, nlev-1
      mgts(mgt)%rr(i,:) = mgts(mgt)%mla%mba%rr(i,:)
