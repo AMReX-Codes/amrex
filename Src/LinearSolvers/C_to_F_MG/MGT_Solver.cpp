@@ -64,6 +64,8 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const double* dx,
 	}
       else
 	{
+	  bc[i*2 + 0] = MGT_BC_DIR;	// FIXME: Hardware DIRICHET
+	  bc[i*2 + 1] = MGT_BC_DIR;
 	  // bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
 	  // bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
 	}
