@@ -862,6 +862,7 @@ contains
     logical :: do_diag
     real(dp_t) :: nrm, nrm1, nrm2, nrm3
     integer :: lbl
+    logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_cycle")
@@ -869,6 +870,8 @@ contains
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
+
+    nodal_flag = nodal_q(ss)
 
     if (do_diag) then
        nrm = norm_inf(uu)
@@ -906,6 +909,7 @@ contains
              print *,'DN: NORM BEFORE RELAX ',lev, nrm, nrm1
           end if
        end if
+
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
@@ -921,6 +925,11 @@ contains
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
             mgt%mm(lev),mgt%mm(lev-1))
+       ! HACK TO MATCH PARALLEL/HGPROJ
+       if (nodal_flag .and. multifab_ncomp(mgt%ss(lev)).eq.7) then
+!         print *,'PRE-MULTIPLYING CRSE RES BY 1/8 FOR CROSS STENCIL '
+         call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+       end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
@@ -994,6 +1003,11 @@ contains
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
+
+       if (nodal_q(mgt%dd(lev-1)) .and. multifab_ncomp(mgt%ss(lev)).eq.7) then
+!         print *,'MULTIPLYING CRSE RES BY 8 FOR CROSS STENCIL '
+         call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+       end if
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
