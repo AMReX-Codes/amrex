@@ -108,6 +108,7 @@ MGT_Solver::set_coefficients(MultiFab* aa[], MultiFab* bb[][BL_SPACEDIM])
 	}
       mgt_finalize_stencil_lev(&m_mgt, &lev, xa, xb, pxa, pxb);
     }
+  mgt_finalize_stencil(&m_mgt);
 }
 
 void 
