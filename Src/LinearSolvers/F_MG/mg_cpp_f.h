@@ -6,6 +6,7 @@
 #define mgt_set_level             MGT_SET_LEVEL
 #define mgt_finalize              MGT_FINALIZE
 #define mgt_init_coeffs_lev       MGT_INIT_COEFFS_LEV
+#define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
 #define mgt_set_rh_1d             MGT_SET_RH_1D
 #define mgt_get_rh_1d             MGT_GET_RH_1D
@@ -39,6 +40,7 @@
 #define mgt_set_level             mgt_set_level_
 #define mgt_finalize              mgt_finalize_
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev_
+#define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
 #define mgt_set_rh_1d             mgt_set_rh_1d_
 #define mgt_get_rh_1d             mgt_get_rh_1d_
@@ -71,6 +73,7 @@
 #define mgt_set_level             mgt_set_level__
 #define mgt_finalize              mgt_finalize__
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev__
+#define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
 #define mgt_set_rh_1d             mgt_set_rh_1d__
 #define mgt_get_rh_1d             mgt_get_rh_1d__
@@ -126,6 +129,8 @@ extern "C"
   void mgt_finalize(const int* mgt, const int* nipar, const int* ipar, const int* nrpar, const double* rpar);
 
   void mgt_init_coeffs_lev(const int* mgt, const int* lev);
+  
+  void mgt_finalize_stencil(const int* mgt);
   
   void mgt_finalize_stencil_lev(const int* mgt, const int* lev,
 			    const double* xa, const double* xb,
