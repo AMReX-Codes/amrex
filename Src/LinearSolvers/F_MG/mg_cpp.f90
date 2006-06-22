@@ -161,6 +161,12 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
        mgts(mgt)%pd(flev), pmask = pmask, &
        mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
+  print *, 'flev = ', flev
+  call print(mgts(mgt)%pd(flev))
+  call print(mgts(mgt)%mla%la(flev))
+
+  call print(mgts(mgt)%mla%la(flev))
+
   allocate(mgts(mgt)%bc(dm,2))
 
   mgts(mgt)%bc = transpose(bc)
@@ -291,13 +297,18 @@ subroutine mgt_init_coeffs_lev(mgt, lev)
   dm = mgts(mgt)%dim
   nlev = mgts(mgt)%mgt(flev)%nlevels
   allocate(mgts(mgt)%coeffs(nlev))
-  call build(mgts(mgt)%coeffs(flev), mgts(mgt)%mla%la(flev), 1+dm, 1)
+print *, 'size(coeffs) ', size(mgts(mgt)%coeffs)
+call print(mgts(mgt)%mla%la(1))
+
+  call build(mgts(mgt)%coeffs(nlev), mgts(mgt)%mgt(flev)%ss(nlev)%la, 1+dm, 1)
   do i = nlev - 1, 1, -1
      call build(mgts(mgt)%coeffs(i), mgts(mgt)%mgt(flev)%ss(i)%la, 1+dm, 1)
      call setval(mgts(mgt)%coeffs(i), 0.0_dp_t, all=.true.)
   end do
 
-  mgts(mgt)%final = .true.
+  do i = 1, nlev
+     print *, 'i ', i, nboxes(mgts(mgt)%coeffs(i))
+  end do
 
 end subroutine mgt_init_coeffs_lev
 
@@ -332,6 +343,8 @@ subroutine mgt_finalize_stencil_lev(mgt, lev, xa, xb, pxa, pxb)
   end do
   do i = nlev, 1, -1
      pdv = layout_boxarray(mgts(mgt)%mgt(flev)%ss(i)%la)
+print *, nboxes(pdv)
+print *, nboxes(mgts(mgt)%coeffs(i))
      call stencil_fill_cc(mgts(mgt)%mgt(flev)%ss(i), mgts(mgt)%coeffs(i), mgts(mgt)%mgt(flev)%dh(:,i), &
           pdv, mgts(mgt)%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), pd, &
           mgts(mgt)%stencil_order, mgts(mgt)%bc)
@@ -341,47 +354,14 @@ subroutine mgt_finalize_stencil_lev(mgt, lev, xa, xb, pxa, pxb)
 
 end subroutine mgt_finalize_stencil_lev
 
-! subroutine mgt_finalize_stencil(mgt, lev, 
-!   use cpp_mg_module
-!   implicit none
-!   integer, intent(in) :: mgt
-!   integer :: nlev, i
-!   type(boxarray) :: pdv
-!   integer :: dm
-!   type(box) :: pd
-!   integer :: stencil_order
+subroutine mgt_finalize_stencil(mgt)
+   use cpp_mg_module
+   implicit none
+   integer, intent(in) :: mgt
+   call mgt_verify(mgt, "MGT_FINALIZE_STENCIL")
+   mgts(mgt)%final = .true.
+end subroutine mgt_finalize_stencil
 
-!   call mgt_verify(mgt, "MGT_FINALIZE_STENCIL")
-!   if ( .not. mgts(mgt)%final ) then
-!      call bl_error("MGT_SOLVE: MGT not finalized")
-!   end if
-
-!   dm = mgts(mgt)%dim
-!   allocate(mgts(mgt)%xa(dm), mgts(mgt)%xb(dm))
-!   allocate(mgts(mgt)%pxa(dm), mgts(mgt)%pxb(dm))
-
-!   ! May be un-needed but salt away for now.
-!   mgts(mgt)%pxa = pxa(1:dm)
-!   mgts(mgt)%pxb = pxb(1:dm)
-!   mgts(mgt)%xa  = xa(1:dm)
-!   mgts(mgt)%xb  = xb(1:dm)
-
-! print *, 'pxa', mgts(mgt)%pxa
-! print *, 'pxb', mgts(mgt)%pxb
-! print *, 'xa ', mgts(mgt)%xa
-! print *, 'xb ', mgts(mgt)%xb
-
-!   nlev = mgts(mgt)%nlevel
-!   pd = get_pd(mgts(mgt)%mla%la(1))
-
-!   do i = nlev - 1, 1, -1
-!      pdv = get_boxarray(mgts(mgt)%mgt(i)%ss(i)%la)
-!      call stencil_fill_cc(mgts(mgt)%mgt(1)%ss(i), mgts(mgt)%coeffs(i), mgts(mgt)%mgt(1)%dh(:,i), &
-!           pdv, mgts(mgt)%mgt(1)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), pd, &
-!           stencil_order, mgts(mgt)%bc)
-!   end do
-
-! end subroutine mgt_finalize_stencil
 
 subroutine mgt_set_ss_2d(mgt, lev, n, a, b, aa, bb1, bb2, plo, phi, lo, hi)
   use cpp_mg_module
@@ -678,6 +658,7 @@ subroutine mgt_solve_cc(mgt)
   use cpp_mg_module
   use ml_cc_module
   use ml_nd_module
+  use fabio_module
   implicit none
   integer, intent(in) :: mgt
   integer :: do_diagnostics
@@ -687,6 +668,8 @@ subroutine mgt_solve_cc(mgt)
   if ( .not. mgts(mgt)%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
+
+call fabio_ml_write(mgts(mgt)%rh, mgts(mgt)%rr(:,1), "mgt_rhs")
 
   if ( mgts(mgt)%nodal ) then
      call ml_nd(mgts(mgt)%mla, mgts(mgt)%mgt, &
@@ -699,6 +682,8 @@ subroutine mgt_solve_cc(mgt)
           mgts(mgt)%mla%mask, mgts(mgt)%rr, &
           do_diagnostics, eps)
   end if
+
+call fabio_ml_write(mgts(mgt)%uu, mgts(mgt)%rr(:,1), "mgt_uu")
 
 end subroutine mgt_solve_cc
 
