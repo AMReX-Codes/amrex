@@ -801,9 +801,9 @@ contains
        write(unit=un, fmt='(" PD      = ",i2)', advance = 'no')
        call print(la%lap%pd, unit = unit)
        do i = 1, nboxes(la)
-          call unit_skip(unit, skip = unit_get_skip(skip) + 1)
+          call unit_skip(unit=un, skip = unit_get_skip(skip) + 1)
           write(unit=un, fmt = '(I0,": ")', advance = 'no') i
-          call print(get_box(la,i), unit = unit, advance = 'no')
+          call print(get_box(la,i), unit = un, advance = 'no')
           write(unit=un, fmt = '(" ",I0)') get_proc(la,i)
        end do
        write(unit=un, fmt = '(" *)]")')
