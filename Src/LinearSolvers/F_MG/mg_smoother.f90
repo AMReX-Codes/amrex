@@ -623,7 +623,7 @@ contains
 
     end if
 
-1000format("SRC UU ",i2,1x,i2,1x,i2,1x,f16.8,1x,f16.8)
+ 1000 format("SRC UU ",i2,1x,i2,1x,i2,1x,f16.8,1x,f16.8)
 
   end subroutine nodal_smoother_3d
 
