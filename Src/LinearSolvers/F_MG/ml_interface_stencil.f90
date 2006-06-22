@@ -637,6 +637,7 @@ contains
     integer :: i, j, k
     integer :: ioff, joff, koff
     integer :: sig_mm, sig_mp, sig_pm, sig_pp
+    integer :: sig_i,sig_j,sig_k
     logical :: lo_i_not,lo_j_not,lo_k_not,hi_i_not,hi_j_not,hi_k_not
     real (kind = dp_t) :: crse_flux
     real (kind = dp_t) :: cell_mm, cell_mp, cell_pm, cell_pp
@@ -646,8 +647,10 @@ contains
     k = lo(3)
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
-
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
+
+    if (size(ss,dim=4) .eq. 27) then
+    ! Dense stencil
 
     !   Lo/Hi i side
     if (side == -1 .or. side == 1) then
@@ -852,6 +855,238 @@ contains
            end if
           end do
        end do
+    end if
+
+    else if (size(ss,dim=4) .eq. 7) then
+    ! Cross stencil
+
+    !   Lo/Hi i side
+    if (side == -1 .or. side == 1) then
+
+       if (side == -1) then
+          ioff   = i+1
+          sig_i  = 1
+       else if (side == 1) then
+          ioff   = i-1
+          sig_i  = 2
+       end if
+
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0) .and. &
+                (.not.bc_dirichlet(mm_crse(i,j,k),1,0))) then
+
+             lo_j_not = ( (j == loflux(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1) )
+             hi_j_not = ( (j == hiflux(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1) )
+             lo_k_not = ( (k == loflux(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1) )
+             hi_k_not = ( (k == hiflux(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1) )
+
+             cell_mm = FOURTH*ss(i,j,k,sig_i)*(cc(ioff,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    4)*(cc(i,j-1,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    6)*(cc(i,j,k-1)-cc(i,j,k)) 
+
+             cell_pm = FOURTH*ss(i,j,k,sig_i)*(cc(ioff,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    3)*(cc(i,j+1,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    6)*(cc(i,j,k-1)-cc(i,j,k)) 
+
+             cell_mp = FOURTH*ss(i,j,k,sig_i)*(cc(ioff,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    4)*(cc(i,j-1,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    5)*(cc(i,j,k+1)-cc(i,j,k)) 
+
+             cell_pp = FOURTH*ss(i,j,k,sig_i)*(cc(ioff,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    3)*(cc(i,j+1,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    5)*(cc(i,j,k+1)-cc(i,j,k)) 
+
+             crse_flux = zero
+
+             if (lo_k_not) then
+                if (lo_j_not) then
+                   crse_flux = THIRD*cell_pp 
+                else if (hi_j_not) then
+                   crse_flux = THIRD*cell_mp
+                else
+                   crse_flux = HALF*(cell_pp + cell_mp)
+                end if
+             else if (hi_k_not) then
+                if (lo_j_not) then
+                   crse_flux = THIRD*cell_pm 
+                else if (hi_j_not) then
+                   crse_flux = THIRD*cell_mm 
+                else
+                   crse_flux = HALF*(cell_pm  + cell_mm)
+                end if
+             else 
+                if (lo_j_not) then
+                   crse_flux = HALF*(cell_pm  + cell_pp)
+                else if (hi_j_not) then
+                   crse_flux = HALF*(cell_mm  + cell_mp)
+                else
+                   crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                end if
+             end if
+
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
+             end if
+
+             res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
+
+           end if
+          end do
+       end do
+
+       !   Lo/Hi j side
+    else if (side == -2 .or. side == 2) then
+
+       if (side == -2) then
+          joff   = j+1
+          sig_j  = 3
+       else
+          joff   = j-1
+          sig_j  = 4
+       end if
+       do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0) .and. &
+                (.not.bc_dirichlet(mm_crse(i,j,k),1,0))) then
+
+             lo_i_not = ( (i == loflux(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1) )
+             hi_i_not = ( (i == hiflux(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1) )
+             lo_k_not = ( (k == loflux(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1) )
+             hi_k_not = ( (k == hiflux(3)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1) )
+
+             cell_mm = FOURTH*ss(i,j,k,sig_j)*(cc(i,joff,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    2)*(cc(i-1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    6)*(cc(i,j,k-1)-cc(i,j,k)) 
+
+             cell_pm = FOURTH*ss(i,j,k,sig_j)*(cc(i,joff,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    1)*(cc(i+1,j,k)-cc(i,j,k))& 
+                      +FOURTH*ss(i,j,k,    6)*(cc(i,j,k-1)-cc(i,j,k)) 
+
+             cell_mp = FOURTH*ss(i,j,k,sig_j)*(cc(i,joff,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    2)*(cc(i-1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    5)*(cc(i,j,k+1)-cc(i,j,k)) 
+
+             cell_pp = FOURTH*ss(i,j,k,sig_j)*(cc(i,joff,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    1)*(cc(i+1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    5)*(cc(i,j,k+1)-cc(i,j,k)) 
+
+             if (lo_k_not) then
+                if (lo_i_not) then
+                   crse_flux = THIRD*cell_pp 
+                else if (hi_i_not) then
+                   crse_flux = THIRD*cell_mp
+                else
+                   crse_flux = HALF*(cell_pp + cell_mp)
+                end if
+             else if (hi_k_not) then
+                if (lo_i_not) then
+                   crse_flux = THIRD*cell_pm 
+                else if (hi_i_not) then
+                   crse_flux = THIRD*cell_mm 
+                else
+                   crse_flux = HALF*(cell_pm  + cell_mm)
+                end if
+             else 
+                if (lo_i_not) then
+                   crse_flux = HALF*(cell_pm  + cell_pp)
+                else if (hi_i_not) then
+                   crse_flux = HALF*(cell_mm  + cell_mp)
+                else
+                   crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                end if
+             end if
+
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
+             end if
+
+             res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
+           end if
+          end do
+       end do
+       !   Lo/Hi k side
+    else if (side == -3 .or. side == 3) then
+       k = lo(3)
+       if (side == -3) then
+          koff   = k+1
+          sig_k  = 5
+       else
+          koff   = k-1
+          sig_k  = 6
+       end if
+
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+
+           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0) .and. &
+                (.not.bc_dirichlet(mm_crse(i,j,k),1,0))) then
+
+             lo_i_not = ( (i == loflux(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1) )
+             hi_i_not = ( (i == hiflux(1)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1) )
+             lo_j_not = ( (j == loflux(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1) )
+             hi_j_not = ( (j == hiflux(2)).and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1) )
+
+             cell_mm = FOURTH*ss(i,j,k,sig_k)*(cc(i,j,koff)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    2)*(cc(i-1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    4)*(cc(i,j-1,k)-cc(i,j,k)) 
+
+             cell_pm = FOURTH*ss(i,j,k,sig_k)*(cc(i,j,koff)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    1)*(cc(i+1,j,k)-cc(i,j,k))& 
+                      +FOURTH*ss(i,j,k,    4)*(cc(i,j-1,k)-cc(i,j,k)) 
+
+             cell_mp = FOURTH*ss(i,j,k,sig_k)*(cc(i,j,koff)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    2)*(cc(i-1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    3)*(cc(i,j+1,k)-cc(i,j,k)) 
+
+             cell_pp = FOURTH*ss(i,j,k,sig_k)*(cc(i,j,koff)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    1)*(cc(i+1,j,k)-cc(i,j,k)) &
+                      +FOURTH*ss(i,j,k,    3)*(cc(i,j+1,k)-cc(i,j,k)) 
+
+             if (lo_j_not) then
+                if (lo_i_not) then
+                   crse_flux = THIRD*cell_pp 
+                else if (hi_i_not) then
+                   crse_flux = THIRD*cell_mp
+                else
+                   crse_flux = HALF*(cell_pp + cell_mp)
+                end if
+             else if (hi_j_not) then
+                if (lo_i_not) then
+                   crse_flux = THIRD*cell_pm 
+                else if (hi_i_not) then
+                   crse_flux = THIRD*cell_mm 
+                else
+                   crse_flux = HALF*(cell_pm  + cell_mm)
+                end if
+             else 
+                if (lo_i_not) then
+                   crse_flux = HALF*(cell_pm  + cell_pp)
+                else if (hi_i_not) then
+                   crse_flux = HALF*(cell_mm  + cell_mp)
+                else
+                   crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                end if
+             end if
+
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
+             end if
+
+             res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
+           end if
+          end do
+       end do
+    end if
+
     end if
 
   end subroutine ml_interface_3d_nodal

@@ -2,10 +2,11 @@ module mg_smoother_module
 
   use stencil_module
   use stencil_nodal_module
+  use bl_constants_module
 
   implicit none
 
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
+! real(dp_t), private, parameter :: ZERO = 0.0_dp_t
 
   private dgtsl
 
@@ -449,6 +450,34 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    if (1 .eq. 0) then
+    do j = lo(2),hi(2)
+      uu(lo(1)  ,j) = uu(hi(1)  ,j)
+      uu(lo(1)-1,j) = uu(hi(1)-1,j)
+      uu(hi(1)+1,j) = uu(lo(1)+1,j)
+    end do
+    do i = lo(1)-1,hi(1)+1
+      uu(i,lo(2)  ) = uu(i,hi(2)  )
+      uu(i,lo(2)-1) = uu(i,hi(2)-1)
+      uu(i,hi(2)+1) = uu(i,lo(2)+1)
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          if (.not. bc_dirichlet(mm(i,j),1,0)) then
+             dd = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i-1,j-1) &
+                  + ss(i,j,2) * uu(i  ,j-1) &
+                  + ss(i,j,3) * uu(i+1,j-1) &
+                  + ss(i,j,4) * uu(i-1,j  ) &
+                  + ss(i,j,5) * uu(i+1,j  ) &
+                  + ss(i,j,6) * uu(i-1,j+1) &
+                  + ss(i,j,7) * uu(i  ,j+1) &
+                  + ss(i,j,8) * uu(i+1,j+1)
+          end if
+       end do
+    end do
+    end if
+
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng)
@@ -459,8 +488,11 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
-    integer :: i, j, k
+
+    integer :: i, j, k, ipass, ipar, ipar0
+    integer :: istart,jstart,kstart
     integer :: hi(size(lo))
+    logical :: offset
     real (kind = dp_t) :: dd
 
     hi(1) = lo(1) + size(mm,dim=1)-1
@@ -469,34 +501,129 @@ contains
 
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                dd = ss(i,j,k,0)*uu(i,j,k) &
-                     + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
-                     + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
-                     + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
-                     + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
-                     + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
-                     + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
-                     + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
-                     + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
-                     + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
-                     + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
+!   print *,'IN SMOOTHER: I ',lo(1),hi(1)
+!   print *,'IN SMOOTHER: J ',lo(2),hi(2)
+!   print *,'IN SMOOTHER: K ',lo(3),hi(3)
 
-                ! Add faces (only non-zero for non-uniform dx)
-                dd = dd + &
-                     ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-                     + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-                     + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+    if (size(ss,dim=4) .eq. 7) then
 
-                uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-             end if
+      ! PURE HACK just to match up the gsrb with Parallel/hgproj
+      offset = .true.
+      do k = lo(3),hi(3)
+      do j = lo(2),hi(2)
+        if (.not. bc_dirichlet(mm(lo(1),j,k),1,0)) offset = .false.
+      end do
+      end do
+      if (offset) then 
+        istart = lo(1)+1
+      else
+        istart = lo(1)
+      end if
+
+      offset = .true.
+      do k = lo(3),hi(3)
+      do i = lo(1),hi(1)
+        if (.not. bc_dirichlet(mm(i,lo(2),k),1,0)) offset = .false.
+      end do
+      end do
+      if (offset) then 
+        jstart = lo(2)+1
+      else
+        jstart = lo(2)
+      end if
+
+      offset = .true.
+      do j = lo(2),hi(2)
+      do i = lo(1),hi(1)
+        if (.not. bc_dirichlet(mm(i,j,lo(3)),1,0)) offset = .false.
+      end do
+      end do
+      if (offset) then 
+        kstart = lo(3)+1
+      else
+        kstart = lo(3)
+      end if
+
+!     do k = lo(3),hi(3)
+!     do j = lo(2),hi(2)
+!     do i = lo(1),hi(1)
+!        if (abs(ff(i,j,k)).gt.0.d0) &
+!          print *,'SRC ',i,j,k,ff(i,j,k)
+!     end do
+!     end do
+!     end do
+
+
+      do ipass = 0, 1
+        ipar0 = ipass
+        do k = kstart,hi(3)
+          ipar0 = 1 - ipar0
+          ipar = ipar0
+          do j = jstart,hi(2)
+             ipar = 1 - ipar
+             do i = istart+ipar,hi(1),2
+                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                   dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                        + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
+                        + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
+                        + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+
+                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+
+!                  write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
+   
+                end if
+             end do
           end do
-       end do
-       !    print *,' '
-    end do
+!         print *,' '
+        end do
+      end do
+
+    else if (size(ss,dim=4) .eq. 27) then
+
+      do k = lo(3),hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                  dd = ss(i,j,k,0)*uu(i,j,k) &
+                       + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
+                       + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
+                       + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
+                       + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
+                       + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
+                       + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
+                       + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
+                       + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
+                       + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
+                       + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
+
+                  ! Add faces (only non-zero for non-uniform dx)
+                  dd = dd + &
+                       ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
+                       + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
+                       + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+  
+!                 write(6,1001) i,j,k,uu(i,j,k)
+  
+                  uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+  
+!                 write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
+  
+               end if
+            end do
+!        print *,' '
+         end do
+!        print *,' '
+      end do
+
+    else
+
+      print *,'BAD SS IN NODAL_SMOOTHER ',size(ss,dim=4)
+      stop
+
+    end if
+
+1000format("SRC UU ",i2,1x,i2,1x,i2,1x,f16.8,1x,f16.8)
 
   end subroutine nodal_smoother_3d
 

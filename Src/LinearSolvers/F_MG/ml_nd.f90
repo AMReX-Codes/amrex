@@ -18,13 +18,14 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla, mgt, rh, full_soln, fine_mask, ref_ratio, do_diagnostics, eps)
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
+    type( multifab), intent(in   ) :: one_sided_ss(2:)
     integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics 
     real(dp_t)     , intent(in   ) :: eps
@@ -46,6 +47,7 @@ contains
     logical :: zero_only
 
     real(dp_t) :: Anorm, bnorm, res_norm
+    real(dp_t) :: fac
     real(dp_t) :: tres
 
     logical, allocatable :: nodal(:)
@@ -120,7 +122,7 @@ contains
 !           mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
 !      pdc = layout_get_pd(mla%la(n-1))
 !      call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n),temp_res(n-1), &
-!           full_soln(n-1),full_soln(n),ref_ratio(n-1,:),pdc)
+!           full_soln(n-1),full_soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
 !   enddo
 
     do n = 1,nlevs
@@ -180,6 +182,12 @@ contains
              call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
                   rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse))
 
+             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+                fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
+                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+             end if
+
              ! Compute FINE Res = Res - Lap(uu)
              mglev = mgt(n)%nlevels
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
@@ -200,13 +208,19 @@ contains
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
+                  soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
 
              ! Copy u_hold = uu
              if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),all=.true.)
 
              ! Set: uu = 0
              call setval(uu(n),ZERO,all=.true.)
+
+             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+                fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
+                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+             end if
 
           else
 
@@ -316,13 +330,24 @@ contains
              !  Restrict the finer residual onto the coarser grid
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
+             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+                fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
+                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+             end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
 
              !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
-             call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
+             call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
+                  rh(n),temp_res(n),temp_res(n-1), &
+                  soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
+             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+                fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
+                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+             end if
           end do
 
           if ( mgt(nlevs)%verbose > 0 ) then
@@ -381,7 +406,7 @@ contains
   contains
 
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
-         crse_soln,fine_soln,ref_ratio,pdc)
+         crse_soln,fine_soln,one_sided_ss,ref_ratio,pdc)
 
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
@@ -392,6 +417,7 @@ contains
       type(multifab) , intent(inout) :: temp_crse_res
       type(multifab) , intent(inout) :: crse_soln
       type(multifab) , intent(inout) :: fine_soln
+      type(multifab) , intent(in   ) :: one_sided_ss
       integer        , intent(in   ) :: ref_ratio(:)
       type(box)      , intent(in   ) :: pdc
 
@@ -411,8 +437,13 @@ contains
 
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
-      call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
-           fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+      if (multifab_ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
+        call grid_res(mgt(n),mglev_fine,one_sided_ss,temp_res, &
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+      else
+        call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+      end if
 
       do i = 1,dm
          call ml_fine_contrib(brs_flx%bmf(i,0), &
