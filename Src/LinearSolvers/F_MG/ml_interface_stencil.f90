@@ -520,7 +520,7 @@ contains
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
 
-    integer :: i, j
+    integer :: i, j, ioff, joff, sig_i, sig_j
     real (kind = dp_t) :: crse_flux
 
     i = lo(1)
@@ -528,7 +528,10 @@ contains
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
-    if (side == -1) then
+    if (size(ss,dim=3) .eq. 9) then
+    ! Dense stencil
+
+      if (side == -1) then
 
        do j = lo(2),hi(2)
           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
@@ -549,7 +552,7 @@ contains
           end if
        end do
 
-    else if (side ==  1) then
+      else if (side ==  1) then
 
        do j = lo(2),hi(2)
           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
@@ -570,7 +573,7 @@ contains
           end if
        end do
 
-    else if (side == -2) then
+      else if (side == -2) then
 
        do i = lo(1),hi(1)
           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
@@ -591,7 +594,7 @@ contains
           end if
        end do
 
-    else if (side ==  2) then
+      else if (side ==  2) then
 
        do i = lo(1),hi(1)
           if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
@@ -612,6 +615,69 @@ contains
           end if
        end do
 
+      end if
+
+    else if (size(ss,dim=3) .eq. 5) then
+    ! Cross stencil
+
+      if (side == -1 .or. side == 1) then
+
+       if (side == -1) then
+          ioff   = i+1
+          sig_i  = 2
+       else if (side == 1) then
+          ioff   = i-1
+          sig_i  = 2
+       end if
+
+       do j = lo(2),hi(2)
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
+               (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (j == loflux(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux =      ss(i,j,sig_i) * (cc(ioff,j  )-cc(i,j)) &
+                           +HALF*ss(i,j,3    ) * (cc(i   ,j+1)-cc(i,j)) 
+             else if (j == hiflux(2) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux =      ss(i,j,sig_i) * (cc(ioff,j  )-cc(i,j)) &
+                           +HALF*ss(i,j,4    ) * (cc(i   ,j-1)-cc(i,j)) 
+             else
+                crse_flux =      ss(i,j,sig_i) * (cc(ioff,j  )-cc(i,j)) &
+                           +HALF*ss(i,j,3    ) * (cc(i   ,j+1)-cc(i,j)) &
+                           +HALF*ss(i,j,4    ) * (cc(i   ,j-1)-cc(i,j)) 
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
+          end if
+       end do
+
+      else if (side == -2 .or. side == 2) then
+
+       if (side == -2) then
+          joff   = j+1
+          sig_j  = 3
+       else if (side == 2) then
+          joff   = j-1
+          sig_j  = 4
+       end if
+
+       do i = lo(1),hi(1)
+          if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j),1,0) .and. &
+               (.not. bc_dirichlet(mm_crse(i,j),1,0))) then
+             if (i == loflux(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,-1)) then
+                crse_flux =      ss(i,j,sig_j) * (cc(i  ,joff)-cc(i,j)) &
+                           +HALF*ss(i,j,1    ) * (cc(i+1,j   )-cc(i,j)) 
+             else if (i == hiflux(1) .and. .not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j),1,+1)) then
+                crse_flux =      ss(i,j,sig_j) * (cc(i  ,joff)-cc(i,j)) &
+                           +HALF*ss(i,j,2    ) * (cc(i-1,j   )-cc(i,j)) 
+             else
+                crse_flux =      ss(i,j,sig_j) * (cc(i  ,joff)-cc(i,j)) &
+                           +HALF*ss(i,j,1    ) * (cc(i+1,j   )-cc(i,j)) &
+                           +HALF*ss(i,j,2    ) * (cc(i-1,j   )-cc(i,j)) 
+             end if
+             res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
+          end if
+       end do
+
+      end if
+    
     end if
 
   end subroutine ml_interface_2d_nodal

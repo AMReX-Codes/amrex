@@ -423,8 +423,9 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
-    integer :: j, i
+    integer :: j, i, ipass, ipar, istart, jstart
     integer :: hi(size(lo))
+    logical :: offset
     real (kind = dp_t) :: dd
 
     hi = ubound(uu)-ng
@@ -432,50 +433,71 @@ contains
 
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
-    !$OMP PARALLEL DO PRIVATE(j,i,dd)
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          if (.not. bc_dirichlet(mm(i,j),1,0)) then
-             dd = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i-1,j-1) &
-                  + ss(i,j,2) * uu(i  ,j-1) &
-                  + ss(i,j,3) * uu(i+1,j-1) &
-                  + ss(i,j,4) * uu(i-1,j  ) &
-                  + ss(i,j,5) * uu(i+1,j  ) &
-                  + ss(i,j,6) * uu(i-1,j+1) &
-                  + ss(i,j,7) * uu(i  ,j+1) &
-                  + ss(i,j,8) * uu(i+1,j+1)
-             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-          end if
-       end do
-    end do
-    !$OMP END PARALLEL DO
+    if (size(ss,dim=3) .eq. 9) then
 
-    if (1 .eq. 0) then
-    do j = lo(2),hi(2)
-      uu(lo(1)  ,j) = uu(hi(1)  ,j)
-      uu(lo(1)-1,j) = uu(hi(1)-1,j)
-      uu(hi(1)+1,j) = uu(lo(1)+1,j)
-    end do
-    do i = lo(1)-1,hi(1)+1
-      uu(i,lo(2)  ) = uu(i,hi(2)  )
-      uu(i,lo(2)-1) = uu(i,hi(2)-1)
-      uu(i,hi(2)+1) = uu(i,lo(2)+1)
-    end do
+      !$OMP PARALLEL DO PRIVATE(j,i,dd)
+      do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
+            if (.not. bc_dirichlet(mm(i,j),1,0)) then
+               dd = ss(i,j,0)*uu(i,j) &
+                    + ss(i,j,1) * uu(i-1,j-1) &
+                    + ss(i,j,2) * uu(i  ,j-1) &
+                    + ss(i,j,3) * uu(i+1,j-1) &
+                    + ss(i,j,4) * uu(i-1,j  ) &
+                    + ss(i,j,5) * uu(i+1,j  ) &
+                    + ss(i,j,6) * uu(i-1,j+1) &
+                    + ss(i,j,7) * uu(i  ,j+1) &
+                    + ss(i,j,8) * uu(i+1,j+1)
+               uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+!              print *,'SRC UU ',i,j,ff(i,j),uu(i,j)
+            end if
+         end do
+      end do
+!     print *,' '
+      !$OMP END PARALLEL DO
 
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          if (.not. bc_dirichlet(mm(i,j),1,0)) then
-             dd = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i-1,j-1) &
-                  + ss(i,j,2) * uu(i  ,j-1) &
-                  + ss(i,j,3) * uu(i+1,j-1) &
-                  + ss(i,j,4) * uu(i-1,j  ) &
-                  + ss(i,j,5) * uu(i+1,j  ) &
-                  + ss(i,j,6) * uu(i-1,j+1) &
-                  + ss(i,j,7) * uu(i  ,j+1) &
-                  + ss(i,j,8) * uu(i+1,j+1)
-          end if
-       end do
-    end do
+    else if (size(ss,dim=3) .eq. 5) then
+
+      ! PURE HACK just to match up the gsrb with Parallel/hgproj
+      offset = .true.
+      do j = lo(2),hi(2)
+        if (.not. bc_dirichlet(mm(lo(1),j),1,0)) offset = .false.
+      end do
+      if (offset) then 
+        istart = lo(1)+1
+      else
+        istart = lo(1)
+      end if
+
+      offset = .true.
+      do i = lo(1),hi(1)
+        if (.not. bc_dirichlet(mm(i,lo(2)),1,0)) offset = .false.
+      end do
+      if (offset) then 
+        jstart = lo(2)+1
+      else
+        jstart = lo(2)
+      end if
+
+      !$OMP PARALLEL DO PRIVATE(j,i,dd)
+      do ipass = 0, 1
+          ipar = 1-ipass
+          do j = jstart,hi(2)
+             ipar = 1 - ipar
+             do i = istart+ipar,hi(1),2
+                if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                   dd =   ss(i,j,0) * uu(i  ,j ) &
+                        + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+                        + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+                   uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+!                  print *,'SRC UU ',i,j,ff(i,j),uu(i,j)
+                end if
+             end do
+          end do
+!     print *,' '
+      end do
+      !$OMP END PARALLEL DO
+
     end if
 
   end subroutine nodal_smoother_2d
@@ -500,10 +522,6 @@ contains
     hi(3) = lo(3) + size(mm,dim=3)-1
 
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
-
-!   print *,'IN SMOOTHER: I ',lo(1),hi(1)
-!   print *,'IN SMOOTHER: J ',lo(2),hi(2)
-!   print *,'IN SMOOTHER: K ',lo(3),hi(3)
 
     if (size(ss,dim=4) .eq. 7) then
 
@@ -543,16 +561,6 @@ contains
       else
         kstart = lo(3)
       end if
-
-!     do k = lo(3),hi(3)
-!     do j = lo(2),hi(2)
-!     do i = lo(1),hi(1)
-!        if (abs(ff(i,j,k)).gt.0.d0) &
-!          print *,'SRC ',i,j,k,ff(i,j,k)
-!     end do
-!     end do
-!     end do
-
 
       do ipass = 0, 1
         ipar0 = ipass

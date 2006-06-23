@@ -146,7 +146,16 @@ contains
        case (1)
           call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
-          call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
+          if (stencil_type == ST_DENSE) then
+            call s_dense_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+                                  face_type(i,:,:), dh)
+          else if (stencil_type == ST_CROSS) then
+            call s_cross_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+                                   face_type(i,:,:), dh)
+          else 
+            print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
+            stop
+          end if
        case (3)
           if (stencil_type == ST_DENSE) then
             call s_dense_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
@@ -197,7 +206,7 @@ contains
        case (1)
 !         call s_simple_1d_one_sided(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
-!         call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
+          call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
        case (3)
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
                                      face_type(i,:,:), dh, dh_local)
@@ -302,7 +311,7 @@ contains
 
   end subroutine s_simple_1d_nodal
 
-  subroutine s_simple_2d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
@@ -312,8 +321,125 @@ contains
     integer            :: i, j, nx, ny
     real (kind = dp_t) :: fx, fy
 
-!   fx = HALF*THIRD/dh(1)**2
-!   fy = HALF*THIRD/dh(2)**2
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+    ! Set sg on edges at a Neumann boundary.
+    do i = 1,nx-1
+       if (bc_neumann(mm(i, 1),2,-1)) sg(i, 0) = sg(i,1)
+       if (bc_neumann(mm(i,ny),2,+1)) sg(i,ny) = sg(i,ny-1)
+    end do
+
+    do j = 1,ny-1
+       if (bc_neumann(mm( 1,j),1,-1)) sg( 0,j) = sg(   1,j)
+       if (bc_neumann(mm(nx,j),1,+1)) sg(nx,j) = sg(nx-1,j)
+    end do
+
+!   Note: we do the corners *after* each of the edge has been done.
+    if (face_type(1,1) == BC_NEU) then
+       sg(0, 0) = sg(1, 0)
+       sg(0,ny) = sg(1,ny)
+    end if
+    if (face_type(1,2) == BC_NEU) then
+       sg(nx, 0) = sg(nx-1,0)
+       sg(nx,ny) = sg(nx-1,ny)
+    end if
+    if (face_type(2,1) == BC_NEU) then
+       sg( 0,0) = sg( 0,1)
+       sg(nx,0) = sg(nx,1)
+    end if
+    if (face_type(2,2) == BC_NEU) then
+       sg( 0,ny) = sg( 0,ny-1)
+       sg(nx,ny) = sg(nx,ny-1)
+    end if
+
+    do j = 1,ny
+      do i = 1,nx
+          ss(i,j,1) =  HALF*(sg(i  ,j-1) + sg(i  ,j  ))
+          ss(i,j,2) =  HALF*(sg(i-1,j-1) + sg(i-1,j  ))
+          ss(i,j,3) =  HALF*(sg(i-1,j  ) + sg(i  ,j  ))
+          ss(i,j,4) =  HALF*(sg(i-1,j-1) + sg(i  ,j-1))
+          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
+      end do
+    end do
+
+  end subroutine s_cross_2d_nodal
+
+  subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh)
+    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: sg(0:,0:)
+    integer           , intent(in   ) :: mm(:,:)
+    integer           , intent(in   ) :: face_type(:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+
+    real (kind = dp_t), allocatable :: sg_int(:,:)
+
+    integer            :: i, j, nx, ny
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+    allocate(sg_int(0:size(sg,dim=1)-1,0:size(sg,dim=2)-1))
+
+    sg_int = ZERO
+    do j = 1, ny-1
+      do i = 1, nx-1
+         sg_int(i,j) = sg(i,j)
+      end do
+    end do
+
+    ! Set sg on edges at a Neumann boundary.
+    do i = 1,nx-1
+       if (bc_neumann(mm(i, 1),2,-1)) sg_int(i, 0) = sg_int(i,1)
+       if (bc_neumann(mm(i,ny),2,+1)) sg_int(i,ny) = sg_int(i,ny-1)
+    end do
+
+    do j = 1,ny-1
+       if (bc_neumann(mm( 1,j),1,-1)) sg_int( 0,j) = sg_int(   1,j)
+       if (bc_neumann(mm(nx,j),1,+1)) sg_int(nx,j) = sg_int(nx-1,j)
+    end do
+
+!   Note: we do the corners *after* each of the edge has been done.
+    if (face_type(1,1) == BC_NEU) then
+       sg_int(0, 0) = sg_int(1, 0)
+       sg_int(0,ny) = sg_int(1,ny)
+    end if
+    if (face_type(1,2) == BC_NEU) then
+       sg_int(nx, 0) = sg_int(nx-1,0)
+       sg_int(nx,ny) = sg_int(nx-1,ny)
+    end if
+    if (face_type(2,1) == BC_NEU) then
+       sg_int( 0,0) = sg_int( 0,1)
+       sg_int(nx,0) = sg_int(nx,1)
+    end if
+    if (face_type(2,2) == BC_NEU) then
+       sg_int( 0,ny) = sg_int( 0,ny-1)
+       sg_int(nx,ny) = sg_int(nx,ny-1)
+    end if
+
+    do j = 1,ny
+      do i = 1,nx
+          ss(i,j,1) = -HALF*(sg_int(i  ,j-1) + sg_int(i  ,j  ))
+          ss(i,j,2) = -HALF*(sg_int(i-1,j-1) + sg_int(i-1,j  ))
+          ss(i,j,3) = -HALF*(sg_int(i-1,j  ) + sg_int(i  ,j  ))
+          ss(i,j,4) = -HALF*(sg_int(i-1,j-1) + sg_int(i  ,j-1))
+          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
+      end do
+    end do
+
+    deallocate(sg_int)
+
+  end subroutine s_simple_2d_one_sided
+
+  subroutine s_dense_2d_nodal(ss, sg, mm, face_type, dh)
+    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: sg(0:,0:)
+    integer           , intent(in   ) :: mm(:,:)
+    integer           , intent(in   ) :: face_type(:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+
+    integer            :: i, j, nx, ny
+    real (kind = dp_t) :: fx, fy
 
     fx = HALF*THIRD
     fy = HALF*THIRD
@@ -368,7 +494,7 @@ contains
       end do
     end do
 
-  end subroutine s_simple_2d_nodal
+  end subroutine s_dense_2d_nodal
 
   subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh, dh_local)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
@@ -535,8 +661,6 @@ contains
     ss = ss*dh_local(1)
 
     ratio = dh_local(1) / dh(1)
-!   print *,'DH_LOC RATIO ',dh_local(1),ratio
-!   print *,'DIVIDING SS BY ',ratio**3
     ss = ss / (ratio**3)
 
   end subroutine s_cross_3d_nodal
@@ -716,6 +840,8 @@ contains
 
     ratio = dh_local(1) / dh(1)
     ss = ss / (ratio**3)
+
+    deallocate(sg_int)
 
   end subroutine s_simple_3d_one_sided
 
@@ -952,13 +1078,33 @@ contains
     real (kind = dp_t), intent(  out) :: dd(0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
     integer           , intent(in   ) :: mm(:,:)
-    integer i,j,lo(2)
+    integer i,j,lo(2),nx,ny
 
     lo(:) = 1
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
+ 
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
 
-    do j = 1,size(ss,dim=2)
-    do i = 1,size(ss,dim=1)
+    if (size(ss,dim=3) .eq. 5) then
+
+      do j = 1,ny
+      do i = 1,nx
+       if (bc_dirichlet(mm(i,j),1,0)) then
+         dd(i,j) = ZERO
+       else
+          dd(i,j) = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i+1,j  ) &
+                                      + ss(i,j,2) * uu(i-1,j  ) &
+                                      + ss(i,j,3) * uu(i  ,j+1) &
+                                      + ss(i,j,4) * uu(i  ,j-1) 
+       end if
+      end do
+      end do
+
+    else if (size(ss,dim=3) .eq. 9) then
+
+      do j = 1,ny
+      do i = 1,nx
        if (bc_dirichlet(mm(i,j),1,0)) then
          dd(i,j) = ZERO
        else
@@ -971,8 +1117,10 @@ contains
                                       + ss(i,j,7) * uu(i  ,j+1) &
                                       + ss(i,j,8) * uu(i+1,j+1)
        end if
-    end do
-    end do
+      end do
+      end do
+
+    end if
 
   end subroutine stencil_apply_2d_nodal
 
@@ -997,9 +1145,9 @@ contains
            dd(i,j,k) = ZERO
          else
            dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-             + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-             + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-             + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1) 
+             + ss(i,j,k,1) * uu(i+1,j  ,k  ) + ss(i,j,k,2) * uu(i-1,j  ,k  ) &
+             + ss(i,j,k,3) * uu(i  ,j+1,k  ) + ss(i,j,k,4) * uu(i  ,j-1,k  ) &
+             + ss(i,j,k,5) * uu(i  ,j  ,k+1) + ss(i,j,k,6) * uu(i  ,j  ,k-1) 
 
          end if
   
