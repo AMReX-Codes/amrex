@@ -24,7 +24,7 @@
 #define mgt_get_uu_3d             MGT_GET_UU_3D
 #define mgt_set_cf_3d             MGT_SET_CF_3D
 #define mgt_dealloc               MGT_DEALLOC
-#define mgt_solve_cc              MGT_SOLVE_CC
+#define mgt_solve                 MGT_SOLVE
 #define mgt_set_nu1               MGT_SET_NU1
 #define mgt_set_nu2               MGT_SET_NU2
 #define mgt_set_eps               MGT_SET_EPS
@@ -56,7 +56,7 @@
 #define mgt_get_uu_3d             mgt_get_uu_3d_
 #define mgt_set_cf_3d             mgt_set_cf_3d_
 #define mgt_dealloc               mgt_dealloc_
-#define mgt_solve_cc              mgt_solve_cc_
+#define mgt_solve                 mgt_solve_
 #define mgt_set_nu1               mgt_set_nu1_
 #define mgt_set_nu2               mgt_set_nu2_
 #define mgt_set_eps               mgt_set_eps_
@@ -91,7 +91,7 @@
 #define mgt_get_uu_3d             mgt_get_uu_3d__
 #define mgt_set_cf_3d             mgt_set_cf_3d__
 #define mgt_dealloc               mgt_dealloc__
-#define mgt_solve_cc              mgt_solve_cc__
+#define mgt_solve                 mgt_solve__
 #define mgt_set_nu1               mgt_set_nu1__
 #define mgt_set_nu2               mgt_set_nu2__
 #define mgt_set_eps               mgt_set_eps__
@@ -198,7 +198,7 @@ extern "C"
 
   void mgt_dealloc(const int* mgt);
   
-  void mgt_solve_cc(const int* mgt);
+  void mgt_solve(const int* mgt);
   
   void mgt_set_nu1(const int* mgt, const int* nu1);
   
