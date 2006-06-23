@@ -654,7 +654,7 @@ subroutine mgt_dealloc(mgt)
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve_cc(mgt)
+subroutine mgt_solve(mgt)
   use cpp_mg_module
   use ml_cc_module
   use ml_nd_module
@@ -672,10 +672,12 @@ subroutine mgt_solve_cc(mgt)
 call fabio_ml_write(mgts(mgt)%rh, mgts(mgt)%rr(:,1), "mgt_rhs")
 
   if ( mgts(mgt)%nodal ) then
-     call ml_nd(mgts(mgt)%mla, mgts(mgt)%mgt, &
-          mgts(mgt)%rh, mgts(mgt)%uu, &
-          mgts(mgt)%mla%mask, mgts(mgt)%rr, &
-          do_diagnostics, eps)
+!!$ FIXME !!!!
+!!$     call ml_nd(mgts(mgt)%mla, mgts(mgt)%mgt, &
+!!$          mgts(mgt)%rh, mgts(mgt)%uu, &
+!!$          mgts(mgt)%mla%mask, mgts(mgt)%rr, &
+!!$          do_diagnostics, eps)
+     call bl_error("MGT_SOLVE_CC: Not yet")
   else
      call ml_cc(mgts(mgt)%mla, mgts(mgt)%mgt, &
           mgts(mgt)%rh, mgts(mgt)%uu, &
@@ -685,7 +687,7 @@ call fabio_ml_write(mgts(mgt)%rh, mgts(mgt)%rr(:,1), "mgt_rhs")
 
 call fabio_ml_write(mgts(mgt)%uu, mgts(mgt)%rr(:,1), "mgt_uu")
 
-end subroutine mgt_solve_cc
+end subroutine mgt_solve
 
 subroutine mgt_set_nu1(mgt, nu1)
   use cpp_mg_module

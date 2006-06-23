@@ -131,7 +131,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
 	  mgt_set_uu(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
 	}
     }
-  mgt_solve_cc(&m_mgt);
+  mgt_solve(&m_mgt);
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
