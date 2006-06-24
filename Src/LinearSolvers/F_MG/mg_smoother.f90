@@ -502,7 +502,7 @@ contains
 
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng)
+  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
@@ -510,6 +510,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
+    logical, intent(in) :: uniform_dh
 
     integer :: i, j, k, ipass, ipar, ipar0
     integer :: istart,jstart,kstart
@@ -571,6 +572,7 @@ contains
              ipar = 1 - ipar
              do i = istart+ipar,hi(1),2
                 if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+
                    dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
                         + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
                         + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
@@ -578,12 +580,9 @@ contains
 
                    uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
 
-!                  write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
-   
                 end if
              end do
           end do
-!         print *,' '
         end do
       end do
 
@@ -605,23 +604,21 @@ contains
                        + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
                        + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
 
-                  ! Add faces (only non-zero for non-uniform dx)
-                  dd = dd + &
-                       ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-                       + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-                       + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
-  
-!                 write(6,1001) i,j,k,uu(i,j,k)
-  
+                  if ( .not. uniform_dh ) then
+                     !
+                     ! Add faces (only non-zero for non-uniform dx)
+                     !
+                     dd = dd + &
+                          ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
+                          + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
+                          + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+                  end if
+
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-  
-!                 write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
   
                end if
             end do
-!        print *,' '
          end do
-!        print *,' '
       end do
 
     else
@@ -630,8 +627,6 @@ contains
       stop
 
     end if
-
- 1000 format("SRC UU ",i2,1x,i2,1x,i2,1x,f16.8,1x,f16.8)
 
   end subroutine nodal_smoother_3d
 

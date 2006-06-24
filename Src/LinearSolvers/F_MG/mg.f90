@@ -57,6 +57,7 @@ module mg_module
 
      type(box), pointer :: pd(:) => Null()
      real(kind=dp_t), pointer :: dh(:,:) => Null()
+     logical :: uniform_dh = .true.
 
      type(multifab), pointer :: cc(:) => Null()
      type(multifab), pointer :: ff(:) => Null()
@@ -237,8 +238,15 @@ contains
        call build(mgt%mm1, la1, 1,      0, nodal)
     end if
 
+    mgt%uniform_dh = .true.
     if ( present(dh) ) then
        mgt%dh(:,mgt%nlevels) = dh(:)
+       select case (mgt%dim)
+       case (2)
+          mgt%uniform_dh = (dh(1) == dh(2))
+       case (3)
+          mgt%uniform_dh = ((dh(1) == dh(2)) .and. (dh(1) == dh(3)))
+       end select
     else
        mgt%dh(:,mgt%nlevels) = 1.0_dp_t
     end if
@@ -430,12 +438,12 @@ contains
        call itsol_bicgstab_solve(&
             ss, uu, rh, mm, &
             mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
-            singular_in = mgt%bottom_singular)
+            singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
     case (2)
        call itsol_cg_solve(&
             ss, uu, rh, mm, &
             mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
-            singular_in = mgt%bottom_singular)
+            singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
        do i = 1, 2
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
@@ -465,23 +473,20 @@ contains
     call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_bottom_solve
 
-  subroutine mg_defect(ss, dd, ff, uu, mm)
+  subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
-    type(bl_prof_timer), save :: bpt
-
+    logical, intent(in), optional :: uniform_dh
+    type(bl_prof_timer), save     :: bpt
     call build(bpt, "mg_defect")
-
-    call itsol_stencil_apply(ss, dd, uu, mm)
-
+    call itsol_stencil_apply(ss, dd, uu, mm, uniform_dh)
     call saxpy(dd, ff, -1.0_dp_t, dd)
-
     call bl_prof_timer_destroy(bpt)
   end subroutine mg_defect
 
-  subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type)
+  subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type, uniform_dh)
     use mg_defect_module
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
@@ -489,6 +494,7 @@ contains
     type(mg_tower), intent(inout) :: mgt
     integer, intent(in) :: lev
     integer, intent(in) :: face_type(:,:,:)
+    logical, intent(in) :: uniform_dh
     integer :: i, n
     real(kind=dp_t), pointer :: dp(:,:,:,:)
     real(kind=dp_t), pointer :: fp(:,:,:,:)
@@ -496,6 +502,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: nodal_ng
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "grid_res")
 
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
@@ -511,17 +520,18 @@ contains
        do n = 1, mgt%nc
           select case(mgt%dim)
           case (1)
-             call grid_laplace(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
+             call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
                                mp(:,1,1,1), mgt%ng, nodal_ng)
           case (2)
-             call grid_laplace(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
+             call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
                                mp(:,:,1,1), mgt%ng, nodal_ng, face_type(i,:,:))
           case (3)
-             call grid_laplace(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                               mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:))
+             call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
+                               mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:), uniform_dh)
           end select
        end do
     end do
+    call destroy(bpt)
   end subroutine grid_res
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
@@ -728,7 +738,7 @@ contains
                      mp(:,:,1,1), lo, mgt%ng)
              case (3)
                 call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng)
+                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh)
              end select
           end do
        end do
@@ -826,7 +836,7 @@ contains
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
@@ -885,7 +895,7 @@ contains
     call timer_start(mgt%tm(lev))
     if ( lev == lbl ) then
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
              print *,'DN: NORM BEFORE BOTTOM ',lev, nrm
@@ -894,7 +904,7 @@ contains
        call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        if ( cyc == MG_FCycle ) gamma = 1
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
              print *,'DN: NORM AFTER BOTTOM ',lev, nrm
@@ -913,7 +923,7 @@ contains
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
@@ -939,7 +949,7 @@ contains
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
              print *,'UP: NORM AFTER INTERP ',lev, nrm
@@ -951,7 +961,7 @@ contains
        end do
 
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
              print *,'UP: NORM AFTER RELAX ',lev, nrm
@@ -999,7 +1009,7 @@ contains
 
     else 
 
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
@@ -1068,7 +1078,7 @@ contains
     Anorm = stencil_norm(mgt%ss(mgt%nlevels))
     ynorm = norm_inf(rh)
     call mg_defect(mgt%ss(mgt%nlevels), &
-                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels))
+                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
     if ( i_qq < n_qq ) then
        qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
        i_qq = i_qq + 1
@@ -1100,7 +1110,7 @@ contains
                            uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, &
                            gamma)
        call mg_defect(mgt%ss(mgt%nlevels), &
-                            mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels))
+                            mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then
           nrm(1) = norm_inf(mgt%dd(mgt%nlevels))
           if ( parallel_IOProcessor() ) then

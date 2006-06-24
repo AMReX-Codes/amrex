@@ -67,11 +67,13 @@ contains
     call destroy(bpt)
   end function itsol_converged
 
-  subroutine itsol_stencil_apply(aa, rr, uu, mm)
+  subroutine itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in) :: mm
+    logical, intent(in),optional :: uniform_dh
+    logical :: luniform_dh
     real(kind=dp_t), pointer :: rp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: ap(:,:,:,:)
@@ -81,6 +83,8 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_stencil_apply")
+
+    luniform_dh = .false. ; if ( present(uniform_dh) ) luniform_dh = uniform_dh
 
     call multifab_fill_boundary(uu)
 
@@ -116,7 +120,7 @@ contains
                      mp(:,:,:,1), uu%ng)
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), uu%ng)
+                     mp(:,:,:,1), uu%ng, luniform_dh)
              end if
           end select
        end do
@@ -126,21 +130,20 @@ contains
 
   end subroutine itsol_stencil_apply
 
-  subroutine itsol_defect(aa, rr, rh, uu, mm)
+  subroutine itsol_defect(aa, rr, rh, uu, mm, uniform_dh)
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in) :: rh, aa
     type(imultifab), intent(in) :: mm
+    logical, intent(in), optional :: uniform_dh
     type(bl_prof_timer), save :: bpt
-
     call build(bpt, "its_defect")
-
-    call itsol_stencil_apply(aa, rr, uu, mm)
+    call itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
     call saxpy(rr, rh, -1.0_dp_t, rr)
-
     call destroy(bpt)
   end subroutine itsol_defect
 
-  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stat, singular_in)
+  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, &
+       stat, singular_in, uniform_dh)
     integer, intent(in) :: max_iter
     type(imultifab), intent(in) :: mm
     type(multifab), intent(inout) :: uu
@@ -148,6 +151,7 @@ contains
     type(multifab), intent(in) :: aa
     integer, intent(out), optional :: stat
     logical, intent(in), optional :: singular_in
+    logical, intent(in), optional :: uniform_dh
     real(kind=dp_t) :: eps
     type(layout) :: la
     integer, intent(in) :: verbose
@@ -193,7 +197,7 @@ contains
     call copy(sh, uu, all = .true.)
 
     cnt = 0
-    call itsol_defect(aa, rr, rh, uu, mm); cnt = cnt + 1
+    call itsol_defect(aa, rr, rh, uu, mm, uniform_dh); cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
       call setval(ss,ONE)
@@ -247,7 +251,7 @@ contains
           call saxpy(pp, rr, beta, pp)
        end if
        call itsol_precon(aa, ph, pp, mm)
-       call itsol_stencil_apply(aa, vv, ph, mm); cnt = cnt + 1
+       call itsol_stencil_apply(aa, vv, ph, mm, uniform_dh); cnt = cnt + 1
        den = dot(rt, vv)
        if ( den == ZERO ) then
           if ( present(stat) ) then
@@ -268,7 +272,7 @@ contains
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
        call itsol_precon(aa, sh, ss, mm)
-       call itsol_stencil_apply(aa, tt, sh, mm); cnt = cnt + 1
+       call itsol_stencil_apply(aa, tt, sh, mm, uniform_dh); cnt = cnt + 1
 
        den = dot(tt,tt)
        if ( den == ZERO ) then
@@ -328,10 +332,12 @@ contains
 
   end subroutine itsol_BiCGStab_solve
 
-  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stat, singular_in)
+  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, &
+       stat, singular_in, uniform_dh)
     integer, intent(in   )           :: max_iter, verbose
     integer, intent(  out), optional :: stat
     logical, intent(in   ), optional :: singular_in
+    logical, intent(in   ), optional :: uniform_dh
 
     type( multifab), intent(in) :: aa
     type( multifab), intent(inout) :: uu
@@ -374,7 +380,7 @@ contains
     call setval(pp, ZERO, all=.true.)
 
     cnt = 0
-    call itsol_defect(aa, rr, rh, uu, mm)  
+    call itsol_defect(aa, rr, rh, uu, mm, uniform_dh)  
     cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
@@ -418,7 +424,7 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call itsol_stencil_apply(aa, qq, pp, mm); cnt = cnt + 1
+       call itsol_stencil_apply(aa, qq, pp, mm, uniform_dh); cnt = cnt + 1
        den = dot(pp, qq)
        if ( den == ZERO ) then
           if ( present(stat) ) then
