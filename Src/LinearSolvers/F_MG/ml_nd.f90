@@ -112,7 +112,7 @@ contains
 
     do n = nlevs,1,-1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev))
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
     end do
 
 !   do n = nlevs,2,-1
@@ -180,7 +180,7 @@ contains
 
              ! Compute COARSE Res = Rh - Lap(Soln)
              call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
-                  rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse))
+                  rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse),mgt(n-1)%uniform_dh)
 
              if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
@@ -191,7 +191,7 @@ contains
              ! Compute FINE Res = Res - Lap(uu)
              mglev = mgt(n)%nlevels
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
-                  res(n),uu(n),mgt(n)%mm(mglev))
+                  res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
              call multifab_copy(res(n),temp_res(n),all=.true.)
 
              if ( do_diagnostics == 1 ) then
@@ -225,7 +225,7 @@ contains
           else
 
              if (do_diagnostics == 1 ) then
-                call mg_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev))
+                call mg_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
                 tres = norm_inf(temp_res(n))
                 if ( parallel_ioprocessor() ) then
                    print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
@@ -258,7 +258,7 @@ contains
           if (n < nlevs) call saxpy(uu_hold(n), ONE, uu(n), .true.)
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev))
+          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),all=.true.)
 
           if ( do_diagnostics == 1 ) then
@@ -277,7 +277,7 @@ contains
                mgt(n)%gamma)
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev))
+          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),all=.true.)
 
           if ( do_diagnostics == 1 ) then
@@ -314,7 +314,7 @@ contains
        !    Compute the residual on just the finest level
        n = nlevs
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
 
        if ( ml_fine_converged(res, soln, bnorm, Anorm, eps) ) then
 
@@ -323,7 +323,7 @@ contains
           !      Compute the residual on every level
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
-             call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
+             call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
           end do
 
           do n = nlevs,2,-1
@@ -439,10 +439,10 @@ contains
       !       grid on which it is calculated.
       if (multifab_ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
         call grid_res(mgt(n),mglev_fine,one_sided_ss,temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       else
         call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type)
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       end if
 
       do i = 1,dm

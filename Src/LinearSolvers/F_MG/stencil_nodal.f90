@@ -1078,6 +1078,7 @@ contains
     real (kind = dp_t), intent(  out) :: dd(0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
     integer           , intent(in   ) :: mm(:,:)
+
     integer i,j,lo(2),nx,ny
 
     lo(:) = 1
@@ -1124,12 +1125,13 @@ contains
 
   end subroutine stencil_apply_2d_nodal
 
-  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng)
+  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, uniform_dh)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(  out) :: dd(0:,0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
     integer           , intent(in   ) :: mm(:,:,:)
+    logical, intent(in)               :: uniform_dh
     integer i,j,k,lo(3)
 
     lo(:) = 1
@@ -1177,11 +1179,15 @@ contains
             + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
             + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
 
-!         Add faces (only non-zero for non-uniform dx)
-          dd(i,j,k) = dd(i,j,k) + &
-              ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-            + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-            + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1) 
+          if ( .not. uniform_dh ) then
+             !
+             ! Add faces (only non-zero for non-uniform dx)
+             !
+             dd(i,j,k) = dd(i,j,k) + &
+                  ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
+                  + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
+                  + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+          end if
   
          end if
 
