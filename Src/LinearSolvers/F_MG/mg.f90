@@ -936,9 +936,14 @@ contains
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
             mgt%mm(lev),mgt%mm(lev-1))
        ! HACK TO MATCH PARALLEL/HGPROJ
-       if (nodal_flag .and. multifab_ncomp(mgt%ss(lev)).eq.7) then
-!         print *,'PRE-MULTIPLYING CRSE RES BY 1/8 FOR CROSS STENCIL '
-         call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+       if (nodal_flag) then 
+         if (multifab_ncomp(mgt%ss(lev)).eq.7) then
+!          print *,'PRE-MULTIPLYING CRSE RES BY 1/8 FOR CROSS STENCIL '
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+         else if (multifab_ncomp(mgt%ss(lev)).eq.5) then
+!          print *,'PRE-MULTIPLYING CRSE RES BY 1/4 FOR CROSS STENCIL '
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
+         end if
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
@@ -1014,9 +1019,14 @@ contains
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
 
-       if (nodal_q(mgt%dd(lev-1)) .and. multifab_ncomp(mgt%ss(lev)).eq.7) then
-!         print *,'MULTIPLYING CRSE RES BY 8 FOR CROSS STENCIL '
-         call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+       if (nodal_q(mgt%dd(lev-1))) then
+         if (multifab_ncomp(mgt%ss(lev)).eq.7) then
+!          print *,'MULTIPLYING CRSE RES BY 8 FOR CROSS STENCIL '
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+         else if (multifab_ncomp(mgt%ss(lev)).eq.5) then
+!          print *,'MULTIPLYING CRSE RES BY 4 FOR CROSS STENCIL '
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
+         end if
        end if
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
