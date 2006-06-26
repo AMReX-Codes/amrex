@@ -151,7 +151,7 @@ contains
                                   face_type(i,:,:), dh)
           else if (stencil_type == ST_CROSS) then
             call s_cross_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
-                                   face_type(i,:,:), dh)
+                                   face_type(i,:,:), dh, dh_local)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
             stop
@@ -206,7 +206,8 @@ contains
        case (1)
 !         call s_simple_1d_one_sided(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
-          call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
+          call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+                                     face_type(i,:,:), dh, dh_local)
        case (3)
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
                                      face_type(i,:,:), dh, dh_local)
@@ -311,12 +312,12 @@ contains
 
   end subroutine s_simple_1d_nodal
 
-  subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh, dh_local)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
 
     integer            :: i, j, nx, ny
     real (kind = dp_t) :: fx, fy
@@ -355,22 +356,24 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) =  HALF*(sg(i  ,j-1) + sg(i  ,j  ))
-          ss(i,j,2) =  HALF*(sg(i-1,j-1) + sg(i-1,j  ))
-          ss(i,j,3) =  HALF*(sg(i-1,j  ) + sg(i  ,j  ))
-          ss(i,j,4) =  HALF*(sg(i-1,j-1) + sg(i  ,j-1))
+          ss(i,j,1) = HALF*(sg(i  ,j-1) + sg(i  ,j  ))
+          ss(i,j,2) = HALF*(sg(i-1,j-1) + sg(i-1,j  ))
+          ss(i,j,3) = HALF*(sg(i-1,j  ) + sg(i  ,j  ))
+          ss(i,j,4) = HALF*(sg(i-1,j-1) + sg(i  ,j-1))
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
       end do
     end do
 
+    ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
+
   end subroutine s_cross_2d_nodal
 
-  subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh)
+  subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh, dh_local)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
 
     real (kind = dp_t), allocatable :: sg_int(:,:)
 
@@ -419,13 +422,15 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = -HALF*(sg_int(i  ,j-1) + sg_int(i  ,j  ))
-          ss(i,j,2) = -HALF*(sg_int(i-1,j-1) + sg_int(i-1,j  ))
-          ss(i,j,3) = -HALF*(sg_int(i-1,j  ) + sg_int(i  ,j  ))
-          ss(i,j,4) = -HALF*(sg_int(i-1,j-1) + sg_int(i  ,j-1))
+          ss(i,j,1) = HALF*(sg_int(i  ,j-1) + sg_int(i  ,j  ))
+          ss(i,j,2) = HALF*(sg_int(i-1,j-1) + sg_int(i-1,j  ))
+          ss(i,j,3) = HALF*(sg_int(i-1,j  ) + sg_int(i  ,j  ))
+          ss(i,j,4) = HALF*(sg_int(i-1,j-1) + sg_int(i  ,j-1))
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
       end do
     end do
+
+    ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
 
     deallocate(sg_int)
 
