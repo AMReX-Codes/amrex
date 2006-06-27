@@ -656,7 +656,7 @@ contains
 
     end if
 
-1000  format('SRC UU ',i2,x,i2,x,i2,x,e15.8,x,e15.8)
+1000  format('SRC UU ',i2,1x,i2,1x,i2,1x,e15.8,1x,e15.8)
 
   end subroutine nodal_smoother_3d
 
