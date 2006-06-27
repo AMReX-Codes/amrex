@@ -811,38 +811,30 @@ contains
   end subroutine layout_print
 
   function boxassoc_check(bxa, ng, nodal, cross) result(r)
-    logical :: r
     type(boxassoc), intent(in) :: bxa
-    integer, intent(in) :: ng
-    logical, intent(in), optional :: nodal(:)
-    logical, intent(in), optional :: cross
-    if ( present(nodal) ) then
-       r = bxa%grwth == ng .and. all(bxa%nodal .eqv. nodal)
-    else
-       r = bxa%grwth == ng .and. all(bxa%nodal .eqv. .false.)
-    end if
-    if ( present(cross) ) then
-       r = r .and. ( bxa%cross .eqv. cross )
-    else
-       r = r .and. ( bxa%cross .eqv. .false. )
-    end if
+    integer,        intent(in) :: ng
+    logical,        intent(in) :: nodal(:)
+    logical,        intent(in) :: cross
+    logical                    :: r
+    r = bxa%grwth == ng .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
   end function boxassoc_check
 
   function syncassoc_check(snxa, ng, nodal, lall) result(r)
-    logical                     :: r
     type(syncassoc), intent(in) :: snxa
-    integer, intent(in)         :: ng
-    logical, intent(in)         :: nodal(:)
-    logical, intent(in)         :: lall
+    integer,         intent(in) :: ng
+    logical,         intent(in) :: nodal(:)
+    logical,         intent(in) :: lall
+    logical                     :: r
     r = snxa%grwth == ng .and. all(snxa%nodal .eqv. nodal) .and. (snxa%lall .eqv. lall)
   end function syncassoc_check
 
   function layout_boxassoc(la, ng, nodal, cross) result(r)
-    type(boxassoc) :: r
+    type(boxassoc)               :: r
     type(layout) , intent(inout) :: la
-    integer, intent(in) :: ng
-    logical, intent(in), optional :: nodal(:)
-    logical, intent(in), optional :: cross
+    integer, intent(in)          :: ng
+    logical, intent(in)          :: nodal(:)
+    logical, intent(in)          :: cross
+
     type(boxassoc), pointer :: bp
 
     bp => la%lap%bxasc
@@ -902,27 +894,44 @@ contains
   end function syncassoc_built_q
 
   subroutine boxarray_bndry_periodic(bxai, dmn, b, nodal, pmask, ng, shfts, cross)
-    type(boxarray), intent(out)          :: bxai
-    type(box),      intent(in)           :: dmn, b
-    logical,        intent(in)           :: nodal(:), pmask(:)
-    integer,        intent(in)           :: ng
-    integer,        intent(out)          :: shfts(:,:)
-    logical,        intent(in), optional :: cross
+    type(boxarray), intent(out) :: bxai
+    type(box),      intent(in)  :: dmn, b
+    logical,        intent(in)  :: nodal(:), pmask(:)
+    integer,        intent(in)  :: ng
+    integer,        intent(out) :: shfts(:,:)
+    logical,        intent(in)  :: cross
 
     integer               :: i, j, cnt, emptylo(3), emptyhi(3)
     type(box)             :: bxs(3**b%dim), gbx, emptybx
     type(box),allocatable :: bv(:)
-    integer               :: shft(3**b%dim,b%dim)
-    type(boxarray)        :: tba, cba, dba
-    logical               :: lcross
+    integer               :: shft(3**b%dim,b%dim), upbx(1:b%dim), lwbx(1:b%dim)
+    type(boxarray)        :: tba
+    type(list_box)        :: bl
 
-    lcross = .false.; if ( present(cross) ) lcross = cross
-
-    call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)
-
-    if ( lcross ) then
-       call boxarray_box_corners(cba, box_nodalize(b,nodal), ng)
-       call boxarray_diff(tba, cba)
+    if ( cross ) then
+       gbx = box_nodalize(b,nodal)
+       do i = 1, gbx%dim
+          !
+          ! lo face
+          !
+          upbx    = upb(gbx)
+          lwbx    = lwb(gbx)
+          upbx(i) = lwbx(i) - 1
+          lwbx(i) = lwbx(i) - ng
+          call push_back(bl, make_box(lwbx,upbx))
+          !
+          ! hi face
+          !
+          upbx    = upb(gbx)
+          lwbx    = lwb(gbx)
+          lwbx(i) = upbx(i) + 1
+          upbx(i) = upbx(i) + ng
+          call push_back(bl, make_box(lwbx,upbx))
+       end do
+       call build(tba, bl, sort = .false.)
+       call destroy(bl)
+    else
+       call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)       
     end if
 
     shfts = 0
@@ -930,23 +939,6 @@ contains
     call box_periodic_shift(dmn, b, nodal, pmask, ng, shft, cnt, bxs)
 
     if ( cnt > 0 ) then
-       if ( lcross ) then
-          emptylo = 0
-          emptyhi = -1
-          emptybx = make_box(emptylo(1:b%dim), emptyhi(1:b%dim))
-          gbx     = grow(box_nodalize(b,nodal), ng)
-          do i = 1, cnt
-             call boxarray_build_bx(dba, intersection(gbx, shift(bxs(i), -shft(i,:))))
-             call boxarray_diff(dba, cba)
-             if ( nboxes(dba) > 1) call bl_error("BOXARRAY_BNDRY_PERIODIC: nboxes(dba) > 1")
-             if ( empty(dba) ) then
-                bxs(i) = emptybx
-             else
-                bxs(i) = shift(dba%bxs(1), shft(i,:))
-             endif
-             call destroy(dba)
-          end do
-       end if
        allocate(bv(tba%nboxes+cnt))
        bv(1:tba%nboxes) = tba%bxs(1:tba%nboxes)
        bv(tba%nboxes+1:tba%nboxes+cnt) = bxs(1:cnt)
@@ -955,19 +947,17 @@ contains
        call boxarray_build_v(tba, bv, sort = .false.)
     end if
 
-    if ( lcross ) call destroy(cba)
-
     bxai = tba
 
   end subroutine boxarray_bndry_periodic
 
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
 
-    integer,          intent(in)           :: ng
-    logical,          intent(in), optional :: nodal(:)
-    type(layout_rep), intent(in), target   :: lap
-    type(boxassoc),   intent(inout)        :: bxasc
-    logical,          intent(in), optional :: cross
+    integer,          intent(in)         :: ng
+    logical,          intent(in)         :: nodal(:)
+    type(layout_rep), intent(in), target :: lap
+    type(boxassoc),   intent(inout)      :: bxasc
+    logical,          intent(in)         :: cross
 
     integer                        :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     integer                        :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
@@ -976,6 +966,7 @@ contains
     type(layout)                   :: la, latmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
     integer                        :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
+    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -993,6 +984,7 @@ contains
     bxasc%dim    =  bxa%dim
     bxasc%grwth  =  ng
     bxasc%nboxes =  bxa%nboxes
+    bxasc%cross  =  cross
     np           =  parallel_nprocs()
 
     allocate(bxasc%nodal(bxasc%dim))
@@ -1014,7 +1006,7 @@ contains
     call destroy(batmp)
     call init_box_hash_bin(latmp)
 
-    bxasc%nodal = .false.; if ( present(nodal) ) bxasc%nodal = nodal
+    bxasc%nodal = nodal
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
@@ -1086,17 +1078,6 @@ contains
 
     call destroy(latmp)
 
-    if ( verbose ) then
-       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       if ( parallel_IOProcessor() ) then
-          print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** boxassoc_build(): max(cnt_r)  = ', cnt_r_max
-       end if
-    end if
-
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
     bxasc%r_con%nrcv = cnt_r
@@ -1155,6 +1136,23 @@ contains
           pi_s = pi_s + 1
        end if
     end do
+
+    if ( verbose ) then
+       ioproc = parallel_IOProcessorNode()
+       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = ioproc)
+       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = ioproc)
+       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = ioproc)
+       if ( parallel_IOProcessor() ) then
+          print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** boxassoc_build(): max(cnt_r)  = ', cnt_r_max
+          print*, '*** boxassoc_build(): max(svol)   = ', svol_max
+          print*, '*** boxassoc_build(): max(rvol)   = ', rvol_max
+       end if
+    end if
+
     call mem_stats_alloc(bxa_ms)
 
     call destroy(bpt)
@@ -2092,10 +2090,10 @@ contains
   end subroutine fluxassoc_destroy
 
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
-    logical                     :: r
     type(copyassoc), intent(in) :: cpasc
-    type(layout), intent(in)    :: la_src, la_dst
-    logical, intent(in)         :: nd_dst(:), nd_src(:)
+    type(layout),    intent(in) :: la_src, la_dst
+    logical,         intent(in) :: nd_dst(:), nd_src(:)
+    logical                     :: r
     r =         associated(cpasc%lap_dst, la_dst%lap)
     r = r .and. associated(cpasc%lap_src, la_src%lap)
     r = r .and. all(cpasc%nd_dst .eqv. nd_dst)
