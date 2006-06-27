@@ -579,11 +579,39 @@ contains
                         + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
 
                    uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+!                  write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
 
                 end if
              end do
           end do
+!         print *,' '
         end do
+!       print *,' '
+      end do
+
+    else if (size(ss,dim=4) .eq. 21) then
+
+      do k = lo(3),hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                  dd = ss(i,j,k,0)*uu(i,j,k) &
+                       + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
+                       + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
+                       + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
+                       + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
+                       + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
+                       + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
+                       + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
+                       + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
+                       + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
+                       + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
+
+                  uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+  
+               end if
+            end do
+         end do
       end do
 
     else if (size(ss,dim=4) .eq. 27) then
@@ -627,6 +655,8 @@ contains
       stop
 
     end if
+
+1000  format('SRC UU ',i2,x,i2,x,i2,x,e15.8,x,e15.8)
 
   end subroutine nodal_smoother_3d
 
