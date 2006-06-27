@@ -1018,6 +1018,8 @@ contains
           ss(i,j,k,11) = -(TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
           ss(i,j,k,12) = -(TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
+          if (size(ss,dim=4) .eq. 27) then
+
 !         Faces in x-direction (only non-zero for non-uniform dx)
           ss(i,j,k,21) = -(FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                                                   +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
@@ -1035,6 +1037,8 @@ contains
                                                   +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
           ss(i,j,k,26) = -(FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
                                                   +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+
+          end if
 
           ss(i,j,k,0) = (sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
@@ -1158,6 +1162,34 @@ contains
 
          end if
   
+      end do
+      end do
+      end do
+
+    else if (size(ss,dim=4) .eq. 21) then
+
+      do k = 1,size(ss,dim=3)
+      do j = 1,size(ss,dim=2)
+      do i = 1,size(ss,dim=1)
+
+         if (bc_dirichlet(mm(i,j,k),1,0)) then
+           dd(i,j,k) = ZERO
+         else
+
+          dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
+            + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
+            + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
+            + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
+            + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
+            + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
+            + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
+            + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
+            + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
+            + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
+            + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1)
+
+         end if
+
       end do
       end do
       end do

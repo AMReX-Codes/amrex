@@ -745,7 +745,7 @@ contains
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
 
-    if (size(ss,dim=4) .eq. 27) then
+    if ( (size(ss,dim=4) .eq. 27) .or. (size(ss,dim=4) .eq. 21) ) then
     ! Dense stencil
 
     !   Lo/Hi i side
