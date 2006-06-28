@@ -46,11 +46,11 @@ contains
     br%dim = 0
   end subroutine bndry_reg_destroy
 
-  subroutine bndry_reg_rr_build_1(br, la, lac, rr, pd, nc, width, nodal)
+  subroutine bndry_reg_rr_build_1(br, la, lac, rr, pdc, nc, width, nodal)
     type(layout), intent(inout) :: la, lac
     type(bndry_reg), intent(out) :: br
     integer, intent(in) :: rr(:)
-    type(box), intent(in) :: pd
+    type(box), intent(in) :: pdc
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: width
     logical, intent(in), optional :: nodal(:)
@@ -64,7 +64,7 @@ contains
     type(box), allocatable :: bxs(:), bxs1(:), bxsc(:)
     type(box_intersector), pointer :: bi(:)
     integer, allocatable :: prcc(:)
-    type(box) :: lpd
+    type(box) :: lpdc
     type(box) :: bx, bx1
     type(boxarray) :: baa, bac
     type(list_box) :: blc
@@ -75,8 +75,8 @@ contains
 
     call build(bpt, "br_rr_build_1")
 
-    lnc = 1; if ( present(nc) ) lnc = nc
-    lw = 0; if ( present(width) ) lw = width
+    lnc = 1 ; if ( present(nc)    ) lnc = nc
+    lw  = 0 ; if ( present(width) ) lw  = width
 
     dm = get_dim(la)
     nb = nboxes(la)
@@ -91,19 +91,25 @@ contains
     br%la  = la
     br%nc  = lnc
 
-    lpd = box_nodalize(pd, nodal)
+    lpdc = box_nodalize(pdc, nodal)
 
-    nd_flag = .false.; if ( present(nodal) ) nd_flag = nodal
+    nd_flag = .false. ; if ( present(nodal) ) nd_flag = nodal
 
-    if ( dm /= get_dim(la) .or. &
-         dm /= box_dim(pd)) then
-       call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
-    end if
+    if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
     !
     ! Build a layout to be used in intersection tests below.
     !
     do i = 1, nboxes(lac)
-       call push_back(blc, box_nodalize(get_box(lac,i),nodal))
+       bx = box_nodalize(get_box(lac,i),nodal)
+       lo = lwb(bx)
+       hi = upb(bx)
+       do j = 1, dm
+          if ( .not. nd_flag(j) ) then
+             if ( lo(j) == lwb(lpdc,j) ) lo(j) = lo(j) - 1
+             if ( hi(j) == upb(lpdc,j) ) hi(j) = hi(j) + 1
+          end if
+       end do
+       call push_back(blc, make_box(lo,hi))
     end do
     call build(bac, blc, sort = .false.)
     call destroy(blc)
@@ -116,61 +122,42 @@ contains
           ff = -1; if ( f == 1 ) ff = 1
           cnt = 0
           do j = 1, nb
-
              rbox = coarsen(box_nodalize(get_box(la,j), nodal), rr)
-             lo = lwb(rbox)
-             hi = upb(rbox)
-
+             lo   = lwb(rbox)
+             hi   = upb(rbox)
              select case (f)
              case ( 0 )
-                !! LO SIDE OBJECTS
-                if ( nd_flag(i) ) then
-                   lo(i) = lo(i)
-                else
-                   lo(i) = lo(i)-1
-                end if
+                if ( .not. nd_flag(i) ) lo(i) = lo(i) - 1
                 hi(i) = lo(i)
              case ( 1 )
-                !! Build hi-side objects
-                if ( nd_flag(i) ) then
-                   hi(i) = hi(i)
-                else
-                   hi(i) = hi(i)+1
-                end if
+                if ( .not. nd_flag(i) ) hi(i) = hi(i) + 1
                 lo(i) = hi(i)
-             case default
-                call bl_error("BUILD_BNDRY_REG: This can't be happening")
              end select
-
+             !
              ! Grow in the other directions for interping bc's
              ! Grow by lw if possible; if not lw then lw-1, etc; then none.
              ! Note that this makes sure not to leave the physical boundary,
              ! but doesn't see the other grids.  NEEDS TO BE FIXED.
-
+             !
              lo1 = lo
              hi1 = hi
-
              do id = 1, dm
                 if ( id /= i ) then
-                   lo1(id) = max(lo1(id), lpd%lo(id))
-                   hi1(id) = min(hi1(id), lpd%hi(id))
+                   lo1(id) = max(lo1(id), lpdc%lo(id))
+                   hi1(id) = min(hi1(id), lpdc%hi(id))
                 end if
              end do
              call build(bxs1(j), lo1, hi1)
-
              bi => layout_get_box_intersector(latmp, bxs1(j))
              cnt = cnt + size(bi)
              deallocate(bi)
-
              do id = 1, dm
                 if ( id /= i ) then
-                   lo(id) = max(lo(id)-lw, lpd%lo(id))
-                   hi(id) = min(hi(id)+lw, lpd%hi(id))
+                   lo(id) = max(lo(id)-lw, lpdc%lo(id))
+                   hi(id) = min(hi(id)+lw, lpdc%hi(id))
                 end if
              end do
-
              call build(bxs(j), lo, hi)
-
           end do
 
           call build(baa, bxs, sort = .false.)
@@ -188,8 +175,8 @@ contains
                 hi = upb(bi(kk)%bx)
                 do id = 1, dm
                    if ( id /= i ) then
-                      lo(id) = max(lo(id)-lw, lpd%lo(id))
-                      hi(id) = min(hi(id)+lw, lpd%hi(id))
+                      lo(id) = max(lo(id)-lw, lpdc%lo(id))
+                      hi(id) = min(hi(id)+lw, lpdc%hi(id))
                    end if
                 end do
                 call build(bx1, lo, hi)
