@@ -45,7 +45,7 @@ contains
     type(layout) :: la, lac
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
-    logical :: fine_converged,need_grad_phi
+    logical :: fine_converged,need_grad_phi,lcross
 
     real(dp_t) :: Anorm, bnorm, res_norm
     real(dp_t) :: tres
@@ -106,6 +106,8 @@ contains
             mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
     end do
     bnorm = ml_norm_inf(rh,fine_mask)
+
+    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
@@ -307,7 +309,7 @@ contains
        end do
 
        do n = 1,nlevs
-          call multifab_fill_boundary(soln(n))
+          call multifab_fill_boundary(soln(n), cross = lcross)
        end do
 
        ! Interpolate soln to supply boundary conditions 

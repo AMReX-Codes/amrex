@@ -525,26 +525,20 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer i
-    !   integer :: nn = 21
-    logical :: skwd
+    logical :: skwd, lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_ap_st_c")
 
-    if ( uu%ng /= 1 ) then
-       call bl_error("STENCIL_APPLY_ST_C: uu%ng /= 1", uu%ng)
-    end if
-    if ( st%ss%ng /= 0 ) then
-       call bl_error("STENCIL_APPLY_ST_C: st%ss%ng /= 0", st%ss%ng)
-    end if
+    if ( uu%ng    /= 1 ) call bl_error("STENCIL_APPLY_ST_C: uu%ng /= 1",    uu%ng)
+    if ( st%ss%ng /= 0 ) call bl_error("STENCIL_APPLY_ST_C: st%ss%ng /= 0", st%ss%ng)
 
-    call multifab_fill_boundary_c(uu, cu, 1)
+    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
+
+    call multifab_fill_boundary_c(uu, cu, 1, cross = lcross)
+
     if ( st%extrap_bc) then
-       ! call multifab_print(uu, unit=nn); nn = nn + 1
-       ! call multifab_print(uu, 'before')
        call stencil_extrap_bc(st, uu, cu)
-       ! call multifab_print(uu, 'after')
-       ! call multifab_print(uu, unit=nn); nn = nn + 1
     end if
 
     do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
@@ -592,17 +586,16 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer i, n
-!   integer :: nn = 21
-    logical :: skwd
+    logical :: skwd, lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_ap_st")
 
-    call multifab_fill_boundary(uu)
+    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
+
+    call multifab_fill_boundary(uu, cross = lcross)
     if ( st%extrap_bc) then
-!      call multifab_print(uu, unit=nn); nn = nn + 1
        call stencil_extrap_bc(st, uu)
-!      call multifab_print(uu, unit=nn); nn = nn + 1
     end if
 
     if ( present(c) ) then
@@ -694,10 +687,12 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer i, n, ff, dm, dd
-    logical :: skwd
+    logical :: skwd, lcross
     integer :: lrr
 
-    call multifab_fill_boundary(uu)
+    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
+
+    call multifab_fill_boundary(uu, cross = lcross)
     if ( st%extrap_bc) then
        call stencil_extrap_bc(st, uu)
     end if
