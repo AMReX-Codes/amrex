@@ -502,13 +502,16 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: nodal_ng
+    logical :: lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "grid_res")
 
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
-    call multifab_fill_boundary(uu)
+    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+
+    call multifab_fill_boundary(uu, cross = lcross)
 
     do i = 1, mgt%nboxes
        if ( multifab_remote(dd, i) ) cycle
@@ -632,14 +635,17 @@ contains
     type(bl_prof_timer), save :: bpt
     ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
     integer :: nnn, iii, jjj, kkk
+    logical :: lcross
 
     call build(bpt, "mgt_smoother")
+
+    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )
        case ( MG_SMOOTHER_GS_RB )
           do nn = 0, 1
-             call multifab_fill_boundary(uu)
+             call multifab_fill_boundary(uu, cross = lcross)
              !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
              do i = 1, mgt%nboxes
                 if ( multifab_remote(ff, i) ) cycle
@@ -671,7 +677,7 @@ contains
              !$OMP END PARALLEL DO
           end do
        case ( MG_SMOOTHER_JACOBI )
-          call multifab_fill_boundary(uu)
+          call multifab_fill_boundary(uu, cross = lcross)
           do i = 1, mgt%nboxes
              if ( multifab_remote(ff, i) ) cycle
              up => dataptr(uu, i)
@@ -694,7 +700,7 @@ contains
              end do
           end do
        case ( MG_SMOOTHER_GS_LEX )
-          call multifab_fill_boundary(uu)
+          call multifab_fill_boundary(uu, cross = lcross)
           do i = 1, mgt%nboxes
              if ( multifab_remote(ff, i) ) cycle
              up => dataptr(uu, i)
@@ -720,7 +726,7 @@ contains
           call bl_error("MG_TOWER_SMOOTHER: no such smoother")
        end select
     else 
-       call multifab_fill_boundary(uu)
+       call multifab_fill_boundary(uu, cross = lcross)
        do i = 1, mgt%nboxes
           if ( multifab_remote(ff, i) ) cycle
           up => dataptr(uu, i)

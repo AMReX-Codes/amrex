@@ -44,7 +44,7 @@ contains
     integer :: i, n, dm
     integer :: mglev, mglev_crse, iter, it
     logical :: fine_converged
-    logical :: zero_only
+    logical :: zero_only, lcross
 
     real(dp_t) :: Anorm, bnorm, res_norm
     real(dp_t) :: fac
@@ -104,6 +104,8 @@ contains
 !           mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
 !   end do
     bnorm = ml_norm_inf(rh,fine_mask)
+
+    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
@@ -314,7 +316,7 @@ contains
        end do
 
        do n = 1,nlevs
-          call multifab_fill_boundary(soln(n))
+          call multifab_fill_boundary(soln(n), cross = lcross)
        end do
 
        !    Optimization so don't have to do multilevel convergence test each time

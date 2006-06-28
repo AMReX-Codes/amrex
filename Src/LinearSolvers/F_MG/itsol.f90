@@ -79,14 +79,16 @@ contains
     real(kind=dp_t), pointer :: ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n
-    logical :: nodal_flag
+    logical :: nodal_flag, lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_stencil_apply")
 
     luniform_dh = .false. ; if ( present(uniform_dh) ) luniform_dh = uniform_dh
 
-    call multifab_fill_boundary(uu)
+    lcross = ((ncomp(aa) == 5) .or. (ncomp(aa) == 7))
+
+    call multifab_fill_boundary(uu, cross = lcross)
 
     nodal_flag = nodal_q(uu)
 

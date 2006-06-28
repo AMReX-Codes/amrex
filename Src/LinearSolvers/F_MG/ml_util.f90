@@ -32,7 +32,6 @@ contains
        call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
     end if
 
-!    call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
@@ -70,17 +69,16 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: ng
+    logical :: lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fill_fluxes_c")
 
     ng = uu%ng
 
-!    if ( uu%nc /= flux%nc ) then
-!       call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
-!    end if
+    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
-    call multifab_fill_boundary(uu)
+    call multifab_fill_boundary(uu, cross = lcross)
     do i = 1, flux%nboxes
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i, cf)
@@ -114,6 +112,7 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: ng, nc
+    logical :: lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fill_fine_fluxes")
@@ -121,11 +120,14 @@ contains
     nc = uu%nc
     ng = uu%ng
 
+    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+
     if ( uu%nc /= flux%nc ) then
        call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
     end if
 
-    call multifab_fill_boundary(uu)
+    call multifab_fill_boundary(uu, cross = lcross)
+
     do i = 1, flux%nboxes
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
