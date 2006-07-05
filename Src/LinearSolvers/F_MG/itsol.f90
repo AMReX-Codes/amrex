@@ -298,7 +298,7 @@ contains
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, sh, rr, mm)
           rho_hg = dot(rr, sh)
-          if ( (rho_hg < rho_orig*eps) .or. &
+          if ( (abs(rho_hg) < rho_orig*eps) .or. &
               itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        else
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
