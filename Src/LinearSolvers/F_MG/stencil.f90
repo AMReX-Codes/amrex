@@ -1839,11 +1839,18 @@ contains
          ss = 0
          skewed = .false.
       case (3)
-         sm = -24*b0/(23 + 12*xa*(3+xa))
-         s0 = 2*((-1 + 12*xa*(2+xa))/(23 + 12*xa*(3+xa)))*b0 - b1
-         sp = -3*((-1 + 4*xa*(5+3*xa))/(23 + 12*xa*(3+xa)))*b0 + b1
-         ss = ((-1 + 12*xa*(1+xa))/(23 + 12*xa*(3+xa)))*b0
-         skewed = .true.
+!        sm = -24*b0/(23 + 12*xa*(3+xa))
+!        s0 = 2*((-1 + 12*xa*(2+xa))/(23 + 12*xa*(3+xa)))*b0 - b1
+!        sp = -3*((-1 + 4*xa*(5+3*xa))/(23 + 12*xa*(3+xa)))*b0 + b1
+!        ss = ((-1 + 12*xa*(1+xa))/(23 + 12*xa*(3+xa)))*b0
+!        skewed = .true.
+
+         ! NOTE: we cant do anything higher-order for Neumann or we will lose solvability
+         sm = -b0/(1 + xa)
+         s0 = xa*b0/(1 + xa) - b1
+         sp = -xa*b0/(1 + xa) + b1
+         ss = 0
+         skewed = .false.
       end select
     end subroutine bc_ni
 
@@ -1887,10 +1894,17 @@ contains
          ss = -xa*b0/(1+xa+xb)
          skewed = .true.
       case (3)
-         sm = -(23+12*xb*(3+xb))*b0/((2+xa+xb)*(11+12*xb+12*xa*(1+xb)))
-         s0 = (-1 + 12*xa*(2*xb))*b0/((11+12*xb+12*xa*(1+xb))) - b1
-         sp = -(-1 + 12*xa*(2*xb))*b0/((11+12*xb+12*xa*(1+xb))) + b1
-         ss = (-1 + 12*xa*(1+xa))*b0/((2+xa*xb)*(11+12*xb + 12*xa*(1+xb)))
+!        sm = -(23+12*xb*(3+xb))*b0/((2+xa+xb)*(11+12*xb+12*xa*(1+xb)))
+!        s0 = (-1 + 12*xa*(2*xb))*b0/((11+12*xb+12*xa*(1+xb))) - b1
+!        sp = -(-1 + 12*xa*(2*xb))*b0/((11+12*xb+12*xa*(1+xb))) + b1
+!        ss = (-1 + 12*xa*(1+xa))*b0/((2+xa*xb)*(11+12*xb + 12*xa*(1+xb)))
+!        skewed = .true.
+
+         ! NOTE: we cant do anything higher-order for Neumann or we will lose solvability
+         sm = -(1+xb)*b0/(1+xa+xb)
+         s0 = -b1
+         sp =  b1
+         ss = -xa*b0/(1+xa+xb)
          skewed = .true.
       end select
     end subroutine bc_nn
