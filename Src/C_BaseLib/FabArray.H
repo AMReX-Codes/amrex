@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.178 2006-04-27 21:22:01 lijewski Exp $
+// $Id: FabArray.H,v 1.179 2006-07-07 18:23:26 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -541,16 +541,14 @@ class FabArrayCopyDescriptor
 
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
-                      BoxList*   unfilledBoxes,
-                      bool       bUseValidBox = true);
+                      BoxList*   unfilledBoxes);
 
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes,
                       int        srccomp,
                       int        destcomp,
-                      int        numcomp,
-                      bool       bUseValidBox = true);
+                      int        numcomp);
     //
     // Add a box but only from FabArray[fabarrayindex].
     //
@@ -599,8 +597,7 @@ class FabArrayCopyDescriptor
                      int        destcomp,
                      int        numcomp,
                      bool       bUseValidBox,
-                     BoxDomain& unfilledBoxDomain,
-                     BoxList&   filledBoxes);
+                     BoxDomain& unfilledBoxDomain);
 
     std::vector<FabArray<FAB>*> fabArrays;
     std::vector<FCDMap>           fabCopyDescList;
@@ -1244,8 +1241,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
                                          int        destcomp,
                                          int        numcomp,
                                          bool       bUseValidBox,
-                                         BoxDomain& unfilledBoxDomain,
-                                         BoxList&   filledBoxes)
+                                         BoxDomain& unfilledBoxDomain)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -1266,8 +1262,6 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     if (intersect.ok())
     {
-        filledBoxes.push_back(intersect);
-
         FabCopyDescriptor<FAB>* fcd = new FabCopyDescriptor<FAB>;
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
@@ -1330,11 +1324,9 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                      BoxList*   returnedUnfilledBoxes,
                                      int        srccomp,
                                      int        destcomp,
-                                     int        numcomp,
-                                     bool       bUseValidBox)
+                                     int        numcomp)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
-    BoxList   filledBoxes(destFabBox.ixType());
 
     if (!(returnedUnfilledBoxes == 0))
     {
@@ -1352,9 +1344,8 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                    srccomp,
                    destcomp,
                    numcomp,
-                   bUseValidBox,
-                   unfilledBoxDomain,
-                   filledBoxes);
+                   true,
+                   unfilledBoxDomain);
     }
 
     if (!(returnedUnfilledBoxes == 0))
@@ -1378,7 +1369,6 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                      bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
-    BoxList   filledBoxes(destFabBox.ixType());
 
     if (!(returnedUnfilledBoxes == 0))
     {
@@ -1393,8 +1383,7 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                destcomp,
                numcomp,
                bUseValidBox,
-               unfilledBoxDomain,
-               filledBoxes);
+               unfilledBoxDomain);
 
     if (!(returnedUnfilledBoxes == 0))
     {
@@ -1409,8 +1398,7 @@ template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                      const Box& destFabBox,
-                                     BoxList*   returnedUnfilledBoxes,
-                                     bool       bUseValidBox)
+                                     BoxList*   returnedUnfilledBoxes)
 {
     return AddBox(fabarrayid,
                   destFabBox,
@@ -1418,7 +1406,7 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                   0,
                   0,
                   fabArrays[fabarrayid.Id()]->nComp(),
-                  bUseValidBox);
+                  true);
 }
 
 template <class FAB>
