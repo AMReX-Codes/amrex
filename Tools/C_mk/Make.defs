@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.95 2006-06-20 16:42:36 car Exp $
+# Make.defs $Id: Make.defs,v 1.96 2006-07-18 03:55:34 lijewski Exp $
 #
 
 #
@@ -318,13 +318,13 @@ ifeq ($(COMP),Intel)
    endif
    endif
    ifeq ($(ICC_MAJOR_VERSION),9)
-     CXXDEBF += -traceback 
+     CXXDEBF += -O0 # -traceback 
 #    CXXDEBF += -debug expr-source-pos 
 #    CXXDEBF += -debug semantic-stepping
 #    CXXDEBF += -debug inline_debug_info
 #    CXXDEBF += -debug variable-locations
-     CXXDEBF += -debug extended
-     CXXDEBF += -ftrapuv
+#     CXXDEBF += -debug extended
+#     CXXDEBF += -ftrapuv
    endif
    CXX = $(_icpc)
    CC  = $(_icc)
@@ -424,16 +424,19 @@ ifeq ($(FCOMP),Intel)
      FDEBF += -CB
      fDEBF += -CB
    else
-     FDEBF += -check all -traceback -debug extended
-     fDEBF += -check all -traceback -debug extended
-     FDEBF += -ftrapuv
-     fDEBF += -ftrapuv
+#     FDEBF += -check all -traceback -debug extended
+#     fDEBF += -check all -traceback -debug extended
+     FDEBF += -O0 #-traceback
+     fDEBF += -O0 #-traceback
+#     FDEBF += -ftrapuv
+#     fDEBF += -ftrapuv
    endif
    LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
    endif
-   _ifc += -mp -module $(fmoddir)
+#   _ifc += -mp -module $(fmoddir)
+   _ifc += -module $(fmoddir)
     FC = $(_ifc)
     fC = $(_ifc)
    NEEDS_FLUSH_F := TRUE
