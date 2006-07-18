@@ -122,15 +122,9 @@ ifeq ($(WHICHLINUX), PCCLUSTER)
 endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
-# FC  := fort -assume nounderscore
-# fC  := $(FC)
-# override FORTLINK := LOWERCASE
-#  FOPTF = -O2 -ipo -IPF_FMA -ftz -IPF_fltacc
-#  fOPTF = -O2 -ipo -IPF_FMA -ftz -IPF_fltacc
-#  CXXOPTF = -O2 -ftz -ipo -IPF_fltacc -IPF_fma
-  FOPTF = -O3 -ip -IPF_FMA -ftz -IPF_fltacc
-  fOPTF = -O3 -ip -IPF_FMA -ftz -IPF_fltacc
-  CXXOPTF = -O3 -ftz -ip -IPF_fltacc -IPF_fma
+  FOPTF   = -O3 -ip
+  fOPTF   = -O3 -ip
+  CXXOPTF = -O3 -ip -fno-exceptions
 endif
 
 ifeq ($(WHICHLINUX), ALPHACLUSTER)
