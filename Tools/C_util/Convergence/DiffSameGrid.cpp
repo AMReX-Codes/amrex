@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameGrid.cpp,v 1.14 2006-05-08 21:41:33 lijewski Exp $
+// $Id: DiffSameGrid.cpp,v 1.15 2006-07-20 19:17:57 almgren Exp $
 //
 
 #include <new>
@@ -32,19 +32,19 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << "This utility performs a diff operation between two"     << endl
-         << "plotfiles which have the exact same grids."             << endl;
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile1 = inputFileName1" << '\n';
-    cout << "    infile2 = inputFileName2" << '\n';
-    cout << "    diffile = differenceFileName" << '\n';
-    cout << "              (If not specified no file is written)" << '\n';
-    cout << "       norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << "This utility performs a diff operation between two"     << std::endl
+         << "plotfiles which have the exact same grids."             << std::endl;
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile1 = inputFileName1" << '\n';
+    std::cout << "    infile2 = inputFileName2" << '\n';
+    std::cout << "    diffile = differenceFileName" << '\n';
+    std::cout << "              (If not specified no file is written)" << '\n';
+    std::cout << "       norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -142,8 +142,8 @@ main (int   argc,
     Array<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
-        cout << "Level  L"<< norm << " norm of Error in Each Component" << endl
-             << "-----------------------------------------------" << endl;
+        std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
+             << "-----------------------------------------------" << std::endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -152,8 +152,8 @@ main (int   argc,
 
         if (baI.size() != baE.size())
         {
-            cout << "ERROR: BoxArray lengths are not the same at level " 
-                 << iLevel << endl;
+            std::cout << "ERROR: BoxArray lengths are not the same at level " 
+                 << iLevel << std::endl;
             ParallelDescriptor::Abort();
         }
 
@@ -174,7 +174,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-            cout << "  " << iLevel << "    ";
+            std::cout << "  " << iLevel << "    ";
 
         Array<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
@@ -253,9 +253,9 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                cout << norms[iComp] << " ";
+                std::cout << norms[iComp] << " ";
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
