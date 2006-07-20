@@ -1407,13 +1407,11 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      run_time = ParallelDescriptor::second() - strt_time;
-
-    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "holy_grail_amr_projector::manual_project(): time: " << run_time << std::endl;
+//    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+//    Real      run_time = ParallelDescriptor::second() - strt_time;
+//    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+//    if (ParallelDescriptor::IOProcessor())
+//        std::cout << "holy_grail_amr_projector::manual_project(): time: " << run_time << std::endl;
 }
 
 void
