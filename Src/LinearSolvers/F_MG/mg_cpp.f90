@@ -12,7 +12,9 @@ module cpp_mg_module
      integer        :: dim  = 0
      integer        :: han  = -1
      integer        :: nlevel
-     integer        :: stencil_order = 2
+!    integer        :: stencil_order = 3
+!    integer        :: stencil_order = 2
+     integer        :: stencil_order = 1
      type(ml_layout) :: mla
      type(mg_tower), pointer :: mgt(:) => Null()
      type(box), pointer :: pd(:) => Null()
@@ -165,18 +167,17 @@ subroutine mgt_set_level(mgt, lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
   call print(mgts(mgt)%pd(flev))
   call print(mgts(mgt)%mla%la(flev))
 
-  call print(mgts(mgt)%mla%la(flev))
-
   allocate(mgts(mgt)%bc(dm,2))
 
   mgts(mgt)%bc = transpose(bc)
 
 end subroutine mgt_set_level
 
-subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
+subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar, dx)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: mgt, nipar, nrpar, ipar(0:*)
+  integer   , intent(in) :: mgt, nipar, nrpar, ipar(0:*)
+  real(dp_t), intent(in) :: dx(1:*)
   real(dp_t) :: rpar(0:*)
   integer :: dm, i, nlev, n
   integer :: ns
@@ -204,7 +205,19 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
   real(dp_t) :: bottom_solver_eps
   type(boxarray) :: bac
 
+  real(dp_t) :: local_dx(mgts(mgt)%dim)
+
   call mgt_verify(mgt, "MGT_FINALIZE")
+
+  dm = mgts(mgt)%dim
+
+  do i = 1,dm
+    local_dx(i) = dx(i)
+  end do
+
+  do i = 0, 10
+    print *,'IPAR ',i,ipar(i)
+  end do
 
   nu1 = ipar(MGT_NU1)
   nu2 = ipar(MGT_NU2)
@@ -212,6 +225,7 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
   max_iter = ipar(MGT_MAX_ITER)
   max_nlevel = ipar(MGT_MAX_NLEVEL)
   min_width = ipar(MGT_MIN_WIDTH)
+  print *,'VERBOSE INTO MG_TOWER_BUILD ',ipar(MGT_VERBOSE)
   verbose = ipar(MGT_VERBOSE)
   bottom_solver = ipar(MGT_BOTTOM_SOLVER)
   bottom_max_iter = ipar(MGT_BOTTOM_MAX_ITER)
@@ -219,12 +233,20 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
   cycle = ipar(MGT_CYCLE)
 
   eps = rpar(MGT_EPS)
+  print *,'EPS IN MG_CPP ',eps
   omega = rpar(MGT_OMEGA)
+  print *,'OMEGA IN MG_CPP ',omega
   bottom_solver_eps = rpar(MGT_BOTTOM_SOLVER_EPS)
 
 ! print *, 'rpar ', rpar(0:2)
 
   dm = mgts(mgt)%dim
+
+  ! HACK TO AGREE WITH MGLIB
+  min_width = 2
+  verbose = 1
+  eps = 1.e-12
+  bottom_solver = 2
 
   nc = 1
   nlev = mgts(mgt)%nlevel
@@ -268,9 +290,13 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar)
         bottom_max_iter_in = nu1
      end if
      call mg_tower_build(mgts(mgt)%mgt(n), mgts(mgt)%mla%la(n), mgts(mgt)%pd(n), mgts(mgt)%bc, &
+          dh = local_dx, &
           ns = ns, &
           smoother = smoother, &
-          nu1 = nu1, nu2 = nu2, gamma = gamma, cycle = cycle, omega = omega, &
+          nu1 = nu1, nu2 = nu2, &
+          gamma = gamma, &
+          cycle = cycle, &
+          omega = omega, &
           bottom_solver = bottom_solver_in, &
           bottom_max_iter = bottom_max_iter_in, &
           bottom_solver_eps = bottom_solver_eps, &
@@ -297,10 +323,9 @@ subroutine mgt_init_coeffs_lev(mgt, lev)
   dm = mgts(mgt)%dim
   nlev = mgts(mgt)%mgt(flev)%nlevels
   allocate(mgts(mgt)%coeffs(nlev))
-print *, 'size(coeffs) ', size(mgts(mgt)%coeffs)
-call print(mgts(mgt)%mla%la(1))
 
-  call build(mgts(mgt)%coeffs(nlev), mgts(mgt)%mgt(flev)%ss(nlev)%la, 1+dm, 1)
+  call  build(mgts(mgt)%coeffs(nlev), mgts(mgt)%mgt(flev)%ss(nlev)%la, 1+dm, 1)
+  call setval(mgts(mgt)%coeffs(nlev), 0.0_dp_t, all=.true.)
   do i = nlev - 1, 1, -1
      call build(mgts(mgt)%coeffs(i), mgts(mgt)%mgt(flev)%ss(i)%la, 1+dm, 1)
      call setval(mgts(mgt)%coeffs(i), 0.0_dp_t, all=.true.)
@@ -336,17 +361,17 @@ subroutine mgt_finalize_stencil_lev(mgt, lev, xa, xb, pxa, pxb)
   flev = lev + 1
   call mgt_verify_lev(mgt, "MGT_SET_COEFS_LEV", flev)
   
-  pd = mgts(mgt)%mla%mba%pd(flev)
+  pd = mgts(mgt)%pd(flev)
   nlev = mgts(mgt)%mgt(flev)%nlevels
   do i = nlev-1, 1, -1
      call coarsen_coeffs(mgts(mgt)%coeffs(i+1), mgts(mgt)%coeffs(i))
   end do
   do i = nlev, 1, -1
      pdv = layout_boxarray(mgts(mgt)%mgt(flev)%ss(i)%la)
-print *, nboxes(pdv)
-print *, nboxes(mgts(mgt)%coeffs(i))
+
      call stencil_fill_cc(mgts(mgt)%mgt(flev)%ss(i), mgts(mgt)%coeffs(i), mgts(mgt)%mgt(flev)%dh(:,i), &
-          pdv, mgts(mgt)%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), pd, &
+          pdv, mgts(mgt)%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), &
+          mgts(mgt)%mgt(flev)%pd(i), &
           mgts(mgt)%stencil_order, mgts(mgt)%bc)
      call destroy(mgts(mgt)%coeffs(i))
   end do
@@ -361,7 +386,6 @@ subroutine mgt_finalize_stencil(mgt)
    call mgt_verify(mgt, "MGT_FINALIZE_STENCIL")
    mgts(mgt)%final = .true.
 end subroutine mgt_finalize_stencil
-
 
 subroutine mgt_set_ss_2d(mgt, lev, n, a, b, aa, bb1, bb2, plo, phi, lo, hi)
   use cpp_mg_module
@@ -404,7 +428,7 @@ subroutine mgt_set_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
   integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: rh(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
+  integer :: flev, fn, i, j
   fn = n + 1
   flev = lev+1
   
@@ -412,6 +436,12 @@ subroutine mgt_set_rh_2d(mgt, lev, n, rh, plo, phi, lo, hi)
 
   rp => dataptr(mgts(mgt)%rh(flev), fn)
   rp(lo(1):hi(1), lo(2):hi(2),1,1) = rh(lo(1):hi(1), lo(2):hi(2))
+
+! do j = lo(2),hi(2)
+! do i = lo(1),hi(1)
+!    print *,'RH ',i,j,rp(i,j,1,1)
+! end do
+! end do
 
 end subroutine mgt_set_rh_2d
 subroutine mgt_set_rh_3d(mgt, lev, n, rh, plo, phi, lo, hi)
@@ -510,26 +540,68 @@ subroutine mgt_set_uu_1d(mgt, lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n(mgt, "MGT_SET_UU", lev, n, lo, hi)
 
   up => dataptr(mgts(mgt)%uu(lev), fn)
-  up(lo(1):hi(1), 1,1,1) = uu(lo(1):hi(1))
+  up(lo(1)-1:hi(1)+1, 1,1,1) = uu(lo(1)-1:hi(1)+1)
 
 end subroutine mgt_set_uu_1d
 
-subroutine mgt_set_cf_2d(mgt, lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfa_2d(mgt, lev, n, cf, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), *)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev
+  integer :: flev, fn, nlev, i, j
   fn = n + 1
   flev = lev+1
   nlev = size(mgts(mgt)%coeffs)
-  call mgt_verify_n(mgt, "MGT_SET_UU", flev, fn, lo, hi)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2),1, 1:4) = cf(lo(1):hi(1), lo(2):hi(2), 1:4)
+  cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
 
-end subroutine mgt_set_cf_2d
+end subroutine mgt_set_cfa_2d
+
+subroutine mgt_set_cfbx_2d(mgt, lev, n, cf, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev, i, j
+
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts(mgt)%coeffs)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
+  cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = cf(lo(1):hi(1)+1, lo(2):hi(2))
+
+! do j = lo(2),hi(2)
+! do i = lo(1),hi(1)+1
+!    print *,'BX OUT ',i,j,cp(i,j,1,2)
+! end do
+! end do
+! print *,' '
+
+end subroutine mgt_set_cfbx_2d
+
+subroutine mgt_set_cfby_2d(mgt, lev, n, cf, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev, i, j 
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts(mgt)%coeffs)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 3) = cf(lo(1):hi(1), lo(2):hi(2)+1)
+
+end subroutine mgt_set_cfby_2d
 
 subroutine mgt_set_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
@@ -537,33 +609,85 @@ subroutine mgt_set_uu_2d(mgt, lev, n, uu, plo, phi, lo, hi)
   integer, intent(in) :: mgt, lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: uu(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: up(:,:,:,:)
-  integer :: flev, fn
+  integer :: flev, fn, i, j
   fn = n + 1
   flev = lev+1
-  
+
   call mgt_verify_n(mgt, "MGT_SET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts(mgt)%uu(flev), fn)
-  up(lo(1):hi(1), lo(2):hi(2),1,1) = uu(lo(1):hi(1), lo(2):hi(2))
+  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1)
 
 end subroutine mgt_set_uu_2d
 
-subroutine mgt_set_cf_3d(mgt, lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfa_3d(mgt, lev, n, cf, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
-  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3), 4)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev
+  integer :: flev, fn, nlev, i, j, k
   fn = n + 1
   flev = lev+1
   nlev = size(mgts(mgt)%coeffs)
-  call mgt_verify_n(mgt, "MGT_SET_UU", flev, fn, lo, hi)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:4) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:4)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
-end subroutine mgt_set_cf_3d
+end subroutine mgt_set_cfa_3d
+
+subroutine mgt_set_cfbx_3d(mgt, lev, n, cf, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev, i, j, k
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts(mgt)%coeffs)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
+  cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 2) = cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3))
+
+end subroutine mgt_set_cfbx_3d
+
+subroutine mgt_set_cfby_3d(mgt, lev, n, cf, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev, i, j, k 
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts(mgt)%coeffs)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 3) = cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3))
+
+end subroutine mgt_set_cfby_3d
+
+subroutine mgt_set_cfbz_3d(mgt, lev, n, cf, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: mgt, lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev, i, j, k 
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts(mgt)%coeffs)
+  call mgt_verify_n(mgt, "MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts(mgt)%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 4) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
+
+end subroutine mgt_set_cfbz_3d
+
 
 subroutine mgt_set_uu_3d(mgt, lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
@@ -578,7 +702,8 @@ subroutine mgt_set_uu_3d(mgt, lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n(mgt, "MGT_SET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts(mgt)%uu(flev), fn)
-  up(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
+     uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
 
 end subroutine mgt_set_uu_3d
 
@@ -654,38 +779,38 @@ subroutine mgt_dealloc(mgt)
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(mgt)
+subroutine mgt_solve(imgt)
   use cpp_mg_module
   use ml_cc_module
   use ml_nd_module
   use fabio_module
   implicit none
-  integer, intent(in) :: mgt
+  integer, intent(in) :: imgt
   integer :: do_diagnostics
-  real(dp_t) :: eps
 
-  call mgt_verify(mgt, "MGT_SOLVE")
-  if ( .not. mgts(mgt)%final ) then
+  call mgt_verify(imgt, "MGT_SOLVE")
+  if ( .not. mgts(imgt)%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-call fabio_ml_write(mgts(mgt)%rh, mgts(mgt)%rr(:,1), "mgt_rhs")
+!  call fabio_ml_write(mgts(imgt)%rh, mgts(imgt)%rr(:,1), "mgt_rhs")
 
-  if ( mgts(mgt)%nodal ) then
+  if ( mgts(imgt)%nodal ) then
 !!$ FIXME !!!!
 !!$     call ml_nd(mgts(mgt)%mla, mgts(mgt)%mgt, &
 !!$          mgts(mgt)%rh, mgts(mgt)%uu, &
 !!$          mgts(mgt)%mla%mask, mgts(mgt)%rr, &
-!!$          do_diagnostics, eps)
-     call bl_error("MGT_SOLVE_CC: Not yet")
+!!$          do_diagnostics, mgts(imgt)%mgt(1)%eps)
+     call bl_error("MGT_SOLVE_ND: Not yet")
   else
-     call ml_cc(mgts(mgt)%mla, mgts(mgt)%mgt, &
-          mgts(mgt)%rh, mgts(mgt)%uu, &
-          mgts(mgt)%mla%mask, mgts(mgt)%rr, &
-          do_diagnostics, eps)
+     do_diagnostics = 0
+     call ml_cc(mgts(imgt)%mla, mgts(imgt)%mgt, &
+          mgts(imgt)%rh, mgts(imgt)%uu, &
+          mgts(imgt)%mla%mask, mgts(imgt)%rr, &
+          do_diagnostics, mgts(imgt)%mgt(1)%eps)
   end if
 
-call fabio_ml_write(mgts(mgt)%uu, mgts(mgt)%rr(:,1), "mgt_uu")
+call fabio_ml_write(mgts(imgt)%uu, mgts(imgt)%rr(:,1), "mgt_uu")
 
 end subroutine mgt_solve
 
@@ -781,6 +906,7 @@ subroutine mgt_set_verbose(mgt, verbose)
   integer, intent(in) :: mgt
   integer, intent(in) :: verbose
 
+  print *,'SETTING VERBOSE ',verbose
   call mgt_not_final(mgt, "MGT_SET_MIN_WIDTH")
   mgts(mgt)%mgt%verbose = verbose
 
@@ -793,7 +919,7 @@ subroutine mgt_get_rpar_defaults(rpar, n)
   real(dp_t), intent(out) :: rpar(0:n-1)
   type(mg_tower) :: mgt
   rpar(MGT_EPS) = mgt%eps
-  rpar(MGT_OMEGA) = mgt%eps
+  rpar(MGT_OMEGA) = mgt%omega
   rpar(MGT_BOTTOM_SOLVER_EPS) = mgt%bottom_solver_eps
 end subroutine mgt_get_rpar_defaults
 subroutine mgt_get_ipar_defaults(ipar, n)
@@ -805,6 +931,7 @@ subroutine mgt_get_ipar_defaults(ipar, n)
   if ( n < MGT_CYCLE-1 ) then
      call bl_Error("ipar array too small: ", n);
   end if
+  print *,'IN GET_IPAR_DEFAULTS'
   ipar(MGT_NU1) = mgt%nu1
   ipar(MGT_NU2) = mgt%nu2
   ipar(MGT_GAMMA) = mgt%gamma
@@ -812,6 +939,8 @@ subroutine mgt_get_ipar_defaults(ipar, n)
   ipar(MGT_MAX_NLEVEL) = mgt%max_nlevel
   ipar(MGT_MIN_WIDTH) = mgt%min_width
   ipar(MGT_VERBOSE) = mgt%verbose
+! ipar(MGT_VERBOSE) = 4
+  print *,'SETTING VERBOSE DEFAULT ',ipar(MGT_VERBOSE)
   ipar(MGT_BOTTOM_SOLVER) = mgt%bottom_solver
   ipar(MGT_BOTTOM_MAX_ITER) = mgt%bottom_max_iter
   ipar(MGT_SMOOTHER) = mgt%smoother
