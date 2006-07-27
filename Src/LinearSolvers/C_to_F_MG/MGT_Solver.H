@@ -34,12 +34,13 @@ public:
     };
       
   MGT_Solver(const BndryData& bd, 
+	     const BCRec& phys_bc, 
 	     const double* dx, 
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
 	     const std::vector<int>& ipar, const std::vector<double>& rpar,
 	     bool nodal);
-  void set_coefficients(MultiFab* aa[], MultiFab* bb[][BL_SPACEDIM]);
+  void set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM]);
   void solve(MultiFab* uu[], MultiFab* rh[]);
   ~MGT_Solver();
 
