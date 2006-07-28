@@ -1,4 +1,12 @@
+#include <ParmParse.H>
 #include <MGT_Solver.H>
+
+bool MGT_Solver::initialized     = false;
+int  MGT_Solver::def_nu_1        = 2;
+int  MGT_Solver::def_nu_2        = 2;
+int  MGT_Solver::def_maxiter     = 40;
+int  MGT_Solver::def_maxiter_b   = 80;
+int  MGT_Solver::def_verbose     = false;
 
 typedef void (*mgt_get)(const int* mgt, const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
@@ -40,11 +48,22 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
   :
   m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal), m_ipar(ipar), m_rpar(rpar)
 {
+
+   if (!initialized)
+        initialize();
+
   BL_ASSERT( m_grids.size() == dmap.size() );
   m_nlevel = grids.size();
   int dm = BL_SPACEDIM;
   int i_nodal = (m_nodal)?1:0;
+
   mgt_alloc(&m_mgt, &dm, &m_nlevel, &i_nodal);
+
+  std::cout << "NU1 IN MGT " << def_nu_1 << std::endl;
+  mgt_set_nu1(&m_mgt,&def_nu_1);
+  mgt_set_nu2(&m_mgt,&def_nu_2);
+  mgt_set_verbose(&m_mgt,&def_verbose);
+
   for ( int i = 0; i < BL_SPACEDIM; ++i )
     {
       m_dx[i] = dx[i];
@@ -91,7 +110,48 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
   int n_rpar = m_rpar.size();
   double* rpar_p = n_rpar?&m_rpar[0]:0;
   int* ipar_p = n_ipar?&m_ipar[0]:0;
+
   mgt_finalize(&m_mgt, &n_ipar, ipar_p, &n_rpar, rpar_p, dx);
+}
+
+void
+MGT_Solver::initialize()
+{
+
+    initialized = true;
+
+    ParmParse pp("mg");
+
+    pp.query("maxiter", def_maxiter);
+    pp.query("maxiter_b", def_maxiter_b);
+    pp.query("nu_1", def_nu_1);
+    pp.query("nu_2", def_nu_2);
+    pp.query("verbose", def_verbose);
+
+/*
+    pp.query("numiter", def_numiter);
+    pp.query("nu_0", def_nu_0);
+    pp.query("nu_f", def_nu_f);
+    pp.query("v", def_verbose);
+    pp.query("usecg", def_usecg);
+    pp.query("rtol_b", def_rtol_b);
+    pp.query("bot_atol", def_atol_b);
+    pp.query("nu_b", def_nu_b);
+    pp.query("numLevelsMAX", def_numLevelsMAX);
+    pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
+    int ii;
+    if (pp.query("cg_solver", ii ))
+    {
+        switch (ii)
+        {
+        case 0: def_cg_solver = CGSolver::CG; break;
+        case 1: def_cg_solver = CGSolver::BiCGStab; break;
+        case 2: def_cg_solver = CGSolver::CG_Alt; break;
+        default:
+            BoxLib::Error("MGT_solver::initialize(): bad cg_solver value");
+        }
+    }
+*/
 }
 
 void
@@ -150,7 +210,7 @@ MGT_Solver::set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACE
 }
 
 void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -186,7 +246,9 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[])
 	  mgt_set_uu(&m_mgt, &lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(&m_mgt);
+
+  mgt_solve(&m_mgt,tol,abs_tol);
+
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
