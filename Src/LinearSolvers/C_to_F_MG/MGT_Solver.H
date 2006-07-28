@@ -40,12 +40,17 @@ public:
 	     const std::vector<DistributionMapping>& dmap,
 	     const std::vector<int>& ipar, const std::vector<double>& rpar,
 	     bool nodal);
+  static void initialize();
   void set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM]);
-  void solve(MultiFab* uu[], MultiFab* rh[]);
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
   ~MGT_Solver();
 
   static std::vector<int> ipar_defaults();
   static std::vector<double> rpar_defaults();
+
+  static int def_maxiter, def_maxiter_b;
+  static int def_nu_1, def_nu_2;
+  static int def_verbose;
   
 private:
   int m_mgt;
@@ -63,5 +68,8 @@ private:
   const bool m_nodal;
   std::vector<int> m_ipar;
   std::vector<double> m_rpar;
+
+  static bool initialized;
+
 };
 #endif
