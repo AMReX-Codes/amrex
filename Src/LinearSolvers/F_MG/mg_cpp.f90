@@ -215,9 +215,11 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar, dx)
     local_dx(i) = dx(i)
   end do
 
-  do i = 0, 10
-    print *,'IPAR ',i,ipar(i)
-  end do
+  print *,'VERBOSE         ',ipar(MGT_VERBOSE)
+  print *,'NU_1            ',ipar(MGT_NU1)
+  print *,'NU_2            ',ipar(MGT_NU2)
+  print *,'MAX_ITER        ',ipar(MGT_MAX_ITER)
+  print *,'MAX_BOTTOM_ITER ',ipar(MGT_BOTTOM_MAX_ITER)
 
   nu1 = ipar(MGT_NU1)
   nu2 = ipar(MGT_NU2)
@@ -233,7 +235,6 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar, dx)
   cycle = ipar(MGT_CYCLE)
 
   eps = rpar(MGT_EPS)
-  print *,'EPS IN MG_CPP ',eps
   omega = rpar(MGT_OMEGA)
   print *,'OMEGA IN MG_CPP ',omega
   bottom_solver_eps = rpar(MGT_BOTTOM_SOLVER_EPS)
@@ -245,7 +246,6 @@ subroutine mgt_finalize(mgt, nipar, ipar, nrpar, rpar, dx)
   ! HACK TO AGREE WITH MGLIB
   min_width = 2
   verbose = 1
-  eps = 1.e-12
   bottom_solver = 2
 
   nc = 1
@@ -779,14 +779,19 @@ subroutine mgt_dealloc(mgt)
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(imgt)
+subroutine mgt_solve(imgt,tol,abs_tol)
   use cpp_mg_module
   use ml_cc_module
   use ml_nd_module
   use fabio_module
   implicit none
-  integer, intent(in) :: imgt
+  integer        , intent(in) :: imgt
+  real(kind=dp_t), intent(in) :: tol, abs_tol
+
   integer :: do_diagnostics
+
+  print *,'NU1 IN MGT_SOLVE ' , mgts(imgt)%mgt%nu1
+  print *,'IMGT IN MGT_SOLVE ' , imgt
 
   call mgt_verify(imgt, "MGT_SOLVE")
   if ( .not. mgts(imgt)%final ) then
@@ -804,10 +809,11 @@ subroutine mgt_solve(imgt)
      call bl_error("MGT_SOLVE_ND: Not yet")
   else
      do_diagnostics = 0
+     print *,'PASSING TOL ' ,tol, 'INTO ML_CC'
      call ml_cc(mgts(imgt)%mla, mgts(imgt)%mgt, &
           mgts(imgt)%rh, mgts(imgt)%uu, &
           mgts(imgt)%mla%mask, mgts(imgt)%rr, &
-          do_diagnostics, mgts(imgt)%mgt(1)%eps)
+          do_diagnostics, tol)
   end if
 
 call fabio_ml_write(mgts(imgt)%uu, mgts(imgt)%rr(:,1), "mgt_uu")
@@ -821,6 +827,9 @@ subroutine mgt_set_nu1(mgt, nu1)
 
   call mgt_not_final(mgt, "MGT_SET_NU1")
   mgts(mgt)%mgt%nu1 = nu1
+  print *,'IMGT IN MGT_SET_NU1 IN  ' , mgt
+  print *,'NU1 IN MGT_SET_NU1 IN  ' , nu1
+  print *,'NU1 IN MGT_SET_NU1 OUT ' , mgts(mgt)%mgt%nu1
 
 end subroutine mgt_set_nu1
 
@@ -922,6 +931,7 @@ subroutine mgt_get_rpar_defaults(rpar, n)
   rpar(MGT_OMEGA) = mgt%omega
   rpar(MGT_BOTTOM_SOLVER_EPS) = mgt%bottom_solver_eps
 end subroutine mgt_get_rpar_defaults
+
 subroutine mgt_get_ipar_defaults(ipar, n)
   Use cpp_mg_module
   implicit none
