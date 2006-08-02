@@ -159,7 +159,7 @@ contains
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm, den
-    real(dp_t) :: rho_hg, rho_orig, volume
+    real(dp_t) :: rho_hg, rho_orig, volume, tres, tres0
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
@@ -215,13 +215,13 @@ contains
     rho = dot(rt, rr)
     rho_orig = rho
 
+    tres0 = norm_inf(rr)
+
     Anorm = stencil_norm(aa)
     bnorm = norm_inf(rh)
-    if ( verbose > 1 ) then
-       nrm = norm_inf(rr)
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, nrm
-       end if
+    if ( parallel_IOProcessor() .and. verbose > 0) then
+!      write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, tres0
+       write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if
 
     i = 0
@@ -252,7 +252,7 @@ contains
           call saxpy(pp, -omega, vv)
           call saxpy(pp, rr, beta, pp)
        end if
-       call itsol_precon(aa, ph, pp, mm)
+       call itsol_precon(aa, ph, pp, mm, 0)
        call itsol_stencil_apply(aa, vv, ph, mm, uniform_dh); cnt = cnt + 1
        den = dot(rt, vv)
        if ( den == ZERO ) then
@@ -269,11 +269,13 @@ contains
        if ( verbose > 1 ) then
           nrm = norm_inf(ss)
           if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Snorm=",g15.8)') cnt, nrm
+             write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
+!                               nrm /  (bnorm + Anorm*norm_inf(uu))
+                                nrm /  (bnorm)
           end if
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
-       call itsol_precon(aa, sh, ss, mm)
+       call itsol_precon(aa, sh, ss, mm,0)
        call itsol_stencil_apply(aa, tt, sh, mm, uniform_dh); cnt = cnt + 1
 
        den = dot(tt,tt)
@@ -291,12 +293,14 @@ contains
        if ( verbose > 1 ) then
           nrm = norm_inf(rr)
           if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Rnorm=",g15.8)') cnt, nrm
+             write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
+!                               nrm /  (bnorm + Anorm*norm_inf(uu))
+                                nrm /  (bnorm)
           end if
        end if
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
-          call itsol_precon(aa, sh, rr, mm)
+          call itsol_precon(aa, sh, rr, mm, 0)
           rho_hg = dot(rr, sh)
           if ( (abs(rho_hg) < rho_orig*eps) .or. &
               itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
@@ -308,9 +312,12 @@ contains
 
     if ( verbose > 0 ) then
        if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("BICGStab: iterations: ", i5)') cnt
+          write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
+!              nrm/ (bnorm + Anorm*norm_inf(uu))
+               nrm/ (bnorm)
        end if
     end if
+
 
 100 continue
     call destroy(rr)
@@ -348,7 +355,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
-    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm, den
+    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm, den, tres0
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve
@@ -398,18 +405,17 @@ contains
     Anorm = stencil_norm(aa)
     bnorm = norm_inf(rh)
 
-    if ( verbose > 1 ) then
-       nrm = norm_inf(rr)
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') 0, Anorm, bnorm, nrm
-       end if
+    if ( parallel_IOProcessor() .and. verbose > 0) then
+       tres0 = norm_inf(rr)
+!      write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, tres0
+       write(unit=*, fmt='("          CG: Initial error (error0) =        ",g15.8)') tres0
     end if
 
     i = 0
     if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) goto 100
 
     do i = 1, max_iter
-       call itsol_precon(aa, zz, rr, mm)
+       call itsol_precon(aa, zz, rr, mm, 0)
        rho = dot(rr, zz)
        if ( i == 1 ) then
           call copy(pp, zz)
@@ -442,7 +448,9 @@ contains
        if ( verbose > 1 ) then
           nrm = norm_inf(rr)
           if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Rnorm=",g15.8)') i, nrm
+             write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
+!                               nrm /  (bnorm + Anorm*norm_inf(uu))
+                                nrm /  (bnorm)
           end if
        end if
        if ( .true. .and. nodal_solve ) then
@@ -458,10 +466,16 @@ contains
     end do
 
     if ( verbose > 0 ) then
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("CG: iterations: ", i5)') cnt
-       end if
+          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
+!              nrm/ (bnorm + Anorm*norm_inf(uu))
+               nrm/ (bnorm)
     end if
+
+!   if ( verbose > 0 ) then
+!      if ( parallel_IOProcessor() ) then
+!         write(unit=*, fmt='("CG: iterations: ", i5)') cnt
+!      end if
+!   end if
 
 100 continue
     call destroy(rr)
