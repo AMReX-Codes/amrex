@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.35 2006-08-02 20:07:22 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.36 2006-08-02 21:37:31 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -272,7 +272,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
   if (ParallelDescriptor::IOProcessor() && verbose)
   {
       Spacer(std::cout, level);
-      std::cout << "MultiGrid: Initial error (error0) = " << error0 << '\n';
+      std::cout << "MultiGrid: Initial error (error0) =   " << error0 << '\n';
   }
 
   if (ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0)
@@ -307,7 +307,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
           const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
           Spacer(std::cout, level);
-          std::cout << "MultiGrid: Iteration "
+          std::cout << "MultiGrid: Iteration   "
                     << nit
                     << " error/error0 "
                     << rel_error << '\n';
@@ -318,8 +318,10 @@ MultiGrid::solve_ (MultiFab&      _sol,
   {
       const Real rel_error = (error0 != 0) ? error/error0 : 0;
       Spacer(std::cout, level);
-      std::cout << "MultiGrid: iterations(" << nit 
-		<< ") rel_error( " << rel_error << ")" << std::endl;
+      std::cout << "MultiGrid: Final Iter. "
+                << nit-1
+                << " error/error0 "
+                << rel_error << '\n';
   }
 
   //
