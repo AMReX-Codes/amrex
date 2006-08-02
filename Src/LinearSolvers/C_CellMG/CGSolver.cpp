@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.35 2006-08-02 21:37:31 almgren Exp $
+// $Id: CGSolver.cpp,v 1.36 2006-08-02 21:41:00 almgren Exp $
 //
 #include <winstd.H>
 
@@ -927,9 +927,15 @@ CGSolver::solve_cg (MultiFab&       sol,
       ret = 8;
     }
 #endif
-    if ( ret == 0 || ret == 8 )
+
+    if ( ( ret == 0 || ret == 8 ) && (rnorm < rh_norm) )
     {
-        sol.plus(sorig, 0, 1, 0);
+      sol.plus(sorig, 0, 1, 0);
+    } 
+    else 
+    {
+      sol.setVal(0.0);
+      sol.plus(sorig, 0, 1, 0);
     }
 
     return ret;
