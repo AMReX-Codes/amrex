@@ -657,8 +657,7 @@ void
 SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
              const std::vector< std::vector<int> >&                    nbrs,
              std::vector<int>&                                         procmap,
-             std::vector<long>&                                        percpu,
-             bool&                                                     swapped)
+             std::vector<long>&                                        percpu)
 {
     for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
          it != samesize.end();
@@ -670,85 +669,92 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
         {
             std::vector<int>::const_iterator lit2 = lit1;
 
+            const int ilit1 = *lit1;
+
             lit2++;
 
             for ( ; lit2 != it->second.end(); ++lit2)
             {
-                BL_ASSERT(*lit1 != *lit2);
+                const int ilit2 = *lit2;
+
+                BL_ASSERT(ilit1 != ilit2);
                 //
                 // Don't consider Boxes on the same CPU.
                 //
-                if (procmap[*lit1] == procmap[*lit2]) continue;
+                if (procmap[ilit1] == procmap[ilit2]) continue;
                 //
                 // Will swapping these boxes decrease latency?
                 //
-                const long percpu_lit1 = percpu[procmap[*lit1]];
-                const long percpu_lit2 = percpu[procmap[*lit2]];
+                const long percpu_lit1 = percpu[procmap[ilit1]];
+                const long percpu_lit2 = percpu[procmap[ilit2]];
                 //
                 // Now change procmap & redo necessary calculations ...
                 //
-                std::swap(procmap[*lit1],procmap[*lit2]);
+                std::swap(procmap[ilit1],procmap[ilit2]);
+
+                const int pmap1 = procmap[ilit1];
+                const int pmap2 = procmap[ilit2];
                 //
                 // Update percpu[] in place.
                 //
-                for (std::vector<int>::const_iterator it = nbrs[*lit1].begin();
-                     it != nbrs[*lit1].end();
-                     ++it)
+                std::vector<int>::const_iterator end1 = nbrs[ilit1].end();
+
+                for (std::vector<int>::const_iterator it = nbrs[ilit1].begin(); it != end1; ++it)
                 {
-                    if (procmap[*it] == procmap[*lit2])
+                    const int pmapstar = procmap[*it];
+
+                    if (pmapstar == pmap2)
                     {
-                        percpu[procmap[*lit1]]++;
-                        percpu[procmap[*lit2]]++;
+                        percpu[pmap1]++;
+                        percpu[pmap2]++;
                     }
-                    else if (procmap[*it] == procmap[*lit1])
+                    else if (pmapstar == pmap1)
                     {
-                        percpu[procmap[*lit1]]--;
-                        percpu[procmap[*lit2]]--;
+                        percpu[pmap1]--;
+                        percpu[pmap2]--;
                     }
                     else
                     {
-                        percpu[procmap[*lit2]]--;
-                        percpu[procmap[*lit1]]++;
+                        percpu[pmap2]--;
+                        percpu[pmap1]++;
                     }
                 }
 
-                for (std::vector<int>::const_iterator it = nbrs[*lit2].begin();
-                     it != nbrs[*lit2].end();
-                     ++it)
+                std::vector<int>::const_iterator end2 = nbrs[ilit2].end();
+
+                for (std::vector<int>::const_iterator it = nbrs[ilit2].begin(); it != end2; ++it)
                 {
-                    if (procmap[*it] == procmap[*lit1])
+                    const int pmapstar = procmap[*it];
+
+                    if (pmapstar == pmap1)
                     {
-                        percpu[procmap[*lit1]]++;
-                        percpu[procmap[*lit2]]++;
+                        percpu[pmap1]++;
+                        percpu[pmap2]++;
                     }
-                    else if (procmap[*it] == procmap[*lit2])
+                    else if (pmapstar == pmap2)
                     {
-                        percpu[procmap[*lit1]]--;
-                        percpu[procmap[*lit2]]--;
+                        percpu[pmap1]--;
+                        percpu[pmap2]--;
                     }
                     else
                     {
-                        percpu[procmap[*lit1]]--;
-                        percpu[procmap[*lit2]]++;
+                        percpu[pmap1]--;
+                        percpu[pmap2]++;
                     }
                 }
 
-                const long cost_old = percpu_lit1+percpu_lit2;
-                const long cost_new = percpu[procmap[*lit1]]+percpu[procmap[*lit2]];
+                const long cost_old = percpu_lit1  + percpu_lit2;
+                const long cost_new = percpu[pmap1]+ percpu[pmap2];
 
                 if (cost_new >= cost_old)
                 {
                     //
                     // Undo our changes ...
                     //
-                    std::swap(procmap[*lit1],procmap[*lit2]);
+                    std::swap(procmap[ilit1],procmap[ilit2]);
 
-                    percpu[procmap[*lit1]] = percpu_lit1;
-                    percpu[procmap[*lit2]] = percpu_lit2;
-                }
-                else
-                {
-                    swapped = true;
+                    percpu[procmap[ilit1]] = percpu_lit1;
+                    percpu[procmap[ilit2]] = percpu_lit2;
                 }
             }
         }
@@ -876,22 +882,20 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
         std::cout << "Initial off-CPU connection count: " << cnt << '\n';
     }
-
-    bool swapped;
-    int  passcnt = 0;
-    do
-    {
-        swapped = false;
-        SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
-        passcnt++;
-    }
-    while (swapped && passcnt < 3);
+    //
+    // Originally I called SwapAndTest() until no links were changed.
+    // This turned out to be very costly.  Next I tried calling it no
+    // more than three times, or until no links were changed.  But after
+    // testing a bunch of quite large meshes, it appears that the first
+    // call gets "most" of the benefit of multiple calls.
+    //
+    SwapAndTest(samesize,nbrs,procmap,percpu);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
-        std::cout << "Final off-CPU connection count: " << cnt << '\n';
+        std::cout << "Final   off-CPU connection count: " << cnt << '\n';
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
