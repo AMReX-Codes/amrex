@@ -158,7 +158,7 @@ contains
     type(layout) :: la
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
-    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, nrm, den
+    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t) :: rho_hg, rho_orig, volume, tres, tres0
     integer :: i
     integer :: cnt, ng_for_res
@@ -266,12 +266,12 @@ contains
        alpha = rho/den
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
+       rnorm = norm_inf(ss)
        if ( verbose > 1 ) then
-          nrm = norm_inf(ss)
           if ( parallel_IOProcessor() ) then
              write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
-!                               nrm /  (bnorm + Anorm*norm_inf(uu))
-                                nrm /  (bnorm)
+!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
+                                rnorm  /  (bnorm)
           end if
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
@@ -290,12 +290,12 @@ contains
        omega = dot(tt,ss)/den
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
+       rnorm = norm_inf(rr)
        if ( verbose > 1 ) then
-          nrm = norm_inf(rr)
           if ( parallel_IOProcessor() ) then
              write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
-!                               nrm /  (bnorm + Anorm*norm_inf(uu))
-                                nrm /  (bnorm)
+!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
+                                rnorm /  (bnorm)
           end if
        end if
        if ( .true. .and. nodal_solve ) then
@@ -308,16 +308,18 @@ contains
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        end if
        rho_1 = rho
+
     end do
 
     if ( verbose > 0 ) then
        if ( parallel_IOProcessor() ) then
           write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
-!              nrm/ (bnorm + Anorm*norm_inf(uu))
-               nrm/ (bnorm)
+!              rnorm / (bnorm + Anorm*norm_inf(uu))
+               rnorm / (bnorm)
        end if
     end if
 
+    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
 100 continue
     call destroy(rr)
@@ -355,7 +357,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
-    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, nrm, den, tres0
+    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve
@@ -445,12 +447,12 @@ contains
        alpha = rho/den
        call saxpy(uu,   alpha, pp)
        call saxpy(rr, - alpha, qq)
+       rnorm = norm_inf(rr)
        if ( verbose > 1 ) then
-          nrm = norm_inf(rr)
           if ( parallel_IOProcessor() ) then
              write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
-!                               nrm /  (bnorm + Anorm*norm_inf(uu))
-                                nrm /  (bnorm)
+!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
+                                rnorm /  (bnorm)
           end if
        end if
        if ( .true. .and. nodal_solve ) then
@@ -467,8 +469,8 @@ contains
 
     if ( verbose > 0 ) then
           write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
-!              nrm/ (bnorm + Anorm*norm_inf(uu))
-               nrm/ (bnorm)
+!              rnorm/ (bnorm + Anorm*norm_inf(uu))
+               rnorm/ (bnorm)
     end if
 
 !   if ( verbose > 0 ) then
@@ -490,6 +492,8 @@ contains
           call bl_error("CG_solve: failed to converge");
        end if
     end if
+
+    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
     call destroy(bpt)
 
