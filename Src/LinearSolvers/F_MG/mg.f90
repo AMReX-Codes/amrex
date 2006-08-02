@@ -27,13 +27,12 @@ module mg_module
      integer :: ng = 1
      integer :: ns = 1
 
-     ! defaults
-     integer :: solver  = 1
-
      ! gsrb
      integer :: smoother = MG_SMOOTHER_GS_RB
      integer :: nu1 = 2
      integer :: nu2 = 2
+     integer :: nuf = 8
+     integer :: nub = 0
      integer :: gamma = 1
      integer :: cycle = MG_Vcycle
      real(kind=dp_t) :: omega = 1.0_dp_t
@@ -48,7 +47,7 @@ module mg_module
      integer :: nlevels =  0
 
      ! let MG pick the maximum number of levels
-     integer :: max_nlevel = Huge(1)
+     integer :: max_nlevel = 1024
      integer :: min_width  = 1
 
      ! good for many problems
@@ -78,7 +77,8 @@ module mg_module
      type(multifab) :: ss1
      type(imultifab) :: mm1
 
-     integer :: verbose = 0
+     integer ::    verbose = 0
+     integer :: cg_verbose = 0
   end type mg_tower
 
   real(kind=dp_t), parameter, private :: zero = 0.0_dp_t
@@ -90,7 +90,7 @@ module mg_module
 contains
 
   subroutine mg_tower_build(mgt, la, pd, domain_bc, &
-       solver, nu1, nu2, gamma, cycle, &
+       solver, nu1, nu2, nuf, nub, gamma, cycle, &
        smoother, omega, &
        dh, &
        ns, &
@@ -99,8 +99,9 @@ contains
        max_iter, eps, &
        bottom_solver, bottom_max_iter, bottom_solver_eps, &
        st_type, &
-       verbose, nodal)
+       verbose, cg_verbose, nodal)
 
+    use bl_IO_module
     type(mg_tower), intent(inout) :: mgt
     type(layout), intent(inout) :: la
     type(box), intent(in) :: pd
@@ -109,7 +110,7 @@ contains
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: solver, nu1, nu2, gamma, cycle
+    integer, intent(in), optional :: solver, nu1, nu2, nuf, nub, gamma, cycle
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
     real(dp_t), intent(in), optional :: omega
@@ -122,6 +123,7 @@ contains
     integer, intent(in), optional :: bottom_solver
     integer, intent(in), optional :: bottom_max_iter
     integer, intent(in), optional :: verbose
+    integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: st_type
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
@@ -138,10 +140,11 @@ contains
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
     if ( present(max_iter)          ) mgt%max_iter          = max_iter
     if ( present(eps)               ) mgt%eps               = eps
-    if ( present(solver)            ) mgt%solver            = solver
     if ( present(smoother)          ) mgt%smoother          = smoother
     if ( present(nu1)               ) mgt%nu1               = nu1
     if ( present(nu2)               ) mgt%nu2               = nu2
+    if ( present(nuf)               ) mgt%nuf               = nuf
+    if ( present(nub)               ) mgt%nub               = nub
     if ( present(gamma)             ) mgt%gamma             = gamma
     if ( present(omega)             ) mgt%omega             = omega
     if ( present(cycle)             ) mgt%cycle             = cycle
@@ -150,6 +153,7 @@ contains
     if ( present(bottom_max_iter)   ) mgt%bottom_max_iter   = bottom_max_iter
     if ( present(min_width)         ) mgt%min_width         = min_width
     if ( present(verbose)           ) mgt%verbose           = verbose
+    if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
 
     nodal_flag = .false.
     if ( present(nodal) ) then
@@ -191,7 +195,8 @@ contains
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
 
     n = max_mg_levels(get_boxarray(la), mgt%min_width)
-    mgt%nlevels = min(n, mgt%max_nlevel)
+    mgt%nlevels = min(n,mgt%max_nlevel) 
+
     n = mgt%nlevels
     mgt%nboxes = nboxes(la)
     mgt%dim    = get_dim(la)
@@ -286,7 +291,7 @@ contains
        end do
     end do
 
-    if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
+!   if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
     if ( mgt%cycle == MG_WCycle ) mgt%gamma = 2
 
@@ -294,6 +299,10 @@ contains
     if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
 
     call bl_prof_timer_destroy(bpt)
+
+    if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
+      call mg_tower_print(mgt)
+    end if
 
   end subroutine mg_tower_build
 
@@ -303,22 +312,24 @@ contains
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
-    integer :: un
+    integer :: un, i, ii
+    type(box) :: bb
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt = '("MG_TOWER[(*")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(" ",A)') str
-    else
-       write(unit=un, fmt='()')
-    end if
+
+    write(unit=un, fmt = '("F90MG settings...")')
+    write(unit=un, fmt=*) 'nu1               = ', mgt%nu1
     call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'nlevels           = ', mgt%nlevels
+    write(unit=un, fmt=*) 'nu2               = ', mgt%nu2
     call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'ng                = ', mgt%ng
+    write(unit=un, fmt=*) 'nuf               = ', mgt%nuf
     call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'nc                = ', mgt%nc
+    write(unit=un, fmt=*) 'nub               = ', mgt%nub
     call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'ng                = ', mgt%ng
+!   call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'nc                = ', mgt%nc
+!   call unit_skip(un, skip)
     write(unit=un, fmt=*) 'min_width         = ', mgt%min_width
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'max_nlevel        = ', mgt%max_nlevel
@@ -327,27 +338,40 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'eps               = ', mgt%eps
     call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'solver            = ', mgt%solver
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'nu1               = ', mgt%nu1
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'nu2               = ', mgt%nu2
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'omega             = ', mgt%omega
-    call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
-    call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
+!   call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
+!   call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'omega             = ', mgt%omega
+!   call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
+!   call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_max_iter   = ', mgt%bottom_max_iter
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" *)]")')
+
+    if (mgt%verbose > 2) then
+       print *,'F90MG: ',mgt%nlevels,' levels created for this solve'
+       do i = mgt%nlevels,1,-1
+          write(unit=un,fmt= '(" Level",i2)') i
+          do ii = 1,nboxes(mgt%cc(i)%la)
+            bb = get_box(mgt%cc(i)%la,ii)
+            if (mgt%dim == 2) then
+              write(unit=un,fmt= '("  [",i4,"]: (",i4,",",i4,") (",i4,",",i4,")",i4,i4 )') &
+                     ii,bb%lo(1),bb%lo(2),bb%hi(1),bb%hi(2), &
+                     bb%hi(1)-bb%lo(1)+1,bb%hi(2)-bb%lo(2)+1
+            else if (mgt%dim == 3) then
+              print *,'[',ii,']: ',bb%lo(1),bb%lo(2),bb%lo(3),bb%hi(1),bb%hi(2),bb%hi(3)
+            end if
+          end do
+       end do
+    else
+      write(unit=un, fmt=*) 'F90MG: numlevels =  ',mgt%nlevels
+      call unit_skip(un, skip)
+    end if
 
   end subroutine mg_tower_print
 
@@ -412,8 +436,8 @@ contains
     type(multifab), intent(in)    :: rh
 
     call mg_tower_cycle(mgt, MG_VCYCLE, mgt%nlevels, mgt%ss(mgt%nlevels), &
-         uu, rh, &
-         mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
+                       uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
+
   end subroutine mg_tower_v_cycle
 
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
@@ -431,20 +455,23 @@ contains
     stat = 0
     select case ( mgt%bottom_solver )
     case (0)
-       do i = 1, mgt%bottom_max_iter
+       do i = 1, mgt%nuf
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
        call itsol_bicgstab_solve(&
             ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, stat = stat, &
             singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+       do i = 1, mgt%nub
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
     case (2)
        call itsol_cg_solve(&
             ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat = stat, &
+            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, stat = stat, &
             singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
-       do i = 1, 2
+       do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
