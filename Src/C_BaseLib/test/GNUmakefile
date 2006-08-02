@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.14 2005-10-10 22:29:27 lijewski Exp $
+# $Id: GNUmakefile,v 1.15 2006-08-02 21:14:14 lijewski Exp $
 #
 
 #
@@ -9,7 +9,7 @@ DIM          = 3
 PRECISION    = DOUBLE
 COMP = PathScale
 FCOMP = PathScale
-COMP  = Intel
+COMP  = g++
 FCOMP = Intel
 DEBUG        = TRUE
 DEBUG        = FALSE
@@ -17,16 +17,16 @@ USE_MPI      = TRUE
 USE_MPI      = FALSE
 USE_THREADS  = TRUE
 USE_THREADS  = FALSE
-PROFILE      = TRUE
 PROFILE      = FALSE
+PROFILE      = TRUE
 
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
 
-#FOPTF += -pg
-#fOPTF += -pg
-#CXXOPTF += -pg
-#LDFLAGS += -pg
+FOPTF += -pg
+fOPTF += -pg
+CXXOPTF += -pg
+LDFLAGS += -pg
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
@@ -39,11 +39,13 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 #_progs  := tread
 #_progs  := tWorkQueue
 #_progs  := tParmParse
-_progs  := tBA
+_progs  := tMinCommCosts
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
-  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib/std
+  ifeq ($(__gcc_major_version),2)
+    INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib/std
+  endif
 endif
 VPATH = $(PBOXLIB_HOME)/BoxLib
 include $(PBOXLIB_HOME)/BoxLib/Make.package
