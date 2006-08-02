@@ -693,6 +693,7 @@ subroutine mgt_dealloc()
   end do
   call destroy(mgts%mla)
   mgts%dim = 0
+  mgts%final = .false.
 
 end subroutine mgt_dealloc
 
