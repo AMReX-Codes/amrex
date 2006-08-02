@@ -48,7 +48,7 @@ contains
     logical :: fine_converged,need_grad_phi,lcross
 
     real(dp_t) :: Anorm, bnorm, res_norm
-    real(dp_t) :: tres
+    real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
 
@@ -133,6 +133,10 @@ contains
     do n = 1,nlevs
        call multifab_copy(rh(n),res(n),all=.true.)
     end do
+    tres0 = norm_inf(rh(nlevs))
+    if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
+       write(unit=*, fmt='("F90mg: Initial error (error0)     = ",g15.8)') tres0
+    end if
 
     ! ****************************************************************************
 
@@ -352,27 +356,30 @@ contains
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
           end do
-          if ( mgt(nlevs)%verbose > 0 ) then
+          if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor() ) then
-                   write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
-                        iter,n,tres
+!                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
+!                       iter,n,tres
+                   write(unit=*, fmt='("F90mg: Iteration ",i3," error/error0 = ",g15.8)') &
+                        iter,tres/tres0
                 end if
              end do
-             tres = ml_norm_inf(res,fine_mask)
-             if ( parallel_ioprocessor() ) then
-                write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
-             end if
+!            tres = ml_norm_inf(res,fine_mask)
+!            if ( parallel_ioprocessor() ) then
+!               write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
+!            end if
           end if
 
        else 
 
           fine_converged = .false.
-          if ( mgt(nlevs)%verbose > 0 ) then 
+          if ( mgt(nlevs)%verbose > 1 ) then 
              tres = norm_inf(res(nlevs))
              if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+!               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+                write(unit=*, fmt='("F90mg: Iteration ",i3," error/error0 = ",g15.8)') iter,tres/tres0
              end if
           end if
 
@@ -384,8 +391,10 @@ contains
     ! ****************************************************************************
 
     if ( mgt(nlevs)%verbose > 0 ) then
+       tres = ml_norm_inf(res,fine_mask)
        if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter-1
+          write(unit=*, fmt='("MG finished at ", i3, " iterations with rel. error ",g15.8)') iter-1, &
+               tres/tres0
        end if
     end if
     ! Add: soln += full_soln
