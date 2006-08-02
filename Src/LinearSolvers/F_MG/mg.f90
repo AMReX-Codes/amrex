@@ -336,8 +336,8 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'max_iter          = ', mgt%max_iter
     call unit_skip(un, skip)
-    write(unit=un, fmt=*) 'eps               = ', mgt%eps
-    call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'eps               = ', mgt%eps
+!   call unit_skip(un, skip)
 !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
 !   call unit_skip(un, skip)
 !   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
