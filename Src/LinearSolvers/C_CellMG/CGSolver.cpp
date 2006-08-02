@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.34 2006-08-02 20:07:45 almgren Exp $
+// $Id: CGSolver.cpp,v 1.35 2006-08-02 21:37:31 almgren Exp $
 //
 #include <winstd.H>
 
@@ -583,26 +583,22 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             ret = 1;
             break;
 	}
-        if ( nit == 1 )
-        {
+
+        if ( nit == 1 ) {
             p.copy(r);
-        }
-        else
-        {
+        } else {
             Real beta = (rho/rho_1)*(alpha/omega);
             sxay(p, p, -omega, v);
             sxay(p, r, beta, p);
         }
 
-        if ( use_mg_precond )
-        {
+        if ( use_mg_precond ) {
             ph.setVal(0.0);
             mg_precond->solve(ph, p, eps_rel, eps_abs, temp_bc_mode);
-        }
-        else
-        {
+        } else {
             ph.copy(p);
         }
+
         Lp.apply(v, ph, lev, temp_bc_mode);
 
         if ( Real rhTv = dotxy(rh, v) )
@@ -706,9 +702,6 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         rho_1 = rho;
     }
 
-//      std::cout << "norm(R) = " << rnorm << endl;
-//      std::cout << "AX+B = " << Lp.norm(0,lev)*norm(sol) + norm(rhs) << endl;
-
     if (ParallelDescriptor::IOProcessor())
     {
         if (verbose > 0 ||
@@ -743,9 +736,14 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     }
 #endif
 
-    if ( ret == 0 || ret == 8 )
+    if ( ( ret == 0 || ret == 8 ) && (rnorm < rh_norm) )
     {
-        sol.plus(sorig, 0, 1, 0);
+      sol.plus(sorig, 0, 1, 0);
+    } 
+    else 
+    {
+      sol.setVal(0.0);
+      sol.plus(sorig, 0, 1, 0);
     }
     return ret;
 }
