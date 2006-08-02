@@ -3,7 +3,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.11 2001-08-01 21:51:04 lijewski Exp $
+// $Id: MultiGrid.H,v 1.12 2006-08-02 20:07:22 almgren Exp $
 //
 
 #include <Array.H>
@@ -74,8 +74,6 @@
   the conjugate-gradient bottom solve)
   \item maxiter(40) Maximum number of full multigrid cycles allowed to
   solve the system
-  \item numiter(-1) Number of full multigrid cycles to perform
-  (should be less than maxiter for fixed number of MG cycles;
   value is ignored if < 0)
   \item verbose(0) Verbosity (1-results, 2-progress)
   \item usecg(1) Whether to use the conjugate-gradient solver for the
@@ -121,10 +119,6 @@ public:
     //@ManDoc: return the maximum permitted multigrid iterations
     //
     int getMaxIter () const;
-    //
-    //@ManDoc: set the number of multigrid iterations to perform
-    //
-    void setNumIter (int _numiter);
     //
     //@ManDoc: return the number of multigrid iterations
     //
@@ -301,10 +295,6 @@ protected:
     //
     static int def_maxiter;
     //
-    //@ManDoc: default number of complete MG cycle iterations to perform
-    //
-    static int def_numiter;
-    //
     //@ManDoc: default verbosity
     //
     static int def_verbose;
@@ -336,10 +326,6 @@ protected:
     //@ManDoc: current maximum number of allowed iterations
     //
     int maxiter;
-    //
-    //@ManDoc: current number of iterations to take
-    //
-    int numiter;
     //
     //@ManDoc: current number of level, pre-, post- and bottom smooths
     //
@@ -417,20 +403,6 @@ int
 MultiGrid::getMaxIter () const
 {
     return maxiter;
-}
-
-inline
-void
-MultiGrid::setNumIter (int _numiter)
-{
-    numiter = _numiter;
-}
-
-inline
-int
-MultiGrid::getNumIter () const
-{
-    return numiter;
 }
 
 inline
