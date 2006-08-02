@@ -1645,7 +1645,7 @@ contains
     if ( nx > 1 ) bchi = BC_INT
     imaxo = maxo
     if ( nx == 1 ) imaxo = 1
-    if ( nx == 2 ) imaxo = 2
+    if ( nx == 2 ) imaxo = min(imaxo,2)
 
     select case ( bclo ) 
     case ( BC_INT )
@@ -1684,8 +1684,8 @@ contains
     case default
        call bl_error("STENCIL_BNDRY_AAA: Strange BCLO ", bclo)
     end select
-    ! One Sided Neumann
 
+    ! One Sided Neumann
     d_s0 = d_s0 - s0*f1
     d_ss = - ss*f1
     if ( face == 1 ) then
@@ -2217,7 +2217,7 @@ contains
     do j = 1,ny
        bclo = stencil_bc_type(mask( 1, j),1,-1)
        bchi = stencil_bc_type(mask(nx, j),1,+1)
-
+ 
        call stencil_bndry_aaa(order, nx, 1, -1, mask(1,j), &
             ss(1,j,0), ss(1,j,1), ss(1,j,2), ss(1,j,XBC), &
             beta(1,j,1), beta(2,j,1), xa(1), xb(1), dh(1), bclo, bchi)
@@ -3033,7 +3033,6 @@ contains
     real(kind=dp_t) num, den
     integer i, j, N
     N = size(x)
-!print *, 'N = ', N
     do j = 1, N
        num = ONE
        den = ONE
