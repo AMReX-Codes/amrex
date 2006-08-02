@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.34 2004-12-15 18:39:56 car Exp $
+// $Id: MultiGrid.cpp,v 1.35 2006-08-02 20:07:22 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -21,7 +21,6 @@ int MultiGrid::def_nu_2         = 2;
 int MultiGrid::def_nu_f         = 8;
 int MultiGrid::def_maxiter      = 40;
 int MultiGrid::def_maxiter_b    = 80;
-int MultiGrid::def_numiter      = -1;
 int MultiGrid::def_verbose      = 0;
 int MultiGrid::def_usecg        = 1;
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
@@ -67,7 +66,6 @@ MultiGrid::initialize ()
 
     pp.query("maxiter", def_maxiter);
     pp.query("maxiter_b", def_maxiter_b);
-    pp.query("numiter", def_numiter);
     pp.query("nu_0", def_nu_0);
     pp.query("nu_1", def_nu_1);
     pp.query("nu_2", def_nu_2);
@@ -121,7 +119,6 @@ MultiGrid::MultiGrid (LinOp &_Lp)
         initialize();
 
     maxiter      = def_maxiter;
-    numiter      = def_numiter;
     nu_0         = def_nu_0;
     nu_1         = def_nu_1;
     nu_2         = def_nu_2;
@@ -325,18 +322,17 @@ MultiGrid::solve_ (MultiFab&      _sol,
 		<< ") rel_error( " << rel_error << ")" << std::endl;
   }
 
-  if ( nit == numiter                               ||
-       error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
+  //
+  // Omit ghost update since maybe not initialized in calling routine.
+  // Add to boundary values stored in initialsolution.
+  //
+  _sol.copy(*cor[level]);
+  _sol.plus(*initialsolution,0,_sol.nComp(),0);
+
+  if ( error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
        error <= eps_abs )
-  {
-      //
-      // Omit ghost update since maybe not initialized in calling routine.
-      // Add to boundary values stored in initialsolution.
-      //
-      _sol.copy(*cor[level]);
-      _sol.plus(*initialsolution,0,_sol.nComp(),0);
-      returnVal = 1;
-  }
+    returnVal = 1;
+
   //
   // Otherwise, failed to solve satisfactorily
   //
