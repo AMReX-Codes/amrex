@@ -477,7 +477,7 @@ contains
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= spacing(Anorm)
+           ni_res <= epsilon(Anorm)*Anorm
     end function ml_fine_converged
 
     function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
@@ -489,7 +489,7 @@ contains
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= spacing(Anorm)
+           ni_res <= epsilon(Anorm)*Anorm
     end function ml_converged
 
   end subroutine ml_cc
