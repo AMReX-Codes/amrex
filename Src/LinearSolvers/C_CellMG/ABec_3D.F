@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.8 2002-11-27 21:54:35 car Exp $
+c $Id: ABec_3D.F,v 1.9 2006-08-03 18:47:06 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -517,7 +517,7 @@ c
      &                 abs(alpha*a(i,j,k)
      &                 + dhx*(bX(i+1,j,k) + bX(i,j,k))
      &                 + dhy*(bY(i,j+1,k) + bY(i,j,k))
-     $                 - dhz*(bZ(i,j,k+1) + bZ(i,j,k)))
+     $                 + dhz*(bZ(i,j,k+1) + bZ(i,j,k)))
      &                 + abs( -dhx*bX(i+1,j,k)) + abs( -dhx*bX(i,j,k))
      &                 + abs( -dhy*bY(i,j+1,k)) + abs( -dhy*bY(i,j,k))
      &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k)))
