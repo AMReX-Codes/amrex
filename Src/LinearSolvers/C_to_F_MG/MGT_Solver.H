@@ -13,47 +13,26 @@
 class MGT_Solver
 {
 public:
-  enum 
-    {
-      // IPAR address: match to mg_cpp.f90
-      MGT_NU1 = 0,
-      MGT_NU2 = 1,
-      MGT_GAMMA = 2,
-      MGT_MAX_ITER = 3,
-      MGT_MAX_NLEVEL = 4,
-      MGT_MIN_WIDTH  = 5,
-      MGT_VERBOSE = 6,
-      MGT_BOTTOM_SOLVER = 7,
-      MGT_BOTTOM_MAX_ITER = 8,
-      MGT_SMOOTHER = 9,
-      MGT_CYCLE = 10,
-      // RPAR ADDRESS: match to mg_cpp.f90
-      MGT_EPS  = 0,
-      MGT_OMEGA = 1,
-      MGT_BOTTOM_SOLVER_EPS = 2
-    };
       
   MGT_Solver(const BndryData& bd, 
 	     const BCRec& phys_bc, 
 	     const double* dx, 
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
-	     const std::vector<int>& ipar, const std::vector<double>& rpar,
 	     bool nodal);
   static void initialize();
   void set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM]);
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
   ~MGT_Solver();
 
-  static std::vector<int> ipar_defaults();
-  static std::vector<double> rpar_defaults();
-
-  static int def_maxiter, def_maxiter_b;
-  static int def_nu_1, def_nu_2;
-  static int def_verbose;
+  static int def_maxiter, def_maxiter_b, def_bottom_solver;
+  static int def_nu_1, def_nu_2, def_nu_b, def_nu_f, def_gamma;
+  static Real def_omega, def_bottom_solver_eps;
+  static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
+  static int def_cycle, def_smoother;
+  static int def_usecg, def_cg_solver;
   
 private:
-  int m_mgt;
 
   MultiFab* m_acoefs;
   MultiFab* m_bcoefs[BL_SPACEDIM];
@@ -66,8 +45,6 @@ private:
   const std::vector<DistributionMapping> m_dmap;
   const std::vector<BoxArray> m_grids;
   const bool m_nodal;
-  std::vector<int> m_ipar;
-  std::vector<double> m_rpar;
 
   static bool initialized;
 
