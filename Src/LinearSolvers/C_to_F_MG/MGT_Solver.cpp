@@ -1,17 +1,30 @@
 #include <ParmParse.H>
 #include <MGT_Solver.H>
 
-bool MGT_Solver::initialized     = false;
-int  MGT_Solver::def_nu_1        = 2;
-int  MGT_Solver::def_nu_2        = 2;
-int  MGT_Solver::def_maxiter     = 40;
-int  MGT_Solver::def_maxiter_b   = 80;
-int  MGT_Solver::def_verbose     = false;
+bool  MGT_Solver::initialized;
+int   MGT_Solver::def_nu_1;
+int   MGT_Solver::def_nu_2;
+int   MGT_Solver::def_nu_b;
+int   MGT_Solver::def_nu_f;
+int   MGT_Solver::def_gamma;
+Real  MGT_Solver::def_omega;
+int   MGT_Solver::def_maxiter;
+int   MGT_Solver::def_maxiter_b;
+int   MGT_Solver::def_verbose;
+int   MGT_Solver::def_cg_verbose;
+int   MGT_Solver::def_max_nlevel;
+int   MGT_Solver::def_min_width;
+int   MGT_Solver::def_smoother;
+int   MGT_Solver::def_cycle;
+int   MGT_Solver::def_usecg;
+int   MGT_Solver::def_cg_solver;
+int   MGT_Solver::def_bottom_solver;
+Real  MGT_Solver::def_bottom_solver_eps;
 
-typedef void (*mgt_get)(const int* mgt, const int* lev, const int* n, double* uu, 
+typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
-typedef void (*mgt_set)(const int* mgt, const int* lev, const int* n, const double* uu, 
+typedef void (*mgt_set)(const int* lev, const int* n, const double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
 #if BL_SPACEDIM == 1
@@ -43,10 +56,9 @@ mgt_set mgt_set_cfbz = mgt_set_cfbz_3d;
 MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* dx, 
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
-		       const std::vector<int>& ipar, const std::vector<double>& rpar,
 		       bool nodal)
   :
-  m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal), m_ipar(ipar), m_rpar(rpar)
+  m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal)
 {
 
    if (!initialized)
@@ -57,12 +69,11 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
   int dm = BL_SPACEDIM;
   int i_nodal = (m_nodal)?1:0;
 
-  mgt_alloc(&m_mgt, &dm, &m_nlevel, &i_nodal);
+  mgt_alloc(&dm, &m_nlevel, &i_nodal);
 
-  std::cout << "NU1 IN MGT " << def_nu_1 << std::endl;
-  mgt_set_nu1(&m_mgt,&def_nu_1);
-  mgt_set_nu2(&m_mgt,&def_nu_2);
-  mgt_set_verbose(&m_mgt,&def_verbose);
+  mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
+                   &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                   &def_verbose,&def_cg_verbose,&def_max_nlevel,&def_min_width,&def_cycle,&def_smoother);
 
   for ( int i = 0; i < BL_SPACEDIM; ++i )
     {
@@ -103,15 +114,11 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
     {
       const Array<int>& pmap = dmap[lev].ProcessorMap();
       Box domain = bd.getDomain();
-      mgt_set_level(&m_mgt, &lev, &nb, &dm, &lo[0], &hi[0], 
+      mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
 		    domain.loVect(), domain.hiVect(), &bc[0], pm, &pmap[0]);
     }
-  int n_ipar = m_ipar.size();
-  int n_rpar = m_rpar.size();
-  double* rpar_p = n_rpar?&m_rpar[0]:0;
-  int* ipar_p = n_ipar?&m_ipar[0]:0;
 
-  mgt_finalize(&m_mgt, &n_ipar, ipar_p, &n_rpar, rpar_p, dx);
+  mgt_finalize(dx);
 }
 
 void
@@ -120,38 +127,50 @@ MGT_Solver::initialize()
 
     initialized = true;
 
+    mgt_get_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
+                     &def_maxiter,&def_maxiter_b,&def_bottom_solver,
+                     &def_verbose,&def_cg_verbose,&def_max_nlevel,&def_min_width,&def_cycle,&def_smoother);
+
+    /* SET TO AGREE WITH MULTIGRID DEFAULT */
+    def_min_width = 2;
+    def_usecg = 1;
+    def_cg_solver = 1;
+    def_bottom_solver_eps = 0.0001;
+
     ParmParse pp("mg");
 
     pp.query("maxiter", def_maxiter);
     pp.query("maxiter_b", def_maxiter_b);
     pp.query("nu_1", def_nu_1);
     pp.query("nu_2", def_nu_2);
-    pp.query("verbose", def_verbose);
+    pp.query("nu_b", def_nu_b);
+    pp.query("nu_f", def_nu_f);
+    pp.query("v"   , def_verbose);
+    pp.query("usecg", def_usecg);
+    pp.query("cg_solver", def_cg_solver);
+    pp.query("rtol_b", def_bottom_solver_eps);
+    pp.query("numLevelsMAX", def_max_nlevel);
 
 /*
-    pp.query("numiter", def_numiter);
     pp.query("nu_0", def_nu_0);
-    pp.query("nu_f", def_nu_f);
-    pp.query("v", def_verbose);
-    pp.query("usecg", def_usecg);
-    pp.query("rtol_b", def_rtol_b);
     pp.query("bot_atol", def_atol_b);
-    pp.query("nu_b", def_nu_b);
-    pp.query("numLevelsMAX", def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
-    int ii;
-    if (pp.query("cg_solver", ii ))
-    {
-        switch (ii)
-        {
-        case 0: def_cg_solver = CGSolver::CG; break;
-        case 1: def_cg_solver = CGSolver::BiCGStab; break;
-        case 2: def_cg_solver = CGSolver::CG_Alt; break;
-        default:
-            BoxLib::Error("MGT_solver::initialize(): bad cg_solver value");
-        }
-    }
 */
+
+    {
+    ParmParse pp("cg");
+    pp.query("v"   , def_cg_verbose);
+    }
+
+    if (def_usecg == 1) {
+      if (def_cg_solver == 1) {
+        def_bottom_solver = 1;
+      } else if (def_cg_solver == 0) {
+        def_bottom_solver = 2;
+      }
+    } else {
+      def_bottom_solver = 0;
+    }
 }
 
 void
@@ -159,7 +178,7 @@ MGT_Solver::set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACE
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_coeffs_lev(&m_mgt, &lev);
+      mgt_init_coeffs_lev(&lev);
       double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
@@ -194,19 +213,25 @@ MGT_Solver::set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACE
 
 	   const int* alo = a->box().loVect();
 	   const int* ahi = a->box().hiVect();
-	   mgt_set_cfa (&m_mgt, &lev, &n, a->dataPtr(), alo, ahi, lo, hi);
+	   mgt_set_cfa (&lev, &n, a->dataPtr(), alo, ahi, lo, hi);
 
 	   const int* bxlo = b[0]->box().loVect();
 	   const int* bxhi = b[0]->box().hiVect();
-	   mgt_set_cfbx(&m_mgt, &lev, &n, b[0]->dataPtr(), bxlo, bxhi, lo, hi);
+	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), bxlo, bxhi, lo, hi);
 
 	   const int* bylo = b[1]->box().loVect();
 	   const int* byhi = b[1]->box().hiVect();
-	   mgt_set_cfby(&m_mgt, &lev, &n, b[1]->dataPtr(), bylo, byhi, lo, hi);
+	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), bylo, byhi, lo, hi);
+
+#if (BL_SPACEDIM == 3)
+           const int* bzlo = b[2]->box().loVect();
+  	   const int* bzhi = b[2]->box().hiVect();
+  	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), bzlo, bzhi, lo, hi);
+#endif
 	}
-      mgt_finalize_stencil_lev(&m_mgt, &lev, xa, xb, pxa, pxb);
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
     }
-  mgt_finalize_stencil(&m_mgt);
+  mgt_finalize_stencil();
 }
 
 void 
@@ -237,17 +262,17 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  const Real* rd = rhs.dataPtr();
 	  const int* rlo = rhs.box().loVect();
 	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&m_mgt, &lev, &n, rd, rlo, rhi, lo, hi);
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
 
 	  const FArrayBox& sol = (*(uu[lev]))[umfi];
 	  const Real* sd = sol.dataPtr();
 	  const int* slo = sol.box().loVect();
 	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&m_mgt, &lev, &n, sd, slo, shi, lo, hi);
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
 
-  mgt_solve(&m_mgt,tol,abs_tol);
+  mgt_solve(tol,abs_tol);
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -260,30 +285,12 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  const int* hi = umfi.validbox().hiVect();
 	  const int* plo = sol.box().loVect();
 	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&m_mgt, &lev, &n, sd, plo, phi, lo, hi);
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi);
 	}
     }
 }
 
 MGT_Solver::~MGT_Solver()
 {
-  mgt_dealloc(&m_mgt);
-}
-
-std::vector<int>
-MGT_Solver::ipar_defaults()
-{
-  std::vector<int> ip(11);
-  int n = ip.size();
-  mgt_get_ipar_defaults(&ip[0], &n);
-  return ip;
-}
-
-std::vector<double>
-MGT_Solver::rpar_defaults()
-{
-  std::vector<double> dp(3);
-  int n = dp.size();
-  mgt_get_rpar_defaults(&dp[0], &n);
-  return dp;
+  mgt_dealloc();
 }
