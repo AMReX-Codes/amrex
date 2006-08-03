@@ -159,7 +159,7 @@ contains
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t) :: rho_hg, rho_orig, volume, tres, tres0
+    real(dp_t) :: rho_hg, rho_orig, volume, tres, tres0, small
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
@@ -218,6 +218,7 @@ contains
     tres0 = norm_inf(rr)
 
     Anorm = stencil_norm(aa)
+    small = epsilon(Anorm)
     bnorm = norm_inf(rh)
     if ( parallel_IOProcessor() .and. verbose > 0) then
 !      write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, tres0
@@ -225,7 +226,18 @@ contains
     end if
 
     i = 0
-    if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) goto 100
+    if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
+      if (parallel_IOProcessor() .and. verbose > 0) then
+        if (tres0 < eps*bnorm) then
+          write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                tres0,eps*bnorm
+        else if (norm_inf(rr) < epsilon(Anorm)*Anorm) then
+          write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                tres0,small*Anorm
+        end if
+     end if
+     go to 100
+    end if
 
     do i = 1, max_iter
        rho = dot(rt, rr)
@@ -267,12 +279,9 @@ contains
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
        rnorm = norm_inf(ss)
-       if ( verbose > 1 ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
-!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
-                                rnorm  /  (bnorm)
-          end if
+       if ( parallel_IOProcessor() .and. verbose > 1 ) then
+          write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
+                             rnorm  /  (bnorm)
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
        call itsol_precon(aa, sh, ss, mm,0)
@@ -291,12 +300,9 @@ contains
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
-       if ( verbose > 1 ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
-!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
-                                rnorm /  (bnorm)
-          end if
+       if ( parallel_IOProcessor() .and. verbose > 1) then
+          write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
+                             rnorm /  (bnorm)
        end if
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
@@ -311,17 +317,25 @@ contains
 
     end do
 
-    if ( verbose > 0 ) then
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
-!              rnorm / (bnorm + Anorm*norm_inf(uu))
-               rnorm / (bnorm)
+    if (parallel_IOProcessor() .and. verbose > 0) then
+         write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
+            rnorm/ (bnorm)
+       if (rnorm < eps*bnorm) then
+         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+             rnorm,eps*bnorm
+       else if (rnorm < eps*Anorm*norm_inf(uu)) then
+         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
+             rnorm,eps*Anorm*norm_inf(uu)
+       else if (rnorm < epsilon(Anorm)*Anorm) then
+         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+          rnorm,small*Anorm
        end if
     end if
 
     if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
 100 continue
+
     call destroy(rr)
     call destroy(rt)
     call destroy(pp)
@@ -357,7 +371,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
-    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0
+    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve
@@ -405,6 +419,7 @@ contains
     end if
 
     Anorm = stencil_norm(aa)
+    small = epsilon(Anorm)
     bnorm = norm_inf(rh)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
@@ -414,9 +429,21 @@ contains
     end if
 
     i = 0
-    if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) goto 100
+    if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
+      if (parallel_IOProcessor() .and. verbose > 0) then
+        if (tres0 < eps*bnorm) then
+          write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                tres0,eps*bnorm
+        else if (tres0 < epsilon(Anorm)*Anorm) then
+          write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                tres0,small*Anorm
+        end if
+      end if
+      go to 100
+    end if
 
     do i = 1, max_iter
+
        call itsol_precon(aa, zz, rr, mm, 0)
        rho = dot(rr, zz)
        if ( i == 1 ) then
@@ -448,12 +475,9 @@ contains
        call saxpy(uu,   alpha, pp)
        call saxpy(rr, - alpha, qq)
        rnorm = norm_inf(rr)
-       if ( verbose > 1 ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
-!                               rnorm /  (bnorm + Anorm*norm_inf(uu))
-                                rnorm /  (bnorm)
-          end if
+       if ( parallel_IOProcessor() .and. verbose > 1) then
+          write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
+                             rnorm /  (bnorm)
        end if
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
@@ -465,19 +489,23 @@ contains
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        end if
        rho_1 = rho
+
     end do
 
-    if ( verbose > 0 ) then
-          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
-!              rnorm/ (bnorm + Anorm*norm_inf(uu))
-               rnorm/ (bnorm)
+    if ( parallel_IOProcessor() .and. verbose > 0) then
+         write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
+            rnorm/ (bnorm)
+       if (rnorm < eps*bnorm) then
+         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+             rnorm,eps*bnorm
+       else if (rnorm < eps*Anorm*norm_inf(uu)) then
+         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
+          rnorm,eps*Anorm*norm_inf(uu)
+       else if (rnorm < epsilon(Anorm)*Anorm) then
+         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+             rnorm,small*Anorm
+       end if
     end if
-
-!   if ( verbose > 0 ) then
-!      if ( parallel_IOProcessor() ) then
-!         write(unit=*, fmt='("CG: iterations: ", i5)') cnt
-!      end if
-!   end if
 
 100 continue
     call destroy(rr)
