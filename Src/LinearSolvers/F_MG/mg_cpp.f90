@@ -358,7 +358,7 @@ subroutine mgt_set_rh_2d(lev, n, rh, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: rh(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn, i, j
+  integer :: flev, fn
   fn = n + 1
   flev = lev+1
   
@@ -380,7 +380,7 @@ subroutine mgt_set_rh_3d(lev, n, rh, plo, phi, lo, hi)
   
   call mgt_verify_n("MGT_SET_RH", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%rh(lev), fn)
+  rp => dataptr(mgts%rh(flev), fn)
   rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1) = rh(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_rh_3d
@@ -604,7 +604,6 @@ subroutine mgt_set_cfbz_3d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 4) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
 
 end subroutine mgt_set_cfbz_3d
-
 
 subroutine mgt_set_uu_3d(lev, n, uu, plo, phi, lo, hi)
   use cpp_mg_module
