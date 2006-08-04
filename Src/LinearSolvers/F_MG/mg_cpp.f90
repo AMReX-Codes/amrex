@@ -39,7 +39,7 @@ module cpp_mg_module
      type(multifab), pointer :: coeffs(:) => Null()
   end type mg_server
 
-  type(mg_server)    :: mgts
+  type(mg_server), save   :: mgts
 
 contains
   
