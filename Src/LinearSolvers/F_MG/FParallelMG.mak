@@ -6,7 +6,7 @@
 # are using the MODDEP dependency evaluater that is in Parallel/scripts 
 # and is used in the default Parallel/mk/Make.{rules,defs}. Otherwise,
 # you can't since the dependencies for the object/module files can not be
-# infered from the names or ordering of thes files.
+# inferred from the names or ordering of thes files.
 #
 # ------------- in your GNUmakefile --------------
 # 
@@ -34,7 +34,6 @@ f90EXE_sources += vector_i.f90
 f90EXE_sources += sort_d.f90
 ifeq ($(USE_MPI),TRUE)
   f90EXE_sources += parallel.f90
-  f90EXE_sources += mpi.f
 else
   f90EXE_sources += parallel_stubs.f90
 endif
