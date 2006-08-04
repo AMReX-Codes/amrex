@@ -1,3 +1,11 @@
+
+      module mpi
+      implicit none
+!DEC$ NOFREEFORM
+      include 'mpif.h'
+!DEC$ FREEFORM
+      end module mpi
+
 !! MPI wrappers
 !! These wrappers are used so that a non-MPI version can coexist
 !! with the MPI version.
