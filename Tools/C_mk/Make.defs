@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.97 2006-07-21 22:16:39 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.98 2006-08-04 22:24:03 lijewski Exp $
 #
 
 #
@@ -505,8 +505,11 @@ endif
     DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
 endif
 
-# Fortran Suffix
 FCOMPSuffix := .$(FCOMP)
+
+ifndef F90
+F90 = $(FC)
+endif
 
 include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
 
@@ -597,7 +600,6 @@ f77SourceFiles	=
 
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(FEXE_sources:%.F=%.o)				\
-			$(F90EXE_sources:%.F90=%.o)			\
 			$(cEXE_sources:%.c=%.o)				\
 			$(fEXE_sources:%.f=%.o)				\
 			$(f90EXE_sources:%.f90=%.o)			\
@@ -642,7 +644,7 @@ objEXETempDir   = o/$(optionsSuffix).EXE
 f77TempDir	= f/$(optionsSuffix)
 
 #
-# For source code mainipulation
+# For source code manipulation
 #
 CSRCALL		= $(CEXE_sources) $(CEXE_headers)			\
 		  $(T_sources) $(T_headers)

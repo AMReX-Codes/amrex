@@ -27,8 +27,23 @@ endif
 
 NEEDS_FLUSH_F := TRUE
 
-FC = xlf
-fC = $(FC)
+FC  = xlf
+fC  = $(FC)
+F90 = xlf95
+
+ifdef FBOXLIB_HOME
+  ifeq ($(USE_MPI),TRUE)
+  #
+  # Use MPI-aware compiler to ensure "mpif.h" is found when compiling mpi.f.
+  #
+  F90 := mpxlf95
+  endif
+endif
+
+#
+# f90-specific options.
+#
+F90FLAGS += -qsuffix=f=f90 -qfree=f90 -qmoddir=$(fmoddir) -I$(fmoddir)
 
 ifeq ($(PRECISION),FLOAT)
   FOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1

@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.30 2006-02-10 17:10:11 car Exp $
+# $Id: Make.rules,v 1.31 2006-08-04 22:24:03 lijewski Exp $
 #
 
 clean::
@@ -46,12 +46,6 @@ $(objEXETempDir)/%.o: %.c
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $(CEXEFLAGS) -DBL_LANG_C $< $(EXE_OUTPUT_OPTION)
 
-$(objEXETempDir)/%.o: %.F90
-	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
-	$(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
-
 $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
@@ -60,12 +54,11 @@ $(objEXETempDir)/%.o: %.F
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
+	$(F90) $(F90FLAGS) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
-
 #
 # Rules for dependencies in bare object files.
 #
