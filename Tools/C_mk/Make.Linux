@@ -40,8 +40,9 @@ FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional
 
 ifeq ($(FCOMP),PathScale)
-  FC = pathf90 -fixedform -fno-second-underscore
-  fC = pathf90 -fixedform -fno-second-underscore
+  FC  = pathf90 -fixedform -fno-second-underscore
+  fC  = pathf90 -fixedform -fno-second-underscore
+  F90 = pathf90 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
   FOPTF += -O3
