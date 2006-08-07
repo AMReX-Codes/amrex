@@ -60,7 +60,6 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
   :
   m_bd(bd), m_dmap(dmap), m_grids(grids), m_nodal(nodal)
 {
-
    if (!initialized)
         initialize();
 
@@ -124,8 +123,9 @@ MGT_Solver::MGT_Solver(const BndryData& bd, const BCRec& phys_bc, const double* 
 void
 MGT_Solver::initialize()
 {
-
     initialized = true;
+
+    mgt_init();
 
     mgt_get_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,
