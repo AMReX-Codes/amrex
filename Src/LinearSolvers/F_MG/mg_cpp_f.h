@@ -2,6 +2,7 @@
 #define _MG_CPP_F_H_
 
 #if defined(BL_FORT_USE_UPPERCASE)
+#define mgt_init                  MGT_INIT
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
 #define mgt_finalize              MGT_FINALIZE
@@ -34,6 +35,7 @@
 #define mgt_set_defaults          MGT_SET_DEFAULTS
 #define mgt_get_defaults          MGT_GET_DEFAULTS
 #elif defined(BL_FORT_USE_UNDERSCORE)
+#define mgt_init                  mgt_init_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_set_level             mgt_set_level_
 #define mgt_finalize              mgt_finalize_
@@ -73,6 +75,7 @@
 #define mgt_set_defaults          mgt_set_defaults_
 #define mgt_get_defaults          mgt_get_defaults_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+#define mgt_init                  mgt_init__
 #define mgt_alloc                 mgt_alloc__
 #define mgt_set_level             mgt_set_level__
 #define mgt_finalize              mgt_finalize__
@@ -119,6 +122,8 @@ extern "C"
   const int MGT_BC_INT =  0;	/* Interior  */
   const int MGT_BC_DIR =  1;	/* Dirichlet */
   const int MGT_BC_NEU =  2;	/* Neumann   */
+
+  void mgt_init();
 
   void mgt_alloc(const int* dm, const int* nlevel, const int* nodal);
 

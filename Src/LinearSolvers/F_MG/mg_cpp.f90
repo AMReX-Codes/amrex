@@ -88,6 +88,15 @@ contains
 
 end module cpp_mg_module
 
+subroutine mgt_init ()
+  use parallel
+  logical, save :: first = .true.
+  if ( first ) then
+     call parallel_initialize()
+     first = .false.
+  end if
+end subroutine mgt_init
+
 subroutine mgt_alloc(dm, nlevel, nodal)
   use cpp_mg_module
   implicit none
@@ -145,8 +154,8 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
        mgts%pd(flev), pmask = pmask, &
        mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
-! call print(mgts%pd(flev))
-! call print(mgts%mla%la(flev))
+!   if (parallel_IOProcessor()) call print(mgts%pd(flev))
+!   if (parallel_IOProcessor()) call print(mgts%mla%la(flev))
 
   allocate(mgts%bc(dm,2))
 
@@ -475,6 +484,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), *)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j
+
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
