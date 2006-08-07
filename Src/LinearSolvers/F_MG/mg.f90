@@ -561,7 +561,7 @@ contains
           end select
        end do
     end do
-    call destroy(bpt)
+    call bl_prof_timer_destroy(bpt)
   end subroutine grid_res
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
