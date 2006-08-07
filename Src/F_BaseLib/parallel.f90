@@ -188,10 +188,7 @@ contains
     logical flag
     external MPI_Init, MPI_Comm_Dup, MPI_Comm_Size, MPI_Comm_Rank
     call MPI_Initialized(flag, ierr)
-    if ( flag ) then
-       stop 'PARALLEL_INIT:: already initialized'
-    end if
-    call MPI_Init(ierr)
+    if ( .not. flag ) call MPI_Init(ierr)
     call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
