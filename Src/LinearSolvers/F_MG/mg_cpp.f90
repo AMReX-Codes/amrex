@@ -308,13 +308,24 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb)
   end do
   do i = nlev, 1, -1
      pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
-
      call stencil_fill_cc(mgts%mgt(flev)%ss(i), mgts%coeffs(i), mgts%mgt(flev)%dh(:,i), &
           pdv, mgts%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), &
           mgts%mgt(flev)%pd(i), &
           mgts%stencil_order, mgts%bc)
+
+     if (i .eq. 1 .and. mgts%bottom_solver .eq. 3) then
+        call copy(mgts%mgt(i)%ss1, mgts%mgt(i)%ss(1))
+        call copy(mgts%mgt(i)%mm1, mgts%mgt(i)%mm(1))
+        if ( parallel_IOProcessor() ) then
+           call sparse_build(mgts%mgt(i)%sparse_object, mgts%mgt(i)%ss1, &
+                mgts%mgt(i)%mm1, mgts%mgt(i)%ss1%la, mgts%stencil_order, mgts%mgt(i)%verbose)
+        end if
+     end if
+
      call destroy(mgts%coeffs(i))
+
   end do
+
   deallocate(mgts%coeffs)
 
 end subroutine mgt_finalize_stencil_lev
