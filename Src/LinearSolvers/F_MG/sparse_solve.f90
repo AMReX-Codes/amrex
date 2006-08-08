@@ -136,7 +136,7 @@ contains
        max_neighbors = get_max_neighbors_3d(ss)
     end select
 
-    if ( verbose > 0 ) then
+    if ( verbose > 2 ) then
        print *, 'MAX_NEIGHBORS = ', max_neighbors
     end if
 
@@ -194,7 +194,7 @@ contains
           num_bdy_pts = num_bdy_pts - volume(intersection(shifted_box, jbx))
        end do
     end do
-    if ( verbose > 0 ) then
+    if ( verbose > 2 ) then
        print *,'NUMPTS NUM_AA NUM_BDY_PTS ',numpts, num_aa, num_bdy_pts
     end if
 
@@ -245,7 +245,7 @@ contains
                inode, iedge)
        end do
        spo%smt%ia(inode) = iedge
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'FINAL INODE IEDGE ',inode,iedge
        end if
 
@@ -255,7 +255,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'REAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -337,7 +337,7 @@ contains
           end do
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'FINAL INODE IEDGE ',inode,iedge
        end if
 
@@ -347,7 +347,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'REAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -449,7 +449,7 @@ contains
           end do
        end do
        spo%smt%ia(inode) = iedge
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'FINAL INODE IEDGE ',inode,iedge
        end if
 
@@ -459,7 +459,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -1626,7 +1626,7 @@ contains
     end do
     num_aa = numpts * ns
 
-    if ( verbose > 0 ) then
+    if ( verbose > 2 ) then
        print *,'PROJECTED NUMPTS NUM_AA ',numpts, num_aa
     end if
 
@@ -1689,7 +1689,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -1789,7 +1789,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -1914,7 +1914,7 @@ contains
           spo%smt%aa(i) = temp_aa(i)
        end do
 
-       if ( verbose > 0 ) then
+       if ( verbose > 2 ) then
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
@@ -3089,7 +3089,7 @@ contains
          !
 
          if (ipar(7).ne.its) then
-            if ( verbose .gt. 1 ) then
+            if ( verbose > 2 ) then
                write (*, *) its, real(res)
             end if
             its = ipar(7)
@@ -3153,10 +3153,10 @@ contains
          exit
       end do
 
-      if ( verbose .gt. 0 ) then
+      if ( verbose > 1 ) then
          write (*, fmt = '("SPARSE: iterations: ", i5)' ) ipar(7)
       end if
-      if ( verbose > 1 ) then
+      if ( verbose > 2 ) then
          write (*, *) '# return code =', ipar(1), '        convergence rate =', fpar(7)
 
          ! check the error
