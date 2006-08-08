@@ -169,7 +169,7 @@ MGT_Solver::initialize()
         def_bottom_solver = 2;
       }
     } else {
-      def_bottom_solver = 0;
+      def_bottom_solver = 3;
     }
 }
 
