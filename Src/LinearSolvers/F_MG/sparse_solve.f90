@@ -259,7 +259,7 @@ contains
           print *,'REAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
-       call imultifab_fill_boundary(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa, nocomm=.true.)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -353,7 +353,7 @@ contains
 
        spo%smt%ia(inode) = iedge
 
-       call imultifab_fill_boundary(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa, nocomm=.true.)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -463,7 +463,7 @@ contains
           print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
-       call imultifab_fill_boundary(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa, nocomm=.true.)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -1613,8 +1613,8 @@ contains
        mp => dataptr(mm_grown,igrid)
        mp(:,:,:,:) = ibset(mp(:,:,:,:), BC_BIT(BC_DIR,1,0))
     end do
-    call copy(mm_grown,mm,all=.false.)
-    call imultifab_fill_boundary(mm_grown)
+    call copy(mm_grown,mm, all=.false., nocomm=.true.)
+    call imultifab_fill_boundary(mm_grown, nocomm=.true.)
 
 !   Build the ia array.
     call imultifab_build(spo%index_into_aa,la,1,1,ss%nodal)
@@ -1694,7 +1694,7 @@ contains
        end if
 
        call copy_nodal_ind_on_intersect(spo%index_into_aa)
-       call imultifab_fill_boundary(spo%index_into_aa)
+       call imultifab_fill_boundary(spo%index_into_aa, nocomm=.true.)
 
        allocate(spo%smt%ja(num_aa))
 
