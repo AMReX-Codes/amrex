@@ -6,6 +6,10 @@ module multifab_module
   use bl_prof_module
 
   implicit none
+  !
+  ! Controls whether routines use alltoall() or send()/recv().
+  !
+  logical, parameter, private :: Do_AllToAllV = .false.
 
   type multifab
      logical :: bound = .false.
@@ -2059,20 +2063,33 @@ contains
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, bxasc%r_con%nsp
-       ii = bxasc%r_con%str(i)%pr
-       scnt(ii) = nc*bxasc%r_con%str(i)%sz
-       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-    end do
-    do i = 1, bxasc%r_con%nrp
-       ii = bxasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, bxasc%r_con%nsp
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+       end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    else
+       allocate(rst(bxasc%r_con%nrp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2120,20 +2137,33 @@ contains
        call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, bxasc%r_con%nsp
-       ii = bxasc%r_con%str(i)%pr
-       scnt(ii) = nc*bxasc%r_con%str(i)%sz
-       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-    end do
-    do i = 1, bxasc%r_con%nrp
-       ii = bxasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, bxasc%r_con%nsp
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+       end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
+    else
+       allocate(rst(bxasc%r_con%nrp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2181,20 +2211,33 @@ contains
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, bxasc%r_con%nsp
-       ii = bxasc%r_con%str(i)%pr
-       scnt(ii) = nc*bxasc%r_con%str(i)%sz
-       sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-    end do
-    do i = 1, bxasc%r_con%nrp
-       ii = bxasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, bxasc%r_con%nsp
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+       end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    else
+       allocate(rst(bxasc%r_con%nrp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2412,20 +2455,33 @@ contains
        call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p, nc*snasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, snasc%r_con%nsp
-       ii = snasc%r_con%str(i)%pr
-       scnt(ii) = nc*snasc%r_con%str(i)%sz
-       sdsp(ii) = nc*snasc%r_con%str(i)%pv
-    end do
-    do i = 1, snasc%r_con%nrp
-       ii = snasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, snasc%r_con%nsp
+          ii = snasc%r_con%str(i)%pr
+          scnt(ii) = nc*snasc%r_con%str(i)%sz
+          sdsp(ii) = nc*snasc%r_con%str(i)%pv
+       end do
+       do i = 1, snasc%r_con%nrp
+          ii = snasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    else
+       allocate(rst(snasc%r_con%nrp))
+       do i = 1, snasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv:), &
+               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, snasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
+               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
@@ -2781,20 +2837,33 @@ contains
        call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, cpasc%r_con%nsp
-       ii = cpasc%r_con%str(i)%pr
-       scnt(ii) = nc*cpasc%r_con%str(i)%sz
-       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-    end do
-    do i = 1, cpasc%r_con%nrp
-       ii = cpasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, cpasc%r_con%nsp
+          ii = cpasc%r_con%str(i)%pr
+          scnt(ii) = nc*cpasc%r_con%str(i)%sz
+          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+       end do
+       do i = 1, cpasc%r_con%nrp
+          ii = cpasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    else
+       allocate(rst(cpasc%r_con%nrp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
@@ -2853,20 +2922,33 @@ contains
        call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, cpasc%r_con%nsp
-       ii = cpasc%r_con%str(i)%pr
-       scnt(ii) = nc*cpasc%r_con%str(i)%sz
-       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-    end do
-    do i = 1, cpasc%r_con%nrp
-       ii = cpasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, cpasc%r_con%nsp
+          ii = cpasc%r_con%str(i)%pr
+          scnt(ii) = nc*cpasc%r_con%str(i)%sz
+          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+       end do
+       do i = 1, cpasc%r_con%nrp
+          ii = cpasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
+    else
+       allocate(rst(cpasc%r_con%nrp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv:), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
@@ -2925,20 +3007,33 @@ contains
        call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
     end do
 
-    np = parallel_nprocs()
-    allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-    rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-    do i = 1, cpasc%r_con%nsp
-       ii = cpasc%r_con%str(i)%pr
-       scnt(ii) = nc*cpasc%r_con%str(i)%sz
-       sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-    end do
-    do i = 1, cpasc%r_con%nrp
-       ii = cpasc%r_con%rtr(i)%pr
-       rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-       rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-    end do
-    call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    if ( Do_AllToAllV ) then
+       np = parallel_nprocs()
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, cpasc%r_con%nsp
+          ii = cpasc%r_con%str(i)%pr
+          scnt(ii) = nc*cpasc%r_con%str(i)%sz
+          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
+       end do
+       do i = 1, cpasc%r_con%nrp
+          ii = cpasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    else
+       allocate(rst(cpasc%r_con%nrp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
