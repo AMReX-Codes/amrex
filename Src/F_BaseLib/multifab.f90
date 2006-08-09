@@ -2022,10 +2022,10 @@ contains
     end if
   end subroutine reshape_z_1_4
 
-  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross)
+  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, lnocomm)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
-    logical,        intent(in)    :: lcross
+    logical,        intent(in)    :: lcross, lnocomm
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer,    allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
@@ -2048,6 +2048,8 @@ contains
        p1  =  p2
     end do
     !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
 
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
@@ -2081,10 +2083,10 @@ contains
 
   end subroutine mf_fb_fancy_double
 
-  subroutine mf_fb_fancy_integer(mf, c, nc, ng, lcross)
+  subroutine mf_fb_fancy_integer(mf, c, nc, ng, lcross, lnocomm)
     type(imultifab), intent(inout) :: mf
     integer,         intent(in)    :: c, nc, ng
-    logical,         intent(in)    :: lcross
+    logical,         intent(in)    :: lcross, lnocomm
 
     integer, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
@@ -2107,6 +2109,8 @@ contains
        p1  =  p2
     end do
     !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
 
     allocate(g_snd_i(nc*bxasc%r_con%svol))
     allocate(g_rcv_i(nc*bxasc%r_con%rvol))
@@ -2140,10 +2144,10 @@ contains
 
   end subroutine mf_fb_fancy_integer
 
-  subroutine mf_fb_fancy_logical(mf, c, nc, ng, lcross)
+  subroutine mf_fb_fancy_logical(mf, c, nc, ng, lcross, lnocomm)
     type(lmultifab), intent(inout) :: mf
     integer,         intent(in)    :: c, nc, ng
-    logical,         intent(in)    :: lcross
+    logical,         intent(in)    :: lcross, lnocomm
 
     logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
@@ -2166,6 +2170,8 @@ contains
        p1  =  p2
     end do
     !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
 
     allocate(g_snd_l(nc*bxasc%r_con%svol))
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
@@ -2199,10 +2205,10 @@ contains
 
   end subroutine mf_fb_fancy_logical
 
-  subroutine mf_fb_fancy_z(mf, c, nc, ng, lcross)
+  subroutine mf_fb_fancy_z(mf, c, nc, ng, lcross, lnocomm)
     type(zmultifab), intent(inout) :: mf
     integer,         intent(in)    :: c, nc, ng
-    logical,         intent(in)    :: lcross
+    logical,         intent(in)    :: lcross, lnocomm
 
     complex(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable       :: rst(:)
@@ -2225,6 +2231,8 @@ contains
        p1  =  p2
     end do
     !$OMP END PARALLEL DO
+
+    if ( lnocomm ) return
 
     allocate(g_snd_z(nc*bxasc%r_con%svol))
     allocate(g_rcv_z(nc*bxasc%r_con%rvol))
@@ -2254,104 +2262,108 @@ contains
 
   end subroutine mf_fb_fancy_z
 
-  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross)
+  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross, nocomm)
     type(multifab), intent(inout) :: mf
     integer, intent(in)           :: c, nc
     integer, intent(in), optional :: ng
-    logical, intent(in), optional :: cross
+    logical, intent(in), optional :: cross, nocomm
     integer :: lng
-    logical :: lcross
+    logical :: lcross, lnocomm
     type(bl_prof_timer), save :: bpt
-    lcross = .false.; if ( present(cross)  ) lcross = cross
-    lng    = mf%ng;   if ( present(ng)     ) lng    = ng
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
     if ( lng < 1          ) return
     call build(bpt, "mf_fill_boundary_c")
-    call mf_fb_fancy_double(mf, c, nc, lng, lcross)
+    call mf_fb_fancy_double(mf, c, nc, lng, lcross, lnocomm)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
-  subroutine multifab_fill_boundary(mf, ng, cross)
+  subroutine multifab_fill_boundary(mf, ng, cross, nocomm)
     type(multifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
-    logical, intent(in), optional :: cross
-    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
+    logical, intent(in), optional :: cross, nocomm
+    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, nocomm)
   end subroutine multifab_fill_boundary
 
-  subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross)
+  subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross, nocomm)
     type(imultifab), intent(inout) :: mf
     integer, intent(in)            :: c, nc
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
+    logical, intent(in), optional  :: cross, nocomm
     integer :: lng
-    logical :: lcross
+    logical :: lcross, lnocomm
     type(bl_prof_timer), save :: bpt
-    lcross = .false.; if ( present(cross) ) lcross = cross
-    lng    = mf%ng;   if ( present(ng)    ) lng    = ng
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng )      call bl_error('IMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('IMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
     if ( lng < 1 ) return
     call build(bpt, "imf_fill_boundary_c")
-    call mf_fb_fancy_integer(mf, c, nc, lng, lcross)
+    call mf_fb_fancy_integer(mf, c, nc, lng, lcross, lnocomm)
     call destroy(bpt)
   end subroutine imultifab_fill_boundary_c
 
-  subroutine imultifab_fill_boundary(mf, ng, cross)
+  subroutine imultifab_fill_boundary(mf, ng, cross, nocomm)
     type(imultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
-    call imultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
+    logical, intent(in), optional  :: cross, nocomm
+    call imultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, nocomm)
   end subroutine imultifab_fill_boundary
 
-  subroutine lmultifab_fill_boundary_c(mf, c, nc, ng, cross)
+  subroutine lmultifab_fill_boundary_c(mf, c, nc, ng, cross, nocomm)
     type(lmultifab), intent(inout) :: mf
     integer, intent(in)            :: c, nc
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
+    logical, intent(in), optional  :: cross, nocomm
     integer :: lng
-    logical :: lcross
+    logical :: lcross, lnocomm
     type(bl_prof_timer), save :: bpt
-    lcross = .false.; if ( present(cross) ) lcross = cross
-    lng    = mf%ng;   if ( present(ng)    ) lng    = ng
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng )      call bl_error('LMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('LMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
     if ( lng < 1 ) return
     call build(bpt, "lmf_fill_boundary_c")
-    call mf_fb_fancy_logical(mf, c, nc, lng, lcross)
+    call mf_fb_fancy_logical(mf, c, nc, lng, lcross, lnocomm)
     call destroy(bpt)
   end subroutine lmultifab_fill_boundary_c
 
-  subroutine lmultifab_fill_boundary(mf, ng, cross)
+  subroutine lmultifab_fill_boundary(mf, ng, cross, nocomm)
     type(lmultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
-    call lmultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
+    logical, intent(in), optional  :: cross, nocomm
+    call lmultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, nocomm)
   end subroutine lmultifab_fill_boundary
 
-  subroutine zmultifab_fill_boundary_c(mf, c, nc, ng, cross)
+  subroutine zmultifab_fill_boundary_c(mf, c, nc, ng, cross, nocomm)
     type(zmultifab), intent(inout) :: mf
     integer, intent(in)            :: c, nc
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
+    logical, intent(in), optional  :: cross, nocomm
     integer :: lng
-    logical :: lcross
+    logical :: lcross, lnocomm
     type(bl_prof_timer), save :: bpt
-    lcross = .false.; if ( present(cross) ) lcross = cross
-    lng    = mf%ng;   if ( present(ng)    ) lng    = ng
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng )      call bl_error('ZMULTIFAB_FILL_BOUNDARY_C: ng too large', lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('ZMULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
     if ( lng < 1 ) return
     call build(bpt, "zmf_fill_boundary_c")
-    call mf_fb_fancy_z(mf, c, nc, lng, lcross)
+    call mf_fb_fancy_z(mf, c, nc, lng, lcross, lnocomm)
     call destroy(bpt)
   end subroutine zmultifab_fill_boundary_c
 
-  subroutine zmultifab_fill_boundary(mf, ng, cross)
+  subroutine zmultifab_fill_boundary(mf, ng, cross, nocomm)
     type(zmultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: cross
-    call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
+    logical, intent(in), optional  :: cross, nocomm
+    call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, nocomm)
   end subroutine zmultifab_fill_boundary
 
   subroutine mf_internal_sync_fancy(mf, c, nc, lall, filter)
@@ -2721,10 +2733,11 @@ contains
     end do
   end subroutine zmultifab_print
 
-  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, filter)
+  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, filter, lnocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer, intent(in)           :: dstcomp, srccomp, nc
+    logical, intent(in)           :: lnocomm
 
     interface
        subroutine filter(out, in)
@@ -2758,6 +2771,8 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    if ( lnocomm ) return
+
     allocate(g_snd_d(nc*cpasc%r_con%svol))
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
@@ -2790,10 +2805,11 @@ contains
 
   end subroutine mf_copy_fancy_double
 
-  subroutine mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, filter)
+  subroutine mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, nc, filter, lnocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
     integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
 
     interface
        subroutine filter(out, in)
@@ -2827,6 +2843,8 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    if ( lnocomm ) return
+
     allocate(g_snd_i(nc*cpasc%r_con%svol))
     allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
@@ -2859,10 +2877,11 @@ contains
 
   end subroutine mf_copy_fancy_integer
 
-  subroutine mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, filter)
+  subroutine mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, nc, filter, lnocomm)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
     integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
 
     interface
        subroutine filter(out, in)
@@ -2896,6 +2915,8 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    if ( lnocomm ) return
+
     allocate(g_snd_l(nc*cpasc%r_con%svol))
     allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
@@ -2928,10 +2949,11 @@ contains
 
   end subroutine mf_copy_fancy_logical
 
-  subroutine mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, nc, filter)
+  subroutine mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, nc, filter, lnocomm)
     type(zmultifab), intent(inout) :: mdst
     type(zmultifab), intent(in)    :: msrc
     integer, intent(in)            :: dstcomp, srccomp, nc
+    logical, intent(in)            :: lnocomm
 
     interface
        subroutine filter(out, in)
@@ -2965,6 +2987,8 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    if ( lnocomm ) return
+
     allocate(g_snd_z(nc*cpasc%r_con%svol))
     allocate(g_rcv_z(nc*cpasc%r_con%rvol))
 
@@ -2993,14 +3017,14 @@ contains
 
   end subroutine mf_copy_fancy_z
 
-  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter)
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, nocomm
     integer, intent(in)           :: dstcomp, srccomp
     integer, intent(in), optional :: nc
     real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                       :: lall
+    logical                       :: lall, lnocomm
     integer                       :: i, lnc
     interface
        subroutine filter(out, in)
@@ -3012,8 +3036,9 @@ contains
     optional filter
     type(bl_prof_timer), save :: bpt
     call build(bpt, "mf_copy_c")
-    lnc  = 1;       if ( present(nc)  ) lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc  = nc
+    lall    = .false.; if ( present(all)    ) lall = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('MULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
@@ -3033,15 +3058,15 @@ contains
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter)
+       call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine multifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, all, filter)
+  subroutine multifab_copy(mdst, msrc, all, filter, nocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3051,17 +3076,17 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
-    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter)
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
   end subroutine multifab_copy
 
-  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter)
+  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
     integer, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall
+    logical                        :: lall, lnocomm
     integer                        :: i, lnc
     interface
        subroutine filter(out, in)
@@ -3073,8 +3098,9 @@ contains
     optional filter
     type(bl_prof_timer), save :: bpt
     call build(bpt, "imf_copy_c")
-    lnc  = 1;       if ( present(nc)  ) lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc  = nc
+    lall    = .false.; if ( present(all)    ) lall = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('IMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
@@ -3094,15 +3120,15 @@ contains
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, filter)
+       call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine imultifab_copy_c
 
-  subroutine imultifab_copy(mdst, msrc, all, filter)
+  subroutine imultifab_copy(mdst, msrc, all, filter, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3112,17 +3138,17 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('IMULTIFAB_COPY: multifabs must have same number of components')
-    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter)
+    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
   end subroutine imultifab_copy
 
-  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter)
+  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
     logical, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall
+    logical                        :: lall, lnocomm
     integer                        :: i, lnc
     interface
        subroutine filter(out, in)
@@ -3134,8 +3160,9 @@ contains
     optional filter
     type(bl_prof_timer), save :: bpt
     call build(bpt, "lmf_copy_c")
-    lnc  = 1;       if ( present(nc)  ) lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc  = nc
+    lall    = .false.; if ( present(all)    ) lall = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('LMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
@@ -3155,15 +3182,15 @@ contains
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, filter)
+       call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine lmultifab_copy_c
 
-  subroutine lmultifab_copy(mdst, msrc, all, filter)
+  subroutine lmultifab_copy(mdst, msrc, all, filter, nocomm)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3173,17 +3200,17 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('LMULTIFAB_COPY: multifabs must have same number of components')
-    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter)
+    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
   end subroutine lmultifab_copy
 
-  subroutine zmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter)
+  subroutine zmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
     type(zmultifab), intent(inout) :: mdst
     type(zmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
     complex(dp_t), pointer         :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall
+    logical                        :: lall, lnocomm
     integer                        :: i, lnc
     interface
        subroutine filter(out, in)
@@ -3193,8 +3220,9 @@ contains
        end subroutine filter
     end interface
     optional filter
-    lnc  = 1;       if ( present(nc)  ) lnc  = nc
-    lall = .false.; if ( present(all) ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc  = nc
+    lall    = .false.; if ( present(all)    ) lall = all
+    lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('ZMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
@@ -3214,14 +3242,14 @@ contains
        !$OMP END PARALLEL DO
     else
        if ( lall ) call bl_error('ZMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, lnc, filter)
+       call mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
   end subroutine zmultifab_copy_c
 
-  subroutine zmultifab_copy(mdst, msrc, all, filter)
+  subroutine zmultifab_copy(mdst, msrc, all, filter, nocomm)
     type(zmultifab), intent(inout) :: mdst
     type(zmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all
+    logical, intent(in), optional  :: all, nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3231,7 +3259,7 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('ZMULTIFAB_COPY: multifabs must have same number of components')
-    call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter)
+    call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
   end subroutine zmultifab_copy
 
   subroutine build_nodal_dot_mask(mask, mf)
