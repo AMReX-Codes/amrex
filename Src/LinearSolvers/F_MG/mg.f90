@@ -1055,8 +1055,6 @@ contains
 
     if ( lev == 1 ) then
 
-!      call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
-
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
