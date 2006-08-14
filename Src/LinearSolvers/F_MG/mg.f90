@@ -68,6 +68,8 @@ module mg_module
      type(stencil), pointer :: st(:) => Null()
 
      integer, pointer :: face_type(:,:,:)
+     logical, pointer :: skewed(:,:)
+     logical, pointer :: skewed_not_set(:)
 
      type(timer), pointer :: tm(:) => Null()
 
@@ -125,6 +127,8 @@ contains
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: st_type
+
+    integer, pointer :: mp(:,:,:,:)
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
@@ -202,6 +206,9 @@ contains
     mgt%dim    = get_dim(la)
 
     allocate(mgt%face_type(mgt%nboxes,mgt%dim,2))
+    allocate(mgt%skewed(mgt%nlevels,mgt%nboxes))
+    allocate(mgt%skewed_not_set(mgt%nlevels))
+    mgt%skewed_not_set = .true.
 
     allocate(mgt%cc(n), mgt%ff(n), mgt%dd(n), mgt%uu(n-1), mgt%ss(n), mgt%mm(n))
     allocate(mgt%pd(n),mgt%dh(mgt%dim,n))
@@ -300,9 +307,9 @@ contains
 
     call bl_prof_timer_destroy(bpt)
 
-    if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
-      call mg_tower_print(mgt)
-    end if
+!   if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
+!     call mg_tower_print(mgt)
+!   end if
 
   end subroutine mg_tower_build
 
@@ -398,6 +405,8 @@ contains
     deallocate(mgt%dh, mgt%pd)
     deallocate(mgt%tm)
     deallocate(mgt%face_type)
+    deallocate(mgt%skewed)
+    deallocate(mgt%skewed_not_set)
     if ( built_q(mgt%sparse_object) ) call destroy(mgt%sparse_object)
     if ( built_q(mgt%rh1)           ) call destroy(mgt%rh1)
     if ( built_q(mgt%uu1)           ) call destroy(mgt%uu1)
@@ -668,6 +677,14 @@ contains
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
+    if (mgt%skewed_not_set(lev)) then 
+      do i = 1, mgt%nboxes
+        mp => dataptr(mm, i)
+        mgt%skewed(lev,i) = skewed_q(mp)
+      end do
+      mgt%skewed_not_set(lev) = .false.
+    end if
+
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )
        case ( MG_SMOOTHER_GS_RB )
@@ -681,22 +698,21 @@ contains
                 sp => dataptr(ss, i)
                 mp => dataptr(mm, i)
                 lo =  lwb(get_box(ss, i))
-                ! skewed = skewed_q(mp)
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
                       call gs_rb_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                           mp(:,1,1,1), lo, mgt%ng, nn)
+                           mp(:,1,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                           mp(:,:,1,1), lo, mgt%ng, nn)
+                           mp(:,:,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                    case (3)
                       ! allocate(tsp(size(sp,4),size(sp,1),size(sp,2),size(sp,3)))
                       ! do nnn = 1, size(sp,4); do kkk = 1, size(sp,3); do jjj = 1, size(sp,2); do iii = 1, size(sp,1)
                       !    tsp(nnn,iii,jjj,kkk) = sp(iii+lo(1)-1,jjj+lo(2)-1,kkk+lo(3)-1,nnn)
                       ! end do; end do; end do; end do;
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                           mp(:,:,:,1), lo, mgt%ng, nn)
+                           mp(:,:,:,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                       ! deallocate(tsp)
                    end select
                 end do
