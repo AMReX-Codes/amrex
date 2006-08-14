@@ -75,9 +75,21 @@ contains
     real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
 
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
     hi = ubound(uu)-ng
+
+    if (present(skwd) ) then
+       lskwd = skwd
+    else 
+       lskwd = .false.
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,lo(2)),2,+1)) lskwd = .true.
+          if (bc_skewed(mm(i,hi(2)),2,-1)) lskwd = .true.
+       end do
+       do j = lo(2), hi(2)
+          if (bc_skewed(mm(lo(1),j),1,+1)) lskwd = .true.
+          if (bc_skewed(mm(hi(1),j),1,-1)) lskwd = .true.
+       end do
+    end if
 
     !! assumption: ss(i,j,0) vanishes only for 1x1 problems
     if ( all(lo == hi) ) then
@@ -137,12 +149,12 @@ contains
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
-
-             dd = ss(i,j,0)*uu(i,j) &
-                  + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
-                  + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
-             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) &
-                  uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
+               dd = ss(i,j,0)*uu(i,j) &
+                    + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
+                    + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
+               uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             end if
           end do
        end do
        !$OMP END PARALLEL DO
@@ -170,9 +182,31 @@ contains
     real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: dd
 
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
     hi = ubound(uu)-ng
+
+    if (present(skwd) ) then
+       lskwd = skwd
+    else
+       lskwd = .false.
+       do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          if (bc_skewed(mm(lo(1),j,k),1,+1)) lskwd = .true.
+          if (bc_skewed(mm(hi(1),j,k),1,-1)) lskwd = .true.
+       end do
+       end do
+       do k = lo(3), hi(3)
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,lo(2),k),2,+1)) lskwd = .true.
+          if (bc_skewed(mm(i,hi(2),k),2,-1)) lskwd = .true.
+       end do
+       end do
+       do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,j,lo(3)),3,+1)) lskwd = .true.
+          if (bc_skewed(mm(i,j,hi(3)),3,-1)) lskwd = .true.
+       end do
+       end do
+    end if
 
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
@@ -275,9 +309,31 @@ contains
     real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: dd
 
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
     hi = ubound(uu)-ng
+
+    if (present(skwd) ) then
+       lskwd = skwd
+    else
+       lskwd = .false.
+       do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          if (bc_skewed(mm(lo(1),j,k),1,+1)) lskwd = .true.
+          if (bc_skewed(mm(hi(1),j,k),1,-1)) lskwd = .true.
+       end do
+       end do
+       do k = lo(3), hi(3)
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,lo(2),k),2,+1)) lskwd = .true.
+          if (bc_skewed(mm(i,hi(2),k),2,-1)) lskwd = .true.
+       end do
+       end do
+       do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (bc_skewed(mm(i,j,lo(3)),3,+1)) lskwd = .true.
+          if (bc_skewed(mm(i,j,hi(3)),3,-1)) lskwd = .true.
+       end do
+       end do
+    end if
 
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
@@ -366,13 +422,13 @@ contains
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
-
-                dd = ss(i,j,k,0)*uu(i,j,k)
-                dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-                dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-                dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
-                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) &
-                     uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+                  dd = ss(i,j,k,0)*uu(i,j,k)
+                  dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+                  dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+                  dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+                  uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                end if
              end do
           end do
        end do
