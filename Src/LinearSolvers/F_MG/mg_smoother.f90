@@ -95,10 +95,10 @@ contains
     if ( all(lo == hi) ) then
        i = lo(1); j = lo(2)
        if ( mod(i + j,2) == n ) then
-          dd = ss(i,j,0)*uu(i,j) &
-               + ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j) &
-               + ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1)
           if ( abs(ss(i,j,0)) .gt. 0.0_dp_t ) then
+             dd = ss(i,j,0)*uu(i,j) &
+                  + ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j) &
+                  + ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1)
              uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end if
        end if
@@ -338,11 +338,11 @@ contains
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
        if ( mod(i + j + k, 2) == n ) then
-          dd = ss(i,j,k,0)*uu(i,j,k)
-          dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-          dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-          dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
           if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+             dd = ss(i,j,k,0)*uu(i,j,k)
+             dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+             dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+             dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
              uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
           end if
        end if
