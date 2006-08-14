@@ -27,9 +27,6 @@
 f90EXE_sources += bc.f90
 f90EXE_sources += bl_IO.f90
 f90EXE_sources += bl_types.f90
-#f90EXE_sources += f2kcli.f90
-#f90EXE_sources += omp.f90
-#f90EXE_sources += omp_stubs.f90
 f90EXE_sources += vector_i.f90
 f90EXE_sources += sort_d.f90
 ifeq ($(USE_MPI),TRUE)
@@ -39,12 +36,9 @@ else
 endif
 f90EXE_sources += bl_constants.f90
 f90EXE_sources += bl_error.f90
-#f90EXE_sources += BoxLib.f90
-#f90EXE_sources += mt19937ar.f90
 f90EXE_sources += knapsack.f90
 #f90EXE_sources += interp.f90
 f90EXE_sources += bl_string.f90
-#f90EXE_sources += bl_parmparse.f90
 f90EXE_sources += bl_timer.f90
 f90EXE_sources += bl_stream.f90
 f90EXE_sources += bl_mem_stat.f90
@@ -55,17 +49,11 @@ f90EXE_sources += fab.f90
 f90EXE_sources += boxarray.f90
 f90EXE_sources += ml_boxarray.f90
 f90EXE_sources += layout.f90
-#f90EXE_sources += box_util.f90
 f90EXE_sources += multifab.f90
 f90EXE_sources += ml_layout.f90
-#f90EXE_sources += flux_reg.f90
-#f90EXE_sources += cluster_2d.f90
-#f90EXE_sources += cluster.f90
 f90EXE_sources += bndry_reg.f90
 f90EXE_sources += ml_multifab.f90
 f90EXE_sources += fabio.f90
-#f90EXE_sources += plotfile.f90
-#f90EXE_sources += filler.f90
 f90EXE_sources += bl_space.f90
 f90EXE_sources += bl_prof_stubs.f90
 
@@ -82,11 +70,15 @@ f90EXE_sources += mg_restriction.f90
 f90EXE_sources += mg_defect.f90
 f90EXE_sources += itsol.f90
 f90EXE_sources += ml_restriction.f90
+f90EXE_sources += nodal_mask.f90
+f90EXE_sources += nodal_divu.f90
+f90EXE_sources += nodal_newu.f90
 f90EXE_sources += mg.f90
 f90EXE_sources += mlmg.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_cc.f90
 f90EXE_sources += mg_cpp.f90
+f90EXE_sources += mg_nodal_cpp.f90
 cEXE_headers   += mg_cpp_f.h
 
 cEXE_sources   += fabio_c.c
