@@ -140,11 +140,11 @@ contains
   function skewed_q(mm) result(r)
     logical :: r
     integer, intent(in) :: mm(:,:,:,:)
-    integer :: i, j
+    integer :: dim, face
     r = .false.
-    do i = 1, 3
-       do j = -1, 1
-          r = r .or. any( ibits(mm(:,:,:,:),BC_BIT(BC_GEOM,i,j),1) /= 0 )
+    do dim = 1, 3
+       do face = -1, 1, 2
+          r = r .or. any( ibits(mm(:,:,:,:),BC_BIT(BC_GEOM,dim,face),1) /= 0 )
           if ( r ) return
        end do
     end do
@@ -2248,36 +2248,6 @@ contains
                ss(i,ny,0), ss(i,ny,3), ss(i,ny,4), ss(i,ny,YBC), &
                beta(i,ny,2), beta(i,ny+1,2), xa(2), xb(2), dh(2), bclo, bchi)
        end if
-    end do
-
-    if ( .false. ) then
-       print *, 'xa = ', xa, ' xb = ', xb, ' dh = ', dh
-       do i = 2, nx-1
-          do j = 2, ny-1
-             write(*,fmt='(i3," ", i3,":",7g20.10)') i,j, ss(i,j,0:)
-          end do
-       end do
-       print *, 'x bcs'
-       do j = 1, ny
-          i = 1
-          write(*,fmt='(i3," ", i3,":",7g20.10)') i,j, ss(i,j,0:)
-          i = nx
-          write(*,fmt='(i3," ", i3,":",7g20.10)') i,j, ss(i,j,0:)
-       end do
-       print *, 'y bcs'
-       do i = 2, nx-1
-          j = 1
-          write(*,fmt='(i3," ", i3,":",7g20.10)') i,j, ss(i,j,0:)
-          j = ny
-          write(*,fmt='(i3," ", i3,":",7g20.10)') i,j, ss(i,j,0:)
-       end do
-       !   stop
-    end if
-
-    do j = 1, ny
-       do i = 1, nx
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
-       end do
     end do
 
   end subroutine s_simple_2d_cc
