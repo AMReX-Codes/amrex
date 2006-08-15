@@ -825,14 +825,6 @@ c NODE-based data only.
             end do
          end if
       end do
-      if ( .FALSE. ) then
-         print *, 'anrst2'
-         print *, destl0, desth0, destl1, desth1, destl2, desth2
-         print *, regl0,  regh0,  regl1,  regh1,  regl2,  regh2
-         print *, srcl0,  srch0,  srcl1,  srch1,  srcl2,  srch2
-         print *, ir, jr, kr, integ
-         print *, dest
-      end if
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
