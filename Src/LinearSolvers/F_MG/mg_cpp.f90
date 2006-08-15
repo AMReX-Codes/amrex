@@ -183,7 +183,7 @@ subroutine mgt_finalize(dx)
 
   dm = mgts%dim
 
-  print *,'DX IN MGT_FINALIZE ',dx(1,:)
+!  if (parallel_IOProcessor()) print *,'DX IN MGT_FINALIZE ', dx(1,:)
 
   nc = 1
   nlev = mgts%nlevel
@@ -226,7 +226,9 @@ subroutine mgt_finalize(dx)
         bottom_solver_in = 0
         bottom_max_iter_in = mgts%nu1
      end if
-     print *,'DX INTO MG_TOWER ',dx(n,1), dx(n,2)
+
+!     if ( parallel_IOProcessor() ) print *,'DX INTO MG_TOWER ', dx(n,1), dx(n,2)
+
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, &
           dh                = dx(n,:), &
           ns                = ns, &
