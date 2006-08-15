@@ -14,15 +14,21 @@ class MGT_Solver
 {
 public:
       
-  MGT_Solver(const BndryData& bd, 
-	     const BCRec& phys_bc, 
-	     const double* dx, 
+  MGT_Solver(const std::vector<Geometry>& geom,
+             const BCRec& phys_bc, 
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
 	     bool nodal);
-  static void initialize();
-  void set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM]);
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
+  static void initialize(bool nodal);
+
+  void set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
+                        const BndryData& bd);
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+             const BndryData& bd);
+
+  void set_nodal_coefficients(const MultiFab* aa[]);
+  void nodal_project(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
+
   ~MGT_Solver();
 
   static int def_maxiter, def_maxiter_b, def_bottom_solver;
@@ -31,6 +37,7 @@ public:
   static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
   static int def_cycle, def_smoother;
   static int def_usecg, def_cg_solver;
+  static int stencil_type;
   
 private:
 
@@ -38,10 +45,8 @@ private:
   MultiFab* m_bcoefs[BL_SPACEDIM];
   Real m_alpha;
   Real m_beta;
-  double m_dx[BL_SPACEDIM];
   int m_nlevel;
 
-  const BndryData& m_bd;
   const std::vector<DistributionMapping> m_dmap;
   const std::vector<BoxArray> m_grids;
   const bool m_nodal;
