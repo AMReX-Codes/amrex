@@ -137,14 +137,14 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
   logical, allocatable :: nodal(:)
 
   flev = lev + 1
-  call mgt_verify_lev("MGT_SET_LEVEL", flev)
+  call mgt_verify_lev("MGT_SET_NODAL_LEVEL", flev)
 
   pmask = (pm /= 0)
 
   allocate(nodal(dm))
 
   if ( dm /= mgts%dim ) then
-     call bl_error("MGT_SET_LEVEL: Input DIM doesn't match internal DIM")
+     call bl_error("MGT_SET_NODAL_LEVEL: Input DIM doesn't match internal DIM")
   end if
   call build(mgts%pd(flev), pd_lo(1:dm), pd_hi(1:dm))
   do i = 1, nb
@@ -320,7 +320,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   type(boxarray) :: pdv
   dm = mgts%dim
   flev = lev + 1
-  call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
+  call mgt_verify_lev("MGT_FINALIZE_NODAL_STENCIL_LEV", flev)
   
   pd = mgts%pd(flev)
   nlev = mgts%mgt(flev)%nlevels
@@ -413,7 +413,7 @@ subroutine mgt_set_vel_2d(lev, n, vel_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_SET_VEL", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_VEL_2D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
   vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1)
@@ -447,7 +447,7 @@ subroutine mgt_set_vel_3d(lev, n, vel_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_SET_VEL", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_VEL_3D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
   vp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1) = vel_in(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1)
@@ -484,7 +484,7 @@ subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFS_2D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2))
@@ -520,7 +520,7 @@ subroutine mgt_set_cfs_3d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFS_3D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
@@ -539,8 +539,6 @@ subroutine mgt_set_pr_3d(lev, n, uu, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-  
-  call mgt_verify_n("MGT_SET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
@@ -572,8 +570,6 @@ subroutine mgt_get_pr_3d(lev, n, uu, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-  
-  call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) = up(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
