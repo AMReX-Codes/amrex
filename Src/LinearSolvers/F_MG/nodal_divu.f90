@@ -83,7 +83,8 @@ contains
 
          call bndry_reg_rr_build_1(brs_flx,la_fine,la_crse, &
                                    ref_ratio(n-1,:),pdc,nodal=nodal)
-         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,dx_crse,dx_fine,mgt(n)%face_type,ref_ratio(n-1,:),mgt(n))
+         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,dx_crse,dx_fine, &
+                             mgt(n)%face_type,ref_ratio(n-1,:),mgt(n))
          call bndry_reg_destroy(brs_flx)
       end do
 
@@ -304,9 +305,9 @@ contains
 
       integer :: i,j,k,nx,ny,nz
 
-      nx = size(rh,dim=1) - ng
-      ny = size(rh,dim=2) - ng
-      nz = size(rh,dim=3) - ng
+      nx = size(rh,dim=1) - 3
+      ny = size(rh,dim=2) - 3
+      nz = size(rh,dim=3) - 3
 
       u(-1,:,:,:) = ZERO
       u(nx,:,:,:) = ZERO
