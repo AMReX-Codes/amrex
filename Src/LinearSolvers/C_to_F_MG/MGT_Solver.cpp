@@ -51,7 +51,7 @@ mgt_set mgt_set_cfbx = mgt_set_cfbx_3d;
 mgt_set mgt_set_cfby = mgt_set_cfby_3d;
 mgt_set mgt_set_cfbz = mgt_set_cfbz_3d;
 mgt_set mgt_set_cfs  = mgt_set_cfs_3d;
-mgt_get mgt_get_vel  = mgt_set_gel_3d;
+mgt_get mgt_get_vel  = mgt_get_vel_3d;
 mgt_set mgt_set_vel  = mgt_set_vel_3d;
 #endif
   
