@@ -67,9 +67,9 @@ module mg_module
 
      type(stencil), pointer :: st(:) => Null()
 
-     integer, pointer :: face_type(:,:,:)
-     logical, pointer :: skewed(:,:)
-     logical, pointer :: skewed_not_set(:)
+     integer, pointer :: face_type(:,:,:)  => Null()
+     logical, pointer :: skewed(:,:)       => Null()
+     logical, pointer :: skewed_not_set(:) => Null()
 
      type(timer), pointer :: tm(:) => Null()
 
@@ -679,6 +679,7 @@ contains
 
     if (mgt%skewed_not_set(lev)) then 
       do i = 1, mgt%nboxes
+        if ( remote(mm,i) ) cycle
         mp => dataptr(mm, i)
         mgt%skewed(lev,i) = skewed_q(mp)
       end do
