@@ -364,7 +364,8 @@ contains
       end do
     end do
 
-    ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
+!   ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
+    ss = ss / (dh_local(1))**2
 
   end subroutine s_cross_2d_nodal
 
@@ -430,7 +431,8 @@ contains
       end do
     end do
 
-    ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
+!   ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
+    ss = ss / (dh_local(1))**2
 
     deallocate(sg_int)
 
@@ -1233,7 +1235,6 @@ contains
       end do
 
     else 
-
       print *,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
       stop
 
