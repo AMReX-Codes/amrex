@@ -120,11 +120,11 @@ subroutine mgt_alloc(dm, nlevel, nodal)
 
 end subroutine mgt_alloc
 
-subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
+subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, nb, dm
-  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm), pm(dm), pmap(nb+1)
+  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), pm(dm), pmap(nb+1)
 
   type(box) :: bxs(nb)
   integer   :: i
@@ -154,19 +154,13 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
        mgts%pd(flev), pmask = pmask, &
        mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
-!   if (parallel_IOProcessor()) call print(mgts%pd(flev))
-!   if (parallel_IOProcessor()) call print(mgts%mla%la(flev))
-
-  allocate(mgts%bc(dm,2))
-
-  mgts%bc = transpose(bc)
-
 end subroutine mgt_set_level
 
-subroutine mgt_finalize(dx)
+subroutine mgt_finalize(dx,bc)
   use cpp_mg_module
   implicit none
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
+  integer   , intent(in) :: bc(2,mgts%dim)
   integer :: i, dm, nlev, n
   integer :: ns
   integer :: nc
@@ -185,6 +179,9 @@ subroutine mgt_finalize(dx)
 
   nc = 1
   nlev = mgts%nlevel
+
+  allocate(mgts%bc(dm,2))
+  mgts%bc = transpose(bc)
 
   do i = 1, nlev-1
      mgts%rr(i,:) = mgts%mla%mba%rr(i,:)
@@ -425,11 +422,12 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
 
 end subroutine mgt_set_cfa_2d
 
-subroutine mgt_set_cfbx_2d(lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j
 
@@ -439,15 +437,16 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = cf(lo(1):hi(1)+1, lo(2):hi(2))
+  cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = b * cf(lo(1):hi(1)+1, lo(2):hi(2))
 
 end subroutine mgt_set_cfbx_2d
 
-subroutine mgt_set_cfby_2d(lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfby_2d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j 
   fn = n + 1
@@ -456,7 +455,7 @@ subroutine mgt_set_cfby_2d(lev, n, cf, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 3) = cf(lo(1):hi(1), lo(2):hi(2)+1)
+  cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 3) = b * cf(lo(1):hi(1), lo(2):hi(2)+1)
 
 end subroutine mgt_set_cfby_2d
 
@@ -494,11 +493,12 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
 
 end subroutine mgt_set_cfa_3d
 
-subroutine mgt_set_cfbx_3d(lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfbx_3d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j, k
   fn = n + 1
@@ -507,15 +507,16 @@ subroutine mgt_set_cfbx_3d(lev, n, cf, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 2) = cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3))
+  cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 2) = b * cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_cfbx_3d
 
-subroutine mgt_set_cfby_3d(lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfby_3d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j, k 
   fn = n + 1
@@ -524,15 +525,16 @@ subroutine mgt_set_cfby_3d(lev, n, cf, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 3) = cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3))
+  cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 3) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3))
 
 end subroutine mgt_set_cfby_3d
 
-subroutine mgt_set_cfbz_3d(lev, n, cf, plo, phi, lo, hi)
+subroutine mgt_set_cfbz_3d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev, i, j, k 
   fn = n + 1
@@ -541,7 +543,7 @@ subroutine mgt_set_cfbz_3d(lev, n, cf, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 4) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 4) = b * cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
 
 end subroutine mgt_set_cfbz_3d
 

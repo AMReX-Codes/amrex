@@ -186,17 +186,17 @@ extern "C"
   void mgt_set_level(const int* lev, const int* nb, const int* dm, 
 		     const int* lo, const int* hi, 
 		     const int* pd_lo, const int* pd_hi, 
-		     const int* bc, const int* pm,
+		     const int* pm,
 		     const int* pmap);
 
   void mgt_set_nodal_level(const int* lev, const int* nb, const int* dm, 
 		           const int* lo, const int* hi, 
       		           const int* pd_lo, const int* pd_hi, 
-      		           const int* bc, const int* pm,
+      		           const int* pm,
 		           const int* pmap);
 
-  void mgt_finalize(const Real* dx);
-  void mgt_nodal_finalize(const Real* dx);
+  void mgt_finalize(const Real* dx, const int* bc);
+  void mgt_nodal_finalize(const Real* dx, const int* bc);
 
   void mgt_init_coeffs_lev(const int* lev);
   void mgt_init_nodal_coeffs_lev(const int* lev);
@@ -237,10 +237,12 @@ extern "C"
 		      const int* lo, const int* hi);
   
   void mgt_set_cfbx_2d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
   void mgt_set_cfby_2d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
@@ -284,14 +286,17 @@ extern "C"
 		      const int* lo, const int* hi);
   
   void mgt_set_cfbx_3d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
   void mgt_set_cfby_3d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
   void mgt_set_cfbz_3d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   

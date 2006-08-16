@@ -122,11 +122,11 @@ subroutine mgt_nodal_alloc(dm, nlevel, nodal, stencil_type_in)
 
 end subroutine mgt_nodal_alloc
 
-subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
+subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, nb, dm
-  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), bc(2,dm), pm(dm), pmap(nb+1)
+  integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), pm(dm), pmap(nb+1)
 
   type(box) :: bxs(nb)
   integer   :: i
@@ -156,16 +156,13 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, bc, pm, pmap)
        mgts%pd(flev), pmask = pmask, &
        mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
-  allocate(mgts%bc(dm,2))
-
-  mgts%bc = transpose(bc)
-
 end subroutine mgt_set_nodal_level
 
-subroutine mgt_nodal_finalize(dx)
+subroutine mgt_nodal_finalize(dx,bc)
   use nodal_cpp_mg_module
   implicit none
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
+  integer   , intent(in) :: bc(2,mgts%dim)
   integer :: dm, i, nlev, n
   integer :: ns
   integer :: nc
@@ -182,6 +179,9 @@ subroutine mgt_nodal_finalize(dx)
   call mgt_verify("MGT_FINALIZE")
 
   dm = mgts%dim
+
+  allocate(mgts%bc(dm,2))
+  mgts%bc = transpose(bc)
 
   allocate(nodal(1:dm))
   nodal = mgts%nodal
