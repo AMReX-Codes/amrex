@@ -28,6 +28,10 @@ typedef void (*mgt_get)(const int* lev, const int* n, double* uu,
 typedef void (*mgt_set)(const int* lev, const int* n, const double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
+typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu, 
+			   const double* b, 
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
 #if BL_SPACEDIM == 2
 mgt_get mgt_get_uu   = mgt_get_uu_2d;
 mgt_set mgt_set_uu   = mgt_set_uu_2d;
@@ -35,8 +39,8 @@ mgt_get mgt_get_pr   = mgt_get_pr_2d;
 mgt_set mgt_set_pr   = mgt_set_pr_2d;
 mgt_set mgt_set_rh   = mgt_set_rh_2d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_2d;
-mgt_set mgt_set_cfbx = mgt_set_cfbx_2d;
-mgt_set mgt_set_cfby = mgt_set_cfby_2d;
+mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_2d;
+mgt_set_cf mgt_set_cfby = mgt_set_cfby_2d;
 mgt_set mgt_set_cfs  = mgt_set_cfs_2d;
 mgt_get mgt_get_vel  = mgt_get_vel_2d;
 mgt_set mgt_set_vel  = mgt_set_vel_2d;
@@ -47,9 +51,9 @@ mgt_get mgt_get_pr   = mgt_get_pr_3d;
 mgt_set mgt_set_pr   = mgt_set_pr_3d;
 mgt_set mgt_set_rh   = mgt_set_rh_3d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_3d;
-mgt_set mgt_set_cfbx = mgt_set_cfbx_3d;
-mgt_set mgt_set_cfby = mgt_set_cfby_3d;
-mgt_set mgt_set_cfbz = mgt_set_cfbz_3d;
+mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_3d;
+mgt_set_cf mgt_set_cfby = mgt_set_cfby_3d;
+mgt_set_cf mgt_set_cfbz = mgt_set_cfbz_3d;
 mgt_set mgt_set_cfs  = mgt_set_cfs_3d;
 mgt_get mgt_get_vel  = mgt_get_vel_3d;
 mgt_set mgt_set_vel  = mgt_set_vel_3d;
@@ -89,22 +93,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   std::vector<int> lo(nb*dm);
   std::vector<int> hi(nb*dm);
   int pm[dm];
-  int bc[dm*2];
 
-  for ( int i = 0; i < dm; ++i ) 
-    {
-      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
-      if ( pm[i] )
-	{
-	  bc[i*2 + 0] = 0;
-	  bc[i*2 + 1] = 0;
-	}
-      else
-	{
-	  bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-	  bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-	}
-    }
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       const Array<int>& pmap = dmap[lev].ProcessorMap();
@@ -121,10 +110,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 
       if (nodal) {
         mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		            domain.loVect(), domain.hiVect(), &bc[0], pm, &pmap[0]);
+  		            domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       } else {
         mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		      domain.loVect(), domain.hiVect(), &bc[0], pm, &pmap[0]);
+  		      domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       }
     }
 
@@ -137,10 +126,26 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 	}
     }
 
+  int bc[dm*2];
+  for ( int i = 0; i < dm; ++i ) 
+    {
+      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
+      if ( pm[i] )
+	{
+	  bc[i*2 + 0] = 0;
+	  bc[i*2 + 1] = 0;
+	}
+      else
+	{
+	  bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+	  bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+	}
+    }
+
   if (nodal) {
-    mgt_nodal_finalize(&dx[0]);
+    mgt_nodal_finalize(&dx[0],&bc[0]);
   } else {
-    mgt_finalize(&dx[0]);
+    mgt_finalize(&dx[0],&bc[0]);
   }
 }
 
@@ -211,8 +216,68 @@ MGT_Solver::initialize(bool nodal)
 }
 
 void
-MGT_Solver::set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
-                             const BndryData& bd)
+MGT_Solver::set_mac_coefficients(const MultiFab* aa[], 
+                                 const MultiFab* bb[][BL_SPACEDIM], const BndryData& bd)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      mgt_init_coeffs_lev(&lev);
+      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+	{
+	  pxa[i] = pxb[i] = 0;
+	}
+
+      for (OrientationIter oitr; oitr; ++oitr)
+        {
+          int dir  = oitr().coordDir();
+          int hilo = oitr().faceDir();
+          if (oitr().faceDir() == Orientation::low) {
+            xa[dir] = bd.bndryLocs(oitr())[0];
+          } else if (oitr().faceDir() == Orientation::high) {
+            xb[dir] = bd.bndryLocs(oitr())[0];
+          }
+    
+        }
+ 
+      Real beta = 1.0;
+
+//    NOTE: we only pass in aa here in order to get the validbox.
+      for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
+	{
+	  const FArrayBox* b[BL_SPACEDIM];
+	  for ( int i = 0; i < BL_SPACEDIM; ++i )
+	    {
+	      b[i] = &((*(bb[lev][i]))[amfi]);
+	    }
+ 	   int n = amfi.index();
+ 	   const int* lo = amfi.validbox().loVect();
+	   const int* hi = amfi.validbox().hiVect();
+
+	   const int* bxlo = b[0]->box().loVect();
+	   const int* bxhi = b[0]->box().hiVect();
+	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi);
+
+	   const int* bylo = b[1]->box().loVect();
+	   const int* byhi = b[1]->box().hiVect();
+	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi);
+
+#if (BL_SPACEDIM == 3)
+           const int* bzlo = b[2]->box().loVect();
+  	   const int* bzhi = b[2]->box().hiVect();
+  	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
+#endif
+	}
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+    }
+  mgt_finalize_stencil();
+}
+
+void
+MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
+                                  const Real& beta, const BndryData& bd)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -255,16 +320,16 @@ MGT_Solver::set_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACE
 
 	   const int* bxlo = b[0]->box().loVect();
 	   const int* bxhi = b[0]->box().hiVect();
-	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), bxlo, bxhi, lo, hi);
+	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi);
 
 	   const int* bylo = b[1]->box().loVect();
 	   const int* byhi = b[1]->box().hiVect();
-	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), bylo, byhi, lo, hi);
+	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi);
 
 #if (BL_SPACEDIM == 3)
            const int* bzlo = b[2]->box().loVect();
   	   const int* bzhi = b[2]->box().hiVect();
-  	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), bzlo, bzhi, lo, hi);
+  	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
 #endif
 	}
       mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
@@ -388,7 +453,6 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], const Real& tol, const
 
   mgt_divu();
 
-  std::cout << "CALING NODAL SOLVE WITH TOL " << tol << std::endl;
   mgt_nodal_solve(tol,abs_tol);
 
   mgt_newu();
