@@ -58,9 +58,9 @@ mgt_set mgt_set_cfs  = mgt_set_cfs_3d;
 mgt_get mgt_get_vel  = mgt_get_vel_3d;
 mgt_set mgt_set_vel  = mgt_set_vel_3d;
 #endif
-  
+
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
-                       const BCRec& phys_bc, 
+                       int* bc, 
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
 		       bool nodal)
@@ -94,6 +94,11 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   std::vector<int> hi(nb*dm);
   int pm[dm];
 
+  for ( int i = 0; i < dm; ++i ) 
+    {
+      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
+    }
+
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       const Array<int>& pmap = dmap[lev].ProcessorMap();
@@ -123,22 +128,6 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
       for ( int j = 0; j < dm; ++j )
 	{
 	  dx[lev + j*m_nlevel] = geom[lev].CellSize()[j];
-	}
-    }
-
-  int bc[dm*2];
-  for ( int i = 0; i < dm; ++i ) 
-    {
-      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
-      if ( pm[i] )
-	{
-	  bc[i*2 + 0] = 0;
-	  bc[i*2 + 1] = 0;
-	}
-      else
-	{
-	  bc[i*2 + 0] = phys_bc.lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-	  bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
 	}
     }
 
@@ -233,7 +222,6 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
       for (OrientationIter oitr; oitr; ++oitr)
         {
           int dir  = oitr().coordDir();
-          int hilo = oitr().faceDir();
           if (oitr().faceDir() == Orientation::low) {
             xa[dir] = bd.bndryLocs(oitr())[0];
           } else if (oitr().faceDir() == Orientation::high) {
@@ -293,7 +281,6 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
       for (OrientationIter oitr; oitr; ++oitr)
         {
           int dir  = oitr().coordDir();
-          int hilo = oitr().faceDir();
           if (oitr().faceDir() == Orientation::low) {
             xa[dir] = bd.bndryLocs(oitr())[0];
           } else if (oitr().faceDir() == Orientation::high) {

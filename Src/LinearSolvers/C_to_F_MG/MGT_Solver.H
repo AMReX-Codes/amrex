@@ -15,10 +15,11 @@ class MGT_Solver
 public:
       
   MGT_Solver(const std::vector<Geometry>& geom,
-             const BCRec& phys_bc, 
+             int *bc, 
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
 	     bool nodal);
+
   static void initialize(bool nodal);
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
