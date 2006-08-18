@@ -43,7 +43,7 @@ module nodal_cpp_mg_module
      type(lmultifab), pointer ::    fine_mask(:) => Null()
   end type mg_server
 
-  type(mg_server)    :: mgts
+  type(mg_server), save :: mgts
 
 contains
   
