@@ -244,7 +244,7 @@ subroutine mgt_finalize(dx,bc)
           )
   end do
 
-  if ( parallel_IOProcessor() .and. mgts%verbose > 0) then
+  if ( parallel_IOProcessor() .and. mgts%verbose > 1) then
     call mg_tower_print(mgts%mgt(nlev))
   end if
 
@@ -472,7 +472,8 @@ subroutine mgt_set_uu_2d(lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n("MGT_SET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
-  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1)
+  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = &
+  uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1    )
 
 end subroutine mgt_set_uu_2d
 
@@ -561,7 +562,7 @@ subroutine mgt_set_uu_3d(lev, n, uu, plo, phi, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
-     uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+  uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1   )
 
 end subroutine mgt_set_uu_3d
 
