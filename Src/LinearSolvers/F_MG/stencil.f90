@@ -1685,7 +1685,6 @@ contains
        call bl_error("STENCIL_BNDRY_AAA: Strange BCLO ", bclo)
     end select
 
-    ! One Sided Neumann
     d_s0 = d_s0 - s0*f1
     d_ss = - ss*f1
     if ( face == 1 ) then
@@ -1827,13 +1826,15 @@ contains
     subroutine bc_ni
       select case ( imaxo )
       case (1)
-         sm = -b0
+!        sm = -b0
+         sm = ZERO
          s0 = -b1
          sp =  b1
          ss = 0
          skewed = .false.
       case (2)
-         sm = -b0/(1 + xa)
+!        sm = -b0/(1 + xa)
+         sm = ZERO
          s0 = xa*b0/(1 + xa) - b1
          sp = -xa*b0/(1 + xa) + b1
          ss = 0
@@ -2248,6 +2249,12 @@ contains
                ss(i,ny,0), ss(i,ny,3), ss(i,ny,4), ss(i,ny,YBC), &
                beta(i,ny,2), beta(i,ny+1,2), xa(2), xb(2), dh(2), bclo, bchi)
        end if
+    end do
+
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+       end do
     end do
 
   end subroutine s_simple_2d_cc
