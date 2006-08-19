@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.181 2006-08-16 20:41:32 lijewski Exp $
+// $Id: FabArray.H,v 1.182 2006-08-19 03:47:04 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1589,6 +1589,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                          ParallelDescriptor::Mpi_typemap<int>::type(),
                                          ParallelDescriptor::Communicator()) );
             BL_ASSERT(Snds[MyProc] == 0);
+
+            if (snd_cache && snd_cache->size() == 0)
+                *snd_cache = Snds;
         }
         else
         {
@@ -1603,9 +1606,28 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
         Array<CommData> cd_others_need(NumRcvs), cd_i_need(NumSnds);
 
+        Array<int> offset(NProcs,0);
+
+        for (int i = 1; i < NProcs; i++)
+            offset[i]  = offset[i-1]  + Rcvs[i-1];
+
+        for (unsigned int i = 0; i < fabComTagList.size(); i++)
+        {
+            CommData data(0,
+                          fabComTagList[i].fabIndex,
+                          MyProc,
+                          0,
+                          fabComTagList[i].nComp,
+                          fabComTagList[i].srcComp,
+                          fabComTagList[i].fabArrayId,
+                          fabComTagList[i].box);
+
+            cd_i_need[offset[fabComTagList[i].procThatHasData]++] = data;
+        }
+
         if (cd_cache == 0 || !cd_cache->isValid())
         {
-            Array<int> sendcnts = Rcvs, recvcnts = Snds, sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+            Array<int> sendcnts = Rcvs, recvcnts = Snds, sdispls(NProcs,0), rdispls(NProcs,0);
 
             for (int i = 0; i < NProcs; i++)
             {
@@ -1614,24 +1636,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             }
             for (int i = 1; i < NProcs; i++)
             {
-                offset[i]  = offset[i-1]  + Rcvs[i-1];
                 rdispls[i] = rdispls[i-1] + recvcnts[i-1];
                 sdispls[i] = sdispls[i-1] + sendcnts[i-1];
             }
-            for (unsigned int i = 0; i < fabComTagList.size(); i++)
-            {
-                CommData data(0,
-                              fabComTagList[i].fabIndex,
-                              MyProc,
-                              0,
-                              fabComTagList[i].nComp,
-                              fabComTagList[i].srcComp,
-                              fabComTagList[i].fabArrayId,
-                              fabComTagList[i].box);
-
-                cd_i_need[offset[fabComTagList[i].procThatHasData]++] = data;
-            }
-
             BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : cd_i_need.dataPtr(),
                                           sendcnts.dataPtr(),
                                           sdispls.dataPtr(),
@@ -1641,6 +1648,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                           rdispls.dataPtr(),
                                           ParallelDescriptor::Mpi_typemap<int>::type(),
                                           ParallelDescriptor::Communicator()) );
+
+            if (cd_cache && !cd_cache->isValid())
+                *cd_cache = cd_others_need;
         }
         else
         {
@@ -1789,6 +1799,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                          Snds.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                          ParallelDescriptor::Communicator());
             BL_ASSERT(Snds[MyProc] == 0);
+
+            if (snd_cache && snd_cache->size() == 0)
+                *snd_cache = Snds;
         }
         else
         {
@@ -1859,6 +1872,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             for (int completed; NWaits > 0; NWaits -= completed)
                 ParallelDescriptor::Waitsome(req_cd, completed, indx, status);
+
+            if (cd_cache && !cd_cache->isValid())
+                *cd_cache = recv_cd;
         }
         else
         {
