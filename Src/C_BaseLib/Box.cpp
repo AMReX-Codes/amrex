@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.26 2006-03-30 21:52:12 vince Exp $
+// $Id: Box.cpp,v 1.27 2006-08-19 03:46:18 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -378,7 +378,10 @@ Box::numPts () const
 {
     long result;
     if (!numPtsOK(result))
+    {
+        std::cout << "Bad box: " << *this << std::endl;
         BoxLib::Error("Arithmetic overflow in Box::numPts()");
+    }
     return result;
 }
 
