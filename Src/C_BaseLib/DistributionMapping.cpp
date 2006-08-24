@@ -25,6 +25,7 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 }
 #endif
 
+static int    swap_n_test_count          = 1;
 static int    metis_opt                  = 0;
 static int    verbose                    = 0;
 static double max_efficiency             = 0.95;
@@ -106,6 +107,11 @@ DistributionMapping::Initialize ()
     pp.query("efficiency", max_efficiency);
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
+
+    pp.query("swap_n_test_count", swap_n_test_count);
+
+    if (swap_n_test_count <= 0)
+        BoxLib::Abort("swap_n_test must be integer >= 1");
 
     std::string theStrategy;
 
@@ -882,14 +888,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
         std::cout << "Initial off-CPU connection count: " << cnt << '\n';
     }
-    //
-    // Originally I called SwapAndTest() until no links were changed.
-    // This turned out to be very costly.  Next I tried calling it no
-    // more than three times, or until no links were changed.  But after
-    // testing a bunch of quite large meshes, it appears that the first
-    // call gets "most" of the benefit of multiple calls.
-    //
-    SwapAndTest(samesize,nbrs,procmap,percpu);
+
+    for (int i = 0; i < swap_n_test_count; i++)
+        SwapAndTest(samesize,nbrs,procmap,percpu);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
