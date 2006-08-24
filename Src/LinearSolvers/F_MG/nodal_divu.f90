@@ -36,7 +36,6 @@ contains
 
       integer :: i,n,dm,ng
       integer :: mglev_fine,mglev_crse
-      real(kind=dp_t) :: dx(mgt(nlevs)%dim), dx_crse(mgt(nlevs)%dim), dx_fine(mgt(nlevs)%dim)
       real(kind=dp_t) :: rhmax
       type(      box) :: mbox
       type(      box) :: pdc
@@ -50,7 +49,6 @@ contains
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
-         dx = mgt(n)%dh(:,mglev_fine)
          do i = 1, unew(n)%nboxes
             if ( multifab_remote(unew(n), i) ) cycle
             unp => dataptr(unew(n), i)
@@ -59,11 +57,11 @@ contains
             select case (dm)
                case (2)
                  call divu_2d(unp(:,:,1,:), rhp(:,:,1,1), &
-                               mp(:,:,1,1),  dx,  &
+                               mp(:,:,1,1), mgt(n)%dh(:,mglev_fine), &
                               mgt(n)%face_type(i,:,:), ng)
                case (3)
                  call divu_3d(unp(:,:,:,:), rhp(:,:,:,1), &
-                               mp(:,:,:,1),  dx, &
+                               mp(:,:,:,1), mgt(n)%dh(:,mglev_fine), &
                               mgt(n)%face_type(i,:,:), ng)
             end select
          end do
@@ -74,17 +72,14 @@ contains
 
          la_fine = unew(n  )%la
          mglev_fine = mgt(n)%nlevels
-         dx_fine = mgt(n)%dh(:,mglev_fine)
 
          la_crse = unew(n-1)%la
          pdc = layout_get_pd(la_crse)
          mglev_crse = mgt(n-1)%nlevels
-         dx_crse = mgt(n-1)%dh(:,mglev_crse)
 
          call bndry_reg_rr_build_1(brs_flx,la_fine,la_crse, &
                                    ref_ratio(n-1,:),pdc,nodal=nodal)
-         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,dx_crse,dx_fine, &
-                             mgt(n)%face_type,ref_ratio(n-1,:),mgt(n))
+         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,ref_ratio(n-1,:),mgt)
          call bndry_reg_destroy(brs_flx)
       end do
 
@@ -181,16 +176,14 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,dx_crse,dx_fine,face_type,ref_ratio,mgt)
+    subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,ref_ratio,mgt)
 
       integer        , intent(in   ) :: n_fine,nlevs
       type(multifab) , intent(inout) :: rh_crse
       type(multifab) , intent(inout) :: u(:)
       type(bndry_reg), intent(inout) :: brs_flx
-      real(dp_t)     , intent(in   ) :: dx_crse(:),dx_fine(:)
-      integer        , intent(in   ) :: face_type(:,:,:)
       integer        , intent(in   ) :: ref_ratio(:)
-      type(mg_tower) , intent(in   ) :: mgt
+      type(mg_tower) , intent(in   ) :: mgt(:)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
@@ -199,7 +192,7 @@ contains
       type(  layout) :: la_crse,la_fine
       type(     box) :: pdc
       integer :: i,dm,n_crse,ng
-      integer :: mglev_fine
+      integer :: mglev_fine, mglev_crse
       logical, allocatable :: nodal(:)
 
       dm = u(n_fine)%dim
@@ -211,6 +204,9 @@ contains
 
       la_crse = u(n_crse)%la
       la_fine = u(n_fine)%la
+
+      mglev_crse = mgt(n_crse)%nlevels
+      mglev_fine = mgt(n_fine)%nlevels
 
       call multifab_build(temp_rhs, la_fine, 1, 1, nodal)
       call setval(temp_rhs, ZERO, 1, all=.true.)
@@ -228,33 +224,35 @@ contains
           rhp => dataptr( temp_rhs, i)
           select case (dm)
              case (2)
-               call grid_divu_2d(unp(:,:,1,:), rhp(:,:,1,1), dx_fine, &
-                                 face_type(i,:,:), ng)
+               call grid_divu_2d(unp(:,:,1,:), rhp(:,:,1,1), mgt(n_fine)%dh(:,mglev_fine), &
+                                 mgt(n_fine)%face_type(i,:,:), ng)
              case (3)
-               call grid_divu_3d(unp(:,:,:,:), rhp(:,:,:,1), dx_fine, &
-                                 face_type(i,:,:), ng)
+               call grid_divu_3d(unp(:,:,:,:), rhp(:,:,:,1), mgt(n_fine)%dh(:,mglev_fine), &
+                                 mgt(n_fine)%face_type(i,:,:), ng)
           end select
       end do
 
       pdc = layout_get_pd(la_crse)
-      mglev_fine = mgt%nlevels
 
       do i = 1,dm
          call ml_fine_contrib(brs_flx%bmf(i,0), &
-                              temp_rhs,mgt%mm(mglev_fine),ref_ratio,pdc,-i)
+                              temp_rhs,mgt(n_fine)%mm(mglev_fine),ref_ratio,pdc,-i)
          call ml_fine_contrib(brs_flx%bmf(i,1), &
-                              temp_rhs,mgt%mm(mglev_fine),ref_ratio,pdc,+i)
+                              temp_rhs,mgt(n_fine)%mm(mglev_fine),ref_ratio,pdc,+i)
       end do
 
 !     Compute the crse contributions at edges and corners and add to rh(n-1).
       do i = 1,dm
          call ml_crse_divu_contrib(rh_crse, brs_flx%bmf(i,0), u(n_crse), &
-                                   mgt%mm(mglev_fine), dx_crse, &
+                                   mgt(n_fine)%mm(mglev_fine), mgt(n_crse)%dh(:,mglev_crse), &
                                    pdc,ref_ratio, -i)
          call ml_crse_divu_contrib(rh_crse, brs_flx%bmf(i,1), u(n_crse), &
-                                   mgt%mm(mglev_fine), dx_crse,  &
+                                   mgt(n_fine)%mm(mglev_fine), mgt(n_crse)%dh(:,mglev_crse), &
                                    pdc,ref_ratio, +i)
       end do
+
+    call multifab_destroy(temp_rhs)
+    deallocate(nodal)
 
     end subroutine crse_fine_divu
 
