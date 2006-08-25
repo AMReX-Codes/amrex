@@ -92,7 +92,7 @@ module mg_module
 contains
 
   subroutine mg_tower_build(mgt, la, pd, domain_bc, &
-       solver, nu1, nu2, nuf, nub, gamma, cycle, &
+       nu1, nu2, nuf, nub, gamma, cycle, &
        smoother, omega, &
        dh, &
        ns, &
@@ -112,7 +112,7 @@ contains
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: solver, nu1, nu2, nuf, nub, gamma, cycle
+    integer, intent(in), optional :: nu1, nu2, nuf, nub, gamma, cycle
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
     real(dp_t), intent(in), optional :: omega
@@ -938,7 +938,8 @@ contains
        nrm1 = norm_inf(rh)
        nrm2 = norm_inf(ss)
        if ( parallel_IOProcessor() ) then
-          print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
+!         print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
+          print *,'IN: NORM RH ',lev,nrm
        end if
     end if
 
@@ -966,7 +967,8 @@ contains
           nrm = norm_inf(rh)
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) then
-             print *,'DN: NORM BEFORE RELAX ',lev, nrm, nrm1
+!            print *,'DN: NORM BEFORE RELAX ',lev, nrm, nrm1
+             print *,'DN: NORM BEFORE RELAX ',lev, nrm
           end if
        end if
 
@@ -979,7 +981,8 @@ contains
           nrm = norm_inf(mgt%cc(lev))
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) then
-             print *,'DN: NORM AFTER RELAX, CC, UU ',lev, nrm, nrm1
+!            print *,'DN: NORM AFTER RELAX, CC, UU ',lev, nrm, nrm1
+             print *,'DN: NORM AFTER RELAX ',lev, nrm
           end if
        end if
 
@@ -1033,7 +1036,8 @@ contains
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
-          print *,'OT: NORM RH, UU ',lev, nrm, nrm1
+!         print *,'OT: NORM RH, UU ',lev, nrm, nrm1
+          print *,'OT: NORM RH ',lev, nrm
        end if
     end if
 
