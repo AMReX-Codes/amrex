@@ -320,7 +320,6 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
 
     integer            :: i, j, nx, ny
-    real (kind = dp_t) :: fx, fy
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -665,10 +664,7 @@ contains
     end do
     end do
 
-    ss = ss*dh_local(1)
-
-    ratio = dh_local(1) / dh(1)
-    ss = ss / (ratio**3)
+    ss = ss / (dh_local(1))**2
 
   end subroutine s_cross_3d_nodal
 
@@ -843,10 +839,7 @@ contains
     end do
     end do
 
-    ss = ss*dh_local(1)
-
-    ratio = dh_local(1) / dh(1)
-    ss = ss / (ratio**3)
+    ss = ss / (dh_local(1))**2
 
     deallocate(sg_int)
 
@@ -1050,6 +1043,8 @@ contains
       end do
     end do
     end do
+
+    ss  = (-1.0_dp_t) * ss
 
 !   ratio = dh_local(1) / dh(1)
 !   print *,'DH_LOC RATIO ',dh_local(1),ratio
