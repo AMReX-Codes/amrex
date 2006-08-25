@@ -110,7 +110,6 @@ contains
                      -u(i-1,j,1) - u(i-1,j-1,1)) / dx(1) + &
                      (u(i,j  ,2) + u(i-1,j  ,2) &
                      -u(i,j-1,2) - u(i-1,j-1,2)) / dx(2)
-!          rh(i,j) = HALF * rh(i,j) * dx(1) * dx(2)
            rh(i,j) = HALF * rh(i,j)
          end if
       end do
@@ -158,7 +157,6 @@ contains
                        +u(i,j-1,k  ,3) + u(i-1,j-1,k  ,3) &
                        -u(i,j  ,k-1,3) - u(i-1,j  ,k-1,3) &
                        -u(i,j-1,k-1,3) - u(i-1,j-1,k-1,3)) / dx(3)
-!          rh(i,j,k) = FOURTH * rh(i,j,k) * dx(1) * dx(2) * dx(3)
            rh(i,j,k) = FOURTH * rh(i,j,k)
          end if
       end do
