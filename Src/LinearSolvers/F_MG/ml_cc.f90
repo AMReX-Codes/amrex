@@ -18,7 +18,8 @@ module ml_cc_module
 
 contains
 
-  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, do_diagnostics, eps, need_grad_phi_in)
+  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, do_diagnostics, &
+                   eps, need_grad_phi_in)
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -26,7 +27,7 @@ contains
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
     integer        , intent(in   ) :: ref_ratio(:,:)
-    integer        , intent(in   ) :: do_diagnostics 
+    integer        , intent(in   ) :: do_diagnostics
     real(dp_t)     , intent(in   ) :: eps
 
     logical        , intent(in   ), optional :: need_grad_phi_in

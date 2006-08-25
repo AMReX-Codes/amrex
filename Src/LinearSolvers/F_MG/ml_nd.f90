@@ -368,7 +368,7 @@ contains
              end if
           end do
 
-          if ( mgt(nlevs)%verbose > 0 ) then
+          if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
                 tres = norm_inf(res(n))
                 if ( parallel_IOProcessor() ) then
@@ -384,7 +384,7 @@ contains
        else
 
           fine_converged = .false.
-          if ( mgt(nlevs)%verbose > 0 ) then
+          if ( mgt(nlevs)%verbose > 1 ) then
              tres = norm_inf(res(nlevs))
              if ( parallel_IOProcessor() ) then
                 write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
