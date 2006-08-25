@@ -479,12 +479,15 @@ contains
           write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
                              rnorm /  (bnorm)
        end if
-       if ( .true. .and. nodal_solve ) then
+       if ( .false. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, zz, rr, mm)
           rho_hg = dot(rr, zz)
           if ( (abs(rho_hg) < abs(rho_orig)*eps) .or. &
-              itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
+              itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
+            print *,'FIRST OF SPECIAL NODAL STOPPING CRITERIA ',abs(rho_hg) < abs(rho_orig)*eps
+            exit
+          end if
        else
           if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        end if
