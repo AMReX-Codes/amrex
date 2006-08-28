@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.56 2005-01-10 22:05:20 car Exp $
+// $Id: AmrLevel.H,v 1.57 2006-08-28 18:28:42 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -86,6 +86,8 @@ public:
     static bool isStateVariable (const std::string& name,
                                 int&               state_indx,
                                 int&               ncomp);
+
+    static void FlushFPICache ();
 
     /*@ManDoc: Compute the initial time step.  This is a pure virtual function
                and hence MUST be implemented by derived classes.
