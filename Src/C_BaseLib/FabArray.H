@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.183 2006-08-21 00:29:45 lijewski Exp $
+// $Id: FabArray.H,v 1.184 2006-08-29 19:52:49 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1548,14 +1548,16 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
-    static bool do_alltoallv    = false;
-    static bool isdef_alltoallv = false;
+    static bool do_alltoallv     = false;
+    static bool do_not_use_cache = true;
+    static bool isdef_alltoallv  = false;
 
     if (!isdef_alltoallv)
     {
         isdef_alltoallv = true;
         ParmParse pp("fabarray");
         pp.query("do_alltoallv",do_alltoallv);
+        pp.query("do_not_use_cache",do_not_use_cache);
     }
     //
     // Make sure we can treat CommData as a stream of integers.
@@ -1597,7 +1599,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         BL_ASSERT(Rcvs[MyProc] == 0);
         BL_ASSERT(cd_i_need[MyProc].size() == 0);
 
-        if (snd_cache == 0 || snd_cache->size() == 0)
+        if (snd_cache == 0 || snd_cache->size() == 0 || do_not_use_cache)
         {
             BL_MPI_REQUIRE( MPI_Alltoall(Rcvs.dataPtr(),
                                          1,
@@ -1608,7 +1610,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                          ParallelDescriptor::Communicator()) );
             BL_ASSERT(Snds[MyProc] == 0);
 
-            if (snd_cache)
+            if (snd_cache && !do_not_use_cache)
                 *snd_cache = Snds;
         }
         else
@@ -1622,7 +1624,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         if (NumReqs == 0) NumReqs = 1;
         Array<CommData> cd_others_need(NumReqs);
 
-        if (cd_cache == 0 || !cd_cache->isValid())
+        if (cd_cache == 0 || !cd_cache->isValid() || do_not_use_cache)
         {
             Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
             Array<int> recvcnts(NProcs,0), rdispls(NProcs,0);
@@ -1672,7 +1674,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                           ParallelDescriptor::Communicator()) );
             delete [] sendbuf;
 
-            if (cd_cache)
+            if (cd_cache && !do_not_use_cache)
                 *cd_cache = cd_others_need;
         }
         else
@@ -1821,7 +1823,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         }
         BL_ASSERT(Rcvs[MyProc] == 0);
 
-        if (snd_cache == 0 || snd_cache->size() == 0)
+        if (snd_cache == 0 || snd_cache->size() == 0 || do_not_use_cache)
         {
             BL_MPI_REQUIRE( MPI_Alltoall(Rcvs.dataPtr(),
                                          1,
@@ -1832,7 +1834,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                          ParallelDescriptor::Communicator()) );
             BL_ASSERT(Snds[MyProc] == 0);
 
-            if (snd_cache)
+            if (snd_cache && !do_not_use_cache)
                 *snd_cache = Snds;
         }
         else
@@ -1845,7 +1847,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
         recv_cd.resize(NumReqs);
 
-        if (cd_cache == 0 || !cd_cache->isValid())
+        if (cd_cache == 0 || !cd_cache->isValid() || do_not_use_cache)
         {
             for (int i = 0; i < NProcs; i++)
             {
@@ -1905,7 +1907,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             for (int completed; NWaits > 0; NWaits -= completed)
                 ParallelDescriptor::Waitsome(req_cd, completed, indx, status);
 
-            if (cd_cache)
+            if (cd_cache && !do_not_use_cache)
                 *cd_cache = recv_cd;
         }
         else
