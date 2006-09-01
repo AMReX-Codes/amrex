@@ -3,7 +3,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.8 2000-10-02 20:51:16 lijewski Exp $
+// $Id: InterpBndryData.H,v 1.9 2006-09-01 23:10:36 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -79,14 +79,14 @@ public:
     //@ManDoc: interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version
     //
-    void setBndryConds (const BCRec& phys_bc,
-			int          ratio);
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                int          ratio);
     //
     //@ManDoc: interpret user BCs to those expected by LinOp: takes IntVect ratio
     //
     virtual void setBndryConds (const BCRec& phys_bc,
                                 IntVect&     ratio,
-				int          comp=0) = 0;
+				int          comp = 0) = 0;
     //
     //@ManDoc: set bndry values at coarse level (non interpolation performed)
     //
@@ -132,16 +132,6 @@ InterpBndryData::setBndryValues (::BndryRegister&  crse,
 {
     IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc);
-}
-
-inline
-void
-InterpBndryData::setBndryConds (const BCRec& phys_bc,
-                                int          ratio)
-{
-
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
-    setBndryConds(phys_bc, ratio_vect);
 }
 
 #endif /*_INTERPBNDRYDATA_H_*/
