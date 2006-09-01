@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.19 2005-01-26 23:20:30 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.20 2006-09-01 23:10:37 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -60,6 +60,15 @@ InterpBndryData::InterpBndryData (const BoxArray& _grids,
     :
     BndryData(_grids,_ncomp,geom)
 {}
+
+void
+InterpBndryData::setBndryConds (const BCRec& phys_bc,
+                                int          ratio)
+{
+
+    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    setBndryConds(phys_bc, ratio_vect);
+}
 
 //
 // At the coarsest level the bndry values are taken from adjacent grids.
