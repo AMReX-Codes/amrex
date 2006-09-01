@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.150 2006-08-28 18:28:42 lijewski Exp $
+// $Id: Amr.cpp,v 1.151 2006-09-01 21:31:18 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1506,8 +1506,6 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-
-    AmrLevel::FlushFPICache();
 
     if (lbase == 0)
     {
