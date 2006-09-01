@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.102 2006-08-28 18:28:42 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.103 2006-09-01 21:28:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -515,203 +515,6 @@ NeedToTouchUpPhysCorners (const Geometry& geom)
     return geom.isAnyPeriodic() && n < BL_SPACEDIM;
 }
 
-//
-// Used in caching intersection info for FillPatchIteratorHelper::Initialize().
-// We're trying to cut down on some of the MPI calls in CollectData().
-//
-
-struct FPI
-{
-    FPI ();
-
-    FPI (const BoxArray&   ba,
-         const Array<int>& pmap,
-         const Box&        pdomain,
-         Real              time,
-         Real              curtime,
-         Real              prevtime,
-         int               ngrow,
-         int               index,
-         int               level,
-         Interpolater*     mapper);
-
-    FPI (const FPI& rhs);
-
-    ~FPI ();
-
-    bool operator== (const FPI& rhs) const;
-    bool operator!= (const FPI& rhs) const;
-
-    Array<int>         m_cache;    // Snd/Rcv cache for CollectData().
-    CommDataCache      m_commdata; // CommData cache for CollectData().
-    BoxArray           m_ba;       // Non-grown BoxArray from MultiFab to be filled.
-    Array<int>         m_pmap;
-    Box                m_pdomain;
-    Real               m_time;
-    Real               m_curtime;
-    Real               m_prevtime;
-    int                m_ngrow;
-    int                m_index;
-    int                m_level;
-    Interpolater*      m_mapper;
-};
-
-FPI::FPI ()
-    :
-    m_pmap(0),
-    m_time(-1),
-    m_curtime(-1),
-    m_prevtime(-1),
-    m_ngrow(-1),
-    m_index(-1),
-    m_level(-1),
-    m_mapper(0)
-{}
-
-FPI::FPI (const BoxArray&   ba,
-          const Array<int>& pmap,
-          const Box&        pdomain,
-          Real              time,
-          Real              curtime,
-          Real              prevtime,
-          int               ngrow,
-          int               index,
-          int               level,
-          Interpolater*     mapper)
-    :
-    m_ba(ba),
-    m_pmap(pmap),
-    m_pdomain(pdomain),
-    m_time(time),
-    m_curtime(curtime),
-    m_prevtime(prevtime),
-    m_ngrow(ngrow),
-    m_index(index),
-    m_level(level),
-    m_mapper(mapper)
-{
-    BL_ASSERT(ngrow >= 0);
-}
-
-FPI::FPI (const FPI& rhs)
-    :
-    m_ba(rhs.m_ba),
-    m_pmap(rhs.m_pmap),
-    m_pdomain(rhs.m_pdomain),
-    m_time(rhs.m_time),
-    m_curtime(rhs.m_curtime),
-    m_prevtime(rhs.m_prevtime),
-    m_ngrow(rhs.m_ngrow),
-    m_index(rhs.m_index),
-    m_level(rhs.m_level),
-    m_mapper(rhs.m_mapper)
-{}
-
-FPI::~FPI () {}
-
-bool
-FPI::operator== (const FPI& rhs) const
-{
-    return m_ba == rhs.m_ba          &&
-        m_pmap == rhs.m_pmap         &&
-        m_pdomain == rhs.m_pdomain   &&
-        m_time == rhs.m_time         &&
-        m_curtime == rhs.m_curtime   &&
-        m_prevtime == rhs.m_prevtime &&
-        m_ngrow == rhs.m_ngrow       &&
-        m_index == rhs.m_index       &&
-        m_level == rhs.m_level       &&
-        m_mapper == rhs.m_mapper;
-}
-
-bool
-FPI::operator!= (const FPI& rhs) const
-{
-    return !operator==(rhs);
-}
-
-std::ostream&
-operator<< (std::ostream& os, const FPI& fpi)
-{
-    os << "m_ba:\n" << fpi.m_ba
-       << "m_pdomain: " << fpi.m_pdomain
-       << "\nm_time: " << fpi.m_time
-       << "\nm_curtime: " << fpi.m_curtime
-       << "\nm_prevtime: " << fpi.m_prevtime
-       << "\nm_ngrow: " << fpi.m_ngrow
-       << "\nm_index: " << fpi.m_index
-       << "\nm_level: " << fpi.m_level
-       << "\n";
-
-    return os;        
-}
-
-//
-// A useful typedef.
-//
-typedef std::list<FPI> FPIList;
-//
-// Cache of FPI info.
-//
-static FPIList FPICache;
-
-void
-AmrLevel::FlushFPICache ()
-{
-    FPICache.clear();
-}
-
-//
-// Returns cached FPI object if one exists, else builds & returns new one.
-//
-static
-FPI&
-TheFPIs (const BoxArray&   ba,
-         const Array<int>& pmap,
-         const Box&        pdomain,
-         Real              time,
-         Real              curtime,
-         Real              prevtime,
-         int               ngrow,
-         int               index,
-         int               level,
-         Interpolater*     mapper,
-         int               scomp,
-         int               ncomp)
-{
-    BL_ASSERT(mapper);
-    BL_ASSERT(ngrow >= 0);
-    BL_ASSERT(ncomp >  0);
-    BL_ASSERT(scomp >= 0);
-
-    FPI fpi(ba, pmap, pdomain, time, curtime, prevtime, ngrow, index, level, mapper);
-
-    for (FPIList::iterator it = FPICache.begin(); it != FPICache.end(); ++it)
-    {
-        if (*it == fpi)
-        {
-            //
-            // Adjust the ncomp & scomp in CommData.
-            //
-            Array<CommData>& cd = (*it).m_commdata.theCommData();
-
-            for (int i = 0; i < cd.size(); i++)
-            {
-                cd[i].nComp(ncomp);
-                cd[i].srcComp(scomp);
-            }
-
-            return *it;
-        }
-    }
-    //
-    // If we get here there isn't a match in the cache.
-    //
-    FPICache.push_front(fpi);
-
-    return FPICache.front();
-}
-
 void
 FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      Real          time,
@@ -726,16 +529,6 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(AmrLevel::desc_lst[index].inRange(scomp,ncomp));
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
-
-    static bool parm_parsed   = false;
-    static bool use_the_cache = true;
-
-    if (!parm_parsed)
-    {
-        parm_parsed = true;
-        ParmParse pp("fillpatch");
-        pp.query("use_the_cache",use_the_cache);
-    }
 
     m_map          = mapper;
     m_time         = time;
@@ -943,27 +736,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
         }
     }
 
-    if (use_the_cache)
-    {
-        FPI& fpi = TheFPIs (m_leveldata.boxArray(),
-                            m_leveldata.DistributionMap().ProcessorMap(),
-                            topPDomain,
-                            m_time,
-                            topLevel.state[m_index].curTime(),
-                            topLevel.state[m_index].prevTime(),
-                            m_growsize,
-                            m_index,
-                            m_amrlevel.level,
-                            m_map,
-                            scomp,
-                            ncomp);
-
-        m_mfcd.CollectData(&fpi.m_cache, &fpi.m_commdata);
-    }
-    else
-    {
-        m_mfcd.CollectData();
-    }
+    m_mfcd.CollectData();
 
     m_init = true;
 }
