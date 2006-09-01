@@ -52,9 +52,11 @@ contains
 
   end function itsol_breakdown
 
-  function itsol_converged(rr, uu, Anorm, bnorm, eps) result(r)
+  function itsol_converged(rr, uu, Anorm, bnorm, eps, abs_eps) result(r)
     type(multifab), intent(in) :: rr, uu
     real(dp_t), intent(in) :: Anorm, bnorm, eps
+    real(dp_t), intent(in), optional :: abs_eps
+
     real(dp_t)             :: norm_rr, norm_uu
     logical :: r
     type(bl_prof_timer), save :: bpt
@@ -62,8 +64,14 @@ contains
     call build(bpt, "its_converged")
     norm_rr = norm_inf(rr)
     norm_uu = norm_inf(uu)
-    r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
-        (norm_rr <= epsilon(Anorm)*Anorm)
+    if (present(abs_eps)) then
+      r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
+          (norm_rr <= epsilon(Anorm)*Anorm) .or. &
+          (norm_rr <= abs_eps)
+    else
+      r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
+          (norm_rr <= epsilon(Anorm)*Anorm)
+    endif
     call destroy(bpt)
   end function itsol_converged
 
