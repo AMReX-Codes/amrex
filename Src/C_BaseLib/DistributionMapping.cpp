@@ -16,17 +16,7 @@
 #include <algorithm>
 #include <numeric>
 
-#ifdef BL_USE_METIS
-//#include <metis.h>
-extern "C"
-{
-void METIS_PartGraphKway(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
-void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
-}
-#endif
-
 static int    swap_n_test_count          = 1;
-static int    metis_opt                  = 0;
 static int    verbose                    = 0;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
@@ -70,9 +60,6 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case KNAPSACK:
         m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
         break;
-    case METIS:
-	m_BuildMap = &DistributionMapping::MetisProcessorMap;
-    	break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
     }
@@ -115,8 +102,6 @@ DistributionMapping::Initialize ()
 
     std::string theStrategy;
 
-    pp.query("metis_opt", metis_opt);
-
     if (pp.query("strategy", theStrategy))
     {
         if (theStrategy == "ROUNDROBIN")
@@ -127,10 +112,6 @@ DistributionMapping::Initialize ()
         {
             strategy(KNAPSACK);
         }
-	else if (theStrategy == "METIS")
-	{
-	    strategy(METIS);
-	}
         else
         {
             std::string msg("Unknown strategy: ");
@@ -309,108 +290,6 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
             m_Cache.push_back(pmap);
     }
 }
-
-#ifndef BL_USE_METIS
-void
-DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
-{
-    BoxLib::Error("METIS not available on this processor");
-}
-#else
-void
-DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MetisProcessorMap");
-    BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_procmap.size() == boxes.size()+1);
-    if (boxes.size() <= nprocs || nprocs < 2)
-    {
-	RoundRobinProcessorMap(boxes, nprocs);
-	return;
-    }
-    int nboxes = boxes.size();
-    std::vector<int> xadj(nboxes+1);
-    std::vector<int> adjncy;
-    std::vector<int> vwgt(nboxes);
-    std::vector<int> adjwgt;
-    int wgtflag = 2;
-    int numflag = 0;
-    int nparts  = nprocs;
-    int options[5] = {0, 0, 0, 0, 0};
-    int edgecut;
-    for ( int i = 0; i < nboxes; ++i ) 
-    {
-	vwgt[i] = boxes[i].volume();
-    }
-    int cnt = 0;
-    for ( int i = 0; i < nboxes; ++i ) 
-    {
-	Box bx = BoxLib::grow(boxes[i], 1);
-	xadj[i] = cnt;
-	for ( int j = 0; j < nboxes; ++j )
-	{
-	    if ( j == i ) continue;
-	    if ( bx.intersects(boxes[j]) )
-	    {
-		Box b = bx & boxes[j];
-		adjncy.push_back(j);
-		adjwgt.push_back(b.volume());
-		cnt++;
-	    }
-	}
-    }
-    xadj[nboxes] = cnt;
-
-    const Real strttime = ParallelDescriptor::second();
-
-    if ( metis_opt != 0 ) wgtflag = 3;
-
-    if ( nparts <= 8 )
-    {
-	METIS_PartGraphRecursive(
-	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
-	    &wgtflag, &numflag,  &nparts, options,
-	    &edgecut, &m_procmap[0]);
-    }
-    else
-    {
-	METIS_PartGraphKway(
-	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
-	    &wgtflag, &numflag,  &nparts, options,
-	    &edgecut, &m_procmap[0]);
-    }
-
-    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real       stoptime = ParallelDescriptor::second() - strttime;
-
-    if (verbose)
-    {
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-        double total = 0;
-        std::vector<double> wgts(nprocs,0);
-        for (int i = 0; i < nboxes; i++)
-        {
-            total += vwgt[i];
-            wgts[m_procmap[i]] += vwgt[i];
-        }
-        double mx = wgts[0];
-        for (int i = 1; i < nprocs; i++)
-            if (wgts[i] > mx) mx = wgts[i];
-
-        double efficiency = total/(nprocs*mx);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "METIS_PartGraphKway efficiency: " << efficiency << '\n';
-            std::cout << "METIS_PartGraphKway time: " << stoptime << '\n';
-            std::cout << "METIS_PartGraphKway edgecut: " << edgecut << '\n';
-        }
-    }
-
-    m_procmap[nboxes] = ParallelDescriptor::MyProc();
-}
-#endif
 
 void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)

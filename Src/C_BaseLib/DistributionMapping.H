@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.26 2005-10-11 19:07:23 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.27 2006-09-01 16:24:17 lijewski Exp $
 //
 #include <vector>
 
@@ -33,7 +33,7 @@ class DistributionMapping
     //
     //@ManDoc: The distribution strategy: ROUNDROBIN or KNAPSACK.
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK ,METIS };
+    enum Strategy { ROUNDROBIN, KNAPSACK };
     //
     //@ManDoc: The default constructor.
     //
@@ -117,7 +117,6 @@ class DistributionMapping
     //
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
-    //   DistributionMapping.strategy = METIS
     //
     static void Initialize ();
 
