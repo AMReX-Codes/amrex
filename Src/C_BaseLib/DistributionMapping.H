@@ -1,10 +1,11 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.27 2006-09-01 16:24:17 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.28 2006-09-01 21:20:51 lijewski Exp $
 //
 #include <vector>
 
+#include <Pointers.H>
 #include <BoxLib.H>
 #include <Array.H>
 #include <Box.H>
@@ -70,6 +71,10 @@ class DistributionMapping
     */
     const Array<int>& ProcessorMap () const;
     //
+    // Length of the underlying processor map.
+    //
+    int size () const;
+    //
     //@ManDoc: Equivalent to ProcessorMap()[index].
     //
     int operator[] (int index) const;
@@ -122,17 +127,12 @@ class DistributionMapping
 
     static void Finalize ();
 
-private:
+protected:
     //
     // Two ways to create the processor map.
     //
     void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
-    void MetisProcessorMap        (const BoxArray& boxes, int nprocs);
-    //
-    // Our cache of processor maps.
-    //
-    static std::vector< Array<int> > m_Cache;
     //
     // One which CPU to begin a distribution?
     //
@@ -158,22 +158,52 @@ private:
     // Have we initialized from ParmParse yet?
     //
     static bool m_Initialized;
+
+    class Ref
+    {
+        friend class DistributionMapping;
+        //
+        // Constructors to match those in DistributionMapping ....
+        //
+        Ref ();
+
+        Ref (int len);
+
+        Ref (const Array<int>& pmap);
+
+        Ref (const Ref& rhs);
+        //
+        // Local data -- our processor map.
+        //
+        // The length is always equal to boxes.length()+1 where `boxes' is
+        // the BoxArray on which the distribution is based.  It is also true
+        // that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
+        // This latter acts as a sentinel in some FabArray loops.
+        //
+        Array<int> m_pmap;
+    };
     //
-    // Local data -- our processor map.
+    // The data -- a reference-counted pointer to a Ref.
     //
-    // The length is always equal to boxes.length()+1 where `boxes' is
-    // the BoxArray on which the distribution is based.  It is also true
-    // that m_procmap[boxes.length()] == ParallelDescriptor::MyProc().
-    // This latter acts as a sentinel in some FabArray loops.
+    LnClassPtr<Ref> m_ref;
     //
-    Array<int> m_procmap;
+    // Our cache of processor maps.
+    //
+    static std::vector< LnClassPtr<Ref> > m_Cache;
 };
+
+inline
+int
+DistributionMapping::size () const
+{
+    return m_ref->m_pmap.size();
+}
 
 inline
 int
 DistributionMapping::operator[] (int index) const
 {
-    return m_procmap[index];
+    return m_ref->m_pmap[index];
 }
 
 //

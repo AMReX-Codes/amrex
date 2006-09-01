@@ -32,7 +32,7 @@ DistributionMapping::m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
 const Array<int>&
 DistributionMapping::ProcessorMap () const
 {
-    return m_procmap;
+    return m_ref->m_pmap;
 }
 
 DistributionMapping::Strategy
@@ -73,7 +73,7 @@ bool DistributionMapping::m_Initialized = false;
 bool
 DistributionMapping::operator== (const DistributionMapping& rhs) const
 {
-    return m_procmap == rhs.m_procmap;
+    return m_ref->m_pmap == rhs.m_ref->m_pmap;
 }
 
 bool
@@ -128,7 +128,7 @@ DistributionMapping::Finalize ()
 //
 // Our cache of processor maps.
 //
-std::vector< Array<int> > DistributionMapping::m_Cache;
+std::vector< LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 int
 DistributionMapping::WhereToStart (int nprocs)
@@ -137,10 +137,10 @@ DistributionMapping::WhereToStart (int nprocs)
     //
     // What's the largest proc_map in our cache?
     //
-    int N = m_Cache[0].size();
+    int N = m_Cache[0]->m_pmap.size();
     for (int i = 1; i < m_Cache.size(); i++)
-        if (N < m_Cache[i].size())
-            N = m_Cache[i].size();
+        if (N < m_Cache[i]->m_pmap.size())
+            N = m_Cache[i]->m_pmap.size();
 
     N--; // Subtract off the extra space reserved for the sentinel value.
 
@@ -157,8 +157,8 @@ DistributionMapping::WhereToStart (int nprocs)
     std::vector<int> count(nprocs,0);
 
     for (int i = 0; i < m_Cache.size(); i++)
-        for (int j = 0; j < m_Cache[i].size() - 1; j++)
-            count[m_Cache[i][j]]++;
+        for (int j = 0; j < m_Cache[i]->m_pmap.size() - 1; j++)
+            count[m_Cache[i]->m_pmap[j]]++;
 
     N = 0;
     for (int i = 1; i < count.size(); i++)
@@ -175,20 +175,17 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 {
     const int N = boxes.size();
 
-    BL_ASSERT(m_procmap.size() == N + 1);
+    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
     //
     // Search from back to front ...
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].size() == N + 1)
+        if (m_Cache[i]->m_pmap.size() == N + 1)
         {
-            const Array<int>& cached_procmap = m_Cache[i];
+            m_ref = m_Cache[i];
 
-            for (int j = 0; j <= N; j++)
-                m_procmap[j] = cached_procmap[j];
-
-            BL_ASSERT(m_procmap[N] == ParallelDescriptor::MyProc());
+            BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
             return true;
         }
@@ -197,23 +194,45 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     return false;
 }
 
+DistributionMapping::Ref::Ref () {}
+
 DistributionMapping::DistributionMapping ()
+    :
+    m_ref(new DistributionMapping::Ref)
+{}
+
+DistributionMapping::Ref::Ref (const Array<int>& pmap)
+    :
+    m_pmap(pmap)
 {}
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap)
     :
-    m_procmap(pmap)
+    m_ref(new DistributionMapping::Ref(pmap))
+{}
+
+DistributionMapping::Ref::Ref (int len)
+    :
+    m_pmap(len)
 {}
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
-    m_procmap(boxes.size()+1)
+    m_ref(new DistributionMapping::Ref(boxes.size() + 1))
 {
     define(boxes,nprocs);
 }
 
+DistributionMapping::Ref::Ref (const Ref& rhs)
+    :
+    m_pmap(rhs.m_pmap)
+{}
+
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
+    :
+    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1))
+
 {
     const Array<int>& pmap_1 = d1.ProcessorMap();
     const Array<int>& pmap_2 = d2.ProcessorMap();
@@ -221,35 +240,32 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     const int L1 = pmap_1.size() - 1; // Length not including sentinel.
     const int L2 = pmap_2.size() - 1; // Length not including sentinel.
 
-    m_procmap.resize(L1+L2+1);
-
     for (int i = 0; i < L1; i++)
-        m_procmap[i] = pmap_1[i];
+        m_ref->m_pmap[i] = pmap_1[i];
 
     for (int i = L1, j = 0; j < L2; i++, j++)
-        m_procmap[i] = pmap_2[j];
+        m_ref->m_pmap[i] = pmap_2[j];
     //
     // Set sentinel equal to our processor number.
     //
-    m_procmap[m_procmap.size()-1] = ParallelDescriptor::MyProc();
+    m_ref->m_pmap[m_ref->m_pmap.size()-1] = ParallelDescriptor::MyProc();
 }
 
 void
 DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
-    if (!(m_procmap.size() == boxes.size()+1))
-        m_procmap.resize(boxes.size()+1);
+    if (m_ref->m_pmap.size() != boxes.size() + 1)
+        m_ref->m_pmap.resize(boxes.size() + 1);
 
     if (!GetMap(boxes))
     {
         (this->*m_BuildMap)(boxes,nprocs);
 
-#if defined(BL_USE_MPI)
-        //
-        // We always append new processor maps.
-        //
-        DistributionMapping::m_Cache.push_back(m_procmap);
-#endif
+        if (ParallelDescriptor::NProcs() > 1)
+            //
+            // We always append new processor maps.
+            //
+            DistributionMapping::m_Cache.push_back(m_ref);
     }
 }
 
@@ -258,6 +274,7 @@ DistributionMapping::~DistributionMapping () {}
 void
 DistributionMapping::FlushCache ()
 {
+    DistributionMapping::CacheStats(std::cout);
     DistributionMapping::m_Cache.clear();
 }
 
@@ -278,16 +295,16 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
 
         for (unsigned int i = 0; i < m_Cache.size() && doit; i++)
         {
-            if (pmap.size() == m_Cache[i].size())
+            if (pmap.size() == m_Cache[i]->m_pmap.size())
             {
-                BL_ASSERT(pmap == m_Cache[i]);
+                BL_ASSERT(pmap == m_Cache[i]->m_pmap);
 
                 doit = false;
             }
         }
 
         if (doit)
-            m_Cache.push_back(pmap);
+            m_Cache.push_back(dm.m_ref);
     }
 }
 
@@ -296,38 +313,38 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {
     BL_ASSERT(nboxes > 0);
 
-    m_procmap.resize(nboxes+1);
+    m_ref->m_pmap.resize(nboxes+1);
 
-    int N = WhereToStart(nprocs);
+    const int N = WhereToStart(nprocs);
 
     for (int i = 0; i < nboxes; i++)
         //
         // Start the round-robin at processor N.
         //
-        m_procmap[i] = (i + N) % nprocs;
+        m_ref->m_pmap[i] = (i + N) % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
-    m_procmap[nboxes] = ParallelDescriptor::MyProc();
+    m_ref->m_pmap[nboxes] = ParallelDescriptor::MyProc();
 }
 
 void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_procmap.size() == boxes.size()+1);
+    BL_ASSERT(m_ref->m_pmap.size() == boxes.size() + 1);
 
-    int N = WhereToStart(nprocs);
+    const int N = WhereToStart(nprocs);
 
     for (int i = 0; i < boxes.size(); i++)
         //
         // Start the round-robin at processor N.
         //
-        m_procmap[i] = (i + N) % nprocs;
+        m_ref->m_pmap[i] = (i + N) % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
-    m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
+    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
 }
 
 class WeightedBox
@@ -790,37 +807,33 @@ void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
                                            int                      nprocs)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::KnapSackProcessorMap(vector,");
-
     BL_ASSERT(pts.size() > 0);
 
-    m_procmap.resize(pts.size()+1);
+    m_ref->m_pmap.resize(pts.size() + 1);
 
-    if (int(pts.size()) <= nprocs || nprocs < 2)
+    if (pts.size() <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(pts.size(),nprocs);
     }
     else
     {
-        int N = WhereToStart(nprocs);
+        const int N = WhereToStart(nprocs);
 
         std::vector< std::list<int> > vec = knapsack(pts,nprocs);
 
-        BL_ASSERT(int(vec.size()) == nprocs);
-
-        std::list<int>::iterator lit;
+        BL_ASSERT(vec.size() == nprocs);
 
         for (unsigned int i = 0; i < vec.size(); i++)
         {
-            int where = (i + N) % nprocs;
+            const int where = (i + N) % nprocs;
 
-            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                m_procmap[*lit] = where;
+            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+                m_ref->m_pmap[*lit] = where;
         }
         //
         // Set sentinel equal to our processor number.
         //
-        m_procmap[pts.size()] = ParallelDescriptor::MyProc();
+        m_ref->m_pmap[pts.size()] = ParallelDescriptor::MyProc();
     }
 }
 
@@ -828,9 +841,8 @@ void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 					   int             nprocs)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::KnapSackProcessorMap");
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_procmap.size() == boxes.size()+1);
+    BL_ASSERT(m_ref->m_pmap.size() == boxes.size()+1);
 
     if (boxes.size() <= nprocs || nprocs < 2)
     {
@@ -838,7 +850,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
     else
     {
-        int N = WhereToStart(nprocs);
+        const int N = WhereToStart(nprocs);
 
         std::vector<long> pts(boxes.size());
 
@@ -849,42 +861,45 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 
         BL_ASSERT(int(vec.size()) == nprocs);
 
-        std::list<int>::iterator lit;
-
         for (unsigned int i = 0; i < vec.size(); i++)
         {
-            int where = (i + N) % nprocs;
+            const int where = (i + N) % nprocs;
 
-            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                m_procmap[*lit] = where;
+            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+                m_ref->m_pmap[*lit] = where;
         }
 
-	MinimizeCommCosts(m_procmap,boxes,pts,nprocs);
+	MinimizeCommCosts(m_ref->m_pmap,boxes,pts,nprocs);
         //
         // Set sentinel equal to our processor number.
         //
-        m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
+        m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
     }
 }
 
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    os << "The DistributionMapping cache contains "
-       << DistributionMapping::m_Cache.size()
-       << " Processor Map(s):\n";
-
-    if (!DistributionMapping::m_Cache.empty())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
-        for (unsigned int i = 0; i < m_Cache.size(); i++)
+        os << "The DistributionMapping cache contains "
+           << DistributionMapping::m_Cache.size()
+           << " Processor Map(s):\n";
+
+        if (!DistributionMapping::m_Cache.empty())
         {
-            os << "\tMap #"
-               << i
-               << " is of length "
-               << m_Cache[i].size()
-               << '\n';
+            for (unsigned int i = 0; i < m_Cache.size(); i++)
+            {
+                os << "\tMap #"
+                   << i
+                   << ", size:  "
+                   << m_Cache[i]->m_pmap.size()
+                   << ", references: "
+                   << m_Cache[i].linkCount()
+                   << '\n';
+            }
+            os << '\n';
         }
-        os << '\n';
     }
 }
 
@@ -898,7 +913,7 @@ operator<< (std::ostream&              os,
     //
     for (int i = 0; i < pmap.ProcessorMap().size() - 1; i++)
     {
-        os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
+        os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
 
     os << ')' << '\n';
