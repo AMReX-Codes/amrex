@@ -19,14 +19,15 @@ module stencil_nodal_module
   real (kind = dp_t), private, parameter :: HALF  = 0.5_dp_t
   real (kind = dp_t), private, parameter :: FOURTH= 0.25_dp_t
   real (kind = dp_t), private, parameter :: THIRD = 1.0_dp_t/3.0_dp_t
+  real (kind = dp_t), private, parameter :: SIXTH = 1.0_dp_t/6.0_dp_t
   real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
 contains
 
-  subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type, stencil_type)
+  subroutine stencil_fill_nodal(ss, sg, dh, mask, face_type, stencil_type)
     type(multifab ), intent(inout) :: ss
     type(multifab ), intent(inout) :: sg
-    real(kind=dp_t), intent(in   ) :: dh_local(:), dh(:)
+    real(kind=dp_t), intent(in   ) :: dh(:)
     type(imultifab), intent(inout) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
     integer        , intent(in   ) :: stencil_type
@@ -151,7 +152,7 @@ contains
                                   face_type(i,:,:), dh)
           else if (stencil_type == ST_CROSS) then
             call s_cross_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
-                                   face_type(i,:,:), dh, dh_local)
+                                   face_type(i,:,:), dh)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
             stop
@@ -159,10 +160,10 @@ contains
        case (3)
           if (stencil_type == ST_DENSE) then
             call s_dense_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
-                                  face_type(i,:,:), dh, dh_local)
+                                  face_type(i,:,:), dh)
           else if (stencil_type == ST_CROSS) then
             call s_cross_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
-                                   face_type(i,:,:), dh, dh_local)
+                                   face_type(i,:,:), dh)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
             stop
@@ -177,13 +178,12 @@ contains
 
   end subroutine stencil_fill_nodal
 
-  subroutine stencil_fill_one_sided(ss, sg, dh_local, dh, mask, face_type, stencil_type)
+  subroutine stencil_fill_one_sided(ss, sg, dh, mask, face_type)
     type(multifab ), intent(inout) :: ss
     type(multifab ), intent(inout) :: sg
-    real(kind=dp_t), intent(in   ) :: dh_local(:), dh(:)
+    real(kind=dp_t), intent(in   ) :: dh(:)
     type(imultifab), intent(inout) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
-    integer        , intent(in   ) :: stencil_type
 
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
@@ -207,10 +207,10 @@ contains
 !         call s_simple_1d_one_sided(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
           call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
-                                     face_type(i,:,:), dh, dh_local)
+                                     face_type(i,:,:), dh)
        case (3)
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
-                                     face_type(i,:,:), dh, dh_local)
+                                     face_type(i,:,:), dh)
        end select
     end do
 
@@ -312,12 +312,12 @@ contains
 
   end subroutine s_simple_1d_nodal
 
-  subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, nx, ny
 
@@ -355,25 +355,24 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = HALF*(sg(i  ,j-1) + sg(i  ,j  ))
-          ss(i,j,2) = HALF*(sg(i-1,j-1) + sg(i-1,j  ))
-          ss(i,j,3) = HALF*(sg(i-1,j  ) + sg(i  ,j  ))
-          ss(i,j,4) = HALF*(sg(i-1,j-1) + sg(i  ,j-1))
+          ss(i,j,1) = sg(i  ,j-1) + sg(i  ,j  )
+          ss(i,j,2) = sg(i-1,j-1) + sg(i-1,j  )
+          ss(i,j,3) = sg(i-1,j  ) + sg(i  ,j  )
+          ss(i,j,4) = sg(i-1,j-1) + sg(i  ,j-1)
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
       end do
     end do
 
-!   ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
-    ss = ss / (dh_local(1))**2
+    ss = ss * HALF / (dh(1))**2
 
   end subroutine s_cross_2d_nodal
 
-  subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
     real (kind = dp_t), allocatable :: sg_int(:,:)
 
@@ -422,16 +421,15 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = HALF*(sg_int(i  ,j-1) + sg_int(i  ,j  ))
-          ss(i,j,2) = HALF*(sg_int(i-1,j-1) + sg_int(i-1,j  ))
-          ss(i,j,3) = HALF*(sg_int(i-1,j  ) + sg_int(i  ,j  ))
-          ss(i,j,4) = HALF*(sg_int(i-1,j-1) + sg_int(i  ,j-1))
+          ss(i,j,1) = sg_int(i  ,j-1) + sg_int(i  ,j  )
+          ss(i,j,2) = sg_int(i-1,j-1) + sg_int(i-1,j  )
+          ss(i,j,3) = sg_int(i-1,j  ) + sg_int(i  ,j  )
+          ss(i,j,4) = sg_int(i-1,j-1) + sg_int(i  ,j-1)
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
       end do
     end do
 
-!   ss = ss*dh_local(1) * (dh(1) / dh_local(1))**3
-    ss = ss / (dh_local(1))**2
+    ss = ss * HALF / (dh(1))**2
 
     deallocate(sg_int)
 
@@ -445,10 +443,6 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, nx, ny
-    real (kind = dp_t) :: fx, fy
-
-    fx = HALF*THIRD
-    fy = HALF*THIRD
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -484,44 +478,43 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = -(fx+fy)* sg(i-1,j-1)
-          ss(i,j,2) = -(TWO*fy-fx)*(sg(i  ,j-1) + sg(i-1,j-1))
-          ss(i,j,3) = -(fx+fy)* sg(i  ,j-1)
 
-          ss(i,j,4) = -(TWO*fx-fy)*(sg(i-1,j  ) + sg(i-1,j-1))
-          ss(i,j,5) = -(TWO*fx-fy)*(sg(i  ,j  ) + sg(i  ,j-1))
+          ! Faces
+          ss(i,j,2) = HALF * (sg(i  ,j-1) + sg(i-1,j-1))
+          ss(i,j,4) = HALF * (sg(i-1,j  ) + sg(i-1,j-1))
+          ss(i,j,5) = HALF * (sg(i  ,j  ) + sg(i  ,j-1))
+          ss(i,j,7) = HALF * (sg(i  ,j  ) + sg(i-1,j  ))
 
-          ss(i,j,6) = -(fx+fy)* sg(i-1,j  ) 
-          ss(i,j,7) = -(TWO*fy-fx)*(sg(i  ,j) + sg(i-1,j))
-          ss(i,j,8) = -(fx+fy)    * sg(i,  j  )
+          ! Corners
+          ss(i,j,1) = sg(i-1,j-1)
+          ss(i,j,3) = sg(i  ,j-1)
+          ss(i,j,6) = sg(i-1,j  ) 
+          ss(i,j,8) = sg(i,  j  )
  
-          ss(i,j,0) = -ss(i,j,1) - ss(i,j,2) - ss(i,j,3) - ss(i,j,4) &
-                      -ss(i,j,5) - ss(i,j,6) - ss(i,j,7) - ss(i,j,8)
+          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
+                       +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) ) 
       end do
     end do
 
+    ss = ss * THIRD / (dh(1))**2
+
   end subroutine s_dense_2d_nodal
 
-  subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
     type(box     ) :: bx1
     type(boxarray) :: ba
     integer :: i, j, k, ilo, jlo, klo, ib, jb, ii, jj, nx, ny, nz
-    real (kind = dp_t) :: fx,fy,fz
     real (kind = dp_t) :: ratio
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-    fx = FOURTH
-    fy = FOURTH
-    fz = FOURTH
 
 !   BEGIN STENCIL
 !
@@ -639,22 +632,22 @@ contains
     do j = 1, ny
       do i = 1, nx
 !         Faces in x-direction
-          ss(i,j,k,2) = fx * (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                             +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,1) = fx * (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                             +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+          ss(i,j,k,2) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                        +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+          ss(i,j,k,1) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                        +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
 !         Faces in y-direction
-          ss(i,j,k,4) = fy * (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                             +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,3) = fy * (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                             +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+          ss(i,j,k,4) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                        +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+          ss(i,j,k,3) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                        +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
 !         Faces in z-direction
-          ss(i,j,k,6) = fz * (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                             +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,5) = fz * (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                             +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+          ss(i,j,k,6) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                        +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+          ss(i,j,k,5) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                        +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
 
           ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
                           +ss(i,j,k,3) + ss(i,j,k,4) &
@@ -664,17 +657,17 @@ contains
     end do
     end do
 
-    ss = ss / (dh_local(1))**2
+    ss = ss * FOURTH / (dh(1))**2
 
   end subroutine s_cross_3d_nodal
 
-  subroutine s_simple_3d_one_sided(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_simple_3d_one_sided(ss, sg, mm, face_type, dh)
 
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer :: i, j, k, ilo, jlo, klo, ii, jj, nx, ny, nz
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
@@ -684,10 +677,6 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-    fx = FOURTH
-    fy = FOURTH
-    fz = FOURTH
 
 !   BEGIN STENCIL
 !
@@ -815,22 +804,22 @@ contains
     do j = 1, ny
     do i = 1, nx
 !         Faces in x-direction
-          ss(i,j,k,2) = fx * (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                             +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
-          ss(i,j,k,1) = fx * (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
-                             +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+          ss(i,j,k,2) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                        +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
+          ss(i,j,k,1) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+                        +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
 
 !         Faces in y-direction
-          ss(i,j,k,4) = fy * (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                             +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
-          ss(i,j,k,3) = fy * (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
-                             +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+          ss(i,j,k,4) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                        +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
+          ss(i,j,k,3) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+                        +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
 
 !         Faces in z-direction
-          ss(i,j,k,6) = fz * (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
-                             +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
-          ss(i,j,k,5) = fz * (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
-                             +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
+          ss(i,j,k,6) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+                        +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
+          ss(i,j,k,5) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+                        +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
 
           ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
                           +ss(i,j,k,3) + ss(i,j,k,4) &
@@ -839,18 +828,18 @@ contains
     end do
     end do
 
-    ss = ss / (dh_local(1))**2
+    ss = ss * FOURTH / (dh(1))**2
 
     deallocate(sg_int)
 
   end subroutine s_simple_3d_one_sided
 
-  subroutine s_dense_3d_nodal(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_dense_3d_nodal(ss, sg, mm, face_type, dh)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
     type(box     ) :: bx1
     type(boxarray) :: ba
@@ -861,16 +850,6 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-!   fx = ONE / (36.0_dp_t*dh(1)**2)
-!   fy = ONE / (36.0_dp_t*dh(2)**2)
-!   fz = ONE / (36.0_dp_t*dh(3)**2)
-!   f0 = THIRD * THIRD * ( ONE/dh(1)**2 + ONE/dh(2)**2 + ONE/dh(3)**2)
-
-    fx = ONE / (36.0_dp_t)
-    fy = ONE / (36.0_dp_t)
-    fz = ONE / (36.0_dp_t)
-    f0 = FOUR * (fx + fy + fz)
 
 !   BEGIN STENCIL
 !
@@ -981,76 +960,75 @@ contains
     if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
     if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
 
+    fx = ONE / (36.0_dp_t)
+    fy = ONE / (36.0_dp_t)
+    fz = ONE / (36.0_dp_t)
+    f0 = FOUR * (fx + fy + fz)
+
     do k = 1, nz
     do j = 1, ny
       do i = 1, nx
 
 !         Corners
-          ss(i,j,k, 1) = -(fx+fy+fz)* sg(i-1,j-1,k-1)
-          ss(i,j,k, 3) = -(fx+fy+fz)* sg(i  ,j-1,k-1)
-          ss(i,j,k, 6) = -(fx+fy+fz)* sg(i-1,j  ,k-1)
-          ss(i,j,k, 8) = -(fx+fy+fz)* sg(i  ,j  ,k-1)
-          ss(i,j,k,13) = -(fx+fy+fz)* sg(i-1,j-1,k  )
-          ss(i,j,k,15) = -(fx+fy+fz)* sg(i  ,j-1,k  )
-          ss(i,j,k,18) = -(fx+fy+fz)* sg(i-1,j  ,k  )
-          ss(i,j,k,20) = -(fx+fy+fz)* sg(i  ,j  ,k  )
+          ss(i,j,k, 1) = (fx+fy+fz)* sg(i-1,j-1,k-1)
+          ss(i,j,k, 3) = (fx+fy+fz)* sg(i  ,j-1,k-1)
+          ss(i,j,k, 6) = (fx+fy+fz)* sg(i-1,j  ,k-1)
+          ss(i,j,k, 8) = (fx+fy+fz)* sg(i  ,j  ,k-1)
+          ss(i,j,k,13) = (fx+fy+fz)* sg(i-1,j-1,k  )
+          ss(i,j,k,15) = (fx+fy+fz)* sg(i  ,j-1,k  )
+          ss(i,j,k,18) = (fx+fy+fz)* sg(i-1,j  ,k  )
+          ss(i,j,k,20) = (fx+fy+fz)* sg(i  ,j  ,k  )
 
 !         Edges in x-direction
-          ss(i,j,k, 2) = -(TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
-          ss(i,j,k, 7) = -(TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
-          ss(i,j,k,14) = -(TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
-          ss(i,j,k,19) = -(TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
+          ss(i,j,k, 2) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
+          ss(i,j,k, 7) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
+          ss(i,j,k,14) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
+          ss(i,j,k,19) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
 
 !         Edges in y-direction
-          ss(i,j,k, 4) = -(TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
-          ss(i,j,k, 5) = -(TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,16) = -(TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
-          ss(i,j,k,17) = -(TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+          ss(i,j,k, 4) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
+          ss(i,j,k, 5) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+          ss(i,j,k,16) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
+          ss(i,j,k,17) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
 
 !         Edges in z-direction
-          ss(i,j,k, 9) = -(TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
-          ss(i,j,k,10) = -(TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,11) = -(TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,12) = -(TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+          ss(i,j,k, 9) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
+          ss(i,j,k,10) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+          ss(i,j,k,11) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+          ss(i,j,k,12) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
           if (size(ss,dim=4) .eq. 27) then
 
 !         Faces in x-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,21) = -(FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                                                  +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,22) = -(FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                                                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+          ss(i,j,k,21) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                                                 +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+          ss(i,j,k,22) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                                                 +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
 !         Faces in y-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,23) = -(FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                                                  +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,24) = -(FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                                                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+          ss(i,j,k,23) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                                                 +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+          ss(i,j,k,24) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                                                 +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
 !         Faces in z-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,25) = -(FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                                                  +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,26) = -(FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                                                  +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+          ss(i,j,k,25) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                                                 +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+          ss(i,j,k,26) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                                                 +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
 
           end if
 
-          ss(i,j,k,0) = (sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
-                        +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
-                        +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
+          ss(i,j,k,0) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
+                         +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
+                         +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
                   
       end do
     end do
     end do
 
-    ss  = (-1.0_dp_t) * ss
-
-!   ratio = dh_local(1) / dh(1)
-!   print *,'DH_LOC RATIO ',dh_local(1),ratio
-!   ss = ss*ratio
-
-    ss = ss*dh_local(1)
+    ss = ss / (dh(1))**2 
 
   end subroutine s_dense_3d_nodal
 
