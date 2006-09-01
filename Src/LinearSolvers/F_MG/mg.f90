@@ -52,7 +52,8 @@ module mg_module
 
      ! good for many problems
      integer :: max_iter = 20
-     real(kind=dp_t) :: eps = 1.0e-10_dp_t
+     real(kind=dp_t) ::     eps = 1.0e-10_dp_t
+     real(kind=dp_t) :: abs_eps = -1.0_dp_t
 
      type(box), pointer :: pd(:) => Null()
      real(kind=dp_t), pointer :: dh(:,:) => Null()
@@ -98,7 +99,7 @@ contains
        ns, &
        nc, ng, &
        max_nlevel, min_width, &
-       max_iter, eps, &
+       max_iter, eps, abs_eps, &
        bottom_solver, bottom_max_iter, bottom_solver_eps, &
        st_type, &
        verbose, cg_verbose, nodal)
@@ -118,6 +119,7 @@ contains
     real(dp_t), intent(in), optional :: omega
     real(kind=dp_t), intent(in), optional :: dh(:)
     real(kind=dp_t), intent(in), optional :: eps
+    real(kind=dp_t), intent(in), optional :: abs_eps
     real(kind=dp_t), intent(in), optional :: bottom_solver_eps
     integer, intent(in), optional :: max_nlevel
     integer, intent(in), optional :: min_width
@@ -144,6 +146,7 @@ contains
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
     if ( present(max_iter)          ) mgt%max_iter          = max_iter
     if ( present(eps)               ) mgt%eps               = eps
+    if ( present(abs_eps)           ) mgt%abs_eps           = abs_eps
     if ( present(smoother)          ) mgt%smoother          = smoother
     if ( present(nu1)               ) mgt%nu1               = nu1
     if ( present(nu2)               ) mgt%nu2               = nu2
@@ -344,6 +347,8 @@ contains
     write(unit=un, fmt=*) 'max_iter          = ', mgt%max_iter
     call unit_skip(un, skip)
 !   write(unit=un, fmt=*) 'eps               = ', mgt%eps
+!   call unit_skip(un, skip)
+!   write(unit=un, fmt=*) 'abs_eps           = ', mgt%abs_eps
 !   call unit_skip(un, skip)
 !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
 !   call unit_skip(un, skip)
@@ -863,7 +868,7 @@ contains
     real(dp_t), intent(in) :: Anorm, Ynorm
     type(multifab), intent(in) :: dd
     type(multifab), intent(in) :: uu
-    r = itsol_converged(dd, uu, Anorm, Ynorm, mgt%eps)
+    r = itsol_converged(dd, uu, Anorm, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
   recursive subroutine mg_tower_v_cycle_c(mgt, lev, c, ss, uu, rh, mm, nu1, nu2)
@@ -988,13 +993,11 @@ contains
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
             mgt%mm(lev),mgt%mm(lev-1))
-       ! HACK TO MATCH PARALLEL/HGPROJ
+       ! HACK 
        if (nodal_flag) then 
-         if (multifab_ncomp(mgt%ss(lev)).eq.7) then
-!          print *,'PRE-MULTIPLYING CRSE RES BY 1/8 FOR CROSS STENCIL '
+         if (rh%dim .eq. 3) then
            call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
-         else if (multifab_ncomp(mgt%ss(lev)).eq.5) then
-!          print *,'PRE-MULTIPLYING CRSE RES BY 1/4 FOR CROSS STENCIL '
+         else if (rh%dim .eq. 2) then
            call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
          end if
        end if
@@ -1071,12 +1074,11 @@ contains
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
 
+       ! HACK 
        if (nodal_q(mgt%dd(lev-1))) then
-         if (multifab_ncomp(mgt%ss(lev)).eq.7) then
-!          print *,'MULTIPLYING CRSE RES BY 8 FOR CROSS STENCIL '
+         if (ss%dim .eq. 3) then
            call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
-         else if (multifab_ncomp(mgt%ss(lev)).eq.5) then
-!          print *,'MULTIPLYING CRSE RES BY 4 FOR CROSS STENCIL '
+         else if (ss%dim .eq. 2) then
            call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
          end if
        end if
