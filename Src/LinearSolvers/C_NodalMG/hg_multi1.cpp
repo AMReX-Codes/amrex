@@ -522,8 +522,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	{
 	    for (int mglev = mglev_max; mglev > 0; mglev--)
 	    {
-		IntVect rat = mg_domain[mglev].length()
-		    / mg_domain[mglev-1].length();
+		IntVect rat = mg_domain[mglev].size()
+		    / mg_domain[mglev-1].size();
 		restrict_level(
 		    sigma[mglev-1], sigma[mglev], rat,
 		    holy_grail_sigma_restrictor(m_stencil),
@@ -631,8 +631,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	{
 	    if (mglev_max > 0)
 	    {
-		IntVect rat = mg_domain[mglev_max].length()
-		    / mg_domain[mglev_max-1].length();
+		IntVect rat = mg_domain[mglev_max].size()
+		    / mg_domain[mglev_max-1].size();
 		restrict_level(
 		    sigma_split[mglev_max-1], sigma[mglev_max], rat,
 		    holy_grail_sigma_restrictor(m_stencil),
@@ -645,8 +645,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 
 	    for (int mglev = mglev_max - 1; mglev > 0; mglev--)
 	    {
-		IntVect rat = mg_domain[mglev].length()
-		    / mg_domain[mglev-1].length();
+		IntVect rat = mg_domain[mglev].size()
+		    / mg_domain[mglev-1].size();
 		restrict_level(
 		    sigma_split[mglev-1], sigma_split[mglev], rat,
 		    holy_grail_sigma_restrictor(m_stencil),
@@ -963,7 +963,7 @@ holy_grail_amr_multigrid::sync_interfaces ()
     {
 	int mglev = ml_index[lev];
 	int mgc = ml_index[lev-1];
-	IntVect rat = mg_domain[mglev].length() / mg_domain[mgc].length();
+	IntVect rat = mg_domain[mglev].size() / mg_domain[mgc].size();
 	MultiFab& target = dest[lev];
 	task_list tl;
 	for (int iface = 0;
@@ -1008,7 +1008,7 @@ holy_grail_amr_multigrid::sync_periodic_interfaces ()
     {
 	int mglev = ml_index[lev];
 	int mgc = ml_index[lev-1];
-	IntVect rat = mg_domain[mglev].length() / mg_domain[mgc].length();
+	IntVect rat = mg_domain[mglev].size() / mg_domain[mgc].size();
 	Box idomain = mg_domain[mglev];
 	idomain.convert(type(dest[lev])).grow(-1);
 	MultiFab& target = dest[lev];
@@ -1052,7 +1052,7 @@ void
 holy_grail_amr_multigrid::mg_restrict_level (int lto,
                                              int lfrom)
 {
-    IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
+    IntVect rat = mg_domain[lfrom].size() / mg_domain[lto].size();
     HG_TEST_NORM( resid[lto], "mg_restrict_level: resid in" );
     HG_TEST_NORM( work[lfrom], "mg_restrict_level: work in" );
     if (get_amr_level(lto) >= 0)
@@ -1078,7 +1078,7 @@ holy_grail_amr_multigrid::mg_restrict (int lto,
     HG_TEST_NORM( resid[lto], "mg_restrict 11");
     fill_borders(work[lfrom], lev_interface[lfrom],
 		 mg_boundary, -1, is_dense(m_stencil));
-    const IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
+    const IntVect rat = mg_domain[lfrom].size() / mg_domain[lto].size();
     for (MFIter w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
     {
 	const Box& fbox = work[lfrom][w_mfi].box();
@@ -1137,7 +1137,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	const int ltmp = lfrom + 1;
 	MultiFab& target = work[ltmp];
 	const IntVect rat =
-	    mg_domain[ltmp].length() / mg_domain[lfrom].length();
+	    mg_domain[ltmp].size() / mg_domain[lfrom].size();
 	HG_TEST_NORM( corr[lfrom], "mg_interpolate_level");
 	task_list tl;
 	for (int igrid = 0; igrid < target.size(); igrid++)
@@ -1195,8 +1195,8 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	// Multigrid interpolation, grids known to match up
 	// special stencil needed for multigrid convergence.
         //
-	const IntVect rat = mg_domain[lto].length()
-	    / mg_domain[lfrom].length();
+	const IntVect rat = mg_domain[lto].size()
+	    / mg_domain[lfrom].size();
 	for (MFIter w_mfi(work[lto]); w_mfi.isValid(); ++w_mfi)
 	{
 	    const Box& fbox = work[lto][w_mfi].box();

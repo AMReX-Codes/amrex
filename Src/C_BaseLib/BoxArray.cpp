@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.48 2006-01-10 22:05:28 car Exp $
+// $Id: BoxArray.cpp,v 1.49 2006-09-06 17:26:53 lijewski Exp $
 //
 #include <iostream>
 
@@ -577,7 +577,7 @@ BoxArray::intersections (const Box& bx) const
         for (int i = 0; i < size(); i++)
         {
             boundingbox.minBox(get(i));
-            maxext = BoxLib::max(maxext, get(i).length());
+            maxext = BoxLib::max(maxext, get(i).size());
         }
         m_ref->crsn = maxext;
         boundingbox.coarsen(maxext);

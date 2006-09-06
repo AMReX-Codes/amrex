@@ -2,7 +2,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.13 2001-07-17 23:02:25 lijewski Exp $
+// $Id: Looping.H,v 1.14 2006-09-06 17:26:53 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -46,12 +46,13 @@
 */
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -80,12 +81,13 @@
 */
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -118,12 +120,13 @@
 */
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _x_p = (x) .dataPtr();                                           \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -153,12 +156,13 @@
 */
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -203,12 +207,13 @@
 */
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -238,12 +243,13 @@
 */
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -277,8 +283,8 @@
 */
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -288,7 +294,8 @@
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -326,20 +333,20 @@
 */
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    BL_ASSERT(bx.sameSize(_subbox_));                                      \
+    BL_ASSERT(bx.sameSize(_subbox_));                                   \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -398,11 +405,10 @@
         const int *_y_plo = (y).loVect();                               \
         const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect(); */             \
         const int *_by_lo = (by).loVect();                              \
-        /* const int *_by_len = (by).length().getVect(); */             \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -429,16 +435,17 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ri)                   \
 {                                                                       \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    BL_ASSERT((x).contains(bx));                                           \
-    BL_ASSERT((y).contains(by));                                           \
-    BL_ASSERT((bx).sameSize(by));                                          \
+    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
+    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
+    BL_ASSERT((x).contains(bx));                                        \
+    BL_ASSERT((y).contains(by));                                        \
+    BL_ASSERT((bx).sameSize(by));                                       \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \
     const int *_y_plen = (y).length();                                  \
-    const int *_len = (bx).length().getVect();                          \
+    IntVect bx_length = (bx).size();                                    \
+    const int *_len = bx_length.getVect();                              \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
     T* _x_p  = (x).dataPtr(nsx);                                        \
@@ -478,12 +485,13 @@
 
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -499,12 +507,13 @@
 
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -521,12 +530,13 @@
 
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _x_p = (x) .dataPtr();                                           \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -543,12 +553,13 @@
 
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -566,12 +577,13 @@
 
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -588,12 +600,13 @@
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -610,8 +623,8 @@
 
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -621,7 +634,8 @@
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -644,20 +658,20 @@
 
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    BL_ASSERT(bx.sameSize(_subbox_));                                      \
+    BL_ASSERT(bx.sameSize(_subbox_));                                   \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -683,13 +697,13 @@
 
 #define ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy)              \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
+    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    BL_ASSERT((bx).sameSize(_subbox_));                                    \
-    BL_ASSERT((by).sameSize(_subbox_));                                    \
+    BL_ASSERT((bx).sameSize(_subbox_));                                 \
+    BL_ASSERT((by).sameSize(_subbox_));                                 \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -698,11 +712,10 @@
         const int *_y_plo = (y).loVect();                               \
         const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect(); */             \
         const int *_by_lo = (by).loVect();                              \
-        /* const int *_by_len = (by).length().getVect(); */             \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -739,19 +752,20 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
 {                                                                       \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
-    BL_ASSERT((x).contains(bx));                                           \
-    BL_ASSERT((y).contains(by));                                           \
-    BL_ASSERT((bx).sameSize(by));                                          \
+    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
+    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
+    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                         \
+    BL_ASSERT((x).contains(bx));                                        \
+    BL_ASSERT((y).contains(by));                                        \
+    BL_ASSERT((bx).sameSize(by));                                       \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \
     const int *_y_plen = (y).length();                                  \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
-    const int *_len = (bx).length().getVect();                          \
+    IntVect bx_length = (bx).size();                                    \
+    const int *_len = bx_length.getVect();                              \
     T* _x_p  = (x).dataPtr(nsx);                                        \
     const T* _y_p  = (y).dataPtr(nsy);                                  \
     for(int _n = 0; _n < (nc); ++_n) {                                  \
@@ -798,12 +812,13 @@
 
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -823,12 +838,13 @@
 
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -849,12 +865,13 @@
 
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _x_p = (x) .dataPtr();                                           \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -875,12 +892,13 @@
 
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(x.contains(b));                                              \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BL_ASSERT(x.contains(b));                                           \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= (x).nComp());                 \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -902,12 +920,13 @@
 
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -928,12 +947,13 @@
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    BL_ASSERT(contains(b));                                                \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BL_ASSERT(contains(b));                                             \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length().getVect();                         \
+    IntVect b_length = (b).size();                                      \
+    const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -954,8 +974,8 @@
 
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -965,7 +985,8 @@
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -994,20 +1015,20 @@
 
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
     Box _subbox_(box());                                                \
     _subbox_ &= b;                                                      \
-    BL_ASSERT((bx).sameSize(_subbox_));                                    \
+    BL_ASSERT((bx).sameSize(_subbox_));                                 \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
         const int *_x_plo = (x).loVect();                               \
         const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -1040,13 +1061,13 @@
 
 #define ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy)              \
 {                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
+    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
+    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
     Box _subbox_(box());                                                \
     _subbox_ &= b;                                                      \
-    BL_ASSERT((bx).sameSize(_subbox_));                                    \
-    BL_ASSERT((by).sameSize(_subbox_));                                    \
+    BL_ASSERT((bx).sameSize(_subbox_));                                 \
+    BL_ASSERT((by).sameSize(_subbox_));                                 \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -1055,11 +1076,10 @@
         const int *_y_plo = (y).loVect();                               \
         const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length().getVect();           \
+        IntVect _subbox_length = _subbox_.size();                       \
+        const int *_subbox_len = _subbox_length.getVect();              \
         const int *_bx_lo = (bx).loVect();                              \
-        /* const int *_bx_len = (bx).length().getVect(); */             \
         const int *_by_lo = (by).loVect();                              \
-        /* const int *_by_len = (by).length().getVect(); */             \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -1106,19 +1126,20 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
 {                                                                       \
-    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    BL_ASSERT((x).contains(bx));                                           \
-    BL_ASSERT((y).contains(by));                                           \
-    BL_ASSERT((bx).sameSize(by));                                          \
+    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                         \
+    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
+    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
+    BL_ASSERT((x).contains(bx));                                        \
+    BL_ASSERT((y).contains(by));                                        \
+    BL_ASSERT((bx).sameSize(by));                                       \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \
     const int *_y_plen = (y).length();                                  \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
-    const int *_len = (bx).length().getVect();                          \
+    IntVect bx_length = (bx).size();                                    \
+    const int *_len = bx_length.getVect();                              \
     T* _x_p  = (x).dataPtr(nsx);                                        \
     const T* _y_p  = (y).dataPtr(nsy);                                  \
     for(int _n = 0; _n < (nc); ++_n) {                                  \

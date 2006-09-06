@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.68 2005-10-07 17:02:09 car Exp $
+// $Id: TagBox.cpp,v 1.69 2006-09-06 17:27:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -42,15 +42,18 @@ TagBox::coarsen (const IntVect& ratio)
 
     const int* flo  = domain.loVect();
     const int* fhi  = domain.hiVect();
-    const int* flen = domain.length().getVect();
+    IntVect d_length = domain.size();
+    const int* flen = d_length.getVect();
 
     const int* clo  = cbox.loVect();
     const int* chi  = cbox.hiVect();
-    const int* clen = cbox.length().getVect();
+    IntVect cbox_length = cbox.size();
+    const int* clen = cbox_length.getVect();
 
     const int* lo  = b1.loVect();
     const int* hi  = b1.hiVect();
-    const int* len = b1.length().getVect();
+    IntVect b1_length = b1.size();
+    const int* len = b1_length.getVect();
 
     int longlen, dir;
     longlen = b1.longside(dir);
@@ -201,7 +204,8 @@ TagBox::buffer (int nbuff,
            jlo=inlo[1]; jhi=inhi[1]; ,
            klo=inlo[2]; khi=inhi[2];)
 
-    const int* len = domain.length().getVect();
+    IntVect d_length = domain.size();
+    const int* len = d_length.getVect();
     const int* lo = domain.loVect();
     int ni = 0, nj = 0, nk = 0;
     D_TERM(ni, =nj, =nk) = nbuff;
@@ -248,9 +252,11 @@ TagBox::merge (const TagBox& src)
     if (bx.ok())
     {
         const int* dlo  = domain.loVect();
-        const int* dlen = domain.length().getVect();
+        IntVect d_length = domain.size();
+        const int* dlen = d_length.getVect();
         const int* slo  = src.domain.loVect();
-        const int* slen = src.domain.length().getVect();
+        IntVect src_length = src.domain.size();
+        const int* slen = src_length.getVect();
         const int* lo   = bx.loVect();
         const int* hi   = bx.hiVect();
 
@@ -318,7 +324,8 @@ TagBox::collate (IntVect* ar,
     // each tagged cell in tagbox.
     //
     int count        = 0;
-    const int* len   = domain.length().getVect();
+    IntVect d_length = domain.size();
+    const int* len   = d_length.getVect();
     const int* lo    = domain.loVect();
     const TagType* d = dataPtr();
     int ni = 1, nj = 1, nk = 1;

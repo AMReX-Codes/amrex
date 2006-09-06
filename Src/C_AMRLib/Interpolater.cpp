@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.34 2006-05-05 18:50:42 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.35 2006-09-06 17:27:48 lijewski Exp $
 //
 #include <winstd.H>
 #include <climits>
@@ -93,7 +93,7 @@ NodeBilinear::interp (const FArrayBox& crse,
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
     int num_slope  = D_TERM(2,*2,*2)-1;
-    int len0       = crse.box().length()[0];
+    int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
     Array<Real> strip(slp_len);
@@ -163,7 +163,7 @@ CellBilinear::interp (const FArrayBox& crse,
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
     int num_slope  = D_TERM(2,*2,*2)-1;
-    int len0       = crse.box().length()[0];
+    int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
     Array<Real> slope(slp_len);
