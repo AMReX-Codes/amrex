@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.56 2006-02-08 21:36:12 car Exp $
+// $Id: BaseFab.H,v 1.57 2006-09-06 17:26:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -813,11 +813,12 @@ protected:
                         int        numcomp);
 protected:
 
-    Box  domain;   // My index space.
-    int  nvar;     // Number components.
-    long numpts;   // Cached number of points in FAB.
-    long truesize; // nvar*numpts that was allocated on heap.
-    T*   dptr;     // The data pointer.
+    Box     domain;   // My index space.
+    IntVect dlen;     // Length of domain in each direction.
+    int     nvar;     // Number components.
+    long    numpts;   // Cached number of points in FAB.
+    long    truesize; // nvar*numpts that was allocated on heap.
+    T*      dptr;     // The data pointer.
 };
 
 template <class T>
@@ -841,7 +842,7 @@ inline
 const int*
 BaseFab<T>::length () const
 {
-    return domain.length().getVect();
+    return dlen.getVect();
 }
 
 template <class T>
@@ -1170,8 +1171,10 @@ BaseFab<T>::BaseFab ()
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab& fab)
-    : domain(fab.box()),
-      nvar(fab.nComp())
+    :
+    domain(fab.box()),
+    dlen(fab.dlen),
+    nvar(fab.nComp())
 {
     numpts = domain.numPts();
     dptr = 0;
@@ -1212,6 +1215,7 @@ BaseFab<T>::BaseFab (const Box& bx,
                      int        n)
     :
     domain(bx),
+    dlen(bx.size()),
     nvar(n),
     numpts(bx.numPts()),
     dptr(0)
@@ -1226,6 +1230,7 @@ BaseFab<T>::resize (const Box& b,
 {
     nvar   = n;
     domain = b;
+    dlen   = b.size();
     numpts = domain.numPts();
 
     if (dptr == 0)
@@ -1292,10 +1297,10 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_th_plen = length(); 
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length().getVect(); 
+        const int *_subbox_lo = _subbox_.loVect();
+        IntVect _subbox_length = _subbox_.size();
+        const int *_subbox_len = _subbox_length.getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -1323,10 +1328,10 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_th_plen = length(); 
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length().getVect(); 
+        const int *_subbox_lo = _subbox_.loVect();
+        IntVect _subbox_length = _subbox_.size();
+        const int *_subbox_len = _subbox_length.getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -1362,10 +1367,10 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_th_plen = length(); 
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length().getVect(); 
+        const int *_subbox_lo = _subbox_.loVect();
+        IntVect _subbox_length = _subbox_.size();
+        const int *_subbox_len = _subbox_length.getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)

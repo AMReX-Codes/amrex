@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.26 2003-06-24 17:18:21 lijewski Exp $
+// $Id: Box.H,v 1.27 2006-09-06 17:26:53 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -221,7 +221,7 @@ public:
     //
     //@ManDoc: Return the length of the Box.
     //
-    const IntVect& length () const;
+    IntVect size () const;
     //
     //@ManDoc: Return the length of the Box in given direction.
     //
@@ -236,11 +236,6 @@ public:
                Useful for calls to FORTRAN.
     */
     const int* hiVect () const;
- 
-    /*@ManDoc: Returns a constant pointer to the array of coordinates in the
-               Box.  Useful for fortran, but otherwise too dangerous for use.
-    */
-    const int* getVect () const;
     //
     //@ManDoc: Returns the coordinate normal to given face.
     //
@@ -570,7 +565,6 @@ protected:
 
     IntVect         smallend;
     IntVect         bigend;
-    mutable IntVect len;
     IndexType       btype;
 };
 
@@ -642,13 +636,6 @@ const int*
 Box::hiVect () const
 {
     return bigend.getVect();
-}
-
-inline
-const int*
-Box::getVect () const
-{
-    return smallend.getVect();
 }
 
 inline
@@ -735,14 +722,12 @@ Box::ok () const
 }
 
 inline
-const IntVect&
-Box::length () const
+IntVect
+Box::size () const
 {
-    D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
-           len[1] = bigend[1]-smallend[1] + 1,
-           len[2] = bigend[2]-smallend[2] + 1);
-
-    return len;
+    return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
+                          bigend[1]-smallend[1] + 1,
+                          bigend[2]-smallend[2] + 1));
 }
 
 #endif /*BL_BOX_H*/

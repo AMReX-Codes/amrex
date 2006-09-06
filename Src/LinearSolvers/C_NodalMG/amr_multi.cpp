@@ -220,7 +220,7 @@ amr_multigrid::mesh_read (Array<BoxArray>& m,
 	d.set(ilev, b);
 	if (ilev > 0)
 	{
-	    r.set(ilev-1, d[ilev].length() / d[ilev-1].length());
+	    r.set(ilev-1, d[ilev].size() / d[ilev-1].size());
 	}
 	m[ilev].resize(igrid);
 	for (int igrid = 0; igrid < m[ilev].size(); igrid++)
@@ -371,8 +371,8 @@ amr_multigrid::build_mesh (const Box& fdomain)
 		}
 		else
 		{
-		    IntVect rat = mg_domain[mglev+1].length()
-			/ mg_domain[mglev].length();
+		    IntVect rat = mg_domain[mglev+1].size()
+			/ mg_domain[mglev].size();
 		    lev_interface[mglev].alloc_coarsened(
 			mg_mesh[mglev], mg_boundary,
 			lev_interface[mglev + 1], rat);

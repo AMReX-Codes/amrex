@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.21 2006-01-09 05:00:30 lijewski Exp $
+// $Id: Cluster.cpp,v 1.22 2006-09-06 17:27:48 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -285,9 +285,10 @@ Cluster::chop ()
     BL_ASSERT(m_len > 1);
     BL_ASSERT(!(m_ar == 0));
 
-    const int* lo  = m_bx.loVect();
-    const int* hi  = m_bx.hiVect();
-    const int* len = m_bx.length().getVect();
+    const int* lo       = m_bx.loVect();
+    const int* hi       = m_bx.hiVect();
+    IntVect m_bx_length = m_bx.size();
+    const int* len      = m_bx_length.getVect();
     //
     // Compute histogram.
     //

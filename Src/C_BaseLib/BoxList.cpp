@@ -572,7 +572,8 @@ BoxList::maxSize (const IntVect& chunk)
 
     for (iterator bli = begin(); bli != end(); ++bli)
     {
-        const int* len = bli->length().getVect();
+        IntVect boxlen = bli->size();
+        const int* len = boxlen.getVect();
 
         for (int i = 0; i < BL_SPACEDIM; i++)
         {

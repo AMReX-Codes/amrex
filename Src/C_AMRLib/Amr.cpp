@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.151 2006-09-01 21:31:18 lijewski Exp $
+// $Id: Amr.cpp,v 1.152 2006-09-06 17:27:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1432,7 +1432,8 @@ Amr::defBaseLevel (Real strt_time)
     // Check that base domain has even number of zones in all directions.
     //
     const Box& domain = geom[0].Domain();
-    const int* d_len  = domain.length().getVect();
+    IntVect d_length  = domain.size();
+    const int* d_len  = d_length.getVect();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
