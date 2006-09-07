@@ -4,6 +4,7 @@ f90sources += itsol.f90
 ifdef USE_MG_CPP
 f90sources += mg_cpp.f90
 f90sources += mg_nodal_cpp.f90
+f90sources += nodal_newu.f90
 endif
 f90sources += mg.f90
 f90sources += mg_smoother.f90
