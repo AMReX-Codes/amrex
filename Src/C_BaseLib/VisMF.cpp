@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.101 2006-09-08 20:44:02 vince Exp $
+// $Id: VisMF.cpp,v 1.102 2006-09-08 23:17:20 vince Exp $
 //
 
 #include <winstd.H>
@@ -654,6 +654,7 @@ VisMF::Write (const MultiFab&    mf,
         for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
           hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
         }
+        FabFile.flush();
       }
       ParallelDescriptor::Barrier();
     }  // end for(iSet...)
@@ -677,6 +678,7 @@ VisMF::Write (const MultiFab&    mf,
         for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
           hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
         }
+        FabFile.flush();
 	const int iBuff(0);
 	int wakeUpPID(MyProc + nOutFiles);
 	int tag(MyProc % nOutFiles);
