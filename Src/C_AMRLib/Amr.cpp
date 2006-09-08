@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.152 2006-09-06 17:27:48 lijewski Exp $
+// $Id: Amr.cpp,v 1.153 2006-09-08 20:44:25 vince Exp $
 //
 #include <winstd.H>
 
@@ -43,6 +43,8 @@ namespace
 {
   bool plot_files_output = true;
   bool checkpoint_files_output = true;
+  int  plot_nfiles = -1;
+  int  checkpoint_nfiles = -1;
 }
 
 //
@@ -288,6 +290,9 @@ Amr::Amr ()
     n_proper         = 1;
     max_grid_size    = (BL_SPACEDIM == 2) ? 128 : 32;
 
+    plot_nfiles       = ParallelDescriptor::NProcs();
+    checkpoint_nfiles = ParallelDescriptor::NProcs();
+
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
         isPeriodic[i] = false;
@@ -304,6 +309,9 @@ Amr::Amr ()
 
     pp.query("checkpoint_files_output", checkpoint_files_output);
     pp.query("plot_files_output", plot_files_output);
+
+    pp.query("checkpoint_nfiles", checkpoint_nfiles);
+    pp.query("plot_nfiles", plot_nfiles);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -708,6 +716,8 @@ Amr::writePlotFile (const std::string& root,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::writePlotFile()");
     if ( ! Plot_Files_Output() ) return;
+
+    VisMF::SetNOutFiles(plot_nfiles);
 
     if (first_plotfile) 
     {
@@ -1147,6 +1157,9 @@ Amr::checkPoint ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::checkPoint()");
     if ( ! checkpoint_files_output ) return;
+
+    VisMF::SetNOutFiles(checkpoint_nfiles);
+
     //
     // In checkpoint files always write out FABs in NATIVE format.
     //
