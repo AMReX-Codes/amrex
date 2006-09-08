@@ -1,7 +1,7 @@
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
 //
-// $Id: VisMF.H,v 1.52 2006-03-06 19:24:44 car Exp $
+// $Id: VisMF.H,v 1.53 2006-09-08 20:44:02 vince Exp $
 //
 
 #include <iosfwd>
@@ -177,6 +177,11 @@ public:
     FArrayBox* readFAB (int fabIndex,
                         int ncomp);
 
+    static void SetNOutFiles(int noutfiles) {
+      nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
+    }
+    static int GetNOutFiles() { return nOutFiles; }
+
 private:
     //
     // These are disallowed.
@@ -225,6 +230,10 @@ private:
     // We manage the FABs individually.
     //
     mutable Array< Array<FArrayBox*> > m_pa;
+    //
+    // The number of files to write for a MultiFab.
+    //
+    static int nOutFiles;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.

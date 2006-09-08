@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.100 2006-05-11 21:22:31 lijewski Exp $
+// $Id: VisMF.cpp,v 1.101 2006-09-08 20:44:02 vince Exp $
 //
 
 #include <winstd.H>
@@ -20,6 +20,7 @@
 const std::string VisMF::FabFileSuffix("_D_");
 const std::string VisMF::MultiFabHdrFileSuffix("_H");
 const std::string VisMF::FabOnDisk::Prefix("FabOnDisk:");
+int VisMF::nOutFiles(-1);
 
 std::ostream&
 operator<< (std::ostream&           os,
@@ -588,6 +589,7 @@ VisMF::Write (const MultiFab&    mf,
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
 
     long bytes = 0;
 
@@ -620,26 +622,78 @@ VisMF::Write (const MultiFab&    mf,
 
     std::string FullFileName = mf_name;
 
+    if(nOutFiles == -1) {
+      nOutFiles = ParallelDescriptor::NProcs();
+    }
+
     FullFileName += VisMF::FabFileSuffix;
-    sprintf(buf, "%04d", MyProc);
+    sprintf(buf, "%04d", MyProc % nOutFiles);
     FullFileName += buf;
 
     std::ofstream FabFile;
 
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
-
-    if (!FabFile.good())
-        BoxLib::FileOpenFailed(FullFileName);
-
-    std::string basename = VisMF::BaseName(FullFileName);
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
+#ifdef BL_NFILES_BARRIER
+    int nSets((NProcs + (nOutFiles - 1)) / nOutFiles);
+    int mySet(MyProc/nOutFiles);
+    for(int iSet(0); iSet < nSets; ++iSet) {
+      if(mySet == iSet) {  // write the data
+        if(iSet == 0) {  // first set
+          FabFile.open(FullFileName.c_str(),
+	               std::ios::out|std::ios::trunc|std::ios::binary);
+        } else {
+          FabFile.open(FullFileName.c_str(),
+	               std::ios::out|std::ios::app|std::ios::binary);
+	  FabFile.seekp(0, std::ios::end);  // set to the end of the file
+        }
+        if( ! FabFile.good()) {
+          BoxLib::FileOpenFailed(FullFileName);
+        }
+        std::string basename = VisMF::BaseName(FullFileName);
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
+        }
+      }
+      ParallelDescriptor::Barrier();
+    }  // end for(iSet...)
+#else
+    int nSets((NProcs + (nOutFiles - 1)) / nOutFiles);
+    int mySet(MyProc/nOutFiles);
+    for(int iSet(0); iSet < nSets; ++iSet) {
+      if(mySet == iSet) {  // write the data
+        if(iSet == 0) {  // first set
+          FabFile.open(FullFileName.c_str(),
+	               std::ios::out|std::ios::trunc|std::ios::binary);
+        } else {
+          FabFile.open(FullFileName.c_str(),
+	               std::ios::out|std::ios::app|std::ios::binary);
+	  FabFile.seekp(0, std::ios::end);  // set to the end of the file
+        }
+        if( ! FabFile.good()) {
+          BoxLib::FileOpenFailed(FullFileName);
+        }
+        std::string basename = VisMF::BaseName(FullFileName);
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
+        }
+	const int iBuff(0);
+	int wakeUpPID(MyProc + nOutFiles);
+	int tag(MyProc % nOutFiles);
+	if(wakeUpPID < NProcs) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+	}
+      }
+      if(mySet == (iSet + 1)) {  // next set waits
+	int iBuff;
+	int waitForPID(MyProc - nOutFiles);
+	int tag(MyProc % nOutFiles);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      }
+    }  // end for(iSet...)
+#endif
 
 #ifdef BL_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     Array<int> nmtags(ParallelDescriptor::NProcs(),0);
@@ -663,8 +717,9 @@ VisMF::Write (const MultiFab&    mf,
 
     int ioffset = 0;
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
+    }
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
 
@@ -684,11 +739,11 @@ VisMF::Write (const MultiFab&    mf,
     {
         const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-        for (int i = 0; i < nmtags.size(); i++)
+        for (int i(0); i < nmtags.size(); ++i)
         {
             int cnt = 0;
 
-            for (int j = 0; j < mf.size(); j++)
+            for (int j(0); j < mf.size(); ++j)
             {
                 if (pmap[j] == i)
                 {
@@ -696,7 +751,7 @@ VisMF::Write (const MultiFab&    mf,
 
                     std::string name = mf_name;
                     name += VisMF::FabFileSuffix;
-                    sprintf(buf, "%04d", i);
+                    sprintf(buf, "%04d", i % nOutFiles);
                     name += buf;
 
                     hdr.m_fod[j].m_name = VisMF::BaseName(name);
@@ -710,8 +765,11 @@ VisMF::Write (const MultiFab&    mf,
     }
 #endif /*BL_USE_MPI*/
 
-    if (VisMF::FileOffset(FabFile) <= 0)
+    if(nOutFiles == NProcs) {
+      if(VisMF::FileOffset(FabFile) <= 0) {
         BoxLib::UnlinkFile(FullFileName);
+      }
+    }
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
