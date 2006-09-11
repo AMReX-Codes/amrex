@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.185 2006-08-30 00:39:20 lijewski Exp $
+// $Id: FabArray.H,v 1.186 2006-09-11 21:43:20 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -906,6 +906,48 @@ FabArray<FAB>::setBndry (value_type val,
     }
 }
 
+//
+// Used by FabArray::copy().
+//
+struct CopyComTag
+{
+    Box box;
+    int fabIndex;
+    int srcIndex;
+};
+
+struct CPC
+{
+    CPC ();
+
+    CPC (const BoxArray&            dstba,
+         const BoxArray&            srcba,
+         const DistributionMapping& dstdm,
+         const DistributionMapping& srcdm);
+
+    CPC (const CPC& rhs);
+
+    ~CPC ();
+
+    bool operator== (const CPC& rhs) const;
+    bool operator!= (const CPC& rhs) const;
+
+    static CPC& TheCPC (const CPC& cpc, bool& got_from_cache);
+
+    static void FlushCache ();
+
+    BoxArray                         m_dstba;
+    BoxArray                         m_srcba;
+    DistributionMapping              m_dstdm;
+    DistributionMapping              m_srcdm;
+    //
+    // The cache of local and send/recv info per FabArray::copy().
+    //
+    std::vector<CopyComTag>          m_LocalTags;
+    Array< std::vector<CopyComTag> > m_SndTags;
+    Array< std::vector<CopyComTag> > m_RcvTags;
+};
+
 template <class FAB>
 void
 FabArray<FAB>::copy (const FabArray<FAB>& src,
@@ -927,50 +969,78 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    FabComTag tag;
+    CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    Array< std::vector<FabComTag> > SndTags(NProcs), RcvTags(NProcs);
+    bool got_from_cache = false;
 
-    for (int i = 0; i < size(); i++)
+    CPC& thecpc = CPC::TheCPC(cpc, got_from_cache);
+
+    if (got_from_cache)
     {
-        std::vector< std::pair<int,Box> > isects = src.boxarray.intersections(boxarray[i]);
-
-        for (int ii = 0; ii < isects.size(); ii++)
+        //
+        // All we need to do here are the local copy()s.
+        //
+        for (int j = 0; j < thecpc.m_LocalTags.size(); j++)
         {
-            const Box& bx  = isects[ii].second;
-            const int  iii = isects[ii].first;
+            CopyComTag& t = thecpc.m_LocalTags[j];
+            
+            fabparray[t.fabIndex].copy(src[t.srcIndex],t.box,scomp,t.box,dcomp,ncomp);
+        }
+    }
+    else
+    {
+        CopyComTag tag;
 
-            if (distributionMap[i] == MyProc)
+        thecpc.m_SndTags.resize(NProcs);
+        thecpc.m_RcvTags.resize(NProcs);
+
+        for (int i = 0; i < size(); i++)
+        {
+            std::vector< std::pair<int,Box> > isects = src.boxarray.intersections(boxarray[i]);
+
+            for (int ii = 0; ii < isects.size(); ii++)
             {
-                if (src.distributionMap[iii] == MyProc)
+                const Box& bx  = isects[ii].second;
+                const int  iii = isects[ii].first;
+
+                if (distributionMap[i] == MyProc)
                 {
-                    fabparray[i].copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                    if (src.distributionMap[iii] == MyProc)
+                    {
+                        fabparray[i].copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+
+                        tag.box      = bx;
+                        tag.fabIndex = i;
+                        tag.srcIndex = iii;
+
+                        thecpc.m_LocalTags.push_back(tag);
+                    }
+                    else
+                    {
+                        tag.box      = bx;
+                        tag.fabIndex = i;
+                        thecpc.m_RcvTags[src.distributionMap[iii]].push_back(tag);
+                    }
                 }
                 else
                 {
-                    tag.box      = bx;
-                    tag.fabIndex = i;
-                    RcvTags[src.distributionMap[iii]].push_back(tag);
-                }
-            }
-            else
-            {
-                if (src.distributionMap[iii] == MyProc)
-                {
-                    tag.box      = bx;
-                    tag.fabIndex = iii;
-                    SndTags[distributionMap[i]].push_back(tag);
+                    if (src.distributionMap[iii] == MyProc)
+                    {
+                        tag.box      = bx;
+                        tag.fabIndex = iii;
+                        thecpc.m_SndTags[distributionMap[i]].push_back(tag);
+                    }
                 }
             }
         }
     }
-
+    
     if (NProcs == 1) return;
 
 #ifdef BL_USE_MPI
 
-    static bool do_alltoallv    = false;
-    static bool isdef_alltoallv = false;
+    static bool do_alltoallv     = false;
+    static bool isdef_alltoallv  = false;
 
     if (!isdef_alltoallv)
     {
@@ -989,14 +1059,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         for (int i = 0; i < NProcs; i++)
         {
             int Ns = 0;
-            for (int j = 0; j < SndTags[i].size(); j++)
-                Ns += SndTags[i][j].box.numPts() * ncomp;
+            for (int j = 0; j < thecpc.m_SndTags[i].size(); j++)
+                Ns += thecpc.m_SndTags[i][j].box.numPts() * ncomp;
             sendcount[i] = Ns;
             Nsend       += Ns;
 
             int Nr = 0;
-            for (int j = 0; j < RcvTags[i].size(); j++)
-                Nr += RcvTags[i][j].box.numPts() * ncomp;
+            for (int j = 0; j < thecpc.m_RcvTags[i].size(); j++)
+                Nr += thecpc.m_RcvTags[i][j].box.numPts() * ncomp;
             recvcount[i] = Nr;
             Nrecv       += Nr;
         }
@@ -1019,11 +1089,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int i = 0; i < NProcs; i++)
         {
-            for (int j = 0; j < SndTags[i].size(); j++)
+            for (int j = 0; j < thecpc.m_SndTags[i].size(); j++)
             {
-                const Box& bx = SndTags[i][j].box;
+                const Box& bx = thecpc.m_SndTags[i][j].box;
                 fab.resize(bx, ncomp);
-                fab.copy(src[SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
+                fab.copy(src[thecpc.m_SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
                 const int N = bx.numPts() * ncomp;
                 memcpy(senddptr, fab.dataPtr(), N*sizeof(value_type));
                 senddptr += N;
@@ -1048,13 +1118,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int i = 0; i < NProcs; i++)
         {
-            for (int j = 0; j < RcvTags[i].size(); j++)
+            for (int j = 0; j < thecpc.m_RcvTags[i].size(); j++)
             {
-                const Box& bx = RcvTags[i][j].box;
+                const Box& bx = thecpc.m_RcvTags[i][j].box;
                 fab.resize(bx, ncomp);
                 const int N = bx.numPts() * ncomp;
                 memcpy(fab.dataPtr(), recvdptr, N*sizeof(value_type));
-                fabparray[RcvTags[i][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
+                fabparray[thecpc.m_RcvTags[i][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
                 recvdptr += N;
             }
         }
@@ -1080,12 +1150,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             reqs[i] = MPI_REQUEST_NULL;
 
-            if (!RcvTags[i].empty())
+            if (!thecpc.m_RcvTags[i].empty())
             {
                 NWaits++;
                 size_t N = 0;
-                for (unsigned int j = 0; j < RcvTags[i].size(); j++)
-                    N += RcvTags[i][j].box.numPts() * ncomp;
+                for (unsigned int j = 0; j < thecpc.m_RcvTags[i].size(); j++)
+                    N += thecpc.m_RcvTags[i][j].box.numPts() * ncomp;
                 BL_ASSERT(N < std::numeric_limits<size_t>::max());
                 fab_data[i] = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
                 reqs[i] = ParallelDescriptor::Arecv(fab_data[i],N,i,seqno).req();
@@ -1098,19 +1168,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         for (int i = 0; i < NProcs; i++)
         {
-            if (!SndTags[i].empty())
+            if (!thecpc.m_SndTags[i].empty())
             {
                 size_t N = 0;
-                for (unsigned int j = 0; j < SndTags[i].size(); j++)
-                    N += SndTags[i][j].box.numPts() * ncomp;
+                for (unsigned int j = 0; j < thecpc.m_SndTags[i].size(); j++)
+                    N += thecpc.m_SndTags[i][j].box.numPts() * ncomp;
                 BL_ASSERT(N < std::numeric_limits<size_t>::max());
                 value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
                 value_type* dptr = data;
-                for (unsigned int j = 0; j < SndTags[i].size(); j++)
+                for (unsigned int j = 0; j < thecpc.m_SndTags[i].size(); j++)
                 {
-                    const Box& bx = SndTags[i][j].box;
+                    const Box& bx = thecpc.m_SndTags[i][j].box;
                     fab.resize(bx, ncomp);
-                    fab.copy(src[SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
+                    fab.copy(src[thecpc.m_SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
                     int count = bx.numPts() * ncomp;
                     memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
                     dptr += count;
@@ -1131,13 +1201,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
                 value_type* dptr = fab_data[indx[k]];
                 BL_ASSERT(!(dptr == 0));
-                for (unsigned int j = 0; j < RcvTags[indx[k]].size(); j++)
+                for (unsigned int j = 0; j < thecpc.m_RcvTags[indx[k]].size(); j++)
                 {
-                    const Box& bx = RcvTags[indx[k]][j].box;
+                    const Box& bx = thecpc.m_RcvTags[indx[k]][j].box;
                     fab.resize(bx, ncomp);
                     int N = bx.numPts() * ncomp;
                     memcpy(fab.dataPtr(), dptr, N*sizeof(value_type));
-                    fabparray[RcvTags[indx[k]][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
+                    fabparray[thecpc.m_RcvTags[indx[k]][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
                     dptr += N;
                 }
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
