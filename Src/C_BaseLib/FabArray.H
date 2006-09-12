@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.186 2006-09-11 21:43:20 lijewski Exp $
+// $Id: FabArray.H,v 1.187 2006-09-12 20:01:16 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -911,6 +911,9 @@ FabArray<FAB>::setBndry (value_type val,
 //
 struct CopyComTag
 {
+    CopyComTag ();
+    CopyComTag (const CopyComTag& cct);
+
     Box box;
     int fabIndex;
     int srcIndex;
@@ -936,16 +939,20 @@ struct CPC
 
     static void FlushCache ();
 
-    BoxArray                         m_dstba;
-    BoxArray                         m_srcba;
-    DistributionMapping              m_dstdm;
-    DistributionMapping              m_srcdm;
+    BoxArray            m_dstba;
+    BoxArray            m_srcba;
+    DistributionMapping m_dstdm;
+    DistributionMapping m_srcdm;
     //
     // The cache of local and send/recv info per FabArray::copy().
     //
     std::vector<CopyComTag>          m_LocalTags;
     Array< std::vector<CopyComTag> > m_SndTags;
     Array< std::vector<CopyComTag> > m_RcvTags;
+    //
+    // Has this CPC ever been reused in the cache?
+    //
+    bool m_reused;
 };
 
 template <class FAB>
@@ -982,9 +989,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         for (int j = 0; j < thecpc.m_LocalTags.size(); j++)
         {
-            CopyComTag& t = thecpc.m_LocalTags[j];
+            CopyComTag& tag = thecpc.m_LocalTags[j];
+
+            BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+            BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
             
-            fabparray[t.fabIndex].copy(src[t.srcIndex],t.box,scomp,t.box,dcomp,ncomp);
+            fabparray[tag.fabIndex].copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
         }
     }
     else
