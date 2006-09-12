@@ -1,8 +1,9 @@
 //
-// $Id: Geometry.cpp,v 1.65 2005-10-07 17:02:00 car Exp $
+// $Id: Geometry.cpp,v 1.66 2006-09-12 22:51:04 lijewski Exp $
 //
 #include <winstd.H>
 
+#include <map>
 #include <iostream>
 
 #include <BoxArray.H>
@@ -74,14 +75,12 @@ struct FPB
     int           m_ngrow;
     bool          m_do_corners;
 };
-//
-// A useful typedef.
-//
-typedef std::list<FPB> FPBList;
-//
-// A cache of FPBs.
-//
-static FPBList m_FPBCache;
+
+typedef std::multimap<int,FPB> FPBMMap;
+
+typedef FPBMMap::iterator FPBMMapIter;
+
+static FPBMMap m_FPBCache;
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -282,21 +281,19 @@ Geometry::getFPB (MultiFab&  mf,
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getFPB(mf)");
 
     BL_ASSERT(isAnyPeriodic());
-    //
-    // Have we already made one with appropriate characteristics?
-    //
-    // Search from the front to the back ...
-    //
-    for (FPBList::iterator it = m_FPBCache.begin();
-         it != m_FPBCache.end();
-         ++it)
+
+    const int key = mf.nGrow() + mf.size();
+
+    std::pair<FPBMMapIter,FPBMMapIter> er_it = m_FPBCache.equal_range(key);
+    
+    for (FPBMMapIter it = er_it.first; it != er_it.second; ++it)
     {
-        if (*it == fpb)
+        if (it->second == fpb)
         {
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            Array<CommData>& cd = (*it).m_commdata.theCommData();
+            Array<CommData>& cd = it->second.m_commdata.theCommData();
 
             for (int i = 0; i < cd.size(); i++)
             {
@@ -304,7 +301,7 @@ Geometry::getFPB (MultiFab&  mf,
                 cd[i].srcComp(scomp);
             }
 
-            return *it;
+            return it->second;
         }
     }
 
@@ -327,19 +324,21 @@ FPB&
 Geometry::buildFPB (MultiFab&  mf,
                     const FPB& fpb) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::buildFPB(mf)");
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::buildFPB()");
 
     BL_ASSERT(isAnyPeriodic());
 
-    m_FPBCache.push_front(fpb);
+    const int key = mf.nGrow() + mf.size();
 
-    PIRMMap& pirm = m_FPBCache.front().m_pirm;
+    FPBMMapIter it = m_FPBCache.insert(std::make_pair(key,fpb));
+
+    PIRMMap& pirm = it->second.m_pirm;
 
     Array<IntVect> pshifts(27);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box dest = mf[mfi].box();
+        const Box& dest = mf[mfi].box();
 
         BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
 
@@ -384,7 +383,7 @@ Geometry::buildFPB (MultiFab&  mf,
         }
     }
 
-    return m_FPBCache.front();
+    return it->second;
 }
 
 void
