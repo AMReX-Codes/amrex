@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.72 2006-09-12 20:46:46 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.73 2006-09-12 21:38:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -612,7 +612,9 @@ BuildFBsirec (const SI&       si,
     BL_ASSERT(mf.nGrow() == si.m_ngrow);
     BL_ASSERT(mf.boxArray() == si.m_ba);
 
-    SIMMapIter it = SICache.insert(std::make_pair(mf.size(),si));
+    const int key = mf.nGrow() + mf.size();
+
+    SIMMapIter it = SICache.insert(std::make_pair(key,si));
 
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
@@ -666,7 +668,9 @@ TheFBsirec (int             scomp,
 
     const SI si(mf.boxArray(), mf.nGrow());
 
-    std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(mf.size());
+    const int key = mf.nGrow() + mf.size();
+
+    std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
     
     for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
     {
