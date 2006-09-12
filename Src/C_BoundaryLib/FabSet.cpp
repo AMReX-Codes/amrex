@@ -1,9 +1,9 @@
 //
-// $Id: FabSet.cpp,v 1.43 2002-12-11 17:05:25 lijewski Exp $
+// $Id: FabSet.cpp,v 1.44 2006-09-12 21:50:09 lijewski Exp $
 //
 #include <winstd.H>
 
-#include <list>
+#include <map>
 
 #include <FabSet.H>
 #include <ParallelDescriptor.H>
@@ -248,10 +248,7 @@ FSRec::~FSRec () {}
 bool
 FSRec::operator== (const FSRec& rhs) const
 {
-    return
-        m_ngrow == rhs.m_ngrow &&
-        m_src   == rhs.m_src   &&
-        m_dst   == rhs.m_dst;
+    return m_ngrow == rhs.m_ngrow && m_src == rhs.m_src && m_dst == rhs.m_dst;
 }
 
 bool
@@ -260,15 +257,11 @@ FSRec::operator!= (const FSRec& rhs) const
     return !operator==(rhs);
 }
 
-//
-// A useful typedef.
-//
-typedef std::list<FSRec> FSRecList;
+typedef std::multimap<int,FSRec> FSRecMMap;
 
-//
-// Cache of FSRec info.
-//
-static FSRecList TheCache;
+typedef FSRecMMap::iterator FSRecMMapIter;
+
+static FSRecMMap TheCache;
 
 void
 FabSet::FlushCache ()
@@ -288,16 +281,20 @@ TheFSRec (const MultiFab& src,
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >  0);
 
-    const FSRec rec(src.boxArray(),dst.boxArray(),ngrow);
+    FSRec rec(src.boxArray(),dst.boxArray(),ngrow);
 
-    for (FSRecList::iterator it = TheCache.begin(); it != TheCache.end(); ++it)
+    const int key = ngrow + src.size() + dst.size();
+
+    std::pair<FSRecMMapIter,FSRecMMapIter> er_it = TheCache.equal_range(key);
+
+    for (FSRecMMapIter it = er_it.first; it != er_it.second; ++it)
     {
-        if (*it == rec)
+        if (it->second == rec)
         {
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            Array<CommData>& cd = (*it).m_commdata.theCommData();
+            Array<CommData>& cd = it->second.m_commdata.theCommData();
 
             for (int i = 0; i < cd.size(); i++)
             {
@@ -305,36 +302,37 @@ TheFSRec (const MultiFab& src,
                 cd[i].srcComp(scomp);
             }
 
-            return *it;
+            return it->second;
         }
     }
 
-    TheCache.push_front(rec);
+    FSRecMMapIter it = TheCache.insert(std::make_pair(key,rec));
     //
     // Calculate and cache intersection info.
     //
+    BoxArray ba_src(src.size());
+    for (int i = 0; i < src.size(); i++)
+        ba_src.set(i, BoxLib::grow(src.boxArray()[i],ngrow));
+
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi)
     {
-        for (int i = 0; i < src.size(); i++)
-        {
-            Box ovlp = dst[fsi].box() & BoxLib::grow(src.boxArray()[i],ngrow);
+        std::vector< std::pair<int,Box> > isects = ba_src.intersections(dst[fsi].box());
 
-            if (ovlp.ok())
-            {
-                TheCache.front().m_box.push_back(ovlp);
-                //
-                // Maintain parallel array of indices into MultiFab.
-                //
-                TheCache.front().m_mfidx.push_back(i);
-                //
-                // Maintain parallel array of indices into FabSet.
-                //
-                TheCache.front().m_fsidx.push_back(fsi.index());
-            }
+        for (int j = 0; j < isects.size(); j++)
+        {
+            it->second.m_box.push_back(isects[j].second);
+            //
+            // Maintain parallel array of indices into MultiFab.
+            //
+            it->second.m_mfidx.push_back(isects[j].first);
+            //
+            // Maintain parallel array of indices into FabSet.
+            //
+            it->second.m_fsidx.push_back(fsi.index());
         }
     }
 
-    return TheCache.front();
+    return it->second;
 }
 
 void
@@ -407,6 +405,8 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copyFrom()");
+
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
 
     return *this;
@@ -419,6 +419,8 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::plusFrom()");
+
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
 
     return *this;
