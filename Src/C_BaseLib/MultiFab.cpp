@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.71 2005-10-05 21:44:12 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.72 2006-09-12 20:46:46 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -7,7 +7,7 @@
 #include <cfloat>
 #include <iostream>
 #include <iomanip>
-#include <list>
+#include <map>
 #include <limits>
 
 #include <BLassert.H>
@@ -548,13 +548,11 @@ struct SI
     int                m_ngrow;
 };
 
-inline
 SI::SI ()
     :
     m_ngrow(-1)
 {}
 
-inline
 SI::SI (const BoxArray& ba,
         int             ngrow)
     :
@@ -564,7 +562,6 @@ SI::SI (const BoxArray& ba,
     BL_ASSERT(ngrow >= 0);
 }
 
-inline
 SI::SI (const SI& rhs)
     :
     m_cache(rhs.m_cache),
@@ -574,32 +571,25 @@ SI::SI (const SI& rhs)
     m_ngrow(rhs.m_ngrow)
 {}
 
-inline
 SI::~SI () {}
 
-inline
 bool
 SI::operator== (const SI& rhs) const
 {
     return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba;
 }
 
-inline
 bool
 SI::operator!= (const SI& rhs) const
 {
     return !operator==(rhs);
 }
 
-//
-// A useful typedef.
-//
-typedef std::list<SI> SIList;
+typedef std::multimap<int,SI> SIMMap;
 
-//
-// Cache of SI info.
-//
-static SIList SICache;
+typedef SIMMap::iterator SIMMapIter;
+
+static SIMMap SICache;
 
 void
 MultiFab::FlushSICache ()
@@ -621,16 +611,14 @@ BuildFBsirec (const SI&       si,
     BL_ASSERT(si.m_ngrow >= 0);
     BL_ASSERT(mf.nGrow() == si.m_ngrow);
     BL_ASSERT(mf.boxArray() == si.m_ba);
-    //
-    // Insert new ones at beginning of list.
-    //
-    SICache.push_front(si);
+
+    SIMMapIter it = SICache.insert(std::make_pair(mf.size(),si));
 
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::vector<SIRec>&        sirec  = SICache.front().m_sirec;
-    Array<int>&                cache  = SICache.front().m_cache;
+    std::vector<SIRec>&        sirec  = it->second.m_sirec;
+    Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
 
@@ -642,8 +630,8 @@ BuildFBsirec (const SI&       si,
 
         for (int ii = 0; ii < isects.size(); ii++)
         {
-            const Box bx  = isects[ii].second;
-            const int iii = isects[ii].first;
+            const Box& bx  = isects[ii].second;
+            const int  iii = isects[ii].first;
 
             if (i != iii)
             {
@@ -660,7 +648,7 @@ BuildFBsirec (const SI&       si,
         BL_ASSERT(cache[DMap[i]] == 0);
     }
 
-    return SICache.front();
+    return it->second;
 }
 
 //
@@ -677,15 +665,17 @@ TheFBsirec (int             scomp,
     BL_ASSERT(scomp >= 0);
 
     const SI si(mf.boxArray(), mf.nGrow());
+
+    std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(mf.size());
     
-    for (SIList::iterator it = SICache.begin(); it != SICache.end(); ++it)
+    for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
     {
-        if (*it == si)
+        if (it->second == si)
         {
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            Array<CommData>& cd = (*it).m_commdata.theCommData();
+            Array<CommData>& cd = it->second.m_commdata.theCommData();
 
             for (int i = 0; i < cd.size(); i++)
             {
@@ -693,7 +683,7 @@ TheFBsirec (int             scomp,
                 cd[i].srcComp(scomp);
             }
 
-            return *it;
+            return it->second;
         }
     }
 
