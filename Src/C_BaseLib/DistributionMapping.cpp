@@ -880,7 +880,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (false && verbose && ParallelDescriptor::IOProcessor())
     {
         os << "The DistributionMapping cache contains "
            << DistributionMapping::m_Cache.size()
