@@ -980,15 +980,9 @@ holy_grail_amr_projector::pressure_project (PArray<MultiFab>& p,
 
     BL_ASSERT(Sigma.size() > 0);
 
-    const inviscid_fluid_boundary* ifbc =
-        dynamic_cast<const inviscid_fluid_boundary*>(&boundary);
-    BL_ASSERT(ifbc != 0);
-
-    alloc_hg_multi(p, null_amr_real, null_amr_real, 
-                   Sigma, H, Lev_min, Lev_max, 0);
+    alloc_hg_multi(p, null_amr_real, null_amr_real, Sigma, H, Lev_min, Lev_max, 0);
     solve(tol, scale, 2, 2);
     clear_hg_multi();
-
 }
 
 void

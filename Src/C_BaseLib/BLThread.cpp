@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.35 2002-04-15 20:12:26 car Exp $
+// $Id: BLThread.cpp,v 1.36 2006-09-13 18:03:52 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -56,9 +56,11 @@ namespace
 	return buf;
     }
 
+#ifdef BL_THREADS
 ThreadSpecificData<int> ts_tid;
 Mutex tid_lock;
 int thread_counter = 0;
+#endif
 }
 
 namespace BoxLib
