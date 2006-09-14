@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.6 2006-05-08 21:41:33 lijewski Exp $
+# $Id: GNUmakefile,v 1.7 2006-09-14 19:50:46 lijewski Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -11,7 +11,8 @@ PRECISION     = DOUBLE
 DEBUG	      = TRUE
 PROFILE       = FALSE
 DIM	      = 2
-COMP          = KCC
+COMP          = g++
+FCOMP         = Intel
 USE_MPI       = FALSE
 #
 # The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
@@ -27,50 +28,42 @@ endif
 #
 # Base name of the executable.
 #
+EBASE = DiffUniform
+EBASE = PltFileNorm
+EBASE = PltFileScalConvRate
+EBASE = DiffFab
 EBASE = DiffSameGrid
+
+CEXE_sources += $(EBASE).cpp
 
 include $(TOP)/mk/Make.defs ./Make.package
 
-DEFINES           += -DBL_NOLINEVALUES
-
-CEXE_sources += $(EBASE).cpp
-#
-# Local INCLUDES
-#
-INCLUDE_LOCATIONS += ../../pAmrvis
-
-vpath %.H   .. ../../pAmrvis
-vpath %.cpp .. ../../pAmrvis
-vpath %.F   .. ../../pAmrvis
-vpath %.f   .. ../../pAmrvis
-
-include $(TOP)/BoxLib/Make.package
-include $(TOP)/bndrylib/Make.package
-
-INCLUDE_LOCATIONS += . ..
-INCLUDE_LOCATIONS += $(TOP)/iamrlib
-INCLUDE_LOCATIONS += $(TOP)/mglib
-INCLUDE_LOCATIONS += $(TOP)/tensorMG
-INCLUDE_LOCATIONS += $(TOP)/amrlib
-INCLUDE_LOCATIONS += $(TOP)/bndrylib
-INCLUDE_LOCATIONS += $(TOP)/hgproj
-INCLUDE_LOCATIONS += $(TOP)/BoxLib
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
-DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
+  DEFINES += -DBL_USE_ARRAYVIEW
+  DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 
-vpath %.cpp . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
-              $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/BoxLib
-vpath %.H   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
-              $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/BoxLib
-vpath %.h   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
-              $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/BoxLib
-vpath %.F   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
-              $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/BoxLib
-vpath %.f   . $(TOP)/iamrlib $(TOP)/mglib $(TOP)/tensorMG $(TOP)/amrlib   \
-              $(TOP)/bndrylib $(TOP)/hgproj $(TOP)/BoxLib
+fincludes=$(includes)
+
+DEFINES += -DBL_NOLINEVALUES -DBL_PARALLEL_IO
+
+Bdirs := BoxLib bndrylib
+
+Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+VPATH_LOCATIONS   += . .. $(Blocs)
+INCLUDE_LOCATIONS += . .. $(Blocs) $(TOP)/pAmrvis
+
+include $(Bpack)
+
+vpath %.c   $(VPATH_LOCATIONS)
+vpath %.cpp $(VPATH_LOCATIONS) $(TOP)/pAmrvis
+vpath %.h   $(VPATH_LOCATIONS)
+vpath %.H   $(VPATH_LOCATIONS) 
+vpath %.F   $(VPATH_LOCATIONS) $(TOP)/pAmrvis
+vpath %.f   $(VPATH_LOCATIONS)
+vpath %.f90 $(VPATH_LOCATIONS)
 
 all: $(executable)
 
