@@ -94,7 +94,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 	if (level_volume > 0.0)
 	{
 	    // Convert volume in numPts to volume in number of fine cells
-	    total_volume += level_volume;
+	    total_volume += long(level_volume);
 	    
 	    // Get norms at this level
 	    Array<Real> n0(nComp,0.0), n1(nComp,0.0), n2(nComp,0.0);
