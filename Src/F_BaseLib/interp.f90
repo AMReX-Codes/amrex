@@ -133,7 +133,6 @@ contains
     integer :: ioff, joff
 
     forall (i =1:2) nxc(i) = size(crse,i)-2
-    print *,'NXC ',nxc
 
     xok = (nxc >=  2)
 
@@ -829,7 +828,6 @@ contains
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
     xok = (nxc >=  2)
-    print *,'NXC ',nxc
 
     do k = fvcz_lo, fvcz_lo+size(fine,3)-1
        kc = IX_PROJ(k,lratio(3))
