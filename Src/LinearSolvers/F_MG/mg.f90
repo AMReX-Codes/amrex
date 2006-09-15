@@ -944,7 +944,7 @@ contains
        nrm2 = norm_inf(ss)
        if ( parallel_IOProcessor() ) then
 !         print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
-          print *,'IN: NORM RH ',lev,nrm
+          print *,'IN: NORM RH ',lev,nrm1
        end if
     end if
 
@@ -1040,7 +1040,7 @@ contains
        nrm1 = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
 !         print *,'OT: NORM RH, UU ',lev, nrm, nrm1
-          print *,'OT: NORM RH ',lev, nrm
+          print *,'OT: NORM RH ',lev, nrm1
        end if
     end if
 
