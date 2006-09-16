@@ -154,11 +154,13 @@ contains
                     + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
                     + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+!              write(6,1000) i,j,uu(i,j),ff(i,j)
              end if
           end do
        end do
        !$OMP END PARALLEL DO
     end if
+1000  format('SRC UU ',i2,1x,i2,1x,e15.8,1x,e15.8)
 
   end subroutine gs_rb_smoother_2d
 
@@ -221,6 +223,8 @@ contains
        end if
        return
     end if
+
+    if (lskwd) then
 
     do k = lo(3), hi(3)
        do i = lo(1), hi(1)
@@ -287,6 +291,26 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    ! not skewed
+    else
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+    do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
+          do i = lo(1)+ioff, hi(1), 2
+             dd = ss(0,i,j,k)*uu(i,j,k)
+             dd = dd + ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k)
+             dd = dd + ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k)
+             dd = dd + ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
+             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    end if
 
   end subroutine gs_rb_smoother_3d_transpose
 
@@ -422,12 +446,14 @@ contains
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
-                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+
                   dd = ss(i,j,k,0)*uu(i,j,k)
                   dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
                   dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
                   dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+
                 end if
              end do
           end do
@@ -505,11 +531,12 @@ contains
                     + ss(i,j,7) * uu(i  ,j+1) &
                     + ss(i,j,8) * uu(i+1,j+1)
                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!              print *,'SRC UU ',i,j,ff(i,j),uu(i,j)
+!              write(6,1000) i,j,ff(i,j),uu(i,j),ss(i,j,0)
             end if
          end do
       end do
 !     print *,' '
+
       !$OMP END PARALLEL DO
 
     else if (size(ss,dim=3) .eq. 5) then
@@ -546,13 +573,15 @@ contains
                         + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
                         + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
                    uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!                  print *,'SRC UU ',i,j,ff(i,j),uu(i,j)
+!                  write(6,1000) i,j,ff(i,j),uu(i,j)
                 end if
              end do
           end do
 !     print *,' '
       end do
       !$OMP END PARALLEL DO
+
+1000  format('SRC UU ',i2,1x,i2,1x,e15.8,1x,e15.8)
 
     end if
 
@@ -636,7 +665,6 @@ contains
 
                    uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
 !                  write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
-
                 end if
              end do
           end do
@@ -664,7 +692,6 @@ contains
                        + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
 
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-  
                end if
             end do
          end do
@@ -699,7 +726,6 @@ contains
                   end if
 
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-  
                end if
             end do
          end do
