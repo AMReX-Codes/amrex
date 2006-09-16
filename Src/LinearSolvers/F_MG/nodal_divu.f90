@@ -36,7 +36,6 @@ contains
 
       integer :: i,n,dm,ng
       integer :: mglev_fine,mglev_crse
-      real(kind=dp_t) :: rhmax
       type(      box) :: mbox
       type(      box) :: pdc
       type(   layout) :: la_crse,la_fine
