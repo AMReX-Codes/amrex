@@ -343,9 +343,8 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
   if (mgts%stencil_type .eq. ST_CROSS .and. flev .gt. 1) then
      call stencil_fill_one_sided(mgts%one_sided_ss(flev), mgts%coeffs(nlev), &
-                                 mgts%mgt(flev    )%dh(:,nlev), &
                                  mgts%mgt(flev)%dh(:,nlev), &
-                                 mgts%mgt(flev)%mm(nlev), mgts%mgt(flev)%face_type, mgts%stencil_type)
+                                 mgts%mgt(flev)%mm(nlev), mgts%mgt(flev)%face_type)
   end if
 
   deallocate(mgts%coeffs)
