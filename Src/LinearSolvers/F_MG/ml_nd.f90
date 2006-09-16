@@ -184,13 +184,11 @@ contains
              call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
                   rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse),mgt(n-1)%uniform_dh)
 
-             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+             if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
-             else if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 5) then
+             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
              end if
 
@@ -222,13 +220,11 @@ contains
              ! Set: uu = 0
              call setval(uu(n),ZERO,all=.true.)
 
-             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+             if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
-             else if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 5) then
+             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
              end if
 
@@ -340,13 +336,11 @@ contains
              !  Restrict the finer residual onto the coarser grid
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
-             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+             if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
-             else if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 5) then
+             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: PRE-MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
              end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
@@ -357,13 +351,11 @@ contains
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   rh(n),temp_res(n),temp_res(n-1), &
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
-             if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 7) then
+             if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
-             else if (multifab_ncomp(mgt(n)%ss(mglev)) .eq. 5) then
+             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-!               print *,'CROSS STENCIL: MULTIPLYING CRSE RES BY ',fac
                 call multifab_mult_mult_s(res(n-1),fac,all=.true.)
              end if
           end do
