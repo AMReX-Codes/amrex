@@ -551,6 +551,13 @@ contains
                            +ss(i,j,3) * &
                  (cc(i+1,j-1) + HALF*cc(i+1,j) + HALF * cc(i,j-1) - TWO*cc(i,j))
              end if
+
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 4.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 16.0_dp_t
+             end if
+
              res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
        end do
@@ -575,6 +582,13 @@ contains
                            +ss(i,j,1) * &
                  (cc(i-1,j-1) + HALF*cc(i-1,j) + HALF * cc(i,j-1) - TWO*cc(i,j))
              end if
+
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 4.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 16.0_dp_t
+             end if
+
              res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
        end do
@@ -599,6 +613,13 @@ contains
                            +ss(i,j,6) * &
                  (cc(i-1,j+1) + HALF*cc(i-1,j) + HALF * cc(i,j+1) - TWO*cc(i,j))
              end if
+
+             if (ir(2) .eq. 2) then
+               crse_flux = crse_flux * 4.0_dp_t
+             else if (ir(2) .eq. 4) then
+               crse_flux = crse_flux * 16.0_dp_t
+             end if
+
              res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
        end do
@@ -623,6 +644,13 @@ contains
                      +ss(i,j,1)*(cc(i-1,j-1) + HALF*cc(i-1,j) + &
                      HALF * cc(i,j-1) - TWO*cc(i,j))
              end if
+
+             if (ir(2) .eq. 2) then
+               crse_flux = crse_flux * 4.0_dp_t
+             else if (ir(2) .eq. 4) then
+               crse_flux = crse_flux * 16.0_dp_t
+             end if
+
              res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
           end if
        end do
@@ -813,6 +841,12 @@ contains
                 end if
              end if
 
+             if (ir(1) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(1) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
+             end if
+
              res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
            end if
           end do
@@ -880,6 +914,12 @@ contains
                 end if
              end if
 
+             if (ir(2) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(2) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
+             end if
+
              res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
            end if
           end do
@@ -945,6 +985,12 @@ contains
                 else
                    crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
                 end if
+             end if
+
+             if (ir(3) .eq. 2) then
+               crse_flux = crse_flux * 8.0_dp_t
+             else if (ir(3) .eq. 4) then
+               crse_flux = crse_flux * 64.0_dp_t
              end if
 
              res(i,j,k) = res(i,j,k) + crse_flux + fine_flux(i,j,k)
@@ -1097,9 +1143,9 @@ contains
                 end if
              end if
 
-             if (ir(1) .eq. 2) then
+             if (ir(2) .eq. 2) then
                crse_flux = crse_flux * 8.0_dp_t
-             else if (ir(1) .eq. 4) then
+             else if (ir(2) .eq. 4) then
                crse_flux = crse_flux * 64.0_dp_t
              end if
 
@@ -1171,9 +1217,9 @@ contains
                 end if
              end if
 
-             if (ir(1) .eq. 2) then
+             if (ir(3) .eq. 2) then
                crse_flux = crse_flux * 8.0_dp_t
-             else if (ir(1) .eq. 4) then
+             else if (ir(3) .eq. 4) then
                crse_flux = crse_flux * 64.0_dp_t
              end if
 
