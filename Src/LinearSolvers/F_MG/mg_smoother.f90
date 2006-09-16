@@ -454,7 +454,6 @@ contains
 
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
 
-                end if
              end do
           end do
        end do
