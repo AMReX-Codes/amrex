@@ -790,9 +790,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     if (nprocs < 2 || do_not_minimize_comm_costs) return;
 
     const Real strttime = ParallelDescriptor::second();
-    const int NProcs    = ParallelDescriptor::NProcs();
-    const int MyProc    = ParallelDescriptor::MyProc();
-    const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
     std::vector< std::vector<int> > nbrs = CalculateNeighbors(ba);
     //
@@ -801,7 +798,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     std::map< int,std::vector<int>,std::greater<int> > samesize;
 
     for (int i = 0; i < pts.size(); i++)
+    {
         samesize[pts[i]].push_back(i);
+    }
 
     if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
@@ -820,7 +819,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                 std::cout << *lit << ' ';
             }
 
-            std::cout << "\n";
+            std::cout << '\n';
         }
     }
     //
@@ -830,9 +829,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
     for (int i = 0; i < nbrs.size(); i++)
     {
-        for (std::vector<int>::const_iterator it = nbrs[i].begin();
-             it != nbrs[i].end();
-             ++it)
+        for (std::vector<int>::const_iterator it = nbrs[i].begin(); it != nbrs[i].end(); ++it)
         {
             if (procmap[i] != procmap[*it])
                 percpu[procmap[*it]]++;
