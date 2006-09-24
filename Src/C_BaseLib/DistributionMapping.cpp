@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <list>
 #include <map>
+#include <set>
 #include <vector>
 #include <queue>
 #include <algorithm>
@@ -663,6 +664,113 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
     }
 }
 
+static
+void
+Output_CPU_Comm_Counts (const BoxArray&                        ba,
+                        const std::vector< std::vector<int> >& nbrs,
+                        std::vector<int>&                      procmap)
+{
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    //
+    // Each CPU must count # of CPUs it communicates with.
+    //
+    std::set<int> others;
+
+    for (int i = 0; i < ba.size(); i++)
+    {
+        if (procmap[i] == MyProc)
+        {
+            for (int j = 0; j < nbrs[i].size(); j++)
+            {
+                others.insert(procmap[nbrs[i][j]]);
+            }
+        }
+    }
+
+    int count = others.size();
+
+    Array<int> counts(NProcs, 0);
+
+    MPI_Gather(&count,
+               1,
+               ParallelDescriptor::Mpi_typemap<int>::type(),
+               counts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<int>::type(),
+               IOProc,
+               ParallelDescriptor::Communicator());
+
+    typedef std::multimap<int, int, std::greater<int> > IIMap;
+
+    IIMap iimap;
+
+    for (int i = 0; i < NProcs; i++)
+    {
+        iimap.insert(std::make_pair(counts[i],i));
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        const int N = 5;
+        int       i = 0;
+        std::cout << "High communicators:\n";
+        for (IIMap::const_iterator it = iimap.begin(); it != iimap.end() && i < N; ++it, ++i)
+        {
+            std::cout << "  cpu # " << it->second
+                      << " communicates with " << it->first
+                      << " other CPUs\n";
+        }
+    }
+}
+
+static
+std::vector< std::vector<int> >
+CalculateNeighbors (const BoxArray& ba)
+{
+    std::vector< std::vector<int> > nbrs(ba.size());
+    //
+    // Our "grow" factor; i.e. how far our tentacles grope for our neighbors.
+    //
+    const int Ngrow = 1;
+
+    BoxArray grown(ba.size());
+
+    for (int i = 0; i < ba.size(); i++)
+    {
+        grown.set(i, BoxLib::grow(ba[i],Ngrow));
+    }
+
+    for (int i = 0; i < grown.size(); i++)
+    {
+        std::vector< std::pair<int,Box> > isects = ba.intersections(grown[i]);
+
+        for (int j = 0; j < isects.size(); j++)
+            if (isects[j].first != i)
+                nbrs[i].push_back(isects[j].first);
+    }
+
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "The neighbors list:\n";
+
+        for (int i = 0; i < nbrs.size(); i++)
+        {
+            std::cout << i << "\t:";
+
+            for (std::vector<int>::const_iterator it = nbrs[i].begin(); it != nbrs[i].end(); ++it)
+            {
+                std::cout << *it << ' ';
+            }
+
+            std::cout << "\n";
+        }
+    }
+
+    return nbrs;
+}
+
 //
 // Try to "improve" the knapsack()d procmap ...
 //
@@ -682,59 +790,11 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     if (nprocs < 2 || do_not_minimize_comm_costs) return;
 
     const Real strttime = ParallelDescriptor::second();
-    //
-    // Build a data structure that'll tell us who are our neighbors.
-    //
-    std::vector< std::vector<int> > nbrs(ba.size());
-    //
-    // Our "grow" factor; i.e. how far our tentacles grope for our neighbors.
-    //
-    const int Ngrow = 1;
+    const int NProcs    = ParallelDescriptor::NProcs();
+    const int MyProc    = ParallelDescriptor::MyProc();
+    const int IOProc    = ParallelDescriptor::IOProcessorNumber();
 
-    BoxArray grown(ba.size());
-
-    for (int i = 0; i < ba.size(); i++)
-        grown.set(i,BoxLib::grow(ba[i],Ngrow));
-
-    for (int i = 0; i < grown.size(); i++)
-    {
-        std::list<int> li;
-
-        std::vector< std::pair<int,Box> > isects = ba.intersections(grown[i]);
-
-        for (int j = 0; j < isects.size(); j++)
-            if (isects[j].first != i)
-                li.push_back(isects[j].first);
-
-        nbrs[i].resize(li.size());
-
-        int k = 0;
-        for (std::list<int>::const_iterator it = li.begin();
-             it != li.end();
-             ++it, ++k)
-        {
-            nbrs[i][k] = *it;
-        }
-    }
-
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "The neighbors list:\n";
-
-        for (int i = 0; i < nbrs.size(); i++)
-        {
-            std::cout << i << "\t:";
-
-            for (std::vector<int>::const_iterator it = nbrs[i].begin();
-                 it != nbrs[i].end();
-                 ++it)
-            {
-                std::cout << *it << ' ';
-            }
-
-            std::cout << "\n";
-        }
-    }
+    std::vector< std::vector<int> > nbrs = CalculateNeighbors(ba);
     //
     // Want lists of box IDs having the same size.
     //
@@ -774,25 +834,38 @@ MinimizeCommCosts (std::vector<int>&        procmap,
              it != nbrs[i].end();
              ++it)
         {
-            if (procmap[i] != procmap[*it]) percpu[procmap[*it]]++;
+            if (procmap[i] != procmap[*it])
+                percpu[procmap[*it]]++;
         }
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        long cnt = 0;
-        for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
-        std::cout << "Initial off-CPU connection count: " << cnt << '\n';
+        if (ParallelDescriptor::IOProcessor())
+        {
+            long cnt = 0;
+            for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
+            std::cout << "Initial off-CPU connection count: " << cnt << '\n';
+        }
+
+        Output_CPU_Comm_Counts(ba, nbrs, procmap);
     }
 
     for (int i = 0; i < swap_n_test_count; i++)
-        SwapAndTest(samesize,nbrs,procmap,percpu);
-
-    if (verbose && ParallelDescriptor::IOProcessor())
     {
-        long cnt = 0;
-        for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
-        std::cout << "Final   off-CPU connection count: " << cnt << '\n';
+        SwapAndTest(samesize,nbrs,procmap,percpu);
+    }
+
+    if (verbose)
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            long cnt = 0;
+            for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
+            std::cout << "Final   off-CPU connection count: " << cnt << '\n';
+        }
+
+        Output_CPU_Comm_Counts(ba, nbrs, procmap);
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
