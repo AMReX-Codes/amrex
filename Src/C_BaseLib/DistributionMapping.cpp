@@ -693,6 +693,7 @@ Output_CPU_Comm_Counts (const BoxArray&                        ba,
 
     Array<int> counts(NProcs, 0);
 
+#ifdef BL_USE_MPI
     MPI_Gather(&count,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -701,6 +702,9 @@ Output_CPU_Comm_Counts (const BoxArray&                        ba,
                ParallelDescriptor::Mpi_typemap<int>::type(),
                IOProc,
                ParallelDescriptor::Communicator());
+#else
+    counts[0] = count;
+#endif
 
     typedef std::multimap<int, int, std::greater<int> > IIMap;
 
