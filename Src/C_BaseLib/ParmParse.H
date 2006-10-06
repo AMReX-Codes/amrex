@@ -1,7 +1,7 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.28 2001-08-13 01:54:26 car Exp $
+// $Id: ParmParse.H,v 1.29 2006-10-06 17:06:30 sepp Exp $
 //
 #include <stack>
 #include <string>
@@ -49,7 +49,7 @@
 // All values in the table are stored as strings.  For example, the
 // values of "cell_size" in the above input file are stored as the
 // strings "0.5" and "0.75".  These strings can be returned as either
-// string of numeric values by the query functions.
+// strings or numeric values by the query functions.
 // Character strings with spaces must be delimited by double quotes
 // in the input file but the quotes are stripped before they are entered
 // into the table.  For example, 'title' in the above input file has a
