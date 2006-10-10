@@ -50,6 +50,11 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpifarg
       BL_MPI_LIBS += -lmpi
     endif
+    ifeq ($(HOST),davinci)
+# JFG 2006/10/10: must also get intel compilers: modolue load intel
+      BL_MPI_LIBS += -lmpi++
+      BL_MPI_LIBS += -lmpi
+    endif
     ifeq ($(HOST),naphta)
       mpihome=$(HOME)/mpich2
       LIBRARY_LOCATIONS += $(mpihome)/lib
@@ -61,7 +66,9 @@ ifeq ($(MACHINE), Linux)
     endif
     ifneq ($(WHICHLINUX), JACQUARD)
       ifneq ($(WHICHLINUX), COLUMBIA)
-        BL_MPI_LIBS += -lmpich
+        ifneq ($(HOST),davinci)
+          BL_MPI_LIBS += -lmpich
+        endif
       endif
     endif
     ifeq ($(WHICHLINUX), COLUMBIA)
