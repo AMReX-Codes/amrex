@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.187 2006-09-12 20:01:16 lijewski Exp $
+// $Id: FabArray.H,v 1.188 2006-10-11 18:15:08 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -380,6 +380,8 @@ public:
     */
     void shift (const IntVect& v);
 
+    bool defined (int i) const;
+
 protected:
 
     PArray<FAB> fabparray;
@@ -614,6 +616,7 @@ class FabArrayCopyDescriptor
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
 };
 
+
 inline
 int
 FabArrayBase::nGrow () const
@@ -696,6 +699,14 @@ const Box&
 FillBoxId::box () const
 {
     return m_fillBox;
+}
+
+template <class FAB>
+inline
+bool
+FabArray<FAB>::defined (int i) const
+{
+    return fabparray.defined(i);
 }
 
 template <class FAB>
