@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.98 2006-08-04 22:24:03 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.99 2006-10-12 16:45:12 marc Exp $
 #
 
 #
@@ -110,6 +110,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring columbia, $(UNAMEN)), columbia)
     WHICHLINUX := COLUMBIA
+  endif
+  ifeq ($(findstring davinci, $(UNAMEN)), davinci)
+    WHICHLINUX := DAVINCI
   endif
 endif
 
