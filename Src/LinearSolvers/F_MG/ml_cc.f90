@@ -394,7 +394,11 @@ contains
     if ( mgt(nlevs)%verbose > 0 ) then
        tres = ml_norm_inf(res,fine_mask)
        if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter-1,tres/tres0
+          if (tres0 .gt. 0.0_dp_t) then
+            write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter-1,tres/tres0
+          else
+            write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter-1,0.0_dp_t
+          end if
        end if
     end if
     ! Add: soln += full_soln
