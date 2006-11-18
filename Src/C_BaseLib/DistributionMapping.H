@@ -1,8 +1,6 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
-//
-// $Id: DistributionMapping.H,v 1.29 2006-11-18 05:05:46 lijewski Exp $
-//
+
 #include <vector>
 
 #include <Pointers.H>
