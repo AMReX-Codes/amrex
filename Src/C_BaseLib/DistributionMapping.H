@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 //
-// $Id: DistributionMapping.H,v 1.28 2006-09-01 21:20:51 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.29 2006-11-18 05:05:46 lijewski Exp $
 //
 #include <vector>
 
@@ -32,9 +32,9 @@ class DistributionMapping
 {
   public:
     //
-    //@ManDoc: The distribution strategy: ROUNDROBIN or KNAPSACK.
+    //@ManDoc: The distribution strategy: ROUNDROBIN, KNAPSACK or SFC.
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK };
+    enum Strategy { ROUNDROBIN, KNAPSACK, SFC };
     //
     //@ManDoc: The default constructor.
     //
@@ -122,6 +122,7 @@ class DistributionMapping
     //
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
+    //   DistributionMapping.strategy = SFC
     //
     static void Initialize ();
 
@@ -129,10 +130,11 @@ class DistributionMapping
 
 protected:
     //
-    // Two ways to create the processor map.
+    // Ways to create the processor map.
     //
-    void RoundRobinProcessorMap   (const BoxArray& boxes, int nprocs);
-    void KnapSackProcessorMap     (const BoxArray& boxes, int nprocs);
+    void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
+    void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
+    void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     //
     // One which CPU to begin a distribution?
     //
