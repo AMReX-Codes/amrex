@@ -1012,14 +1012,13 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
     {
         RoundRobinProcessorMap(boxes,nprocs);
     }
+    else if (boxes.size() <= 4*nprocs)
+    {
+        KnapSackProcessorMap(boxes,nprocs);
+    }
     else
     {
         const Real strttime = ParallelDescriptor::second();
-        //
-        // Populate m_ref->m_pmap with value no CPU can have.
-        //
-        for (int i = 0; i < m_ref->m_pmap.size(); i++)
-            m_ref->m_pmap[i] = -1;
 
         std::vector<SFCToken> token(boxes.size());
 
@@ -1029,7 +1028,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
             token[i].m_idx = boxes[i].smallEnd();
             token[i].m_vol = boxes[i].volume();
         }
-
+        //
+        // Set SFCToken::MaxPower for BoxArray.
+        //
         IntVect big = boxes.minimalBox().bigEnd();
 
         int maxijk = big[0];
@@ -1040,7 +1041,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
         for ( ; (1<<m) <= maxijk; m++)
             ;
         SFCToken::MaxPower = m;
-
+        //
+        // Put'm in Morton space filling curve order.
+        //
         std::sort(token.begin(), token.end(), SFCToken::Compare());
 
         if (false && ParallelDescriptor::IOProcessor())
@@ -1049,7 +1052,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
             for (int i = 0; i < token.size(); i++)
                 std::cout << token[i].m_idx << " : " << token[i].m_box << '\n';
         }
-
+        //
+        // Split'm up as equitably as possible per CPU.
+        //
         Real volpercpu = 0;
         for (int i = 0; i < token.size(); i++)
             volpercpu += token[i].m_vol;
@@ -1084,12 +1089,6 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
         // Set sentinel equal to our processor number.
         //
         m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
-        //
-        // Check that all places in m_ref->m_pmap have been set.
-        //
-        for (int i = 0; i < m_ref->m_pmap.size(); i++)
-            if (m_ref->m_pmap[i] == -1)
-                BoxLib::Abort("SFCProcessorMap: pmap is bad");
 
         if (verbose)
         {
