@@ -111,8 +111,9 @@ class DistributionMapping
     //
     bool operator!= (const DistributionMapping& rhs) const;
 
+    void SFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
+    void KnapSackProcessorMap   (const std::vector<long>& wgts, int nprocs);
     void RoundRobinProcessorMap (int nboxes, int nprocs);
-    void KnapSackProcessorMap   (const std::vector<long>& boxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
