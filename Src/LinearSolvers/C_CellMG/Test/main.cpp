@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.28 2006-06-20 16:42:36 car Exp $
+// $Id: main.cpp,v 1.29 2006-11-22 21:10:58 lijewski Exp $
 //
 
 #include <fstream>
@@ -156,8 +156,8 @@ main (int argc, char* argv[])
       if ( mg )
 	{
 	  MultiGrid mg(lp);
-	  mg.setNumIter(numiter);
-	  mg.setMaxIter(maxiter);
+//	  mg.setNumIter(numiter);
+//	  mg.setMaxIter(maxiter);
 	  mg.solve(soln, rhs, tolerance, tolerance_abs);
 	  if ( new_bc )
 	    {
@@ -319,8 +319,8 @@ main (int argc, char* argv[])
 	      const Real run_strt = ParallelDescriptor::second();
 
 	      MultiGrid mg(lp);
-	      mg.setNumIter(numiter);
-	      mg.setMaxIter(maxiter);
+//	      mg.setNumIter(numiter);
+//	      mg.setMaxIter(maxiter);
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
 		{

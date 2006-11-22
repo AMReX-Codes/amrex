@@ -1,27 +1,22 @@
 PBOXLIB_HOME := ../..
-FBOXLIB_HOME =
 FBOXLIB_HOME = ../../../fParallel
+FBOXLIB_HOME =
 
 PRECISION = DOUBLE
 PROFILE = TRUE
 PROFILE = FALSE
-DEBUG	= FALSE
 DEBUG	= TRUE
+DEBUG	= FALSE
 DIM	= 3
 DIM	= 2
 
-COMP = g++
-FCOMP = g95
-
-COMP=Intel
+COMP=g++
 FCOMP=Intel
 
 USE_MPI=TRUE
 USE_MPI=FALSE
 USE_THREADS=TRUE
 USE_THREADS=FALSE
-
-STRICTLY=TRUE
 
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
@@ -38,8 +33,6 @@ include $(PBOXLIB_HOME)/bndrylib/Make.package
 include $(PBOXLIB_HOME)/mglib/Make.package
 include $(PBOXLIB_HOME)/BoxLib/Make.package
 
-#include $(PBOXLIB_HOME)/util/Make.package
-
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
 vpathdir += $(PBOXLIB_HOME)/bndrylib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
@@ -48,9 +41,6 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
 vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
-
-#INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
-#vpathdir += $(PBOXLIB_HOME)/util
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
@@ -66,8 +56,6 @@ ifdef FBOXLIB_HOME
   vpathdir += $(Flocs)
 endif
 
-
-
 # We need these from amrlib 
 
 CEXE_sources += BCRec.cpp 
@@ -76,29 +64,9 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
 vpathdir += $(PBOXLIB_HOME)/amrlib
 
 # Needed from AmrVis
-CEXE_headers += AmrData.H
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
-vpathdir += $(PBOXLIB_HOME)/pAmrvis
-
-ifeq ($(DEBUG),TRUE)
-  ifeq ($(USE_ARRAYVIEW),TRUE)
-    ARRAYVIEWDIR  = $(PBOXLIB_HOME)/util
-    INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-    CEXE_headers += DatasetClient.H ArrayView.H
-    CEXE_sources += DatasetClient.cpp
-    DEFINES += -DBL_USE_ARRAYVIEW
-    #DEFINES += -DBL_ARRAYVIEW_TAGBOX
-  endif
-  # CEXE_headers += TV_TempWrite.H
-endif
-
-CXXFLAGS +=
-CXXOPTF +=
-CXXDEBF +=
-
-CFLAGS +=
-COPTF +=
-CDEBF +=
+#CEXE_headers += AmrData.H
+#INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
+#vpathdir += $(PBOXLIB_HOME)/pAmrvis
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
