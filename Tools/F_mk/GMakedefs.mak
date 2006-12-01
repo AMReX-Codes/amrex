@@ -90,7 +90,10 @@ ifeq ($(COMP),g95)
   endif
 endif
 
-# ALL GFORTRANS, which probably don't work, are the same
+# Note, we need a recent gfortran 4.2 build to compile --
+# there are still runtime issues.
+# to compile mt19937ar.f90, we need -fno-range-check, since
+# that routine relies on overflows when doing initializations
 ifeq ($(COMP),gfortran)
   FC := gfortran
   F90 := gfortran
@@ -99,14 +102,14 @@ ifeq ($(COMP),gfortran)
   FFLAGS   += -J$(mdir) -I $(mdir)
   CFLAGS += -Wall
   ifdef NDEBUG
-    F90FLAGS += -O
-    FFLAGS += -O
+    F90FLAGS += -O -fno-range-check
+    FFLAGS += -O -fno-range-check
     CFLAGS += -O
   else
-    F90FLAGS += -g 
-    F90FLAGS += -fbounds-check
-    FFLAGS += -g 
-    FFLAGS += -fbounds-check
+    F90FLAGS += -g -fno-range-check 
+#    F90FLAGS += -fbounds-check 
+    FFLAGS += -g -fno-range-check 
+#    FFLAGS += -fbounds-check 
     CFLAGS += -g
   endif
 endif
