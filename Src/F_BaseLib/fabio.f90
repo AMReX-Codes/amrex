@@ -661,6 +661,7 @@ contains
          call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
+            if (multifab_remote(mmf(i),j)) cycle
             read(unit=lun, fmt=*) cdummy, &
                  filename, offset
             call fabio_open(fd,                         &
