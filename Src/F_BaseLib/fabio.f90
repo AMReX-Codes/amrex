@@ -661,16 +661,15 @@ contains
          call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
-            if (multifab_remote(mmf(i),j)) cycle
             read(unit=lun, fmt=*) cdummy, &
                  filename, offset
+            if (multifab_remote(mmf(i),j)) cycle
             call fabio_open(fd,                         &
                trim(root) // "/" //                &
                trim(fileprefix(i)) // "/" // &
                trim(filename))
             bx = grow(get_ibox(mmf(i), j), lng)
             pp => dataptr(mmf(i), j, bx)
-!           sz = volume(bxs(j))
             sz = volume(get_ibox(mmf(i),j))
             call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
             call fabio_close(fd)
