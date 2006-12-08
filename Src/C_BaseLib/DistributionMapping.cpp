@@ -851,14 +851,14 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
     long initial_conn_count = 0;
 
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
         for (int i = 0; i < percpu.size(); i++)
             initial_conn_count += percpu[i];
 
     for (int i = 0; i < swap_n_test_count; i++)
         SwapAndTest(samesize,nbrs,procmap,percpu);
 
-    if (verbose > 1)
+    if (verbose)
     {
         if (ParallelDescriptor::IOProcessor())
         {
@@ -870,7 +870,8 @@ MinimizeCommCosts (std::vector<int>&        procmap,
             std::cout << "Final   off-CPU connection count: " << final_conn_count   << '\n';
         }
 
-        Output_CPU_Comm_Counts(ba, nbrs, procmap);
+        if (verbose > 1)
+            Output_CPU_Comm_Counts(ba, nbrs, procmap);
     }
 }
 
