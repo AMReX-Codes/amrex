@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffUniform.cpp,v 1.8 2001-10-17 17:53:33 lijewski Exp $
+// $Id: DiffUniform.cpp,v 1.9 2006-12-15 00:55:42 almgren Exp $
 //
 
 #include <new>
@@ -35,20 +35,20 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "This utility computes the difference of two plotfiles " << endl
-         << "which are at resolutions differing by a power of 2.   " << endl
-         << "The finer solution is averaged down to the coarse grid" << endl
-         << "resolution and then the difference is taken.          " << endl
-         << endl;
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile  = inputFileName" << '\n';
-    cout << "    exact   = exactFileName" << '\n';
-    cout << "    outfile = outputFileName" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << '\n';
+    std::cout << "This utility computes the difference of two plotfiles " << std::endl
+         << "which are at resolutions differing by a power of 2.   " << std::endl
+         << "The finer solution is averaged down to the coarse grid" << std::endl
+         << "resolution and then the difference is taken.          " << std::endl
+         << std::endl;
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile  = inputFileName" << '\n';
+    std::cout << "    exact   = exactFileName" << '\n';
+    std::cout << "    outfile = outputFileName" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -68,14 +68,10 @@ main (int   argc,
 {
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
+    BoxLib::Initialize(argc,argv);
 
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -84,7 +80,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFileDir, iFile, eFile, oFile, oFileDir;
+    std::string iFileDir, iFile, eFile, oFile, oFileDir;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -93,15 +89,15 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     pp.query("exact", eFile);
-    if (eFile.isNull())
+    if (eFile.empty())
         BoxLib::Abort("You must specify `exact' file");
 
     pp.query("outfile", oFile);
-    if (oFile.isNull())
+    if (oFile.empty())
         BoxLib::Abort("You must specify `outfile'");
 
     DataServices::SetBatchMode();
@@ -123,11 +119,11 @@ main (int   argc,
     int exact_level = finestLevelCoveringDomain(amrDataF);
     if (exact_level < 0)
     {
-	cout << "Exact data does not contain a level covering the domain" << '\n';
+	std::cout << "Exact data does not contain a level covering the domain" << '\n';
 	BoxLib::Abort();
     }
     if (verbose)
-	cout << "Using level = " << exact_level << " in 'exact' file" << '\n';
+	std::cout << "Using level = " << exact_level << " in 'exact' file" << '\n';
 	
     int finestLevel = amrDataC.FinestLevel();
     
@@ -145,7 +141,7 @@ main (int   argc,
 	IntVect refine_ratio   = getRefRatio(domainC, domainF);
 	if (refine_ratio == IntVect())
 	    BoxLib::Error("Cannot find refinement ratio from data to exact");
-        cout << "Ratio for level " << iLevel << " is " << refine_ratio << endl;
+        std::cout << "Ratio for level " << iLevel << " is " << refine_ratio << std::endl;
 
 	error[iLevel] = new MultiFab(crseBA, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
@@ -158,15 +154,17 @@ main (int   argc,
             const BoxArray crseBA = ::BoxArray(exactBA).coarsen(refine_ratio);
             MultiFab aveExact(crseBA,1,0,Fab_allocate);
             int nc = exact.nComp();
-            for (MultiFabIterator amfi(aveExact); amfi.isValid(); ++amfi)
+            for (MFIter amfi(aveExact); amfi.isValid(); ++amfi)
             {
-                DependentMultiFabIterator emfi(amfi, exact);
                 const Box& crseBox = amfi.validbox();
-                FORT_CV_AVGDOWN(amfi().dataPtr(),
-                                ARLIM(amfi().loVect()),
-                                ARLIM(amfi().hiVect()), &nc,
-                                emfi().dataPtr(),
-                                ARLIM(emfi().loVect()), ARLIM(emfi().hiVect()),
+                const int* a_lo = aveExact[amfi].loVect();
+                const int* a_hi = aveExact[amfi].hiVect();
+                const int* e_lo = exact[amfi].loVect();
+                const int* e_hi = exact[amfi].hiVect();
+                FORT_CV_AVGDOWN(aveExact[amfi].dataPtr(),
+                                ARLIM(a_lo), ARLIM(a_hi), &nc,
+                                exact[amfi].dataPtr(),
+                                ARLIM(e_lo), ARLIM(e_hi),
                                 crseBox.loVect(), crseBox.hiVect(),
                                 refine_ratio.getVect());
             }
@@ -177,10 +175,10 @@ main (int   argc,
             // Subtract coarse data from coarsened exact data
             MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
             BL_ASSERT(data.boxArray() == error[iLevel]->boxArray());
-            for (MultiFabIterator dmfi(data); dmfi.isValid(); ++dmfi)
+            for (MFIter dmfi(data); dmfi.isValid(); ++dmfi)
             {
-                DependentMultiFabIterator emfi(dmfi, *error[iLevel]);
-                emfi().minus(dmfi(),0,iComp,1);
+                FArrayBox err((*error[iLevel])[dmfi]);
+                err.minus(data[dmfi],0,iComp,1);
             }
         }
     }
@@ -210,7 +208,7 @@ finestLevelCoveringDomain(const AmrData& amr_data)
 	const BoxArray& ba = amr_data.boxArray(iLevel);
 	BoxDomain bd;
 	bd.add(BoxList(ba));
-	BoxDomain complement = ::complementIn(domain_array[iLevel],bd);
+	BoxDomain complement = BoxLib::complementIn(domain_array[iLevel],bd);
 	if (complement.isEmpty())
 	    return iLevel;
     }
@@ -235,7 +233,7 @@ getRefRatio(const Box& crse,
 
     IntVect ref_ratio;
     for (int i=0; i<BL_SPACEDIM; ++i)
-	ref_ratio[i] = fine.length(i) / crse.length(i);
+	ref_ratio[i] = fine.size()[i] / crse.size()[i];
 
     // Check results
     Box test1 = ::Box(fine).coarsen(ref_ratio);
@@ -249,10 +247,10 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    int length = derives1.size();
+    if (length != derives2.size())
 	return false;
     for (int i=0; i<length; ++i)
 	if (derives1[i] != derives2[i])
