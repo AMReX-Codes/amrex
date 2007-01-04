@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.81 2007-01-04 20:41:18 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.82 2007-01-04 20:43:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -810,7 +810,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     const Orientation hi(dir,Orientation::high);
 
-    std::vector< std::pair<int,Box> > isects = bndry[hi].boxArray().intersections(subbox);
+    isects = bndry[hi].boxArray().intersections(subbox);
 
     for (int i = 0; i < isects.size(); i++)
     {
