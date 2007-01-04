@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.80 2006-04-24 17:27:49 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.81 2007-01-04 20:41:18 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -799,28 +799,23 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
     
-    Arena* oldarena = BoxLib::ResetArena(&CIArena);
+    const Orientation lo(dir,Orientation::low);
+
+    std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
+
+    for (int i = 0; i < isects.size(); i++)
     {
-        const Orientation lo(dir,Orientation::low);
-
-        std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
-
-        for (int i = 0; i < isects.size(); i++)
-        {
-            DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
-        }
+        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
     }
+
+    const Orientation hi(dir,Orientation::high);
+
+    std::vector< std::pair<int,Box> > isects = bndry[hi].boxArray().intersections(subbox);
+
+    for (int i = 0; i < isects.size(); i++)
     {
-        const Orientation hi(dir,Orientation::high);
-
-        std::vector< std::pair<int,Box> > isects = bndry[hi].boxArray().intersections(subbox);
-
-        for (int i = 0; i < isects.size(); i++)
-        {
-            DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
-        }
+        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
     }
-    BoxLib::ResetArena(oldarena);
 }
 
 void
@@ -831,8 +826,6 @@ FluxRegister::CrseInitFinish (FrOp op)
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInitFinish()");
 
 #if BL_USE_MPI
-    Arena* oldarena = BoxLib::ResetArena(&CIArena);
-
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -1009,8 +1002,6 @@ FluxRegister::CrseInitFinish (FrOp op)
     CITags.erase(CITags.begin(), CITags.end());
 
     for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
-
-    BoxLib::ResetArena(oldarena);
 #endif /*BL_USE_MPI*/
 }
 
