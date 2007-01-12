@@ -32,7 +32,7 @@ module mg_module
      integer :: nu1 = 2
      integer :: nu2 = 2
      integer :: nuf = 8
-     integer :: nub = 0
+     integer :: nub = 10
      integer :: gamma = 1
      integer :: cycle = MG_Vcycle
      real(kind=dp_t) :: omega = 1.0_dp_t
