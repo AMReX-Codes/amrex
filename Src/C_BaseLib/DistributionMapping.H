@@ -55,6 +55,14 @@ class DistributionMapping
     //@ManDoc: The destructor.
     //
     ~DistributionMapping ();
+    //
+    //@ManDoc: Copy constructor.
+    //
+    DistributionMapping (const DistributionMapping& rhs);
+    //
+    //@ManDoc: Assignment operator.
+    //
+    DistributionMapping& operator= (const DistributionMapping& rhs);
 
     /*@ManDoc: Build mapping out of BoxArray over nprocs processors.
                You need to call this if you built your DistributionMapping
