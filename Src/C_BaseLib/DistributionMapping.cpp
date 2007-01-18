@@ -212,6 +212,19 @@ DistributionMapping::DistributionMapping ()
     m_ref(new DistributionMapping::Ref)
 {}
 
+DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
+    :
+    m_ref(rhs.m_ref)
+{}
+
+DistributionMapping&
+DistributionMapping::operator= (const DistributionMapping& rhs)
+{
+    m_ref = rhs.m_ref;
+
+    return *this;
+}
+
 DistributionMapping::Ref::Ref (const Array<int>& pmap)
     :
     m_pmap(pmap)
