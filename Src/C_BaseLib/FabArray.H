@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.188 2006-10-11 18:15:08 lijewski Exp $
+// $Id: FabArray.H,v 1.189 2007-01-18 17:22:19 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -854,6 +854,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        FabAlloc                   alloc)
 {
     BL_ASSERT(boxarray.size() == 0);
+    BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
