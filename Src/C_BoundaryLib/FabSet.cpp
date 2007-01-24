@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.44 2006-09-12 21:50:09 lijewski Exp $
+// $Id: FabSet.cpp,v 1.45 2007-01-24 18:11:58 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -266,6 +266,8 @@ static FSRecMMap TheCache;
 void
 FabSet::FlushCache ()
 {
+    if (ParallelDescriptor::IOProcessor() && TheCache.size())
+        std::cout << "FabSet::TheCache.size() = " << TheCache.size() << std::endl;
     TheCache.clear();
 }
 

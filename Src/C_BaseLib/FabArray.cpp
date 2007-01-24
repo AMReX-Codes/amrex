@@ -268,5 +268,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 void
 CPC::FlushCache ()
 {
+    if (ParallelDescriptor::IOProcessor() && TheCopyCache.size())
+        std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << std::endl;
     TheCopyCache.clear();
 }
