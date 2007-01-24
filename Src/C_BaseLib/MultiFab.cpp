@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.73 2006-09-12 21:38:45 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.74 2007-01-24 18:11:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -594,6 +594,8 @@ static SIMMap SICache;
 void
 MultiFab::FlushSICache ()
 {
+    if (ParallelDescriptor::IOProcessor() && SICache.size())
+        std::cout << "MultiFab::SICacheSize() = " << SICache.size() << std::endl;
     SICache.clear();
 }
 

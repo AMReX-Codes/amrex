@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.66 2006-09-12 22:51:04 lijewski Exp $
+// $Id: Geometry.cpp,v 1.67 2007-01-24 18:11:58 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -317,6 +317,8 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
+    if (ParallelDescriptor::IOProcessor() && m_FPBCache.size())
+        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << std::endl;
     m_FPBCache.clear();
 }
 

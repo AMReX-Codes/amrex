@@ -1148,25 +1148,21 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    if (false && verbose && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor() && m_Cache.size())
     {
         os << "The DistributionMapping cache contains "
            << DistributionMapping::m_Cache.size()
            << " Processor Map(s):\n";
 
-        if (!DistributionMapping::m_Cache.empty())
+        for (unsigned int i = 0; i < m_Cache.size(); i++)
         {
-            for (unsigned int i = 0; i < m_Cache.size(); i++)
-            {
-                os << "\tMap #"
-                   << i
-                   << ", size:  "
-                   << m_Cache[i]->m_pmap.size()
-                   << ", references: "
-                   << m_Cache[i].linkCount()
-                   << '\n';
-            }
-            os << '\n';
+            os << "\tMap #"
+               << i
+               << ", size:  "
+               << m_Cache[i]->m_pmap.size()
+               << ", references: "
+               << m_Cache[i].linkCount()
+               << '\n';
         }
     }
 }
