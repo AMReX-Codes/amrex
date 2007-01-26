@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.45 2007-01-24 18:11:58 lijewski Exp $
+// $Id: FabSet.cpp,v 1.46 2007-01-26 18:47:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -213,11 +213,13 @@ struct FSRec
     BoxArray         m_src;
     BoxArray         m_dst;
     int              m_ngrow;
+    bool             m_reused;
 };
 
 FSRec::FSRec ()
     :
-    m_ngrow(-1)
+    m_ngrow(-1),
+    m_reused(false)
 {}
 
 FSRec::FSRec (const BoxArray& src,
@@ -226,7 +228,8 @@ FSRec::FSRec (const BoxArray& src,
     :
     m_src(src),
     m_dst(dst),
-    m_ngrow(ngrow)
+    m_ngrow(ngrow),
+    m_reused(false)
 {
     BL_ASSERT(ngrow >= 0);
 }
@@ -240,7 +243,8 @@ FSRec::FSRec (const FSRec& rhs)
     m_commdata(rhs.m_commdata),
     m_src(rhs.m_src),
     m_dst(rhs.m_dst),
-    m_ngrow(rhs.m_ngrow)
+    m_ngrow(rhs.m_ngrow),
+    m_reused(rhs.m_reused)
 {}
 
 FSRec::~FSRec () {}
@@ -283,29 +287,76 @@ TheFSRec (const MultiFab& src,
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >  0);
 
+    static bool first               = true;
+    static bool use_copy_cache      = true;
+    static int  copy_cache_max_size = 25;
+
+    if (first)
+    {
+        first = false;
+        ParmParse pp("fabset");
+        pp.query("use_copy_cache", use_copy_cache);
+        pp.query("copy_cache_max_size", copy_cache_max_size);
+    }
+
     FSRec rec(src.boxArray(),dst.boxArray(),ngrow);
 
     const int key = ngrow + src.size() + dst.size();
 
-    std::pair<FSRecMMapIter,FSRecMMapIter> er_it = TheCache.equal_range(key);
-
-    for (FSRecMMapIter it = er_it.first; it != er_it.second; ++it)
+    if (use_copy_cache)
     {
-        if (it->second == rec)
+        std::pair<FSRecMMapIter,FSRecMMapIter> er_it = TheCache.equal_range(key);
+
+        for (FSRecMMapIter it = er_it.first; it != er_it.second; ++it)
+        {
+            if (it->second == rec)
+            {
+                //
+                // Adjust the ncomp & scomp in CommData.
+                //
+                Array<CommData>& cd = it->second.m_commdata.theCommData();
+
+                for (int i = 0; i < cd.size(); i++)
+                {
+                    cd[i].nComp(ncomp);
+                    cd[i].srcComp(scomp);
+                }
+
+                return it->second;
+            }
+        }
+
+        if (TheCache.size() >= copy_cache_max_size)
         {
             //
-            // Adjust the ncomp & scomp in CommData.
+            // Don't let the size of the cache get too big.
             //
-            Array<CommData>& cd = it->second.m_commdata.theCommData();
-
-            for (int i = 0; i < cd.size(); i++)
+            for (FSRecMMapIter it = TheCache.begin(); it != TheCache.end(); )
             {
-                cd[i].nComp(ncomp);
-                cd[i].srcComp(scomp);
+                if (!it->second.m_reused)
+                {
+                    TheCache.erase(it++);
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    if (TheCache.size() < copy_cache_max_size) break;
+                }
+                else
+                {
+                    ++it;
+                }
             }
 
-            return it->second;
+            if (TheCache.size() >= copy_cache_max_size)
+                //
+                // Get rid of first entry which is the one with the smallest key.
+                //
+                TheCache.erase(TheCache.begin());
         }
+    }
+    else
+    {
+        TheCache.clear();
     }
 
     FSRecMMapIter it = TheCache.insert(std::make_pair(key,rec));
