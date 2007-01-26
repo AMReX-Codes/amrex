@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.46 2007-01-26 18:47:45 lijewski Exp $
+// $Id: FabSet.cpp,v 1.47 2007-01-26 19:03:14 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -311,6 +311,7 @@ TheFSRec (const MultiFab& src,
         {
             if (it->second == rec)
             {
+                it->second.m_reused = true;
                 //
                 // Adjust the ncomp & scomp in CommData.
                 //
