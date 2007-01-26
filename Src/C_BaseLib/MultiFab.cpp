@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.75 2007-01-26 19:17:09 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.76 2007-01-26 19:23:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -672,23 +672,23 @@ TheFBsirec (int             scomp,
     BL_ASSERT(ncomp >  0);
     BL_ASSERT(scomp >= 0);
 
-    static bool first               = true;
-    static bool use_copy_cache      = true;
-    static int  copy_cache_max_size = 25;
+    static bool first             = true;
+    static bool use_fb_cache      = true;
+    static int  fb_cache_max_size = 25;
 
     if (first)
     {
         first = false;
         ParmParse pp("multifab");
-        pp.query("use_copy_cache", use_copy_cache);
-        pp.query("copy_cache_max_size", copy_cache_max_size);
+        pp.query("use_fb_cache", use_fb_cache);
+        pp.query("fb_cache_max_size", fb_cache_max_size);
     }
 
     const SI si(mf.boxArray(), mf.nGrow());
 
     const int key = mf.nGrow() + mf.size();
 
-    if (use_copy_cache)
+    if (use_fb_cache)
     {
         std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
     
@@ -712,7 +712,7 @@ TheFBsirec (int             scomp,
             }
         }
 
-        if (SICache.size() >= copy_cache_max_size)
+        if (SICache.size() >= fb_cache_max_size)
         {
             //
             // Don't let the size of the cache get too big.
@@ -725,7 +725,7 @@ TheFBsirec (int             scomp,
                     //
                     // Only delete enough entries to stay under limit.
                     //
-                    if (SICache.size() < copy_cache_max_size) break;
+                    if (SICache.size() < fb_cache_max_size) break;
                 }
                 else
                 {
@@ -733,7 +733,7 @@ TheFBsirec (int             scomp,
                 }
             }
 
-            if (SICache.size() >= copy_cache_max_size)
+            if (SICache.size() >= fb_cache_max_size)
                 //
                 // Get rid of first entry which is the one with the smallest key.
                 //
