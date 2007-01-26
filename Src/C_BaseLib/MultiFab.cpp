@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.74 2007-01-24 18:11:28 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.75 2007-01-26 19:17:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -546,18 +546,21 @@ struct SI
     std::vector<SIRec> m_sirec;
     BoxArray           m_ba;
     int                m_ngrow;
+    bool               m_reused;
 };
 
 SI::SI ()
     :
-    m_ngrow(-1)
+    m_ngrow(-1),
+    m_reused(false)
 {}
 
 SI::SI (const BoxArray& ba,
         int             ngrow)
     :
     m_ba(ba),
-    m_ngrow(ngrow)
+    m_ngrow(ngrow),
+    m_reused(false)
 {
     BL_ASSERT(ngrow >= 0);
 }
@@ -568,7 +571,8 @@ SI::SI (const SI& rhs)
     m_commdata(rhs.m_commdata),
     m_sirec(rhs.m_sirec),
     m_ba(rhs.m_ba),
-    m_ngrow(rhs.m_ngrow)
+    m_ngrow(rhs.m_ngrow),
+    m_reused(rhs.m_reused)
 {}
 
 SI::~SI () {}
@@ -668,29 +672,77 @@ TheFBsirec (int             scomp,
     BL_ASSERT(ncomp >  0);
     BL_ASSERT(scomp >= 0);
 
+    static bool first               = true;
+    static bool use_copy_cache      = true;
+    static int  copy_cache_max_size = 25;
+
+    if (first)
+    {
+        first = false;
+        ParmParse pp("multifab");
+        pp.query("use_copy_cache", use_copy_cache);
+        pp.query("copy_cache_max_size", copy_cache_max_size);
+    }
+
     const SI si(mf.boxArray(), mf.nGrow());
 
     const int key = mf.nGrow() + mf.size();
 
-    std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
-    
-    for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
+    if (use_copy_cache)
     {
-        if (it->second == si)
+        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
+    
+        for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
+        {
+            if (it->second == si)
+            {
+                it->second.m_reused = true;
+                //
+                // Adjust the ncomp & scomp in CommData.
+                //
+                Array<CommData>& cd = it->second.m_commdata.theCommData();
+
+                for (int i = 0; i < cd.size(); i++)
+                {
+                    cd[i].nComp(ncomp);
+                    cd[i].srcComp(scomp);
+                }
+
+                return it->second;
+            }
+        }
+
+        if (SICache.size() >= copy_cache_max_size)
         {
             //
-            // Adjust the ncomp & scomp in CommData.
+            // Don't let the size of the cache get too big.
             //
-            Array<CommData>& cd = it->second.m_commdata.theCommData();
-
-            for (int i = 0; i < cd.size(); i++)
+            for (SIMMapIter it = SICache.begin(); it != SICache.end(); )
             {
-                cd[i].nComp(ncomp);
-                cd[i].srcComp(scomp);
+                if (!it->second.m_reused)
+                {
+                    SICache.erase(it++);
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    if (SICache.size() < copy_cache_max_size) break;
+                }
+                else
+                {
+                    ++it;
+                }
             }
 
-            return it->second;
+            if (SICache.size() >= copy_cache_max_size)
+                //
+                // Get rid of first entry which is the one with the smallest key.
+                //
+                SICache.erase(SICache.begin());
         }
+    }
+    else
+    {
+        SICache.clear();
     }
 
     return BuildFBsirec(si,mf);
