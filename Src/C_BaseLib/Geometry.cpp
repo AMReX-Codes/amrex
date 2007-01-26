@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.67 2007-01-24 18:11:58 lijewski Exp $
+// $Id: Geometry.cpp,v 1.68 2007-01-26 20:16:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -74,6 +74,7 @@ struct FPB
     Box           m_domain;
     int           m_ngrow;
     bool          m_do_corners;
+    bool          m_reused;
 };
 
 typedef std::multimap<int,FPB> FPBMMap;
@@ -133,7 +134,8 @@ operator<< (std::ostream&  os,
 FPB::FPB ()
     :
     m_ngrow(-1),
-    m_do_corners(false)
+    m_do_corners(false),
+    m_reused(false)
 {}
 
 FPB::FPB (const BoxArray& ba,
@@ -144,7 +146,8 @@ FPB::FPB (const BoxArray& ba,
     m_ba(ba),
     m_domain(domain),
     m_ngrow(ngrow),
-    m_do_corners(do_corners)
+    m_do_corners(do_corners),
+    m_reused(false)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(domain.ok());
@@ -158,7 +161,8 @@ FPB::FPB (const FPB& rhs)
     m_ba(rhs.m_ba),
     m_domain(rhs.m_domain),
     m_ngrow(rhs.m_ngrow),
-    m_do_corners(rhs.m_do_corners)
+    m_do_corners(rhs.m_do_corners),
+    m_reused(rhs.m_reused)
 {}
 
 FPB::~FPB () {}
@@ -282,27 +286,76 @@ Geometry::getFPB (MultiFab&  mf,
 
     BL_ASSERT(isAnyPeriodic());
 
+    static bool first              = true;
+    static bool use_fpb_cache      = true;
+    static int  fpb_cache_max_size = 25;
+
+    if (first)
+    {
+        first = false;
+        ParmParse pp("geometry");
+        pp.query("use_fpb_cache", use_fpb_cache);
+        pp.query("fpb_cache_max_size", fpb_cache_max_size);
+    }
+
     const int key = mf.nGrow() + mf.size();
 
-    std::pair<FPBMMapIter,FPBMMapIter> er_it = m_FPBCache.equal_range(key);
-    
-    for (FPBMMapIter it = er_it.first; it != er_it.second; ++it)
+    if (use_fpb_cache)
     {
-        if (it->second == fpb)
+        std::pair<FPBMMapIter,FPBMMapIter> er_it = m_FPBCache.equal_range(key);
+    
+        for (FPBMMapIter it = er_it.first; it != er_it.second; ++it)
+        {
+            if (it->second == fpb)
+            {
+                it->second.m_reused = true;
+                //
+                // Adjust the ncomp & scomp in CommData.
+                //
+                Array<CommData>& cd = it->second.m_commdata.theCommData();
+
+                for (int i = 0; i < cd.size(); i++)
+                {
+                    cd[i].nComp(ncomp);
+                    cd[i].srcComp(scomp);
+                }
+
+                return it->second;
+            }
+        }
+
+        if (m_FPBCache.size() >= fpb_cache_max_size)
         {
             //
-            // Adjust the ncomp & scomp in CommData.
+            // Don't let the size of the cache get too big.
             //
-            Array<CommData>& cd = it->second.m_commdata.theCommData();
-
-            for (int i = 0; i < cd.size(); i++)
+            for (FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); )
             {
-                cd[i].nComp(ncomp);
-                cd[i].srcComp(scomp);
+                if (!it->second.m_reused)
+                {
+                    m_FPBCache.erase(it++);
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    if (m_FPBCache.size() < fpb_cache_max_size) break;
+                }
+                else
+                {
+                    ++it;
+                }
             }
 
-            return it->second;
+            if (m_FPBCache.size() >= fpb_cache_max_size)
+                //
+                // Get rid of first entry which is the one with the smallest key.
+                //
+                m_FPBCache.erase(m_FPBCache.begin());
         }
+
+    }
+    else
+    {
+        m_FPBCache.clear();
     }
 
     return buildFPB(mf,fpb);
@@ -482,11 +535,11 @@ void
 Geometry::Setup (const RealBox* rb, int coord)
 {
     ParmParse pp("geometry");
-
-
+    //
     // The default behavior is as before.  If rb and coord come
     // in with default values, we require that user set them through pp.
     // If not, use those coming in, and possibly override them w/pp
+    //
     Array<Real> prob_lo(BL_SPACEDIM);
     Array<Real> prob_hi(BL_SPACEDIM);
     if (rb == 0  &&  coord==-1)
