@@ -4,6 +4,8 @@
 
 #include <FabArray.H>
 
+
+
 FabArrayBase::FabArrayBase ()
 {}
 
@@ -202,14 +204,16 @@ static CPCCache TheCopyCache;
 CPC&
 CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
-    static bool first          = false;
-    static bool use_copy_cache = true;
+    static bool first               = true;
+    static bool use_copy_cache      = true;
+    static int  copy_cache_max_size = 25;
 
-    if (!first)
+    if (first)
     {
-        first = true;
+        first = false;
         ParmParse pp("fabarray");
         pp.query("use_copy_cache", use_copy_cache);
+        pp.query("copy_cache_max_size", copy_cache_max_size);
     }
 
     got_from_cache = false;
@@ -229,18 +233,21 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
                 return it->second;
             }
         }
-        //
-        // Don't let the size of the cache get too big.
-        //
-        const int N = 50;
 
-        if (TheCopyCache.size() >= N)
+        if (TheCopyCache.size() >= copy_cache_max_size)
         {
+            //
+            // Don't let the size of the cache get too big.
+            //
             for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
             {
                 if (!it->second.m_reused)
                 {
                     TheCopyCache.erase(it++);
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    if (TheCopyCache.size() < copy_cache_max_size) break;
                 }
                 else
                 {
@@ -248,7 +255,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
                 }
             }
 
-            if (TheCopyCache.size() >= N)
+            if (TheCopyCache.size() >= copy_cache_max_size)
                 //
                 // Get rid of first entry which is the one with the smallest key.
                 //
