@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.30 2002-11-26 22:47:22 lijewski Exp $
+// $Id: LinOp.cpp,v 1.31 2007-02-12 21:11:14 almgren Exp $
 //
 #include <winstd.H>
 
@@ -722,5 +722,47 @@ operator<< (std::ostream& os,
     }
     
     return os;
+}
+
+const Geometry&
+LinOp::getGeom (int level)
+{
+    return geomarray[level];
+}
+
+const Real * 
+LinOp::getDx (int level)
+{
+    return h[level];
+}
+
+Real
+LinOp::get_alpha () const
+{
+    BoxLib::Abort("LinOp::get_alpha");
+    return 0;
+}   
+    
+Real
+LinOp::get_beta () const 
+{   
+    BoxLib::Abort("LinOp::get_beta");
+    return 0; 
+}
+
+const MultiFab&
+LinOp::aCoefficients (int level)
+{
+    static MultiFab junk;
+    BoxLib::Abort("LinOp::aCoefficients");
+    return junk;
+}
+
+const MultiFab&
+LinOp::bCoefficients (int dir,int level)
+{
+    static MultiFab junk;
+    BoxLib::Abort("LinOp::bCoefficients");
+    return junk;
 }
 

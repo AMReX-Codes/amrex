@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.15 2001-08-01 21:51:04 lijewski Exp $
+// $Id: LinOp.H,v 1.16 2007-02-12 21:11:14 almgren Exp $
 //
 
 #include <Array.H>
@@ -183,6 +183,26 @@ public:
     //@ManDoc: Output operator internal to an ASCII stream
     //
     friend std::ostream& operator<< (std::ostream& os, const LinOp& lp);
+
+    const Geometry& getGeom(int level);
+    const Real * getDx(int level);
+
+    //
+    //@ManDoc: get scalar alpha coefficient
+    //
+    virtual Real get_alpha () const;
+    //
+    //@ManDoc: get scalar beta coefficient
+    //
+    virtual Real get_beta () const;
+    //
+    //@ManDoc: return reference to "a" coefficients for base level
+    //
+    virtual const MultiFab& aCoefficients (int level = 0);
+    //
+    //@ManDoc: return reference to "b" coefficients for base level
+    //
+    virtual const MultiFab& bCoefficients (int dir, int level=0);
     
 protected:
     //
