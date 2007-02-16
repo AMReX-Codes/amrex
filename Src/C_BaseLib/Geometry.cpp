@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.68 2007-01-26 20:16:45 lijewski Exp $
+// $Id: Geometry.cpp,v 1.69 2007-02-16 00:21:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -271,9 +271,10 @@ Geometry::ProbLength (int dir)
 
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
-                                bool do_corners) const
+                                bool do_corners,
+                                bool local) const
 {
-    FillPeriodicBoundary(mf,0,mf.nComp(),do_corners);
+    FillPeriodicBoundary(mf,0,mf.nComp(),do_corners,local);
 }
 
 FPB&
@@ -429,10 +430,10 @@ Geometry::buildFPB (MultiFab&  mf,
                 for (int i = 0; i < pshifts.size(); i++)
                 {
                     Box shftbox = src + pshifts[i];
-                    Box src_box = dest & shftbox;
-                    Box dst_box = src_box - pshifts[i];
+                    Box dbx     = dest & shftbox;
+                    Box sbx     = dbx - pshifts[i];
 
-                    pirm.push_back(PIRec(mfi.index(),j,dst_box,src_box));
+                    pirm.push_back(PIRec(mfi.index(),j,sbx,dbx));
                 }
             }
         }
@@ -445,43 +446,99 @@ void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       scomp,
                                 int       ncomp,
-                                bool      corners) const
+                                bool      corners,
+                                bool      local) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillPeriodicBoundary(mf)");
 
     if (!isAnyPeriodic()) return;
 
-    MultiFabCopyDescriptor mfcd;
-
-    FPB TheFPB(mf.boxArray(),Domain(),mf.nGrow(),corners);
-
-    const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
-    FPB&             fpb  = getFPB(mf,TheFPB,scomp,ncomp);
-    PIRMMap&         pirm = fpb.m_pirm;
-    //
-    // Add boxes we need to collect.
-    //
-    for (int i = 0; i < pirm.size(); i++)
+    if ( local )
     {
-        pirm[i].fbid = mfcd.AddBox(mfid,
-                                   pirm[i].srcBox,
-                                   0,
-                                   pirm[i].srcId,
-                                   scomp,
-                                   scomp,
-                                   ncomp,
-                                   !corners);
+        //
+        // Do what you can with the FABs you own.  No parallelism allowed.
+        //
+        Array<IntVect> pshifts(27);
+
+        for (MFIter mfidst(mf); mfidst.isValid(); ++mfidst)
+        {
+            const Box& dst = mf[mfidst].box();
+
+            BL_ASSERT(dst == BoxLib::grow(mfidst.validbox(), mf.nGrow()));
+
+            Box TheDomain = Domain();
+            for (int n = 0; n < BL_SPACEDIM; n++)
+                if (dst.ixType()[n] == IndexType::NODE)
+                    TheDomain.surroundingNodes(n);
+
+            if (!TheDomain.contains(dst))
+            {
+                for (MFIter mfisrc(mf); mfisrc.isValid(); ++mfisrc)
+                {
+                    Box src = mfisrc.validbox() & TheDomain;
+
+                    if (corners)
+                    {
+                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        {
+                            if (!isPeriodic(i))
+                            {
+                                if (src.smallEnd(i) == Domain().smallEnd(i))
+                                    src.growLo(i,mf.nGrow());
+                                if (src.bigEnd(i) == Domain().bigEnd(i))
+                                    src.growHi(i,mf.nGrow());
+                            }
+                        }
+                    }
+
+                    periodicShift(dst, src, pshifts);
+
+                    for (int i = 0; i < pshifts.size(); i++)
+                    {
+                        Box shftbox = src + pshifts[i];
+                        Box dbx     = dst & shftbox;
+                        Box sbx     = dbx - pshifts[i];
+
+                        mf[mfidst].copy(mf[mfisrc], sbx, scomp, dbx, scomp, ncomp);
+                    }
+                }
+            }
+        }
     }
-
-    mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
-
-    for (int i = 0; i < pirm.size(); i++)
+    else
     {
-        BL_ASSERT(pirm[i].fbid.box() == pirm[i].srcBox);
-        BL_ASSERT(pirm[i].srcBox.sameSize(pirm[i].dstBox));
-        BL_ASSERT(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
+        MultiFabCopyDescriptor mfcd;
 
-        mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
+        FPB TheFPB(mf.boxArray(),Domain(),mf.nGrow(),corners);
+
+        const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
+        FPB&             fpb  = getFPB(mf,TheFPB,scomp,ncomp);
+        PIRMMap&         pirm = fpb.m_pirm;
+        //
+        // Add boxes we need to collect.
+        //
+        for (int i = 0; i < pirm.size(); i++)
+        {
+            pirm[i].fbid = mfcd.AddBox(mfid,
+                                       pirm[i].srcBox,
+                                       0,
+                                       pirm[i].srcId,
+                                       scomp,
+                                       scomp,
+                                       ncomp,
+                                       !corners);
+        }
+
+        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
+
+        for (int i = 0; i < pirm.size(); i++)
+        {
+            BL_ASSERT(pirm[i].fbid.box() == pirm[i].srcBox);
+            BL_ASSERT(pirm[i].srcBox.sameSize(pirm[i].dstBox));
+            BL_ASSERT(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
+
+            mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
+        }
     }
 }
 
