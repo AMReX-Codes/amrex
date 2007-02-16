@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.18 2005-01-05 22:20:05 lijewski Exp $
+// $Id: BndryData.cpp,v 1.19 2007-02-16 00:02:37 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -147,8 +147,7 @@ BndryData::define (const BoxArray& _grids,
             //
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
-                if (dir == coord_dir)
-                    continue;
+                if (dir == coord_dir) continue;
                 face_box.grow(dir,NTangHalfWidth);
             }
             Mask* m = new Mask(face_box);
@@ -174,15 +173,9 @@ BndryData::define (const BoxArray& _grids,
             //
             // Turn mask off on intersection with grids at this level.
             //
-            for (int g = 0; g < ngrd; g++)
-            {
-                Box ovlp = grids[g] & face_box;
-
-                if (ovlp.ok())
-                {
-                    m->setVal(covered,ovlp,0);
-                }
-            }
+            std::vector< std::pair<int,Box> > isects = grids.intersections(face_box);
+            for (int ii = 0; ii < isects.size(); ii++)
+                m->setVal(covered, isects[ii].second, 0);
             //
             // Handle special cases if is periodic.
             //
@@ -193,17 +186,9 @@ BndryData::define (const BoxArray& _grids,
                 for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     m->shift(pshifts[iiv]);
-
-                    for (int g = 0; g < ngrd; g++)
-                    {
-                        Box ovlp = grids[g] & m->box();
-
-                        if (ovlp.ok())
-                        {
-                            m->setVal(covered,ovlp,0);
-                        }
-                    }
-
+                    std::vector< std::pair<int,Box> > isects = grids.intersections(m->box());
+                    for (int ii = 0; ii < isects.size(); ii++)
+                        m->setVal(covered, isects[ii].second, 0);
                     m->shift(-pshifts[iiv]);
                 }
             }
