@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.43 2001-08-02 16:01:44 car Exp $
+// $Id: MultiFab.H,v 1.44 2007-02-16 00:19:19 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -90,6 +90,7 @@ public:
               FabAlloc        mem_mode = Fab_allocate);
 
     void operator= (const Real& r);
+
     /*@ManDoc: Returns the minimum value contained in component comp of the
                MultiFab.  The parameter nghost determines the number of
                boundary cells to search for the minimum.  The default is to
@@ -311,13 +312,12 @@ public:
                purpose is to fill in the boundary regions of each FAB in
                the MultiFab.
     */
-    void FillBoundary ();
+    void FillBoundary (bool local = false);
 
     /*@ManDoc: Same as FillBoundary(), but only copies
                num\_comp components starting at src\_comp.
     */
-    void FillBoundary (int src_comp,
-                       int num_comp);
+    void FillBoundary (int src_comp, int num_comp, bool local = false);
     //
     //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
     //

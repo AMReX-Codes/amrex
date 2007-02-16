@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.76 2007-01-26 19:23:40 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.77 2007-02-16 00:19:19 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -37,9 +37,9 @@ MultiFab::Copy (MultiFab&       dst,
 }
 
 void
-MultiFab::FillBoundary ()
+MultiFab::FillBoundary (bool local)
 {
-    FillBoundary(0, n_comp);
+    FillBoundary(0, n_comp, local);
 }
 
 void
@@ -749,36 +749,70 @@ TheFBsirec (int             scomp,
 }
 
 void
-MultiFab::FillBoundary (int scomp,
-                        int ncomp)
+MultiFab::FillBoundary (int  scomp,
+                        int  ncomp,
+                        bool local)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
 
-    MultiFabCopyDescriptor mfcd;
-    SI&                    si   = TheFBsirec(scomp,ncomp,*this);
-    const MultiFabId       mfid = mfcd.RegisterMultiFab(this);
-    //
-    // Add boxes we need to collect.
-    //
-    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
+    if ( n_grow <= 0 ) return;
+
+    if ( local )
     {
-        si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
-                                           si.m_sirec[i].m_bx,
-                                           0,
-                                           si.m_sirec[i].m_j,
-                                           scomp,
-                                           scomp,
-                                           ncomp);
+        //
+        // Do what you can with the FABs you own.  No parallelism allowed.
+        //
+        const BoxArray&            ba     = boxArray();
+        const DistributionMapping& DMap   = DistributionMap();
+        const int                  MyProc = ParallelDescriptor::MyProc();
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const int i = mfi.index();
+
+            std::vector< std::pair<int,Box> > isects = ba.intersections((*this)[mfi].box());
+
+            for (int ii = 0; ii < isects.size(); ii++)
+            {
+                const Box& bx  = isects[ii].second;
+                const int  iii = isects[ii].first;
+
+                if (i != iii && DMap[iii] == MyProc)
+                {
+                    (*this)[i].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
+                }
+            }
+        }
+    }
+    else
+    {
+        MultiFabCopyDescriptor mfcd;
+        SI&                    si   = TheFBsirec(scomp,ncomp,*this);
+        const MultiFabId       mfid = mfcd.RegisterMultiFab(this);
+        //
+        // Add boxes we need to collect.
+        //
+        for (unsigned int i = 0; i < si.m_sirec.size(); i++)
+        {
+            si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
+                                               si.m_sirec[i].m_bx,
+                                               0,
+                                               si.m_sirec[i].m_j,
+                                               scomp,
+                                               scomp,
+                                               ncomp);
+        }
+
+        mfcd.CollectData(&si.m_cache,&si.m_commdata);
+
+        for (unsigned int i = 0; i < si.m_sirec.size(); i++)
+        {
+            BL_ASSERT(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
+            //
+            // Directly fill the FAB.
+            //
+            mfcd.FillFab(mfid,si.m_sirec[i].m_fbid,(*this)[si.m_sirec[i].m_i]);
+        }
     }
 
-    mfcd.CollectData(&si.m_cache,&si.m_commdata);
-
-    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
-    {
-        BL_ASSERT(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
-        //
-        // Directly fill the FAB.
-        //
-        mfcd.FillFab(mfid,si.m_sirec[i].m_fbid,(*this)[si.m_sirec[i].m_i]);
-    }
 }
