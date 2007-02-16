@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.36 2006-08-02 21:37:31 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.37 2007-02-16 00:03:48 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -83,9 +83,8 @@ MultiGrid::initialize ()
     {
         switch (ii)
         {
-        case 0: def_cg_solver = CGSolver::CG; break;
+        case 0: def_cg_solver = CGSolver::CG;       break;
         case 1: def_cg_solver = CGSolver::BiCGStab; break;
-        case 2: def_cg_solver = CGSolver::CG_Alt; break;
         default:
             BoxLib::Error("MultiGrid::initialize(): bad cg_solver value");
         }

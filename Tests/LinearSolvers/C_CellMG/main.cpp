@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.29 2006-11-22 21:10:58 lijewski Exp $
+// $Id: main.cpp,v 1.30 2007-02-16 00:03:14 lijewski Exp $
 //
 
 #include <fstream>
@@ -131,7 +131,6 @@ main (int argc, char* argv[])
   bool mg = true            ; pp.query("mg", mg);
   bool cg = false           ; pp.query("cg", cg);
   bool bicg = false         ; pp.query("bicg", bicg);
-  bool acg = false          ; pp.query("acg", acg);
   bool use_mg_pre=false     ; pp.query("mg_pre",use_mg_pre);
   bool new_bc=false         ; pp.query("new_bc",new_bc);
   bool dump_norm=true       ; pp.query("dump_norm", dump_norm);
@@ -216,28 +215,6 @@ main (int argc, char* argv[])
 	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      std::cout << "BiCGStab (new_bc) Result = " << res << std::endl;
-            }
-        }
-      if ( acg )
-	{
-	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
-	  cg.setMaxIter(maxiter);
-	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	  std::cout << "aCG Result = " << res << std::endl;
-	  if ( new_bc )
-	    {
-	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
-		{
-		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
-		  for ( int n=0; n<BL_SPACEDIM; ++n )
-		    {
-		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
-		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
-                    } 
-                } 
-	      lp.bndryData(bd);
-	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	      std::cout << "aCG (new_bc) Result = " << res << std::endl;
             }
         }
 
@@ -382,25 +359,7 @@ main (int argc, char* argv[])
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-	  if ( acg )
-	    {
-	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
-	      cg.setMaxIter(maxiter);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
-	      if ( new_bc )
-		{
-		  for ( int i=0; i < bs.size(); ++i )
-		    {
-		      for ( int n=0; n<BL_SPACEDIM; ++n )
-			{
-			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
-			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
-			}
-		    }
-		  lp.bndryData(bd);
-		  cg.solve(soln, rhs, tolerance, tolerance_abs);
-		}
-	    }
+
 	  // Look at operator
 	  if ( dump_Lp )
 	    std::cout << lp << std::endl;
