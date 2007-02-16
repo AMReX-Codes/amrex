@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.41 2002-12-03 18:35:38 lijewski Exp $
+// $Id: Geometry.H,v 1.42 2007-02-16 00:21:29 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -142,14 +142,16 @@ public:
     //@ManDoc: Fill ghost cells of all components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
-                               bool      do_corners = false) const;
+                               bool      do_corners = false,
+                               bool      local      = false) const;
     //
     //@ManDoc: Fill ghost cells of selected components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
                                int       num_comp,
-                               bool      do_corners = false) const;
+                               bool      do_corners = false,
+                               bool      local      = false) const;
     //
     //@ManDoc: Flush the cache of PIRM information.
     //
