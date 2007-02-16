@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.37 2007-02-16 00:12:58 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.38 2007-02-16 21:18:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -566,14 +566,15 @@ CGSolver::solve_cg (MultiFab&       sol,
     {
         if (use_jbb_precond && ParallelDescriptor::NProcs() > 1)
         {
-              z.setVal(0);
+            z.setVal(0);
 
-              jbb_precond(z,r,lev,Lp);
+            jbb_precond(z,r,lev,Lp);
         }
         else
         {
             z.copy(r);
         }
+
         Real rho = dotxy(z,r);
 
         if (nit == 1)
@@ -697,7 +698,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
     // This is a local routine.  No parallel is allowed to happen here.
     //
     int                  lev_loc = lev;
-    const Real           eps_rel = 1.e-12;
+    const Real           eps_rel = 1.e-2;
     const Real           eps_abs = 1.e-16;
     const int            nghost  = 1;
     const int            ncomp   = sol.nComp();
@@ -790,7 +791,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
 
         if ( ParallelDescriptor::IOProcessor() )
         {
-            if ( verbose > 10 ||
+            if ( verbose > 3 ||
                  (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
                    (eps_abs > 0. && rnorm < eps_abs)) && verbose > 3) )
             {
