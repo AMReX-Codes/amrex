@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.16 2007-02-12 21:11:14 almgren Exp $
+// $Id: LinOp.H,v 1.17 2007-02-16 00:15:01 lijewski Exp $
 //
 
 #include <Array.H>
@@ -113,35 +113,38 @@ public:
     //
     virtual void apply (MultiFab&      out,
                         MultiFab&      in,
-                        int            level = 0,
-                        LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+                        int            level   = 0,
+                        LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC,
+                        bool           local   = false);
     //
     //@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
     //
     void applyBC (MultiFab&      inout,
                   int            src_comp,
                   int            num_comp,
-                  int            level = 0,
-                  LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+                  int            level   = 0,
+                  LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC,
+                  bool           local   = false);
     //
     //@ManDoc: compute the level residual = rhsL - L(solnL)
     //
     virtual void residual (MultiFab&       residL,
                            const MultiFab& rhsL,
                            MultiFab&       solnL,
-                           int             level = 0,
-                           LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+                           int             level   = 0,
+                           LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC,
+                           bool            local   = false);
     //
     //@ManDoc: smooth the level system L(solnL)=rhsL
     //
     void smooth (MultiFab&       solnL,
                  const MultiFab& rhsL,
-                 int             level = 0,
+                 int             level   = 0,
                  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     // Estimate the norm of the operator
     //
-    virtual Real norm (int nm = 0, int level = 0);
+    virtual Real norm (int nm = 0, int level = 0, const bool local = false);
     //
     //@ManDoc: Compute flux associated with the op
     //
@@ -260,6 +263,11 @@ protected:
     //  FIXME: This should really be an array of integer BndryRegisters
     //
     Array< Array< Array< Mask*> > > maskvals;
+    //
+    // Similar to maskvals, but only for "local" grids at level 0.
+    // It's only made if it's needed.  Currently used only in applyBC().
+    //
+    Array< Array< Array< Mask*> > > lmaskvals;
     //
     //@ManDoc: boundary data class
     //
