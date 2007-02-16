@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.20 2002-11-20 16:52:07 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.21 2007-02-16 00:09:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -44,43 +44,44 @@ ABecLaplacian::~ABecLaplacian ()
 }
 
 Real
-ABecLaplacian::norm(int nm, int level)
+ABecLaplacian::norm (int nm, int level, const bool local)
 {
-  BL_ASSERT(nm == 0);
-  const MultiFab& a   = aCoefficients(level);
+    BL_ASSERT(nm == 0);
+    const MultiFab& a   = aCoefficients(level);
 
-  D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
-         const MultiFab& bY  = bCoefficients(1,level);,
-         const MultiFab& bZ  = bCoefficients(2,level););
+    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+           const MultiFab& bY  = bCoefficients(1,level);,
+           const MultiFab& bZ  = bCoefficients(2,level););
 
-  const int nc = a.nComp();
-  Real res = 0.0;
-  for (MFIter amfi(a); amfi.isValid(); ++amfi)
-  {
-      Real tres;
+    const int nc = a.nComp();
+    Real res = 0.0;
+    for (MFIter amfi(a); amfi.isValid(); ++amfi)
+    {
+        Real tres;
 #if (BL_SPACEDIM==2)
-      FORT_NORMA(&tres,
-		 &alpha, &beta,
-		 a[amfi].dataPtr(),  ARLIM(a[amfi].loVect()), ARLIM(a[amfi].hiVect()),
-		 bX[amfi].dataPtr(), ARLIM(bX[amfi].loVect()), ARLIM(bX[amfi].hiVect()),
-		 bY[amfi].dataPtr(), ARLIM(bY[amfi].loVect()), ARLIM(bY[amfi].hiVect()),
-		 amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
-		 h[level]);
+        FORT_NORMA(&tres,
+                   &alpha, &beta,
+                   a[amfi].dataPtr(),  ARLIM(a[amfi].loVect()), ARLIM(a[amfi].hiVect()),
+                   bX[amfi].dataPtr(), ARLIM(bX[amfi].loVect()), ARLIM(bX[amfi].hiVect()),
+                   bY[amfi].dataPtr(), ARLIM(bY[amfi].loVect()), ARLIM(bY[amfi].hiVect()),
+                   amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
+                   h[level]);
 #elif (BL_SPACEDIM==3)
 
-      FORT_NORMA(&tres,
-		 &alpha, &beta,
-		 a[amfi].dataPtr(),  ARLIM(a[amfi].loVect()), ARLIM(a[amfi].hiVect()),
-		 bX[amfi].dataPtr(), ARLIM(bX[amfi].loVect()), ARLIM(bX[amfi].hiVect()),
-		 bY[amfi].dataPtr(), ARLIM(bY[amfi].loVect()), ARLIM(bY[amfi].hiVect()),
-		 bZ[amfi].dataPtr(), ARLIM(bZ[amfi].loVect()), ARLIM(bZ[amfi].hiVect()),
-		 amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
-		 h[level]);
+        FORT_NORMA(&tres,
+                   &alpha, &beta,
+                   a[amfi].dataPtr(),  ARLIM(a[amfi].loVect()), ARLIM(a[amfi].hiVect()),
+                   bX[amfi].dataPtr(), ARLIM(bX[amfi].loVect()), ARLIM(bX[amfi].hiVect()),
+                   bY[amfi].dataPtr(), ARLIM(bY[amfi].loVect()), ARLIM(bY[amfi].hiVect()),
+                   bZ[amfi].dataPtr(), ARLIM(bZ[amfi].loVect()), ARLIM(bZ[amfi].hiVect()),
+                   amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
+                   h[level]);
 #endif
-      res = std::max(res, tres);
-  }
-  ParallelDescriptor::ReduceRealMax(res);
-  return res;
+        res = std::max(res, tres);
+    }
+    if (!local)
+        ParallelDescriptor::ReduceRealMax(res);
+    return res;
 }
 
 void

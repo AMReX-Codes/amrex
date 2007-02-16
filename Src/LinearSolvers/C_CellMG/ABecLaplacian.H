@@ -3,7 +3,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.11 2002-11-20 16:55:55 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.12 2007-02-16 00:09:16 lijewski Exp $
 //
 
 #include <Tuple.H>
@@ -150,7 +150,7 @@ public:
     //
     void invalidate_b_to_level (int lev);
 
-    virtual Real norm (int nm = 0, int level = 0);
+    virtual Real norm (int nm = 0, int level = 0, const bool local = false);
   
 protected:
     //
