@@ -3,7 +3,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.6 2000-10-02 20:51:16 lijewski Exp $
+// $Id: Laplacian.H,v 1.7 2007-02-16 00:10:50 lijewski Exp $
 //
 
 #include <LinOp.H>
@@ -60,7 +60,8 @@ public:
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode);
     
-    virtual Real norm (int nm = 0, int level = 0);
+    virtual Real norm (int nm = 0, int level = 0, const bool local = false);
+
 protected:
     //
     //@ManDoc: compute out=L(in) at level=level

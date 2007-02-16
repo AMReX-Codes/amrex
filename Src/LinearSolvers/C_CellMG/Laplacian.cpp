@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.13 2001-08-09 22:42:00 marc Exp $
+// $Id: Laplacian.cpp,v 1.14 2007-02-16 00:10:50 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -9,7 +9,7 @@
 #include <LP_F.H>
 
 Real
-Laplacian::norm (int nm, int level)
+Laplacian::norm (int nm, int level, const bool local)
 {
   switch ( nm )
     {
@@ -162,4 +162,3 @@ Laplacian::Fapply (MultiFab&       y,
                    h[level]);
     }
 }
-
