@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.11 2004-12-15 18:39:56 car Exp $
+// $Id: CGSolver.H,v 1.12 2007-02-16 00:12:58 lijewski Exp $
 //
 
 #include <cmath>
@@ -12,6 +12,7 @@
 #include <Pointers.H>
 #include <MultiFab.H>
 #include <LinOp.H>
+#include <ABecLaplacian.H>
 
 class MultiGrid;
 
@@ -89,7 +90,7 @@ class MultiGrid;
 class CGSolver
 {
 public:
-    enum Solver { CG, BiCGStab, CG_Alt, Automatic};
+    enum Solver { CG, BiCGStab };
 
   //
     //@ManDoc: constructor
@@ -110,10 +111,10 @@ public:
     //
     int solve (MultiFab&       solnL,
 	       const MultiFab& rhsL,
-	       Real            eps_rel = -1.0,
-	       Real            eps_abs = -1.0,
-	       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC,
-	       Solver cg_solver_ = Automatic);
+	       Real            eps_rel    = -1.0,
+	       Real            eps_abs    = -1.0,
+	       LinOp::BC_Mode  bc_mode    = LinOp::Inhomogeneous_BC,
+	       Solver          cg_solver_ = BiCGStab);
     //
     //@ManDoc: set maximum allowed number of CG iterations
     //
@@ -159,6 +160,10 @@ protected:
 		  Real            eps_rel = -1.0,
 		  Real            eps_abs = -1.0,
 		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    int jbb_precond (MultiFab&       sol,
+                     const MultiFab& rhs,
+                     int             lev,
+                     LinOp&          Lp);
     //
     //@ManDoc: construct work space, initialize parameters
     //
@@ -214,6 +219,8 @@ protected:
     int        verbose;        // Current verbosity level.
     int        lev;            // Level of the linear operator to use
     bool       use_mg_precond; // Use multigrid as a preconditioner.
+
+    static bool use_jbb_precond; // Use JBB's new method as a preconditioner.
     
 private:
     //
