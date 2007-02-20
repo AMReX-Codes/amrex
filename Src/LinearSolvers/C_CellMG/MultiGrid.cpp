@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.37 2007-02-16 00:03:48 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.38 2007-02-20 18:30:33 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -124,7 +124,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     nu_f         = def_nu_f;
     usecg        = def_usecg;
     verbose      = def_verbose;
-    maxiter_b   = def_maxiter_b;
+    maxiter_b    = def_maxiter_b;
     rtol_b       = def_rtol_b;
     atol_b       = def_atol_b;
     nu_b         = def_nu_b;
@@ -152,6 +152,8 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 	BoxArray tmp = Lp.boxArray();
 	for (int i = 0; i < numlevels; ++i)
 	{
+            Orientation face(0, Orientation::low);
+            const DistributionMapping& map = Lp.bndryData().bndryValues(face).DistributionMap();
 	    if (i > 0)
 		tmp.coarsen(2);
 	    std::cout << " Level: " << i << '\n';
@@ -161,7 +163,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 		std::cout << "  [" << k << "]: " << b << "   ";
 		for (int j = 0; j < BL_SPACEDIM; j++)
 		    std::cout << b.length(j) << ' ';
-		std::cout << '\n';
+                std::cout << ":: " << map[k] << '\n';
 	    }
 	}
     }
