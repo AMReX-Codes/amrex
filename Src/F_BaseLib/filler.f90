@@ -144,42 +144,49 @@ contains
 
     level = plotfile_nlevels(pf)
     if ( present(max_level) ) level = min(max_level, level)
+
     do i = 1, level
        rr = 1
        do j = i, level-1
           rr = rr*plotfile_refrat_n(pf, j)
        end do
+
        do j = 1, plotfile_nboxes_n(pf, i)
-          nullify(cb)
+          call fab_bind_comp_vec(pf, i, j, comps)
+          cb => plotfile_dataptr(pf, i, j)
+
           ! get the limits of the current patch
           do n = 1, 2
              lo(n) = lbound(cb, dim=n)
              hi(n) = ubound(cb, dim=n)
           end do
+
           ! loop over the limits of the current patch -- in the future, we 
           ! should actually check here if the patch falls completely out of 
           ! our subdomain to speed things up.
           do jj = lo(2), hi(2)
              do ii = lo(1), hi(1)
+
                 ! scale this patch up by rr to match the 
                 ! resolution of f_fab
                 do jjj = 0, rr(2) - 1
                    jr = jj*rr(2) + jjj
                    if (jr < tlo(2) .or. jr > thi(2)) cycle
+                   
                    do iii = 0, rr(1) - 1
                       ir = ii*rr(1) + iii
                       if (ir < tlo(1) .or. ir > thi(1)) cycle
-                      if ( .not. associated(cb) ) then
-                         call fab_bind_comp_vec(pf, i, j, comps)
-                         cb => plotfile_dataptr(pf, i, j)
-                      end if
+                      
                       f_fab(ir, jr, :) = cb(ii, jj, 1, :)
                    end do
                 end do
+
              end do
           end do
+
           call fab_unbind(pf, i, j)
        end do
+
     end do
   end subroutine blow_out_to_sub_fab_2d
 
@@ -207,40 +214,45 @@ contains
           rr = rr*plotfile_refrat_n(pf, j)
        end do
        do j = 1, plotfile_nboxes_n(pf, i)
-          nullify(cb)
+          call fab_bind_comp_vec(pf, i, j, comps)
+          cb => plotfile_dataptr(pf, i, j)
+
           ! get the limits of the current patch
           do n = 1, 3
              lo(n) = lbound(cb, dim=n)
              hi(n) = ubound(cb, dim=n)
           end do
+
           ! loop over the limits of the current patch -- in the future, we 
           ! should actually check here if the patch falls completely out of 
           ! our subdomain to speed things up.
           do kk = lo(3), hi(3)
              do jj = lo(2), hi(2)
                 do ii = lo(1), hi(1)
+
                    ! scale this patch up by rr to match the 
                    ! resolution of f_fab
                    do kkk = 0, rr(3)-1
                       kr = kk*rr(3) + kkk
                       if ( kr < tlo(3) .or. kr > thi(3) ) cycle
+
                       do jjj = 0, rr(2) - 1
                          jr = jj*rr(2) + jjj
                          if (jr < tlo(2) .or. jr > thi(2)) cycle
+
                          do iii = 0, rr(1) - 1
                             ir = ii*rr(1) + iii
                             if (ir < tlo(1) .or. ir > thi(1)) cycle
-                            if ( .not. associated(cb) ) then
-                               call fab_bind_comp_vec(pf, i, j, comps)
-                               cb => plotfile_dataptr(pf, i, j)
-                            end if
+
                             f_fab(ir, jr, kr, :) = cb(ii, jj, kk, :)
                          end do
                       end do
                    end do
+
                 end do
              end do
           end do
+
           call fab_unbind(pf, i, j)
        end do
     end do
