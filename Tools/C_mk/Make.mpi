@@ -26,6 +26,11 @@ endif
 
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
+    ifeq ($(WHICHLINUX), HOMER)
+      MPI_HOME=/usr/local/mpich/default/
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
+    endif
     ifeq ($(WHICHLINUX), PCCLUSTER)
       MPI_HOME=/usr/local/pkg/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4

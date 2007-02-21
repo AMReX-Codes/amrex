@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.99 2006-10-12 16:45:12 marc Exp $
+# Make.defs $Id: Make.defs,v 1.100 2007-02-21 18:15:10 mzingale Exp $
 #
 
 #
@@ -113,6 +113,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring davinci, $(UNAMEN)), davinci)
     WHICHLINUX := DAVINCI
+  endif
+  ifeq ($(findstring homer, $(UNAMEN)), homer)
+    WHICHLINUX := HOMER
   endif
 endif
 
