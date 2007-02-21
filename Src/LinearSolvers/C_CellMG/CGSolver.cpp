@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.38 2007-02-16 21:18:22 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.39 2007-02-21 17:19:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -38,12 +38,12 @@ CGSolver::initialize ()
 {
     ParmParse pp("cg");
 
-    pp.query("use_jbb_precond", use_jbb_precond);
-
-    pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
+    pp.query("maxiter", def_maxiter);
     pp.query("verbose", def_verbose);
+    pp.query("use_jbb_precond", use_jbb_precond);
     pp.query("unstable_criterion",def_unstable_criterion);
+
     int ii;
     if (pp.query("cg_solver", ii))
     {
@@ -58,10 +58,11 @@ CGSolver::initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-        std::cout << "CGSolver settings...\n";
-	std::cout << "   def_maxiter            = " << def_maxiter << '\n';
+        std::cout << "CGSolver settings ...\n";
+	std::cout << "   def_maxiter            = " << def_maxiter            << '\n';
 	std::cout << "   def_unstable_criterion = " << def_unstable_criterion << '\n';
-	std::cout << "   def_cg_solver = " << def_cg_solver << '\n';
+	std::cout << "   def_cg_solver          = " << def_cg_solver          << '\n';
+	std::cout << "   use_jbb_precond        = " << use_jbb_precond        << '\n';
     }
     
     initialized = 1;
@@ -121,7 +122,7 @@ CGSolver::solve (MultiFab&       sol,
                  LinOp::BC_Mode  bc_mode,
 		 Solver          solver)
 {
-    int ret;
+    int ret = -1;
 
     switch (solver)
     {
