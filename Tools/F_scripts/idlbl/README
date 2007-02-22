@@ -1,0 +1,32 @@
+Some IDL routines to visualize Maestro data -- these are based on my
+original FLASH IDL routines.
+
+To use these, set the environment variable IDLBL_DIR to the path
+containing these files.
+
+You will also need to modify the IDL search path, by setting IDL_PATH
+to
+
+${IDLBL_DIR}:${IDL_DIR}/lib:${IDL_DIR}/lib/utilities
+
+where IDL_DIR is the path to your IDL installation
+
+
+For Linux machines, it is usually best to start idl as
+
+idl start_linux.pro
+
+
+
+Basic visualization is done by first writting out a raw file
+containing a single variable using fIDLdump in
+fParallel/data_processing.  For example:
+
+./fIDLdump.Linux.Intel.debug.exe -cname "tfromrho" plt0000
+
+
+Then in IDL, you can view this with:
+
+plotraw, 'plt0050.tfromH.raw'
+
+
