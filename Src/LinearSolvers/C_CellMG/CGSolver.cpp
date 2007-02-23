@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.39 2007-02-21 17:19:34 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.40 2007-02-23 22:38:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -18,8 +18,8 @@
 int              CGSolver::initialized            = 0;
 int              CGSolver::def_maxiter            = 40;
 int              CGSolver::def_verbose            = 1;
-// CGSolver::Solver CGSolver::def_cg_solver          = BiCGStab;
-CGSolver::Solver CGSolver::def_cg_solver          = CG;
+CGSolver::Solver CGSolver::def_cg_solver          = BiCGStab;
+//CGSolver::Solver CGSolver::def_cg_solver          = CG;
 double           CGSolver::def_unstable_criterion = 10.;
 bool             CGSolver::use_jbb_precond        = 0;
 

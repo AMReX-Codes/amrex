@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.38 2007-02-20 18:30:33 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.39 2007-02-23 22:39:25 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -32,6 +32,7 @@ Real MultiGrid::def_atol_b      = -1.0;
 int MultiGrid::def_nu_b         = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
 int MultiGrid::def_smooth_on_cg_unstable = 0;
+//CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::CG;
 CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::BiCGStab;
 
 static
