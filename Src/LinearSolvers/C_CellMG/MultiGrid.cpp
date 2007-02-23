@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.39 2007-02-23 22:39:25 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.40 2007-02-23 23:05:57 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -133,7 +133,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     smooth_on_cg_unstable = def_smooth_on_cg_unstable;
     cg_solver    = def_cg_solver;
     numlevels    = numLevels();
-    if ( ParallelDescriptor::IOProcessor() && verbose == 1 )
+    if ( ParallelDescriptor::IOProcessor() && verbose )
     {
 	BoxArray tmp = Lp.boxArray();
 	std::cout << "MultiGrid: numlevels = " << numlevels 
