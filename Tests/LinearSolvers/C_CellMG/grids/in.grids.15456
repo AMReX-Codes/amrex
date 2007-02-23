@@ -1,7 +1,7 @@
-boxes = grids/grids.5034
+boxes = grids/grids.15456
 geometry.coord_sys = 0
 geometry.prob_lo   =  0.0   0.0   0.0
-geometry.prob_hi   = 960.0  640.0  1280.0
+geometry.prob_hi   = 2048.0  2048.0  2048.0
 ABec=t
 mg.v=2
 cg.v=2
