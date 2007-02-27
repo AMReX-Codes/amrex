@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.30 2007-02-16 00:03:14 lijewski Exp $
+// $Id: main.cpp,v 1.31 2007-02-27 19:01:14 lijewski Exp $
 //
 
 #include <fstream>
@@ -415,28 +415,34 @@ main (int argc, char* argv[])
 BoxList
 readBoxList(const std::string file, Box& domain)
 {
-  BoxList retval;
-  std::ifstream boxspec(file.c_str());
-  if( !boxspec )
-    {
-      BoxLib::Error("readBoxList: unable to open " + *file.c_str());
-    }
-  boxspec >> domain;
-    
-  int numbox = 0;
-  boxspec >> numbox;
+    BoxList retval;
 
-  for ( int i=0; i<numbox; i++ )
+    std::ifstream boxspec;
+
+    boxspec.open(file.c_str(), std::ios::in);
+
+    if( !boxspec )
     {
-      Box tmpbox;
-      boxspec >> tmpbox;
-      if( ! domain.contains(tmpbox))
-	{
-	  std::cerr << "readBoxList: bogus box " << tmpbox << '\n';
-	  exit(1);
-        }
-      retval.push_back(tmpbox);
+        std::string msg = "readBoxList: unable to open ";
+        msg += file;
+        BoxLib::Error(msg.c_str());
     }
-  boxspec.close();
-  return retval;
+    boxspec >> domain;
+    
+    int numbox = 0;
+    boxspec >> numbox;
+
+    for ( int i=0; i<numbox; i++ )
+    {
+        Box tmpbox;
+        boxspec >> tmpbox;
+        if( !domain.contains(tmpbox) )
+	{
+            std::cerr << "readBoxList: bogus box " << tmpbox << '\n';
+            exit(1);
+        }
+        retval.push_back(tmpbox);
+    }
+
+    return retval;
 }
