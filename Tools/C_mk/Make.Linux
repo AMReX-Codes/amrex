@@ -32,6 +32,16 @@ ifeq ($(WHICHLINUX), JVN)
     endif
   endif
 endif
+ifeq ($(WHICHLINUX), ATLAS)
+  ifeq ($(COMP),Intel)
+    CXX = icpc
+    CXXOPTF +=
+    CXXDEBF += -g
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpiicpc
+    endif
+  endif
+endif
 endif
 endif
 endif
