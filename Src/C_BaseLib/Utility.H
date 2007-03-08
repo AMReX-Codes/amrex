@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.54 2006-05-02 16:39:25 lijewski Exp $
+// $Id: Utility.H,v 1.55 2007-03-08 22:19:39 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -10,7 +10,9 @@
 
 #ifndef WIN32
 #include <sys/types.h>
+#ifndef BL_PGI
 #include <sys/wait.h>
+#endif
 #endif
 
 #include <BLassert.H>

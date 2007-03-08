@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.69 2006-06-12 17:14:14 lijewski Exp $
+// $Id: Utility.cpp,v 1.70 2007-03-08 22:19:40 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -12,7 +12,7 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifndef WIN32
+#if !(defined(WIN32) || defined(BL_PGI))
 #include <sys/wait.h>
 #endif
 #include <errno.h>
