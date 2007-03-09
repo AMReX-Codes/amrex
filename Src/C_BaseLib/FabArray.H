@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.189 2007-01-18 17:22:19 lijewski Exp $
+// $Id: FabArray.H,v 1.190 2007-03-09 04:40:43 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -839,7 +839,7 @@ FabArray<FAB>::define (const BoxArray& bxs,
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
-    distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
+    distributionMap.define(boxarray,ParallelDescriptor::NProcs());
     fabparray.resize(bxs.size());
     if (alloc == Fab_allocate)
         AllocFabs();

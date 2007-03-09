@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.77 2007-03-09 04:21:05 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.78 2007-03-09 04:40:43 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -205,11 +205,6 @@ namespace ParallelDescriptor
     {
          return MyProc() == IOProcessorNumber();
     }
-
-    //
-    //@ManDoc: Returns number of CPUs to use in CFD portion of computation.
-    //
-    int NProcsCFD ();
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
