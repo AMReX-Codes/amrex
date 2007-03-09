@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.76 2002-12-03 00:02:42 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.77 2007-03-09 04:21:05 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -272,6 +272,8 @@ namespace ParallelDescriptor
     //@ManDoc: Real sum reduction to specified cpu.
     //
     void ReduceRealSum (Real& rvar, int cpu);
+
+    void ReduceRealSum (Real* rvar, int cnt, int cpu);
     //
     //@ManDoc: Real max reduction.
     //
@@ -280,6 +282,8 @@ namespace ParallelDescriptor
     //@ManDoc: Real max reduction to specified cpu.
     //
     void ReduceRealMax (Real& rvar, int cpu);
+
+    void ReduceRealMax (Real* rvar, int cnt, int cpu);
     //
     //@ManDoc: Real min reduction.
     //
@@ -288,6 +292,8 @@ namespace ParallelDescriptor
     //@ManDoc: Real min reduction to specified cpu.
     //
     void ReduceRealMin (Real& rvar, int cpu);
+
+    void ReduceRealMin (Real* rvar, int cnt, int cpu);
     //
     //@ManDoc: Integer sum reduction.
     //
@@ -296,6 +302,8 @@ namespace ParallelDescriptor
     //@ManDoc: Integer sum reduction to specified cpu.
     //
     void ReduceIntSum (int& rvar, int cpu);
+
+    void ReduceIntSum (int* rvar, int cnt, int cpu);
     //
     //@ManDoc: Integer max reduction.
     //
@@ -304,6 +312,8 @@ namespace ParallelDescriptor
     //@ManDoc: Integer max reduction to specified cpu.
     //
     void ReduceIntMax (int& rvar, int cpu);
+
+    void ReduceIntMax (int* rvar, int cnt, int cpu);
     //
     //@ManDoc: Integer min reduction.
     //
@@ -312,6 +322,8 @@ namespace ParallelDescriptor
     //@ManDoc: Integer min reduction to specified cpu.
     //
     void ReduceIntMin (int& rvar, int cpu);
+
+    void ReduceIntMin (int* rvar, int cnt, int cpu);
     //
     //@ManDoc: Long sum reduction.
     //
@@ -320,6 +332,8 @@ namespace ParallelDescriptor
     //@ManDoc: Long sum reduction to specified cpu.
     //
     void ReduceLongSum (long& rvar, int cpu);
+
+    void ReduceLongSum (long* rvar, int cnt, int cpu);
     //
     //@ManDoc: Long max reduction.
     //
@@ -328,6 +342,8 @@ namespace ParallelDescriptor
     //@ManDoc: Long max reduction to specified cpu.
     //
     void ReduceLongMax (long& rvar, int cpu);
+
+    void ReduceLongMax (long* rvar, int cnt, int cpu);
     //
     //@ManDoc: Long min reduction.
     //
@@ -336,6 +352,8 @@ namespace ParallelDescriptor
     //@ManDoc: Long min reduction to specified cpu.
     //
     void ReduceLongMin (long& rvar, int cpu);
+
+    void ReduceLongMin (long* rvar, int cnt, int cpu);
     //
     //@ManDoc: Long and-wise reduction.
     //
@@ -344,6 +362,8 @@ namespace ParallelDescriptor
     //@ManDoc: Long and-wise reduction to specified cpu.
     //
     void ReduceLongAnd (long& rvar, int cpu);
+
+    void ReduceLongAnd (long* rvar, int cnt, int cpu);
     //
     //@ManDoc: Parallel gather.
     //
