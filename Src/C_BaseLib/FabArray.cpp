@@ -12,7 +12,7 @@ FabArrayBase::FabArrayBase ()
 FabArrayBase::FabArrayBase (const BoxArray& bxs, int nvar, int ngrow)
     :
     boxarray(bxs),
-    distributionMap(boxarray, ParallelDescriptor::NProcsCFD()),
+    distributionMap(boxarray, ParallelDescriptor::NProcs()),
     n_grow(ngrow),
     n_comp(nvar)
 {}

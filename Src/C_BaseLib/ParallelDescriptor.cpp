@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.102 2007-03-09 04:21:05 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.103 2007-03-09 04:40:43 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -35,10 +35,6 @@ namespace ParallelDescriptor
     //
     int m_nProcs = -1;
     //
-    // The number of processors in CFD part of computation.
-    //
-    int m_nProcsCFD = -1;
-    //
     // BoxLib's Communicator
     //
     MPI_Comm m_comm;
@@ -61,22 +57,7 @@ namespace ParallelDescriptor
 	void DoReduceReal (Real* r, MPI_Op op, int cnt, int cpu);
 	void DoReduceLong (long* r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt  (int*  r, MPI_Op op, int cnt, int cpu);
-	//
-	// Sets number of CPUs to use in CFD portion of computation via ParmParse.
-	//
-	void SetNProcsCFD ();
     }
-}
-
-int
-ParallelDescriptor::NProcsCFD ()
-{
-    if (m_nProcsCFD == -1)
-        util::SetNProcsCFD();
-
-    BL_ASSERT(m_nProcsCFD != -1);
-
-    return m_nProcsCFD;
 }
 
 CommData::CommData ()
@@ -319,34 +300,11 @@ ParallelDescriptor::Message::req () const
 }
 
 void
-ParallelDescriptor::util::SetNProcsCFD ()
-{
-    BL_ASSERT(m_nProcs != -1);
-    BL_ASSERT(m_nProcsCFD == -1);
-
-    m_nProcsCFD = m_nProcs;
-
-    ParmParse pp("ParallelDescriptor");
-
-    if (pp.query("nProcsCFD",m_nProcsCFD))
-    {
-        if (!(m_nProcsCFD > 0 && m_nProcsCFD <= m_nProcs))
-            m_nProcsCFD = m_nProcs;
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "--> Running job with NProcsCFD = "
-                      << m_nProcsCFD
-                      << std::endl;
-    }
-}
-
-void
 ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv)
 {
     BL_ASSERT(m_MyId == -1);
     BL_ASSERT(m_nProcs == -1);
-    BL_ASSERT(m_nProcsCFD == -1);
 
     m_comm = MPI_COMM_WORLD;
 
@@ -998,7 +956,6 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 void ParallelDescriptor::StartParallel (int*, char***)
 {
     m_nProcs    = 1;
-    m_nProcsCFD = 1;
     m_MyId      = 0;
     m_comm = 0;
 }
@@ -1038,8 +995,6 @@ ParallelDescriptor::Message::req () const
 {
     return m_req;
 }
-
-void ParallelDescriptor::util::SetNProcsCFD () {}
 
 void ParallelDescriptor::EndParallel () {}
 
