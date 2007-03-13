@@ -19,17 +19,17 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 0;
-static int    sfc_threshold              = 8;
+static int    sfc_threshold              = 4;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
 //
-// Everyone uses the same Strategy -- defaults to KNAPSACK.
+// Everyone uses the same Strategy -- defaults to SFC.
 //
 DistributionMapping::Strategy
-DistributionMapping::m_Strategy = DistributionMapping::KNAPSACK;
+DistributionMapping::m_Strategy = DistributionMapping::SFC;
 
 DistributionMapping::PVMF
-DistributionMapping::m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
+DistributionMapping::m_BuildMap = &DistributionMapping::SFCProcessorMap;
 
 const Array<int>&
 DistributionMapping::ProcessorMap () const
@@ -1043,9 +1043,16 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     {
         RoundRobinProcessorMap(boxes,nprocs);
     }
-    else if (boxes.size() <= sfc_threshold*nprocs)
+    else if (boxes.size() < sfc_threshold*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs);
+
+        if (nprocs > 1 && wgts.size() > nprocs)
+            //
+            // Call MinimizeCommCosts explicitely as the above
+            // version of KnapSackProcessorMap() doesn't call it.
+            //
+            MinimizeCommCosts(m_ref->m_pmap,boxes,wgts,nprocs);
     }
     else
     {
