@@ -1046,13 +1046,6 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     else if (boxes.size() < sfc_threshold*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs);
-
-        if (nprocs > 1 && wgts.size() > nprocs)
-            //
-            // Call MinimizeCommCosts explicitely as the above
-            // version of KnapSackProcessorMap() doesn't call it.
-            //
-            MinimizeCommCosts(m_ref->m_pmap,boxes,wgts,nprocs);
     }
     else
     {
