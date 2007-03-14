@@ -1018,15 +1018,130 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
 }
 
 void
+DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
+                                          const std::vector<long>& wgts,
+                                          int                      nprocs)
+{
+    const Real strttime = ParallelDescriptor::second();
+
+    std::vector<SFCToken> token(boxes.size());
+
+    int maxijk = 0;
+
+    for (int i = 0; i < boxes.size(); i++)
+    {
+        token[i].m_box = i;
+        token[i].m_idx = boxes[i].smallEnd();
+        token[i].m_vol = wgts[i];
+
+        for (int j = 0; j < BL_SPACEDIM; j++)
+            maxijk = std::max(maxijk, token[i].m_idx[j]);
+    }
+    //
+    // Set SFCToken::MaxPower for BoxArray.
+    //
+    int m = 0;
+    for ( ; (1<<m) <= maxijk; m++)
+        ;
+    SFCToken::MaxPower = m;
+    //
+    // Put'm in Morton space filling curve order.
+    //
+    std::sort(token.begin(), token.end(), SFCToken::Compare());
+    //
+    // Split'm up as equitably as possible per CPU.
+    //
+    Real volpercpu = 0;
+    for (int i = 0; i < token.size(); i++)
+        volpercpu += token[i].m_vol;
+    volpercpu /= nprocs;
+
+    const int N = WhereToStart(nprocs);
+    int       K = 0;
+
+    for (int i = 0; i < nprocs; i++)
+    {
+        Real      vol = 0;
+        int       cnt = 0;
+        const int cpu = (i + N) % nprocs;
+
+        for ( ;
+              K < token.size() && (i == (nprocs-1) || vol < volpercpu);
+              cnt++, K++)
+        {
+            vol += token[K].m_vol;
+            m_ref->m_pmap[token[K].m_box] = cpu;
+        }
+
+        if (vol > volpercpu && cnt > 1)
+        {
+            const Real rdiff = vol - volpercpu;
+            const Real ldiff = volpercpu - (vol - token[K-1].m_vol);
+            if (rdiff > ldiff)
+                K--;
+        }
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
+
+    if (verbose)
+    {
+        const Real stoptime = ParallelDescriptor::second() - strttime;
+
+        std::vector<Real> wgt(nprocs,0);
+
+        for (int i = 0; i < token.size(); i++)
+            wgt[m_ref->m_pmap[token[i].m_box]] += token[i].m_vol;
+
+        Real sum_wgt = 0, max_wgt = 0;
+        for (int i = 0; i < wgt.size(); i++)
+        {
+            if (wgt[i] > max_wgt) max_wgt = wgt[i];
+            sum_wgt += wgt[i];
+        }
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+            std::cout << "SFC time: " << stoptime << '\n';
+        }
+
+        if (verbose > 1)
+        {
+            std::vector< std::vector<int> > nbrs = CalculateNeighbors(boxes);
+
+            Output_CPU_Comm_Counts(boxes, nbrs, m_ref->m_pmap);
+        }
+    }
+}
+
+void
 DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
                                       int             nprocs)
 {
-    std::vector<long> wgts(boxes.size());
+    BL_ASSERT(boxes.size() > 0);
 
-    for (int i = 0; i < wgts.size(); i++)
-        wgts[i] = boxes[i].volume();
+    m_ref->m_pmap.resize(boxes.size()+1);
 
-    SFCProcessorMap(boxes, wgts, nprocs);
+    if (boxes.size() <= nprocs || nprocs < 2)
+    {
+        RoundRobinProcessorMap(boxes,nprocs);
+    }
+    else if (boxes.size() < sfc_threshold*nprocs)
+    {
+        KnapSackProcessorMap(boxes,nprocs);
+    }
+    else
+    {
+        std::vector<long> wgts(boxes.size());
+
+        for (int i = 0; i < wgts.size(); i++)
+            wgts[i] = boxes[i].volume();
+
+        SFCProcessorMapDoIt(boxes,wgts,nprocs);
+    }
 }
 
 void
@@ -1049,99 +1164,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     }
     else
     {
-        const Real strttime = ParallelDescriptor::second();
-
-        std::vector<SFCToken> token(boxes.size());
-
-        int maxijk = 0;
-
-        for (int i = 0; i < boxes.size(); i++)
-        {
-            token[i].m_box = i;
-            token[i].m_idx = boxes[i].smallEnd();
-            token[i].m_vol = wgts[i];
-
-            for (int j = 0; j < BL_SPACEDIM; j++)
-                maxijk = std::max(maxijk, token[i].m_idx[j]);
-        }
-        //
-        // Set SFCToken::MaxPower for BoxArray.
-        //
-        int m = 0;
-        for ( ; (1<<m) <= maxijk; m++)
-            ;
-        SFCToken::MaxPower = m;
-        //
-        // Put'm in Morton space filling curve order.
-        //
-        std::sort(token.begin(), token.end(), SFCToken::Compare());
-        //
-        // Split'm up as equitably as possible per CPU.
-        //
-        Real volpercpu = 0;
-        for (int i = 0; i < token.size(); i++)
-            volpercpu += token[i].m_vol;
-        volpercpu /= nprocs;
-
-        const int N = WhereToStart(nprocs);
-        int       K = 0;
-
-        for (int i = 0; i < nprocs; i++)
-        {
-            Real      vol = 0;
-            int       cnt = 0;
-            const int cpu = (i + N) % nprocs;
-
-            for ( ;
-                  K < token.size() && (i == (nprocs-1) || vol < volpercpu);
-                  cnt++, K++)
-            {
-                vol += token[K].m_vol;
-                m_ref->m_pmap[token[K].m_box] = cpu;
-            }
-
-            if (vol > volpercpu && cnt > 1)
-            {
-                const Real rdiff = vol - volpercpu;
-                const Real ldiff = volpercpu - (vol - token[K-1].m_vol);
-                if (rdiff > ldiff)
-                    K--;
-            }
-        }
-        //
-        // Set sentinel equal to our processor number.
-        //
-        m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
-
-        if (verbose)
-        {
-            const Real stoptime = ParallelDescriptor::second() - strttime;
-
-            std::vector<Real> wgt(nprocs,0);
-
-            for (int i = 0; i < token.size(); i++)
-                wgt[m_ref->m_pmap[token[i].m_box]] += token[i].m_vol;
-
-            Real sum_wgt = 0, max_wgt = 0;
-            for (int i = 0; i < wgt.size(); i++)
-            {
-                if (wgt[i] > max_wgt) max_wgt = wgt[i];
-                sum_wgt += wgt[i];
-            }
-
-            if (ParallelDescriptor::IOProcessor())
-            {
-                std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
-                std::cout << "SFC time: " << stoptime << '\n';
-            }
-
-            if (verbose > 1)
-            {
-                std::vector< std::vector<int> > nbrs = CalculateNeighbors(boxes);
-
-                Output_CPU_Comm_Counts(boxes, nbrs, m_ref->m_pmap);
-            }
-        }
+        SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
 }
 
