@@ -142,6 +142,10 @@ protected:
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
+
+    void SFCProcessorMapDoIt (const BoxArray&          boxes,
+                              const std::vector<long>& wgts,
+                              int                      nprocs);
     //
     // One which CPU to begin a distribution?
     //
