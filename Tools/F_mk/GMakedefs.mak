@@ -192,11 +192,16 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),Intel)
     _unamem := $(shell uname -m)
     ifeq ($(_unamem),ia64)
-      _ifc := efc
-      _icc := icc
+      _ifc := ifc
+      _icc := icc 
+    else 
+    ifeq ($(_unamem),x86_64)
+      _ifc := ifc
+      _icc := gcc -m32
     else
       _ifc := ifc
       _icc := icc
+    endif
     endif
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
@@ -251,9 +256,9 @@ ifeq ($(ARCH),Linux)
           FFLAGS += -O3
           CFLAGS += -O3
 #  ifndef GPROF
-            F90FLAGS += -ipo
-            FFLAGS += -ipo
-            CFLAGS += -ipo
+          F90FLAGS += -ipo
+          FFLAGS += -ipo
+          CFLAGS += -ipo
 #  endif
 	endif
       endif
