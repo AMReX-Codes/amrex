@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.57 2006-09-06 17:26:53 lijewski Exp $
+// $Id: BaseFab.H,v 1.58 2007-03-22 04:21:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -16,6 +16,11 @@
 #include <Looping.H>
 #include <REAL.H>
 #include <Profiler.H>
+
+namespace BoxLib
+{
+    extern long total_bytes_allocated_in_fabs;
+}
 
 //
 //@Man:
@@ -1139,6 +1144,8 @@ BaseFab<T>::define ()
 
     for (int i = 0; i < truesize; i++, ptr++)
         new (ptr) T;
+
+    BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
 }
 
 template <class T>
@@ -1157,6 +1164,8 @@ BaseFab<T>::undefine ()
     BoxLib::The_Arena()->free(dptr);
 
     dptr = 0;
+
+    BoxLib::total_bytes_allocated_in_fabs -= nvar*numpts*sizeof(T);
 }
 
 template <class T>
