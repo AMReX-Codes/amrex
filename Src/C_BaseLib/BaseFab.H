@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.58 2007-03-22 04:21:20 lijewski Exp $
+// $Id: BaseFab.H,v 1.59 2007-03-22 16:24:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1165,7 +1165,7 @@ BaseFab<T>::undefine ()
 
     dptr = 0;
 
-    BoxLib::total_bytes_allocated_in_fabs -= nvar*numpts*sizeof(T);
+    BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
 }
 
 template <class T>
