@@ -8,6 +8,8 @@
 #include <Thread.H>
 #include <SPECIALIZE_F.H>
 
+long BoxLib::total_bytes_allocated_in_fabs = 0;
+
 int BoxLib::BF_init::m_cnt = 0;
 
 static ThreadSpecificData<Arena>* arena = 0;
