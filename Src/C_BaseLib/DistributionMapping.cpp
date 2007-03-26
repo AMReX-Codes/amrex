@@ -141,44 +141,57 @@ DistributionMapping::Finalize ()
 //
 std::vector< LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
-int
-DistributionMapping::WhereToStart (int nprocs)
+Array<int>
+DistributionMapping::LeastUsedCPUs (int nprocs)
 {
-    if (m_Cache.size() == 0) return 0;
-    //
-    // What's the largest proc_map in our cache?
-    //
-    int N = m_Cache[0]->m_pmap.size();
-    for (int i = 1; i < m_Cache.size(); i++)
-        if (N < m_Cache[i]->m_pmap.size())
-            N = m_Cache[i]->m_pmap.size();
+    Array<int> result(nprocs);
 
-    N--; // Subtract off the extra space reserved for the sentinel value.
+#ifdef BL_USE_MPI
+    Array<long> bytes(nprocs);
 
-    BL_ASSERT(N > 0);
+    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  bytes.dataPtr(),
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  ParallelDescriptor::Communicator());
 
-    if (N < nprocs)
-        //
-        // We've got idle CPU(s); start distribution from there.
-        //
-        return N;
-    //
-    // We don't have any idle CPUs; find the one with the fewest boxes.
-    //
-    std::vector<int> count(nprocs,0);
+    if (false && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "FAB Byte Distribution:\n";
+        for (int i = 0; i < nprocs; i++)
+            std::cout << i << ' ' << bytes[i] << '\n';
+        std::cout << std::endl;
+    }
 
-    for (int i = 0; i < m_Cache.size(); i++)
-        for (int j = 0; j < m_Cache[i]->m_pmap.size() - 1; j++)
-            count[m_Cache[i]->m_pmap[j]]++;
+    std::vector<LIpair> LIpairV(nprocs);
 
-    N = 0;
-    for (int i = 1; i < count.size(); i++)
-        if (count[N] > count[i])
-            N = i;
+    for (int i = 0; i < nprocs; i++)
+    {
+        LIpairV[i].first  = bytes[i];
+        LIpairV[i].second = i;
+    }
 
-    BL_ASSERT(N >= 0 && N < nprocs);
+    std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
-    return N;
+    for (int i = 0; i < nprocs; i++)
+    {
+        result[i] = LIpairV[i].second;
+    }
+#else
+    result[0] = 0;
+#endif
+
+    if (false && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "LeastUsedCPUs Ordering:\n";
+        for (int i = 0; i < nprocs; i++)
+            std::cout << i << ' ' << result[i] << '\n';
+        std::cout << std::endl;
+    }
+
+    return result;
 }
 
 bool
@@ -279,17 +292,27 @@ void
 DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
     if (m_ref->m_pmap.size() != boxes.size() + 1)
-        m_ref->m_pmap.resize(boxes.size() + 1);
-
-    if (!GetMap(boxes))
     {
-        (this->*m_BuildMap)(boxes,nprocs);
+        m_ref->m_pmap.resize(boxes.size() + 1);
+    }
 
-        if (ParallelDescriptor::NProcs() > 1)
+    if (nprocs == 1)
+    {
+        for (int i = 0; i < m_ref->m_pmap.size(); i++)
+        {
+            m_ref->m_pmap[i] = 0;
+        }
+    }
+    else
+    {
+        if (!GetMap(boxes))
+        {
+            (this->*m_BuildMap)(boxes,nprocs);
             //
-            // We always append new processor maps.
+            // Append the new processor map to the cache.
             //
             DistributionMapping::m_Cache.push_back(m_ref);
+        }
     }
 }
 
@@ -306,7 +329,7 @@ void
 DistributionMapping::AddToCache (const DistributionMapping& dm)
 {
     //
-    // No need to maintain a cache when running in serial.
+    // Don't maintain a cache when running in serial.
     //
     if (ParallelDescriptor::NProcs() < 2) return;
 
@@ -328,24 +351,35 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
         }
 
         if (doit)
+        {
             m_Cache.push_back(dm.m_ref);
+        }
     }
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
+DistributionMapping::RoundRobinDoIt (int                  nboxes,
+                                     int                  nprocs,
+                                     std::vector<LIpair>* LIpairV)
 {
-    BL_ASSERT(nboxes > 0);
+    Array<int> ord = LeastUsedCPUs(nprocs);
 
-    m_ref->m_pmap.resize(nboxes+1);
+    if (LIpairV)
+    {
+        BL_ASSERT(LIpairV->size() == nboxes);
 
-    const int N = WhereToStart(nprocs);
-
-    for (int i = 0; i < nboxes; i++)
-        //
-        // Start the round-robin at processor N.
-        //
-        m_ref->m_pmap[i] = (i + N) % nprocs;
+        for (int i = 0; i < nboxes; i++)
+        {
+            m_ref->m_pmap[(*LIpairV)[i].second] = ord[i%nprocs];
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nboxes; i++)
+        {
+            m_ref->m_pmap[i] = ord[i%nprocs];
+        }
+    }
     //
     // Set sentinel equal to our processor number.
     //
@@ -353,22 +387,49 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 }
 
 void
+DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
+{
+    BL_ASSERT(nboxes > 0);
+
+    if (m_ref->m_pmap.size() != nboxes + 1)
+    {
+        m_ref->m_pmap.resize(nboxes + 1);
+    }
+
+    RoundRobinDoIt(nboxes, nprocs);
+}
+
+void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(m_ref->m_pmap.size() == boxes.size() + 1);
-
-    const int N = WhereToStart(nprocs);
+    //
+    // Create ordering of boxes from largest to smallest.
+    // When we round-robin the boxes we want to go from largest
+    // to smallest box, starting from the CPU having the least
+    // amount of FAB data to the one having the most.  This "should"
+    // help even out the FAB data distribution when running on large
+    // numbers of CPUs, where the lower levels of the calculation are
+    // using RoundRobin to lay out fewer than NProc boxes across
+    // the CPUs.
+    //
+    std::vector<LIpair> LIpairV(boxes.size());
 
     for (int i = 0; i < boxes.size(); i++)
-        //
-        // Start the round-robin at processor N.
-        //
-        m_ref->m_pmap[i] = (i + N) % nprocs;
+    {
+        LIpairV[i].first  = boxes[i].numPts();
+        LIpairV[i].second = i;
+    }
     //
-    // Set sentinel equal to our processor number.
+    // This call does the sort() from least to most numPts().
+    // Will need to reverse the order afterwards.
     //
-    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
+    std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+    std::reverse(LIpairV.begin(), LIpairV.end());
+
+    RoundRobinDoIt(boxes.size(), nprocs, &LIpairV);
 }
 
 class WeightedBox
@@ -888,6 +949,32 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     }
 }
 
+void
+DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
+                                   int                      nprocs)
+{
+    Array<int> ord = LeastUsedCPUs(nprocs);
+
+    std::vector< std::list<int> > vec = knapsack(wgts,nprocs);
+
+    BL_ASSERT(vec.size() == nprocs);
+
+    for (unsigned int i = 0; i < vec.size(); i++)
+    {
+        const int where = ord[i%nprocs];
+
+        for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+        {
+            m_ref->m_pmap[*lit] = where;
+        }
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
+}
+
+
 //
 // This version does NOT call the MinimizeCommCosts() stuff.
 //
@@ -897,7 +984,10 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
 {
     BL_ASSERT(wgts.size() > 0);
 
-    m_ref->m_pmap.resize(wgts.size() + 1);
+    if (m_ref->m_pmap.size() !=  wgts.size() + 1)
+    {
+        m_ref->m_pmap.resize(wgts.size() + 1);
+    }
 
     if (wgts.size() <= nprocs || nprocs < 2)
     {
@@ -905,23 +995,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     }
     else
     {
-        const int N = WhereToStart(nprocs);
-
-        std::vector< std::list<int> > vec = knapsack(wgts,nprocs);
-
-        BL_ASSERT(vec.size() == nprocs);
-
-        for (unsigned int i = 0; i < vec.size(); i++)
-        {
-            const int where = (i + N) % nprocs;
-
-            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                m_ref->m_pmap[*lit] = where;
-        }
-        //
-        // Set sentinel equal to our processor number.
-        //
-        m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
+        KnapSackDoIt(wgts, nprocs);
     }
 }
 
@@ -941,28 +1015,12 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
     else
     {
-        const int N = WhereToStart(nprocs);
-
         std::vector<long> wgts(boxes.size());
 
         for (unsigned int i = 0; i < wgts.size(); i++)
             wgts[i] = boxes[i].numPts();
 
-        std::vector< std::list<int> > vec = knapsack(wgts,nprocs);
-
-        BL_ASSERT(int(vec.size()) == nprocs);
-
-        for (unsigned int i = 0; i < vec.size(); i++)
-        {
-            const int where = (i + N) % nprocs;
-
-            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                m_ref->m_pmap[*lit] = where;
-        }
-        //
-        // Set sentinel equal to our processor number.
-        //
-        m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
+        KnapSackDoIt(wgts, nprocs);
 
         if (verbose > 1)
         {
@@ -1056,14 +1114,14 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         volpercpu += token[i].m_vol;
     volpercpu /= nprocs;
 
-    const int N = WhereToStart(nprocs);
-    int       K = 0;
+    int        K   = 0;
+    Array<int> ord = LeastUsedCPUs(nprocs);
 
     for (int i = 0; i < nprocs; i++)
     {
         Real      vol = 0;
         int       cnt = 0;
-        const int cpu = (i + N) % nprocs;
+        const int cpu = ord[i%nprocs];
 
         for ( ;
               K < token.size() && (i == (nprocs-1) || vol < volpercpu);
@@ -1123,7 +1181,10 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 {
     BL_ASSERT(boxes.size() > 0);
 
-    m_ref->m_pmap.resize(boxes.size()+1);
+    if (m_ref->m_pmap.size() != boxes.size() + 1)
+    {
+        m_ref->m_pmap.resize(boxes.size()+1);
+    }
 
     if (boxes.size() <= nprocs || nprocs < 2)
     {
@@ -1152,7 +1213,10 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == wgts.size());
 
-    m_ref->m_pmap.resize(wgts.size()+1);
+    if (m_ref->m_pmap.size() != wgts.size() + 1)
+    {
+        m_ref->m_pmap.resize(wgts.size()+1);
+    }
 
     if (boxes.size() <= nprocs || nprocs < 2)
     {
