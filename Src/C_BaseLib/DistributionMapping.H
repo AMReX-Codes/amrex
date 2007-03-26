@@ -143,13 +143,31 @@ protected:
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
 
+    typedef std::pair<long,int> LIpair;
+
+    struct LIpairComp
+    {
+        bool operator () (const LIpair& lhs,
+                          const LIpair& rhs) const
+            {
+                return lhs.first < rhs.first;
+            }
+    };
+
+    void RoundRobinDoIt (int                  nboxes,
+                         int                  nprocs,
+                         std::vector<LIpair>* LIpairV = 0);
+
+    void KnapSackDoIt (const std::vector<long>& wgts,
+                       int                      nprocs);
+
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
                               int                      nprocs);
     //
-    // One which CPU to begin a distribution?
+    // Least used ordering of CPUs (by # of bytes of FAB data).
     //
-    static int WhereToStart (int nprocs);
+    static Array<int> LeastUsedCPUs (int nprocs);
     //
     // Look for a cached processor map.
     //
