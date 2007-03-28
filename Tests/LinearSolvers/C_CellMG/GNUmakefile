@@ -7,11 +7,11 @@ PROFILE = TRUE
 PROFILE = FALSE
 DEBUG	= TRUE
 DEBUG	= FALSE
-DIM	= 3
 DIM	= 2
+DIM	= 3
 
-COMP=g++
-FCOMP=Intel
+COMP=CC
+FCOMP=ftn
 
 USE_MPI=TRUE
 USE_MPI=FALSE
@@ -20,6 +20,8 @@ USE_THREADS=FALSE
 
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
+
+#USE_XT3 = TRUE
 
 EBASE = main
 
@@ -41,6 +43,23 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
 vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
+
+ifeq ($(USE_XT3),TRUE)
+  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
+ifeq ($(USE_MPI),TRUE)
+  CXX := CC -target=catamount
+  FC  := ftn -target=catamount
+  fC  := ftn -target=catamount
+else
+  CXX := pgCC
+  FC  := pgf90
+  fC  := pgf90
+endif
+  CXXOPTF += -O -fastsse -Minline=levels:10 --no_exceptions
+  FOPTF   += -O -fastsse -Minline=levels:10
+  fOPTF   += -O -fastsse -Minline=levels:10
+endif
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
