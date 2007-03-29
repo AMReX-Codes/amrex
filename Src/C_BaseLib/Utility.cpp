@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.72 2007-03-29 18:08:50 lijewski Exp $
+// $Id: Utility.cpp,v 1.73 2007-03-29 18:12:44 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -39,11 +39,7 @@ const char* path_sep_str = "\\";
 const char* path_sep_str = "/";
 #endif
 
-#ifdef BL_T3E
-#include <malloc.h>
-#endif
-
-#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E) && !defined(BL_XT3)
+#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_XT3)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -243,55 +239,6 @@ BoxLib::wsecond (double* t_)
     return t;
 }
 
-#elif defined(BL_T3E)
-
-//#include <intrinsics.h>
-#include <unistd.h>
-extern "C" long _rtc();
-
-static double BL_Clock_Rate;
-extern "C"
-{
-long IRTC_RATE();
-long _irt();
-}
-
-static
-long
-get_initial_wall_clock_time ()
-{
-    BL_Clock_Rate = IRTC_RATE();
-    return _rtc();
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-long BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-//
-// NOTE: this is returning wall clock time, instead of cpu time.  But on
-// the T3E, there is no difference (currently).  If we call second() instead,
-// we may be higher overhead.  Think about this one.
-//
-double
-BoxLib::second (double* t_)
-{
-    double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
-    if (t_)
-        *t_ = t;
-    return t;
-}
-
-double
-BoxLib::wsecond (double* t_)
-{
-    double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
-    if (t_)
-        *t_ = t;
-    return t;
-}
-
 #else
 
 #include <time.h>
@@ -341,7 +288,7 @@ BoxLib::wsecond (double* r)
     return rr;
 }
 
-#endif /*!defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)*/
+#endif
 
 void
 BoxLib::ResetWallClockTime ()
@@ -487,9 +434,6 @@ BoxLib::UnlinkFile (const std::string& file)
 void
 BoxLib::OutOfMemory ()
 {
-#ifdef BL_T3E
-    malloc_stats(0);
-#endif
 #ifdef BL_BGL
     ParallelDescriptor::Abort(12);
 #else

@@ -1,5 +1,5 @@
 //
-// $Id: FPC.cpp,v 1.13 2004-11-16 23:21:19 car Exp $
+// $Id: FPC.cpp,v 1.14 2007-03-29 18:12:44 lijewski Exp $
 //
 
 #include <FPC.H>
@@ -55,7 +55,6 @@ FPC::NativeLongDescriptor ()
     defined(__ppc__) || \
     defined(_SX)   || \
     defined(__crayx1) || \
-    defined(_CRAYT3E)  || \
     defined(__hpux)
     static const IntDescriptor  nld(sizeof(long), IntDescriptor::NormalOrder);
 #endif
@@ -92,7 +91,6 @@ FPC::NativeRealDescriptor ()
     defined(__ppc__) || \
     defined(_SX)   || \
     defined(powerpc) || \
-    defined(_CRAYT3E)  || \
     defined(__crayx1) || \
     defined(__hpux)
 #ifdef BL_USE_FLOAT
@@ -135,7 +133,6 @@ FPC::Ieee64NormalRealDescriptor ()
 //
 #if !(defined(__alpha)  || \
       defined(_CRAY1)   || \
-      defined(_CRAYT3E) || \
       defined(_SX)      || \
       defined(__crayx1) || \
       defined(__sgi)    || \
