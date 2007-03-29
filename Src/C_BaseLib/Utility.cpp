@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.71 2007-03-29 17:57:25 lijewski Exp $
+// $Id: Utility.cpp,v 1.72 2007-03-29 18:08:50 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -22,6 +22,10 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
+
+#if defined(BL_XT3) && !defined(BL_USE_MPI)
+#include <unistd.h>
+#endif
 
 #ifdef BL_BGL
 #include <ParallelDescriptor.H>
