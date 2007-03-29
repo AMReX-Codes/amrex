@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.70 2007-03-08 22:19:40 lijewski Exp $
+// $Id: Utility.cpp,v 1.71 2007-03-29 17:57:25 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -175,7 +175,7 @@ BoxLib::second (double* r)
     return rr;
 }
 
-#elif defined(BL_XT3)
+#elif defined(BL_XT3) && defined(BL_USE_MPI)
 
 #include <catamount/dclock.h>
 #include <unistd.h>
