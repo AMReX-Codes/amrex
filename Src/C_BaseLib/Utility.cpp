@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.73 2007-03-29 18:12:44 lijewski Exp $
+// $Id: Utility.cpp,v 1.74 2007-03-29 19:40:57 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -39,7 +39,7 @@ const char* path_sep_str = "\\";
 const char* path_sep_str = "/";
 #endif
 
-#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_XT3)
+#if !defined(WIN32) && !defined(BL_XT3)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -196,44 +196,6 @@ double
 BoxLib::wsecond (double* t_)
 {
     double t = dclock() - BL_Initial_Wall_Clock_Time;
-    if (t_)
-        *t_ = t;
-    return t;
-}
-
-#elif defined(BL_ARCH_CRAY)
-
-
-#include <unistd.h>
-
-extern "C" double SECOND();
-extern "C" double RTC();
-
-double
-BoxLib::second (double* t_)
-{
-    double t = SECOND();
-    if (t_)
-        *t_ = t;
-    return t;
-}
-
-static
-double
-get_initial_wall_clock_time ()
-{
-    return RTC();
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-double
-BoxLib::wsecond (double* t_)
-{
-    double t = RTC() - BL_Initial_Wall_Clock_Time;
     if (t_)
         *t_ = t;
     return t;

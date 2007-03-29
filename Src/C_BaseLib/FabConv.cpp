@@ -1,5 +1,5 @@
 //
-// $Id: FabConv.cpp,v 1.16 2001-07-24 18:16:53 lijewski Exp $
+// $Id: FabConv.cpp,v 1.17 2007-03-29 19:40:57 lijewski Exp $
 //
 
 #include <iostream>
@@ -12,21 +12,6 @@
 #include <FArrayBox.H>
 #include <FPC.H>
 #include <REAL.H>
-//
-// Declarations of Cray-specific FP format to IEEE routines.
-//
-
-#if defined(BL_ARCH_CRAY)
-#define FORT_IEG2CRAY  IEG2CRAY
-#define FORT_CRAY2IEG  CRAY2IEG
-extern "C"
-{
-    void FORT_IEG2CRAY(int& type, int& num, char* forn, int& bitoff,
-                       char* cry, int& stride, char& craych);
-    void FORT_CRAY2IEG(int& type, int& num, char* forn, int& bitoff,
-                       char* cry, int& stride, char& craych);
-}
-#endif /*defined(BL_ARCH_CRAY)*/
 
 RealDescriptor::~RealDescriptor() {}
 
@@ -214,11 +199,7 @@ RealDescriptor::newRealDescriptor (int         iot,
         switch (prec)
         {
         case FABio::FAB_FLOAT:
-	    if(strcmp(sys, "CRAY") == 0) {
-              rd = new RealDescriptor(FPC::ieee_double, ord, 8);
-	    } else {
-              rd = new RealDescriptor(FPC::ieee_float, ord, 4);
-	    }
+            rd = new RealDescriptor(FPC::ieee_float, ord, 4);
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
@@ -226,11 +207,6 @@ RealDescriptor::newRealDescriptor (int         iot,
         }
     }
     case FABio::FAB_NATIVE:
-        if (sys != 0 && strncmp(sys, "CRAY", 4) == 0)
-        {
-            rd = new RealDescriptor(FPC::cray_float, FPC::cray_float_order, 8);
-            return rd;
-        }
     default:
         BoxLib::Error("RealDescriptor::newRealDescriptor(): Crazy precision");
     }
@@ -764,136 +740,6 @@ PD_fconvert (void*       out,
     _PD_reorder((char*)out, nitems, outbytes, outord);
 }
 
-//
-// These routines are specialized to do important floating point
-// conversions on the alpha.  They make use of architectural knowledege to
-// run faster.  Please add more of these as needed.
-//
-
-#if defined(__alpha) && !defined(BL_USE_FLOAT)
-static
-void
-cray64toalpha64_fconvert (void*       out,
-                          const void* in,
-                          long        nitems)
-{
-    const long DeltaBias = 0x3FFL - 0x4000L - 1L;
-    const long expn_max  = (1L << 11L) - 1L;
-
-    memset(out, 0, nitems*8);
-
-    long *lin  = (long *)in;
-    long *lout = (long *)out;
-
-    for (long i = 0; i < nitems; i++)
-    {
-        //
-        // Step 1: change ordering to match alpha.
-        //
-      long ordinp = 0, input = *lin;
-      for (size_t j = 0; j < sizeof(long); j++)
-      {
-          ordinp <<= 8;
-          ordinp |= (input & 0xff);
-          input >>= 8;
-      }
-      //
-      // Step 2: extract sign, exponent as longs.
-      //
-      long sign   = (ordinp>>63) & 1;
-      long expn   = (ordinp>>48) & 0x7FFF;
-      long ordout = 0;
-      //
-      // Step 3: add biases.
-      //
-      if (expn != 0)
-          expn += DeltaBias;
-      if (0 <= expn && expn < expn_max)
-      {
-          ordout |= (sign<<63);
-          ordout |= (expn<<52);
-          //
-          // Step 4 get the mantissa, keeping in mind cray HSB convention.
-          //
-          long mant = (ordinp) & 0x7FFFFFFFFFFF;
-          mant <<= 5;
-          ordout |= mant;
-      }
-      else if (expn_max <= expn)
-      {
-          //
-          // Overflow.  Make something big.
-          //
-          ordout = 0x7ff0000000000000L;
-          ordout |= (sign<<63);
-      }
-      else
-          //
-          // Denorm?
-          //
-          ordout = 0;
-      //
-      // Step last: store results and update pointers.
-      //
-      lin++;
-      *lout++ = ordout;
-    }
-}
-#endif /*defined(__alpha) && !defined(BL_USE_FLOAT)*/
-
-#if defined(__alpha) && defined(BL_USE_FLOAT)
-static
-void
-ieee32toalpha32_fconvert (void*       out,
-                          const void* in,
-                          long        nitems)
-{
-    const long expn_max = (1L << 8L) - 1L;
-
-    memset(out, 0, nitems*4);
-
-    int* iin  = (int*)in;
-    int* iout = (int*)out;
-
-    for (long i = 0; i < nitems; i++)
-    {
-        //
-        // Step 1: change ordering to match alpha.
-        //
-        int ordinp = 0;
-        for (int j = 0, input = *iin; j < sizeof(int); j++)
-        {
-            ordinp <<= 8;
-            ordinp |= (input & 0xff);
-            input >>= 8;
-        }
-        //
-        // Step 2: extract exponent.
-        //
-        long expn = (ordinp>>23) & 0xFF;
-        if (expn_max <= expn)
-        {
-            //
-            // Overflow.  Make something big.
-            //
-            int sign = ordinp & 0x80000000;
-            ordinp = 0x7f800000;
-            ordinp |= sign;
-        }
-        else if (expn <= 0)
-            //
-            // Denorm?
-            //
-            ordinp = 0;
-        //
-        // Step last: store results and update pointers.
-        //
-        iin++;
-        *iout++ = ordinp;
-    }
-}
-#endif /*defined(__alpha) && defined(BL_USE_FLOAT)*/
-
 static
 void
 PD_fixdenormals (void*       out,
@@ -1029,60 +875,6 @@ PD_convert (void*                 out,
             const IntDescriptor&  ld,
             int                   onescmp = 0)
 {
-#if defined(__alpha) && !defined(BL_USE_FLOAT)
-    if (id == FPC::CrayRealDescriptor() && od == FPC::NativeRealDescriptor())
-        cray64toalpha64_fconvert(out, in, nitems);
-    else
-#endif /*defined(__alpha) && !defined(BL_USE_FLOAT)*/
-
-#if defined(__alpha) & defined( BL_USE_FLOAT)
-  if (id==FPC::Ieee32NormalRealDescriptor() && od==FPC::NativeRealDescriptor())
-      ieee32toalpha32_fconvert(out, in, nitems);
-  else
-#endif
-
-#if defined(BL_ARCH_CRAY)
-    if (id==FPC::NativeRealDescriptor() && od==FPC::Ieee32NormalRealDescriptor())
-    {
-        char craych;
-        int wdsize = 4, conv_typ = 2, stride = 1, offset = 0, len = nitems;
-        BL_ASSERT(len == nitems);
-        FORT_CRAY2IEG(conv_typ,len,(char*)out,offset,(char*)in,stride,craych);
-    }
-    else
-    if (id==FPC::NativeRealDescriptor() && od==FPC::Ieee64NormalRealDescriptor())
-    {
-        //
-        // Note that there is currently no way to specify that we want to
-        // write out IEEE64 on a Cray.  In fact, I don't believe there is
-        // any need for this.  Hence this block can never be reached.  I'm
-        // leaving it in solely for symmetry.  Of course, there may be some
-        // use for it in the future.
-        //
-        char craych;
-        int wdsize = 8, conv_typ = 8, stride = 1, offset = 0, len = nitems;
-        BL_ASSERT(len == nitems);
-        FORT_CRAY2IEG(conv_typ,len,(char*)out,offset,(char*)in,stride,craych);
-    }
-    else
-    if (id==FPC::Ieee32NormalRealDescriptor() && od==FPC::NativeRealDescriptor())
-    {
-        char craych;
-        int wdsize = 4, conv_typ = 2, stride = 1, offset = 0, len = nitems;
-        BL_ASSERT(len == nitems);
-        FORT_IEG2CRAY(conv_typ,len,(char*)in,offset,(char*)out,stride,craych);
-    }
-    else
-    if (id==FPC::Ieee64NormalRealDescriptor() && od==FPC::NativeRealDescriptor())
-    {
-        char craych;
-        int wdsize = 8, conv_typ = 8, stride = 1, offset = 0, len = nitems;
-        BL_ASSERT(len == nitems);
-        FORT_IEG2CRAY(conv_typ,len,(char*)in,offset,(char*)out,stride,craych);
-    }
-    else
-#endif /*defined(BL_ARCH_CRAY)*/
-
     if (od == id && boffs == 0)
     {
         size_t n = size_t(nitems);
@@ -1099,193 +891,6 @@ PD_convert (void*                 out,
         PD_fixdenormals(out, nitems, od.format(), od.order());
     }
 }
-
-//
-// These routines aren't currently used.  Eventually, we may define
-// convert() functions for integral types at which time these'll be used.
-//
-
-#if 0
-//
-// Convert ones complement integers to twos complement.
-// Modern machines use twos complement arithmetic and therefore
-// this is a one way conversion.
-//
-
-static
-void
-_PD_ones_complement (char* out,
-                     long  nitems,
-                     int   nbo)
-{
-    //
-    // The next two lines are to get around a KCC warning message.
-    // We've got to use signed chars here, but KCC won't let us
-    // simply cast out to lout directly.
-    //
-    void*        vout = out;
-    signed char* lout = (signed char *) vout;
-
-    for (int i = 0L; i < nitems; i++)
-    {
-        if (*lout < 0)
-        {
-            unsigned int carry = 1;
-            for (int j = nbo-1; (j >= 0) && (carry > 0); j--)
-            {
-                carry  += lout[j];
-                lout[j] = carry & 0xFF;
-                carry   = (carry > 0xFF);
-            }
-        }
-        lout += nbo;
-    }
-}
-
-//
-// Convert integers of nbi bytes to integers of nbo bytes.
-// The number of bytes for each integer are given.
-//
-
-static
-void
-PD_iconvert (void* out,
-             void* in,
-             long  nitems,
-             long  nbo,
-             int   ordo,
-             long  nbi,
-             int   ordi,
-             int   onescmp = 0)
-{
-    long i;
-    int j;
-    char *lout, *lin, *po, *pi;
-
-    lin  = (char*) in;
-    lout = (char*) out;
-    //
-    // Convert nitems integers test sign bit to properly convert
-    // negative integers.
-    //
-    if (nbi < nbo)
-    {
-        if (ordi == REVERSE_ORDER)
-        {
-            for (j = nbi; j < nbo; j++)
-            {
-                po = lout + j - nbi;
-                pi = lin + nbi - 1;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = (*pi & 0x80) ? 0xff : 0;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-            for (j = nbi; j > 0; j--)
-            {
-                po = lout + nbo - j;
-                pi = lin + j - 1;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = *pi;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-        }
-        else
-        {
-            for (j = nbi; j < nbo; j++)
-            {
-                po = lout + j - nbi;
-                pi = lin;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = (*pi & 0x80) ? 0xff : 0;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-            for (j = 0; j < nbi; j++)
-            {
-                po = lout + j + nbo - nbi;
-                pi = lin + j;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = *pi;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-        }
-    }
-    else if (nbi >= nbo)
-    {
-        if (ordi == REVERSE_ORDER)
-        {
-            for (j = nbo; j > 0; j--)
-            {
-                po = lout + nbo - j;
-                pi = lin + j - 1;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = *pi;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-        }
-        else
-        {
-            for (j = nbi - nbo; j < nbi; j++)
-            {
-                po = lout + j - nbi + nbo;
-                pi = lin + j;
-                for (i = 0L; i < nitems; i++)
-                {
-                    *po = *pi;
-                    po += nbo;
-                    pi += nbi;
-                }
-            }
-        }
-    }
-    //
-    // If input used ones complement arithmetic convert to twos complement.
-    //
-    if (onescmp)
-        _PD_ones_complement((char*)out, nitems, nbo);
-
-    if (ordo == REVERSE_ORDER)
-        _PD_btrvout((char*)out, nbo, nitems);
-}
-
-static
-void
-PD_convert (void*                out,
-            void*                in,
-            long                 nitems,
-            const IntDescriptor& od,
-            const IntDescriptor& id,
-            int                  onescmp = 0)
-{
-    if (od == id)
-        memcpy(out, in, nitems*od.numBytes());
-    else
-    {
-        PD_iconvert(out,
-                    in,
-                    nitems,
-                    od.numBytes(),
-                    od.order(),
-                    id.numBytes(),
-                    id.order(),
-                    onescmp);
-    }
-}
-#endif /*#if 0*/
 
 //
 // Convert nitems in RealDescriptor format to native Real format.

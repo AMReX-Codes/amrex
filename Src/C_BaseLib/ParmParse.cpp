@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.51 2006-05-26 18:11:14 car Exp $
+// $Id: ParmParse.cpp,v 1.52 2007-03-29 19:40:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -435,12 +435,11 @@ void
 bldTable (const char*& str, std::list<ParmParse::PP_entry>& tab);
 
 static void
-read_file (const char*           fname,
+read_file (const char*                     fname,
 	   std::list<ParmParse::PP_entry>& tab)
 {
     //
     // Space for input file if it exists.
-    // Note: on CRAY, access requires (char*) not (const char*).
     //
     if ( fname != 0 && fname[0] != 0 )
     {

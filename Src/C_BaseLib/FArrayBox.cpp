@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.47 2004-01-07 21:18:19 car Exp $
+// $Id: FArrayBox.cpp,v 1.48 2007-03-29 19:40:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -21,12 +21,7 @@
 #include <BoxLib.H>
 #include <Looping.H>
 
-#if defined(BL_ARCH_CRAY)
-   static const char sys_name[] = "CRAY";
-#else
-   static const char sys_name[] = "IEEE";
-#endif
-
+static const char sys_name[] = "IEEE";
 //
 // Default Ordering to Normal Order.
 //

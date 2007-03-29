@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.55 2007-03-08 22:19:39 lijewski Exp $
+// $Id: Utility.H,v 1.56 2007-03-29 19:40:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -272,16 +272,6 @@ namespace BoxLib
 // to get doc++ to properly document the macros.
 //
 
-#ifdef BL_ARCH_CRAY
-#undef BL_ARCH_CRAY
-/*@ManDoc:
-  The macro BL\_ARCH\_CRAY is defined only when compiling on a Cray
-  architecture.  The make subsystem automatically sets this if it
-  detects that a compilation is taking place on a Cray system.
-*/
-#define BL_ARCH_CRAY 1
-#endif /*BL_ARCH_CRAY*/
-
 #ifdef BL_LANG_FORT
 #undef BL_LANG_FORT
 /*@ManDoc:
@@ -295,8 +285,7 @@ namespace BoxLib
 /*@ManDoc:
   The macro BL\_FORT\_USE\_UNDERSCORE indicates that C++ code should call
   Fortran routines by appending an underscore to the name of the Fortran
-  routine.  This is set automatically by the make subsystem.  It is the
-  default for all BoxLib-style programs except on Cray architectures.
+  routine.  This is set automatically by the make subsystem.
 
   For example, if the Fortran routine is named abcxyx, then it will
   be called in C++ code as abcxyz\_.
@@ -309,8 +298,7 @@ namespace BoxLib
 /*@ManDoc:
   The macro BL\_FORT\_USE\_UPPERCASE indicates that C++ code should call
   Fortran routines using uppercase letters for all the letters in the
-  routine.  This is set automatically by the make subsystem.  Currently it
-  is only set when compiling on Cray architectures.
+  routine.  This is set automatically by the make subsystem.
 
   For example, if the Fortran routine is named abcxyx, then it will
   be called in C++ code as ABCXYZ.
