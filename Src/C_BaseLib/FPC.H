@@ -2,7 +2,7 @@
 #define BL_FPC_H
 
 //
-// $Id: FPC.H,v 1.6 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FPC.H,v 1.7 2007-03-29 19:40:57 lijewski Exp $
 //
 
 #include <FabConv.H>
@@ -45,10 +45,6 @@ public:
     //@ManDoc: Another "reversed" double order: {2,1,4,3,6,5,8,7}
     //
     static const int reverse_double_order_2[];
-    //
-    //@ManDoc: The Cray float order: {1,2,3,4,5,6,7,8}
-    //
-    static const int cray_float_order[];
 
     /*@ManDoc: Array detailing the format of IEEE 32-bit normal order floats.
 
@@ -68,10 +64,6 @@ public:
     //@ManDoc: Array detailing the format of IEEE 64-bit normal order doubles.
     //
     static const long ieee_double[];
-    //
-    //@ManDoc: Array detailing the format of Cray floating point.
-    //
-    static const long cray_float[];
 
     /*@ManDoc: Returns a constant reference to an IntDescriptor describing
                the native "long" under which BoxLib was compiled.  Each
@@ -86,11 +78,6 @@ public:
                on how the version of BoxLib was built.
     */
     static const RealDescriptor& NativeRealDescriptor ();
-
-    /*@ManDoc: Returns a constant reference to a RealDescriptor detailing
-               the Cray FP format.
-    */
-    static const RealDescriptor& CrayRealDescriptor ();
 
     /*@ManDoc: Returns a constant reference to a RealDescriptor detailing
                the IEEE 32-bit normal FP format.

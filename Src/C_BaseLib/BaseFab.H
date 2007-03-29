@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.59 2007-03-22 16:24:40 lijewski Exp $
+// $Id: BaseFab.H,v 1.60 2007-03-29 19:40:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1316,9 +1316,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         { 
             T *_th_pp = _th_p + ((_subbox_lo[0]-_th_plo[0])+_n*_th_plen[0]); 
             const T *_x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
-#ifdef BL_ARCH_CRAY
-#pragma _CRI ivdep
-#endif
             for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
             { 
                 int iR = _i + _subbox_lo[0]; iR += 0; 
@@ -1357,9 +1354,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                 const T *_x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
                                          + _x_plen[0]*((jxR - _x_plo[1]) 
                                                        + _n * _x_plen[1])); 
-#ifdef BL_ARCH_CRAY
-#     pragma _CRI ivdep
-#endif
                 for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
                 {  
                     T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
@@ -1402,9 +1396,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                                                            + _x_plen[1]*( 
                                                             (kxR - _x_plo[2])
                                                          + _n * _x_plen[2])));
-#ifdef BL_ARCH_CRAY
-#     pragma _CRI ivdep
-#endif
                     for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
                     {
                         T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
@@ -1595,91 +1586,6 @@ BaseFab<T>::norm (const Box& subbox,
 
     return nrm;
 }
-
-
-#ifdef BL_ARCH_CRAY
-#define RESTRICT restrict
-//
-// Template specialization for Real.
-//
-template<>
-Real
-BaseFab<Real>::norm (const Box& subbox,
-                     int        p,
-                     int        comp,
-                     int        numcomp) const
-{
-    BL_ASSERT(comp >= 0 && comp+numcomp <= nComp());
-    BL_ASSERT(p >= 0);
-
-    Real* RESTRICT tmp  = 0;
-    int tmplen = 0;
-    Real nrm   = 0;
-    if (p == 0)
-    {
-        ForAllThisCPencil(Real,subbox,comp,numcomp)
-        {
-            const Real* RESTRICT row = &thisR;
-            if (tmp == 0)
-            {
-                tmp = new Real[thisLen];
-                tmplen = thisLen;
-#pragma _CRI ivdep
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = fabs(row[i]);
-            }
-            else
-            {
-#pragma _CRI ivdep
-              for (int i = 0; i < thisLen; i++)
-              {
-                Real a = fabs(row[i]);
-                tmp[i] = tmp[i] > a ? tmp[i] : a ;
-              }
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-        {
-            Real a = tmp[i];
-            nrm = nrm > a ? nrm : a ;
-        }
-    }
-    else if (p == 1)
-    {
-        ForAllThisCPencil(Real,subbox,comp,numcomp)
-        {
-            const Real* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp = new Real[thisLen];
-                tmplen = thisLen;
-#pragma _CRI ivdep
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = fabs(row[i]);
-            }
-            else
-            {
-#pragma _CRI ivdep
-              for (int i = 0; i < thisLen; i++)
-              {
-                    tmp[i] += fabs( row[i] );
-              }
-            }
-        } EndForPencil
-        nrm = tmp[0];
-#pragma _CRI ivdep
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-    }
-    else
-      BoxLib::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
-
-    delete [] tmp;
-
-    return nrm;
-}
-#endif
 
 template <class T>
 T
