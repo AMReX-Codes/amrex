@@ -22,6 +22,7 @@ static int    verbose                    = 0;
 static int    sfc_threshold              = 4;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
+static bool   use_least_used_cpus        = true;
 //
 // Everyone uses the same Strategy -- defaults to SFC.
 //
@@ -100,6 +101,8 @@ DistributionMapping::Initialize ()
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
+    pp.query("use_least_used_cpus", use_least_used_cpus);
+
     pp.query("swap_n_test_count", swap_n_test_count);
 
     if (swap_n_test_count <= 0)
@@ -147,49 +150,43 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
     Array<int> result(nprocs);
 
 #ifdef BL_USE_MPI
-    Array<long> bytes(nprocs);
-
-    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  bytes.dataPtr(),
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelDescriptor::Communicator());
-
-    if (false && ParallelDescriptor::IOProcessor())
+    if (use_least_used_cpus)
     {
-        std::cout << "FAB Byte Distribution:\n";
+        Array<long> bytes(nprocs);
+
+        MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+                      1,
+                      ParallelDescriptor::Mpi_typemap<long>::type(),
+                      bytes.dataPtr(),
+                      1,
+                      ParallelDescriptor::Mpi_typemap<long>::type(),
+                      ParallelDescriptor::Communicator());
+
+        std::vector<LIpair> LIpairV(nprocs);
+
         for (int i = 0; i < nprocs; i++)
-            std::cout << i << ' ' << bytes[i] << '\n';
-        std::cout << std::endl;
+        {
+            LIpairV[i].first  = bytes[i];
+            LIpairV[i].second = i;
+        }
+
+        std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+        for (int i = 0; i < nprocs; i++)
+        {
+            result[i] = LIpairV[i].second;
+        }
     }
-
-    std::vector<LIpair> LIpairV(nprocs);
-
-    for (int i = 0; i < nprocs; i++)
+    else
     {
-        LIpairV[i].first  = bytes[i];
-        LIpairV[i].second = i;
-    }
-
-    std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
-
-    for (int i = 0; i < nprocs; i++)
-    {
-        result[i] = LIpairV[i].second;
+        for (int i = 0; i < nprocs; i++)
+        {
+            result[i] = i;
+        }
     }
 #else
     result[0] = 0;
 #endif
-
-    if (false && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "LeastUsedCPUs Ordering:\n";
-        for (int i = 0; i < nprocs; i++)
-            std::cout << i << ' ' << result[i] << '\n';
-        std::cout << std::endl;
-    }
 
     return result;
 }
