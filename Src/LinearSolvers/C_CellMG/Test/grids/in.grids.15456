@@ -9,4 +9,5 @@ cg.cg_solver=1
 Lp.maxorder=4
 DistributionMapping.verbose=1
 DistributionMapping.strategy=SFC
-DistributionMapping.sfc_threshold=4
+DistributionMapping.sfc_threshold=1
+DistributionMapping.use_least_used_cpus=0
