@@ -13,8 +13,8 @@ DIM	= 3
 COMP=CC
 FCOMP=ftn
 
-USE_MPI=TRUE
 USE_MPI=FALSE
+USE_MPI=TRUE
 USE_THREADS=TRUE
 USE_THREADS=FALSE
 
@@ -45,7 +45,7 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
 
 ifeq ($(USE_XT3),TRUE)
-  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
   DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
 ifeq ($(USE_MPI),TRUE)
   CXX := CC -target=catamount
@@ -56,7 +56,7 @@ else
   FC  := pgf90
   fC  := pgf90
 endif
-  CXXOPTF += -O -fastsse -Minline=levels:10 --no_exceptions
+  CXXOPTF += -O -Minline=levels:10 --no_exceptions
   FOPTF   += -O -fastsse -Minline=levels:10
   fOPTF   += -O -fastsse -Minline=levels:10
 endif
