@@ -19,7 +19,7 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 0;
-static int    sfc_threshold              = 4;
+static int    sfc_threshold              = 6;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
 static bool   use_least_used_cpus        = true;
@@ -170,7 +170,15 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
             LIpairV[i].second = i;
         }
 
-        std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+        if (false && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "LeastUsedCPUs Ordering:\n";
+            for (int i = 0; i < nprocs; i++)
+                std::cout << i << ' ' << LIpairV[i].second << ' ' << LIpairV[i].first << '\n';
+            std::cout << std::endl;
+        }
 
         for (int i = 0; i < nprocs; i++)
         {
@@ -422,7 +430,7 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     // This call does the sort() from least to most numPts().
     // Will need to reverse the order afterwards.
     //
-    std::sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
     std::reverse(LIpairV.begin(), LIpairV.end());
 
