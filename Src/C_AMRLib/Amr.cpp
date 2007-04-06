@@ -1,11 +1,15 @@
 //
-// $Id: Amr.cpp,v 1.154 2006-09-11 21:43:39 lijewski Exp $
+// $Id: Amr.cpp,v 1.155 2007-04-06 19:57:12 vince Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 #include <cstdio>
 #include <list>
+#ifndef BL_USEOLDREADS
+#include <iostream>
+#include <strstream>
+#endif
 
 #include <TagBox.H>
 #include <Array.H>
@@ -45,6 +49,7 @@ namespace
   bool checkpoint_files_output = true;
   int  plot_nfiles = -1;
   int  checkpoint_nfiles = -1;
+  int  mffile_nstreams = 1;
 }
 
 //
@@ -312,6 +317,8 @@ Amr::Amr ()
 
     pp.query("checkpoint_nfiles", checkpoint_nfiles);
     pp.query("plot_nfiles", plot_nfiles);
+
+    pp.query("mffile_nstreams", mffile_nstreams);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -993,6 +1000,8 @@ Amr::restart (const std::string& filename)
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
+    VisMF::SetMFFileInStreams(mffile_nstreams);
+
     int i;
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -1034,6 +1043,14 @@ Amr::restart (const std::string& filename)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
+#ifndef BL_USEOLDREADS
+    Array<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::istrstream is(fileCharPtr.dataPtr());
+
+    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+#else
+    // define BL_USEOLDREADS to use the old way.
     std::ifstream is;
 
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -1042,6 +1059,8 @@ Amr::restart (const std::string& filename)
 
     if (!is.good())
         BoxLib::FileOpenFailed(File);
+#endif
+
     //
     // Read global data.
     //
@@ -1093,6 +1112,9 @@ Amr::restart (const std::string& filename)
     for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
     for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
     for (i = 0; i <= mx_lev; i++) is >> level_count[i];
+
+    for (i = 0; i <= mx_lev; i++) {
+    }
     //
     // Set bndry conditions.
     //

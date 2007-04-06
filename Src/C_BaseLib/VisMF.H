@@ -1,7 +1,7 @@
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
 //
-// $Id: VisMF.H,v 1.53 2006-09-08 20:44:02 vince Exp $
+// $Id: VisMF.H,v 1.54 2007-04-06 19:58:58 vince Exp $
 //
 
 #include <iosfwd>
@@ -180,6 +180,11 @@ public:
     static void SetNOutFiles(int noutfiles) {
       nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
     }
+
+    static void SetMFFileInStreams(int nstreams) {
+      nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(),
+                                  nstreams));
+    }
     static int GetNOutFiles() { return nOutFiles; }
 
 private:
@@ -234,6 +239,7 @@ private:
     // The number of files to write for a MultiFab.
     //
     static int nOutFiles;
+    static int nMFFileInStreams;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.

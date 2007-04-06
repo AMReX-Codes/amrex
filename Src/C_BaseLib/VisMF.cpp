@@ -1,10 +1,14 @@
 //
-// $Id: VisMF.cpp,v 1.102 2006-09-08 23:17:20 vince Exp $
+// $Id: VisMF.cpp,v 1.103 2007-04-06 19:58:58 vince Exp $
 //
 
 #include <winstd.H>
 #include <cstdio>
 #include <fstream>
+#ifndef BL_USEOLDREADS
+#include <iostream>
+#include <strstream>
+#endif
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
@@ -21,6 +25,7 @@ const std::string VisMF::FabFileSuffix("_D_");
 const std::string VisMF::MultiFabHdrFileSuffix("_H");
 const std::string VisMF::FabOnDisk::Prefix("FabOnDisk:");
 int VisMF::nOutFiles(-1);
+int VisMF::nMFFileInStreams(1);
 
 std::ostream&
 operator<< (std::ostream&           os,
@@ -788,6 +793,13 @@ VisMF::VisMF (const std::string& mf_name)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
+#ifndef BL_USEOLDREADS
+    Array<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
+    std::istrstream ifs(fileCharPtr.dataPtr());
+
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+#else
     std::ifstream ifs;
 
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -796,6 +808,7 @@ VisMF::VisMF (const std::string& mf_name)
 
     if (!ifs.good())
         BoxLib::FileOpenFailed(FullHdrFileName);
+#endif
 
     ifs >> m_hdr;
 
@@ -867,6 +880,13 @@ VisMF::Read (MultiFab&          mf,
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
+#ifndef BL_USEOLDREADS
+    Array<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
+    std::istrstream ifs(fileCharPtr.dataPtr());
+
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+#else
         std::ifstream ifs;
 
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -875,15 +895,159 @@ VisMF::Read (MultiFab&          mf,
 
         if (!ifs.good())
             BoxLib::FileOpenFailed(FullHdrFileName);
+#endif
 
         ifs >> hdr;
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
+#ifndef BL_USEOLDREADS
+    // here we limit the number of open files when reading a multifab
+    int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
+    int nProcs(ParallelDescriptor::NProcs()), myProc(ParallelDescriptor::MyProc());
+    int nBoxes(hdr.m_ba.size());
+    int totalIOReqs(nBoxes);
+    int nFiles(-1);
+    Array<int> indx(nBoxes);
+    Array<int> mfindexA(nBoxes);
+    Array<int> readIndex(nBoxes);
+    Array<MPI_Request> reqs(nBoxes);
+    Array<MPI_Status> status(nBoxes);
+    std::set<int> busyProcs;  // [whichProc]
+    std::map<std::string, int> fileNames;  // <filename, allreadsindex>
+    std::multiset<int> availableFiles;  // [whichFile]  supports multiple reads/file
+    Array<std::multimap<int,int> > allReads; // [whichfile] <whichproc, whichbox>
+    int nOpensPerFile(nMFFileInStreams), allReadsIndex(0);
+
+    for(int i(0); i < nBoxes; ++i) {   // count the files
+      reqs[i] = MPI_REQUEST_NULL;
+      mfindexA[i] = i;
+      int whichProc(mf.DistributionMap()[i]);
+      if(whichProc == myProc) {
+        ++nReqs;
+      }
+      if(ParallelDescriptor::IOProcessor()) {
+        std::string fname(hdr.m_fod[i].m_name);
+	if(fileNames.insert(std::pair<std::string,int>(fname,allReadsIndex)).second)
+	{
+	  ++allReadsIndex;
+	}
+      } else {
+        if(whichProc == myProc) {
+	  reqs[i] = ParallelDescriptor::Arecv(&readIndex[i], 1, ioProcNum, i).req();
+	}
+      }
+    }
+
+    if(ParallelDescriptor::IOProcessor()) {    // fill availableFiles
+      nFiles = fileNames.size();
+      for(int i(0); i < nFiles; ++i) {
+        for(int nOpens(0); nOpens < nOpensPerFile; ++nOpens) {
+          availableFiles.insert(i);
+        }
+      }
+      allReads.resize(nFiles);
+      std::map<std::string, int>::iterator fileNamesIter;
+      for(int i(0); i < nBoxes; ++i) {   // fill allReads maps
+        int whichProc(mf.DistributionMap()[i]);
+        std::string fname(hdr.m_fod[i].m_name);
+	fileNamesIter = fileNames.find(fname);
+	if(fileNamesIter != fileNames.end()) {
+	  int index = fileNames.find(fname)->second;
+	  allReads[index].insert(std::pair<int, int>(whichProc, i));
+	} else {
+	  std::cout << "**** Error:  filename not found = " << fname << std::endl;
+	  BoxLib::Abort();
+	}
+      }
+    }
+
+    if(ParallelDescriptor::IOProcessor()) {  // manage the file locks
+      std::list<int> ioProcReads;
+      int reqsPending(0);
+      while(totalIOReqs > 0) {
+        std::multiset<int>::iterator aFilesIter;
+        aFilesIter = availableFiles.begin();
+        while(aFilesIter != availableFiles.end()) {  // handle available files
+	  int arIndex(*aFilesIter);
+	  if(allReads[arIndex].empty()) {
+            availableFiles.erase(arIndex);
+            aFilesIter = availableFiles.begin();
+	    continue;
+	  }
+          std::multimap<int,int>::iterator whichRead;
+	  for(whichRead = allReads[arIndex].begin();
+	      whichRead != allReads[arIndex].end(); ++whichRead)
+	  {
+	    int tryProc(whichRead->first);
+	    if(busyProcs.find(tryProc) == busyProcs.end()) {  // tryProc not busy
+	      busyProcs.insert(tryProc);
+	      int mfindex(whichRead->second);
+	      if(tryProc == ioProcNum) {
+	        ioProcReads.push_back(mfindex);
+	      } else {
+	        ParallelDescriptor::Asend(&mfindex, 1, tryProc, mfindex);
+	        reqs[mfindex] = ParallelDescriptor::Arecv(&readIndex[mfindex],
+		                                        1, tryProc, mfindex).req();
+		++reqsPending;
+	      }
+              availableFiles.erase(aFilesIter);
+              aFilesIter = availableFiles.begin();
+	      break;
+	    }
+	  }
+	  if(whichRead == allReads[arIndex].end()) {
+	    ++aFilesIter;
+	  } else {
+	    allReads[arIndex].erase(whichRead);
+	  }
+        }  // end while(aFilesIter...)
+
+	if( ! ioProcReads.empty()) {  // the ioproc does a read
+	  int index(ioProcReads.front());
+          mf.setFab(index, VisMF::readFAB(index, mf_name, hdr));
+	  ioProcReads.pop_front();
+	  busyProcs.erase(ioProcNum);
+	  --totalIOReqs;
+          std::string fname(hdr.m_fod[index].m_name);
+	  int fileIndex = fileNames.find(fname)->second;
+	  availableFiles.insert(fileIndex);
+	}
+
+	if(reqsPending > 0) {
+	  int completed(0);
+          ParallelDescriptor::Waitsome(reqs, completed, indx, status);
+	  totalIOReqs -= completed;
+	  reqsPending -= completed;
+	  for(int k(0); k < completed; ++k) {
+	    int index(indx[k]);
+	    int procDone(mf.DistributionMap()[index]);
+	    busyProcs.erase(procDone);
+            std::string fname(hdr.m_fod[index].m_name);
+	    int fileIndex = fileNames.find(fname)->second;
+	    availableFiles.insert(fileIndex);
+	  }
+	}
+
+      }  // end while(totalIOReqs...)
+
+    } else {  /// all other procs
+      for(int completed(0); nReqs > 0; nReqs -= completed) {
+        ParallelDescriptor::Waitsome(reqs, completed, indx, status);
+	for(int k(0); k < completed; ++k) {
+	  int j(indx[k]);
+          mf.setFab(readIndex[j], VisMF::readFAB(j, mf_name, hdr));
+	  ParallelDescriptor::Asend(&readIndex[j], 1, ioProcNum, readIndex[j]);
+	}
+      }
+    }
+
+#else
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
+#endif
 
     BL_ASSERT(mf.ok());
 }

@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.78 2007-03-09 04:40:43 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.79 2007-04-06 19:58:58 vince Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -397,6 +397,8 @@ namespace ParallelDescriptor
     void Waitsome (Array<MPI_Request>&, int&, Array<int>&, Array<MPI_Status>&);
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
+
+    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf);
 }
 
 #define BL_MPI_REQUIRE(x)						\

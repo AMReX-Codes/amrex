@@ -1,10 +1,12 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.103 2007-03-09 04:40:43 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.104 2007-04-06 19:58:58 vince Exp $
 //
 #include <cstdio>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
+#include <iostream>
+#include <fstream>
 
 FabComTag::FabComTag ()
 {
@@ -1228,3 +1230,41 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
 }
 }
 #endif
+
+
+void ParallelDescriptor::ReadAndBcastFile(const std::string &filename,
+                                          Array<char> &charBuf)
+{
+    enum { IO_Buffer_Size = 40960 * 32 };
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+    Array<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
+    int fileLength, fileLengthPadded;
+    std::ifstream iss;
+
+    if(ParallelDescriptor::IOProcessor()) {
+      iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+      iss.open(filename.c_str(), std::ios::in);
+      if( ! iss.good()) {
+        BoxLib::FileOpenFailed(filename);
+      }
+      iss.seekg(0, std::ios::end);
+      fileLength = iss.tellg();
+      iss.seekg(0, std::ios::beg);
+    }
+    ParallelDescriptor::Bcast(&fileLength, 1,
+                              ParallelDescriptor::IOProcessorNumber());
+    fileLengthPadded = fileLength + 1;
+    fileLengthPadded += fileLengthPadded % 8;
+    charBuf.resize(fileLengthPadded);
+    if(ParallelDescriptor::IOProcessor()) {
+      iss.read(charBuf.dataPtr(), fileLength);
+    }
+    ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded,
+                              ParallelDescriptor::IOProcessorNumber());
+    charBuf[fileLength] = '\0';
+}
+
