@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.52 2007-03-29 19:40:57 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.53 2007-04-06 22:31:42 vince Exp $
 //
 #include <winstd.H>
 
@@ -443,6 +443,13 @@ read_file (const char*                     fname,
     //
     if ( fname != 0 && fname[0] != 0 )
     {
+#ifndef BL_USEOLDREADS
+	Array<char> fileCharPtr;
+	std::string filename = fname;
+	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
+	const char* b = fileCharPtr.dataPtr();
+        bldTable(b, tab);
+#else
         FILE* pffd = fopen(fname, "rb");
         if ( pffd == 0 )
         {
@@ -474,6 +481,7 @@ read_file (const char*                     fname,
 	const char* b = str;
         bldTable(b, tab);
         delete [] str;
+#endif
     }
 }
 
