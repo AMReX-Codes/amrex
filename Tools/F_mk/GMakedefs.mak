@@ -241,11 +241,11 @@ ifeq ($(ARCH),Linux)
     endif
     ifeq ($(_comp),Intel9)
       ifndef NDEBUG
-        F90FLAGS += -g -traceback -debug extended
-        FFLAGS   += -g -traceback -debug extended
-        F90FLAGS += -check all
-        FFLAGS   += -check all
-        CFLAGS   += -g -Wcheck
+        F90FLAGS += -g -traceback -O0
+        FFLAGS   += -g -traceback -O0
+        #F90FLAGS += -check all
+        #FFLAGS   += -check all
+        #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast
@@ -256,9 +256,9 @@ ifeq ($(ARCH),Linux)
           FFLAGS += -O3
           CFLAGS += -O3
 #  ifndef GPROF
-          F90FLAGS += -ipo
-          FFLAGS += -ipo
-          CFLAGS += -ipo
+          F90FLAGS += #-ipo
+          FFLAGS += #-ipo
+          CFLAGS += #-ipo
 #  endif
 	endif
       endif
@@ -288,9 +288,9 @@ ifeq ($(ARCH),Linux)
           FFLAGS += -O3
           CFLAGS += -O3
           ifndef GPROF
-            F90FLAGS += -ipo
-            FFLAGS += -ipo
-            CFLAGS += -ipo
+            F90FLAGS += #-ipo
+            FFLAGS += #-ipo
+            CFLAGS += #-ipo
           endif
 	endif
 #       LDFLAGS += -static
@@ -315,9 +315,9 @@ ifeq ($(ARCH),Linux)
 #         F90FLAGS += -g
           F90FLAGS += -O3
           ifndef GPROF
-            CFLAGS += -ipo
-            FFLAGS += -ipo
-            F90FLAGS += -ipo
+            CFLAGS += #-ipo
+            FFLAGS += #-ipo
+            F90FLAGS += #-ipo
           endif
         endif
       else
