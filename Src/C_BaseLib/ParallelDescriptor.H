@@ -1,12 +1,14 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.79 2007-04-06 19:58:58 vince Exp $
+// $Id: ParallelDescriptor.H,v 1.80 2007-04-10 20:16:27 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>
 #include <ccse-mpi.H>
+
+#include <string>
 //
 // Used for collecting information used in communicating FABs.
 //
