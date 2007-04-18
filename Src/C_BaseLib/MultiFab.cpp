@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.77 2007-02-16 00:19:19 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.78 2007-04-18 17:37:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -531,8 +531,9 @@ struct SI
 {
     SI ();
 
-    SI (const BoxArray& ba,
-        int             ngrow);
+    SI (const BoxArray&            ba,
+        const DistributionMapping& dm,
+        int                        ngrow);
 
     SI (const SI& rhs);
 
@@ -541,12 +542,13 @@ struct SI
     bool operator== (const SI& rhs) const;
     bool operator!= (const SI& rhs) const;
 
-    Array<int>         m_cache;    // Snds cached for CollectData().
-    CommDataCache      m_commdata; // Yet another cache for CollectData().
-    std::vector<SIRec> m_sirec;
-    BoxArray           m_ba;
-    int                m_ngrow;
-    bool               m_reused;
+    Array<int>          m_cache;    // Snds cached for CollectData().
+    CommDataCache       m_commdata; // Yet another cache for CollectData().
+    std::vector<SIRec>  m_sirec;
+    BoxArray            m_ba;
+    DistributionMapping m_dm;
+    int                 m_ngrow;
+    bool                m_reused;
 };
 
 SI::SI ()
@@ -555,10 +557,12 @@ SI::SI ()
     m_reused(false)
 {}
 
-SI::SI (const BoxArray& ba,
-        int             ngrow)
+SI::SI (const BoxArray&            ba,
+        const DistributionMapping& dm,
+        int                        ngrow)
     :
     m_ba(ba),
+    m_dm(dm),
     m_ngrow(ngrow),
     m_reused(false)
 {
@@ -571,6 +575,7 @@ SI::SI (const SI& rhs)
     m_commdata(rhs.m_commdata),
     m_sirec(rhs.m_sirec),
     m_ba(rhs.m_ba),
+    m_dm(rhs.m_dm),
     m_ngrow(rhs.m_ngrow),
     m_reused(rhs.m_reused)
 {}
@@ -580,7 +585,7 @@ SI::~SI () {}
 bool
 SI::operator== (const SI& rhs) const
 {
-    return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba;
+    return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
 bool
@@ -684,7 +689,7 @@ TheFBsirec (int             scomp,
         pp.query("fb_cache_max_size", fb_cache_max_size);
     }
 
-    const SI si(mf.boxArray(), mf.nGrow());
+    const SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow());
 
     const int key = mf.nGrow() + mf.size();
 
