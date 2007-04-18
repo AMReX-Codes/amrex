@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.69 2007-02-16 00:21:29 lijewski Exp $
+// $Id: Geometry.cpp,v 1.70 2007-04-18 17:29:15 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -55,10 +55,11 @@ struct FPB
 {
     FPB ();
 
-    FPB (const BoxArray& ba,
-         const Box&      domain,
-         int             ngrow,
-         bool            do_corners);
+    FPB (const BoxArray&            ba,
+         const DistributionMapping& dm,
+         const Box&                 domain,
+         int                        ngrow,
+         bool                       do_corners);
 
     FPB (const FPB& rhs);
 
@@ -67,14 +68,15 @@ struct FPB
     bool operator== (const FPB& rhs) const;
     bool operator!= (const FPB& rhs) const;
 
-    Array<int>    m_cache;    // Snds cached for CollectData().
-    CommDataCache m_commdata; // Yet another cache for CollectData().
-    PIRMMap       m_pirm;
-    BoxArray      m_ba;
-    Box           m_domain;
-    int           m_ngrow;
-    bool          m_do_corners;
-    bool          m_reused;
+    Array<int>          m_cache;    // Snds cached for CollectData().
+    CommDataCache       m_commdata; // Yet another cache for CollectData().
+    PIRMMap             m_pirm;
+    BoxArray            m_ba;
+    DistributionMapping m_dm;
+    Box                 m_domain;
+    int                 m_ngrow;
+    bool                m_do_corners;
+    bool                m_reused;
 };
 
 typedef std::multimap<int,FPB> FPBMMap;
@@ -138,12 +140,14 @@ FPB::FPB ()
     m_reused(false)
 {}
 
-FPB::FPB (const BoxArray& ba,
-          const Box&      domain,
-          int             ngrow,
-          bool            do_corners)
+FPB::FPB (const BoxArray&            ba,
+          const DistributionMapping& dm,
+          const Box&                 domain,
+          int                        ngrow,
+          bool                       do_corners)
     :
     m_ba(ba),
+    m_dm(dm),
     m_domain(domain),
     m_ngrow(ngrow),
     m_do_corners(do_corners),
@@ -159,6 +163,7 @@ FPB::FPB (const FPB& rhs)
     m_commdata(rhs.m_commdata),
     m_pirm(rhs.m_pirm),
     m_ba(rhs.m_ba),
+    m_dm(rhs.m_dm),
     m_domain(rhs.m_domain),
     m_ngrow(rhs.m_ngrow),
     m_do_corners(rhs.m_do_corners),
@@ -174,7 +179,8 @@ FPB::operator== (const FPB& rhs) const
         m_ngrow      == rhs.m_ngrow      &&
         m_do_corners == rhs.m_do_corners &&
         m_domain     == rhs.m_domain     &&
-        m_ba         == rhs.m_ba;
+        m_ba         == rhs.m_ba         &&
+        m_dm         == rhs.m_dm;
 }
 
 bool
@@ -509,7 +515,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     {
         MultiFabCopyDescriptor mfcd;
 
-        FPB TheFPB(mf.boxArray(),Domain(),mf.nGrow(),corners);
+        FPB TheFPB(mf.boxArray(),mf.DistributionMap(),Domain(),mf.nGrow(),corners);
 
         const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
         FPB&             fpb  = getFPB(mf,TheFPB,scomp,ncomp);
