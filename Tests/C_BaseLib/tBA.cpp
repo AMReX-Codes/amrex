@@ -3,6 +3,7 @@
 #include <BoxArray.H>
 #include <BoxDomain.H>
 #include <ParallelDescriptor.H>
+#include <map>
 
 static
 BoxArray
@@ -91,11 +92,94 @@ GetBndryCells_new (const BoxArray& ba,
 
     gcells = BoxLib::removeOverlap(bcells);
 
-//    std::cout << "    size before simplify(): " << gcells.size() << std::endl;
-//    gcells.simplify();
+    std::cout << "    size before simplify(): " << gcells.size() << std::endl;
+
+    int min[BL_SPACEDIM] = {10000};
+    int max[BL_SPACEDIM] = {0};
+
+    std::map<int,int> dist;
+
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    {
+        dist[it->numPts()]++;
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+            int l = it->length(i);
+            if (l > max[i]) max[i] = l;
+            if (l < min[i]) min[i] = l;
+        }
+    }
+
+    std::cout << "min,max length:\n";
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        std::cout << "i: " << i << ' ' << min[i] << ' ' << max[i] << '\n';
+    }
+    std::cout << std::endl;
+
+    std::cout << "numPts() distribution before simplify():\n";
+    for (std::map<int,int>::const_iterator it = dist.begin();
+         it != dist.end();
+         ++it)
+    {
+        std::cout << it->first << ' ' << it->second << '\n';
+    }
+
+    gcells.simplify();
     std::cout << "    size after simplify() = " << gcells.size() << std::endl;
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        min[i] = 10000; max[i] = 0;
+    }
+    dist.clear();
+
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    {
+        dist[it->numPts()]++;
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+            int l = it->length(i);
+            if (l > max[i]) max[i] = l;
+            if (l < min[i]) min[i] = l;
+        }
+    }
+
+    std::cout << "min,max length:\n";
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        std::cout << "i: " << i << ' ' << min[i] << ' ' << max[i] << '\n';
+    }
+    std::cout << std::endl;
+
+    std::cout << "numPts() distribution after simplify():\n";
+    for (std::map<int,int>::const_iterator it = dist.begin();
+         it != dist.end();
+         ++it)
+    {
+        std::cout << it->first << ' ' << it->second << '\n';
+    }
+
+    gcells.maxSize(64);
+    std::cout << "    size after maxSize() = " << gcells.size() << std::endl;
     Real end = ParallelDescriptor::second() - beg;
     std::cout << "    time = " << end << std::endl;
+
+    dist.clear();
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    {
+        dist[it->numPts()]++;
+    }
+    std::cout << "numPts() distribution after maxSize():\n";
+    for (std::map<int,int>::const_iterator it = dist.begin();
+         it != dist.end();
+         ++it)
+    {
+        std::cout << it->first << ' ' << it->second << '\n';
+    }
+
     
     return BoxArray(gcells);
 }
@@ -240,15 +324,38 @@ main ()
 //    std::ifstream ifs("ba.213", std::ios::in);
 //    std::ifstream ifs("ba.1000", std::ios::in);
 //    std::ifstream ifs("ba.5034", std::ios::in);
-    std::ifstream ifs("ba.15784", std::ios::in);
+    std::ifstream ifs("ba.15456", std::ios::in);
+//    std::ifstream ifs("ba.3865", std::ios::in);
+
+    std::cout << "Got Here" << std::endl;
 
     BoxArray ba;
 
     ba.readFrom(ifs);
 
+    std::cout << "Got Here 2" << std::endl;
+
 //    ba.writeOn(std::cout); std::cout << std::endl;
 
     Box bb = ba.minimalBox();
+    std::cout << "First Minimal box: " << bb << std::endl;
+
+//    ba.refine(2);
+//    ba.maxSize(32);
+    
+//    std::cout << "ba.size() = " << ba.size() << std::endl;
+//    bb = ba.minimalBox();
+//    std::cout << "Second Minimal box: " << bb << std::endl;
+
+//    for (int i = 0; i < ba.size(); i++)
+//        std::cout << ba[i] << '\n';
+
+    if (ba.isDisjoint())
+        std::cout << "The new BoxArray is disjoint" << std::endl;
+    else
+        std::cout << "The new BoxArray is NOT disjoint" << std::endl;
+
+//    exit(0);
 
     bb.grow(2);
 
@@ -276,7 +383,6 @@ main ()
     std::cout << "complementIn(), size after minimize() = " << bl1.size() << std::endl;
     }
 
-#if 0
     {
     const Real beg = ParallelDescriptor::second();
     bl2 = newComplementIn_old(bb, bl);
@@ -303,8 +409,8 @@ main ()
         Print(bl2, "bl2");
     }
 
-    BoxArray nba2 = GetBndryCells_new(ba, 1, bb);
-    BoxArray nba1 = GetBndryCells_old(ba, 1, bb);
+    nba2 = GetBndryCells_new(ba, 1, bb);
+    nba1 = GetBndryCells_old(ba, 1, bb);
 
     if (nba2.isDisjoint())
         std::cout << "The new BoxArray is disjoint" << std::endl;
@@ -315,5 +421,4 @@ main ()
         std::cout << "nba1 & nba2 cover the same area" << std::endl;
     else
         std::cout << "nba1 & nba2 do NOT cover the same area" << std::endl;
-#endif
 }
