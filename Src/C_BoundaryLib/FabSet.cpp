@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.47 2007-01-26 19:03:14 lijewski Exp $
+// $Id: FabSet.cpp,v 1.48 2007-04-18 17:51:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -194,9 +194,11 @@ struct FSRec
 {
     FSRec ();
 
-    FSRec (const BoxArray& src,
-           const BoxArray& dst,
-           int             ngrow);
+    FSRec (const BoxArray&            src,
+           const BoxArray&            dst,
+           const DistributionMapping& srcdm,
+           const DistributionMapping& dstdm,
+           int                        ngrow);
 
     FSRec (const FSRec& rhs);
 
@@ -205,15 +207,17 @@ struct FSRec
     bool operator== (const FSRec& rhs) const;
     bool operator!= (const FSRec& rhs) const;
 
-    std::vector<Box> m_box;
-    std::vector<int> m_mfidx;
-    std::vector<int> m_fsidx;
-    Array<int>       m_snds;
-    CommDataCache    m_commdata;
-    BoxArray         m_src;
-    BoxArray         m_dst;
-    int              m_ngrow;
-    bool             m_reused;
+    std::vector<Box>    m_box;
+    std::vector<int>    m_mfidx;
+    std::vector<int>    m_fsidx;
+    Array<int>          m_snds;
+    CommDataCache       m_commdata;
+    BoxArray            m_src;
+    BoxArray            m_dst;
+    DistributionMapping m_srcdm;
+    DistributionMapping m_dstdm;
+    int                 m_ngrow;
+    bool                m_reused;
 };
 
 FSRec::FSRec ()
@@ -222,12 +226,16 @@ FSRec::FSRec ()
     m_reused(false)
 {}
 
-FSRec::FSRec (const BoxArray& src,
-              const BoxArray& dst,
-              int             ngrow)
+FSRec::FSRec (const BoxArray&            src,
+              const BoxArray&            dst,
+              const DistributionMapping& srcdm,
+              const DistributionMapping& dstdm,
+              int                        ngrow)
     :
     m_src(src),
     m_dst(dst),
+    m_srcdm(srcdm),
+    m_dstdm(dstdm),
     m_ngrow(ngrow),
     m_reused(false)
 {
@@ -243,6 +251,8 @@ FSRec::FSRec (const FSRec& rhs)
     m_commdata(rhs.m_commdata),
     m_src(rhs.m_src),
     m_dst(rhs.m_dst),
+    m_srcdm(rhs.m_srcdm),
+    m_dstdm(rhs.m_dstdm),
     m_ngrow(rhs.m_ngrow),
     m_reused(rhs.m_reused)
 {}
@@ -252,7 +262,11 @@ FSRec::~FSRec () {}
 bool
 FSRec::operator== (const FSRec& rhs) const
 {
-    return m_ngrow == rhs.m_ngrow && m_src == rhs.m_src && m_dst == rhs.m_dst;
+    return m_ngrow == rhs.m_ngrow &&
+        m_src == rhs.m_src        &&
+        m_dst == rhs.m_dst        &&
+        m_srcdm == rhs.m_srcdm    &&
+        m_dstdm == rhs.m_dstdm;
 }
 
 bool
@@ -299,7 +313,11 @@ TheFSRec (const MultiFab& src,
         pp.query("copy_cache_max_size", copy_cache_max_size);
     }
 
-    FSRec rec(src.boxArray(),dst.boxArray(),ngrow);
+    FSRec rec(src.boxArray(),
+              dst.boxArray(),
+              src.DistributionMap(),
+              dst.DistributionMap(),
+              ngrow);
 
     const int key = ngrow + src.size() + dst.size();
 
