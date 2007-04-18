@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.101 2007-03-07 18:21:02 jbb Exp $
+# Make.defs $Id: Make.defs,v 1.102 2007-04-18 17:27:28 lijewski Exp $
 #
 
 #
@@ -196,7 +196,7 @@ ifeq ($(COMP),gcc)
     CXXOPTF    += -g
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64
+    CXX	       := g++ -ftemplate-depth-64 -Wno-deprected
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -214,7 +214,7 @@ ifeq ($(COMP),g++)
     CXXOPTF    += -g
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64
+    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -256,8 +256,8 @@ ifeq ($(FCOMP),g95)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O -g
     fOPTF += -O -g
-    FDEBF += -g -ftrace=full
-    fDEBF += -g -ftrace=full
+    FDEBF += -g
+    fDEBF += -g
 endif
 
 ifeq ($(COMP),Intel)
