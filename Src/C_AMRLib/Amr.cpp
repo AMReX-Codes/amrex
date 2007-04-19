@@ -1,12 +1,12 @@
 //
-// $Id: Amr.cpp,v 1.156 2007-04-19 00:17:49 vince Exp $
+// $Id: Amr.cpp,v 1.157 2007-04-19 00:58:33 vince Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 #include <cstdio>
 #include <list>
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
 #include <iostream>
 #include <strstream>
 #endif
@@ -902,7 +902,7 @@ Amr::initialInit (Real strt_time,
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
@@ -1061,7 +1061,7 @@ Amr::restart (const std::string& filename)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
@@ -1119,7 +1119,7 @@ Amr::restart (const std::string& filename)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
     std::istrstream is(fileCharPtr.dataPtr());
