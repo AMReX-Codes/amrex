@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.104 2007-04-06 19:58:58 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.105 2007-04-19 00:19:45 vince Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -358,6 +358,13 @@ void
 ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
 {
     BL_MPI_REQUIRE( MPI_Test(&request,&flag,&status) );
+}
+
+void
+ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
+{
+    BL_MPI_REQUIRE( MPI_Iprobe(src_pid, tag, ParallelDescriptor::Communicator(),
+                               &flag, &status) );
 }
 
 void
@@ -1023,6 +1030,7 @@ void ParallelDescriptor::Barrier () {}
 void ParallelDescriptor::Barrier (MPI_Comm) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
+void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
 
 void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
