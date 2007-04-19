@@ -1,11 +1,11 @@
 //
-// $Id: VisMF.cpp,v 1.104 2007-04-19 00:19:45 vince Exp $
+// $Id: VisMF.cpp,v 1.105 2007-04-19 00:58:17 vince Exp $
 //
 
 #include <winstd.H>
 #include <cstdio>
 #include <fstream>
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
 #include <iostream>
 #include <strstream>
 #include <vector>
@@ -794,7 +794,7 @@ VisMF::VisMF (const std::string& mf_name)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
     std::istrstream ifs(fileCharPtr.dataPtr());
@@ -873,7 +873,7 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Real hStartTime, hEndTime;
 #endif
     VisMF::Header hdr;
@@ -884,7 +884,7 @@ VisMF::Read (MultiFab&          mf,
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     hStartTime = ParallelDescriptor::second();
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
@@ -907,7 +907,7 @@ VisMF::Read (MultiFab&          mf,
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     // here we limit the number of open files when reading a multifab
     Real startTime(ParallelDescriptor::second());
     static Real totalTime(0.0);

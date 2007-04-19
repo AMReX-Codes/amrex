@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.53 2007-04-06 22:31:42 vince Exp $
+// $Id: ParmParse.cpp,v 1.54 2007-04-19 00:58:17 vince Exp $
 //
 #include <winstd.H>
 
@@ -443,7 +443,7 @@ read_file (const char*                     fname,
     //
     if ( fname != 0 && fname[0] != 0 )
     {
-#ifndef BL_USEOLDREADS
+#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
 	Array<char> fileCharPtr;
 	std::string filename = fname;
 	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
