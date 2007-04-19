@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.155 2007-04-06 19:57:12 vince Exp $
+// $Id: Amr.cpp,v 1.156 2007-04-19 00:17:49 vince Exp $
 //
 #include <winstd.H>
 
@@ -902,11 +902,49 @@ Amr::initialInit (Real strt_time,
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
+#ifndef BL_USEOLDREADS
+    int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
+    int nProcs(ParallelDescriptor::NProcs());
+    int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
+    int mySet(myProc/nAtOnce);
+    Real piStart, piEnd, piTotal;
+    Real piStartAll, piEndAll, piTotalAll;
+    piStartAll = ParallelDescriptor::second();
+    for(int iSet(0); iSet < nSets; ++iSet) {
+      if(mySet == iSet) {  // call the pesky probin reader
+        piStart = ParallelDescriptor::second();
+        FORT_PROBINIT(&init,
+                      probin_file_name.dataPtr(),
+                      &probin_file_length,
+                      Geometry::ProbLo(),
+                      Geometry::ProbHi());
+        piEnd = ParallelDescriptor::second();
+	const int iBuff(0), wakeUpPID(myProc + nAtOnce), tag(myProc % nAtOnce);
+	if(wakeUpPID < nProcs) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+	}
+      }
+      if(mySet == (iSet + 1)) {  // next set waits
+	int iBuff, waitForPID(myProc - nAtOnce), tag(myProc % nAtOnce);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      }
+    }  // end for(iSet...)
+    piEndAll = ParallelDescriptor::second();
+    piTotal = piEnd - piStart;
+    piTotalAll = piEndAll - piStartAll;
+    ParallelDescriptor::ReduceRealMax(piTotal);
+    ParallelDescriptor::ReduceRealMax(piTotalAll);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
+      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    }
+#else
     FORT_PROBINIT(&init,
                   probin_file_name.dataPtr(),
                   &probin_file_length,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
+#endif
 
 #ifdef BL_SYNC_RANTABLES
     int iGet(0), iSet(1);
@@ -1023,11 +1061,49 @@ Amr::restart (const std::string& filename)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
+#ifndef BL_USEOLDREADS
+    int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
+    int nProcs(ParallelDescriptor::NProcs());
+    int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
+    int mySet(myProc/nAtOnce);
+    Real piStart, piEnd, piTotal;
+    Real piStartAll, piEndAll, piTotalAll;
+    piStartAll = ParallelDescriptor::second();
+    for(int iSet(0); iSet < nSets; ++iSet) {
+      if(mySet == iSet) {  // call the pesky probin reader
+        piStart = ParallelDescriptor::second();
+        FORT_PROBINIT(&init,
+                      probin_file_name.dataPtr(),
+                      &probin_file_length,
+                      Geometry::ProbLo(),
+                      Geometry::ProbHi());
+        piEnd = ParallelDescriptor::second();
+	const int iBuff(0), wakeUpPID(myProc + nAtOnce), tag(myProc % nAtOnce);
+	if(wakeUpPID < nProcs) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+	}
+      }
+      if(mySet == (iSet + 1)) {  // next set waits
+	int iBuff, waitForPID(myProc - nAtOnce), tag(myProc % nAtOnce);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      }
+    }  // end for(iSet...)
+    piEndAll = ParallelDescriptor::second();
+    piTotal = piEnd - piStart;
+    piTotalAll = piEndAll - piStartAll;
+    ParallelDescriptor::ReduceRealMax(piTotal);
+    ParallelDescriptor::ReduceRealMax(piTotalAll);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
+      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    }
+#else
     FORT_PROBINIT(&init,
                   probin_file_name.dataPtr(),
                   &probin_file_length,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
+#endif
     //
     // Start calculation from given restart file.
     //
