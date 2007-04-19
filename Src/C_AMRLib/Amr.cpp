@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.157 2007-04-19 00:58:33 vince Exp $
+// $Id: Amr.cpp,v 1.158 2007-04-19 01:23:22 vince Exp $
 //
 #include <winstd.H>
 
@@ -50,6 +50,7 @@ namespace
   int  plot_nfiles = -1;
   int  checkpoint_nfiles = -1;
   int  mffile_nstreams = 1;
+  int  probinit_natonce = 32;
 }
 
 //
@@ -319,6 +320,9 @@ Amr::Amr ()
     pp.query("plot_nfiles", plot_nfiles);
 
     pp.query("mffile_nstreams", mffile_nstreams);
+    pp.query("probinit_natonce", probinit_natonce);
+    probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(),
+                                            probinit_natonce));
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -903,7 +907,7 @@ Amr::initialInit (Real strt_time,
         probin_file_name[i] = probin_file[i];
 
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
+    int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
@@ -1062,7 +1066,7 @@ Amr::restart (const std::string& filename)
         probin_file_name[i] = probin_file[i];
 
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    int nAtOnce(32), myProc(ParallelDescriptor::MyProc());
+    int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
