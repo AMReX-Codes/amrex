@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.159 2007-04-20 02:49:08 lijewski Exp $
+// $Id: Amr.cpp,v 1.160 2007-04-20 19:13:58 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1500,7 +1500,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nFAB byte spread across CPUs for timestep: ["
-                  << min_fab_bytes << "..." << max_fab_bytes << "]\n";
+                  << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
