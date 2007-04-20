@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.60 2007-03-29 19:40:57 lijewski Exp $
+// $Id: BaseFab.H,v 1.61 2007-04-20 02:48:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -19,7 +19,8 @@
 
 namespace BoxLib
 {
-    extern long total_bytes_allocated_in_fabs;
+    extern long total_bytes_allocated_in_fabs;     // total bytes at any given time
+    extern long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
 }
 
 //
@@ -1146,6 +1147,9 @@ BaseFab<T>::define ()
         new (ptr) T;
 
     BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
+
+    if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+        BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
 }
 
 template <class T>
