@@ -18,7 +18,7 @@
 #include <numeric>
 
 static int    swap_n_test_count          = 1;
-static int    verbose                    = 0;
+static int    verbose                    = 1;
 static int    sfc_threshold              = 6;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
