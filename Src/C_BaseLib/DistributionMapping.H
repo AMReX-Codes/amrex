@@ -164,7 +164,8 @@ protected:
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
-                              int                      nprocs);
+                              int                      nprocs,
+                              bool                     numpts = false);
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
