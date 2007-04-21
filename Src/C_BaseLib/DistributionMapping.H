@@ -159,7 +159,8 @@ protected:
                          std::vector<LIpair>* LIpairV = 0);
 
     void KnapSackDoIt (const std::vector<long>& wgts,
-                       int                      nprocs);
+                       int                      nprocs,
+                       bool                     numpts = false);
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
