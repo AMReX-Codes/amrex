@@ -172,18 +172,8 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
 
         std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
-        if (false && ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "LeastUsedCPUs Ordering:\n";
-            for (int i = 0; i < nprocs; i++)
-                std::cout << i << ' ' << LIpairV[i].second << ' ' << LIpairV[i].first << '\n';
-            std::cout << std::endl;
-        }
-
         for (int i = 0; i < nprocs; i++)
-        {
             result[i] = LIpairV[i].second;
-        }
     }
     else
     {
@@ -956,7 +946,8 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
-                                   int                      nprocs)
+                                   int                      nprocs,
+                                   bool                     numpts)
 {
     Array<int> ord = LeastUsedCPUs(nprocs);
 
@@ -964,11 +955,46 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     BL_ASSERT(vec.size() == nprocs);
 
+    std::vector<LIpair> LIpairV(nprocs);
+
+    if (numpts)
+    {
+        //
+        // wgts are derived using Box::numPts().
+        //
+        // We want to sort the ordering of "vec" from heaviest
+        // to lightest weight, and then assign them to LeastUsedCPUs()
+        // in that order.  Since knapsack can't always return a "perfect"
+        // distribution, this should smooth out bumps in FAB memory usage
+        // across CPUs.
+        //
+        Array<long> wgts_per_cpu(nprocs,0);
+
+        for (unsigned int i = 0; i < vec.size(); i++)
+            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+                wgts_per_cpu[i] += wgts[*lit];
+
+        for (int i = 0; i < nprocs; i++)
+        {
+            LIpairV[i].first  = wgts_per_cpu[i];
+            LIpairV[i].second = i;
+        }
+        //
+        // This call does the sort() from least to most weight.
+        // Will need to reverse the order afterwards.
+        //
+        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+        std::reverse(LIpairV.begin(), LIpairV.end());
+    }
+
     for (unsigned int i = 0; i < vec.size(); i++)
     {
         const int where = ord[i%nprocs];
 
-        for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+        const int idx = numpts ? LIpairV[i].second : i;
+
+        for (std::list<int>::iterator lit = vec[idx].begin(); lit != vec[idx].end(); ++lit)
         {
             m_ref->m_pmap[*lit] = where;
         }
@@ -978,7 +1004,6 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     //
     m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
 }
-
 
 //
 // This version does NOT call the MinimizeCommCosts() stuff.
@@ -1005,7 +1030,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
 }
 
 //
-// This version does call the MinimizeCommCosts() stuff.
+// This version calls the MinimizeCommCosts() stuff.
 //
 void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
@@ -1023,9 +1048,11 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         std::vector<long> wgts(boxes.size());
 
         for (unsigned int i = 0; i < wgts.size(); i++)
+        {
             wgts[i] = boxes[i].numPts();
+        }
 
-        KnapSackDoIt(wgts, nprocs);
+        KnapSackDoIt(wgts, nprocs, true);
 
         if (verbose > 1)
         {
