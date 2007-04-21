@@ -962,12 +962,6 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
         //
         // wgts are derived using Box::numPts().
         //
-        // We want to sort the ordering of "vec" from heaviest
-        // to lightest weight, and then assign them to LeastUsedCPUs()
-        // in that order.  Since knapsack can't always return a "perfect"
-        // distribution, this should smooth out bumps in FAB memory usage
-        // across CPUs.
-        //
         Array<long> wgts_per_cpu(nprocs,0);
 
         for (unsigned int i = 0; i < vec.size(); i++)
@@ -987,16 +981,20 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
         std::reverse(LIpairV.begin(), LIpairV.end());
     }
+    else
+    {
+        for (int i = 0; i < nprocs; i++)
+            LIpairV[i].second = i;
+    }
 
     for (unsigned int i = 0; i < vec.size(); i++)
     {
-        const int where = ord[i%nprocs];
-
-        const int idx = numpts ? LIpairV[i].second : i;
+        const int idx = LIpairV[i].second;
+        const int cpu = ord[i%nprocs];
 
         for (std::list<int>::iterator lit = vec[idx].begin(); lit != vec[idx].end(); ++lit)
         {
-            m_ref->m_pmap[*lit] = where;
+            m_ref->m_pmap[*lit] = cpu;
         }
     }
     //
@@ -1107,25 +1105,71 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
     return false;
 }
 
+static
+std::vector< std::vector<int> >
+Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
+
+{
+    int K = 0;
+
+    std::vector< std::vector<int> > v(nprocs);
+
+    for (int i = 0; i < nprocs; i++)
+    {
+        Real vol = 0;
+        int  cnt = 0;
+
+        for ( ;
+              K < tokens.size() && (i == (nprocs-1) || vol < volpercpu);
+              cnt++, K++)
+        {
+            vol += tokens[K].m_vol;
+
+            v[i].push_back(tokens[K].m_box);
+        }
+
+        if (vol > volpercpu && cnt > 1)
+        {
+            const Real rdiff = vol - volpercpu;
+            const Real ldiff = volpercpu - (vol - tokens[K-1].m_vol);
+            if (rdiff > ldiff)
+            {
+                K--;
+                v[i].pop_back();
+            }
+        }
+    }
+
+#ifndef NDEBUG
+    int total = 0;
+    for (int i = 0; i < nprocs; i++)
+        total += v[i].size();
+    BL_ASSERT(total == tokens.size());
+#endif
+
+    return v;
+}
+
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
-                                          int                      nprocs)
+                                          int                      nprocs,
+                                          bool                     numpts)
 {
     const Real strttime = ParallelDescriptor::second();
 
-    std::vector<SFCToken> token(boxes.size());
+    std::vector<SFCToken> tokens(boxes.size());
 
     int maxijk = 0;
 
     for (int i = 0; i < boxes.size(); i++)
     {
-        token[i].m_box = i;
-        token[i].m_idx = boxes[i].smallEnd();
-        token[i].m_vol = wgts[i];
+        tokens[i].m_box = i;
+        tokens[i].m_idx = boxes[i].smallEnd();
+        tokens[i].m_vol = wgts[i];
 
         for (int j = 0; j < BL_SPACEDIM; j++)
-            maxijk = std::max(maxijk, token[i].m_idx[j]);
+            maxijk = std::max(maxijk, tokens[i].m_idx[j]);
     }
     //
     // Set SFCToken::MaxPower for BoxArray.
@@ -1137,38 +1181,59 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     // Put'm in Morton space filling curve order.
     //
-    std::sort(token.begin(), token.end(), SFCToken::Compare());
+    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
     //
     // Split'm up as equitably as possible per CPU.
     //
     Real volpercpu = 0;
-    for (int i = 0; i < token.size(); i++)
-        volpercpu += token[i].m_vol;
+    for (int i = 0; i < tokens.size(); i++)
+        volpercpu += tokens[i].m_vol;
     volpercpu /= nprocs;
 
-    int        K   = 0;
+    std::vector< std::vector<int> > vec = Distribute(tokens,nprocs,volpercpu);
+
     Array<int> ord = LeastUsedCPUs(nprocs);
+
+    std::vector<LIpair> LIpairV(nprocs);
+
+    if (numpts)
+    {
+        //
+        // wgts are derived using Box::numPts().
+        //
+        Array<long> wgts_per_cpu(nprocs,0);
+
+        for (unsigned int i = 0; i < vec.size(); i++)
+            for (int j = 0; j < vec[i].size(); j++)
+                wgts_per_cpu[i] += wgts[vec[i][j]];
+
+        for (int i = 0; i < nprocs; i++)
+        {
+            LIpairV[i].first  = wgts_per_cpu[i];
+            LIpairV[i].second = i;
+        }
+        //
+        // This call does the sort() from least to most weight.
+        // Will need to reverse the order afterwards.
+        //
+        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+        std::reverse(LIpairV.begin(), LIpairV.end());
+    }
+    else
+    {
+        for (int i = 0; i < nprocs; i++)
+            LIpairV[i].second = i;
+    }
 
     for (int i = 0; i < nprocs; i++)
     {
-        Real      vol = 0;
-        int       cnt = 0;
         const int cpu = ord[i%nprocs];
+        const int idx = LIpairV[i].second;
 
-        for ( ;
-              K < token.size() && (i == (nprocs-1) || vol < volpercpu);
-              cnt++, K++)
+        for (int j = 0; j < vec[idx].size(); j++)
         {
-            vol += token[K].m_vol;
-            m_ref->m_pmap[token[K].m_box] = cpu;
-        }
-
-        if (vol > volpercpu && cnt > 1)
-        {
-            const Real rdiff = vol - volpercpu;
-            const Real ldiff = volpercpu - (vol - token[K-1].m_vol);
-            if (rdiff > ldiff)
-                K--;
+            m_ref->m_pmap[vec[idx][j]] = cpu;
         }
     }
     //
@@ -1182,8 +1247,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
         std::vector<Real> wgt(nprocs,0);
 
-        for (int i = 0; i < token.size(); i++)
-            wgt[m_ref->m_pmap[token[i].m_box]] += token[i].m_vol;
+        for (int i = 0; i < tokens.size(); i++)
+            wgt[m_ref->m_pmap[tokens[i].m_box]] += tokens[i].m_vol;
 
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < wgt.size(); i++)
@@ -1233,7 +1298,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
         for (int i = 0; i < wgts.size(); i++)
             wgts[i] = boxes[i].volume();
 
-        SFCProcessorMapDoIt(boxes,wgts,nprocs);
+        SFCProcessorMapDoIt(boxes,wgts,nprocs,true);
     }
 }
 
