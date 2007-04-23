@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.16 2005-01-05 21:53:21 lijewski Exp $
+// $Id: Tuple.H,v 1.17 2007-04-23 20:44:48 nazgul Exp $
 //
 
 #include <cstdlib>
@@ -77,10 +77,16 @@ template <class T, std::size_t N>
 inline
 Tuple<T,N>::Tuple()
 {
+#if 0
+  // LHH (4/23/07):  This section conflicts with the comments because
+  // it requires T to have a copy assignment operator.  It also appears
+  // to be unnecessary in that it does what should already happen
+  // automatically:  call T() for each array element.
     for ( std::size_t i = 0; i < N; ++i )
     {
         vect[i] = T();
     }
+#endif
 }
 
 template <class T, std::size_t N>
