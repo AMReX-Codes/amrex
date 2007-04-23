@@ -1,5 +1,7 @@
 #undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
 #define BL_LANG_FORT
+#endif
 
 #include "REAL.H"
 #include "CONSTANTS.H"
@@ -162,7 +164,7 @@ c         ::::: 1d spherical
                    dloga(i) = dlga
                 enddo
              else
-                call abort('setdloga: illegal coordinate system')
+                call bl_abort('setdloga: illegal coordinate system')
              endif
 	  endif
        endif
