@@ -1,5 +1,5 @@
 //
-// $Id: CoordSys.cpp,v 1.18 2004-07-22 17:33:12 car Exp $
+// $Id: CoordSys.cpp,v 1.19 2007-04-23 16:46:52 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -94,7 +94,7 @@ bool
 CoordSys::IsRZ ()
 {
     BL_ASSERT(c_sys != undef);
-#if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM <= 2)
     return (c_sys == RZ);
 #endif    
 #if (BL_SPACEDIM == 3)
