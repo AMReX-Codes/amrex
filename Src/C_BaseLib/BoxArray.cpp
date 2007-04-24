@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.50 2007-04-24 01:13:06 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.51 2007-04-24 19:43:47 lijewski Exp $
 //
 #include <iostream>
 
@@ -666,7 +666,7 @@ BoxArray::removeOverlap ()
         for (int i = 0; i < v.size(); i++)
             if (m_ref->m_abox[v[i]].ok())
                 pieces.push_back(m_ref->m_abox[v[i]]);
-        //pieces.simplify();
+        pieces.simplify();
         nbl.catenate(pieces);
     }
 
