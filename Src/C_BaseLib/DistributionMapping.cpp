@@ -22,7 +22,6 @@ static int    verbose                    = 1;
 static int    sfc_threshold              = 10;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
-static bool   use_least_used_cpus        = true;
 //
 // Everyone uses the same Strategy -- defaults to SFC.
 //
@@ -101,8 +100,6 @@ DistributionMapping::Initialize ()
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
-    pp.query("use_least_used_cpus", use_least_used_cpus);
-
     pp.query("swap_n_test_count", swap_n_test_count);
 
     if (swap_n_test_count <= 0)
@@ -150,40 +147,35 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
     Array<int> result(nprocs);
 
 #ifdef BL_USE_MPI
-    if (use_least_used_cpus)
+    Array<long> bytes(nprocs);
+
+    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  bytes.dataPtr(),
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  ParallelDescriptor::Communicator());
+
+    std::vector<LIpair> LIpairV(nprocs);
+
+    for (int i = 0; i < nprocs; i++)
     {
-        Array<long> bytes(nprocs);
-
-        MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
-                      1,
-                      ParallelDescriptor::Mpi_typemap<long>::type(),
-                      bytes.dataPtr(),
-                      1,
-                      ParallelDescriptor::Mpi_typemap<long>::type(),
-                      ParallelDescriptor::Communicator());
-
-        std::vector<LIpair> LIpairV(nprocs);
-
-        for (int i = 0; i < nprocs; i++)
-        {
-            LIpairV[i].first  = bytes[i];
-            LIpairV[i].second = i;
-        }
-
-        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
-
-        for (int i = 0; i < nprocs; i++)
-            result[i] = LIpairV[i].second;
+        LIpairV[i].first  = bytes[i];
+        LIpairV[i].second = i;
     }
-    else
+
+    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+    for (int i = 0; i < nprocs; i++)
     {
-        for (int i = 0; i < nprocs; i++)
-        {
-            result[i] = i;
-        }
+        result[i] = LIpairV[i].second;
     }
 #else
-    result[0] = 0;
+    for (int i = 0; i < nprocs; i++)
+    {
+        result[i] = i;
+    }
 #endif
 
     return result;
@@ -1110,14 +1102,15 @@ std::vector< std::vector<int> >
 Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
 
 {
-    int K = 0;
+    int K         = 0;
+    Real totalvol = 0;
 
     std::vector< std::vector<int> > v(nprocs);
 
     for (int i = 0; i < nprocs; i++)
     {
-        Real vol = 0;
         int  cnt = 0;
+        Real vol = 0;
 
         for ( ;
               K < tokens.size() && (i == (nprocs-1) || vol < volpercpu);
@@ -1128,23 +1121,23 @@ Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
             v[i].push_back(tokens[K].m_box);
         }
 
-        if (vol > volpercpu && cnt > 1)
+        totalvol += vol;
+
+        if ((totalvol/(i+1)) > volpercpu &&
+            cnt > 1                   &&
+            K < tokens.size())
         {
-            const Real rdiff = vol - volpercpu;
-            const Real ldiff = volpercpu - (vol - tokens[K-1].m_vol);
-            if (rdiff > ldiff)
-            {
-                K--;
-                v[i].pop_back();
-            }
+            K--;
+            v[i].pop_back();
+            totalvol -= tokens[K].m_vol;;
         }
     }
 
 #ifndef NDEBUG
-    int total = 0;
+    int cnt = 0;
     for (int i = 0; i < nprocs; i++)
-        total += v[i].size();
-    BL_ASSERT(total == tokens.size());
+        cnt += v[i].size();
+    BL_ASSERT(cnt == tokens.size());
 #endif
 
     return v;
@@ -1190,6 +1183,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         volpercpu += tokens[i].m_vol;
     volpercpu /= nprocs;
 
+    //std::cout << "volpercpu = " << volpercpu << '\n';
+
     std::vector< std::vector<int> > vec = Distribute(tokens,nprocs,volpercpu);
 
     Array<int> ord = LeastUsedCPUs(nprocs);
@@ -1204,8 +1199,12 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         Array<long> wgts_per_cpu(nprocs,0);
 
         for (unsigned int i = 0; i < vec.size(); i++)
+        {
+            //std::cout << "vec[" << i << "]: wgt: ";
             for (int j = 0; j < vec[i].size(); j++)
                 wgts_per_cpu[i] += wgts[vec[i][j]];
+            //std::cout << wgts_per_cpu[i] << '\n';
+        }
 
         for (int i = 0; i < nprocs; i++)
         {
@@ -1253,7 +1252,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < wgt.size(); i++)
         {
-            if (wgt[i] > max_wgt) max_wgt = wgt[i];
+            if (wgt[i] > max_wgt)
+                max_wgt = wgt[i];
             sum_wgt += wgt[i];
         }
 
