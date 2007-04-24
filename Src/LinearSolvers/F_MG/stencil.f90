@@ -476,8 +476,8 @@ contains
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
-    integer :: i
-    real(kind=dp_t) :: r1
+    integer :: i,j,k,m,n
+    real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
     type(bl_prof_timer), save :: bpt
@@ -498,10 +498,26 @@ contains
        do i = 1, ss%nboxes
           if ( multifab_remote(ss,i) ) cycle
           sp => dataptr(ss, i)
-          r1 = max(r1, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
+
+!         This works for g95, and for Intel smaller than 8196x512.
+!         r1 = max(r1, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
+
+!         This is a workaround for the Intel compiler large-array case.
+          do k = lbound(sp,dim=3), ubound(sp,dim=3)
+          do j = lbound(sp,dim=2), ubound(sp,dim=2)
+          do m = lbound(sp,dim=1), ubound(sp,dim=1)
+             sum_comps = ZERO
+             do n = lbound(sp,dim=4), ubound(sp,dim=4)
+               sum_comps = sum_comps + abs(sp(m,j,k,n))
+             end do
+             r1 = max(r1,sum_comps)
+          end do
+          end do
+          end do
        end do
        !$OMP END PARALLEL DO
     end if
+
     call parallel_reduce(r,r1,MPI_MAX)
     call destroy(bpt)
   end function stencil_norm
