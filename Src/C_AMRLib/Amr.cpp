@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.160 2007-04-20 19:13:58 lijewski Exp $
+// $Id: Amr.cpp,v 1.161 2007-04-24 01:13:50 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2166,7 +2166,7 @@ Amr::grid_places (int              lbase,
             BoxList new_bx;
             clist.boxList(new_bx);
             new_bx.refine(bf_lev[levc]);
-            new_bx.simplify();
+            //new_bx.simplify();
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
               largest_grid_size[n] = max_grid_size / ref_ratio[levc][n];
