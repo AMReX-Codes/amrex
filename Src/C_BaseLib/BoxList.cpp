@@ -284,7 +284,7 @@ BoxList::complementIn (const Box&     b,
                 tmpbl.push_back(isects[i].second);
             BoxList tm(b.ixType());
             tm.complementIn_base(bx, tmpbl);
-            //tm.simplify();
+            tm.simplify();
             catenate(tm);
         }
         else
