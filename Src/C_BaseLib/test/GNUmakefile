@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.15 2006-08-02 21:14:14 lijewski Exp $
+# $Id: GNUmakefile,v 1.16 2007-04-24 21:05:46 lijewski Exp $
 #
 
 #
@@ -17,16 +17,21 @@ USE_MPI      = TRUE
 USE_MPI      = FALSE
 USE_THREADS  = TRUE
 USE_THREADS  = FALSE
-PROFILE      = FALSE
 PROFILE      = TRUE
+PROFILE      = FALSE
+
+#DEFINES += -DBL_COALESCE_FABS
 
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
 
-FOPTF += -pg
-fOPTF += -pg
-CXXOPTF += -pg
-LDFLAGS += -pg
+FDEBF += -fpe0
+fDEBF += -fpe0
+
+#FOPTF += -pg
+#fOPTF += -pg
+#CXXOPTF += -pg
+#LDFLAGS += -pg
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
@@ -39,7 +44,9 @@ LDFLAGS += -pg
 #_progs  := tread
 #_progs  := tWorkQueue
 #_progs  := tParmParse
-_progs  := tMinCommCosts
+#_progs  := tCArena
+#_progs  := tBA
+_progs  := tDM
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
