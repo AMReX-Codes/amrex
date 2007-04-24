@@ -253,9 +253,9 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
-    BL_ASSERT(bl.ixType() == b.ixType());
-
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn()");
+
+    BL_ASSERT(bl.ixType() == b.ixType());
 
     clear();
 
@@ -284,7 +284,7 @@ BoxList::complementIn (const Box&     b,
                 tmpbl.push_back(isects[i].second);
             BoxList tm(b.ixType());
             tm.complementIn_base(bx, tmpbl);
-            tm.simplify();
+            //tm.simplify();
             catenate(tm);
         }
         else
