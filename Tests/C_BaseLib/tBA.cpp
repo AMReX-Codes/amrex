@@ -238,49 +238,6 @@ intersections_new (const BoxArray& ba)
 
 static
 BoxList
-newComplementIn (const Box&     b,
-		 const BoxList& bl)
-{
-    BoxList newb(b.ixType());
-
-    Box minbox = bl.minimalBox();
-    BoxList tmpbl = BoxLib::boxDiff(b,minbox);
-    newb.catenate(tmpbl);
-
-    BoxList mesh;
-    mesh.push_back(minbox);
-    mesh.maxSize(64);
-
-    BoxArray ba(bl);
-
-    for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
-    {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(*bli);
-
-        if (!isects.empty())
-        {
-            BoxList tmpbl;
-
-            for (int i = 0; i < isects.size(); i++)
-                tmpbl.push_back(isects[i].second);
-
-            BoxList tm = BoxLib::complementIn(*bli,tmpbl);
-
-            newb.catenate(tm);
-        }
-        else
-        {
-            newb.push_back(*bli);
-        }
-    }
-
-    return newb;
-}
-
-
-
-static
-BoxList
 newComplementIn_old (const Box&     b,
                      const BoxList& bl)
 {
@@ -325,6 +282,7 @@ main ()
 //    std::ifstream ifs("ba.1000", std::ios::in);
 //    std::ifstream ifs("ba.5034", std::ios::in);
     std::ifstream ifs("ba.15456", std::ios::in);
+//    std::ifstream ifs("ba.mac.294", std::ios::in);
 //    std::ifstream ifs("ba.3865", std::ios::in);
 
     std::cout << "Got Here" << std::endl;
@@ -357,7 +315,7 @@ main ()
 
 //    exit(0);
 
-    bb.grow(2);
+    bb.grow(4);
 
     BoxList bl;
     for (int i = 0; i < ba.size(); i++)
@@ -400,14 +358,17 @@ main ()
     std::cout << "nba2.numPts = " << nba2.numPts() << std::endl;
 
     if (nba1.contains(nba2) && nba2.contains(nba1))
+    {
         std::cout << "nba1 & nba2 cover the same area" << std::endl;
+    }
     else
     {
         std::cout << "nba1 & nba2 do NOT cover the same area" << std::endl;
-
         Print(bl1, "bl1");
         Print(bl2, "bl2");
     }
+
+    exit(0);
 
     nba2 = GetBndryCells_new(ba, 1, bb);
     nba1 = GetBndryCells_old(ba, 1, bb);

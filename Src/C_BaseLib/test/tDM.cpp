@@ -43,11 +43,13 @@ main (int argc, char* argv[])
 
         DistributionMapping::strategy(DistributionMapping::SFC);
         DistributionMapping dm1(ba,nprocs);
+        DistributionMapping::FlushCache();
 
         std::cout << '\n';
 
         DistributionMapping::strategy(DistributionMapping::KNAPSACK);
         DistributionMapping dm2(ba,nprocs);
+        DistributionMapping::FlushCache();
     }
 
     BoxLib::Finalize();
