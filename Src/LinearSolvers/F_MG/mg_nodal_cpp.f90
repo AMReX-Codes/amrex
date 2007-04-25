@@ -336,7 +336,6 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
      call stencil_fill_nodal(mgts%mgt(flev)%ss(i), mgts%coeffs(i), &
                              mgts%mgt(flev    )%dh(:,i), &
-                             mgts%mgt(flev)%dh(:,mgts%mgt(flev)%nlevels), &
                              mgts%mgt(flev)%mm(i), mgts%mgt(flev)%face_type, mgts%stencil_type)
 
   end do
