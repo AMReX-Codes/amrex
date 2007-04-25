@@ -192,7 +192,7 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),Intel)
     _unamem := $(shell uname -m)
     ifeq ($(_unamem),ia64)
-      _ifc := ifc
+      _ifc := ifort
       _icc := icc 
     else 
     ifeq ($(_unamem),x86_64)
@@ -252,9 +252,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3
-          FFLAGS += -O3
-          CFLAGS += -O3
+          F90FLAGS += -O3 -ip
+          FFLAGS += -O3 -ip
+          CFLAGS += -O3 -ip
 #  ifndef GPROF
           F90FLAGS += #-ipo
           FFLAGS += #-ipo
