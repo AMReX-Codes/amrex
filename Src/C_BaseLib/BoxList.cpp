@@ -1,6 +1,7 @@
 
 #include <winstd.H>
 
+#include <map>
 #include <algorithm>
 #include <iostream>
 
@@ -460,6 +461,53 @@ int
 BoxList::simplify ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
+
+    int count = 0;
+
+    std::multimap<IntVect, Box, IntVect::Compare> mmap;
+
+    typedef std::multimap<IntVect, Box, IntVect::Compare>::iterator MMapIter;
+
+    for (iterator it = begin(); it != end(); ++it)
+    {
+        mmap.insert(std::make_pair<IntVect,Box>(it->smallEnd(),*it));
+    }
+
+    clear();
+
+    for (MMapIter it = mmap.begin(); it != mmap.end(); ++it)
+    {
+        push_back(it->second);
+    }
+
+    const int N = 250;
+
+    BoxList tbl(ixType());
+
+    while (!lbox.empty())
+    {
+        BoxList tmp(ixType());
+
+        while (tmp.size() < N && !lbox.empty())
+        {
+            tmp.push_back(lbox.front());
+            lbox.pop_front();
+        }
+
+        count += tmp.simplify_doit();
+
+        tbl.catenate(tmp);
+    }
+
+    lbox.swap(tbl.lbox);
+
+    return count;
+}
+
+int
+BoxList::simplify_doit ()
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify_doit()");
     //
     // Try to merge adjacent boxes.
     //

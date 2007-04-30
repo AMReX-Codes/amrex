@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.32 2006-01-07 01:22:09 lijewski Exp $
+// $Id: BoxList.H,v 1.33 2007-04-30 20:54:58 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -103,6 +103,12 @@ public:
     //@ManDoc:  Prepend a Box to this BoxList.
     //
     void push_front (const Box& bn);
+
+    Box& front ();
+
+    const Box& front () const;
+
+    void pop_front ();
     //
     //@ManDoc: Join the BoxList to ourselves.
     //
@@ -253,6 +259,10 @@ public:
     //@ManDoc: Returns the IndexType of Boxes in this BoxList.
     //
     IndexType ixType () const;
+    //
+    // Set the type of the BoxList.  It's an error if the BoxList isn't empty.
+    //
+    void set (IndexType);
 
     /*@ManDoc: Applies surroundingNodes(Box) to each Box in BoxArray.
                See the documentation of Box for details.
@@ -300,6 +310,10 @@ private:
     //
     BoxList& complementIn_base (const Box&     b,
                                 const BoxList& bl);
+    //
+    // Core simplify routine.
+    //
+    int simplify_doit ();
 };
 
 inline
@@ -339,6 +353,14 @@ BoxList::ixType () const
 
 inline
 void
+BoxList::set (IndexType ixtyp)
+{
+    BL_ASSERT(lbox.empty());
+    btype = ixtyp;
+}
+
+inline
+void
 BoxList::push_back (const Box& bn)
 {
     BL_ASSERT(ixType() == bn.ixType());
@@ -351,6 +373,30 @@ BoxList::push_front (const Box& bn)
 {
     BL_ASSERT(ixType() == bn.ixType());
     lbox.push_front(bn);
+}
+
+inline
+Box&
+BoxList::front ()
+{
+    BL_ASSERT(!lbox.empty());
+    return lbox.front();
+}
+
+inline
+const Box&
+BoxList::front () const
+{
+    BL_ASSERT(!lbox.empty());
+    return lbox.front();
+}
+
+inline
+void
+BoxList::pop_front ()
+{
+    BL_ASSERT(!lbox.empty());
+    lbox.pop_front();
 }
 
 inline
