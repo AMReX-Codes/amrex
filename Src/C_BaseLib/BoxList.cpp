@@ -293,19 +293,23 @@ BoxList::complementIn (const Box&     b,
         }
     }
 
-    simplify();
+    //simplify();
 
     return *this;
 }
-
 
 BoxList&
 BoxList::complementIn_base (const Box&     b,
                             const BoxList& bl)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn_base()");
+
     BL_ASSERT(bl.ixType() == b.ixType());
+
     clear();
+
     push_back(b);
+
     for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
@@ -322,6 +326,7 @@ BoxList::complementIn_base (const Box&     b,
             }
         }
     }
+
     return *this;
 }
 
