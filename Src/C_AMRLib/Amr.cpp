@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.163 2007-05-01 03:12:50 lijewski Exp $
+// $Id: Amr.cpp,v 1.164 2007-05-01 20:11:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1884,7 +1884,6 @@ Amr::ProjPeriodic (BoxDomain&      bd,
     }
     bd.clear();
     bd.add(blout);
-    bd.simplify();
 }
 
 void
