@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.51 2007-04-24 19:43:47 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.52 2007-05-01 02:59:20 lijewski Exp $
 //
 #include <iostream>
 
@@ -653,11 +653,9 @@ BoxArray::removeOverlap ()
             }
         }
     }
-    //
-    // Now attempt to simplify the list of Boxes by just simplify()ing within hash bins.
-    //
-    BoxList nbl;
+
     Box     bb = m_ref->hash.box();
+    BoxList nbl;
 
     for (IntVect iv = bb.smallEnd(); iv <= bb.bigEnd(); bb.next(iv))
     {
@@ -666,9 +664,10 @@ BoxArray::removeOverlap ()
         for (int i = 0; i < v.size(); i++)
             if (m_ref->m_abox[v[i]].ok())
                 pieces.push_back(m_ref->m_abox[v[i]]);
-        pieces.simplify();
         nbl.catenate(pieces);
     }
+
+    nbl.simplify();
 
     BL_ASSERT(nbl.isDisjoint());
 
