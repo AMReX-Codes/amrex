@@ -1,5 +1,5 @@
 //
-// $Id: AuxBoundaryData.cpp,v 1.1 2007-04-17 16:56:12 lijewski Exp $
+// $Id: AuxBoundaryData.cpp,v 1.2 2007-05-01 02:59:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -83,7 +83,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         }
     }
     //
-    // Now strip out overlaps.  Also does a crude simplify().
+    // Now strip out overlaps.
     //
     gcells.clear();
     gcells = BoxLib::removeOverlap(bcells);
@@ -111,8 +111,6 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         }
     }
 
-    //gcells.simplify();
-
     BoxArray nba(gcells);
 
     std::vector<long> wgts(nba.size());
@@ -125,8 +123,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     //
     // This call doesn't invoke the MinimizeCommCosts() stuff.
     // There's very little to gain with this type of covering.
-    // This also guarantees that this DM won't be put into the
-    // cache.
+    // This also guarantees that this DM won't be put into the cache.
     //
     dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
