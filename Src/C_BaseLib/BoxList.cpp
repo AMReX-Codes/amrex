@@ -28,6 +28,7 @@ BoxList::catenate (BoxList& blist)
 bool
 BoxList::contains (const Box& b) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
     BL_ASSERT(ixType() == b.ixType());
     BoxList bnew = BoxLib::complementIn(b,*this);
     return bnew.isEmpty();
@@ -182,6 +183,7 @@ BoxList::contains (const IntVect& v) const
 bool
 BoxList::contains (const BoxList&  bl) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxList)");
     BL_ASSERT(ixType() == bl.ixType());
     BoxArray tba(*this);
     for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
@@ -244,6 +246,7 @@ BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
+    BL_PROFILE("BoxLib::complementIn(Box,BoxList)");
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
@@ -259,6 +262,12 @@ BoxList::complementIn (const Box&     b,
     BL_ASSERT(bl.ixType() == b.ixType());
 
     clear();
+
+    if (bl.size() == 1)
+    {
+        *this = BoxLib::boxDiff(b,bl.front());
+        return *this;
+    }
 
     Box minbox = bl.minimalBox();
     BoxList tmpbl = BoxLib::boxDiff(b,minbox);
