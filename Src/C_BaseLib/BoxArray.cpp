@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.54 2007-05-02 16:48:09 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.55 2007-05-02 21:48:19 lijewski Exp $
 //
 #include <iostream>
 
@@ -290,9 +290,8 @@ BoxArray::contains (const IntVect& v) const
 {
     if (size() > 0)
     {
-        std::vector< std::pair<int,Box> > isects = intersections(Box(v,v,get(0).ixType()));
-        for (int i = 0; i < isects.size(); i++)
-            if (get(isects[i].first).contains(v))
+        for (int i = 0; i < size(); i++)
+            if (get(i).contains(v))
                 return true;
     }
     return false;
@@ -301,6 +300,7 @@ BoxArray::contains (const IntVect& v) const
 bool
 BoxArray::contains (const Box& b) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
     if (size() == 0) return false;
     BL_ASSERT(get(0).sameType(b));
     BoxArray bnew = BoxLib::complementIn(b, *this);
@@ -310,6 +310,7 @@ BoxArray::contains (const Box& b) const
 bool
 BoxArray::contains (const BoxArray& bl) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxArray)");
     if (size() == 0 || bl.size() == 0) return false;
     for (int i = 0; i < bl.size(); i++)
        if (!contains(bl.m_ref->m_abox.get(i)))
@@ -524,6 +525,7 @@ BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
+    BL_PROFILE("BoxArray BoxLib::contains(Box,BoxArray)");
     std::vector< std::pair<int,Box> > isects = ba.intersections(b);
     BoxList bl(b.ixType());
     for (int i = 0; i < isects.size(); ++i)
@@ -624,6 +626,8 @@ BoxArray::intersections (const Box& bx) const
 BoxList
 BoxArray::removeOverlap ()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::removeOverlap()");
+
     if (!m_ref.unique()) uniqify();
 
     const Box EmptyBox;
