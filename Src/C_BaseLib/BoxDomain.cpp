@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.21 2006-01-09 04:23:37 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.22 2007-05-02 21:48:35 lijewski Exp $
 //
 #include <iostream>
 
@@ -62,6 +62,7 @@ BoxDomain&
 BoxDomain::complementIn (const Box&       b,
                          const BoxDomain& bl)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn(Box,BoxDomain)");
     BoxList::complementIn(b,bl);
     BL_ASSERT(ok());
     return *this;
@@ -71,6 +72,7 @@ BoxDomain
 BoxLib::complementIn (const Box&       b,
 		      const BoxDomain& bl)
 {
+    BL_PROFILE("BoxDomain BoxLib::complementIn(Box,BoxDomain)");
     BoxDomain result;
     result.complementIn(b,bl);
     return result;
