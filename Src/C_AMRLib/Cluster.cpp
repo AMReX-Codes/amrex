@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.22 2006-09-06 17:27:48 lijewski Exp $
+// $Id: Cluster.cpp,v 1.23 2007-05-02 21:53:15 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -125,6 +125,8 @@ void
 Cluster::distribute (ClusterList&     clst,
                      const BoxDomain& bd)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::distribute()");
+
     BL_ASSERT(ok());
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
@@ -476,6 +478,32 @@ ClusterList::chop (Real eff)
     }
 }
 
+//
+// Fast version of contains() when the BoxArray is disjoint.
+//
+static
+bool
+FastContains (BoxArray& ba, const Box& bx)
+{
+    BL_ASSERT(ba.isDisjoint());
+
+    if (ba.size() == 0) return false;
+
+    BL_ASSERT(get(0).sameType(b));
+
+    std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+
+    if (isects.size() > 0)
+    {
+        long nbx = bx.numPts(), nisects = 0;
+        for (int i = 0; i < isects.size(); i++)
+            nisects += isects[i].second.numPts();
+        return nbx == nisects;
+    }
+
+    return false;
+}
+
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
@@ -484,15 +512,13 @@ ClusterList::intersect (const BoxDomain& dom)
     // Make a BoxArray covering dom.
     // We'll use this to speed up the contains() test below.
     //
-    BoxList bl = dom.boxList();
-    BoxArray domba(bl);
-    bl.clear();
+    BoxArray domba(dom.boxList());
 
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         Cluster* c = *cli;
 
-        if (domba.contains(c->box()))
+        if (FastContains(domba,c->box()))
         {
             ++cli;
         }
