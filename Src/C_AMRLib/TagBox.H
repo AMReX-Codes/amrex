@@ -1,7 +1,7 @@
 #ifndef _TagBox_H_
 #define _TagBox_H_
 //
-// $Id: TagBox.H,v 1.19 2005-10-10 18:20:36 car Exp $
+// $Id: TagBox.H,v 1.20 2007-05-02 16:45:27 lijewski Exp $
 //
 #include <IntVect.H>
 #include <Box.H>
@@ -130,6 +130,10 @@ public:
                TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
     */
     void mapPeriodic (const Geometry& geom);
+    //
+    //@ManDoc: Set values in `bl' to `val'.
+    //
+    void setVal (const BoxList& bl, TagBox::TagVal val);
     //
     //@ManDoc: Set values in `bd' to `val'.
     //
