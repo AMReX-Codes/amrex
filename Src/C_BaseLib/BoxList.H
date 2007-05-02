@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.33 2007-04-30 20:54:58 lijewski Exp $
+// $Id: BoxList.H,v 1.34 2007-05-02 16:48:10 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -218,6 +218,8 @@ public:
     //@ManDoc: Grow each Box in the BoxList by size sz.
     //
     BoxList& accrete  (int sz);
+
+    BoxList& accrete  (IntVect sz);
     //
     //@ManDoc: Applies Box::shift(int,int) to each Box in the BoxList.
     //

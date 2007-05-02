@@ -293,8 +293,6 @@ BoxList::complementIn (const Box&     b,
         }
     }
 
-    //simplify();
-
     return *this;
 }
 
@@ -372,6 +370,16 @@ BoxList::coarsen (const IntVect& ratio)
 
 BoxList&
 BoxList::accrete (int sz)
+{
+    for (iterator bli = begin(); bli != end(); ++bli)
+    {
+        bli->grow(sz);
+    }
+    return *this;
+}
+
+BoxList&
+BoxList::accrete (IntVect sz)
 {
     for (iterator bli = begin(); bli != end(); ++bli)
     {
