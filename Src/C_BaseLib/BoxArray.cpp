@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.53 2007-05-01 21:54:43 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.54 2007-05-02 16:48:09 lijewski Exp $
 //
 #include <iostream>
 
@@ -664,8 +664,6 @@ BoxArray::removeOverlap ()
             if (m_ref->m_abox[v[i]].ok())
                 nbl.push_back(m_ref->m_abox[v[i]]);
     }
-
-    //nbl.simplify();
 
     BL_ASSERT(nbl.isDisjoint());
 
