@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.69 2006-09-06 17:27:48 lijewski Exp $
+// $Id: TagBox.cpp,v 1.70 2007-05-02 16:45:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -604,23 +604,18 @@ TagBoxArray::collate (long& numtags) const
 }
 
 void
+TagBoxArray::setVal (const BoxList& bl,
+                     TagBox::TagVal val)
+{
+    BoxArray ba(bl);
+    setVal(ba,val);
+}
+
+void
 TagBoxArray::setVal (const BoxDomain& bd,
                      TagBox::TagVal   val)
 {
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        for (BoxDomain::const_iterator bdi = bd.begin();
-             bdi != bd.end();
-             ++bdi)
-        {
-            Box isect = *bdi & fai.validbox();
-
-            if (isect.ok())
-            {
-                get(fai).setVal(val,isect,0);
-            }
-        }
-    }
+    setVal(bd.boxList(),val);
 }
 
 void
@@ -629,14 +624,11 @@ TagBoxArray::setVal (const BoxArray& ba,
 {
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        for (int j = 0; j < ba.size(); j++)
-        {
-            Box isect = fai.validbox() & ba[j];
+        std::vector< std::pair<int,Box> > isects = ba.intersections(fai.validbox());
 
-            if (isect.ok())
-            {
-                get(fai).setVal(val,isect,0);
-            }
+        for (int i = 0; i < isects.size(); i++)
+        {
+            get(fai).setVal(val,isects[i].second,0);
         }
     } 
 }
