@@ -246,7 +246,7 @@ BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
-    BL_PROFILE("BoxLib::complementIn(Box,BoxList)");
+    BL_PROFILE("::complementIn(Box,BoxList)");
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
