@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.55 2007-05-02 21:48:19 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.56 2007-05-03 23:29:59 lijewski Exp $
 //
 #include <iostream>
 
@@ -525,7 +525,7 @@ BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
-    BL_PROFILE("BoxArray BoxLib::contains(Box,BoxArray)");
+    BL_PROFILE("BoxArray ::contains(Box,BoxArray)");
     std::vector< std::pair<int,Box> > isects = ba.intersections(b);
     BoxList bl(b.ixType());
     for (int i = 0; i < isects.size(); ++i)
