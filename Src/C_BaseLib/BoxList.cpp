@@ -25,15 +25,6 @@ BoxList::catenate (BoxList& blist)
     BL_ASSERT(blist.isEmpty());
 }
 
-bool
-BoxList::contains (const Box& b) const
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
-    BL_ASSERT(ixType() == b.ixType());
-    BoxList bnew = BoxLib::complementIn(b,*this);
-    return bnew.isEmpty();
-}
-
 BoxList&
 BoxList::remove (const Box& bx)
 {
@@ -137,58 +128,76 @@ BoxList::BoxList (const BoxArray &ba)
 bool
 BoxList::ok () const
 {
-    bool isok = true;
     const_iterator bli = begin();
     if ( bli != end() )
     {
-        for (Box b(*bli); bli != end() && isok; ++bli)
-	{
-            isok = bli->ok() && bli->sameType(b);
-	}
+        for (Box b(*bli); bli != end(); ++bli)
+            if (!(bli->ok() && bli->sameType(b)))
+                return false;
     }
-    return isok;
+    return true;
 }
 
 bool
 BoxList::isDisjoint () const
 {
-    bool isdisjoint = true;
-    for (const_iterator bli = begin(); bli != end() && isdisjoint; ++bli)
+    for (const_iterator bli = begin(); bli != end(); ++bli)
     {
         const_iterator bli2 = bli;
         //
         // Skip the first element.
         //
-        ++bli2; 
-        for (; bli2 != end() && isdisjoint; ++bli2)
-	{
+        ++bli2;
+        for (; bli2 != end(); ++bli2)
             if (bli->intersects(*bli2))
-	    {
-                isdisjoint = false;
-	    }
-	}
+                return false;
     }
-    return isdisjoint;
+    return true;
 }
 
 bool
 BoxList::contains (const IntVect& v) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(IntVect)");
+
     for (const_iterator bli = begin(); bli != end(); ++bli)
         if (bli->contains(v))
             return true;
+
     return false;
+}
+
+bool
+BoxList::contains (const Box& b) const
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
+
+    if (isEmpty()) return false;
+
+    BL_ASSERT(ixType() == b.ixType());
+
+    BoxList bnew = BoxLib::complementIn(b,*this);
+
+    return bnew.isEmpty();
 }
 
 bool
 BoxList::contains (const BoxList&  bl) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxList)");
+
+    if (isEmpty() || bl.isEmpty()) return false;
+
     BL_ASSERT(ixType() == bl.ixType());
-    BoxArray tba(*this);
+
+    if (!minimalBox().contains(bl.minimalBox())) return false;
+
+    BoxArray ba(*this);
+
     for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
-        if (!tba.contains(*bli))
+        if (!ba.contains(*bli))
             return false;
+
     return true;
 }
 
@@ -196,7 +205,7 @@ bool
 BoxList::contains (const BoxArray&  ba) const
 {
     BoxArray tba(*this);
-    return tba.contains(ba);
+    return ba.contains(tba);
 }
 
 BoxList&
@@ -776,21 +785,11 @@ operator<< (std::ostream&  os,
 bool
 BoxList::operator== (const BoxList& rhs) const
 {
-    bool rc = true;
-    if (size() != rhs.size())
-    {
-        rc = false;
-    }
-    else
-    {
-        BoxList::const_iterator liter = begin(), riter = rhs.begin();
-        for (; liter != end() && rc; ++liter, ++riter)
-	{
-            if ( !( *liter == *riter) )
-	    {
-                rc = false;
-	    }
-	}
-    }
-    return rc;
+    if ( !(size() == rhs.size()) ) return false;
+
+    BoxList::const_iterator liter = begin(), riter = rhs.begin();
+    for (; liter != end(); ++liter, ++riter)
+        if ( !( *liter == *riter) )
+            return false;
+    return true;
 }
