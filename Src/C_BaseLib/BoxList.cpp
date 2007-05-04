@@ -246,7 +246,7 @@ BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
-    BL_PROFILE("::complementIn(Box,BoxList)");
+    BL_PROFILE("BoxLib::complementIn(Box,BoxList)");
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
@@ -261,44 +261,47 @@ BoxList::complementIn (const Box&     b,
 
     BL_ASSERT(bl.ixType() == b.ixType());
 
-    clear();
-
     if (bl.size() == 1)
     {
         *this = BoxLib::boxDiff(b,bl.front());
-        return *this;
     }
-
-    Box minbox = bl.minimalBox();
-    BoxList tmpbl = BoxLib::boxDiff(b,minbox);
-    catenate(tmpbl);
-
-    BoxList mesh(b.ixType());
-    BoxArray ba(bl);
-    if (minbox.ok())
-        mesh.push_back(minbox);
-    mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
-
-    for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
+    else
     {
-        const Box bx = *bli & b;
+        clear();
 
-        if (!bx.ok()) continue;
+        Box     minbox = bl.minimalBox();
+        BoxList tmpbl  = BoxLib::boxDiff(b,minbox);
 
-        std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+        catenate(tmpbl);
 
-        if (!isects.empty())
+        BoxArray ba(bl);
+
+        BoxList mesh(b.ixType());
+        if (minbox.ok())
+            mesh.push_back(minbox);
+        mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
+
+        for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
         {
-            tmpbl.clear();
-            for (int i = 0; i < isects.size(); i++)
-                tmpbl.push_back(isects[i].second);
-            BoxList tm(b.ixType());
-            tm.complementIn_base(bx, tmpbl);
-            catenate(tm);
-        }
-        else
-        {
-            push_back(bx);
+            const Box bx = *bli & b;
+
+            if (!bx.ok()) continue;
+
+            std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+
+            if (!isects.empty())
+            {
+                tmpbl.clear();
+                BoxList tm(b.ixType());
+                for (int i = 0; i < isects.size(); i++)
+                    tmpbl.push_back(isects[i].second);
+                tm.complementIn_base(bx,tmpbl);
+                catenate(tm);
+            }
+            else
+            {
+                push_back(bx);
+            }
         }
     }
 

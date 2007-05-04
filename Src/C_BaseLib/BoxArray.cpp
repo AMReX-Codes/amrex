@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.56 2007-05-03 23:29:59 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.57 2007-05-04 19:08:48 lijewski Exp $
 //
 #include <iostream>
 
@@ -312,9 +312,10 @@ BoxArray::contains (const BoxArray& bl) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxArray)");
     if (size() == 0 || bl.size() == 0) return false;
+    if (!minimalBox().contains(bl.minimalBox())) return false;
     for (int i = 0; i < bl.size(); i++)
-       if (!contains(bl.m_ref->m_abox.get(i)))
-           return false;
+        if (!contains(bl.m_ref->m_abox.get(i)))
+            return false;
     return true;
 }
 
@@ -525,14 +526,12 @@ BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
-    BL_PROFILE("BoxArray ::contains(Box,BoxArray)");
+    BL_PROFILE("BoxLib::complementIn(Box,BoxArray)");
     std::vector< std::pair<int,Box> > isects = ba.intersections(b);
     BoxList bl(b.ixType());
     for (int i = 0; i < isects.size(); ++i)
-    {
         bl.push_back(isects[i].second);
-    }
-    return BoxArray(BoxLib::complementIn(b, bl));
+    return BoxArray(BoxLib::complementIn(b,bl));
 }
 
 BoxArray
