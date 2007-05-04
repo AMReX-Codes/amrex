@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.23 2007-05-02 21:53:15 lijewski Exp $
+// $Id: Cluster.cpp,v 1.24 2007-05-04 23:00:51 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -487,18 +487,19 @@ FastContains (BoxArray& ba, const Box& bx)
 {
     BL_ASSERT(ba.isDisjoint());
 
-    if (ba.size() == 0) return false;
-
-    BL_ASSERT(get(0).sameType(b));
-
-    std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
-
-    if (isects.size() > 0)
+    if (ba.size() > 0)
     {
-        long nbx = bx.numPts(), nisects = 0;
-        for (int i = 0; i < isects.size(); i++)
-            nisects += isects[i].second.numPts();
-        return nbx == nisects;
+        BL_ASSERT(ba[0].sameType(bx));
+
+        std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+
+        if (isects.size() > 0)
+        {
+            long nbx = bx.numPts(), nisects = 0;
+            for (int i = 0; i < isects.size(); i++)
+                nisects += isects[i].second.numPts();
+            return nbx == nisects;
+        }
     }
 
     return false;
