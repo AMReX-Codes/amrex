@@ -56,6 +56,14 @@ ifeq ($(HOST),lijewski)
     $(error SORRY NO MPI WITH G95)
   endif
 endif
+ifeq ($(HOST),manda)
+  F90 = ifort
+  CXX = icc
+  MPIHOME=/home/almgren/bin/mpich2-install
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lmpichf90 -lpthread
+endif
 
 ifeq ($(HOST),harmonic)
   MPIHOME=/usr/local/mpich_gm
