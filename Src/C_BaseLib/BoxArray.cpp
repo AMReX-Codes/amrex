@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.57 2007-05-04 19:08:48 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.58 2007-05-04 23:01:10 lijewski Exp $
 //
 #include <iostream>
 
@@ -286,14 +286,19 @@ BoxArray::grow (int dir,
 }
 
 bool
-BoxArray::contains (const IntVect& v) const
+BoxArray::contains (const IntVect& iv) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(IntVect)");
+
     if (size() > 0)
     {
-        for (int i = 0; i < size(); i++)
-            if (get(i).contains(v))
+        std::vector< std::pair<int,Box> > isects = intersections(Box(iv,iv,get(0).ixType()));
+
+        for (int i = 0; i < isects.size(); i++)
+            if (get(isects[i].first).contains(iv))
                 return true;
     }
+
     return false;
 }
 
@@ -301,21 +306,39 @@ bool
 BoxArray::contains (const Box& b) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
-    if (size() == 0) return false;
-    BL_ASSERT(get(0).sameType(b));
-    BoxArray bnew = BoxLib::complementIn(b, *this);
-    return bnew.size() == 0;
+
+    if (size() > 0)
+    {
+        BL_ASSERT(get(0).sameType(b));
+
+        std::vector< std::pair<int,Box> > isects = intersections(b);
+
+        if (isects.size() > 0)
+        {
+            BoxList bl(b.ixType());
+            for (int i = 0; i < isects.size(); i++)
+                bl.push_back(isects[i].second);
+            BoxList blnew = BoxLib::complementIn(b, bl);
+            return blnew.size() == 0;
+        }
+    }
+
+    return false;
 }
 
 bool
 BoxArray::contains (const BoxArray& bl) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxArray)");
-    if (size() == 0 || bl.size() == 0) return false;
+
+    if (size() == 0) return false;
+
     if (!minimalBox().contains(bl.minimalBox())) return false;
+
     for (int i = 0; i < bl.size(); i++)
         if (!contains(bl.m_ref->m_abox.get(i)))
             return false;
+
     return true;
 }
 
@@ -406,8 +429,11 @@ BoxArray::isDisjoint () const
     for (int i = 0; i < size(); i++)
     {
         std::vector< std::pair<int,Box> > isects = intersections(get(i));
+
         if ( !(isects.size() == 1 && isects[0].second == get(i)) )
+        {
             return false;
+        }
     }
     return true;
 }
@@ -436,23 +462,23 @@ BoxArray::ok () const
 long
 BoxArray::numPts () const
 {
-  long result = 0;
-  for ( int i = 0; i < size(); ++i )
+    long result = 0;
+    for (int i = 0; i < size(); ++i)
     {
-      result += m_ref->m_abox.get(i).numPts();
+        result += m_ref->m_abox.get(i).numPts();
     }
-  return result;
+    return result;
 }
 
 double
 BoxArray::d_numPts () const
 {
-  double result = 0;
-  for ( int i = 0; i < size(); ++i )
-  {
-      result += m_ref->m_abox.get(i).d_numPts();
-  }
-  return result;
+    double result = 0;
+    for (int i = 0; i < size(); ++i)
+    {
+        result += m_ref->m_abox.get(i).d_numPts();
+    }
+    return result;
 }
 
 BoxArray&
@@ -527,11 +553,7 @@ BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
     BL_PROFILE("BoxLib::complementIn(Box,BoxArray)");
-    std::vector< std::pair<int,Box> > isects = ba.intersections(b);
-    BoxList bl(b.ixType());
-    for (int i = 0; i < isects.size(); ++i)
-        bl.push_back(isects[i].second);
-    return BoxArray(BoxLib::complementIn(b,bl));
+    return BoxArray(BoxLib::complementIn(b,ba.boxList()));
 }
 
 BoxArray
