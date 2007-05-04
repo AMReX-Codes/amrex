@@ -1,4 +1,5 @@
 ARCH := $(shell uname)
+UNAMEN := $(shell uname -n)
 
 ifeq ($(ARCH),UNICOS/mp)
   ARCH := CRAYX1
@@ -37,7 +38,6 @@ xtr_libraries =
 mpi_libraries =
 mpi_include_dir =
 mpi_lib_dir =
-
 
 CPPFLAGS += -DBL_$(ARCH)
 
@@ -195,19 +195,19 @@ ifeq ($(ARCH),Linux)
       _ifc := ifort
       _icc := icc 
     else 
-    ifeq ($(_unamem),x86_64)
-      _ifc := ifc
-      _icc := gcc -m32
-    else
       _ifc := ifc
       _icc := icc
-    endif
     endif
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
     ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
-      _ifc  := ifort
-      _comp := Intel9
+      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+        _ifc  := mpiifort
+        _comp := Intel9
+      else
+        _ifc  := ifort
+        _comp := Intel9
+      endif
     else
     ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
       _ifc  := ifort
