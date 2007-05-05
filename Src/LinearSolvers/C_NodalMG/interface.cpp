@@ -9,28 +9,28 @@
 
 const level_interface default_level_interface;
 
-inline
+static
 void
 ins (level_interface::BoxMSet& bmset, const Box& b)
 {
-    BL_PROFILE("interface ins()");
-    bool found = false;
     level_interface::BoxMSetConstIterPair er_it = bmset.equal_range(b);
+
     for (level_interface::BoxMSetConstIter it = er_it.first; it != er_it.second; ++it)
-    {
         if (*it == b)
-        {
-            found = true; break;
-        }
-    }
-    if (!found) bmset.insert(b);
+            return;
+
+    bmset.insert(b);
 }
 
-bool
-cmp(const std::pair<int,Box>& a, const std::pair<int,Box>& b)
+typedef std::pair<int,Box> IBpair;
+
+struct IBpairComp
 {
-  return a.first < b.first;
-}
+    bool operator () (const IBpair& lhs, const IBpair& rhs) const
+    {
+        return lhs.first < rhs.first;
+    }
+};
 
 void
 add (level_interface::BoxMSet& bmset,
@@ -41,21 +41,18 @@ add (level_interface::BoxMSet& bmset,
     BL_PROFILE("interface::add()");
 
     const IntVect t = b.type();
+
     Box tb(b.smallEnd(), b.bigEnd());
     
     std::vector< std::pair<int,Box> > prs = bim.intersections(BoxLib::grow(tb,1));
-    std::sort(prs.begin(), prs.end(), cmp);
-#if 1
+
+    std::sort(prs.begin(), prs.end(), IBpairComp());
+
     for ( int j = 0; j < prs.size(); ++j ) 
       {
 	int igrid = prs[j].first;
 	if ( igrid < startgrid ) continue;
         Box ibox = bim[igrid];
-#else
-    for (int igrid = startgrid; igrid < bim.size(); igrid++)
-    {
-      Box ibox = bim[igrid];
-#endif
 	ibox.convert(t);
 	if (ibox.intersects(b) && !ibox.contains(b))
 	{
