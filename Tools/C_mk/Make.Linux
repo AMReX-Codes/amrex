@@ -35,11 +35,15 @@ endif
 ifeq ($(WHICHLINUX), ATLAS)
   ifeq ($(COMP),Intel)
     CXX = icpc
-    CXXOPTF +=
-    CXXDEBF += -g
+    CXXOPTF = -O3 -ip -fno-exceptions
+    CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
       CXX = mpiicpc
     endif
+  endif
+  ifeq ($(FCOMP),Intel)
+    FOPTF = -O3 -ip
+    fOPTF = -O3 -ip
   endif
 endif
 endif

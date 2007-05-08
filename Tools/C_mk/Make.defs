@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.102 2007-04-18 17:27:28 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.103 2007-05-08 03:30:43 lijewski Exp $
 #
 
 #
@@ -338,7 +338,7 @@ ifeq ($(COMP),Intel)
 #     CXXDEBF += -debug extended
 #     CXXDEBF += -ftrapuv
    endif
-   CXX = $(_icpc)
+   CXX = $(_icpc) -Wno-deprecated
    CC  = $(_icc)
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
