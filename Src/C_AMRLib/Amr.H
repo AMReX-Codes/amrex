@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.33 2005-10-10 18:20:36 car Exp $
+// $Id: Amr.H,v 1.34 2007-05-08 16:35:31 jbb Exp $
 //
 
 #include <fstream>
@@ -253,7 +253,7 @@ protected:
     //
     // Used by grid_places().
     //
-    static void ProjPeriodic (BoxDomain&      bd,
+    static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
     //
     // Write the plot file to be used for visualization.

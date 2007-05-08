@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.165 2007-05-01 22:26:03 lijewski Exp $
+// $Id: Amr.cpp,v 1.166 2007-05-08 16:35:31 jbb Exp $
 //
 #include <winstd.H>
 
@@ -1471,6 +1471,8 @@ void
 Amr::coarseTimeStep (Real stop_time)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarseTimeStep()");
+
+    Real run_strt = ParallelDescriptor::second() ;
     //
     // Compute new dt.
     //
@@ -1486,6 +1488,12 @@ Amr::coarseTimeStep (Real stop_time)
     cumtime += dt_level[0];
 
     amr_level[0].postCoarseTimeStep(cumtime);
+
+    Real run_stop = ParallelDescriptor::second() - run_strt;
+    ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "Coarse TimeStep time: " << run_stop << '\n' ;
 
     long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
     long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
@@ -1506,7 +1514,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nSTEP = "
-                  << level_steps[0]
+                 << level_steps[0]
                   << " TIME = "
                   << cumtime
                   << " DT = "
@@ -1808,6 +1816,7 @@ Amr::printGridInfo (std::ostream& os,
            << " % of domain"
            << '\n';
 
+/*
         for (int k = 0; k < numgrid; k++)
         {
             const Box& b = bs[k];
@@ -1819,27 +1828,23 @@ Amr::printGridInfo (std::ostream& os,
 
             os << ":: " << map[k] << '\n';
         }
+*/
     }
 
-    os << std::endl;            // Make sure we flush!
+    os << std::endl; // Make sure we flush!
 }
 
 void
-Amr::ProjPeriodic (BoxDomain&      bd,
+Amr::ProjPeriodic (BoxList&        blout,
                    const Geometry& geom)
 {
+    //
+    // Add periodic translates to blout.
+    //
     BL_PROFILE("Amr::ProjPeriodic()");
-    Box domain(geom.Domain());
-    //
-    // blout will initially contain all of bd, periodic translates
-    // will be added to it.
-    //
-    BoxList blout;  
-    for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
-        blout.push_back(*bdi);
-    //
-    // blorig will be the original bd intersected with domain.
-    //
+
+    Box domain = geom.Domain();
+
     BoxList blorig(blout);
 
     int nist,njst,nkst;
@@ -1882,8 +1887,6 @@ Amr::ProjPeriodic (BoxDomain&      bd,
         if (ri != 0 && geom.isPeriodic(0))
             blorig.shift(0,-ri*domain.length(0));
     }
-    bd.clear();
-    bd.add(blout);
 }
 
 void
@@ -1893,6 +1896,7 @@ Amr::grid_places (int              lbase,
                   Array<BoxArray>& new_grids)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::grid_places()");
+
     int i, max_crse = std::min(finest_level,max_level-1);
 
     const Real strttime = ParallelDescriptor::second();
@@ -1982,44 +1986,30 @@ Amr::grid_places (int              lbase,
     //
     // Construct proper nesting domains.
     //
-    Array<BoxDomain> p_n(max_level);      // Proper nesting domain.
-    Array<BoxDomain> p_n_comp(max_level); // Complement proper nesting domain.
+    Array<BoxList> p_n(max_level);      // Proper nesting domain.
+    Array<BoxList> p_n_comp(max_level); // Complement proper nesting domain.
 
-    BoxDomain fd1;
-    const BoxArray& bbase = amr_level[lbase].boxArray();
-    {
-        BoxList bl;
-        for (i = 0; i < bbase.size(); i++)
-            bl.push_back(BoxLib::coarsen(bbase[i],bf_lev[lbase]));
-        fd1.add(bl);
-    }
-    p_n_comp[lbase].complementIn(pc_domain[lbase],fd1);
+    BoxList bl(amr_level[lbase].boxArray());
+    bl.coarsen(bf_lev[lbase]);
+    p_n_comp[lbase].complementIn(pc_domain[lbase],bl);
     p_n_comp[lbase].accrete(n_proper);
-    Geometry tmp2(pc_domain[lbase]);
-    Amr::ProjPeriodic(p_n_comp[lbase], tmp2);
+    Amr::ProjPeriodic(p_n_comp[lbase], Geometry(pc_domain[lbase]));
     p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
-    fd1.clear();
+    bl.clear();
 
-    for (i = lbase+1; i <= max_crse;  i++)
+    for (i = lbase+1; i <= max_crse; i++)
     {
-        BoxList bl;
-        for (BoxDomain::const_iterator bdi = p_n_comp[i-1].begin();
-             bdi != p_n_comp[i-1].end();
-             ++bdi)
-        {
-            bl.push_back(BoxLib::refine(*bdi,rr_lev[i-1]));
-        }
-        p_n_comp[i].clear();
-        p_n_comp[i].add(bl);
+        p_n_comp[i] = p_n_comp[i-1];
+        p_n_comp[i].refine(rr_lev[i-1]);
         p_n_comp[i].accrete(n_proper);
-        Geometry tmp3(pc_domain[i]);
-        Amr::ProjPeriodic(p_n_comp[i], tmp3);
+        Amr::ProjPeriodic(p_n_comp[i], Geometry(pc_domain[i]));
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
     }
     //
     // Now generate grids from finest level down.
     //
     new_finest = lbase;
+
     for (int levc = max_crse; levc >= lbase; levc--)
     {
         int levf = levc+1;
@@ -2027,23 +2017,26 @@ Amr::grid_places (int              lbase,
         // Construct TagBoxArray with sufficient grow factor to contain
         // new levels projected down to this level.
         //
-        const BoxArray& old_grids = amr_level[levc].boxArray();
         int ngrow = 0;
-        BoxArray ba_proj;
+
         if (levf < new_finest)
         {
-            BoxList blst(old_grids);
-            ba_proj.define(new_grids[levf+1]);
+            BoxArray ba_proj(new_grids[levf+1]);
+            BoxList blst(amr_level[levc].boxArray());
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.grow(n_proper);
             ba_proj.coarsen(ref_ratio[levc]);
-            while (!blst.contains(ba_proj))
+
+            Box bx = ba_proj.minimalBox();
+
+            while (!blst.minimalBox().contains(bx))
             {
                 blst.accrete(1);
                 ngrow++;
             }
         }
-        TagBoxArray tags(old_grids,n_error_buf[levc]+ngrow);
+        TagBoxArray tags(amr_level[levc].boxArray(),n_error_buf[levc]+ngrow);
+
         amr_level[levc].errorEst(tags,
                                  TagBox::CLEAR,TagBox::SET,time,
                                  n_error_buf[levc],ngrow);
@@ -2065,9 +2058,10 @@ Amr::grid_places (int              lbase,
         if (levf < new_finest)
         {
             int nerr = n_error_buf[levf];
-            BoxList bl_tagged;
-            for (int i = 0; i < new_grids[levf+1].size(); i++)
-                bl_tagged.push_back(BoxLib::coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+
+            BoxList bl_tagged(new_grids[levf+1]);
+
+            bl_tagged.coarsen(ref_ratio[levf]);
             //
             // This grows the boxes by nerr if they touch the edge of the
             // domain in preparation for them being shrunk by nerr later.
@@ -2091,12 +2085,7 @@ Amr::grid_places (int              lbase,
             IntVect iv      = IntVect(D_DECL(nerr/ref_ratio[levf][0],
                                              nerr/ref_ratio[levf][1],
                                              nerr/ref_ratio[levf][2]));
-            for (BoxList::iterator bli = blFcomp.begin();
-                 bli != blFcomp.end();
-                 ++bli)
-            {
-                bli->grow(iv);
-            }
+            blFcomp.accrete(iv);
             BoxList blF = BoxLib::complementIn(mboxF,blFcomp);
             BoxArray baF(blF);
             baF.grow(n_proper);
@@ -2110,7 +2099,9 @@ Amr::grid_places (int              lbase,
                 if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
                     baF.grow(idir,nerr-n_error_buf[levc]*ref_ratio[levc][idir]);
             }
+
             baF.coarsen(ref_ratio[levc]);
+
             tags.setVal(baF,TagBox::SET);
         }
         //
@@ -2133,8 +2124,7 @@ Amr::grid_places (int              lbase,
         //
         // Map tagged points through periodic boundaries, if any.
         //
-        Geometry tmpgeom(pc_domain[levc]);
-        tags.mapPeriodic(tmpgeom);
+        tags.mapPeriodic(Geometry(pc_domain[levc]));
         //
         // Remove cells outside proper nesting domain for this level.
         //
@@ -2158,7 +2148,9 @@ Amr::grid_places (int              lbase,
             //
             ClusterList clist(pts,len);
             clist.chop(grid_eff);
-            clist.intersect(p_n[levc]);
+            BoxDomain bd;
+            bd.add(p_n[levc]);
+            clist.intersect(bd);
             //
             // Efficient properly nested Clusters have been constructed
             // now generate list of grids at level levf.
@@ -2166,34 +2158,38 @@ Amr::grid_places (int              lbase,
             BoxList new_bx;
             clist.boxList(new_bx);
             new_bx.refine(bf_lev[levc]);
-            //new_bx.simplify();
+            new_bx.simplify();
+            BL_ASSERT(new_bx.isDisjoint());
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
-              largest_grid_size[n] = max_grid_size / ref_ratio[levc][n];
+                largest_grid_size[n] = max_grid_size / ref_ratio[levc][n];
             //
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
             new_bx.maxSize(largest_grid_size);
+
 #ifdef BL_FIX_GATHERV_ERROR
-	      int wcount(0), iLGS(largest_grid_size[0]);
-              //while(new_bx.size()< ParallelDescriptor::NProcs() && wcount++ < 8) {
-              //while(new_bx.size() < 192 && wcount++ < 4) {
-              while(new_bx.size() < 64 && wcount++ < 4) {
-                iLGS /= 2;
-               if(ParallelDescriptor::IOProcessor()) {
-	        std::cout << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
-			  << "   largest_grid_size was:  " << largest_grid_size[0]
-			  << std::endl;
-	        std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
-			  << new_bx.size() << std::endl;
-	       }
+	      int wcount = 0, iLGS = largest_grid_size[0];
 
-                new_bx.maxSize(iLGS);
+              while (new_bx.size() < 64 && wcount++ < 4)
+              {
+                  iLGS /= 2;
+                  if (ParallelDescriptor::IOProcessor())
+                  {
+                      std::cout << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
+                                << "   largest_grid_size was:  " << largest_grid_size[0]
+                                << '\n';
+                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
+                                << new_bx.size() << '\n';
+                  }
 
-               if(ParallelDescriptor::IOProcessor()) {
-	        std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
-			  << new_bx.size() << std::endl;
-	       }
+                  new_bx.maxSize(iLGS);
+
+                  if (ParallelDescriptor::IOProcessor())
+                  {
+                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
+                                << new_bx.size() << '\n';
+                  }
 	      }
 #endif
             //
