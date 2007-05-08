@@ -1,7 +1,6 @@
 
 #include <winstd.H>
 
-#include <map>
 #include <algorithm>
 #include <iostream>
 
@@ -492,6 +491,15 @@ BoxLib::boxDiff (const Box& b1in,
    return b_list;
 }
 
+struct BoxCmp
+{
+    bool operator () (const Box& lhs,
+                      const Box& rhs) const
+    {
+        return lhs.smallEnd().lexLT(rhs.smallEnd());
+    }
+};
+
 int
 BoxList::simplify ()
 {
@@ -499,42 +507,36 @@ BoxList::simplify ()
 
     int count = 0;
 
-    std::multimap<IntVect, Box, IntVect::Compare> mmap;
+    std::vector<Box> v(size());
 
-    typedef std::multimap<IntVect, Box, IntVect::Compare>::iterator MMapIter;
-
-    for (iterator it = begin(); it != end(); ++it)
+    for (int i = 0; !lbox.empty(); i++)
     {
-        mmap.insert(std::make_pair<IntVect,Box>(it->smallEnd(),*it));
+        v[i] = lbox.front();
+        lbox.pop_front();
     }
 
-    clear();
+    BL_ASSERT(lbox.empty());
 
-    for (MMapIter it = mmap.begin(); it != mmap.end(); ++it)
-    {
-        push_back(it->second);
-    }
+    std::sort(v.begin(), v.end(), BoxCmp());
 
     const int N = 50;
 
-    BoxList tbl(ixType());
-
-    while (!lbox.empty())
+    for (int i = 0; i < v.size(); i += N)
     {
         BoxList tmp(ixType());
 
-        while (tmp.size() < N && !lbox.empty())
-        {
-            tmp.push_back(lbox.front());
-            lbox.pop_front();
-        }
+        int K = i + N;
+
+        if (K > v.size())
+            K = v.size();
+
+        for (int j = i; j < K; j++)
+            tmp.push_back(v[j]);
 
         count += tmp.simplify_doit();
 
-        tbl.catenate(tmp);
+        catenate(tmp);
     }
-
-    lbox.swap(tbl.lbox);
 
     return count;
 }
