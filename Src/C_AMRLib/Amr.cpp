@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.167 2007-05-08 19:28:35 lijewski Exp $
+// $Id: Amr.cpp,v 1.168 2007-05-08 20:08:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1472,7 +1472,7 @@ Amr::coarseTimeStep (Real stop_time)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarseTimeStep()");
 
-    Real run_strt = ParallelDescriptor::second() ;
+    const Real run_strt = ParallelDescriptor::second() ;
     //
     // Compute new dt.
     //
@@ -1485,30 +1485,33 @@ Amr::coarseTimeStep (Real stop_time)
                                   dt_level,
                                   stop_time);
     timeStep(0,cumtime,1,1);
+
     cumtime += dt_level[0];
 
     amr_level[0].postCoarseTimeStep(cumtime);
 
-    Real run_stop = ParallelDescriptor::second() - run_strt;
-    ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "Coarse TimeStep time: " << run_stop << '\n' ;
-
-    long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-    long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-
-    ParallelDescriptor::ReduceLongMin(min_fab_bytes,ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::ReduceLongMax(max_fab_bytes,ParallelDescriptor::IOProcessorNumber());
-    //
-    // Reset to zero to calculate high-water-mark for next timestep.
-    //
-    BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
-
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "\nFAB byte spread across CPUs for timestep: ["
-                  << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
+        Real run_stop = ParallelDescriptor::second() - run_strt;
+
+        ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
+
+        long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes,ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes,ParallelDescriptor::IOProcessorNumber());
+        //
+        // Reset to zero to calculate high-water-mark for next timestep.
+        //
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "\nFAB byte spread across CPUs for timestep: ["
+                      << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
