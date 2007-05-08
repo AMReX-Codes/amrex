@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.166 2007-05-08 16:35:31 jbb Exp $
+// $Id: Amr.cpp,v 1.167 2007-05-08 19:28:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1816,7 +1816,7 @@ Amr::printGridInfo (std::ostream& os,
            << " % of domain"
            << '\n';
 
-/*
+
         for (int k = 0; k < numgrid; k++)
         {
             const Box& b = bs[k];
@@ -1828,7 +1828,6 @@ Amr::printGridInfo (std::ostream& os,
 
             os << ":: " << map[k] << '\n';
         }
-*/
     }
 
     os << std::endl; // Make sure we flush!
@@ -1990,11 +1989,14 @@ Amr::grid_places (int              lbase,
     Array<BoxList> p_n_comp(max_level); // Complement proper nesting domain.
 
     BoxList bl(amr_level[lbase].boxArray());
+    bl.simplify();
     bl.coarsen(bf_lev[lbase]);
     p_n_comp[lbase].complementIn(pc_domain[lbase],bl);
+    p_n_comp[lbase].simplify();
     p_n_comp[lbase].accrete(n_proper);
     Amr::ProjPeriodic(p_n_comp[lbase], Geometry(pc_domain[lbase]));
     p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
+    p_n[lbase].simplify();
     bl.clear();
 
     for (i = lbase+1; i <= max_crse; i++)
@@ -2004,6 +2006,7 @@ Amr::grid_places (int              lbase,
         p_n_comp[i].accrete(n_proper);
         Amr::ProjPeriodic(p_n_comp[i], Geometry(pc_domain[i]));
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
+        p_n[i].simplify();
     }
     //
     // Now generate grids from finest level down.
@@ -2027,11 +2030,13 @@ Amr::grid_places (int              lbase,
             ba_proj.grow(n_proper);
             ba_proj.coarsen(ref_ratio[levc]);
 
-            Box bx = ba_proj.minimalBox();
+            Box jbx = ba_proj.minimalBox();
+            Box lbx = ba_proj.minimalBox();
 
-            while (!blst.minimalBox().contains(bx))
+            while (!lbx.contains(jbx))
             {
                 blst.accrete(1);
+                lbx.grow(1);
                 ngrow++;
             }
         }
@@ -2060,7 +2065,7 @@ Amr::grid_places (int              lbase,
             int nerr = n_error_buf[levf];
 
             BoxList bl_tagged(new_grids[levf+1]);
-
+            bl_tagged.simplify();
             bl_tagged.coarsen(ref_ratio[levf]);
             //
             // This grows the boxes by nerr if they touch the edge of the
@@ -2080,14 +2085,20 @@ Amr::grid_places (int              lbase,
                         blt->growHi(idir,nerr);
                 }
             }
-            Box mboxF       = BoxLib::grow(bl_tagged.minimalBox(),1);
-            BoxList blFcomp = BoxLib::complementIn(mboxF,bl_tagged);
-            IntVect iv      = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                             nerr/ref_ratio[levf][1],
-                                             nerr/ref_ratio[levf][2]));
+            Box mboxF = BoxLib::grow(bl_tagged.minimalBox(),1);
+            BoxList blFcomp;
+            blFcomp.complementIn(mboxF,bl_tagged);
+            blFcomp.simplify();
+            bl_tagged.clear();
+
+            const IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                              nerr/ref_ratio[levf][1],
+                                              nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
-            BoxList blF = BoxLib::complementIn(mboxF,blFcomp);
+            BoxList blF;
+            blF.complementIn(mboxF,blFcomp);
             BoxArray baF(blF);
+            blF.clear();
             baF.grow(n_proper);
             //
             // We need to do this in case the error buffering at
@@ -2151,6 +2162,7 @@ Amr::grid_places (int              lbase,
             BoxDomain bd;
             bd.add(p_n[levc]);
             clist.intersect(bd);
+            bd.clear();
             //
             // Efficient properly nested Clusters have been constructed
             // now generate list of grids at level levf.
