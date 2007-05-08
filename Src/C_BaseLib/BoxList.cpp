@@ -515,7 +515,7 @@ BoxList::simplify ()
         push_back(it->second);
     }
 
-    const int N = 250;
+    const int N = 50;
 
     BoxList tbl(ixType());
 
