@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.190 2007-03-09 04:40:43 lijewski Exp $
+// $Id: FabArray.H,v 1.191 2007-05-08 19:02:45 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -835,6 +835,7 @@ FabArray<FAB>::define (const BoxArray& bxs,
                        int             ngrow,
                        FabAlloc        alloc)
 {
+    BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
     n_grow = ngrow;
     n_comp = nvar;
@@ -853,6 +854,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        const DistributionMapping& dm,
                        FabAlloc                   alloc)
 {
+    BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
     BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
     n_grow = ngrow;
