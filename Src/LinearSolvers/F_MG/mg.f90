@@ -804,6 +804,70 @@ contains
     call bl_prof_timer_destroy(bpt)
   end subroutine mg_tower_smoother
 
+  subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
+    use mg_smoother_module
+    type(mg_tower), intent(inout) :: mgt
+    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: ff
+    type(multifab), intent(in) :: ss
+    type(imultifab), intent(in) :: mm
+    integer, intent(in) :: lev
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: i, n, nn
+    integer :: lo(mgt%dim), hi(mgt%dim)
+    type(bl_prof_timer), save :: bpt
+    ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
+    integer :: nnn, iii, jjj, kkk
+    logical :: lcross
+
+    call build(bpt, "mgt_jacobi_smoother")
+
+    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+
+    if (mgt%skewed_not_set(lev)) then 
+      do i = 1, mgt%nboxes
+        if ( remote(mm,i) ) cycle
+        mp => dataptr(mm, i)
+        mgt%skewed(lev,i) = skewed_q(mp)
+      end do
+      mgt%skewed_not_set(lev) = .false.
+    end if
+
+    if ( cell_centered_q(uu) ) then
+      call multifab_fill_boundary(uu, cross = lcross)
+      do i = 1, mgt%nboxes
+         if ( multifab_remote(ff, i) ) cycle
+         up => dataptr(uu, i)
+         fp => dataptr(ff, i)
+         sp => dataptr(ss, i)
+         mp => dataptr(mm, i)
+         lo =  lwb(get_box(ss, i))
+         do n = 1, mgt%nc
+            select case ( mgt%dim)
+            case (1)
+               call jac_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                    mp(:,1,1,1), mgt%ng)
+            case (2)
+               call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                    mp(:,:,1,1), mgt%ng)
+            case (3)
+               call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                    mp(:,:,:,1), mgt%ng)
+            end select
+         end do
+      end do
+    else 
+       print *,'ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW '
+       stop 
+    end if
+
+    call bl_prof_timer_destroy(bpt)
+
+  end subroutine mg_jacobi_smoother
+
   subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
     use mg_prolongation_module
     type(mg_tower), intent(inout) :: mgt
