@@ -1,12 +1,13 @@
 # Make for Linux
 
+#
+# Generic C++ stuff.
+#
 ifeq ($(COMP),PathScale)
   CXX = pathCC
   CC  = pathcc
   ifeq ($(USE_MPI),TRUE)
-#    CXX = mpiCC
     CXX = mpicxx
-#    CC  = pathcc
   endif
   CXXOPTF += -O3 -OPT:Olimit=20000
   CXXDEBF += -O0 -OPT:Olimit=0 -g
@@ -21,35 +22,12 @@ ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXOPTF +=
   CXXDEBF += -g
-else
-ifeq ($(WHICHLINUX), JVN)
-  ifeq ($(COMP),Intel)
-    CXX = icc
-    CXXOPTF +=
-    CXXDEBF += -g
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpiCC
-    endif
-  endif
-endif
-ifeq ($(WHICHLINUX), ATLAS)
-  ifeq ($(COMP),Intel)
-    CXX = icpc
-    CXXOPTF = -O3 -ip -fno-exceptions
-    CXXDEBF = -g
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpiicpc
-    endif
-  endif
-  ifeq ($(FCOMP),Intel)
-    FOPTF = -O3 -ip
-    fOPTF = -O3 -ip
-  endif
 endif
 endif
 endif
-endif
-
+#
+# Now Fortran stuff.
+#
 FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional
 
@@ -89,8 +67,8 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF += -fast
-  fOPTF += -fast
+  FOPTF += -O -fast
+  fOPTF += -O -fast
   FDEBF += -g
   fDEBF += -g
   LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
@@ -125,15 +103,43 @@ endif
 endif
 endif
 endif
+#
+# Overrides for specific machines.
+#
+ifeq ($(WHICHLINUX), JVN)
+  ifeq ($(COMP),Intel)
+    CXX = icc
+    CXXOPTF +=
+    CXXDEBF += -g
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpiCC
+    endif
+  endif
+endif
 
-CXXPRFF += -pg
-FPRF    += -pg
-
-override XTRALIBS +=   -lm
-
-ifeq ($(WHICHLINUX), PCCLUSTER)
-  LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
-             #  this should be made into a link to the current version  ^^^^^^
+ifeq ($(WHICHLINUX), ATLAS)
+  ifeq ($(COMP),Intel)
+    CXX = icpc
+    CXXOPTF = -O3 -ip -fno-exceptions
+    CXXDEBF = -g
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpiicpc
+    endif
+  endif
+  ifeq ($(FCOMP),Intel)
+    FOPTF = -O3 -ip
+    fOPTF = -O3 -ip
+  endif
+  ifeq ($(COMP),PGI)
+    CXX = pgCC
+    CXXOPTF = -O --no_exceptions
+    CXXDEBF = -g
+    FC = pgif90
+    fC = pgif90
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpipgCC
+    endif
+  endif
 endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
@@ -155,4 +161,14 @@ ifeq ($(WHICHLINUX), ALPHACLUSTER)
   LIBRARY_LOCATIONS += /usr/local/pkg/gcc-2.95.1-generic/lib/gcc-lib/alpha-redhat-linux/2.95.1
              #  this should be made into a link to the current version  ^^^^^^
   LIBRARIES += -lfor
+endif
+
+CXXPRFF += -pg
+FPRF    += -pg
+
+override XTRALIBS += -lm
+
+ifeq ($(WHICHLINUX), PCCLUSTER)
+  LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
+             #  this should be made into a link to the current version  ^^^^^^
 endif
