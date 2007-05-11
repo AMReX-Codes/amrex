@@ -816,11 +816,10 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, n, nn
+    integer :: i, n, iter
     integer :: lo(mgt%dim), hi(mgt%dim)
     type(bl_prof_timer), save :: bpt
     ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
-    integer :: nnn, iii, jjj, kkk
     logical :: lcross
 
     call build(bpt, "mgt_jacobi_smoother")
@@ -836,7 +835,12 @@ contains
       mgt%skewed_not_set(lev) = .false.
     end if
 
-    if ( cell_centered_q(uu) ) then
+    if ( .not. cell_centered_q(uu) ) then
+       print *,'MG_JACOBI_SMOOTHER ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW '
+       stop 
+    end if
+
+    do iter = 1, mgt%nu1
       call multifab_fill_boundary(uu, cross = lcross)
       do i = 1, mgt%nboxes
          if ( multifab_remote(ff, i) ) cycle
@@ -859,10 +863,7 @@ contains
             end select
          end do
       end do
-    else 
-       print *,'ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW '
-       stop 
-    end if
+    end do
 
     call bl_prof_timer_destroy(bpt)
 
