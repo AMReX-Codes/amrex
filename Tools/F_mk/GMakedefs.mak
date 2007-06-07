@@ -233,6 +233,7 @@ ifeq ($(ARCH),Linux)
     CFLAGS   =
     FFLAGS   += -module $(mdir)
     F90FLAGS += -module $(mdir)
+    F90FLAGS += -mp
     FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
     ifdef OMP
