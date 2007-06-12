@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.103 2007-05-08 03:30:43 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.104 2007-06-12 12:20:21 mzingale Exp $
 #
 
 #
@@ -244,10 +244,10 @@ ifeq ($(FCOMP),gfortran)
     fC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF +=
-    fOPTF +=
-    FDEBF += -g
-    fDEBF += -g
+    FOPTF += -ffixed-line-length-132
+    fOPTF += -ffixed-line-length-132
+    FDEBF += -g -ffixed-line-length-132
+    fDEBF += -g -ffixed-line-length-132
 endif
 ifeq ($(FCOMP),g95)
     FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
@@ -322,6 +322,13 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 9
        ICC_MINOR_VERSION := 1
        _icpc := icpc
+   else
+   ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
+       ICC_VERSION := 10.0
+       ICC_MAJOR_VERSION := 10
+       ICC_MINOR_VERSION := 0
+       _icpc := icpc
+   endif
    endif
    endif
    endif
@@ -417,6 +424,12 @@ ifeq ($(FCOMP),Intel)
        IFC_MINOR_VERSION := 1
 #      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
 #  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
+   else
+   ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
+       IFC_VERSION := 10.0
+       IFC_MAJOR_VERSION := 10
+       IFC_MINOR_VERSION := 0
+   endif
    endif
    endif
    endif
