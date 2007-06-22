@@ -191,15 +191,14 @@ ifeq ($(ARCH),Linux)
   endif
   ifeq ($(COMP),Intel)
     _unamem := $(shell uname -m)
-    ifeq ($(_unamem),ia64)
-      _ifc := ifort
-      _icc := icc 
-    else 
-      _ifc := ifc
-      _icc := icc
-    endif
+    _ifc := ifort
+    _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
+    ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
+      _ifc  := ifort
+      _comp := Intel10
+    else
     ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
       ifeq ($(findstring atlas, $(UNAMEN)), atlas)
         _ifc  := mpiifort
@@ -213,14 +212,7 @@ ifeq ($(ARCH),Linux)
       _ifc  := ifort
       _comp := Intel8
     else
-    ifeq ($(findstring Version 7.1, $(_ifc_version)), Version 7.1)
-      $(error "VERSION 7.1 of IFC Will Not Work")
-    else
-    ifeq ($(findstring Version 7.0, $(_ifc_version)), Version 7.0)
-      _comp := Intel7
-    else
-      $(errorr "$(_ifc_version) of IFC will not work")
-    endif
+      $(errorr "$(_ifc_version) of IFC is not supported")
     endif
     endif
     endif
@@ -240,12 +232,36 @@ ifeq ($(ARCH),Linux)
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
     endif
+    ifeq ($(_comp),Intel10)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0
+        FFLAGS   += -g -traceback -O0
+        F90FLAGS += -check all
+        FFLAGS   += -check all
+        #CFLAGS   += -g -Wcheck
+      else
+        ifdef INTEL_X86
+	  F90FLAGS += -fast
+	  FFLAGS += -fast
+	  CFLAGS += -fast
+	else
+          F90FLAGS += -O3 -ip
+          FFLAGS += -O3 -ip
+          CFLAGS += -O3 -ip
+	endif
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
+      F90FLAGS += -stand f95
+#     FFLAGS += -stand f95
+    endif
     ifeq ($(_comp),Intel9)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0
         FFLAGS   += -g -traceback -O0
-        #F90FLAGS += -check all
-        #FFLAGS   += -check all
+        F90FLAGS += -check all
+        FFLAGS   += -check all
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
@@ -301,47 +317,6 @@ ifeq ($(ARCH),Linux)
       endif
       # F90FLAGS += -stand f95
       # FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel7)
-      ifdef NDEBUG
-        ifdef OMP
-          CFLAGS += -O0
-          FFLAGS += -O0
-          F90FLAGS += -O0
-	  F90FLAGS += -parallel -par_report3 -openmp_report2
-        else
-          CFLAGS += -O3
-#         FFLAGS += -g
-          FFLAGS += -O3
-#         F90FLAGS += -g
-          F90FLAGS += -O3
-          ifndef GPROF
-            CFLAGS += #-ipo
-            FFLAGS += #-ipo
-            F90FLAGS += #-ipo
-          endif
-        endif
-      else
-#       F90FLAGS += -CU -CV -CS -CA -CB
-        CFLAGS += -g
-        FFLAGS += -g
-        F90FLAGS += -g
-        ifdef OMP
-          FFLAGS   +=     -CV -CS -CA -CB
-          F90FLAGS +=     -CV -CS     -CB
-        else
-          FFLAGS   += -CB -CU
-#         FFLAGS   +=         -CV -CS -CA
-#         FFLAGS   +=                 -CA
-          F90FLAGS += -CB -CU -CV -CS
-#         F90FLAGS +=                 -CA
-        endif
-      endif
-
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-      fld_flags  += -Vaxlib
     endif
   endif
   ifeq ($(COMP),NAG)
