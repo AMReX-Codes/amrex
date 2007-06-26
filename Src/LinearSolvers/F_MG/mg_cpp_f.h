@@ -47,8 +47,19 @@
 #define mgt_set_cfby_3d           MGT_SET_CFBY_3D
 #define mgt_set_cfbz_3d           MGT_SET_CFBZ_3D
 
+#define mgt_set_cfa_2d_const      MGT_SET_CFA_2D_CONST
+#define mgt_set_cfbx_2d_const     MGT_SET_CFBX_2D_CONST
+#define mgt_set_cfby_2d_const     MGT_SET_CFBY_2D_CONST
+#define mgt_set_cfa_3d_const      MGT_SET_CFA_3D_CONST
+#define mgt_set_cfbx_3d_const     MGT_SET_CFBX_3D_CONST
+#define mgt_set_cfby_3d_const     MGT_SET_CFBY_3D_CONST
+#define mgt_set_cfbz_3d_const     MGT_SET_CFBZ_3D_CONST
+
 #define mgt_set_cfs_2d            MGT_SET_CFS_2D
 #define mgt_set_cfs_3d            MGT_SET_CFS_3D
+
+#define mgt_set_cfs_2d_const      MGT_SET_CFS_2D_CONST
+#define mgt_set_cfs_3d_const      MGT_SET_CFS_3D_CONST
 
 #define mgt_get_vel_2d            MGT_GET_VEL_2D
 #define mgt_set_vel_2d            MGT_SET_VEL_2D
@@ -101,6 +112,14 @@
 #define mgt_set_cfbx_3d           mgt_set_cfbx_3d_
 #define mgt_set_cfby_3d           mgt_set_cfby_3d_
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d_
+
+#define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const_
+#define mgt_set_cfbx_2d_const     mgt_set_cfbx_2d_const_
+#define mgt_set_cfby_2d_const     mgt_set_cfby_2d_const_
+#define mgt_set_cfa_3d_const      mgt_set_cfa_3d_const_
+#define mgt_set_cfbx_3d_const     mgt_set_cfbx_3d_const_
+#define mgt_set_cfby_3d_const     mgt_set_cfby_3d_const_
+#define mgt_set_cfbz_3d_const     mgt_set_cfbz_3d_const_
 
 #define mgt_set_cfs_2d            mgt_set_cfs_2d_
 #define mgt_set_cfs_3d            mgt_set_cfs_3d_
@@ -155,6 +174,14 @@
 #define mgt_set_cfbx_3d           mgt_set_cfbx_3d__
 #define mgt_set_cfby_3d           mgt_set_cfby_3d__
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d__
+
+#define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const__
+#define mgt_set_cfbx_2d_const     mgt_set_cfbx_2d_const__
+#define mgt_set_cfby_2d_const     mgt_set_cfby_2d_const__
+#define mgt_set_cfa_3d_const      mgt_set_cfa_3d_const__
+#define mgt_set_cfbx_3d_const     mgt_set_cfbx_3d_const__
+#define mgt_set_cfby_3d_const     mgt_set_cfby_3d_const__
+#define mgt_set_cfbz_3d_const     mgt_set_cfbz_3d_const__
 
 #define mgt_set_cfs_2d            mgt_set_cfs_2d__
 #define mgt_set_cfs_3d            mgt_set_cfs_3d__
@@ -246,6 +273,15 @@ extern "C"
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
+  void mgt_set_cfa_2d_const(const int* lev, const int* n, 
+		            const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfbx_2d_const(const int* lev, const int* n, const Real* cf,
+		             const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfby_2d_const(const int* lev, const int* n, const Real* cf,
+		             const int* lo, const int* hi, const Real* value);
+  
   void mgt_set_cfs_2d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
@@ -299,6 +335,18 @@ extern "C"
 		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
+  
+  void mgt_set_cfa_3d_const(const int* lev, const int* n, 
+		            const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfbx_3d_const(const int* lev, const int* n, 
+		             const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfby_3d_const(const int* lev, const int* n, 
+		             const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfbz_3d_const(const int* lev, const int* n, 
+		             const int* lo, const int* hi, const Real* value);
   
   void mgt_set_cfs_3d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
