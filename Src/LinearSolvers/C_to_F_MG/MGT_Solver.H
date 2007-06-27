@@ -2,7 +2,6 @@
 #define _MGT_SOLVER_
 
 #include <vector>
-
 #include <MultiFab.H>
 #include <Geometry.H>
 #include <BCRec.H>
@@ -24,6 +23,7 @@ public:
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                             const BndryData& bd);
+  void set_gravity_coefficients(const BndryData& bd);
   void set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                              const Real& b, const BndryData& bd);
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,

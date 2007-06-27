@@ -29,9 +29,11 @@ typedef void (*mgt_set)(const int* lev, const int* n, const double* uu,
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
 typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu, 
-			   const double* b, 
-			   const int* plo, const int* phi, 
-			   const int* lo, const int* hi);
+                           const double* b, 
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi);
+typedef void (*mgt_set_c)(const int* lev, const int* n, 
+		          const int* lo, const int* hi, const Real* value);
 #if BL_SPACEDIM == 2
 mgt_get mgt_get_uu   = mgt_get_uu_2d;
 mgt_set mgt_set_uu   = mgt_set_uu_2d;
@@ -41,6 +43,9 @@ mgt_set mgt_set_rh   = mgt_set_rh_2d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_2d;
 mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_2d;
 mgt_set_cf mgt_set_cfby = mgt_set_cfby_2d;
+mgt_set_c mgt_setc_cfa_const  = mgt_set_cfa_2d_const;
+mgt_set_c mgt_setc_cfbx_const = mgt_set_cfbx_2d_const;
+mgt_set_c mgt_setc_cfby_const = mgt_set_cfby_2d_const;
 mgt_set mgt_set_cfs  = mgt_set_cfs_2d;
 mgt_get mgt_get_vel  = mgt_get_vel_2d;
 mgt_set mgt_set_vel  = mgt_set_vel_2d;
@@ -54,8 +59,13 @@ mgt_set mgt_set_cfa  = mgt_set_cfa_3d;
 mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_3d;
 mgt_set_cf mgt_set_cfby = mgt_set_cfby_3d;
 mgt_set_cf mgt_set_cfbz = mgt_set_cfbz_3d;
+mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_3d_const;
+mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_3d_const;
+mgt_set_c mgt_set_cfby_const = mgt_set_cfby_3d_const;
+mgt_set_c mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
+mgt_set_c mgt_set_cfb_constz = mgt_set_cfbz_3d_const;
 mgt_set mgt_set_cfs  = mgt_set_cfs_3d;
-mgt_get mgt_get_vel  = mgt_get_vel_3d;
+mgt_get mgt_get_vel  = mgt_get_vel_2d;
 mgt_set mgt_set_vel  = mgt_set_vel_3d;
 #endif
 
@@ -260,6 +270,64 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 	}
       mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
     }
+  mgt_finalize_stencil();
+}
+
+void
+MGT_Solver::set_gravity_coefficients(const BndryData& bd_crse)
+{
+  BoxArray grids(bd_crse.boxes());
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      mgt_init_coeffs_lev(&lev);
+      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+	{
+	  pxa[i] = pxb[i] = 0;
+	}
+
+#if 0
+      if (lev > 0) {
+        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+          xa[dir] = 0.5 * ref_ratio(lev-1,:)*mgt(lev)%dh(dir,mgt(lev)%nlevels)
+          xb[dir] = 0.5 * ref_ratio(lev-1,:)*mgt(lev)%dh(dir,mgt(lev)%nlevels)
+        }
+      } else {
+#endif
+        for (OrientationIter oitr; oitr; ++oitr)
+        {
+          int dir  = oitr().coordDir();
+          if (oitr().faceDir() == Orientation::low) {
+            xa[dir] = bd_crse.bndryLocs(oitr())[0];
+          } else if (oitr().faceDir() == Orientation::high) {
+            xb[dir] = bd_crse.bndryLocs(oitr())[0];
+          }
+    
+        }
+#if 0
+      }
+#endif
+
+      Real value_zero = 0.e0;
+      Real value_one  = 1.e0;
+      int ngrids = grids.size();
+      for (int n = 0; n < ngrids; n++) 
+        {
+           const int* lo = grids[n].loVect();
+           const int* hi = grids[n].hiVect();
+           mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
+           mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
+           mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
+#if (BL_SPACEDIM == 3)
+           mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
+#endif
+        }
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+    }
+
+ 
   mgt_finalize_stencil();
 }
 
