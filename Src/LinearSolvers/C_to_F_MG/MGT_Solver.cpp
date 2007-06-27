@@ -274,7 +274,8 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const BndryData& bd_crse)
+MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
+                                     const BndryData& bd_crse)
 {
   BoxArray grids(bd_crse.boxes());
   for ( int lev = 0; lev < m_nlevel; ++lev )
@@ -288,14 +289,12 @@ MGT_Solver::set_gravity_coefficients(const BndryData& bd_crse)
 	  pxa[i] = pxb[i] = 0;
 	}
 
-#if 0
       if (lev > 0) {
         for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-          xa[dir] = 0.5 * ref_ratio(lev-1,:)*mgt(lev)%dh(dir,mgt(lev)%nlevels)
-          xb[dir] = 0.5 * ref_ratio(lev-1,:)*mgt(lev)%dh(dir,mgt(lev)%nlevels)
+          xa[dir] = 0.5 * geom[lev-1].CellSize(dir);
+          xb[dir] = 0.5 * geom[lev-1].CellSize(dir);
         }
       } else {
-#endif
         for (OrientationIter oitr; oitr; ++oitr)
         {
           int dir  = oitr().coordDir();
@@ -306,9 +305,7 @@ MGT_Solver::set_gravity_coefficients(const BndryData& bd_crse)
           }
     
         }
-#if 0
       }
-#endif
 
       Real value_zero = 0.e0;
       Real value_one  = 1.e0;
