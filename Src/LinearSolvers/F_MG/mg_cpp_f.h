@@ -276,10 +276,10 @@ extern "C"
   void mgt_set_cfa_2d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);
   
-  void mgt_set_cfbx_2d_const(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfbx_2d_const(const int* lev, const int* n, 
 		             const int* lo, const int* hi, const Real* value);
   
-  void mgt_set_cfby_2d_const(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfby_2d_const(const int* lev, const int* n,
 		             const int* lo, const int* hi, const Real* value);
   
   void mgt_set_cfs_2d(const int* lev, const int* n, const Real* cf,
