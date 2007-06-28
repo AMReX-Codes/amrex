@@ -72,8 +72,6 @@ contains
     end if
     bx = make_box(lo, hi)
     print *,'LEVEL ',lev, n
-    call print(bx,"VERIFY:BOX")
-    call print(get_box(mgts%mla, lev, n),"VERIFY:OTHER BOX")
     if ( bx /= get_box(mgts%mla, lev, n) ) then
        call bl_error( trim(str) // ": Box no filling")
     end if
