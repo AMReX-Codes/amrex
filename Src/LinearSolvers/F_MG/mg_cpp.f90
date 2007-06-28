@@ -190,7 +190,6 @@ subroutine mgt_finalize(dx,bc)
   allocate(mgts%bc(dm,2))
   mgts%bc = transpose(bc)
 
-  call print(mgts%mla%mba)
   do i = 1, nlev-1
      mgts%rr(i,:) = mgts%mla%mba%rr(i,:)
   end do
