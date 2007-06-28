@@ -76,6 +76,8 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   :
   m_dmap(dmap), m_grids(grids), m_nodal(nodal)
 {
+
+  std::cout << "INITIALIZEING " << initialized << std::endl;
    if (!initialized)
         initialize(nodal);
 
@@ -126,6 +128,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
         mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
   		            domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       } else {
+        std::cout << "CALLING SETLEV " << lev << std::endl;
         mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
   		      domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       }
@@ -276,7 +279,6 @@ void
 MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
                                      const BndryData& bd_crse)
 {
-  BoxArray grids(bd_crse.boxes());
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_coeffs_lev(&lev);
@@ -308,11 +310,11 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
 
       Real value_zero = 0.e0;
       Real value_one  = 1.e0;
-      int ngrids = grids.size();
+      int ngrids = m_grids[lev].size();
       for (int n = 0; n < ngrids; n++) 
         {
-           const int* lo = grids[n].loVect();
-           const int* hi = grids[n].hiVect();
+           const int* lo = m_grids[lev][n].loVect();
+           const int* hi = m_grids[lev][n].hiVect();
            mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
            mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
            mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
@@ -323,7 +325,6 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
       mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
     }
 
- 
   mgt_finalize_stencil();
 }
 

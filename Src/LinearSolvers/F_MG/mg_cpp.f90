@@ -71,6 +71,9 @@ contains
        call bl_error( trim(str) // ": Box out of bounds", n)
     end if
     bx = make_box(lo, hi)
+    print *,'LEVEL ',lev, n
+    call print(bx,"VERIFY:BOX")
+    call print(get_box(mgts%mla, lev, n),"VERIFY:OTHER BOX")
     if ( bx /= get_box(mgts%mla, lev, n) ) then
        call bl_error( trim(str) // ": Box no filling")
     end if
@@ -144,9 +147,17 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   if ( dm /= mgts%dim ) then
      call bl_error("MGT_SET_LEVEL: Input DIM doesn't match internal DIM")
   end if
+  call build(mgts%mla%mba%pd(flev), pd_lo(1:dm), pd_hi(1:dm))
   call build(mgts%pd(flev), pd_lo(1:dm), pd_hi(1:dm))
+  if (flev > 1) then
+    do i = 1, dm
+      mgts%mla%mba%rr(flev-1,i) = &
+         box_extent_d(mgts%mla%mba%pd(flev),i) / box_extent_d(mgts%mla%mba%pd(flev-1),i)
+    end do
+  end if
   do i = 1, nb
      bxs(i) = make_box(lo(i,:), hi(i,:))
+     call print(bxs(i),'BOX ')
   end do
   call build(mgts%mla%mba%bas(flev), bxs)
   call build(mgts%mla%la(flev),  &
@@ -183,7 +194,9 @@ subroutine mgt_finalize(dx,bc)
   allocate(mgts%bc(dm,2))
   mgts%bc = transpose(bc)
 
+  call print(mgts%mla%mba)
   do i = 1, nlev-1
+     print *,"SETTING RR ", i, mgts%mla%mba%rr(i,:) 
      mgts%rr(i,:) = mgts%mla%mba%rr(i,:)
   end do
 
@@ -432,7 +445,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
@@ -450,7 +463,7 @@ subroutine mgt_set_cfa_2d_const(lev, n, lo, hi, coeff_value)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFA_2D_CONST", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = coeff_value
@@ -469,7 +482,7 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = b * cf(lo(1):hi(1)+1, lo(2):hi(2))
@@ -487,7 +500,7 @@ subroutine mgt_set_cfbx_2d_const(lev, n, lo, hi, coeff_value)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFBX_2D_CONST", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = coeff_value
@@ -505,7 +518,7 @@ subroutine mgt_set_cfby_2d(lev, n, cf, b, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFBY_2D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 3) = b * cf(lo(1):hi(1), lo(2):hi(2)+1)
@@ -522,7 +535,7 @@ subroutine mgt_set_cfby_2d_const(lev, n, lo, hi, coeff_value)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_CFBY_2D_CONST", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 3) = coeff_value
@@ -791,7 +804,7 @@ subroutine mgt_solve(tol,abs_tol)
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 0
+  do_diagnostics = 1
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%mla%mask, mgts%rr, &
