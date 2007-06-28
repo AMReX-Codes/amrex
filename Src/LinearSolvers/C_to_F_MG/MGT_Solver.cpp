@@ -77,7 +77,6 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   m_dmap(dmap), m_grids(grids), m_nodal(nodal)
 {
 
-  std::cout << "INITIALIZEING " << initialized << std::endl;
    if (!initialized)
         initialize(nodal);
 
@@ -128,7 +127,6 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
         mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
   		            domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       } else {
-        std::cout << "CALLING SETLEV " << lev << std::endl;
         mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
   		      domain.loVect(), domain.hiVect(), pm, &pmap[0]);
       }
