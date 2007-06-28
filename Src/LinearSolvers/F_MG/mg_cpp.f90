@@ -71,7 +71,6 @@ contains
        call bl_error( trim(str) // ": Box out of bounds", n)
     end if
     bx = make_box(lo, hi)
-    print *,'LEVEL ',lev, n
     if ( bx /= get_box(mgts%mla, lev, n) ) then
        call bl_error( trim(str) // ": Box no filling")
     end if
@@ -155,7 +154,6 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   end if
   do i = 1, nb
      bxs(i) = make_box(lo(i,:), hi(i,:))
-     call print(bxs(i),'BOX ')
   end do
   call build(mgts%mla%mba%bas(flev), bxs)
   call build(mgts%mla%la(flev),  &
@@ -194,7 +192,6 @@ subroutine mgt_finalize(dx,bc)
 
   call print(mgts%mla%mba)
   do i = 1, nlev-1
-     print *,"SETTING RR ", i, mgts%mla%mba%rr(i,:) 
      mgts%rr(i,:) = mgts%mla%mba%rr(i,:)
   end do
 
