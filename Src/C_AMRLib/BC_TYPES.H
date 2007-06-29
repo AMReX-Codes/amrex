@@ -6,40 +6,40 @@
           CONVERSIONS FROM PHYSICAL TO MATHEMATICAL BCs
 
 
-PHYS BC     |   Velocity      |    Temperature   |    Scalars     |
----------------------------------------------------------------------
-INTERIOR    |                 |                  |                |
-   or       |    INT_DIR      |     INT_DIR      |    INT_DIR     |
-PERIODIC    |                 |                  |                |
----------------------------------------------------------------------
-            |                 |                  |                |
-INFLOW      |    EXT_DIR      |     EXT_DIR      |    EXT_DIR     |
-            |                 |                  |                |
----------------------------------------------------------------------
-            |                 |                  |                |
-OUTFLOW     |    FOEXTRAP       |     FOEXTRAP       |    FOEXTRAP      |
-            |                 |                  |                |
----------------------------------------------------------------------
+PHYS BC        |   Velocity      |    Temperature   |    Scalars     |
+----------------------------------------------------------------------
+INTERIOR       |                 |                  |                |
+   or          |    INT_DIR      |     INT_DIR      |    INT_DIR     |
+PERIODIC       |                 |                  |                |
+----------------------------------------------------------------------
+               |                 |                  |                |
+INFLOW         |    EXT_DIR      |     EXT_DIR      |    EXT_DIR     |
+               |                 |                  |                |
+----------------------------------------------------------------------
+               |                 |                  |                |
+OUTFLOW        |    FOEXTRAP     |     FOEXTRAP     |    FOEXTRAP    |
+               |                 |                  |                |
+----------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
   with         |    EXT_DIR      |  REFLECT_EVEN    |    HOEXTRAP    |
 ADIABATIC TEMP |    U = V = 0    |    dT/dn = 0     |                |
----------------------------------------------------------------------
-NO SLIP WALL |                 |                  |                |
-  with       |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
-FIXED TEMP   |    U = V = 0    |                  |                |
----------------------------------------------------------------------
-SLIP WALL   |                 |                  |                |
-  with      |  Un=0 EXT_DIR   |  REFLECT_EVEN    |    HOEXTRAP    |
+----------------------------------------------------------------------
+NO SLIP WALL   |                 |                  |                |
+  with         |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
+FIXED TEMP     |    U = V = 0    |                  |                |
+----------------------------------------------------------------------
+SLIP WALL      |                 |                  |                |
+  with         |  Un=0 EXT_DIR   |  REFLECT_EVEN    |    HOEXTRAP    |
 ADIABATIC TEMP |  Ut   HOEXTRAP  |    dT/dn = 0     |                |
----------------------------------------------------------------------
-SLIP WALL   |                 |                  |                |
-  with      |  Un=0 EXT_DIR   |     EXT_DIR      |    HOEXTRAP    |
-FIXED TEMP  |  Ut   HOEXTRAP  |                  |                |
----------------------------------------------------------------------
-            |                 |                  |                |
-SYMMETRY    |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
-            |  Ut REFLECT_EVEN|                  |                |
----------------------------------------------------------------------
+----------------------------------------------------------------------
+SLIP WALL      |                 |                  |                |
+  with         |  Un=0 EXT_DIR   |     EXT_DIR      |    HOEXTRAP    |
+FIXED TEMP     |  Ut   HOEXTRAP  |                  |                |
+----------------------------------------------------------------------
+               |                 |                  |                |
+SYMMETRY       |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
+               |  Ut REFLECT_EVEN|                  |                |
+----------------------------------------------------------------------
 
 
 INT_DIR      : data taken from other grids or interpolated
