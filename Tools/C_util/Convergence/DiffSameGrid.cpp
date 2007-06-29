@@ -126,7 +126,7 @@ main (int   argc,
     Array<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Level L"<< norm << " norm of Error in Each Component" << std::endl
+        std::cout << "L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------" << std::endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -161,7 +161,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "  " << iLevel << "    ";
+	  std::cout << "Level:  " << iLevel << std::endl;
 
         Array<Real> norms(nComp,0);
 
@@ -232,7 +232,7 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                std::cout << norms[iComp] << " ";
+                std::cout << "  " << derives[iComp] << ": " << norms[iComp] << std::endl;
             }
             std::cout << std::endl;
         }
