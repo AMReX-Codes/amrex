@@ -45,7 +45,7 @@ SYMMETRY       |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
 INT_DIR      : data taken from other grids or interpolated
 EXT_DIR      : data specified on EDGE (FACE) of bndry
 HOEXTRAP     : higher order extrapolation to EDGE of bndry
-FOEXTRAP       : first order extrapolation from last cell in interior
+FOEXTRAP     : first order extrapolation from last cell in interior
 REFLECT_EVEN : F(-n) = F(n)   true reflection from interior cells
 REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 
