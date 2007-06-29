@@ -274,8 +274,7 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
-                                     const BndryData& bd_crse)
+MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -294,15 +293,9 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
           xb[dir] = 0.5 * geom[lev-1].CellSize(dir);
         }
       } else {
-        for (OrientationIter oitr; oitr; ++oitr)
-        {
-          int dir  = oitr().coordDir();
-          if (oitr().faceDir() == Orientation::low) {
-            xa[dir] = bd_crse.bndryLocs(oitr())[0];
-          } else if (oitr().faceDir() == Orientation::high) {
-            xb[dir] = bd_crse.bndryLocs(oitr())[0];
-          }
-    
+        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+          xa[dir] = 0.0;
+          xb[dir] = 0.0;
         }
       }
 
