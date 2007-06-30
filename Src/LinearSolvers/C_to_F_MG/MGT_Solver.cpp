@@ -402,10 +402,16 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
     }
   mgt_finalize_nodal_stencil();
 }
-
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd)
+{
+  solve(uu,rh,tol,abs_tol,bd,false);
+}
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  const BndryData& bd, bool need_grad_phi)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -442,7 +448,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 
-  mgt_solve(tol,abs_tol);
+  mgt_solve(tol,abs_tol,need_grad_phi);
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
