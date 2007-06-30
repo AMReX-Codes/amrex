@@ -28,6 +28,8 @@ public:
                              const Real& b, const BndryData& bd);
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd);
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+             const BndryData& bd,bool need_grad_phi);
 
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
