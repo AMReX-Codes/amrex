@@ -784,12 +784,13 @@ subroutine mgt_dealloc()
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(tol,abs_tol)
+subroutine mgt_solve(tol,abs_tol,need_grad_phi)
   use cpp_mg_module
   use ml_cc_module
   use fabio_module
   implicit none
   real(kind=dp_t), intent(in) :: tol, abs_tol
+  logical        , intent(in), optional :: need_grad_phi
 
   integer :: do_diagnostics
 
@@ -799,10 +800,17 @@ subroutine mgt_solve(tol,abs_tol)
   end if
 
   do_diagnostics = 1
-  call ml_cc(mgts%mla, mgts%mgt, &
-       mgts%rh, mgts%uu, &
-       mgts%mla%mask, mgts%rr, &
-       do_diagnostics, tol)
+  if (present(need_grad_phi)) then
+    call ml_cc(mgts%mla, mgts%mgt, &
+         mgts%rh, mgts%uu, &
+         mgts%mla%mask, mgts%rr, &
+         do_diagnostics, tol, need_grad_phi)
+  else
+    call ml_cc(mgts%mla, mgts%mgt, &
+         mgts%rh, mgts%uu, &
+         mgts%mla%mask, mgts%rr, &
+         do_diagnostics, tol)
+  end if
 
 end subroutine mgt_solve
 

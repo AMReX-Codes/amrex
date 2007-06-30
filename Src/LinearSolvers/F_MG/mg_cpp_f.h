@@ -364,7 +364,7 @@ extern "C"
 
   void mgt_nodal_dealloc();
   
-  void mgt_solve(const Real& tol, const Real& abs_tol);
+  void mgt_solve(const Real& tol, const Real& abs_tol, bool need_grad_phi);
   
   void mgt_nodal_solve(const Real& tol, const Real& abs_tol);
   
