@@ -134,7 +134,8 @@ contains
     do n = 1,nlevs
        call multifab_copy(rh(n),res(n),all=.true.)
     end do
-    tres0 = norm_inf(rh(nlevs))
+
+    tres0 = ml_norm_inf(rh,fine_mask)
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, fmt='("F90mg: Initial error (error0)       = ",g15.8)') tres0
     end if
