@@ -711,10 +711,10 @@ subroutine mgt_set_uu_3d(lev, n, uu, plo, phi, lo, hi)
 
 end subroutine mgt_set_uu_3d
 
-subroutine mgt_get_uu_1d(lev, n, uu, plo, phi, lo, hi)
+subroutine mgt_get_uu_1d(lev, n, uu, plo, phi, lo, hi, ng)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1), ng
   real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1))
   real(kind=dp_t), pointer :: up(:,:,:,:)
   integer :: flev, fn
@@ -724,13 +724,13 @@ subroutine mgt_get_uu_1d(lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
-  uu(lo(1):hi(1)) = up(lo(1):hi(1), 1,1,1)
+  uu(lo(1)-ng:hi(1)+ng) = up(lo(1)-ng:hi(1)+ng, 1,1,1)
 
 end subroutine mgt_get_uu_1d
-subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi)
+subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi, ng)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2), ng
   real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: up(:,:,:,:)
   integer :: flev, fn
@@ -740,13 +740,13 @@ subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
-  uu(lo(1):hi(1), lo(2):hi(2)) = up(lo(1):hi(1), lo(2):hi(2),1,1)
+  uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng) = up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,1,1)
 
 end subroutine mgt_get_uu_2d
-subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi)
+subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi ,ng)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3), ng
   real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), pointer :: up(:,:,:,:)
   integer :: flev, fn
@@ -756,7 +756,8 @@ subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi)
   call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
-  uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) = up(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
+  uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng) = &
+  up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,1)
 
 end subroutine mgt_get_uu_3d
 
@@ -790,7 +791,7 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
   use fabio_module
   implicit none
   real(kind=dp_t), intent(in) :: tol, abs_tol
-  logical        , intent(in), optional :: need_grad_phi
+  integer        , intent(in), optional :: need_grad_phi
 
   integer :: do_diagnostics
 
@@ -799,12 +800,19 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 1
+  do_diagnostics = 0
   if (present(need_grad_phi)) then
-    call ml_cc(mgts%mla, mgts%mgt, &
-         mgts%rh, mgts%uu, &
-         mgts%mla%mask, mgts%rr, &
-         do_diagnostics, tol, need_grad_phi)
+    if (need_grad_phi .eq. 1) then
+      call ml_cc(mgts%mla, mgts%mgt, &
+           mgts%rh, mgts%uu, &
+           mgts%mla%mask, mgts%rr, &
+           do_diagnostics, tol, .true.)
+    else
+      call ml_cc(mgts%mla, mgts%mgt, &
+           mgts%rh, mgts%uu, &
+           mgts%mla%mask, mgts%rr, &
+           do_diagnostics, tol)
+    end if
   else
     call ml_cc(mgts%mla, mgts%mgt, &
          mgts%rh, mgts%uu, &
