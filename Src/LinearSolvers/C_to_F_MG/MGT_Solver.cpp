@@ -25,6 +25,9 @@ int   MGT_Solver::stencil_type;
 typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
+typedef void (*mgt_get_ng)(const int* lev, const int* n, double* uu, 
+			   const int* plo, const int* phi, 
+   			const int* lo, const int* hi, const int* ng);
 typedef void (*mgt_set)(const int* lev, const int* n, const double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
@@ -35,7 +38,7 @@ typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu,
 typedef void (*mgt_set_c)(const int* lev, const int* n, 
 		          const int* lo, const int* hi, const Real* value);
 #if BL_SPACEDIM == 2
-mgt_get mgt_get_uu   = mgt_get_uu_2d;
+mgt_get_ng mgt_get_uu   = mgt_get_uu_2d;
 mgt_set mgt_set_uu   = mgt_set_uu_2d;
 mgt_get mgt_get_pr   = mgt_get_pr_2d;
 mgt_set mgt_set_pr   = mgt_set_pr_2d;
@@ -50,7 +53,7 @@ mgt_set mgt_set_cfs  = mgt_set_cfs_2d;
 mgt_get mgt_get_vel  = mgt_get_vel_2d;
 mgt_set mgt_set_vel  = mgt_set_vel_2d;
 #elif BL_SPACEDIM == 3
-mgt_get mgt_get_uu   = mgt_get_uu_3d;
+mgt_get_ng mgt_get_uu   = mgt_get_uu_3d;
 mgt_set mgt_set_uu   = mgt_set_uu_3d;
 mgt_get mgt_get_pr   = mgt_get_pr_3d;
 mgt_set mgt_set_pr   = mgt_set_pr_3d;
@@ -411,7 +414,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, bool need_grad_phi)
+                  const BndryData& bd, int need_grad_phi)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -448,7 +451,10 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 
-  mgt_solve(tol,abs_tol,need_grad_phi);
+  mgt_solve(tol,abs_tol,&need_grad_phi);
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -461,7 +467,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  const int* hi = umfi.validbox().hiVect();
 	  const int* plo = sol.box().loVect();
 	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi);
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
 	}
     }
 }
