@@ -245,7 +245,7 @@ extern "C"
   
   void mgt_get_uu_2d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi, const int* ng);
   
   void mgt_set_uu_2d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 
@@ -303,7 +303,7 @@ extern "C"
   
   void mgt_get_uu_3d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi, const int* ng);
   
   void mgt_set_uu_3d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 
@@ -364,7 +364,7 @@ extern "C"
 
   void mgt_nodal_dealloc();
   
-  void mgt_solve(const Real& tol, const Real& abs_tol, bool need_grad_phi);
+  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi);
   
   void mgt_nodal_solve(const Real& tol, const Real& abs_tol);
   
