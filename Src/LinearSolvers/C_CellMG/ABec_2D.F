@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.9 2002-11-27 21:54:35 car Exp $
+c $Id: ABec_2D.F,v 1.10 2007-07-02 23:00:36 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -322,7 +322,7 @@ c
       REAL_T h(BL_SPACEDIM)
 c
       integer i,j,n
-      REAL_T uxx,uyy,dhx,dhy
+      REAL_T dhx,dhy
 c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
@@ -367,7 +367,7 @@ c
       REAL_T h(BL_SPACEDIM)
 c
       integer i,j,n
-      REAL_T uxx,uyy,dhx,dhy
+      REAL_T dhx,dhy
 c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2

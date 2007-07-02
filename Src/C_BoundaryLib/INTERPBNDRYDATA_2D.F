@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_2D.F,v 1.3 2002-10-19 18:33:57 car Exp $
+c $Id: INTERPBNDRYDATA_2D.F,v 1.4 2007-07-02 23:00:36 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -45,6 +45,7 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
 
+      implicit none
       integer  nvar, ratios(2), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -56,11 +57,12 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, ainterp
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
 #ifndef USE_REORG_VERSION
+
+      REAL_T   xx
       
       ratioy = ratios(2)
 
@@ -203,7 +205,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(2), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -215,11 +217,12 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, ainterp
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
 #ifndef USE_REORG_VERSION
+
+      REAL_T   xx
       
       ratioy = ratios(2)
 
@@ -363,7 +366,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(2), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -374,11 +377,13 @@ c ---------------------------------------------------------------
       REAL_T   derives(DIM1(cb),NUMDERIV)
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   xx, ainterp
+
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
 #ifndef USE_REORG_VERSION
+
+      REAL_T   xx
       
       ratiox = ratios(1)
 
@@ -521,7 +526,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(2), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -532,11 +537,13 @@ c ---------------------------------------------------------------
       REAL_T   derives(DIM1(cb),NUMDERIV)
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   xx, ainterp
+
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
 #ifndef USE_REORG_VERSION
+
+      REAL_T   xx
       
       ratiox = ratios(1)
 

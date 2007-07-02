@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.28 2005-09-07 21:13:00 jbb Exp $
+c $Id: INTERP_2D.F,v 1.29 2007-07-02 23:00:14 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -174,6 +174,8 @@ c :::
      $		                lratiox, lratioy, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
 
+      implicit none
+
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
@@ -190,7 +192,7 @@ c :::
 #define SLY 2
 #define SLXY 3
 
-      integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, j, n
+      integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, n
       REAL_T x, y, denomx, denomy
 
       denomx = one/dble(2*lratiox)
@@ -319,8 +321,8 @@ c :::
        integer n
        integer i, ic
        integer j, jc
-       REAL_T cen, forw, back, slp, sgn
-       REAL_T factorn, denom, slope_factor, dummy
+       REAL_T cen, forw, back, slp
+       REAL_T factorn, denom
        REAL_T fxcen, cxcen, fycen, cycen
        REAL_T orig_corr_fact,corr_fact
        REAL_T dummy_fine
@@ -642,6 +644,8 @@ c
      $                          flen, voff, bc, limslope,
      $                          fvcx, fvcy, cvcx, cvcy)
 
+      implicit none
+
       integer DIMDEC(fine)
       integer fslo(2), fshi(2)
       integer fb_l1, fb_l2, fb_h1, fb_h2
@@ -667,13 +671,13 @@ c
       integer i, ic, ioff
       integer j, jc, joff
       integer ist, jst
-      REAL_T cen, forw, back, slp, sgn
+      REAL_T cen
       REAL_T fcen, ccen
       REAL_T diffxy,diffxx,diffyy
-      REAL_T xoff, yoff
+      REAL_T yoff
       integer ncbx, ncby
-      integer ncsx, ncsy
-      integer islo, jslo
+      integer ncsx
+      integer jslo
       integer icc, istart, iend
       logical xok, yok
 
@@ -682,10 +686,8 @@ c
       xok = (ncbx .ge. 2)
       yok = (ncby .ge. 2)
       ncsx = ncbx+2
-      ncsy = ncby+2
       ist = 1
       jst = ncsx
-      islo = cb_l1-1
       jslo = cb_l2-1
 
       do i = fb_l1, fb_h1 
@@ -934,7 +936,7 @@ c :::
       REAL_T fvol,cvol
       integer redo_me
       integer ilo,ihi,jlo,jhi
-      integer i,j,ic,jc,n,nn
+      integer i,j,ic,jc,n
       integer icase
 
       if (MAX(lratiox,lratioy).gt.rMAX) then
