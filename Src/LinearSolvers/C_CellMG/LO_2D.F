@@ -1,5 +1,5 @@
 c
-c $Id: LO_2D.F,v 1.5 2002-11-27 21:54:35 car Exp $
+c $Id: LO_2D.F,v 1.6 2007-07-02 23:00:36 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -219,8 +219,7 @@ c
       integer n
       logical is_dirichlet
       logical is_neumann
-      logical is_odd
-      REAL_T xb
+c      REAL_T xb
 c
       integer lenx
       integer leny

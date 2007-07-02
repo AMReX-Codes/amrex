@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.7 2002-04-26 22:10:02 lijewski Exp $
+** $Id: LP_F.H,v 1.8 2007-07-02 23:00:36 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -135,12 +135,6 @@ extern "C"
         const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const int *lo, const int *hi, const int *nc,
         const Real *h
-        );
-
-    void FORT_ESTANORM(
-		       Real* H,
-		       const int *lo, const int *hi, const int *nc,
-		       const Real *h
         );
 }
 #endif
