@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.106 2007-07-03 20:10:56 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.107 2007-07-03 21:22:57 lijewski Exp $
 #
 
 #
@@ -254,8 +254,8 @@ ifeq ($(FCOMP),g95)
     fC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -O2 -g -ffixed-line-length-132 #-Wall
-    fOPTF += -O2 -g -ffixed-line-length-132 #-Wall
+    FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
+    fOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
     FDEBF += -g -fbounds-check
     fDEBF += -g -fbounds-check
 endif
