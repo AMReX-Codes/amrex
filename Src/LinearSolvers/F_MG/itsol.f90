@@ -167,7 +167,7 @@ contains
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t) :: rho_hg, rho_orig, volume, tres, tres0, small
+    real(dp_t) :: rho_hg, rho_orig, volume, tres0, small
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve

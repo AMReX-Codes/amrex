@@ -355,7 +355,6 @@ contains
     logical, intent(in) :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
-    integer :: i, j
     integer :: lmapping
 
     lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
@@ -607,7 +606,6 @@ contains
     integer :: l_root
     type(derived_layout), pointer :: dla
     integer :: l_prc(la%lap%nboxes)
-    integer :: i, j
 
     l_root = -1
     if ( present(prc) ) then
@@ -901,8 +899,8 @@ contains
     integer,        intent(out) :: shfts(:,:)
     logical,        intent(in)  :: cross
 
-    integer               :: i, j, cnt, emptylo(3), emptyhi(3)
-    type(box)             :: bxs(3**b%dim), gbx, emptybx
+    integer               :: i, cnt
+    type(box)             :: bxs(3**b%dim), gbx
     type(box),allocatable :: bv(:)
     integer               :: shft(3**b%dim,b%dim), upbx(1:b%dim), lwbx(1:b%dim)
     type(boxarray)        :: tba
@@ -1284,7 +1282,7 @@ contains
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, cnt, np
+    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
     integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
@@ -1489,7 +1487,7 @@ contains
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
     integer :: un
-    integer :: i, j, ii
+    integer :: i, ii
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un,fmt='("BOXASSOC")', advance='no')
@@ -1775,10 +1773,10 @@ contains
     type(box),        intent(in)    :: crse_domain
     integer,          intent(in)    :: ir(:)
 
-    integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np, dir, dm
-    integer                        :: sh(MAX_SPACEDIM+1), fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
+    integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, np, dir, dm
+    integer                        :: sh(MAX_SPACEDIM+1)
     integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
-    type(box)                      :: cbox, fbox, isect
+    type(box)                      :: fbox, isect
     type(layout)                   :: lasrctmp
     type(boxarray)                 :: bxa_src, bxa_dst, batmp
     type(list_box)                 :: bltmp

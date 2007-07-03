@@ -41,12 +41,12 @@ contains
 
     type(box   ) :: pd,pdc
     type(layout) :: la, lac
-    integer :: i, n, dm
-    integer :: mglev, mglev_crse, iter, it
+    integer :: n, dm
+    integer :: mglev, mglev_crse, iter
     logical :: fine_converged
-    logical :: zero_only, lcross
+    logical :: lcross
 
-    real(dp_t) :: Anorm, bnorm, res_norm
+    real(dp_t) :: Anorm, bnorm
     real(dp_t) :: fac
     real(dp_t) :: tres
 
@@ -431,14 +431,11 @@ contains
       integer        , intent(in   ) :: ref_ratio(:)
       type(box)      , intent(in   ) :: pdc
 
-      type(layout)   :: la
       integer :: i,dm,mglev_crse,mglev_fine
 
       mglev_crse = mgt(n-1)%nlevels
       mglev_fine = mgt(n  )%nlevels
       dm = temp_res%dim
-
-      la = multifab_get_layout(temp_res)
 
       !    Zero out the flux registers which will hold the fine contributions
       call bndry_reg_setval(brs_flx, ZERO, all = .true.)
@@ -532,7 +529,7 @@ contains
     type( multifab), intent(in) :: mf(:)
     integer                     :: rr(:,:)
     type(lmultifab), intent(in) :: mask(:)
-    real(dp_t)                  :: r, r1
+    real(dp_t)                  :: r
     integer                     :: n,nlevs
     nlevs = size(mf)
     r = norm_l2(mf(nlevs))**2

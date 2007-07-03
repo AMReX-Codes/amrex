@@ -20,12 +20,11 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: ng, nc
+    integer :: ng
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fill_fluxes")
 
-    nc = uu%nc
     ng = uu%ng
 
     if ( uu%nc /= flux%nc ) then
@@ -111,13 +110,12 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: ng, nc
+    integer :: ng
     logical :: lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fill_fine_fluxes")
 
-    nc = uu%nc
     ng = uu%ng
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
@@ -165,9 +163,7 @@ contains
     integer :: lo_dom(flux%dim), hi_dom(flux%dim)
     integer :: i, n, dir
     real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: nc
     type(bl_prof_timer), save :: bpt

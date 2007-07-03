@@ -1268,9 +1268,6 @@ contains
     type(box), intent(in)  :: dmn,bx
     integer,   intent(out) :: shft(:,:),cnt
     logical,   intent(in)  :: pmask(:),nodal(:)
-
-    type(box) :: dom,src
-    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
     !
     ! A zero shift to represent the original box.
     !

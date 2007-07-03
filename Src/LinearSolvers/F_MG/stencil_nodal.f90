@@ -188,8 +188,6 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-
-    type(box)                :: bx, nbx
     integer                  :: i
 
     do i = 1, ss%nboxes
@@ -198,9 +196,6 @@ contains
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)
        mp => dataptr(mask, i)
-
-       bx  = get_box(ss,i)
-       nbx = get_ibox(ss, i)
 
        select case (ss%dim)
        case (1)
@@ -226,13 +221,9 @@ contains
     type(boxarray),  intent(in   ) :: bxa_periodic
 
     integer, pointer :: mp(:,:,:,:)
-    type(box)        :: bx1, bx2
-    type(boxarray)   :: ba, pba
+    type(box)        :: bx1
+    type(boxarray)   :: ba
     integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo
-
-    type(box)        :: bxs(3**sdim), sbx
-    integer          :: shft(3**sdim,sdim), cnt, i, j
-
     logical          :: nodal(sdim)
 
     nodal = .true.
@@ -273,7 +264,6 @@ contains
              if ( empty(bx1) ) cycle
              call boxarray_boxarray_diff(ba, bx1, bxa_periodic)
              do ii = 1, ba%nboxes
-                bx2 = box_nodalize(ba%bxs(ii),nodal)
                 bx1 = box_intersection(box_nodalize(ba%bxs(ii),nodal), nbx)
                 if ( empty(bx1) ) cycle
                 mp => dataptr(mask%fbs(idx), bx1)
@@ -507,10 +497,7 @@ contains
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    type(box     ) :: bx1
-    type(boxarray) :: ba
-    integer :: i, j, k, ilo, jlo, klo, ib, jb, ii, jj, nx, ny, nz
-    real (kind = dp_t) :: ratio
+    integer :: i, j, k, nx, ny, nz
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -669,10 +656,8 @@ contains
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, ilo, jlo, klo, ii, jj, nx, ny, nz
+    integer :: i, j, k, nx, ny, nz
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
-    real (kind = dp_t) :: fx,fy,fz
-    real (kind = dp_t) :: ratio
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -841,11 +826,8 @@ contains
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    type(box     ) :: bx1
-    type(boxarray) :: ba
-    integer :: i, j, k, ilo, jlo, klo, ib, jb, ii, jj, nx, ny, nz
+    integer :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0
-    real (kind = dp_t) :: ratio
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)

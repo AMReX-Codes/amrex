@@ -130,8 +130,6 @@ contains
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: st_type
 
-    integer, pointer :: mp(:,:,:,:)
-
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
     integer :: n, i, id
@@ -425,11 +423,10 @@ contains
     integer :: r
     integer, parameter :: rrr = 2
     type(box) :: bx, bx1
-    integer :: i, rr, lmn, dm
+    integer :: i, rr, lmn
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
-    dm = ba%dim
     do
        do i = 1, size(ba%bxs)
           bx = ba%bxs(i)
@@ -672,10 +669,9 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, nn
-    integer :: lo(mgt%dim), hi(mgt%dim)
+    integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
     ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
-    integer :: nnn, iii, jjj, kkk
     logical :: lcross
 
     call build(bpt, "mgt_smoother")
@@ -817,7 +813,6 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, iter
-    integer :: lo(mgt%dim), hi(mgt%dim)
     type(bl_prof_timer), save :: bpt
     ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
     logical :: lcross
@@ -848,7 +843,6 @@ contains
          fp => dataptr(ff, i)
          sp => dataptr(ss, i)
          mp => dataptr(mm, i)
-         lo =  lwb(get_box(ss, i))
          do n = 1, mgt%nc
             select case ( mgt%dim)
             case (1)
@@ -946,7 +940,6 @@ contains
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
     integer :: i
-    real(dp_t) :: nrm
 
     call timer_start(mgt%tm(lev))
     if ( lev == 1 ) then
@@ -990,7 +983,7 @@ contains
     integer, intent(in), optional :: bottom_level
     integer :: i
     logical :: do_diag
-    real(dp_t) :: nrm, nrm1, nrm2, nrm3
+    real(dp_t) :: nrm, nrm1, nrm2
     integer :: lbl
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt

@@ -312,9 +312,8 @@ contains
     !       ]
 
     subroutine build_vismf_multifab()
-      integer :: k
       integer :: j, nc
-      character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
+      character(len=FABIO_MAX_PATH_NAME) :: cdummy, filename
       integer :: offset
       integer :: idummy, sz, fd
       integer :: dm

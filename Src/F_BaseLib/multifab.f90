@@ -2417,7 +2417,7 @@ contains
 
     type(box)                               :: sbx, dbx
     real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc, p
-    integer                                 :: i, j, ii, jj, proc, cnt, sh(MAX_SPACEDIM+1), np
+    integer                                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     integer, parameter                      :: tag = 1104
     type(syncassoc)                         :: snasc
     integer,    allocatable                 :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)

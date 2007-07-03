@@ -45,10 +45,10 @@ contains
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm
-    integer :: mglev, mglev_crse, iter, it
+    integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
-    real(dp_t) :: Anorm, bnorm, res_norm
+    real(dp_t) :: Anorm, bnorm
     real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
@@ -517,7 +517,7 @@ contains
     type( multifab), intent(in) :: mf(:)
     integer                     :: rr(:,:)
     type(lmultifab), intent(in) :: mask(:)
-    real(dp_t)                  :: r, r1
+    real(dp_t)                  :: r
     integer                     :: n,nlevs
     nlevs = size(mf)
     r = norm_l2(mf(nlevs))**2

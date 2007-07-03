@@ -902,45 +902,6 @@ contains
     call destroy(bxl)
   end subroutine boxarray_simplify
 
-  !! Takes a boxlist and normalizes it by attaching boxes
-  !! that abut across periodic edges
-  subroutine boxlist_normalize(bxl, pd, pmask)
-    type(list_box), intent(inout) :: bxl
-    type(box), intent(in) :: pd
-    logical, intent(in) :: pmask(:)
-    integer :: dm
-    integer :: ext(pd%dim)
-    if ( size(bxl) == 0 ) return
-    dm = box_dim(front(bxl))
-    ext = extent(pd)
-    call norm
-  contains
-    subroutine norm
-      type(list_box_node), pointer :: ba, bb
-      integer :: i
-      type(box) :: lbx
-      integer :: lo(dm), hi(dm)
-      ba => begin(bxl)
-      do while ( associated(ba) )
-         bb => next(ba)
-         do while ( associated(bb) )
-            do i = 1, dm
-               lbx = shift(value(bb),i,-ext(i))
-               if ( box_abut(value(ba), lbx, i) ) then
-                  lo = lwb(value(ba))
-                  hi = upb(value(ba))
-                  lo(i) = min(lwb(value(ba),i),lwb(lbx,i))
-                  hi(i) = max(upb(value(ba),i),upb(lbx,i))
-                  print *, 'got one'
-               end if
-               lbx = shift(value(bb),i,+ext(i))
-            end do
-         end do
-      end do
-    end subroutine norm
-
-  end subroutine boxlist_normalize
-
   subroutine boxlist_simplify(bxl)
     type(list_box), intent(inout) :: bxl
     integer :: dm
