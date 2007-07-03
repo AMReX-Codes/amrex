@@ -689,105 +689,6 @@ contains
     call destroy(bpt)
   end subroutine stencil_apply_st
 
-  subroutine stencil_flux_fill_st(st, br, uu, rr, c, mask)
-    use bndry_reg_module
-    type(stencil), intent(in) :: st
-    type(bndry_reg), intent(inout) :: br
-    type(multifab), intent(inout) :: uu
-    integer, intent(in) :: rr(:)
-    integer, intent(in), optional :: c
-    logical, intent(in), optional :: mask(:)
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: upn(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer i, n, ff, dm, dd
-    logical :: skwd, lcross
-    integer :: lrr
-
-    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
-
-    call multifab_fill_boundary(uu, cross = lcross)
-    if ( st%extrap_bc) then
-       call stencil_extrap_bc(st, uu)
-    end if
-
-    dm = st%dim
-    if ( present(c) ) then
-       n = c
-       if ( present(mask) ) then
-          if ( .not. mask(n) ) return
-       end if
-       do i = 1, uu%nboxes; if ( multifab_remote(uu, i) ) cycle
-          do ff = -1, 1, 2
-             do dd = 1, dm
-                up => dataptr(uu, i, n)
-                upn => dataptr(uu, i, get_ibox(uu,i), n)
-                sp => dataptr(st%ss, i)
-                mp => dataptr(st%mm, i)
-                select case ( st%type )
-                case (ST_CROSS)
-                   skwd = st%skewed(i)
-                   select case( st%dim )
-                   case (1)
-                      call stencil_flux_1d( &
-                           sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                   case (2)
-                      call stencil_flux_2d( &
-                           sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                   case (3)
-                      call stencil_flux_3d( &
-                           sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                   end select
-                case default
-                   call bl_error("STENCIL_FLUX_FILL_ST: not ready yet ", st%type)
-                end select
-             end do
-          end do
-       end do
-    else
-       do i = 1, uu%nboxes; if ( multifab_remote(uu, i) ) cycle
-          sp => dataptr(st%ss, i)
-          mp => dataptr(st%mm, i)
-          do ff = -1, 1, 2
-             do dd = 1, dm
-                do n = 1, uu%nc
-                   if ( present(mask) ) then
-                      if ( .not. mask(n) ) cycle
-                   end if
-                   up => dataptr(uu, i, n)
-                   upn => dataptr(uu, i, get_ibox(uu,i), n)
-                   select case ( st%type )
-                   case (ST_CROSS)
-                      skwd = st%skewed(i)
-                      select case( st%dim )
-                      case (1)
-                         call stencil_flux_1d( &
-                           sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                      case (2)
-                         call stencil_flux_2d( &
-                           sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                      case (3)
-                         call stencil_flux_3d( &
-                           sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), &
-                           uu%ng, lrr, ff, dd, skwd)
-                      end select
-                   case default
-                      call bl_error("STENCIL_FLUX_FILL_ST: not ready yet ", st%type)
-                   end select
-                end do
-             end do
-          end do
-       end do
-    end if
-  end subroutine stencil_flux_fill_st
-
   subroutine stencil_fill(st, pdv, bc_face, fill, coeffs, iparm, rparm, fill_fcn, alpha, beta)
     type(stencil), intent(inout)  :: st
     type(multifab), intent(inout), optional :: coeffs
@@ -1934,8 +1835,6 @@ contains
     real (kind = dp_t), intent(in) :: dh(:)
     real(kind=dp_t), intent(in) :: alpha, beta
     real (kind = dp_t) :: f1(size(dh))
-    integer nx
-    nx = size(ss,1)
     f1 = beta*ONE/dh**2
     ss(:,0) = -TWO*f1(1) + alpha
     ss(:,1) = +ONE*f1(1)
