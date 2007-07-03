@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.8 2002-11-14 23:04:56 lijewski Exp $
+c $Id: COORDSYS_3D.F,v 1.9 2007-07-03 21:55:08 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -33,7 +33,7 @@ c ::
        REAL_T     vol(DIMV(vol))
        
        integer    i, j, k
-       REAL_T     ri, ro, v
+       REAL_T     v
        
        if (coord .eq. 0) then
 c
@@ -120,7 +120,6 @@ c ::
        integer dir
        
        integer    i, j, k
-       REAL_T     ri, ro, dlga, po, pi
        
        if (coord .eq. 0) then
 c
