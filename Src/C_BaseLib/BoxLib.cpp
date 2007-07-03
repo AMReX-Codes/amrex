@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.32 2005-09-30 17:41:56 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.33 2007-07-03 19:50:33 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -198,13 +198,6 @@ BoxLib::Assert (const char* EX,
     write_to_stderr_without_buffering(buf);
 
     ParallelDescriptor::Abort();
-}
-
-void
-BoxLib::OutOfMemory (const char* file,
-                     int         line)
-{
-    BoxLib::Assert("operator new", file, line);
 }
 
 namespace
