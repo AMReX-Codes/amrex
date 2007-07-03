@@ -133,11 +133,10 @@ contains
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
 
-    integer             :: i, j, n, id, rmode
+    integer             :: i, n, rmode
     integer             :: lo (fine%dim), hi (fine%dim), loc(fine%dim), lof(fine%dim)
     integer             :: lom_fine(fine%dim), lom_crse(fine%dim)
     logical             :: linject, lzero_only
-    type(box)           :: fbox, cbox, isect
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
     type(layout)        :: lacfine
@@ -253,7 +252,7 @@ contains
     type(box)             :: domain_edge_src, domain_edge_dst
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
-    integer               :: i,j,dir,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
+    integer               :: i,j,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
     logical               :: nodal(dst%dim)
     integer               :: shift_vector(3)
     integer,  parameter   :: tag = 1111

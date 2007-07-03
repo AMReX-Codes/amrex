@@ -1947,9 +1947,6 @@ contains
     real (kind = dp_t), intent(in) :: dh(:)
     real(kind=dp_t), intent(in) :: alpha, beta
     real (kind = dp_t) :: f1(size(dh))
-    integer nx, ny
-    nx = size(ss,1)
-    ny = size(ss,2)
     f1 = beta*ONE/dh**2
     ss(:,:,0) = -TWO*sum(f1) + alpha
     ss(:,:,1) =  f1(1)
@@ -1963,10 +1960,6 @@ contains
     real (kind = dp_t), intent(in) :: dh(:)
     real(kind=dp_t), intent(in) :: alpha, beta
     real (kind = dp_t) :: f1(size(dh))
-    integer nx, ny, nz
-    nx = size(ss,1)
-    ny = size(ss,2)
-    nz = size(ss,3)
     f1 = beta*ONE/dh**2
     ss(:,:,:,0) = -TWO*sum(f1) + alpha
     ss(:,:,:,1) =  f1(1)
@@ -3110,9 +3103,6 @@ contains
     integer nx
     integer i
     integer, parameter :: XBC = 3
-
-    real (kind = dp_t) :: fac
-
     logical :: lskwd
 
     lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
@@ -3160,7 +3150,6 @@ contains
     integer, intent(in) :: face, dim
     integer nx,ny
     integer i,j
-    real (kind = dp_t) :: fac
     integer, parameter :: XBC = 5, YBC = 6
     logical :: lskwd
 

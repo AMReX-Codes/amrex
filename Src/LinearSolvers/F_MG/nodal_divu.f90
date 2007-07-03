@@ -35,8 +35,7 @@ contains
       integer        , pointer ::  mp(:,:,:,:) 
 
       integer :: i,n,dm,ng
-      integer :: mglev_fine,mglev_crse
-      type(      box) :: mbox
+      integer :: mglev_fine
       type(      box) :: pdc
       type(   layout) :: la_crse,la_fine
       type(bndry_reg) :: brs_flx
@@ -74,7 +73,6 @@ contains
 
          la_crse = unew(n-1)%la
          pdc = layout_get_pd(la_crse)
-         mglev_crse = mgt(n-1)%nlevels
 
          call bndry_reg_rr_build_1(brs_flx,la_fine,la_crse, &
                                    ref_ratio(n-1,:),pdc,nodal=nodal)
@@ -360,7 +358,7 @@ contains
      integer :: lom(rh%dim)
      integer :: lo_dom(rh%dim), hi_dom(rh%dim)
      integer :: dir
-     integer :: i, j, n
+     integer :: i, j
      logical :: nodal(rh%dim)
 
      integer :: dm

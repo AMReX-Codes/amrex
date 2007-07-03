@@ -2013,7 +2013,6 @@ contains
     integer :: r
     type(lfab), intent(in) :: fb
     logical, intent(in), optional :: all
-    integer :: i
     logical, pointer :: lp(:,:,:,:)
     logical :: lall
     lall = .false. ; if ( present(all) ) lall = all

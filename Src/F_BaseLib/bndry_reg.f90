@@ -55,7 +55,7 @@ contains
     integer, intent(in), optional :: width
     logical, intent(in), optional :: nodal(:)
     type(box) :: rbox
-    integer :: i, j, id, f, ff, kk
+    integer :: i, j, id, f, kk
     integer :: dm
     integer :: nb
     integer :: lw
@@ -70,7 +70,7 @@ contains
     type(list_box) :: blc
     type(layout) :: latmp
     logical :: nd_flag(size(rr))
-    integer :: lnc, cnt, k
+    integer :: lnc, cnt
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_rr_build_1")
@@ -119,7 +119,6 @@ contains
 
     do i = 1, dm
        do f = 0, 1
-          ff = -1; if ( f == 1 ) ff = 1
           cnt = 0
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j), nodal), rr)
@@ -311,10 +310,9 @@ contains
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: nodal(:)
     type(box) :: rbox
-    integer :: i, j, id, f
+    integer :: i, j, f
     integer :: dm,nb
     type(box), allocatable :: bxs(:)
-    type(box) :: lpd
     type(boxarray) :: baa
     integer, allocatable :: lo(:),hi(:)
     logical, allocatable :: nd_flag(:)
@@ -339,8 +337,6 @@ contains
     br%dim = dm
     br%la  = la
     br%nc  = lnc
-
-    lpd = box_nodalize(pd, nodal)
 
     nd_flag = .false.; if ( present(nodal) ) nd_flag = nodal
 

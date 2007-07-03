@@ -41,9 +41,7 @@ contains
     integer :: lof(res%dim)
     integer :: lor(res%dim)
     integer :: los(res%dim)
-    integer :: lo_dom(res%dim), hi_dom(res%dim)
     integer :: dm
-    integer :: dir
     integer :: i, j
 
     real(kind=dp_t), pointer :: rp(:,:,:,:)
@@ -55,10 +53,6 @@ contains
     call build(bpt, "ml_interf_c")
 
     dm = res%dim
-    dir = dim
-
-    lo_dom = lwb(crse_domain)
-    hi_dom = upb(crse_domain)
 
     do j = 1, crse%nboxes
        if ( remote(crse, j) ) cycle
@@ -291,7 +285,7 @@ contains
     integer,        intent(in   ) :: ir(:)
     integer                       :: side
 
-    type(box) :: fbox, cbox, mbox, isect
+    type(box) :: fbox, mbox, isect
     integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim)
@@ -306,7 +300,7 @@ contains
     integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
     integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
-    integer,    allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer,    allocatable :: rcnt(:), rdsp(:), scnt(:), sdsp(:)
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     integer,    allocatable :: g_snd_i(:), g_rcv_i(:)
     type(fluxassoc)         :: fa

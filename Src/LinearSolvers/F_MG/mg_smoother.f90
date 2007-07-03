@@ -154,14 +154,11 @@ contains
                     + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
                     + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!              write(6,1000) i,j,uu(i,j),ff(i,j)
              end if
           end do
        end do
        !$OMP END PARALLEL DO
     end if
-1000  format('SRC UU ',i2,1x,i2,1x,e15.8,1x,e15.8)
-
   end subroutine gs_rb_smoother_2d
 
   subroutine gs_rb_smoother_3d_transpose(omega, ss, uu, ff, mm, lo, ng, n, skwd)
@@ -530,11 +527,9 @@ contains
                     + ss(i,j,7) * uu(i  ,j+1) &
                     + ss(i,j,8) * uu(i+1,j+1)
                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!              write(6,1000) i,j,ff(i,j),uu(i,j),ss(i,j,0)
             end if
          end do
       end do
-!     print *,' '
 
       !$OMP END PARALLEL DO
 
@@ -572,18 +567,12 @@ contains
                         + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
                         + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
                    uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!                  write(6,1000) i,j,ff(i,j),uu(i,j)
                 end if
              end do
           end do
-!     print *,' '
       end do
       !$OMP END PARALLEL DO
-
-1000  format('SRC UU ',i2,1x,i2,1x,e15.8,1x,e15.8)
-
     end if
-
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh)
@@ -663,13 +652,10 @@ contains
                         + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
 
                    uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-!                  write(6,1000) i,j,k,ff(i,j,k),uu(i,j,k)
                 end if
              end do
           end do
-!         print *,' '
         end do
-!       print *,' '
       end do
 
     else if (size(ss,dim=4) .eq. 21) then
@@ -736,9 +722,6 @@ contains
       stop
 
     end if
-
-1000  format('SRC UU ',i2,1x,i2,1x,i2,1x,e15.8,1x,e15.8)
-
   end subroutine nodal_smoother_3d
 
   subroutine gs_lex_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)

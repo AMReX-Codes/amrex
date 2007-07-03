@@ -83,7 +83,7 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), allocatable :: temp_aa(:)
-    type(box) :: b,sbx,mbx,ibx,jbx,shifted_box
+    type(box) :: b,mbx,ibx,jbx,shifted_box
     type(box) :: bbox
 
     type(box), allocatable :: barray(:)
@@ -102,9 +102,6 @@ contains
     integer :: dir
     integer :: jlo, jhi, klo, khi
     integer :: inode, iedge
-
-    integer i_lbnd(ss%dim)
-    integer i_ubnd(ss%dim)
 
     integer max_neighbors
     integer, allocatable :: neighbors(:,:)
@@ -162,9 +159,6 @@ contains
 
     do igrid = 1, ngrids
        ibx = get_box(ss, igrid)
-       i_lbnd = ibx%lo(1:dm)
-       i_ubnd = ibx%hi(1:dm)
-
        nx = box_extent_d(ibx,1)
        select case(dm)
        case(1)
@@ -267,7 +261,6 @@ contains
        do igrid = 1, ngrids
           ig = new_iarray_i(igrid)
           mp => dataptr(mm     , ig)
-          sbx = get_pbox(spo%index_into_aa,ig)
           ind => dataptr(spo%index_into_aa,ig)
           call create_ja_1d(spo%smt%ja,mp(:,1,1,1),ind(:,1,1,1),iedge)
        end do
@@ -996,7 +989,7 @@ contains
       real (kind = dp_t), intent(inout) :: aa(:)
       integer, intent(inout) :: ind(:,:)
       integer, intent(inout) :: ia(:)
-      integer nx,ny
+      integer nx
       integer i,j
       integer iedge,inode
       integer, parameter :: XBC = 5, YBC = 6
@@ -1565,7 +1558,7 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), allocatable :: temp_aa(:)
-    type(box) :: b,sbx,mbx,ibx,jbx,shifted_box
+    type(box) :: b,ibx
     type(box) :: bbox,jbox
 
     type(imultifab) :: mm_grown
@@ -1577,23 +1570,13 @@ contains
     integer  , allocatable :: new_iarray_ij(:,:)
     integer  , allocatable :: new_iarray_ijk(:,:,:)
 
-    integer :: pts_to_add,numpts, num_aa
+    integer :: numpts, num_aa
     integer :: dm
-    integer :: ig,igrid,jgrid,ngrids
-    integer :: i,j,k,n,ns,nx,ny,nz
-    integer :: dir
+    integer :: ig,igrid,ngrids
+    integer :: i,j,k,n,ns
     integer :: jlo, jhi, klo, khi
-    integer :: ii,jj,kk
     integer :: inode, iedge
     logical :: at_jhi,at_khi
-
-    integer i_lbnd(ss%dim)
-    integer i_ubnd(ss%dim)
-
-    integer max_neighbors
-    integer, allocatable :: neighbors(:,:)
-    integer, allocatable :: sides(:,:)
-    integer, allocatable :: num_nbors(:)
 
     integer, allocatable :: num_grids_for_j(:)
     integer, allocatable :: num_grids_for_jk(:,:)
@@ -2084,12 +2067,10 @@ contains
       logical :: at_ihi
       logical :: neu_lo_i,neu_lo_j,neu_hi_i,neu_hi_j
       integer :: i,j,nx
-      integer :: iedge0
 
       nx = size(sp,dim=1)
 
       j = 1
-      iedge0 = iedge
 
 !     **************************************************************************
 !     Note: only do high side if Neumann; otherwise is Dirichlet (in which case 
@@ -2170,7 +2151,7 @@ contains
       logical, intent(in   ) :: at_jhi
 
       logical :: at_ihi
-      integer :: i,j,ie,nx
+      integer :: i,j,nx
 
       nx = size(mp,dim=1)-2
       j = 1
@@ -2229,7 +2210,6 @@ contains
       integer :: nx,i,j,k
       logical :: at_ihi
       logical :: neu_lo_i,neu_lo_j,neu_lo_k,neu_hi_i,neu_hi_j,neu_hi_k
-      integer :: iedge0
 
       nx = size(sp,dim=1)
 
@@ -2240,7 +2220,6 @@ contains
 
       do i = 1, nx
        at_ihi = (i.eq.nx)
-       iedge0 = iedge
        if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
         if ( (.not. at_ihi .or. bc_neumann(mp(i,j,k),1,1)) .and. &
              (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
@@ -2432,7 +2411,6 @@ contains
 
       logical :: at_ihi
       integer :: nx,i,j,k
-      integer :: iedge0
 
       nx = size(mp,dim=1)-2
 
@@ -2442,7 +2420,6 @@ contains
       !**************************************************************************
 
       do i = 1, nx
-       iedge0 = iedge
        at_ihi = (i.eq.nx)
        if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
         if ( (.not. at_ihi .or. bc_neumann(mp(i,j,k),1,1)) .and. &
@@ -2574,8 +2551,8 @@ contains
     integer        , pointer :: ind_i(:,:,:,:)
     integer        , pointer :: ind_j(:,:,:,:)
 
-    integer :: lo_i(ind%dim),hi_i(ind%dim)
-    integer :: lo_j(ind%dim),hi_j(ind%dim)
+    integer :: lo_i(ind%dim)
+    integer :: hi_j(ind%dim)
     integer :: lo_a(ind%dim),hi_a(ind%dim)
     integer :: i,j,igrid,jgrid,ngrids,idm
     logical :: do_copy
@@ -2596,8 +2573,6 @@ contains
                 ind_i => dataptr(ind, igrid)
                 ind_j => dataptr(ind, jgrid)
                 lo_i = lwb(ibx)
-                hi_i = upb(ibx)
-                lo_j = lwb(jbx)
                 hi_j = upb(jbx)
                 lo_a = lwb(abx)
                 hi_a = upb(abx)
@@ -2660,12 +2635,11 @@ contains
     integer hi(rh%dim)
     integer i,j,k
     integer igrid,ngrids
-    integer numpts, num_aa
+    integer numpts
 
     ngrids = rh%nboxes
 
     numpts = spo%smt%nrow
-    num_aa = spo%smt%numa
 
     allocate(soln(numpts))
     allocate(rhs(numpts))
@@ -2766,16 +2740,15 @@ contains
     type(box) :: ibx,jbx,abx
     logical   :: do_copy
 
-    integer lo(rh%dim),lo_j(rh%dim),lo_a(rh%dim)
+    integer lo(rh%dim),lo_a(rh%dim)
     integer hi(rh%dim),hi_j(rh%dim),hi_a(rh%dim)
     integer i,j,k,idm
     integer igrid,jgrid,ngrids
-    integer numpts, num_aa
+    integer numpts
 
     ngrids = rh%nboxes
 
     numpts = spo%smt%nrow
-    num_aa = spo%smt%numa
 
     allocate(soln(numpts))
     allocate(rhs(numpts))
@@ -2867,7 +2840,6 @@ contains
              abx = intersection(ibx,jbx)
              if ( empty(abx)) cycle
              rp_j => dataptr(uu,jgrid)
-             lo_j = lwb(jbx)
              hi_j = upb(jbx)
              lo_a = lwb(abx)
              hi_a = upb(abx)

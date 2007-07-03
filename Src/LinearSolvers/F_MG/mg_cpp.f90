@@ -46,7 +46,7 @@ contains
   subroutine mgt_verify(str)
     character(len=*), intent(in) :: str
 
-  2 if ( mgts%dim == 0 ) then
+    if ( mgts%dim == 0 ) then
        call bl_error( trim(str) // ": MGT invalid DIM: not allocated: ")
     end if
     
@@ -102,7 +102,6 @@ subroutine mgt_alloc(dm, nlevel, nodal)
   implicit none
   integer, intent(in) :: dm, nlevel
   integer :: nodal
-  integer i
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -128,18 +127,13 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
 
   type(box) :: bxs(nb)
   integer   :: i
-  integer   :: nc
   logical   :: pmask(dm)
-  type(box) :: pd
   integer   :: flev
-  logical, allocatable :: nodal(:)
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_LEVEL", flev)
 
   pmask = (pm /= 0)
-
-  allocate(nodal(dm))
 
   if ( dm /= mgts%dim ) then
      call bl_error("MGT_SET_LEVEL: Input DIM doesn't match internal DIM")
@@ -287,13 +281,11 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb)
   real(dp_t), intent(in) :: xa(*), xb(*), pxa(*), pxb(*)
   integer :: nlev, i, dm
   integer :: flev
-  type(box) :: pd
   type(boxarray) :: pdv
   dm = mgts%dim
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
   
-  pd = mgts%pd(flev)
   nlev = mgts%mgt(flev)%nlevels
   do i = nlev-1, 1, -1
      call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i))
@@ -383,9 +375,8 @@ subroutine mgt_set_cf_1d(lev, n, cf, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1),*)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev
+  integer :: fn, nlev
   fn = n + 1
-  flev = lev+1
   nlev = size(mgts%coeffs)
   call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
 
@@ -400,9 +391,8 @@ subroutine mgt_set_cf_1d_const(lev, n, lo, hi, coeff_value)
   integer        , intent(in) :: lev, n, lo(1), hi(1)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev
+  integer :: fn, nlev
   fn = n + 1
-  flev = lev+1
   nlev = size(mgts%coeffs)
   call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
 
@@ -417,9 +407,8 @@ subroutine mgt_set_uu_1d(lev, n, uu, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
   real(kind=dp_t), intent(in) :: uu(plo(1):phi(1))
   real(kind=dp_t), pointer :: up(:,:,:,:)
-  integer :: flev, fn
+  integer :: fn
   fn = n + 1
-  flev = lev+1
   
   call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
 
@@ -434,7 +423,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), *)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j
+  integer :: flev, fn, nlev
 
   fn = n + 1
   flev = lev+1
@@ -452,7 +441,7 @@ subroutine mgt_set_cfa_2d_const(lev, n, lo, hi, coeff_value)
   integer, intent(in) :: lev, n, lo(2), hi(2)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j
+  integer :: flev, fn, nlev
 
   fn = n + 1
   flev = lev+1
@@ -471,7 +460,7 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j
+  integer :: flev, fn, nlev
 
   fn = n + 1
   flev = lev+1
@@ -489,7 +478,7 @@ subroutine mgt_set_cfbx_2d_const(lev, n, lo, hi, coeff_value)
   integer        , intent(in) :: lev, n, lo(2), hi(2)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j
+  integer :: flev, fn, nlev
 
   fn = n + 1
   flev = lev+1
@@ -508,7 +497,7 @@ subroutine mgt_set_cfby_2d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -525,7 +514,7 @@ subroutine mgt_set_cfby_2d_const(lev, n, lo, hi, coeff_value)
   integer        , intent(in) :: lev, n, lo(2), hi(2)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -542,7 +531,7 @@ subroutine mgt_set_uu_2d(lev, n, uu, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
   real(kind=dp_t), intent(in) :: uu(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: up(:,:,:,:)
-  integer :: flev, fn, i, j
+  integer :: flev, fn
   fn = n + 1
   flev = lev+1
 
@@ -560,7 +549,7 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -577,7 +566,7 @@ subroutine mgt_set_cfa_3d_const(lev, n, lo, hi, coeff_value)
   integer, intent(in) :: lev, n, lo(3), hi(3)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -595,7 +584,7 @@ subroutine mgt_set_cfbx_3d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -613,7 +602,7 @@ subroutine mgt_set_cfby_3d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -631,7 +620,7 @@ subroutine mgt_set_cfbz_3d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -648,7 +637,7 @@ subroutine mgt_set_cfbx_3d_const(lev, n, lo, hi, coeff_value)
   integer, intent(in) :: lev, n, lo(3), hi(3)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -665,7 +654,7 @@ subroutine mgt_set_cfby_3d_const(lev, n, lo, hi, coeff_value)
   integer, intent(in) :: lev, n, lo(3), hi(3)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -682,7 +671,7 @@ subroutine mgt_set_cfbz_3d_const(lev, n, lo, hi, coeff_value)
   integer, intent(in) :: lev, n, lo(3), hi(3)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: flev, fn, nlev, i, j, k 
+  integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)

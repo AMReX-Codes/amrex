@@ -97,7 +97,6 @@ subroutine mgt_nodal_alloc(dm, nlevel, nodal, stencil_type_in)
   implicit none
   integer, intent(in) :: dm, nlevel, stencil_type_in
   integer :: nodal
-  integer i
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -130,18 +129,13 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
 
   type(box) :: bxs(nb)
   integer   :: i
-  integer   :: nc
   logical   :: pmask(dm)
-  type(box) :: pd
   integer   :: flev
-  logical, allocatable :: nodal(:)
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_NODAL_LEVEL", flev)
 
   pmask = (pm /= 0)
-
-  allocate(nodal(dm))
 
   if ( dm /= mgts%dim ) then
      call bl_error("MGT_SET_NODAL_LEVEL: Input DIM doesn't match internal DIM")
@@ -165,14 +159,12 @@ subroutine mgt_nodal_finalize(dx,bc)
   integer   , intent(in) :: bc(2,mgts%dim)
   integer :: dm, i, nlev, n
   integer :: ns
-  integer :: nc
   logical, allocatable :: nodal(:)
 
   integer :: max_nlevel_in
   integer :: bottom_solver_in
 
   type(boxarray) :: bac
-  type(layout)   :: la
 
   integer :: bottom_max_iter_in
 
@@ -186,7 +178,6 @@ subroutine mgt_nodal_finalize(dx,bc)
   allocate(nodal(1:dm))
   nodal = mgts%nodal
 
-  nc = 1
   nlev = mgts%nlevel
 
   do i = 1, nlev-1
@@ -286,12 +277,11 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev
-  integer :: nlev, dm, i
+  integer :: nlev, i
   integer :: flev
   flev = lev + 1
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
 
-  dm = mgts%dim
   nlev = mgts%mgt(flev)%nlevels
   allocate(mgts%coeffs(nlev))
 
@@ -314,15 +304,13 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   use coeffs_module
   implicit none
   integer, intent(in) :: lev
-  integer :: nlev, i, dm
+  integer :: nlev, i
   integer :: flev
-  type(box) :: pd
-  type(boxarray) :: pdv
-  dm = mgts%dim
+
   flev = lev + 1
+
   call mgt_verify_lev("MGT_FINALIZE_NODAL_STENCIL_LEV", flev)
   
-  pd = mgts%pd(flev)
   nlev = mgts%mgt(flev)%nlevels
 
   call multifab_fill_boundary(mgts%coeffs(nlev))
@@ -373,7 +361,7 @@ subroutine mgt_newu()
   use nodal_cpp_mg_module
   use nodal_newu_module
 
-  integer :: i,n
+  integer :: n
 
   do n = 1,mgts%nlevel
      call mkunew(mgts%vel(n),mgts%uu(n),mgts%amr_coeffs(n), &
