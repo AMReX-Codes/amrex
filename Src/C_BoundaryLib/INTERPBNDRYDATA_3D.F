@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.2 2002-10-19 18:33:57 car Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.3 2007-07-03 21:54:58 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -56,7 +56,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
@@ -178,7 +178,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
@@ -300,7 +300,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
@@ -422,7 +422,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
@@ -545,7 +545,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
@@ -667,7 +667,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy, ainterp
+      REAL_T   xx, yy
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
