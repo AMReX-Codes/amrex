@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.32 2007-02-27 22:03:18 lijewski Exp $
+// $Id: main.cpp,v 1.33 2007-07-03 21:05:31 almgren Exp $
 //
 
 #include <fstream>
@@ -236,13 +236,10 @@ main (int argc, char* argv[])
   for ( MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
   {
       IntVect ivmid = (rhs[rhsmfi].smallEnd() + rhs[rhsmfi].bigEnd())/2;
-      //ivmid -= IntVect(0, (rhsmfi().bigEnd()[1]-rhsmfi().smallEnd()[1])/2);
-      //ivmid = rhsmfi().smallEnd();
       rhs[rhsmfi].operator()(ivmid,0) = 1;
       ivmid += IntVect::TheUnitVector();
-      // rhs[rhsmfi].operator()(ivmid,0) = -1;
-      // rhsmfi->setVal(1.0);
-      // std::cout << rhs[rhsmfi] << std::endl;
+      rhs[rhsmfi].operator()(ivmid,0) = -1;
+//    std::cout << rhs[rhsmfi] << std::endl;
   }
   //
   // Initialize boundary data, set boundary condition flags and locations:
