@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.41 2007-07-05 20:02:40 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.42 2007-07-05 20:51:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -153,8 +153,6 @@ CGSolver::advance (MultiFab&       p,
 
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
-        BL_ASSERT(zbox[pmfi.index()] == gbox[pmfi.index()]);
-
         FORT_CGADVCP(p[pmfi].dataPtr(),
                      ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
                      z[pmfi].dataPtr(),
@@ -179,8 +177,6 @@ CGSolver::update (MultiFab&       sol,
 
     for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
     {
-        BL_ASSERT(solmfi.validbox() == gbox[solmfi.index()]);
-
         FORT_CGUPDATE(sol[solmfi].dataPtr(),
                       ARLIM(sol[solmfi].loVect()), ARLIM(sol[solmfi].hiVect()),
                       r[solmfi].dataPtr(),
@@ -210,7 +206,6 @@ CGSolver::axp (MultiFab&      w,
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
         Real tpw;
-        BL_ASSERT(pmfi.validbox() == gbox[pmfi.index()]);
         FORT_CGXDOTY(&tpw,
                      p[pmfi].dataPtr(),
                      ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
