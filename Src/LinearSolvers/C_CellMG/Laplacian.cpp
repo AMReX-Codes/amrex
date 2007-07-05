@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.15 2007-07-05 20:02:40 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.16 2007-07-05 20:50:32 almgren Exp $
 //
 #include <winstd.H>
 
@@ -32,8 +32,6 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 
     for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
     {
-        BL_ASSERT(bxa[inmfi.index()] == inmfi.validbox());
-
         FORT_FLUX(in[inmfi].dataPtr(),
 		  ARLIM(in[inmfi].loVect()), ARLIM(in[inmfi].hiVect()),
 		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
@@ -79,7 +77,6 @@ Laplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m4 = *maskvals[level][gn][oitr()]; oitr++;
         const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
-        BL_ASSERT(bxa[solnLmfi.index()] == solnLmfi.validbox());
 
 #if (BL_SPACEDIM == 2)
         FORT_GSRB(
