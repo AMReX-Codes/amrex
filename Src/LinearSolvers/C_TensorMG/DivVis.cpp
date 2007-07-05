@@ -1,6 +1,6 @@
 
 //
-// $Id: DivVis.cpp,v 1.12 2007-07-05 20:02:51 lijewski Exp $
+// $Id: DivVis.cpp,v 1.13 2007-07-05 20:59:05 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -383,10 +383,6 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
     D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
            const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
            const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
-
-    BL_ASSERT(nc == BL_SPACEDIM);
-    BL_ASSERT(nc == xflux.nComp());
-    BL_ASSERT(nc == yflux.nComp());
 
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {

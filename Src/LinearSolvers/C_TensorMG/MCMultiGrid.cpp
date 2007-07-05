@@ -1,6 +1,6 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.13 2007-07-05 20:02:51 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.14 2007-07-05 20:59:05 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -111,8 +111,6 @@ MCMultiGrid::errorEstimate (int       level,
     Real resk   = 0.0;
     for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
-        BL_ASSERT(gbox[resmfi.index()] == resmfi.validbox());
-
         resk = (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps);
 
         restot = std::max(restot, resk);
