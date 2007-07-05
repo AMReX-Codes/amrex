@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.21 2006-02-09 21:08:25 car Exp $
+// $Id: MCLinOp.cpp,v 1.22 2007-07-05 20:02:51 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -402,8 +402,6 @@ MCLinOp::prepareForLevel (int level)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, (Mask*)0);
     }
-    int myproc = ParallelDescriptor::MyProc();
-
     Array<IntVect> pshifts(27);
 
     for (OrientationIter oitr; oitr; ++oitr)

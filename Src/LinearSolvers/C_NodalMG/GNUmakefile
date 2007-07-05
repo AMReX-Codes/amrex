@@ -1,22 +1,21 @@
 #
-# $Id: GNUmakefile,v 1.54 2006-02-10 17:20:22 car Exp $
+# $Id: GNUmakefile,v 1.55 2007-07-05 20:04:32 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
 TOP = $(PBOXLIB_HOME)
 
 PRECISION = DOUBLE
-DEBUG     = FALSE
 DEBUG     = TRUE
-PROFILE   = TRUE
+DEBUG     = FALSE
 PROFILE   = FALSE
-GPROF     =
+PROFILE   = TRUE
 GPROF     = TRUE
+GPROF     =
 DIM       = 2
 DIM       = 3
 COMP      = cxx
 COMP	  = g++
-COMP	  = Intel
 FCOMP	  = g77
 FCOMP     = Intel
 USE_MPI   = TRUE

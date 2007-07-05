@@ -380,7 +380,6 @@ task_fecavg_2::doit ()
 
     m_finished = true;
 
-    const int        igrid      = grid_number();
     FArrayBox&       sfab       = target_fab();
     const Box&       sfab_box   = sfab.box();
     const FArrayBox& Sf_fab     = task_fab_result(0);
@@ -615,7 +614,6 @@ task_ediv::doit ()
 
     m_finished = true;
 
-    const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
     const Box&  s_box           = target_fab().box();
     const Real* uf[BL_SPACEDIM] = {
@@ -725,7 +723,6 @@ task_cdiv::doit ()
 
     m_finished = true;
 
-    const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
     const Box&  s_box           = target_fab().box();
     const Real* uf[BL_SPACEDIM] = {
@@ -1192,8 +1189,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::manual_project()");
 
-    const Real strt_time = ParallelDescriptor::second();
-
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
@@ -1400,12 +1395,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     {
 	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
-
-//    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-//    Real      run_time = ParallelDescriptor::second() - strt_time;
-//    ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-//    if (ParallelDescriptor::IOProcessor())
-//        std::cout << "holy_grail_amr_projector::manual_project(): time: " << run_time << std::endl;
 }
 
 void

@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.17 2005-09-30 16:47:39 car Exp $
+// $Id: StationData.cpp,v 1.18 2007-07-05 20:02:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -151,8 +151,7 @@ StationData::report (Real            time,
 
     static Array<Real> data;
 
-    const int N      = m_vars.size();
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int N = m_vars.size();
 
     data.resize(N);
 

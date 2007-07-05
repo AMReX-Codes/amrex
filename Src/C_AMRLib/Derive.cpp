@@ -1,5 +1,5 @@
 //
-// $Id: Derive.cpp,v 1.16 2001-08-09 22:42:00 marc Exp $
+// $Id: Derive.cpp,v 1.17 2007-07-05 20:02:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -16,9 +16,9 @@ DeriveRec::DeriveRec (const std::string& name,
                       Interpolater*  interp)
     :
     derive_name(name),
+    variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
-    variable_names(),
     func(der_func),
     mapper(interp),
     bx_map(box_map),
@@ -37,9 +37,9 @@ DeriveRec::DeriveRec (const std::string& name,
                       Interpolater*  interp)
     :
     derive_name(name),
+    variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
-    variable_names(var_names),
     func(der_func),
     mapper(interp),
     bx_map(box_map),
@@ -123,8 +123,6 @@ DeriveRec::addRange (const DescriptorList& d_list,
                      int                   src_comp,
                      int                   num_comp) 
 {
-    const StateDescriptor& d = d_list[state_indx];
-
     StateRange* r = new StateRange;
 
     r->typ  = state_indx;

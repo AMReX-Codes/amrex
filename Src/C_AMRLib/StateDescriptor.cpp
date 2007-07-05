@@ -1,5 +1,5 @@
 //
-// $Id: StateDescriptor.cpp,v 1.18 2003-02-06 18:14:29 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.19 2007-07-05 20:02:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -137,13 +137,13 @@ DescriptorList::addDescriptor (int                         indx,
 
 StateDescriptor::StateDescriptor ()
     :
+    t_type(Point),
     id(-1),
     ncomp(0),
     ngrow(0),
     mapper(0),
     m_extrap(false),
-    bc_func(PArrayManage),
-    t_type(Point)
+    bc_func(PArrayManage)
 {}
 
 StateDescriptor::StateDescriptor (IndexType                   btyp,
@@ -157,8 +157,8 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     type(btyp),
     t_type(ttyp),
     id(ident),
-    ngrow(nextra),
     ncomp(num_comp),
+    ngrow(nextra),
     mapper(interp),
     m_extrap(extrap),
     bc_func(PArrayManage)

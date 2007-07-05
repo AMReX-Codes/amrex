@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.14 2007-02-16 00:10:50 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.15 2007-07-05 20:02:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -28,7 +28,6 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
     int src_comp = 0;
     int num_comp = 1;
     applyBC(in,src_comp,num_comp,level,bc_mode);
-    const BoxArray& bxa = gbox[level];
     int nc = in.nComp();
 
     for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
@@ -57,7 +56,6 @@ Laplacian::Fsmooth (MultiFab&       solnL,
                     int             level,
                     int             redBlackFlag)
 {
-    const BoxArray& bxa = gbox[level];
     OrientationIter oitr;
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
     const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;

@@ -1,6 +1,6 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.12 2001-08-09 22:42:01 marc Exp $
+// $Id: MCMultiGrid.cpp,v 1.13 2007-07-05 20:02:51 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -64,8 +64,8 @@ MCMultiGrid::initialize ()
 
 MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
     :
-    Lp(_Lp),
-    initialsolution(0)
+    initialsolution(0),
+    Lp(_Lp)
 {
     if (!initialized)
 	initialize();
@@ -109,7 +109,6 @@ MCMultiGrid::errorEstimate (int       level,
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     Real restot = 0.0;
     Real resk   = 0.0;
-    const BoxArray& gbox = Lp.boxArray(0);
     for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
         BL_ASSERT(gbox[resmfi.index()] == resmfi.validbox());

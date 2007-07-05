@@ -565,7 +565,6 @@ fill_internal_borders (MultiFab&              r,
                     || jgrid < 0
                     || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
                     break;
-                const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
                 const int idim = lev_interface.fdim(iface);
                 Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
                 Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
@@ -585,8 +584,6 @@ fill_internal_borders (MultiFab&              r,
     }
     else if (type(r) == IntVect::TheCellVector())
     {
-        const BoxArray& r_ba = r.boxArray();
-
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++)
 	{
             if (lev_interface.m_fill_internal_borders_fc[iface])
@@ -609,6 +606,7 @@ fill_internal_borders (MultiFab&              r,
                 tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b, did_work));
                 tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(idim, w), did_work));
 #else
+                const BoxArray& r_ba = r.boxArray();
                 Box bj = lev_interface.box(level_interface::FACEDIM, iface);
                 Box bi = lev_interface.box(level_interface::FACEDIM, iface);
                 for (int i = 0; i < idim; i++)
@@ -729,11 +727,11 @@ task_restric_fill::task_restric_fill (task_list&                  tl_,
     :
     task(tl_),
     m_restric(restric),
+    m_tmp(0),
     m_d(dest),
     m_r(r),
     m_dgrid(dgrid),
     m_rgrid(rgrid),
-    m_tmp(0),
     m_box(box),
     m_rat(rat),
     m_local(false)

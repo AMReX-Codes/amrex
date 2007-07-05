@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.14 2004-01-07 21:18:43 car Exp $
+// $Id: MCCGSolver.cpp,v 1.15 2007-07-05 20:02:51 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -38,11 +38,11 @@ MCCGSolver::MCCGSolver (MCLinOp& _Lp,
 			bool     _use_mg_precond,
 			int      _lev)
     :
+    mg_precond(NULL),
+    use_mg_precond(_use_mg_precond),
     isExpert((int)def_isExpert),
     Lp(_Lp),
-    lev(_lev),
-    use_mg_precond(_use_mg_precond),
-    mg_precond(NULL)
+    lev(_lev)
 {
     if (!initialized)
 	initialize();
@@ -77,7 +77,6 @@ MCCGSolver::norm (const MultiFab& res)
     Real restot = 0.0;
     Real resk   = 0.0;
     const int ncomp = res.nComp();
-    const BoxArray& gbox = res.boxArray();
     for (MFIter mfi(res); mfi.isValid(); ++mfi)
     {
         BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
@@ -220,7 +219,6 @@ MCCGSolver::solve (MultiFab&       sol,
 
 	rho = 0.0;
 	int ncomp = z->nComp();
-	const BoxArray& gbox = r->boxArray();
 
         for (MFIter rmfi(*r); rmfi.isValid(); ++rmfi)
 	{
@@ -343,7 +341,6 @@ MCCGSolver::advance (MultiFab&       p,
     // Compute p = z  +  beta p
     //
     int             ncomp = p.nComp();
-    const BoxArray& gbox  = Lp.boxArray(lev);
     const BoxArray& zbox  = z.boxArray();
 
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
@@ -371,7 +368,6 @@ MCCGSolver::update (MultiFab&       sol,
     //
     // Compute x =+ alpha p  and  r -= alpha w
     //
-    const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = r.nComp();
     for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
     {
@@ -398,7 +394,6 @@ MCCGSolver::axp (MultiFab& w,
     // Compute w = A.p, and return Transpose(p).w
     //
     Real pw = 0.0;
-    const BoxArray& gbox = Lp.boxArray(lev);
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)

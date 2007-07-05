@@ -573,8 +573,7 @@ void
 holy_grail_amr_multigrid::build_sync_cache (int mglev,
                                             int lev)
 {
-    const IntVect& rat    = gen_ratio[lev-1];
-    const int      mglevc = ml_index[lev-1];
+    const IntVect& rat = gen_ratio[lev-1];
 
     for (int iface = 0;
 	 iface < lev_interface[mglev].nboxes(level_interface::FACEDIM);

@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.48 2007-04-18 17:51:08 lijewski Exp $
+// $Id: FabSet.cpp,v 1.49 2007-07-05 20:02:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -424,9 +424,8 @@ FabSet::DoIt (const MultiFab& src,
     FabSetCopyDescriptor   fscd;
     std::vector<FillBoxId> fbids;
 
-    const int  MyProc = ParallelDescriptor::MyProc();
-    FSRec&     fsrec  = TheFSRec(src,*this,ngrow,scomp,ncomp);
-    MultiFabId mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
+    FSRec&     fsrec = TheFSRec(src,*this,ngrow,scomp,ncomp);
+    MultiFabId mfid  = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
 
     BL_ASSERT(fsrec.m_box.size() == fsrec.m_mfidx.size());
     BL_ASSERT(fsrec.m_box.size() == fsrec.m_fsidx.size());
@@ -548,9 +547,8 @@ FabSet::linComb (Real            a,
     BL_ASSERT(ngrow <= mfb.nGrow());
 
     const BoxArray& bxa = mfa.boxArray();
-    const BoxArray& bxb = mfb.boxArray();
 
-    BL_ASSERT(bxa == bxb);
+    BL_ASSERT(bxa == mfb.boxArray());
 
     MultiFabCopyDescriptor mfcd;
 
@@ -599,8 +597,6 @@ FabSet::linComb (Real            a,
     mfcd.CollectData();
 
     FArrayBox a_fab, b_fab;
-
-    const int MyProc = ParallelDescriptor::MyProc();
 
     BL_ASSERT(fbids_mfa.size() == fbids_mfb.size());
 

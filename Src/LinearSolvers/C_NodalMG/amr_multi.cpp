@@ -186,15 +186,16 @@ amr_multigrid::amr_multigrid (const Array<BoxArray>&    Mesh,
 			      int                       Lev_max_max,
 			      const amr_boundary* Boundary,
 			      int                       Pcode)
-  : ml_mesh(Mesh),
-    gen_ratio(Gen_ratio),
+  :
     lev_min_min(Lev_min_min),
     lev_min_max(Lev_min_max),
     lev_max_max(Lev_max_max),
+    gen_ratio(Gen_ratio),
+    ml_mesh(Mesh),
     mg_boundary(Boundary),
+    c_sys(cartesian),
     pcode(Pcode),
-    integrate(0),
-    c_sys(cartesian)
+    integrate(0)
 {}
 
 void

@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.40 2007-02-23 22:38:31 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.41 2007-07-05 20:02:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -148,7 +148,6 @@ CGSolver::advance (MultiFab&       p,
     //
     // Compute p = z  +  beta p
     //
-    const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = p.nComp();
     const BoxArray& zbox = z.boxArray();
 
@@ -176,7 +175,6 @@ CGSolver::update (MultiFab&       sol,
     //
     // compute x =+ alpha p  and  r -= alpha w
     //
-    const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = r.nComp();
 
     for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
@@ -206,7 +204,6 @@ CGSolver::axp (MultiFab&      w,
     // Compute w = A.p, and return Transpose(p).w
     //
     Real pw = 0.0;
-    const BoxArray& gbox = Lp.boxArray(lev);
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
 
