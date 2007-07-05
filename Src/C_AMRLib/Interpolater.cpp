@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.35 2006-09-06 17:27:48 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.36 2007-07-05 20:02:11 lijewski Exp $
 //
 #include <winstd.H>
 #include <climits>
@@ -462,8 +462,6 @@ CellQuadratic::interp (const FArrayBox& crse,
     const int* fbhi   = target_fine_region.hiVect();
     const int* cblo   = crse_bx.loVect();
     const int* cbhi   = crse_bx.hiVect();
-    const int* cflo   = crse.loVect();
-    const int* cfhi   = crse.hiVect();
     const int* fslo   = fslope_bx.loVect();
     const int* fshi   = fslope_bx.hiVect();
     int slope_flag    = (do_limited_slope ? 1 : 0);

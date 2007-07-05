@@ -774,7 +774,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			2 * domain.smallEnd(idim) - 1 + a
 			- b.bigEnd(idim) - b.smallEnd(idim));
-		    const Box& rbox = r.fabbox(jgrid);
 		    for (int i = 0; i < r.nComp(); i++)
 		    {
 			if ((i == idim + BL_SPACEDIM)
@@ -798,7 +797,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			(2 * domain.smallEnd(idim) - 1 + a
 			 - b.bigEnd(idim) - b.smallEnd(idim)));
-		    const Box& rbox = r.fabbox(jgrid);
 		    if (idim == flowdim || flowdim == -3)
 		    {
                         tl.add_task(
@@ -824,7 +822,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			(2 * domain.smallEnd(idim) - 1 + a
 			 - b.bigEnd(idim) - b.smallEnd(idim)));
-		    const Box& rbox = r.fabbox(jgrid);
 		    if (flowdim == -2)
 		    {
                         tl.add_task(
@@ -877,7 +874,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			    idim,
 			    (2 * domain.smallEnd(idim) - 1 + a
 			     - b.bigEnd(idim) - b.smallEnd(idim)));
-			const Box& rbox = r.fabbox(jgrid);
                         tl.add_task(
                             new task_fill_bord(FORT_FBREF, tl, r, jgrid,
                                                b, bb, idim, r.nComp(), 0));
@@ -913,7 +909,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
 			 - b.bigEnd(idim) - b.smallEnd(idim)));
-		    const Box& rbox = r.fabbox(igrid);
 		    for (int i = 0; i < r.nComp(); i++)
 		    {
 			if ((i == idim + BL_SPACEDIM)
@@ -937,7 +932,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
 			 - b.bigEnd(idim) - b.smallEnd(idim)));
-		    const Box& rbox = r.fabbox(igrid);
 		    if (idim == flowdim || flowdim == -3)
 		    {
                         tl.add_task(
@@ -963,7 +957,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			idim,
 			(2 * domain.bigEnd(idim) + 1 + a
 			 - b.bigEnd(idim) - b.smallEnd(idim)));
-		    const Box& rbox = r.fabbox(igrid);
 		    if (flowdim == -2)
 		    {
                         tl.add_task(
@@ -1016,7 +1009,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			    idim,
 			    (2 * domain.bigEnd(idim) + 1 + a
 			     - b.bigEnd(idim) - b.smallEnd(idim)));
-			const Box& rbox = r.fabbox(igrid);
                         tl.add_task(
                             new task_fill_bord(FORT_FBREF, tl, r, igrid,
                                                b, bb, idim, r.nComp(), 0));

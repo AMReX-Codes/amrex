@@ -91,14 +91,14 @@ task_interpolate_patch::task_interpolate_patch (task_list&              tl_,
                                                 const level_interface&  lev_interface_)
     :
     task(tl_),
+    tf(0),
     dmf(dmf_),
     dgrid(dgrid_),
     dbx(dbx_),
     smf(smf_),
     rat(rat_),
     interp(interp_),
-    lev_interface(lev_interface_),
-    tf(0)
+    lev_interface(lev_interface_)
 {
     BL_ASSERT(dbx.sameType(dmf.box(dgrid)));
 
@@ -233,17 +233,18 @@ holy_grail_amr_multigrid::holy_grail_amr_multigrid(const Array<BoxArray>& Mesh,
 						   const amr_fluid_boundary& Boundary,
 						   stencil                stencil_,
 						   int                    Pcode)
-    : amr_multigrid(Mesh,
-                    Gen_ratio,
-                    Lev_min_min,
-                    Lev_min_max,
-                    Lev_max_max,
-                    Boundary.pressure(),
-                    Pcode),
-      boundary(Boundary),
-      smoother_mode(2),
-      line_solve_dim(-1),
-      m_stencil(stencil_)
+    :
+    amr_multigrid(Mesh,
+                  Gen_ratio,
+                  Lev_min_min,
+                  Lev_min_max,
+                  Lev_max_max,
+                  Boundary.pressure(),
+                  Pcode),
+    m_stencil(stencil_),
+    smoother_mode(2),
+    line_solve_dim(-1),
+    boundary(Boundary)
 {
     build_mesh(fdomain);
 }

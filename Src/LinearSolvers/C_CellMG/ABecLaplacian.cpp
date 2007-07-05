@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.21 2007-02-16 00:09:16 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.22 2007-07-05 20:02:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -215,7 +215,6 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
     int num_comp = 1;
     if (do_ApplyBC)
         applyBC(in,src_comp,num_comp,level,bc_mode);
-    const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
 
     D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
@@ -375,8 +374,6 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Fsmooth()");
 
-    const BoxArray& bxa = gbox[level];
-
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -481,7 +478,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
                        int             level)
 {
-    const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
 
     D_TERM(const MultiFab& bX  = bCoefficients(0,level);,

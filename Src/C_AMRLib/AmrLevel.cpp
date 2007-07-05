@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.103 2006-09-01 21:28:06 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.104 2007-07-05 20:02:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1194,9 +1194,7 @@ FillPatchIterator::isValid ()
 
     for (int i = 0; i < m_fph.size(); i++)
     {
-        bool result = m_fph[i].isValid();
-
-        BL_ASSERT(result == true);
+        BL_ASSERT(m_fph[i].isValid() == true);
     }
 
     return true;

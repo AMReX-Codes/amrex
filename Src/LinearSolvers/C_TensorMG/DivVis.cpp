@@ -1,6 +1,6 @@
 
 //
-// $Id: DivVis.cpp,v 1.11 2001-08-09 22:42:00 marc Exp $
+// $Id: DivVis.cpp,v 1.12 2007-07-05 20:02:51 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -52,7 +52,6 @@ void
 DivVis::initConstruct (const Real* _h)
 {
     const int level       = 0;
-    const BoxArray& grids = gbox[level];
 
     initCoefficients(gbox[level]);
 
@@ -385,8 +384,6 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
            const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
            const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
 
-    const int nc = x.nComp();
-
     BL_ASSERT(nc == BL_SPACEDIM);
     BL_ASSERT(nc == xflux.nComp());
     BL_ASSERT(nc == yflux.nComp());
@@ -479,8 +476,6 @@ DivVis::Fapply (MultiFab&       y,
     D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
            const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
            const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
-
-    const int nc = y.nComp();
 
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {

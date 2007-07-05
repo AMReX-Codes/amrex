@@ -98,10 +98,10 @@ task_fab_get::task_fab_get (task_list&      tl_,
                             char*           did_work)
     :
     task_fab(tl_, d_, dgrid_, bx_, s_.nComp(), did_work),
+    tf(0),
     s(s_),
     sgrid(sgrid_),
-    bx(bx_),
-    tf(0)
+    bx(bx_)
 {
     depend_on(tf = m_task_list.add_task(new task_copy_local(m_task_list,
                                                             target,
@@ -426,7 +426,6 @@ bilinear_restrictor::fill_interface (MultiFab&              dest,
         fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_dense);
 
     const BoxArray& dest_ba = dest.boxArray();
-    const BoxArray& fine_ba = fine.boxArray();
 
     if (lev_interface.m_fill_interface_1.empty())
     {
