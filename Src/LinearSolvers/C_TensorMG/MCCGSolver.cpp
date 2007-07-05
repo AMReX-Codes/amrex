@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.15 2007-07-05 20:02:51 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.16 2007-07-05 20:59:05 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -79,7 +79,6 @@ MCCGSolver::norm (const MultiFab& res)
     const int ncomp = res.nComp();
     for (MFIter mfi(res); mfi.isValid(); ++mfi)
     {
-        BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
         resk = res[mfi].norm(mfi.validbox(), p, 0, ncomp);
         if (p == 0)
 	{
@@ -346,8 +345,6 @@ MCCGSolver::advance (MultiFab&       p,
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
         const Box& bx = zbox[pmfi.index()];
-
-        BL_ASSERT(bx == gbox[pmfi.index()]);
 
 	FORT_CGADVCP(
 	    p[pmfi].dataPtr(),
