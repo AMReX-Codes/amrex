@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.34 2007-05-08 16:35:31 jbb Exp $
+// $Id: Amr.H,v 1.35 2007-07-05 17:02:00 lijewski Exp $
 //
 
 #include <fstream>
@@ -228,7 +228,7 @@ public:
     //
     //@ManDoc: More work to be done?
     //
-    virtual int okToContinue ();
+    int okToContinue ();
     //
     //@ManDoc: Do a complete integration cycle.
     //
