@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.18 2007-07-05 20:02:11 lijewski Exp $
+// $Id: StationData.cpp,v 1.19 2007-07-05 20:48:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -182,7 +182,7 @@ StationData::report (Real            time,
                     BL_ASSERT(mf != NULL);
                     BL_ASSERT(mf->DistributionMap() ==
                               amrlevel.get_new_data(0).DistributionMap());
-                    BL_ASSERT(mf->DistributionMap()[m_stn[i].grd] == MyProc);
+                    BL_ASSERT(mf->DistributionMap()[m_stn[i].grd] == ParallelDescriptor::MyProc());
                     //
                     // Find IntVect so we can index into FAB.
                     // We want to use Geometry::CellIndex().
@@ -206,7 +206,7 @@ StationData::report (Real            time,
                     const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
                     BL_ASSERT(mf.nComp() > m_ncomp[j]);
-                    BL_ASSERT(mf.DistributionMap()[m_stn[i].grd] == MyProc);
+                    BL_ASSERT(mf.DistributionMap()[m_stn[i].grd] == ParallelDescriptor::MyProc());
                     //
                     // Find IntVect so we can index into FAB.
                     // We want to use Geometry::CellIndex().
