@@ -3,7 +3,7 @@
 #define _LEVELBLD_H_
 
 //
-// $Id: LevelBld.H,v 1.6 2000-10-02 20:48:42 lijewski Exp $
+// $Id: LevelBld.H,v 1.7 2007-07-05 17:02:00 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -26,6 +26,8 @@ extern LevelBld* getLevelBld ();
 class LevelBld
 {
 public:
+
+    virtual ~LevelBld () {}
 
     /*@ManDoc: Perform any problem-dependent setup such as physical
                boundary condition and derived quantities.

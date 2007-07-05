@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.31 2006-05-19 00:14:09 vince Exp $
+c $Id: INTERP_3D.F,v 1.32 2007-07-05 17:02:00 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1220,9 +1220,6 @@ c :::
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse), nvar)
       REAL_T fine_state(DIMV(state), nvar)
-      REAL_T sum(nvar)
-      REAL_T crse_tot(nvar)
-      integer num_cells_ok(nvar)
 
       integer rMAX
       parameter (rMAX = 8)
@@ -1231,7 +1228,7 @@ c :::
       REAL_T orig_fine(0:rMAX-1,0:rMAX-1,0:rMAX-1)
       integer redo_me
       integer ilo,ihi,jlo,jhi,klo,khi
-      integer i,j,k,ic,jc,kc,n,nn
+      integer i,j,k,ic,jc,kc,n
       integer numFineCells
       integer icase
 
