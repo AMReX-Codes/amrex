@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.83 2007-07-05 20:02:11 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.84 2007-07-05 20:43:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -218,6 +218,12 @@ FluxRegister::Reflux (MultiFab&       S,
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
+        Real*       s_dat   = S[mfi].dataPtr(dest_comp);
+        const int*  slo     = S[mfi].loVect();
+        const int*  shi     = S[mfi].hiVect();
+        const Real* vol_dat = volume[mfi].dataPtr();
+        const int*  vlo     = volume[mfi].loVect();
+        const int*  vhi     = volume[mfi].hiVect();
         //
         // Find flux register that intersect with this grid.
         //
@@ -260,6 +266,8 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     const IntVect& iv = pshifts[iiv];
                     S[mfi].shift(iv);
+                    const int* slo = S[mfi].loVect();
+                    const int* shi = S[mfi].hiVect();
                     //
                     // This is a funny situation.  I don't want to permanently
                     // change vol, but I need to do a shift on it.  I'll shift
@@ -270,6 +278,8 @@ FluxRegister::Reflux (MultiFab&       S,
                     FArrayBox* cheatvol = const_cast<FArrayBox*>(&volume[mfi]);
                     BL_ASSERT(cheatvol != 0);
                     cheatvol->shift(iv);
+                    const int* vlo = cheatvol->loVect();
+                    const int* vhi = cheatvol->hiVect();
                     Box sftbox = mfi.validbox();
                     sftbox.shift(iv);
                     BL_ASSERT(bx.intersects(sftbox));
@@ -303,6 +313,8 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     fscd.CollectData();
+
+    const int MyProc = ParallelDescriptor::MyProc();
 
     FArrayBox reg;
 
@@ -448,6 +460,8 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     const IntVect& iv = pshifts[iiv];
                     S[mfi].shift(iv);
+                    const int* slo = S[mfi].loVect();
+                    const int* shi = S[mfi].hiVect();
                     Box sftbox     = mfi.validbox();
                     sftbox.shift(iv);
                     BL_ASSERT(bx.intersects(sftbox));
@@ -480,6 +494,8 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     fscd.CollectData();
+
+    const int MyProc = ParallelDescriptor::MyProc();
 
     FArrayBox reg;
 
@@ -642,6 +658,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     mfcd.CollectData();
 
     BL_ASSERT(fillBoxId_mflx.size() == fillBoxId_area.size());
+
+    const int MyProc = ParallelDescriptor::MyProc();
 
     FArrayBox mflx_fab, area_fab, tmp_fab;
 
