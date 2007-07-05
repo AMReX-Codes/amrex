@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.22 2007-07-05 20:02:40 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.23 2007-07-05 20:50:32 almgren Exp $
 //
 #include <winstd.H>
 
@@ -225,8 +225,6 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 
     for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
     {
-        BL_ASSERT(bxa[inmfi.index()] == inmfi.validbox());
-
         FORT_FLUX(in[inmfi].dataPtr(),
 		  ARLIM(in[inmfi].loVect()), ARLIM(in[inmfi].hiVect()),
 		  &alpha, &beta, a[inmfi].dataPtr(), 
@@ -407,8 +405,6 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
 
-        BL_ASSERT(bxa[solnLmfi.index()] == solnLmfi.validbox());
-
 #ifdef BL_THREADS
 	BoxLib::theWorkQueue().add(new task_gsrb(solnL[gn],
 			       rhsL[gn],
@@ -488,7 +484,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
 
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
-        BL_ASSERT(bxa[ymfi.index()] == ymfi.validbox());
 
 #if (BL_SPACEDIM == 2)
         FORT_ADOTX(y[ymfi].dataPtr(),
