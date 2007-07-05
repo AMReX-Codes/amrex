@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.49 2007-07-05 20:02:25 lijewski Exp $
+// $Id: FabSet.cpp,v 1.50 2007-07-05 20:49:18 almgren Exp $
 //
 #include <winstd.H>
 
@@ -452,7 +452,7 @@ FabSet::DoIt (const MultiFab& src,
 
     for (int i = 0; i < fbids.size(); i++)
     {
-        BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == MyProc);
+        BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == ParallelDescriptor::MyProc());
 
         if (how == COPYFROM)
         {
@@ -608,7 +608,7 @@ FabSet::linComb (Real            a,
         mfcd.FillFab(mfid_mfa, fbids_mfa[i], a_fab);
         mfcd.FillFab(mfid_mfb, fbids_mfb[i], b_fab);
 
-        BL_ASSERT(DistributionMap()[fbids_mfa[i].FabIndex()] == MyProc);
+        BL_ASSERT(DistributionMap()[fbids_mfa[i].FabIndex()] == ParallelDescriptor::MyProc());
 
         (*this)[fbids_mfa[i].FabIndex()].linComb(a_fab,
                                                  fbids_mfa[i].box(),
