@@ -102,11 +102,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
-  int nb = grids[0].size();
-  std::vector<int> lo(nb*dm);
-  std::vector<int> hi(nb*dm);
   int pm[dm];
-
   for ( int i = 0; i < dm; ++i ) 
     {
       pm[i] = geom[0].isPeriodic(i)? 1 : 0;
@@ -116,6 +112,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     {
       const Array<int>& pmap = dmap[lev].ProcessorMap();
       Box domain = geom[lev].Domain();
+
+      int nb = grids[lev].size();
+      std::vector<int> lo(nb*dm);
+      std::vector<int> hi(nb*dm);
 
       for ( int i = 0; i < nb; ++i )
       {
