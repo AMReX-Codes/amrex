@@ -425,6 +425,11 @@ contains
           end do
        end do
 
+       !   Make sure all periodic and internal boundaries are filled
+       do n = 1,nlevs
+          call multifab_fill_boundary(full_soln(n))
+       end do
+
     end if
 
     do n = nlevs, 1, -1
