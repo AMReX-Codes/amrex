@@ -27,7 +27,11 @@ typedef void (*mgt_get)(const int* lev, const int* n, double* uu,
 			const int* lo, const int* hi);
 typedef void (*mgt_get_ng)(const int* lev, const int* n, double* uu, 
 			   const int* plo, const int* phi, 
-   			const int* lo, const int* hi, const int* ng);
+   			   const int* lo, const int* hi, const int* ng);
+typedef void (*mgt_get_dir)(const int* lev, const int* dir, const int* n, 
+			    double* uu,
+			    const int* plo, const int* phi, 
+   			    const int* lo, const int* hi);
 typedef void (*mgt_set)(const int* lev, const int* n, const double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
@@ -41,6 +45,7 @@ typedef void (*mgt_set_c)(const int* lev, const int* n,
 mgt_get_ng mgt_get_uu   = mgt_get_uu_2d;
 mgt_set mgt_set_uu   = mgt_set_uu_2d;
 mgt_get mgt_get_pr   = mgt_get_pr_2d;
+mgt_get_dir mgt_get_gp   = mgt_get_gp_2d;
 mgt_set mgt_set_pr   = mgt_set_pr_2d;
 mgt_set mgt_set_rh   = mgt_set_rh_2d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_2d;
@@ -57,6 +62,7 @@ mgt_get_ng mgt_get_uu   = mgt_get_uu_3d;
 mgt_set mgt_set_uu   = mgt_set_uu_3d;
 mgt_get mgt_get_pr   = mgt_get_pr_3d;
 mgt_set mgt_set_pr   = mgt_set_pr_3d;
+mgt_get_dir mgt_get_gp   = mgt_get_gp_3d;
 mgt_set mgt_set_rh   = mgt_set_rh_3d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_3d;
 mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_3d;
@@ -302,8 +308,13 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom)
         }
       }
 
+//    NOTE: the sign convention is because the elliptic solver solves
+//           (alpha MINUS del dot beta grad) phi = RHS
+//           Here alpha is zero and we want to solve del dot grad phi = RHS,
+//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
       Real value_zero = 0.e0;
-      Real value_one  = 1.e0;
+      Real value_one  = -1.e0;
+
       int ngrids = m_grids[lev].size();
       for (int n = 0; n < ngrids; n++) 
         {
@@ -409,7 +420,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd)
 {
-  solve(uu,rh,tol,abs_tol,bd,false);
+  solve(uu,rh,tol,abs_tol,bd,0);
 }
 
 void 
@@ -470,6 +481,36 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
 	}
     }
+}
+
+void 
+MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
+{
+
+  mgt_compute_flux(lev);
+
+  for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+    {
+      for (MFIter mfi(flux[dir]); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& gp = flux[dir][mfi];
+          Real* gpd = gp.dataPtr();
+
+          int n = mfi.index();
+          const int* lo = mfi.validbox().loVect();
+          const int* hi = mfi.validbox().hiVect();
+          const int* gplo = gp.box().loVect();
+          const int* gphi = gp.box().hiVect();
+          std::cout << "LO IN GET_FLUXES " << lo[0] << " " << lo[1] << std::endl;
+          std::cout << "HI IN GET_FLUXES " << hi[0] << " " << hi[1] << std::endl;
+
+          mgt_get_gp(&lev, &dir, &n, gpd, gplo, gphi, lo, hi);
+          gp.mult(dx[dir]);
+        }
+    }
+
+//std::cout << "FLUX[0] " << flux[0][0] << std::endl;
+//std::cout << "FLUX[1] " << flux[1][0] << std::endl;
 }
 
 void 
