@@ -36,6 +36,7 @@ module cpp_mg_module
      integer, pointer :: rr(:,:)
      type(multifab), pointer :: rh(:) => Null()
      type(multifab), pointer :: uu(:) => Null()
+     type(multifab), pointer :: gp(:,:) => Null()
      type(multifab), pointer :: coeffs(:) => Null()
   end type mg_server
 
@@ -113,6 +114,7 @@ subroutine mgt_alloc(dm, nlevel, nodal)
   allocate(mgts%rh(nlevel))
   allocate(mgts%pd(nlevel))
   allocate(mgts%uu(nlevel))
+  allocate(mgts%gp(nlevel,dm))
   allocate(mgts%mgt(nlevel))
 
   call build(mgts%mla, nlevel, dm)
@@ -146,8 +148,8 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
          box_extent_d(mgts%mla%mba%pd(flev),i) / box_extent_d(mgts%mla%mba%pd(flev-1),i)
     end do
   end if
-  do i = 1, nb
-     bxs(i) = make_box(lo(i,:), hi(i,:))
+  do i = 1, nb 
+    bxs(i) = make_box(lo(i,:), hi(i,:))
   end do
   call build(mgts%mla%mba%bas(flev), bxs)
   call build(mgts%mla%la(flev),  &
@@ -750,6 +752,43 @@ subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi ,ng)
 
 end subroutine mgt_get_uu_3d
 
+subroutine mgt_get_gp_2d(lev, dir, n, gp, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, dir, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(inout) :: gp(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: gpp(:,:,:,:)
+  integer :: flev, fdir, fn
+  integer :: i,j
+  fn = n + 1
+  flev = lev+1
+  fdir = dir+1
+  
+  print *,'FDIR ',fdir
+  print *,'LO HI ',lo(1),lo(2),hi(1),hi(2)
+  print *,'DIMS OF GP ',plo(1),plo(2),phi(1),phi(2)
+
+  gpp => dataptr(mgts%gp(flev,fdir), fn)
+  gp(lo(1):hi(1),lo(2):hi(2)) = gpp(lo(1):hi(1),lo(2):hi(2),1,1)
+
+end subroutine mgt_get_gp_2d
+subroutine mgt_get_gp_3d(lev, dir, n, gp, plo, phi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, dir, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(inout) :: gp(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: gpp(:,:,:,:)
+  integer :: flev, fdir,fn
+  fn = n + 1
+  flev = lev+1
+  fdir = dir+1
+
+  gpp => dataptr(mgts%gp(flev,fdir), fn)
+  gp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)) = &
+         gpp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1)
+
+end subroutine mgt_get_gp_3d
+
 subroutine mgt_dealloc()
   use cpp_mg_module
   implicit none
@@ -810,6 +849,33 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
   end if
 
 end subroutine mgt_solve
+
+subroutine mgt_compute_flux(lev)
+  use cpp_mg_module
+  use ml_cc_module
+  use fabio_module
+  implicit none
+
+  integer, intent(in) :: lev
+  integer             :: mglev,flev
+  integer             :: dir
+
+  flev = lev+1
+
+  call mgt_verify("MGT_COMPUTE_FLUX")
+  if ( .not. mgts%final ) then
+     call bl_error("MGT_COMPUTE_FLUX: MGT not finalized")
+  end if
+
+  do dir = 1, mgts%dim
+     call build(mgts%gp(flev,dir), mgts%mla%la(flev), nc = 1, ng = 1)
+  end do
+
+  mglev = mgts%mgt(flev)%nlevels
+  call ml_fill_all_fluxes(mgts%mgt(flev)%ss(mglev), mgts%gp(flev,:), &
+                          mgts%uu(flev), mgts%mgt(flev)%mm(mglev))
+
+end subroutine mgt_compute_flux
 
 subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
                             bottom_solver,bottom_solver_eps, &
