@@ -31,6 +31,8 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi);
 
+  void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
+
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
 
