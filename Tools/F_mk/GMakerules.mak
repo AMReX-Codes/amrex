@@ -29,6 +29,9 @@ tags:	$(sources)
 # should prevent deletion of .o files
 .SECONDARY: $(objects)
 
+build_info.f90:
+	$(FPARALLEL)/scripts/make_build_info
+
 %.$(suf).exe:%.f90 $(objects)
 ifdef MKVERBOSE
 	$(LINK.f90) -o main.$(suf).exe $< $(objects) $(libraries)
