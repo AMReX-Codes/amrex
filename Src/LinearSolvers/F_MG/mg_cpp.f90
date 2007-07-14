@@ -763,10 +763,6 @@ subroutine mgt_get_gp_2d(lev, dir, n, gp, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   fdir = dir+1
-  
-  print *,'FDIR ',fdir
-  print *,'LO HI ',lo(1),lo(2),hi(1),hi(2)
-  print *,'DIMS OF GP ',plo(1),plo(2),phi(1),phi(2)
 
   gpp => dataptr(mgts%gp(flev,fdir), fn)
   gp(lo(1):hi(1),lo(2):hi(2)) = gpp(lo(1):hi(1),lo(2):hi(2),1,1)
