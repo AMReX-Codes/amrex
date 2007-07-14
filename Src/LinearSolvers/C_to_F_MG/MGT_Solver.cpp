@@ -283,30 +283,17 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom)
+MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom, Real xa[][BL_SPACEDIM], Real xb[][BL_SPACEDIM])
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_coeffs_lev(&lev);
-      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
 	{
 	  pxa[i] = pxb[i] = 0;
 	}
-
-      if (lev > 0) {
-        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-          xa[dir] = 0.5 * geom[lev-1].CellSize(dir);
-          xb[dir] = 0.5 * geom[lev-1].CellSize(dir);
-        }
-      } else {
-        for (int dir = 0; dir < BL_SPACEDIM; dir++) {
-          xa[dir] = 0.0;
-          xb[dir] = 0.0;
-        }
-      }
 
 //    NOTE: the sign convention is because the elliptic solver solves
 //           (alpha MINUS del dot beta grad) phi = RHS
@@ -327,7 +314,7 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom)
            mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
 #endif
         }
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+      mgt_finalize_stencil_lev(&lev, xa[lev], xb[lev], pxa, pxb);
     }
 
   mgt_finalize_stencil();
