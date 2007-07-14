@@ -501,8 +501,6 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
           const int* hi = mfi.validbox().hiVect();
           const int* gplo = gp.box().loVect();
           const int* gphi = gp.box().hiVect();
-          std::cout << "LO IN GET_FLUXES " << lo[0] << " " << lo[1] << std::endl;
-          std::cout << "HI IN GET_FLUXES " << hi[0] << " " << hi[1] << std::endl;
 
           mgt_get_gp(&lev, &dir, &n, gpd, gplo, gphi, lo, hi);
           gp.mult(dx[dir]);
