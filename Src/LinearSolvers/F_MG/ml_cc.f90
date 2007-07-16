@@ -115,6 +115,22 @@ contains
        Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels), fine_mask(n)), Anorm)
     end do
 
+    !  Make sure full_soln at fine grid has the correct coarse grid bc's in its ghost cells 
+    !   before we evaluate the initial residual  
+    do n = 2,nlevs
+       pd = layout_get_pd(mla%la(n))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       do i = 1, dm
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+       end do
+    end do
+
+    !   Make sure all periodic and internal boundaries are filled as well
+    do n = 1,nlevs   
+       call multifab_fill_boundary(full_soln(n))
+    end do
+
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev))
