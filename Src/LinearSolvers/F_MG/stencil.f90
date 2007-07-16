@@ -3175,9 +3175,9 @@ contains
                 flux(0,j) = &
                        ss(i,j,1)*(uu(i+1,j)-uu(i,j)) + ss(i  ,j,2)*(uu(i-1,j)-uu(i,j)) &
                                                      - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                flux(0,j) = -flux(0,j)
                 if (bc_skewed(mm(i,j),1,+1)) &
                      flux(0,j) = flux(0,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
+                flux(0,j) = -flux(0,j)
              else if (bc_neumann(mm(i,j),1,-1)) then
                 flux(0,j) = -ss(i,j,2)*uu(i-1,j)
              else   
@@ -3218,6 +3218,7 @@ contains
                 if (bc_skewed(mm(i,j),2,+1)) &
                      flux(i,0) =  flux(i,0) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
                 flux(i,0) = -flux(i,0)
+                print *,'Lo-Y DIRICHLET AT ',i,j
              else if (bc_neumann(mm(i,j),2,-1)) then
                 flux(i,0) = -ss(i,j,4)*uu(i,j-1)
              else 
@@ -3234,6 +3235,7 @@ contains
                      - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
                 if (bc_skewed(mm(i,j),2,-1)) &
                      flux(i,ny) = flux(i,ny) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
+                print *,'Hi-Y DIRICHLET AT ',i,j
              else if (bc_neumann(mm(i,j),2,+1)) then
                 flux(i,ny) = ss(i,j,3)*uu(i,j+1)
              else
@@ -3447,6 +3449,7 @@ contains
                         - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
                    if (bc_skewed(mm(i,j,k),1,+1)) &
                         flux(0,j,k) =  flux(0,j,k) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
+                   flux(0,j,k) = -flux(0,j,k)
                 else if (bc_neumann(mm(i,j,k),1,-1)) then
                    flux(0,j,k) = ss(i,j,k,2)*uu(i-1,j,k)
                 else 
@@ -3495,6 +3498,7 @@ contains
                         - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
                    if (bc_skewed(mm(i,j,k),2,+1)) &
                         flux(i,0,k) =  flux(i,0,k) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
+                   flux(i,0,k) = -flux(i,0,k)
                 else if (bc_neumann(mm(i,j,k),2,-1)) then
                    flux(i,0,k) = ss(i,j,k,4)*uu(i,j-1,k)
                 else 
@@ -3543,6 +3547,7 @@ contains
                         - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
                    if (bc_skewed(mm(i,j,k),3,+1)) &
                         flux(i,j,0) =  flux(i,j,0) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
+                   flux(i,j,0) = -flux(i,j,0)
                 else if (bc_neumann(mm(i,j,k),3,-1)) then
                    flux(i,j,0) = ss(i,j,k,6)*uu(i,j,k-1)
                 else 
