@@ -140,8 +140,8 @@ endif
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),catamount)
     CC  := cc -target=catamount
-    FC  := ftn -target=catamount
-    F90 := ftn -target=catamount
+    FC  := ftn -target=catamount -module $(mdir) -I$(mdir) 
+    F90 := ftn -target=catamount -module $(mdir) -I$(mdir) 
     ifdef NDEBUG
       FFLAGS   += -O
       F90FLAGS += -O
