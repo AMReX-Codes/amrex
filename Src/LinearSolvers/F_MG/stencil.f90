@@ -3218,7 +3218,6 @@ contains
                 if (bc_skewed(mm(i,j),2,+1)) &
                      flux(i,0) =  flux(i,0) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
                 flux(i,0) = -flux(i,0)
-                print *,'Lo-Y DIRICHLET AT ',i,j
              else if (bc_neumann(mm(i,j),2,-1)) then
                 flux(i,0) = -ss(i,j,4)*uu(i,j-1)
              else 
@@ -3235,7 +3234,6 @@ contains
                      - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
                 if (bc_skewed(mm(i,j),2,-1)) &
                      flux(i,ny) = flux(i,ny) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-                print *,'Hi-Y DIRICHLET AT ',i,j
              else if (bc_neumann(mm(i,j),2,+1)) then
                 flux(i,ny) = ss(i,j,3)*uu(i,j+1)
              else
