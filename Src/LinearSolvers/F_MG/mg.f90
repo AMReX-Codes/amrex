@@ -1175,7 +1175,7 @@ contains
     type(bl_prof_timer), save :: bpt
     character(len=128) :: defbase
 
-    call build(bpt, "mgt_solve")
+    call build(bpt, "mg_tower_solve")
 
     ldef = .false.; if ( present(defect_history) ) ldef = defect_history
     if ( ldef ) then
