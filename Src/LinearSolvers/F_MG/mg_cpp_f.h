@@ -342,7 +342,7 @@ extern "C"
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_res_3d(const int* lev, const int* n, Real* uu, 
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
