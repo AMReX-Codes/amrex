@@ -45,7 +45,7 @@
 #define mgt_get_pr_3d             MGT_GET_PR_3D
 
 #define mgt_get_gp_2d             MGT_SET_GP_2D
-#define mgt_set_gp_3d             MGT_SET_GP_3D
+#define mgt_get_gp_3d             MGT_SET_GP_3D
 
 #define mgt_set_cfa_2d            MGT_SET_CFA_2D
 #define mgt_set_cfbx_2d           MGT_SET_CFBX_2D
@@ -119,7 +119,7 @@
 #define mgt_get_pr_3d             mgt_get_pr_3d_
 
 #define mgt_get_gp_2d             mgt_get_gp_2d_
-#define mgt_set_gp_3d             mgt_get_gp_3d_
+#define mgt_get_gp_3d             mgt_get_gp_3d_
 
 #define mgt_set_cfa_2d            mgt_set_cfa_2d_
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d_
