@@ -35,6 +35,7 @@ module cpp_mg_module
      integer, pointer :: bc(:,:) => Null()
      integer, pointer :: rr(:,:)
      type(multifab), pointer :: rh(:) => Null()
+     type(multifab), pointer :: res(:) => Null()
      type(multifab), pointer :: uu(:) => Null()
      type(multifab), pointer :: gp(:,:) => Null()
      type(multifab), pointer :: coeffs(:) => Null()
@@ -112,6 +113,7 @@ subroutine mgt_alloc(dm, nlevel, nodal)
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))
+  allocate(mgts%res(nlevel))
   allocate(mgts%pd(nlevel))
   allocate(mgts%uu(nlevel))
   allocate(mgts%gp(nlevel,dm))
@@ -191,8 +193,9 @@ subroutine mgt_finalize(dx,bc)
   end do
 
   do i = 1, nlev
-     call build(mgts%uu(i), mgts%mla%la(i), nc, ng = 1)
-     call build(mgts%rh(i), mgts%mla%la(i), nc, ng = 0)
+     call build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
+     call build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
+     call build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
   end do
 
   do i = nlev-1, 1, -1
@@ -785,6 +788,40 @@ subroutine mgt_get_gp_3d(lev, dir, n, gp, plo, phi, lo, hi)
 
 end subroutine mgt_get_gp_3d
 
+subroutine mgt_get_res_2d(lev, n, res, rlo, rhi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), rlo(2), rhi(2)
+  real(kind=dp_t), intent(inout) :: res(rlo(1):rhi(1), rlo(2):rhi(2))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  call mgt_verify_n("MGT_GET_RES", flev, fn, lo, hi)
+
+  rp => dataptr(mgts%res(flev), fn)
+  res(lo(1):hi(1),lo(2):hi(2)) = rp(lo(1):hi(1),lo(2):hi(2),1,1)
+
+end subroutine mgt_get_res_2d
+subroutine mgt_get_res_3d(lev, n, res, rlo, rhi, lo, hi)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), rlo(3), rhi(3)
+  real(kind=dp_t), intent(inout) :: res(rlo(1):rhi(1), rlo(2):rhi(2), rlo(3):rhi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  call mgt_verify_n("MGT_GET_RES", flev, fn, lo, hi)
+
+  rp => dataptr(mgts%res(flev), fn)
+  res(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)) = rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1)
+
+end subroutine mgt_get_res_3d
+
+
 subroutine mgt_dealloc()
   use cpp_mg_module
   implicit none
@@ -845,6 +882,23 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
   end if
 
 end subroutine mgt_solve
+
+subroutine mgt_compute_residual()
+  use cpp_mg_module
+  use ml_cc_module
+  use fabio_module
+  implicit none
+
+  call mgt_verify("MGT_COMPUTE_RESIDUAL")
+  if ( .not. mgts%final ) then
+     call bl_error("MGT_COMPUTE_RESIDUAL: MGT not finalized")
+  end if
+
+  call ml_resid(mgts%mla, mgts%mgt, &
+                mgts%rh, mgts%res, mgts%uu, &
+                mgts%rr)
+
+end subroutine mgt_compute_residual
 
 subroutine mgt_compute_flux(lev)
   use cpp_mg_module

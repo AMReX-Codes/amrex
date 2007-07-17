@@ -18,6 +18,8 @@
 #define mgt_dealloc               MGT_DEALLOC
 #define mgt_nodal_dealloc         MGT_NODAL_DEALLOC
 #define mgt_solve                 MGT_SOLVE
+#define mgt_compute_flux          MGT_COMPUTE_FLUX
+#define mgt_compute_residual      MGT_COMPUTE_RESIDUAL
 #define mgt_nodal_solve           MGT_NODAL_SOLVE
 #define mgt_divu                  MGT_DIVU
 #define mgt_newu                  MGT_NEWU
@@ -34,10 +36,16 @@
 #define mgt_set_uu_3d             MGT_SET_UU_3D
 #define mgt_get_uu_3d             MGT_GET_UU_3D
 
+#define mgt_get_res_2d            MGT_GET_RES_2D
+#define mgt_get_res_3d            MGT_GET_RES_3D
+
 #define mgt_set_pr_2d             MGT_SET_PR_2D
 #define mgt_get_pr_2d             MGT_GET_PR_2D
 #define mgt_set_pr_3d             MGT_SET_PR_3D
 #define mgt_get_pr_3d             MGT_GET_PR_3D
+
+#define mgt_get_gp_2d             MGT_SET_GP_2D
+#define mgt_set_gp_3d             MGT_SET_GP_3D
 
 #define mgt_set_cfa_2d            MGT_SET_CFA_2D
 #define mgt_set_cfbx_2d           MGT_SET_CFBX_2D
@@ -84,6 +92,8 @@
 #define mgt_dealloc               mgt_dealloc_
 #define mgt_nodal_dealloc         mgt_nodal_dealloc_
 #define mgt_solve                 mgt_solve_
+#define mgt_compute_flux          mgt_compute_flux_
+#define mgt_compute_residual      mgt_compute_residual_
 #define mgt_nodal_solve           mgt_nodal_solve_
 #define mgt_divu                  mgt_divu_
 #define mgt_newu                  mgt_newu_
@@ -100,10 +110,16 @@
 #define mgt_get_uu_2d             mgt_get_uu_2d_
 #define mgt_get_uu_3d             mgt_get_uu_3d_
 
+#define mgt_get_res_2d            mgt_get_res_2d_
+#define mgt_get_res_3d            mgt_get_res_3d_
+
 #define mgt_set_pr_2d             mgt_set_pr_2d_
 #define mgt_set_pr_3d             mgt_set_pr_3d_
 #define mgt_get_pr_2d             mgt_get_pr_2d_
 #define mgt_get_pr_3d             mgt_get_pr_3d_
+
+#define mgt_get_gp_2d             mgt_get_gp_2d_
+#define mgt_set_gp_3d             mgt_get_gp_3d_
 
 #define mgt_set_cfa_2d            mgt_set_cfa_2d_
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d_
@@ -146,6 +162,8 @@
 #define mgt_dealloc               mgt_dealloc__
 #define mgt_nodal_dealloc         mgt_nodal_dealloc__
 #define mgt_solve                 mgt_solve__
+#define mgt_compute_flux          mgt_compute_flux__
+#define mgt_compute_residual      mgt_compute_residual__
 #define mgt_divu                  mgt_divu__
 #define mgt_newu                  mgt_newu__
 #define mgt_nodal_solve           mgt_nodal_solve__
@@ -162,10 +180,16 @@
 #define mgt_set_uu_3d             mgt_set_uu_3d__
 #define mgt_get_uu_3d             mgt_get_uu_3d__
 
+#define mgt_get_res_2d            mgt_get_res_2d__
+#define mgt_get_res_3d            mgt_get_res_3d__
+
 #define mgt_set_pr_2d             mgt_set_pr_2d__
 #define mgt_get_pr_2d             mgt_get_pr_2d__
 #define mgt_set_pr_3d             mgt_set_pr_3d__
 #define mgt_get_pr_3d             mgt_get_pr_3d__
+
+#define mgt_get_gp_2d             mgt_get_gp_2d__
+#define mgt_set_gp_3d             mgt_get_gp_3d__
 
 #define mgt_set_cfa_2d            mgt_set_cfa_2d__
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d__
@@ -247,7 +271,16 @@ extern "C"
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi, const int* ng);
   
+  void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
   void mgt_set_uu_2d(const int* lev, const int* n, const Real* uu, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_get_gp_2d(const int* lev, const int* dir, const int* n,
+		     Real* gp,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
@@ -309,6 +342,15 @@ extern "C"
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
+  void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
+  void mgt_get_gp_3d(const int* lev, const int* dir, const int* n, 
+		     Real* gp,
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
   void mgt_get_pr_3d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
@@ -365,6 +407,10 @@ extern "C"
   void mgt_nodal_dealloc();
   
   void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi);
+  
+  void mgt_compute_flux(const int& n);
+  
+  void mgt_compute_residual();
   
   void mgt_nodal_solve(const Real& tol, const Real& abs_tol);
   
