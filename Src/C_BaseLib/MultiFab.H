@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.44 2007-02-16 00:19:19 lijewski Exp $
+// $Id: MultiFab.H,v 1.45 2007-07-18 20:39:01 mzingale Exp $
 //
 #include <winstd.H>
 
@@ -306,6 +306,21 @@ public:
                 int             strt_comp,
                 int             num_comp,
                 int             nghost);
+
+    /*@ManDoc:
+      This function divides the values of the cells in mf from the
+      corresponding cells of this MultiFab.  mf is required to have the
+      same BoxArray or "valid region" as this MultiFab.  The division is
+      done only to num\_comp components, starting with component number
+      strt\_comp.  The parameter nghost specifies the number of boundary
+      cells that will be modified.  If nghost == 0, only the valid region of
+      each FArrayBox will be modified.  Note, nothing is done to protect 
+      against divide by zero.
+    */
+    void divide (const MultiFab& mf,
+		 int             strt_comp,
+		 int             num_comp,
+		 int             nghost);
 
     /*@ManDoc: Copy on intersection within MultiFab.  Data is copied from
                valid regions to intersecting regions of definition.  The
