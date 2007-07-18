@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.78 2007-04-18 17:37:08 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.79 2007-07-18 20:39:01 mzingale Exp $
 //
 #include <winstd.H>
 
@@ -215,6 +215,28 @@ MultiFab::minus (const MultiFab& mf,
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
         get(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
+    }
+}
+
+void
+MultiFab::divide (const MultiFab& mf,
+		  int             strt_comp,
+		  int             num_comp,
+		  int             nghost)
+{
+    BL_ASSERT(boxarray == mf.boxarray);
+    BL_ASSERT(strt_comp >= 0);
+#ifndef NDEBUG
+    int lst_comp = strt_comp + num_comp - 1;
+#endif
+    BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+
+        get(mfi).divide(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
 }
 
