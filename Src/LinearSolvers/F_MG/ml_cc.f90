@@ -543,12 +543,12 @@ contains
 
   end subroutine ml_cc
 
-  subroutine ml_cc_applyop(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
+  subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
                            do_diagnostics)
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
-    type( multifab), intent(inout) :: rh(:)
+    type( multifab), intent(inout) :: res(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
     integer        , intent(in   ) :: ref_ratio(:,:)
@@ -558,7 +558,7 @@ contains
     type(multifab), allocatable  ::      soln(:)
     type(multifab), allocatable  ::        uu(:)
     type(multifab), allocatable  ::   uu_hold(:)
-    type(multifab), allocatable  ::       res(:)
+    type(multifab), allocatable  ::        rh(:) ! set to zero in applyop
     type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
@@ -581,7 +581,7 @@ contains
 
     nlevs = mla%nlevel
 
-    allocate(soln(nlevs), uu(nlevs), res(nlevs), temp_res(nlevs))
+    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
@@ -597,12 +597,15 @@ contains
        la = mla%la(n)
        call build(    soln(n), la, 1, 1)
        call build(      uu(n), la, 1, 1)
-       call build(     res(n), la, 1, 0)
+       call build(      rh(n), la, 1, 0)
        call build(temp_res(n), la, 1, 0)
        call setval(    soln(n), ZERO,all=.true.)
        call setval(      uu(n), ZERO,all=.true.)
-       call setval(     res(n), ZERO,all=.true.)
+       call setval(      rh(n), ZERO,all=.true.)
        call setval(temp_res(n), ZERO,all=.true.)
+
+       ! zero residual just to be safe
+       call setval(     res(n), ZERO,all=.true.)
 
        if ( n == 1 ) exit
 
@@ -657,6 +660,8 @@ contains
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                       mgt(n)%mm(mglev))
     end do
+
+    ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
 
   end subroutine ml_cc_applyop
 
