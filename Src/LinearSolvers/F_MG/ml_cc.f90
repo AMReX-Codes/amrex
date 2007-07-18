@@ -558,7 +558,7 @@ contains
     type(multifab), allocatable  ::      soln(:)
     type(multifab), allocatable  ::        uu(:)
     type(multifab), allocatable  ::   uu_hold(:)
-    type(multifab), allocatable  ::        rh(:) ! set to zero in applyop
+    type(multifab), allocatable  ::        rh(:) ! this will be set to zero
     type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
@@ -574,6 +574,8 @@ contains
     real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
+    integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
+    real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
     call build(bpt, "ml_cc")
 
@@ -662,8 +664,62 @@ contains
     end do
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
+    do n=1,nlevs
+       ng = res(n)%ng
+       
+       do i=1,res(n)%nboxes
+          if (multifab_remote(res(n),i)) cycle
+          resp  => dataptr(res(n),i)
+          lo =  lwb(get_box(res(n), i))
+          hi =  upb(get_box(res(n), i))
+          select case (dm)
+          case (2)
+             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
+          case (3)
+             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
+          end select
+       end do
+    enddo
 
   end subroutine ml_cc_applyop
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Multiply residual by -1 in 2d
+  subroutine scale_residual_2d(lo,hi,ng,res)
+
+  integer        , intent(in   ) :: lo(:),hi(:),ng
+  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:)
+
+! Local
+  integer :: i,j
+
+  do j=lo(2),hi(2)
+     do i=lo(1),hi(1)
+        res(i,j) = -res(i,j)
+     enddo
+  enddo
+  
+  end subroutine scale_residual_2d
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Multiply residual by -1 in 3d
+  subroutine scale_residual_3d(lo,hi,ng,res)
+
+  integer        , intent(in   ) :: lo(:),hi(:),ng
+  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
+
+! Local
+  integer :: i,j,k
+
+  do k=lo(3),hi(3)
+     do j=lo(2),hi(2)
+        do i=lo(1),hi(1)
+           res(i,j,k) = -res(i,j,k)
+        enddo
+     enddo
+  enddo
+
+  end subroutine scale_residual_3d
 
 
   function ml_norm_inf(mf, mask) result(r)
