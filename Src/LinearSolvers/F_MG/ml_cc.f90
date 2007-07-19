@@ -579,8 +579,6 @@ contains
 
     call build(bpt, "ml_cc")
 
-    dm = rh(1)%dim
-
     nlevs = mla%nlevel
 
     allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
@@ -622,6 +620,8 @@ contains
                                  width = 2)
 
     end do
+
+    dm = rh(1)%dim
 
     do n = nlevs,2,-1
        mglev      = mgt(n  )%nlevels
