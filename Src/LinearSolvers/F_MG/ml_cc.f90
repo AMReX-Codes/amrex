@@ -484,7 +484,34 @@ contains
 
   contains
 
-    subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
+    function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
+      logical :: r
+      type(multifab), intent(in) :: res(:), sol(:)
+      real(dp_t), intent(in) :: Anorm, eps, bnorm
+      real(dp_t) :: ni_res, ni_sol
+      integer    :: nlevs
+      nlevs = size(res)
+      ni_res = norm_inf(res(nlevs))
+      ni_sol = norm_inf(sol(nlevs))
+      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= epsilon(Anorm)*Anorm
+    end function ml_fine_converged
+
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
+      logical :: r
+      type(multifab), intent(in) :: res(:), sol(:)
+      type(lmultifab), intent(in) :: mask(:)
+      real(dp_t), intent(in) :: Anorm, eps, bnorm
+      real(dp_t) :: ni_res, ni_sol
+      ni_res = ml_norm_inf(res, mask)
+      ni_sol = ml_norm_inf(sol, mask)
+      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= epsilon(Anorm)*Anorm
+    end function ml_converged
+
+  end subroutine ml_cc
+
+  subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
       type(bndry_reg), intent(inout) :: brs_flx
@@ -514,34 +541,80 @@ contains
               mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, +1, i, ONE)
       end do
 
-    end subroutine crse_fine_residual_cc
+  end subroutine crse_fine_residual_cc
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
-      logical :: r
-      type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
-      integer    :: nlevs
-      nlevs = size(res)
-      ni_res = norm_inf(res(nlevs))
-      ni_sol = norm_inf(sol(nlevs))
-      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= epsilon(Anorm)*Anorm
-    end function ml_fine_converged
+  subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
-      logical :: r
-      type(multifab), intent(in) :: res(:), sol(:)
-      type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
-      ni_res = ml_norm_inf(res, mask)
-      ni_sol = ml_norm_inf(sol, mask)
-      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= epsilon(Anorm)*Anorm
-    end function ml_converged
+    type(ml_layout), intent(in)    :: mla
+    type(mg_tower) , intent(inout) :: mgt(:)
+    type( multifab), intent(inout) :: rh(:)
+    type( multifab), intent(inout) :: res(:)
+    type( multifab), intent(inout) :: full_soln(:)
+    integer        , intent(in   ) :: ref_ratio(:,:)
 
-  end subroutine ml_cc
+    type(bndry_reg), allocatable :: brs_flx(:)
+    type(bndry_reg), allocatable :: brs_bcs(:)
+
+    type(box)    :: pd, pdc
+    type(layout) :: la, lac
+    integer      :: i, n, dm, nlevs, mglev, mglev_crse
+
+    dm = rh(1)%dim
+
+    nlevs = mla%nlevel
+
+    allocate(brs_bcs(2:nlevs))
+    allocate(brs_flx(2:nlevs))
+
+    do n = nlevs, 1, -1
+
+       la = mla%la(n)
+
+       if ( n == 1 ) exit
+
+       ! Build the (coarse resolution) flux registers to be used in computing
+       !  the residual at a non-finest AMR level.
+
+       pdc = layout_get_pd(mla%la(n-1))
+       lac = mla%la(n-1)
+       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
+       call bndry_reg_rr_build_1(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
+
+    end do
+
+    !  Make sure full_soln at fine grid has the correct coarse grid bc's in its ghost cells 
+    !   before we evaluate the initial residual  
+    do n = 2,nlevs
+       pd = layout_get_pd(mla%la(n))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       do i = 1, dm
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+       end do
+    end do
+
+    !   Make sure all periodic and internal boundaries are filled as well
+    do n = 1,nlevs   
+       call multifab_fill_boundary(full_soln(n))
+    end do
+
+    do n = 1,nlevs,1
+       mglev = mgt(n)%nlevels
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev))
+    end do
+
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
+
+       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+    enddo
+
+  end subroutine ml_resid
 
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
                            do_diagnostics)
