@@ -25,8 +25,11 @@ static
 void
 PrintUsage (const char* progName)
 {
-    std::cout << "\nThis utility performs a diff operation between two"     << std::endl
-         << "plotfiles which have the exact same grids."             << std::endl;
+    std::cout << "\nThis utility performs a diff operation between two"      << std::endl
+	      << "plotfiles which have the exact same grids."                << std::endl
+	      << "Both absolute and relative differences are reported."      << std::endl
+	      << "Note: no attempt has been made to prevent a divide by 0, " << std::endl
+	      << "so some relative errors may not be well defined."          << std::endl;
     std::cout << '\n';
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
@@ -154,15 +157,20 @@ main (int   argc,
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
+	// this part needs to be checked -- it appears that
+	// FlushGrids works on all levels at once -- but we are 
+	// looping over levels
         for (int i = 0; i < destComps.size(); i++)
         {
             amrDataI.FlushGrids(destComps[i]);
             amrDataE.FlushGrids(destComps[i]);
         }
 
+	// aerror will contain the absolute errors
         (*aerror[iLevel]).copy(dataI);
         (*aerror[iLevel]).minus(dataE, 0, nComp, 0);
 
+	// rerror will contain the relative errors
         (*rerror[iLevel]).copy(dataI);
         (*rerror[iLevel]).minus(dataE, 0, nComp, 0);
 	(*rerror[iLevel]).divide(dataI, 0, nComp, 0);
@@ -181,17 +189,24 @@ main (int   argc,
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
-                const Real agrdL2 = (*aerror[iLevel])[mfi].norm(norm, iComp, 1);
-                const Real rgrdL2 = (*rerror[iLevel])[mfi].norm(norm, iComp, 1);
+	      
+	      // compute the norm of the absolute and relative errors for the
+	      // current FAB
+	      const Real agrdL2 = (*aerror[iLevel])[mfi].norm(norm, iComp, 1);
+	      const Real rgrdL2 = (*rerror[iLevel])[mfi].norm(norm, iComp, 1);
 
-                if (norm != 0) {
-		  anorms[iComp] = anorms[iComp] + pow(agrdL2, norm);
-		  rnorms[iComp] = rnorms[iComp] + pow(rgrdL2, norm);
-		}
-                else {
-		  anorms[iComp] = std::max(anorms[iComp], agrdL2);
-		  rnorms[iComp] = std::max(rnorms[iComp], rgrdL2);
-		}
+	      // Adding the current norm to that from the previous FABs.
+	      // note: right now, we are storing anorm**norm, so that the 
+	      // summation makes sense.
+	      if (norm != 0) {
+		anorms[iComp] = anorms[iComp] + pow(agrdL2, norm);
+		rnorms[iComp] = rnorms[iComp] + pow(rgrdL2, norm);
+	      }
+	      else {
+		anorms[iComp] = std::max(anorms[iComp], agrdL2);
+		rnorms[iComp] = std::max(rnorms[iComp], rgrdL2);
+	      }
+
             }
         }
 
@@ -265,6 +280,7 @@ main (int   argc,
         }
 #endif
 
+	// normalize the norms and print out
         Real vol = 1.0;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
             vol *= amrDataI.DxLevel()[iLevel][dir];
@@ -282,12 +298,15 @@ main (int   argc,
 		  rnorms[iComp] = pow(rnorms[iComp], (1.0/norm));
                 }
 
-                std::cout << "  " << std::setw(32) << derives[iComp] << ": " << std::setw(20) << anorms[iComp] << std::setw(20) << rnorms[iComp] << std::endl;
+                std::cout << "  " << std::setw(32) << derives[iComp] 
+			  << ": " << std::setw(20) << anorms[iComp] 
+			  << std::setw(20) << rnorms[iComp] << std::endl;
             }
             std::cout << std::endl;
         }
     }
 
+    // optionally dump out a plotfile containing the absolute errors
     if (!difFile.empty())
         WritePlotFile(aerror, amrDataI, difFile, verbose);
     
