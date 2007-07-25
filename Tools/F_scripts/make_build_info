@@ -1,13 +1,13 @@
 #!/bin/sh -f
 
 # script to some information about the build environment
-
+MAX_STRING_LENGTH=256
 rm -f build_info.f90
 
 
-BUILD_DATE=`date | cut -c 1-255`
-BUILD_DIR=`pwd | cut -c 1-255`
-BUILD_MACHINE=`uname -a | cut -c 1-255`
+BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 
 
 cat > build_info.f90 << EOF
@@ -17,7 +17,7 @@ subroutine build_info(build_date, build_dir, build_machine)
 
 ! the size of the strings is set to be the same as the size used in the
 ! cut in the shell script, so we don't go out of bounds
-  character (len=256) :: build_date, build_dir, build_machine
+  character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine
 
   build_date    = "$BUILD_DATE"
   build_dir     = "$BUILD_DIR"
