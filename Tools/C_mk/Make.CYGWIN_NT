@@ -10,8 +10,8 @@ ifeq ($(COMP),KCC)
 endif
 
 FORT_CPP    := gcc -E -traditional
-FC  := g77 -fno-second-underscore
-fC  := $(FC)
+#FC  := g77 -fno-second-underscore
+#fC  := $(FC)
 
 ifeq ($(FCOMP),Fujitsu)
   FC  := frt
@@ -31,11 +31,6 @@ ifeq ($(FCOMP),Absoft)
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
-  FOPTF += -O
-  fOPTF += -O
-  #DEFINES += -DBL_FORT_USE_UNDERSCORE
-  #override XTRALIBS +=  -lf2c
-  override XTRALIBS += -lg2c
 endif
 endif
 
