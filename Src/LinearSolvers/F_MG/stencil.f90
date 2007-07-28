@@ -3431,7 +3431,7 @@ contains
        do k = 0,nz-1
        do j = 0,ny-1
        do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,2) * (uu(i-1,j,k)-uu(i,j,k))
+         flux(i,j,k) = ss(i,j,k,2) * (uu(i,j,k)-uu(i-1,j,k))
        end do
        end do
        end do
@@ -3480,7 +3480,7 @@ contains
        do k = 0,nz-1
        do j = 0,ny-1
        do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,4) * (uu(i,j-1,k)-uu(i,j,k))
+         flux(i,j,k) = ss(i,j,k,4) * (uu(i,j,k)-uu(i,j-1,k))
        end do
        end do
        end do
@@ -3529,7 +3529,7 @@ contains
        do k = 0,nz-1
        do j = 0,ny-1
        do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,6) * (uu(i,j,k-1)-uu(i,j,k))
+         flux(i,j,k) = ss(i,j,k,6) * (uu(i,j,k)-uu(i,j,k-1))
        end do
        end do
        end do
