@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.80 2007-07-30 18:10:58 almgren Exp $
+// $Id: MultiFab.cpp,v 1.81 2007-07-30 18:18:10 almgren Exp $
 //
 #include <winstd.H>
 
@@ -267,6 +267,7 @@ MultiFab::plus (Real       val,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
+    BL_ASSERT(num_comp > 0);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -285,6 +286,7 @@ MultiFab::plus (const MultiFab& mf,
 {
     BL_ASSERT(boxarray == mf.boxarray);
     BL_ASSERT(strt_comp >= 0);
+    BL_ASSERT(num_comp > 0);
 #ifndef NDEBUG
     int lst_comp = strt_comp + num_comp - 1;
 #endif
