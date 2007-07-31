@@ -1286,9 +1286,10 @@ contains
     p = val
   end subroutine lfab_setval_bx_c
 
-  subroutine fab_print(fb, str, unit, all, data, bx, skip)
+  subroutine fab_print(fb, comp, str, unit, all, data, bx, skip)
     use bl_IO_module
     type(fab), intent(in) :: fb
+    integer, intent(in), optional :: comp
     character(len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: all, data
@@ -1327,14 +1328,25 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt=*) 'NOT ASSOCIATED'
     else
-       select case (fb%dim)
-       case (1)
+       if ( present(comp) ) then
+        select case (fb%dim)
+        case (1)
+          call print_1d(fb%p(:,1,1,comp:comp), lbound(fb%p), intersection(fb%ibx,lbx))
+        case (2)
+          call print_2d(fb%p(:,:,1,comp:comp), lbound(fb%p), intersection(fb%ibx,lbx))
+        case (3)
+          call print_3d(fb%p(:,:,:,comp:comp), lbound(fb%p), intersection(fb%ibx,lbx))
+        end select
+       else
+        select case (fb%dim)
+        case (1)
           call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
-       case (2)
+        case (2)
           call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
-       case (3)
+        case (3)
           call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
-       end select
+        end select
+       end if
     end if
   contains
     subroutine print_1d(fb, lo, bx)
