@@ -2671,6 +2671,48 @@ contains
        call parallel_barrier()
     end do
   end subroutine multifab_print
+
+  subroutine multifab_print_c(mf, comp, str, unit, all, data, skip)
+    use bl_IO_module
+    type(multifab), intent(in) :: mf
+    integer, intent(in) :: comp
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    integer :: i, ii
+    integer :: un
+    character(len=5) :: fn
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("MULTIFAB")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+    do ii = 0, parallel_nprocs()
+       if ( ii == parallel_myproc() ) then
+          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+             write(unit=fn, fmt='(i5)') i
+             call fab_print(mf%fbs(i), comp, str = fn, unit = unit, all = all, data = data, &
+                  skip = unit_get_skip(skip) + 2)
+          end do
+       end if
+       call parallel_barrier()
+    end do
+  end subroutine multifab_print_c
+
   subroutine imultifab_print(mf, str, unit, all, data, skip)
     use bl_IO_module
     type(imultifab), intent(in) :: mf
