@@ -1,7 +1,7 @@
 #!/bin/sh -f
 
 # script to some information about the build environment
-MAX_STRING_LENGTH=256
+MAX_STRING_LENGTH=128
 rm -f build_info.f90
 
 
@@ -19,9 +19,14 @@ subroutine build_info(build_date, build_dir, build_machine)
 ! cut in the shell script, so we don't go out of bounds
   character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine
 
-  build_date    = "$BUILD_DATE"
-  build_dir     = "$BUILD_DIR"
-  build_machine = "$BUILD_MACHINE"
+  build_date    = &
+   "$BUILD_DATE"
+
+  build_dir     = &
+    "$BUILD_DIR"
+
+  build_machine = &
+    "$BUILD_MACHINE"
 
   return
 end subroutine build_info
