@@ -32,6 +32,7 @@ suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)
 sources     =
 fsources    =
 f90sources  =
+sf90sources  =
 csources    =
 libraries   =
 xtr_libraries =
@@ -518,6 +519,7 @@ CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \
+	$(sort $(sf90sources:.f90=.o)) \
 	$(sort $(fsources:.f=.o))     \
 	$(sort $(csources:.c=.o))     \
 	)

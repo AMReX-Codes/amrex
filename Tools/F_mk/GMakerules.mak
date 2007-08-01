@@ -29,8 +29,6 @@ tags:	$(sources)
 # should prevent deletion of .o files
 .SECONDARY: $(objects)
 
-build_info.f90:
-	$(FPARALLEL)/scripts/make_build_info
 
 %.$(suf).exe:%.f90 $(objects)
 ifdef MKVERBOSE
@@ -86,6 +84,7 @@ else
 	@perl $(MODDEP) --odir $(odir) $^ > $(tdir)/f90.depends 
 endif
 
+
 $(tdir)/c.depends:  $(csources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 ifdef MKVERBOSE
@@ -104,3 +103,18 @@ ifdef csources
 endif
 endif
 endif
+
+
+#.build_info_tmpfile:
+#	touch .build_info_tmpfile
+	
+#$(odir)/build_info.o: .build_info_tmpfile $
+#	$(FPARALLEL)/scripts/make_build_info
+#	$(COMPILE.f90) $(OUTPUT_OPTION) build_info.f90
+#	rm -f .build_info_tmpfile
+
+$(odir)/build_info.o: $(fsources) $(f90sources) $(csources)
+	$(FPARALLEL)/scripts/make_build_info
+	$(COMPILE.f90) $(OUTPUT_OPTION) build_info.f90
+
+
