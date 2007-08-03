@@ -1,10 +1,10 @@
 #
-# $Id: Make.rules,v 1.32 2007-06-25 22:54:26 lijewski Exp $
+# $Id: Make.rules,v 1.33 2007-08-03 17:37:12 mzingale Exp $
 #
 
 clean::
 	$(RM) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
-	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
+	$(RM) $(executable) *.pure
 
 realclean: clean
 	$(RM) TAGS tags BROWSE
