@@ -129,7 +129,11 @@ main (int   argc,
     //
     Array<MultiFab*> aerror(finestLevel+1);
     Array<MultiFab*> rerror(finestLevel+1);
-    
+
+    // keep track of the absolute errors -- if any of them are different than 0, then
+    // then we failed the comparison
+    bool failed = false;
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
 		  << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
@@ -298,12 +302,18 @@ main (int   argc,
 		  rnorms[iComp] = pow(rnorms[iComp], (1.0/norm));
                 }
 
+                if (anorms[iComp] != 0.0) failed = true;
+
                 std::cout << "  " << std::setw(32) << derives[iComp] 
 			  << ": " << std::setw(20) << anorms[iComp] 
 			  << std::setw(20) << rnorms[iComp] << std::endl;
             }
             std::cout << std::endl;
         }
+    }
+
+    if (!failed) {
+      std::cout << "PLOTFILES AGREE" << std::endl;
     }
 
     // optionally dump out a plotfile containing the absolute errors
