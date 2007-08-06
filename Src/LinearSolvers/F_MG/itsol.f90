@@ -342,6 +342,14 @@ contains
 
     if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
+    if ( i > max_iter ) then
+       if ( present(stat) ) then
+          stat = 1
+       else
+          call bl_error("BiCGSolve: failed to converge");
+       end if
+    end if
+
 100 continue
 
     call destroy(rr)
@@ -352,14 +360,6 @@ contains
     call destroy(tt)
     call destroy(sh)
     call destroy(ss)
-
-    if ( i > max_iter ) then
-       if ( present(stat) ) then
-          stat = 1
-       else
-          call bl_error("BiCGSolve: failed to converge");
-       end if
-    end if
 
     call destroy(bpt)
 
@@ -518,11 +518,7 @@ contains
        end if
     end if
 
-100 continue
-    call destroy(rr)
-    call destroy(zz)
-    call destroy(pp)
-    call destroy(qq)
+    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
@@ -532,7 +528,12 @@ contains
        end if
     end if
 
-    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
+100 continue
+
+    call destroy(rr)
+    call destroy(zz)
+    call destroy(pp)
+    call destroy(qq)
 
     call destroy(bpt)
 
