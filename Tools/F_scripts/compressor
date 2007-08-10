@@ -1,0 +1,87 @@
+#!/bin/ksh -p
+#
+# Prefix's for chk and plt files.
+#
+pidfile=compressor.pid
+chk_prefix=chk
+plt_prefix=plt
+
+if [ -f $pidfile ]; then
+  echo 2>&1 "compressor lock file " $pidfile " already exists"
+  exit -1
+fi
+
+echo $$ > $pidfile
+
+trap '/bin/rm -f $pidfile' EXIT HUP TERM XCPU KILL
+
+#
+# Number of seconds to sleep before checking again.
+#
+N=60
+#
+# Tar up and then remove plt and chk directories.
+#
+function tar_up_and_rm_files
+{
+  if [ ! -f $pidfile ]; then
+    echo "compressor: $pidfile has been removed, exiting"
+    exit
+  fi
+  #
+  # Take all but the final chk file -- want job chaining to work.
+  # Strip out any tar files that are lying around. 
+  #
+  chklist=$(ls -d ${chk_prefix}* 2>/dev/null | grep -v tar)
+
+  if [ "$chklist" ]
+  then
+    nl=$(echo "$chklist" | wc -l)
+    nl=$(expr $nl - 1)
+    if [ $nl -eq 0 ]
+    then
+      chklist=""
+    else
+      chklist=$(echo "$chklist" | head -$nl)
+    fi
+  fi
+  #
+  # Take all but the final plt file.
+  # We want to ensure they're completely written to disk.
+  # Strip out any tar files that are lying around. 
+  #
+  pltlist=$(ls -d ${plt_prefix}* 2>/dev/null | grep -v tar)
+
+  if [ "$pltlist" ]
+  then
+    nl=$(echo "$pltlist" | wc -l)
+    nl=$(expr $nl - 1)
+    if [ $nl -eq 0 ]
+    then
+      pltlist=""
+    else
+      pltlist=$(echo "$pltlist" | head -$nl)
+    fi
+  fi
+
+  list="$chklist $pltlist"
+
+  for dir in ${list}
+  do
+    if [ -d ${dir} ]
+    then
+      if `tar cf ${dir}.tar ${dir}`
+      then
+        rm -rf ${dir}
+      fi
+    fi
+  done
+}
+#
+# Looping waiting for plt and chk directories to appear.
+#
+while true
+do
+  tar_up_and_rm_files
+  sleep $N
+done
