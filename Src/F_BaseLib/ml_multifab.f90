@@ -241,7 +241,7 @@ contains
     real(kind=dp_t), intent(in)  :: b
     integer :: n
     do n = 1, a%nlevel
-       call div_div(a%mf(n), ia, b)
+       call div_div(a%mf(n), ia, b, a%mf(n)%nc, a%mf(n)%ng)
     end do
   end subroutine ml_multifab_div_div_c_s
 
@@ -252,7 +252,7 @@ contains
     integer, intent(in) :: ia, ib
     integer :: n
     do n = 1, a%nlevel
-       call div(a%mf(n), ia, b%mf(n), ib, val)
+       call div(a%mf(n), ia, b%mf(n), ib, val, a%mf(n)%nc, a%mf(n)%ng)
     end do
   end subroutine ml_multifab_div_s_c
 
