@@ -186,10 +186,10 @@ contains
 
              if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              end if
 
              ! Compute FINE Res = Res - Lap(uu)
@@ -222,10 +222,10 @@ contains
 
              if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              end if
 
           else
@@ -338,10 +338,10 @@ contains
              mglev_crse = mgt(n-1)%nlevels
              if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
@@ -353,10 +353,10 @@ contains
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
              if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              else if (mgt(n)%ss(mglev)%dim .eq. 2) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,all=.true.)
+                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              end if
           end do
 

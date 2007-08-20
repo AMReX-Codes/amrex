@@ -1054,9 +1054,9 @@ contains
        ! HACK 
        if (nodal_flag) then 
          if (rh%dim .eq. 3) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
          else if (rh%dim .eq. 2) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
          end if
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
@@ -1135,9 +1135,9 @@ contains
        ! HACK 
        if (nodal_q(mgt%dd(lev-1))) then
          if (ss%dim .eq. 3) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,all=.true.)
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
          else if (ss%dim .eq. 2) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,all=.true.)
+           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
          end if
        end if
 
