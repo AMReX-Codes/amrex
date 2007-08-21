@@ -4204,7 +4204,7 @@ contains
 
   subroutine multifab_div_div(a, b, ng)
     type(multifab), intent(inout) :: a
-    type(multifab), intent(in)  :: b
+    type(multifab), intent(in   ) :: b
     integer, intent(in), optional :: ng
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
@@ -4431,21 +4431,21 @@ contains
     !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s_c
 
-  subroutine multifab_sub_sub(a, b, all)
+  subroutine multifab_sub_sub(a, b, ng)
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b
-    logical, intent(in), optional :: all
+    integer, intent(in), optional :: ng
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
+    integer :: i,lng
+    lng = 0; if ( present(ng) ) lng = ng
+    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i)
-          bp => dataptr(b, i)
+       if ( lng > 0 ) then
+          ap => dataptr(a, i, grow(get_ibox(a, i),ng))
+          bp => dataptr(b, i, grow(get_ibox(b, i),ng))
        else
           ap => dataptr(a, i, get_ibox(a, i))
           bp => dataptr(b, i, get_ibox(b, i))
@@ -4454,19 +4454,20 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_sub_sub
-  subroutine multifab_sub_sub_s(a, b, all)
+
+  subroutine multifab_sub_sub_s(a, b, ng)
     type(multifab), intent(inout) :: a
     real(dp_t), intent(in)  :: b
-    logical, intent(in), optional :: all
+    integer, intent(in), optional :: ng
     real(dp_t), pointer :: ap(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
+    integer :: i,lng
+    lng = 0; if ( present(ng) ) lng = ng
+    if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i)
+       if ( lng > 0 ) then
+          ap => dataptr(a, i, grow(get_ibox(a, i),ng))
        else
           ap => dataptr(a, i, get_ibox(a, i))
        end if
@@ -4474,23 +4475,24 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_s
-  subroutine multifab_sub_sub_c(a, targ, b, src, nc, all)
+
+  subroutine multifab_sub_sub_c(a, targ, b, src, nc, ng)
     integer, intent(in) :: targ, src
-    integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    integer, intent(in)           :: nc
+    integer, intent(in), optional :: ng
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
+    integer :: i,lng
+    lng = 0; if ( present(ng) ) lng = ng
+    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng <= ng, "not enough ghost cells in multifab_sub_sub_c")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i, targ, nc)
-          bp => dataptr(b, i, src, nc)
+       if ( lng > 0 ) then
+          ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
+          bp => dataptr(b, i, grow(get_ibox(b, i),ng), src, nc)
        else
           ap => dataptr(a, i, get_ibox(a, i), targ, nc)
           bp => dataptr(b, i, get_ibox(b, i), src, nc)
@@ -4499,21 +4501,22 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_c
-  subroutine multifab_sub_sub_s_c(a, targ, b, nc, all)
+
+  subroutine multifab_sub_sub_s_c(a, targ, b, nc, ng)
     integer, intent(in) :: targ
-    integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    integer, intent(in)           :: nc
+    integer, intent(in), optional :: ng
     type(multifab), intent(inout) :: a
     real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
-    integer :: i
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
+    integer :: i,lng
+    lng = 0; if ( present(ng) ) lng = ng
+    if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
     !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-       if ( lall ) then
-          ap => dataptr(a, i, targ, nc)
+       if ( lng > 0 ) then
+          ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
        else
           ap => dataptr(a, i, get_ibox(a, i), targ, nc)
        end if
