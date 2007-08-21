@@ -1,0 +1,2 @@
+test.py is a simple, self-contained routine for running regression tests.
+Typing ./test.py will show the usage.
