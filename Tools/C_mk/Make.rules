@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.33 2007-08-03 17:37:12 mzingale Exp $
+# $Id: Make.rules,v 1.34 2007-08-21 20:36:35 mzingale Exp $
 #
 
 clean::
@@ -28,6 +28,7 @@ BROWSE:	$(T_headesr) $(T_sources) $(CEXE_headers) $(CEXE_sources)
 $(executable):	$(objForExecs)
 	$(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
 		-o $@ $(objForExecs) $(libraries)
+	@echo SUCCESS
 #
 # Rule for building a purified executable.
 #
