@@ -1,4 +1,4 @@
-boxes = gr.2_256squared
+boxes = grids/gr.2_256squared
 geometry.coord_sys = 0
 geometry.prob_lo   =  0.0   0.0  
 geometry.prob_hi   = 1.0  1.0 
