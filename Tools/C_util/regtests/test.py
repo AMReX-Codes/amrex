@@ -18,6 +18,7 @@ import shutil
 import sys
 import getopt
 import datetime
+import time
 import string
 
 
@@ -581,6 +582,9 @@ def test(argv):
     #--------------------------------------------------------------------------
     # do the CVS updates
     #--------------------------------------------------------------------------
+    now = time.localtime(time.time())
+    cvsTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
+    
     if (not no_cvs_update):
 
         # Parallel
@@ -677,7 +681,7 @@ def test(argv):
             os.system("gmake DIM=2 executable=%s2d.exe clean" % (suiteName) )
             os.system("gmake DIM=3 executable=%s3d.exe clean" % (suiteName) )
         else:
-            os.system("gmake clean")
+            os.system("gmake MPI= clean")
             
     print "\n"
 
@@ -723,7 +727,7 @@ def test(argv):
 
             
         elif (sourceTree == "fParallel"):
-            os.system("gmake >& %s/%s.make.out" % (outputDir, test))
+            os.system("gmake MPI= >& %s/%s.make.out" % (outputDir, test))
 
             # we need a better way to get the executable name here
             executable = "main.Linux.Intel.exe"   
@@ -812,7 +816,7 @@ def test(argv):
             else:
                 if (not compareFile == ""):
                     dim = getParam(test + ".dim")
-                    os.system("../DiffSameGrid2_%dd.exe infile1=%s infile2=%s >& %s.compare.out" %
+                    os.system("../DiffSameGrid2_%dd.exe norm=0 infile1=%s infile2=%s >& %s.compare.out" %
                               (dim, benchFile, compareFile, test))
 
                 else:
@@ -872,7 +876,7 @@ def test(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     print "creating new test report..."
-    reportThisTestRun(make_benchmarks, tests, testDir, testFile, webDir)
+    reportThisTestRun(make_benchmarks, cvsTime, tests, testDir, testFile, webDir)
 
     
     #--------------------------------------------------------------------------
@@ -1088,7 +1092,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(make_benchmarks, tests, testDir, testFile, webDir):
+def reportThisTestRun(make_benchmarks, cvsTime, tests, testDir, testFile, webDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -1131,10 +1135,11 @@ def reportThisTestRun(make_benchmarks, tests, testDir, testFile, webDir):
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    hf.write("<p><b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+    hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
+    hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.Parallel.out", "cvs.Parallel.out") )
 
-    hf.write("<p><b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+    hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.fParallel.out", "cvs.fParallel.out") )        
 
 
@@ -1262,8 +1267,9 @@ def reportAllRuns(suiteName, webTopDir):
                 validDirs.append(file)
 
 
-    validDirs.sort(reverse=True)
-
+    validDirs.sort()
+    validDirs.reverse()
+    
 
     #--------------------------------------------------------------------------
     # generate the HTML
