@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.33 2007-07-03 21:05:31 almgren Exp $
+// $Id: main.cpp,v 1.34 2007-08-24 19:27:48 almgren Exp $
 //
 
 #include <fstream>
@@ -15,6 +15,7 @@
 #include <ABecLaplacian.H>
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
+#include <COEF_F.H>
 
 #include <WorkQueue.H>
 
@@ -280,6 +281,9 @@ main (int argc, char* argv[])
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
   bool dump_rhs_ascii=false ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
   bool use_fboxlib=false    ; pp.query("use_fboxlib", use_fboxlib);
+
+  bool use_variable_coef=false; pp.query("use_variable_coef", use_variable_coef);
+
   int res;
 
   if ( !ABec )
@@ -384,12 +388,47 @@ main (int argc, char* argv[])
       acoefs.setVal(a);
         
       MultiFab bcoefs[BL_SPACEDIM];
-      for ( int n=0; n<BL_SPACEDIM; ++n )
-      {
-	  BoxArray bsC(bs);
+
+      if (use_variable_coef) {
+        MultiFab cc_coef(bs,1,1);
+        for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi )
+        {
+          int i = mfi.index();
+          const int* clo = cc_coef[mfi].loVect();
+          const int* chi = cc_coef[mfi].hiVect();
+          const Box& bx = mfi.validbox();
+  
+          FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),bx.loVect(),bx.hiVect(),dx);
+        }
+
+        VisMF::Write(cc_coef,"COEF");
+
+        for ( int n=0; n<BL_SPACEDIM; ++n )
+        {
+  	  BoxArray bsC(bs);
 	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
-	  bcoefs[n].setVal(b[n]);
-      } 
+          for ( MFIter mfi(bcoefs[n]); mfi.isValid(); ++mfi )
+          {
+            int i = mfi.index();
+            Box bx(bs[i]);
+            const int* clo = cc_coef[mfi].loVect();
+            const int* chi = cc_coef[mfi].hiVect();
+            const int* edgelo = bcoefs[n][mfi].loVect();
+            const int* edgehi = bcoefs[n][mfi].hiVect();
+
+            FORT_COEF_TO_EDGES(&n,bcoefs[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
+                               cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
+                               bx.loVect(),bx.hiVect());
+          }
+        }
+      } else {
+        for ( int n=0; n<BL_SPACEDIM; ++n )
+        {
+  	  BoxArray bsC(bs);
+	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+  	  bcoefs[n].setVal(b[n]);
+        }
+      }
       //
       // Build operator, set coeffs, build solver, solve
       //
