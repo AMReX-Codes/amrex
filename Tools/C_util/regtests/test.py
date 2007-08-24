@@ -289,7 +289,9 @@ def getAuxFiles(test):
 def test(argv):
 
     usage = """
-    ./test.py [--make_benchmarks, --no_cvs_update] testfile.ini
+    ./test.py [--make_benchmarks, --no_cvs_update, --single_test test]
+        testfile.ini
+
 
     arguments:
 
@@ -373,6 +375,7 @@ def test(argv):
           defining the problem.  The name between the [..] will be how
           the test is referred to on the webpages.
 
+
     options:
     
        --make_benchmarks
@@ -385,6 +388,9 @@ def test(argv):
           skip the cvs update and run the suite on the code as it
           exists now.
 
+       --single_test mytest
+          run only the test named mytest
+          
 
     Getting started:
 
@@ -411,7 +417,9 @@ def test(argv):
 
     try:
         opts, next = getopt.getopt(argv[1:], "",
-                                   ["make_benchmarks", "no_cvs_update"])
+                                   ["make_benchmarks",
+                                    "no_cvs_update",
+                                    "single_test="])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -422,6 +430,7 @@ def test(argv):
     # defaults
     make_benchmarks = 0
     no_cvs_update = 0
+    single_test = ""
     
     for o, a in opts:
 
@@ -430,6 +439,9 @@ def test(argv):
 
         if o == "--no_cvs_update":
             no_cvs_update = 1
+
+        if o == "--single_test":
+            single_test = a
             
             
     try:
@@ -530,8 +542,15 @@ def test(argv):
     # get the name of the individual tests 
     #--------------------------------------------------------------------------
     tests = getValidTests(sourceTree)
-    
 
+    if (not single_test == ""):
+        if (single_test in tests):
+            print "running only test: %s " % (single_test)
+            tests = [single_test]
+        else:
+            abortTests("ERROR: %s is not a valid test" % (single_test))
+        
+    
     #--------------------------------------------------------------------------
     # create the output directories
     #--------------------------------------------------------------------------
