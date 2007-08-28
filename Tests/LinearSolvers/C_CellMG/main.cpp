@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.34 2007-08-24 19:27:48 almgren Exp $
+// $Id: main.cpp,v 1.35 2007-08-28 19:37:45 lijewski Exp $
 //
 
 #include <fstream>
@@ -554,6 +554,27 @@ main (int argc, char* argv[])
       if ( ParallelDescriptor::IOProcessor() )
       {
 	  std::cout << "solution norm = " << d1 << "/" << d2 << std::endl;
+      }
+
+      if (false)
+      {
+          double mean = 0;
+          for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+              mean += soln[mfi].sum(0);
+
+          ParallelDescriptor::ReduceRealSum(mean);
+
+          mean /= soln.boxArray().numPts();
+
+          for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+              soln[mfi].plus(-mean);
+
+          double d1 = mfnorm_2_valid(soln);
+          double d2 = mfnorm_0_valid(soln);
+          if ( ParallelDescriptor::IOProcessor() )
+          {
+              std::cout << "solution norm (w/mean subtracted off) = " << d1 << "/" << d2 << std::endl;
+          }
       }
   }
   if ( dump_MF || dump_VisMF )
