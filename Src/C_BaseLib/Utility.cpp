@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.74 2007-03-29 19:40:57 lijewski Exp $
+// $Id: Utility.cpp,v 1.75 2007-09-04 21:25:12 marc Exp $
 //
 
 #include <cstdlib>
@@ -12,9 +12,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#if !(defined(WIN32) || defined(BL_PGI))
-#include <sys/wait.h>
-#endif
 #include <errno.h>
 
 #include <BLFort.H>
@@ -22,6 +19,7 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
+#include <Profiler.H>
 
 #if defined(BL_XT3) && !defined(BL_USE_MPI)
 #include <unistd.h>
@@ -311,6 +309,7 @@ BoxLib::UtilCreateDirectory (const std::string& path,
                              mode_t         mode)
 #endif
 {
+    BL_PROFILE("BoxLib::UtilCreateDirectory()");
     if (path.length() == 0 || path == path_sep_str)
         return true;
 
