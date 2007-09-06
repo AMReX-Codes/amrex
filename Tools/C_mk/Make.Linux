@@ -146,6 +146,7 @@ ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3 -ip
   fOPTF   = -O3 -ip
   CXXOPTF = -O3 -ip -fno-exceptions
+  DEFINES += -DCOLUMBIA
 endif
 
 ifeq ($(WHICHLINUX), ALPHACLUSTER)
