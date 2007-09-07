@@ -668,7 +668,7 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, n, nn
+    integer :: i, k, n, nn
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
     ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
@@ -771,8 +771,31 @@ contains
           call bl_error("MG_TOWER_SMOOTHER: no such smoother")
        end select
     else 
-       call multifab_fill_boundary(uu, cross = lcross)
-       do i = 1, mgt%nboxes
+       if (lcross .and. mgt%dim > 1) then
+       do k = 0, 1
+        call multifab_fill_boundary(uu, cross = lcross)
+        do i = 1, mgt%nboxes
+          if ( multifab_remote(ff, i) ) cycle
+          up => dataptr(uu, i)
+          fp => dataptr(ff, i)
+          sp => dataptr(ss, i)
+          mp => dataptr(mm, i)
+          lo =  lwb(get_box(ss, i))
+          do n = 1, mgt%nc
+             select case ( mgt%dim)
+             case (2)
+                call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                     mp(:,:,1,1), lo, mgt%ng, k)
+             case (3)
+                call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, k)
+             end select
+          end do
+        end do
+       end do
+       else
+        call multifab_fill_boundary(uu, cross = lcross)
+        do i = 1, mgt%nboxes
           if ( multifab_remote(ff, i) ) cycle
           up => dataptr(uu, i)
           fp => dataptr(ff, i)
@@ -786,13 +809,14 @@ contains
                      mp(:,1,1,1), lo, mgt%ng)
              case (2)
                 call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                     mp(:,:,1,1), lo, mgt%ng)
+                     mp(:,:,1,1), lo, mgt%ng, k)
              case (3)
                 call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
                      mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh)
              end select
           end do
-       end do
+        end do
+       end if
 
        call multifab_internal_sync(uu)
     end if
