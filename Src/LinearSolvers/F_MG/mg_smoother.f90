@@ -493,7 +493,7 @@ contains
 
   end subroutine nodal_smoother_1d
 
-  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng)
+  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, red_black)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
@@ -501,7 +501,9 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
-    integer :: j, i, ipass, ipar, istart, jstart
+    integer            ,intent(in) :: red_black
+
+    integer :: j, i, ipar, istart, jstart
     integer :: hi(size(lo))
     logical :: offset
     real (kind = dp_t) :: dd
@@ -557,9 +559,8 @@ contains
       end if
 
       !$OMP PARALLEL DO PRIVATE(j,i,dd)
-      do ipass = 0, 1
-          ipar = 1-ipass
-          do j = jstart,hi(2)
+      ipar = 1-red_black
+      do j = jstart,hi(2)
              ipar = 1 - ipar
              do i = istart+ipar,hi(1),2
                 if (.not. bc_dirichlet(mm(i,j),1,0)) then
@@ -569,13 +570,12 @@ contains
                    uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
                 end if
              end do
-          end do
       end do
       !$OMP END PARALLEL DO
     end if
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh)
+  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, red_black)
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
@@ -584,8 +584,9 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in) :: uniform_dh
+    integer, intent(in) :: red_black
 
-    integer :: i, j, k, ipass, ipar, ipar0
+    integer :: i, j, k, ipar, ipar0
     integer :: istart,jstart,kstart
     integer :: hi(size(lo))
     logical :: offset
@@ -636,9 +637,8 @@ contains
         kstart = lo(3)
       end if
 
-      do ipass = 0, 1
-        ipar0 = ipass
-        do k = kstart,hi(3)
+      ipar0 = red_black
+      do k = kstart,hi(3)
           ipar0 = 1 - ipar0
           ipar = ipar0
           do j = jstart,hi(2)
