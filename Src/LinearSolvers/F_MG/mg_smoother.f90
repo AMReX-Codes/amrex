@@ -655,7 +655,6 @@ contains
                 end if
              end do
           end do
-        end do
       end do
 
     else if (size(ss,dim=4) .eq. 21) then

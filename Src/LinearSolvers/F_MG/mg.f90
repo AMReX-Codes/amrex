@@ -772,6 +772,7 @@ contains
        end select
     else 
        if (lcross .and. mgt%dim > 1) then
+       ! k is the red-black parameter
        do k = 0, 1
         call multifab_fill_boundary(uu, cross = lcross)
         do i = 1, mgt%nboxes
@@ -795,6 +796,8 @@ contains
        end do
        else
         call multifab_fill_boundary(uu, cross = lcross)
+        ! This value of k isn't used
+        k = 0
         do i = 1, mgt%nboxes
           if ( multifab_remote(ff, i) ) cycle
           up => dataptr(uu, i)
@@ -812,7 +815,7 @@ contains
                      mp(:,:,1,1), lo, mgt%ng, k)
              case (3)
                 call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh)
+                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, k)
              end select
           end do
         end do
