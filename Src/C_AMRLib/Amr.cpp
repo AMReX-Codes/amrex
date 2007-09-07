@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.168 2007-05-08 20:08:21 lijewski Exp $
+// $Id: Amr.cpp,v 1.169 2007-09-07 23:01:43 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1373,40 +1373,74 @@ Amr::timeStep (int  level,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::timeStep()");
     //
-    // Time to regrid?
+    // Allow regridding of level 0 calculation on restart.
     //
-    int lev_top = std::min(finest_level, max_level-1);
-
-    for (int i = level; i <= lev_top; i++)
+    if (finest_level == 0 && regrid_on_restart)
     {
-        const int old_finest = finest_level;
+        regrid_on_restart = 0;
+        //
+        // Coarsening before we split the grids ensures that each resulting
+        // grid will have an even number of cells in each direction.
+        //
+        BoxArray lev0(BoxLib::coarsen(geom[0].Domain(),2));
+        //
+        // Now split up into list of grids within max_grid_size limit.
+        //
+        lev0.maxSize(max_grid_size/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+        //
+        // Construct skeleton of new level.
+        //
+        AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
 
-        if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
+        a->init(amr_level[0]);
+        amr_level.clear(0);
+        amr_level.set(0,a);
+
+        if (verbose && ParallelDescriptor::IOProcessor())
+            printGridInfo(std::cout,0,finest_level);
+
+        if (record_grid_info && ParallelDescriptor::IOProcessor())
+            printGridInfo(gridlog,0,finest_level);
+    }
+    else
+    {
+        int lev_top = std::min(finest_level, max_level-1);
+
+        for (int i = level; i <= lev_top; i++)
         {
-            regrid(i,time);
+            const int old_finest = finest_level;
 
-            for (int k = i; k <= finest_level; k++)
-                level_count[k] = 0;
-
-            if (old_finest < finest_level)
+            if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
             {
-                //
-                // The new levels will not have valid time steps
-                // and iteration counts.
-                //
-                for (int k = old_finest+1; k <= finest_level; k++)
+                regrid(i,time);
+
+                for (int k = i; k <= finest_level; k++)
+                    level_count[k] = 0;
+
+                if (old_finest < finest_level)
                 {
-                    const int fact = sub_cycle ? MaxRefRatio(k-1) : 1;
-                    dt_level[k]    = dt_level[k-1]/Real(fact);
-                    n_cycle[k]     = fact;
+                    //
+                    // The new levels will not have valid time steps
+                    // and iteration counts.
+                    //
+                    for (int k = old_finest+1; k <= finest_level; k++)
+                    {
+                        const int fact = sub_cycle ? MaxRefRatio(k-1) : 1;
+                        dt_level[k]    = dt_level[k-1]/Real(fact);
+                        n_cycle[k]     = fact;
+                    }
                 }
             }
+            if (old_finest > finest_level)
+                lev_top = std::min(finest_level, max_level-1);
         }
-        if (old_finest > finest_level)
-          lev_top = std::min(finest_level, max_level-1);
     }
     //
-    // check to see if should write plotfile
+    // Check to see if should write plotfile.
     // This routine is here so it is done after the restart regrid.
     //
     if (plotfile_on_restart && !(restart_file.empty()) )
