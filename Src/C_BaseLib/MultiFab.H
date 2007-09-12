@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.45 2007-07-18 20:39:01 mzingale Exp $
+// $Id: MultiFab.H,v 1.46 2007-09-12 21:32:26 sepp Exp $
 //
 #include <winstd.H>
 
@@ -342,6 +342,16 @@ public:
     //
     static int SICacheSize ();
 
+    /*@ManDoc: Add 'src' to `dst' including `nghost' ghost cells.
+               The two MultiFabs MUST have the same underlying BoxArray.
+    */
+    static void Add (MultiFab&       dst,
+		     const MultiFab& src,
+		     int             srccomp,
+		     int             dstcomp,
+		     int             numcomp,
+		     int             nghost);
+
     /*@ManDoc: Copy from `src' to `dst' including `nghost' ghost cells.
                The two MultiFabs MUST have the same underlying BoxArray.
     */
@@ -351,6 +361,16 @@ public:
                       int             dstcomp,
                       int             numcomp,
                       int             nghost);
+
+    /*@ManDoc: Subtract 'src' from `dst' including `nghost' ghost cells.
+               The two MultiFabs MUST have the same underlying BoxArray.
+    */
+    static void Subtract (MultiFab&       dst,
+			  const MultiFab& src,
+			  int             srccomp,
+			  int             dstcomp,
+			  int             numcomp,
+			  int             nghost);
 private:
     //
     // These are disabled.

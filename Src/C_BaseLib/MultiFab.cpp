@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.81 2007-07-30 18:18:10 almgren Exp $
+// $Id: MultiFab.cpp,v 1.82 2007-09-12 21:32:26 sepp Exp $
 //
 #include <winstd.H>
 
@@ -14,6 +14,27 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
+
+void
+MultiFab::Add (MultiFab&       dst,
+	       const MultiFab& src,
+	       int             srccomp,
+	       int             dstcomp,
+	       int             numcomp,
+	       int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+    {
+        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+
+        if (bx.ok())
+            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
 
 void
 MultiFab::Copy (MultiFab&       dst,
@@ -33,6 +54,27 @@ MultiFab::Copy (MultiFab&       dst,
 
         if (bx.ok())
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
+    }
+}
+
+void
+MultiFab::Subtract (MultiFab&       dst,
+		    const MultiFab& src,
+		    int             srccomp,
+		    int             dstcomp,
+		    int             numcomp,
+		    int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+    {
+        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+
+        if (bx.ok())
+            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 }
 
