@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.170 2007-09-17 17:47:52 lijewski Exp $
+// $Id: Amr.cpp,v 1.171 2007-09-17 21:37:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -307,12 +307,6 @@ Amr::Amr ()
 
     pp.query("plot_nfiles", plot_nfiles);
     pp.query("checkpoint_nfiles", checkpoint_nfiles);
-
-    plot_nfiles = std::min(ParallelDescriptor::NProcs(),plot_nfiles);
-    checkpoint_nfiles = std::min(ParallelDescriptor::NProcs(),checkpoint_nfiles);
-
-    if (plot_nfiles < 1 || checkpoint_nfiles < 1)
-        BoxLib::Abort("plot_nfiles & checkpoint_nfiles must both be positive");
 
     pp.query("mffile_nstreams", mffile_nstreams);
     pp.query("probinit_natonce", probinit_natonce);
