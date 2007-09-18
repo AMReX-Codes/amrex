@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.105 2007-04-19 00:58:17 vince Exp $
+// $Id: VisMF.cpp,v 1.106 2007-09-18 20:03:57 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -168,7 +168,10 @@ operator<< (std::ostream&        os,
 {
     //
     // Up the precision for the Reals in m_min and m_max.
+    // Force it to be written in scientific notation to match fParallel code.
     //
+    std::ios::fmtflags oflags = os.flags();
+    os.setf(std::ios::floatfield, std::ios::scientific);
     int old_prec = os.precision(15);
 
     os << hd.m_vers     << '\n';
@@ -182,6 +185,7 @@ operator<< (std::ostream&        os,
     os << hd.m_min      << '\n';
     os << hd.m_max      << '\n';
 
+    os.flags(oflags);
     os.precision(old_prec);
 
     if (!os.good())
