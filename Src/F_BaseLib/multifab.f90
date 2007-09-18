@@ -3154,15 +3154,16 @@ contains
 
   end subroutine mf_copy_fancy_z
 
-  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, nocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all, nocomm
+    logical, intent(in), optional :: nocomm
     integer, intent(in)           :: dstcomp, srccomp
     integer, intent(in), optional :: nc
+    integer, intent(in), optional :: ng
     real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                       :: lall, lnocomm
-    integer                       :: i, lnc
+    logical                       :: lnocomm
+    integer                       :: i, lnc, lng
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3173,19 +3174,20 @@ contains
     optional filter
     type(bl_prof_timer), save :: bpt
     call build(bpt, "mf_copy_c")
-    lnc     = 1;       if ( present(nc)     ) lnc  = nc
-    lall    = .false.; if ( present(all)    ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc = nc
+    lng     = 0;       if ( present(ng)     ) lng = ng
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('MULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
-          if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
+          if ( lng > 0 ) then
+             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
+             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
           else
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
@@ -3194,16 +3196,17 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
+       if ( lng > 0 ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine multifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, all, filter, nocomm)
+  subroutine multifab_copy(mdst, msrc, ng, filter, nocomm)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    logical, intent(in), optional :: all, nocomm
+    integer, intent(in), optional :: ng
+    logical, intent(in), optional :: nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3213,18 +3216,19 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
-    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, nocomm)
   end subroutine multifab_copy
 
-  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
+  subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    logical, intent(in), optional  :: nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
+    integer, intent(in), optional  :: ng
     integer, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall, lnocomm
-    integer                        :: i, lnc
+    logical                        :: lnocomm
+    integer                        :: i, lnc, lng
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3236,18 +3240,19 @@ contains
     type(bl_prof_timer), save :: bpt
     call build(bpt, "imf_copy_c")
     lnc     = 1;       if ( present(nc)     ) lnc  = nc
-    lall    = .false.; if ( present(all)    ) lall = all
+    lng     = 0;       if ( present(ng)     ) lng = ng
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('IMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
-          if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
+          if ( lng > 0 ) then
+             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
+             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
           else
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
@@ -3256,16 +3261,17 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
+       if ( lng > 0 ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine imultifab_copy_c
 
-  subroutine imultifab_copy(mdst, msrc, all, filter, nocomm)
+  subroutine imultifab_copy(mdst, msrc, ng, filter, nocomm)
     type(imultifab), intent(inout) :: mdst
     type(imultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in), optional  :: ng 
+    logical, intent(in), optional  :: nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3275,18 +3281,19 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('IMULTIFAB_COPY: multifabs must have same number of components')
-    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
+    call imultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, nocomm)
   end subroutine imultifab_copy
 
-  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
+  subroutine lmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, nocomm)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    logical, intent(in), optional  :: nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
+    integer, intent(in), optional  :: ng
     logical, pointer               :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall, lnocomm
-    integer                        :: i, lnc
+    logical                        :: lnocomm
+    integer                        :: i, lnc, lng
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3297,19 +3304,20 @@ contains
     optional filter
     type(bl_prof_timer), save :: bpt
     call build(bpt, "lmf_copy_c")
-    lnc     = 1;       if ( present(nc)     ) lnc  = nc
-    lall    = .false.; if ( present(all)    ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc = nc
+    lng     = 0;       if ( present(ng)     ) lng = ng
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('LMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
-          if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
+          if ( lng > 0 ) then
+             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
+             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
           else
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
@@ -3318,16 +3326,17 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
+       if ( lng > 0 ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
     call destroy(bpt)
   end subroutine lmultifab_copy_c
 
-  subroutine lmultifab_copy(mdst, msrc, all, filter, nocomm)
+  subroutine lmultifab_copy(mdst, msrc, ng, filter, nocomm)
     type(lmultifab), intent(inout) :: mdst
     type(lmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3337,18 +3346,19 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('LMULTIFAB_COPY: multifabs must have same number of components')
-    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
+    call lmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, nocomm)
   end subroutine lmultifab_copy
 
-  subroutine zmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, all, filter, nocomm)
+  subroutine zmultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, nocomm)
     type(zmultifab), intent(inout) :: mdst
     type(zmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    logical, intent(in), optional  :: nocomm
     integer, intent(in)            :: dstcomp, srccomp
     integer, intent(in), optional  :: nc
+    integer, intent(in), optional  :: ng
     complex(dp_t), pointer         :: pdst(:,:,:,:), psrc(:,:,:,:)
-    logical                        :: lall, lnocomm
-    integer                        :: i, lnc
+    logical                        :: lnocomm
+    integer                        :: i, lnc, lng
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3357,19 +3367,20 @@ contains
        end subroutine filter
     end interface
     optional filter
-    lnc     = 1;       if ( present(nc)     ) lnc  = nc
-    lall    = .false.; if ( present(all)    ) lall = all
+    lnc     = 1;       if ( present(nc)     ) lnc = nc
+    lng     = 0;       if ( present(ng)     ) lng = ng
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
     if ( lnc < 1 )                   call bl_error('ZMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
-          if ( lall ) then
-             pdst => dataptr(mdst, i, get_pbox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_pbox(msrc, i), srccomp, lnc)
+          if ( lng > 0 ) then
+             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
+             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
           else
              pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
              psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
@@ -3378,15 +3389,16 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       if ( lall ) call bl_error('ZMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
+       if ( lng > 0 ) call bl_error('ZMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
     end if
   end subroutine zmultifab_copy_c
 
-  subroutine zmultifab_copy(mdst, msrc, all, filter, nocomm)
+  subroutine zmultifab_copy(mdst, msrc, ng, filter, nocomm)
     type(zmultifab), intent(inout) :: mdst
     type(zmultifab), intent(in)    :: msrc
-    logical, intent(in), optional  :: all, nocomm
+    integer, intent(in), optional  :: ng
+    logical, intent(in), optional  :: nocomm
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3396,7 +3408,7 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('ZMULTIFAB_COPY: multifabs must have same number of components')
-    call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, all, filter, nocomm)
+    call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, nocomm)
   end subroutine zmultifab_copy
 
   subroutine build_nodal_dot_mask(mask, mf)

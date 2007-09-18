@@ -297,7 +297,7 @@ contains
     integer :: n
     if ( target%mla /= source%mla ) call bl_error("ML_MULTFAB_COPY: not same ml_layout")
     do n = 1, source%nlevel
-       call copy(target%mf(n), source%mf(n), all)
+       call copy(target%mf(n), source%mf(n), ng = target%mf(n)%ng)
     end do
   end subroutine ml_multifab_copy
   subroutine ml_multifab_copy_c(target, tc, source, sc, nc, all)
@@ -309,7 +309,7 @@ contains
     integer :: n
     if ( target%mla /= source%mla ) call bl_error("ML_MULTFAB_COPY: not same ml_layout")
     do n = 1, source%nlevel
-       call copy(target%mf(n), tc, source%mf(n), sc, nc, all)
+       call copy(target%mf(n), tc, source%mf(n), sc, nc, ng = target%mf(n)%ng)
     end do
   end subroutine ml_multifab_copy_c
 
