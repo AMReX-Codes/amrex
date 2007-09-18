@@ -128,7 +128,7 @@ contains
 !   enddo
 
     do n = 1,nlevs
-       call multifab_copy(rh(n),res(n),all=.true.)
+       call multifab_copy(rh(n),res(n),ng=rh(n)%ng)
     end do
 
     ! ****************************************************************************
@@ -196,7 +196,7 @@ contains
              mglev = mgt(n)%nlevels
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
                   res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-             call multifab_copy(res(n),temp_res(n),all=.true.)
+             call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
 
              if ( do_diagnostics == 1 ) then
                 tres = norm_inf(res(n))
@@ -215,7 +215,7 @@ contains
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
 
              ! Copy u_hold = uu
-             if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),all=.true.)
+             if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),ng=uu(n)%ng)
 
              ! Set: uu = 0
              call setval(uu(n),ZERO,all=.true.)
@@ -265,7 +265,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-          call multifab_copy(res(n),temp_res(n),all=.true.)
+          call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
 
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))
@@ -284,7 +284,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-          call multifab_copy(res(n),temp_res(n),all=.true.)
+          call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
 
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))

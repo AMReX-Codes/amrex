@@ -394,7 +394,7 @@ contains
 
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), mf, all=all)
+          call copy(br%bmf(i,f), mf, mf%ng)
        end do
     end do
 
@@ -434,7 +434,7 @@ contains
 
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, all=all)
+          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, ng=mf%ng)
        end do
     end do
 

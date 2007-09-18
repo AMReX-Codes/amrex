@@ -203,8 +203,8 @@ contains
        call setval(ss, ZERO, all=.true.)
     end if
 
-    call copy(ph, uu, all = .true.)
-    call copy(sh, uu, all = .true.)
+    call copy(ph, uu, ng = ph%ng)
+    call copy(sh, uu, ng = sh%ng)
 
     cnt = 0
     call itsol_defect(aa, rr, rh, uu, mm, uniform_dh); cnt = cnt + 1
@@ -386,7 +386,7 @@ contains
     logical :: singular 
     integer :: cnt
 
-    real(dp_t) :: rho_hg, rho_orig, volume
+    real(dp_t) :: rho_hg, rho_hg_orig, rho_orig, volume
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
@@ -457,6 +457,10 @@ contains
        if ( i == 1 ) then
           call copy(pp, zz)
           rho_orig = rho
+
+          call itsol_precon(aa, zz, rr, mm)
+          rho_hg_orig = dot(rr, zz)
+          write(unit=*, fmt='("          CG:  rho ",g15.8)') rho_hg_orig
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
@@ -484,15 +488,23 @@ contains
        call saxpy(rr, - alpha, qq)
        rnorm = norm_inf(rr)
        if ( parallel_IOProcessor() .and. verbose > 1) then
-          write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
-                             rnorm /  (bnorm)
+          if (nodal_solve) then
+            call itsol_precon(aa, zz, rr, mm)
+            rho_hg = dot(rr, zz)
+            write(unit=*, fmt='("          CG: Iteration        ",i4," rho ",g15.8)') i, &
+                               rho_hg
+          else
+            write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
+                               rnorm /  (bnorm)
+          end if
        end if
-       if ( .false. .and. nodal_solve ) then
+       if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, zz, rr, mm)
           rho_hg = dot(rr, zz)
-          if ( (abs(rho_hg) < abs(rho_orig)*eps) .or. &
-              itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
+!         if ( (abs(rho_hg) < abs(rho_orig)*eps) .or. &
+!             itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
+          if ( (abs(rho_hg) < abs(rho_hg_orig)*0.01)) then
             print *,'FIRST OF SPECIAL NODAL STOPPING CRITERIA ',abs(rho_hg) < abs(rho_orig)*eps
             exit
           end if
@@ -737,8 +749,8 @@ contains
        call setval(ss, ZERO, all=.true.)
     end if
 
-    call copy(ph, uu, all = .true.)
-    call copy(sh, uu, all = .true.)
+    call copy(ph, uu, ng = ph%ng)
+    call copy(sh, uu, ng = sh%ng)
 
     cnt = 0
     call stencil_defect_st(st, rr, rh, uu); cnt = cnt + 1

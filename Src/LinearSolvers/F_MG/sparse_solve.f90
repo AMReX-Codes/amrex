@@ -1596,7 +1596,7 @@ contains
        mp => dataptr(mm_grown,igrid)
        mp(:,:,:,:) = ibset(mp(:,:,:,:), BC_BIT(BC_DIR,1,0))
     end do
-    call copy(mm_grown,mm, all=.false., nocomm=.true.)
+    call copy(mm_grown,mm, ng=0, nocomm=.true.)
     call imultifab_fill_boundary(mm_grown, nocomm=.true.)
 
 !   Build the ia array.
