@@ -248,14 +248,14 @@ contains
        write(unit=un, fmt='(i0,",",i0)') nb, nc
        do i = 1, nb
           do j = 1, nc
-             write(unit=un, fmt='(es30.20e3,1x,",")') mn(j,i)
+             write(unit=un, fmt='(es25.15e3,1x,",")') mn(j,i)
           end do
        end do
        write(unit=un, fmt='()')
        write(unit=un, fmt='(i0,",",i0)') nb, nc
        do i = 1, nb
           do j = 1, nc
-             write(unit=un, fmt='(es30.20e3,1x,",")') mx(j,i)
+             write(unit=un, fmt='(es25.15e3,1x,",")') mx(j,i)
           end do
        end do
        close(unit=un)
@@ -445,10 +445,10 @@ contains
           end do
        end if
        write(unit=un, fmt='(i1)') dm
-       write(unit=un, fmt='(es30.20e3)') ltime
+       write(unit=un, fmt='(es25.15e3)') ltime
        write(unit=un, fmt='(i0)') nl - 1
-       write(unit=un, fmt='(3es30.20e3)') plo
-       write(unit=un, fmt='(3es30.20e3)') phi
+       write(unit=un, fmt='(3es25.15e3)') plo
+       write(unit=un, fmt='(3es25.15e3)') phi
        do i = 1, nl - 1
           write(unit=un, fmt='(i0,1x)', advance='no') rrs(i)
        end do
@@ -463,7 +463,7 @@ contains
        end do
        write(unit=un, fmt='()')
        do i = 1, nl
-          write(unit=un, fmt='(3es30.20e3)') ldx
+          write(unit=un, fmt='(3es25.15e3)') ldx
           if ( i < nl ) ldx = ldx/rrs(i)
        end do
        write(unit=un, fmt='(i0)') idummy
@@ -475,7 +475,7 @@ contains
              plo =  lwb(get_box(mfs(i),j))    
              phi = (upb(get_box(mfs(i),j))+1)
              do k = 1, dm
-                write(unit=un, fmt='(2es30.20e3)') plo(k)*ldx(k), phi(k)*ldx(k)
+                write(unit=un, fmt='(2es25.15e3)') plo(k)*ldx(k), phi(k)*ldx(k)
              end do
           end do
           write(unit=un, fmt='("Level_",i2.2,"/Cell")') i-1
