@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.46 2007-09-12 21:32:26 sepp Exp $
+// $Id: MultiFab.H,v 1.47 2007-09-22 15:05:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -371,6 +371,49 @@ public:
 			  int             dstcomp,
 			  int             numcomp,
 			  int             nghost);
+
+    void define (const BoxArray& bxs,
+                 int             nvar,
+                 int             ngrow,
+                 FabAlloc        mem_mode);
+
+    void define (const BoxArray&            bxs,
+                 int                        nvar,
+                 int                        ngrow,
+		 const DistributionMapping& dm,
+                 FabAlloc                   mem_mode);
+    //
+    // Are there any NaNs in the MF?
+    // This may return false, even if the MF contains NaNs, if the machine
+    // doesn't support the appropriate NaN testing functions.
+    //
+    bool contains_nan () const;
+    //
+    // Are there any Infs in the MF?
+    // This may return false, even if the MF contains Infs, if the machine
+    // doesn't support the appropriate Inf testing functions.
+    //
+    bool contains_inf () const;
+
+    const FArrayBox& operator[] (const MFIter& mfi) const;
+
+    const FArrayBox& get (const MFIter& mfi) const;
+
+    FArrayBox& operator[] (const MFIter& mfi);
+
+    FArrayBox& get (const MFIter& mfi);
+
+    const FArrayBox& operator[] (int K) const;
+
+    FArrayBox& operator[] (int K);
+
+protected:
+
+    static bool check_for_nan;
+    static bool check_for_inf;
+
+    void startup ();
+
 private:
     //
     // These are disabled.

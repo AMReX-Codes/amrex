@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.82 2007-09-12 21:32:26 sepp Exp $
+// $Id: MultiFab.cpp,v 1.83 2007-09-22 15:05:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -14,6 +14,10 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
+#include <ParmParse.H>
+
+bool MultiFab::check_for_nan = false;
+bool MultiFab::check_for_inf = false;
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -142,7 +146,24 @@ MultiFab::negate (const Box& region,
     negate(region,0,n_comp,nghost);
 }
 
-MultiFab::MultiFab () {}
+void
+MultiFab::startup ()
+{
+    static bool first = true;
+
+    if (first)
+    {
+        first = false;
+        ParmParse pp("multifab");
+        pp.query("check_for_nan", check_for_nan);
+        pp.query("check_for_inf", check_for_inf);
+    }
+}
+
+MultiFab::MultiFab ()
+{
+    startup();
+}
 
 MultiFab::MultiFab (const BoxArray& bxs,
                     int             ncomp,
@@ -150,13 +171,157 @@ MultiFab::MultiFab (const BoxArray& bxs,
                     FabAlloc        alloc)
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
-{}
+{
+    startup();
+
+    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+}
 
 void
 MultiFab::operator= (const Real& r)
 {
     setVal(r);
 }
+
+void
+MultiFab::define (const BoxArray& bxs,
+                  int             nvar,
+                  int             ngrow,
+                  FabAlloc        alloc)
+{
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc);
+
+    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+}
+
+void
+MultiFab::define (const BoxArray&            bxs,
+                  int                        nvar,
+                  int                        ngrow,
+                  const DistributionMapping& dm,
+                  FabAlloc                   alloc)
+{
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc);
+
+    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+}
+
+bool 
+MultiFab::contains_nan () const
+{
+    bool r = false;
+
+    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
+        if (fabparray[mfi.index()].contains_nan())
+            r = true;
+
+    ParallelDescriptor::ReduceBoolOr(r);
+
+    return r;
+}
+
+bool 
+MultiFab::contains_inf () const
+{
+    bool r = false;
+
+    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
+        if (fabparray[mfi.index()].contains_inf())
+            r = true;
+
+    ParallelDescriptor::ReduceBoolOr(r);
+
+    return r;
+}
+
+static
+void
+AbortOnNaN (const FArrayBox& fab)
+{
+    std::cout << fab << std::endl;
+    BoxLib::Abort("FArrayBox contains a NaN");
+}
+
+static
+void
+AbortOnInf (const FArrayBox& fab)
+{
+    std::cout << fab << std::endl;
+    BoxLib::Abort("FArrayBox contains a Inf");
+}
+
+const FArrayBox&
+MultiFab::operator[] (const MFIter& mfi) const
+{
+    if (check_for_nan && fabparray[mfi.index()].contains_nan())
+        AbortOnNaN(fabparray[mfi.index()]);
+
+    if (check_for_inf && fabparray[mfi.index()].contains_inf())
+        AbortOnInf(fabparray[mfi.index()]);
+
+    return fabparray[mfi.index()];
+}
+
+const FArrayBox&
+MultiFab::get (const MFIter& mfi) const
+{
+    if (check_for_nan && fabparray[mfi.index()].contains_nan())
+        AbortOnNaN(fabparray[mfi.index()]);
+
+    if (check_for_inf && fabparray[mfi.index()].contains_inf())
+        AbortOnInf(fabparray[mfi.index()]);
+
+    return fabparray[mfi.index()];
+}
+
+FArrayBox&
+MultiFab::operator[] (const MFIter& mfi)
+{
+    if (check_for_nan && fabparray[mfi.index()].contains_nan())
+        AbortOnNaN(fabparray[mfi.index()]);
+
+    if (check_for_inf && fabparray[mfi.index()].contains_inf())
+        AbortOnInf(fabparray[mfi.index()]);
+
+    return fabparray[mfi.index()];
+}
+
+FArrayBox&
+MultiFab::get (const MFIter& mfi)
+{
+    if (check_for_nan && fabparray[mfi.index()].contains_nan())
+        AbortOnNaN(fabparray[mfi.index()]);
+
+    if (check_for_inf && fabparray[mfi.index()].contains_inf())
+        AbortOnInf(fabparray[mfi.index()]);
+
+    return fabparray[mfi.index()];
+}
+
+const FArrayBox&
+MultiFab::operator[] (int K) const
+{
+    if (check_for_nan && fabparray[K].contains_nan())
+        AbortOnNaN(fabparray[K]);
+
+    if (check_for_inf && fabparray[K].contains_inf())
+        AbortOnInf(fabparray[K]);
+
+    return fabparray[K];
+}
+
+FArrayBox&
+MultiFab::operator[] (int K)
+{
+    if (check_for_nan && fabparray[K].contains_nan())
+        AbortOnNaN(fabparray[K]);
+
+    if (check_for_inf && fabparray[K].contains_inf())
+        AbortOnInf(fabparray[K]);
+
+    return fabparray[K];
+}
+
 
 Real
 MultiFab::min (int comp,
