@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.29 2001-08-02 16:01:43 car Exp $
+// $Id: FArrayBox.H,v 1.30 2007-09-22 15:05:31 lijewski Exp $
 //
 
 #include <Pointers.H>
@@ -229,6 +229,18 @@ public:
     //@ManDoc:  The destructor.
     //
     ~FArrayBox ();
+    //
+    // Are there any NaNs in the FAB?
+    // This may return false, even if the FAB contains NaNs, if the machine
+    // doesn't support the appropriate NaN testing functions.
+    //
+    bool contains_nan () const;
+    //
+    // Are there any Infs in the FAB?
+    // This may return false, even if the FAB contains Infs, if the machine
+    // doesn't support the appropriate Inf testing functions.
+    //
+    bool contains_inf () const;
     //
     // For debugging purposes we hide BaseFab version and do some extra work.
     //

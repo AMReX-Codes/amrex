@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.48 2007-03-29 19:40:57 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.49 2007-09-22 15:05:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -174,6 +174,30 @@ FArrayBox::FArrayBox (const Box& b,
     //
     if ( do_initval )
 	setVal(initval);
+}
+
+bool 
+FArrayBox::contains_nan () const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER)
+    const Real* dp = dptr;
+    for (int i = 0; i < numpts*nvar; i++)
+        if (isnan(*dp++))
+            return true;
+#endif
+    return false;
+}
+
+bool 
+FArrayBox::contains_inf () const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER)
+    const Real* dp = dptr;
+    for (int i = 0; i < numpts*nvar; i++)
+        if (isinf(*dp++))
+            return true;
+#endif
+    return false;
 }
 
 void
