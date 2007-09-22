@@ -40,13 +40,10 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
-bool MFIter::g_debugging = false;
-
 MFIter::MFIter (const FabArrayBase& fabarray)
     :
     fabArray(fabarray),
-    currentIndex(0),
-    m_debugging(g_debugging)
+    currentIndex(0)
 {
     //
     // Increment the currentIndex to start at the first valid index
@@ -74,25 +71,12 @@ MFIter::operator++ ()
     while (fabArray.DistributionMap()[currentIndex] != MyProc);
 }
 
-void
-MFIter::setDebugging (bool debugging)
-{
-    g_debugging = debugging;
-}
-
 bool
 MFIter::isValid ()
 {
     BL_ASSERT(currentIndex >= 0);
 
     bool rc = currentIndex < fabArray.size();
-
-    if (m_debugging)
-    {
-        if (rc) return true;
-        ParallelDescriptor::Barrier();
-        return false;
-    }
 
     return rc;
 }
