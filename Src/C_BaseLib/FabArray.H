@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.191 2007-05-08 19:02:45 lijewski Exp $
+// $Id: FabArray.H,v 1.192 2007-09-22 15:05:12 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -108,15 +108,10 @@ public:
     //
     const FabArrayBase& theFabArrayBase () const;
 
-    static void setDebugging (bool debugging);
-
 protected:
-
-    static bool g_debugging;
 
     const FabArrayBase& fabArray;
     int                 currentIndex;
-    bool                m_debugging;
 };
 
 //
