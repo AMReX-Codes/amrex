@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.49 2007-09-22 15:05:31 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.50 2007-09-23 16:44:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -179,7 +179,7 @@ FArrayBox::FArrayBox (const Box& b,
 bool 
 FArrayBox::contains_nan () const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER)
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX)
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (isnan(*dp++))
@@ -191,7 +191,7 @@ FArrayBox::contains_nan () const
 bool 
 FArrayBox::contains_inf () const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER)
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX)
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (isinf(*dp++))
@@ -209,7 +209,7 @@ FArrayBox::resize (const Box& b,
     // For debugging purposes set values to QNAN when possible.
     //
     if ( do_initval )
-      setVal(initval);
+        setVal(initval);
 }
 
 FABio::Format
