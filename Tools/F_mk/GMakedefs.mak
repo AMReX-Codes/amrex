@@ -152,6 +152,24 @@ ifeq ($(ARCH),Linux)
     endif
   endif
 
+  ifeq ($(COMP),xt4)
+    CC  := cc -target=linux
+    ifdef MPI
+      FC  := ftn -target=linux -module $(mdir) -I$(mdir) 
+      F90 := ftn -target=linux -module $(mdir) -I$(mdir) 
+    else
+      FC  := pgf95 -module $(mdir) -I$(mdir) 
+      F90 := pgf95 -module $(mdir) -I$(mdir) 
+    endif        
+    ifdef NDEBUG
+      FFLAGS   += -O -fast
+      F90FLAGS += -O -fast
+    else
+      FFLAGS   += -g
+      F90FLAGS += -g
+    endif
+  endif
+
   ifeq ($(COMP),PGI)
     CC  := pgcc
     FC  := pgf95 -module $(mdir) -I$(mdir) 
