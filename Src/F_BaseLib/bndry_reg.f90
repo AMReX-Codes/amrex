@@ -383,18 +383,21 @@ contains
     call destroy(bpt)
   end subroutine bndry_reg_build
 
-  subroutine bndry_reg_copy(br, mf, all)
-    type(multifab), intent(in) :: mf
+  subroutine bndry_reg_copy(br, mf, ng)
+    type(multifab) , intent(in   ) :: mf
     type(bndry_reg), intent(inout) :: br
-    logical, intent(in), optional :: all
+    integer        , intent(in   ), optional :: ng
     integer :: i, f
+    integer :: lng
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy")
 
+    lng = 0; if ( present(ng) ) lng = ng
+
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), mf, mf%ng)
+          call copy(br%bmf(i,f), mf, lng)
        end do
     end do
 
@@ -421,20 +424,23 @@ contains
     end do
   end subroutine bndry_reg_copy_from_other
 
-  subroutine bndry_reg_copy_c(br, cb, mf, cm, nc, all)
+  subroutine bndry_reg_copy_c(br, cb, mf, cm, nc, ng)
     type(multifab), intent(in) :: mf
     type(bndry_reg), intent(inout) :: br
     integer, intent(in) :: cb, cm
     integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    integer, intent(in), optional :: ng
     integer :: i, f
+    integer :: lng
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy_c")
 
+    lng = 0; if ( present(ng) ) lng = ng
+
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, ng=mf%ng)
+          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, ng=lng)
        end do
     end do
 
