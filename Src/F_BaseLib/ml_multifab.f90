@@ -290,26 +290,29 @@ contains
     end do
   end subroutine ml_multifab_plus_plus
 
-  subroutine ml_multifab_copy(target, source, all)
+  subroutine ml_multifab_copy(target, source, ng)
     type(ml_multifab), intent(inout) :: target
     type(ml_multifab), intent(in) :: source
-    logical, intent(in), optional :: all
-    integer :: n
+    integer, intent(in), optional :: ng
+    integer :: n, lng
+    lng = 0;       if ( present(ng)     ) lng = ng
     if ( target%mla /= source%mla ) call bl_error("ML_MULTFAB_COPY: not same ml_layout")
     do n = 1, source%nlevel
-       call copy(target%mf(n), source%mf(n), ng = target%mf(n)%ng)
+       call copy(target%mf(n), source%mf(n), ng = lng)
     end do
   end subroutine ml_multifab_copy
-  subroutine ml_multifab_copy_c(target, tc, source, sc, nc, all)
+
+  subroutine ml_multifab_copy_c(target, tc, source, sc, nc, ng)
     type(ml_multifab), intent(inout) :: target
     type(ml_multifab), intent(in) :: source
-    logical, intent(in), optional :: all
+    integer, intent(in), optional :: ng
     integer, intent(in) :: tc, sc
     integer, intent(in), optional :: nc
-    integer :: n
+    integer :: n, lng
+    lng = 0;       if ( present(ng)     ) lng = ng
     if ( target%mla /= source%mla ) call bl_error("ML_MULTFAB_COPY: not same ml_layout")
     do n = 1, source%nlevel
-       call copy(target%mf(n), tc, source%mf(n), sc, nc, ng = target%mf(n)%ng)
+       call copy(target%mf(n), tc, source%mf(n), sc, nc, ng = lng)
     end do
   end subroutine ml_multifab_copy_c
 
