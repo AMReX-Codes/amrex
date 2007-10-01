@@ -289,7 +289,7 @@ def getAuxFiles(test):
 def test(argv):
 
     usage = """
-    ./test.py [--make_benchmarks, --no_cvs_update, --single_test test]
+    ./test.py [--make_benchmarks comment, --no_cvs_update, --single_test test]
         testfile.ini
 
 
@@ -378,11 +378,15 @@ def test(argv):
 
     options:
     
-       --make_benchmarks
+       --make_benchmarks \"comment\"
           run the test suite and make the current output the new
           benchmarks for comparison.  When run in this mode, no
           comparison is done.  This is useful for the first time
           the test suite is run.
+
+          \"comment\" describes the reason for the benchmark
+          update and will be appended to the web output for
+          future reference.
 
        --no_cvs_update
           skip the cvs update and run the suite on the code as it
@@ -417,7 +421,7 @@ def test(argv):
 
     try:
         opts, next = getopt.getopt(argv[1:], "",
-                                   ["make_benchmarks",
+                                   ["make_benchmarks=",
                                     "no_cvs_update",
                                     "single_test="])
 
@@ -431,11 +435,13 @@ def test(argv):
     make_benchmarks = 0
     no_cvs_update = 0
     single_test = ""
+    comment = ""
     
     for o, a in opts:
 
         if o == "--make_benchmarks":
             make_benchmarks = 1
+            comment = a
 
         if o == "--no_cvs_update":
             no_cvs_update = 1
@@ -895,7 +901,7 @@ def test(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     print "creating new test report..."
-    reportThisTestRun(make_benchmarks, cvsTime, tests, testDir, testFile, webDir)
+    reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir)
 
     
     #--------------------------------------------------------------------------
@@ -1111,7 +1117,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(make_benchmarks, cvsTime, tests, testDir, testFile, webDir):
+def reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -1151,16 +1157,22 @@ def reportThisTestRun(make_benchmarks, cvsTime, tests, testDir, testFile, webDir
 
     hf.write("<CENTER><H1>%s</H1></CENTER>\n" % (testDir) )
 
+    if (make_benchmarks):
+            hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">%s</font>\n" % (comment) )
+            hf.write("<p>&nbsp;\n")
+
+    
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
+    hf.write("<p>&nbsp;\n")
     hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.Parallel.out", "cvs.Parallel.out") )
 
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.fParallel.out", "cvs.fParallel.out") )        
-
+    hf.write("<p>&nbsp;\n")
 
     hf.write("<P><TABLE BORDER=0 CELLPADDING=3>\n")
     
