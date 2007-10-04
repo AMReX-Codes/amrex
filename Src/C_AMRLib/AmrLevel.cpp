@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.104 2007-07-05 20:02:11 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.105 2007-10-04 22:31:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -408,7 +408,7 @@ AmrLevel::setPhysBoundaryValues (int  state_indx,
     const Real new_time = state[state_indx].curTime();
     const Real eps = 0.001*(new_time - old_time);
 
-    int do_new;
+    int do_new = -1;
     if (time > old_time-eps && time < old_time+eps)
     {
         do_new = 0;

@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.24 2007-05-04 23:00:51 lijewski Exp $
+// $Id: Cluster.cpp,v 1.25 2007-10-04 22:31:27 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -331,7 +331,7 @@ Cluster::chop ()
     //
     // Select best cutpoint and direction.
     //
-    int dir;
+    int dir = -1;
     for (int n = 0, minlen = -1; n < BL_SPACEDIM; n++)
     {
         if (status[n] == mincut)
