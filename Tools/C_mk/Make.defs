@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.107 2007-07-03 21:22:57 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.108 2007-10-04 22:31:17 lijewski Exp $
 #
 
 #
@@ -210,8 +210,8 @@ endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -O
-    CXXDEBF    += -g
-    CXXOPTF    += -g
+    CXXDEBF    += -g -pedantic
+    CXXOPTF    += -g -pedantic
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
