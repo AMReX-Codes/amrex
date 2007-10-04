@@ -110,7 +110,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
-  int pm[dm];
+  Array<int> pm(dm);
   for ( int i = 0; i < dm; ++i ) 
     {
       pm[i] = geom[0].isPeriodic(i)? 1 : 0;
@@ -136,10 +136,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 
       if (nodal) {
         mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		            domain.loVect(), domain.hiVect(), pm, &pmap[0]);
+  		            domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
       } else {
         mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		      domain.loVect(), domain.hiVect(), pm, &pmap[0]);
+  		      domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
       }
     }
 
@@ -285,7 +285,9 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom, Real xa[][BL_SPACEDIM], Real xb[][BL_SPACEDIM])
+MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
+                                     Array< Array<Real> >& xa,
+                                     Array< Array<Real> >& xb)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -316,7 +318,7 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom, Real xa[
            mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
 #endif
         }
-      mgt_finalize_stencil_lev(&lev, xa[lev], xb[lev], pxa, pxb);
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb);
     }
 
   mgt_finalize_stencil();
