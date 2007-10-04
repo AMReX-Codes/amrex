@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.84 2007-07-05 20:43:08 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.85 2007-10-04 22:31:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -218,12 +218,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
-        Real*       s_dat   = S[mfi].dataPtr(dest_comp);
-        const int*  slo     = S[mfi].loVect();
-        const int*  shi     = S[mfi].hiVect();
-        const Real* vol_dat = volume[mfi].dataPtr();
-        const int*  vlo     = volume[mfi].loVect();
-        const int*  vhi     = volume[mfi].hiVect();
         //
         // Find flux register that intersect with this grid.
         //
@@ -266,8 +260,6 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     const IntVect& iv = pshifts[iiv];
                     S[mfi].shift(iv);
-                    const int* slo = S[mfi].loVect();
-                    const int* shi = S[mfi].hiVect();
                     //
                     // This is a funny situation.  I don't want to permanently
                     // change vol, but I need to do a shift on it.  I'll shift
@@ -278,8 +270,6 @@ FluxRegister::Reflux (MultiFab&       S,
                     FArrayBox* cheatvol = const_cast<FArrayBox*>(&volume[mfi]);
                     BL_ASSERT(cheatvol != 0);
                     cheatvol->shift(iv);
-                    const int* vlo = cheatvol->loVect();
-                    const int* vhi = cheatvol->hiVect();
                     Box sftbox = mfi.validbox();
                     sftbox.shift(iv);
                     BL_ASSERT(bx.intersects(sftbox));
@@ -314,8 +304,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
     FArrayBox reg;
 
     for (int i = 0; i < RFs.size(); i++)
@@ -324,8 +312,8 @@ FluxRegister::Reflux (MultiFab&       S,
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == MyProc);
-        BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == MyProc);
+        BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
+        BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
 
         FArrayBox&       fab_S      = S[rf.m_fabidx];
         const FArrayBox& fab_volume = volume[rf.m_fabidx];
@@ -460,9 +448,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     const IntVect& iv = pshifts[iiv];
                     S[mfi].shift(iv);
-                    const int* slo = S[mfi].loVect();
-                    const int* shi = S[mfi].hiVect();
-                    Box sftbox     = mfi.validbox();
+                    Box sftbox = mfi.validbox();
                     sftbox.shift(iv);
                     BL_ASSERT(bx.intersects(sftbox));
 
@@ -495,8 +481,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
     FArrayBox reg;
 
     for (int i = 0; i < RFs.size(); i++)
@@ -505,7 +489,7 @@ FluxRegister::Reflux (MultiFab&       S,
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == MyProc);
+        BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
 
         FArrayBox& fab_S     = S[rf.m_fabidx];
         Box        fine_face = BoxLib::adjCell(grids[rf.m_fridx],rf.m_face);
@@ -659,8 +643,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     BL_ASSERT(fillBoxId_mflx.size() == fillBoxId_area.size());
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
     FArrayBox mflx_fab, area_fab, tmp_fab;
 
     for (int i = 0; i < fillBoxId_mflx.size(); i++)
@@ -682,7 +664,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         FabSet&   fabset   = bndry[the_face];
         const int fabindex = fbid_mflx.FabIndex();
 
-        BL_ASSERT(fabset.DistributionMap()[fabindex] == MyProc);
+        BL_ASSERT(fabset.DistributionMap()[fabindex] == ParallelDescriptor::MyProc());
 
         FArrayBox&  fab      = fabset[fabindex];
         tmp_fab.resize(fabset[fabindex].box(),numcomp);

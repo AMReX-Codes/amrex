@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.171 2007-09-17 21:37:27 lijewski Exp $
+// $Id: Amr.cpp,v 1.172 2007-10-04 22:31:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -753,7 +753,7 @@ Amr::writePlotFile (const std::string& root,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int old_prec;
+    int old_prec = 0;
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1286,7 +1286,7 @@ Amr::checkPoint ()
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int old_prec, i;
+    int old_prec = 0, i;
 
     if (ParallelDescriptor::IOProcessor())
     {

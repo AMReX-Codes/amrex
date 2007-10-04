@@ -1,5 +1,5 @@
 //
-// $Id: SlabStat.cpp,v 1.15 2001-08-09 22:42:00 marc Exp $
+// $Id: SlabStat.cpp,v 1.16 2007-10-04 22:31:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -141,8 +141,8 @@ Boxes (const std::string& file,
 
     BoxArray ba_dflt;
     BoxArray ba_name;
-    int bxLvl_dflt;
-    int bxLvl_name;
+    int bxLvl_dflt = -1;
+    int bxLvl_name = -1;
 
     std::string line;
 
