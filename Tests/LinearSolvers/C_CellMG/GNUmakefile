@@ -21,8 +21,6 @@ USE_THREADS=FALSE
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
 
-#USE_XT3 = TRUE
-
 EBASE = main
 
 include $(PBOXLIB_HOME)/mk/Make.defs
@@ -43,23 +41,6 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
 vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
-
-ifeq ($(USE_XT3),TRUE)
-  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
-  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX -DBL_XT3
-ifeq ($(USE_MPI),TRUE)
-  CXX := CC -target=catamount
-  FC  := ftn -target=catamount
-  fC  := ftn -target=catamount
-else
-  CXX := pgCC
-  FC  := pgf90
-  fC  := pgf90
-endif
-  CXXOPTF += -O -Minline=levels:10 --no_exceptions
-  FOPTF   += -O -fastsse -Minline=levels:10
-  fOPTF   += -O -fastsse -Minline=levels:10
-endif
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
