@@ -106,6 +106,24 @@ endif
 #
 # Overrides for specific machines.
 #
+ifeq ($(WHICHLINUX), FRANKLIN)
+  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX
+ifeq ($(USE_MPI),TRUE)
+  CXX := CC -target=linux
+  FC  := ftn -target=linux
+  fC  := ftn -target=linux
+else
+  CXX := pgCC
+  FC  := pgf90
+  fC  := pgf90
+endif
+  CXXOPTF += -O --no_exceptions
+  FOPTF   += -O
+  fOPTF   += -O
+  fFLAGS  += -Mextend
+endif
+
 ifeq ($(WHICHLINUX), JVN)
   ifeq ($(COMP),Intel)
     CXX = icc
