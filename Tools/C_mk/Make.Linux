@@ -115,13 +115,13 @@ ifeq ($(USE_MPI),TRUE)
   fC  := ftn -target=linux
 else
   CXX := pgCC
-  FC  := pgf90
+  FC  := pgf90 
   fC  := pgf90
 endif
   CXXOPTF += -O --no_exceptions
   FOPTF   += -O
-  fOPTF   += -O
-  fFLAGS  += -Mextend
+  fOPTF   += -O 
+  fFLAGS  += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
 endif
 
 ifeq ($(WHICHLINUX), JVN)
