@@ -342,6 +342,10 @@ module multifab_module
      module procedure multifab_div_div_s_c
   end interface
 
+  interface mult
+     module procedure multifab_mult_s_c
+  end interface
+
   interface mult_mult
      module procedure multifab_mult_mult
      module procedure multifab_mult_mult_s
@@ -4442,6 +4446,32 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s_c
+
+  subroutine multifab_mult_s_c(a, ia, b, ib, val, nc, ng)
+    integer, intent(in) :: ia, ib
+    integer, intent(in)           :: nc
+    integer, intent(in), optional :: ng
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)    :: b
+    real(dp_t), intent(in)  :: val
+    real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
+    integer :: i,lng
+    lng = 0; if ( present(ng) ) lng = ng
+    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
+    !$OMP PARALLEL DO PRIVATE(i,ap)
+    do i = 1, a%nboxes
+       if ( remote(a,i) ) cycle
+       if ( lng > 0 ) then
+          ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
+          bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), ia, nc)
+          bp => dataptr(a, i, get_ibox(b, i), ib, nc)
+       end if
+       ap = bp * val
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_mult_s_c
 
   subroutine multifab_sub_sub(a, b, ng)
     type(multifab), intent(inout) :: a

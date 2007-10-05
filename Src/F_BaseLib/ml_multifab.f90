@@ -74,6 +74,16 @@ module ml_multifab_module
      module procedure ml_multifab_div_div_c_s
   end interface
 
+  interface mult
+     module procedure ml_multifab_mult_s_c
+  end interface
+
+  interface mult_mult
+     module procedure ml_multifab_mult_mult
+     module procedure ml_multifab_mult_mult_s
+     module procedure ml_multifab_mult_mult_c_s
+  end interface
+
   interface sub_sub
      module procedure ml_multifab_sub_sub_s
      module procedure ml_multifab_sub_sub
@@ -219,6 +229,45 @@ contains
     end do
   end subroutine ml_multifab_saxpy_5
 
+  subroutine ml_multifab_mult_mult(a, b)
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call mult_mult(a%mf(n), b%mf(n))
+    end do
+  end subroutine ml_multifab_mult_mult
+
+  subroutine ml_multifab_mult_mult_s(a, b)
+    type(ml_multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call mult_mult(a%mf(n), b)
+    end do
+  end subroutine ml_multifab_mult_mult_s
+
+  subroutine ml_multifab_mult_mult_c_s(a, ia, b)
+    type(ml_multifab), intent(inout) :: a
+    integer, intent(in) :: ia
+    real(kind=dp_t), intent(in)  :: b
+    integer :: n
+    do n = 1, a%nlevel
+       call mult_mult(a%mf(n), ia, b, a%mf(n)%nc, a%mf(n)%ng)
+    end do
+  end subroutine ml_multifab_mult_mult_c_s
+  
+  subroutine ml_multifab_mult_s_c(a, ia, b, ib, val)
+    type(ml_multifab), intent(inout) :: a
+    type(ml_multifab), intent(in) :: b
+    real(kind=dp_t), intent(in)  :: val
+    integer, intent(in) :: ia, ib
+    integer :: n
+    do n = 1, a%nlevel
+       call mult(a%mf(n), ia, b%mf(n), ib, val, a%mf(n)%nc, a%mf(n)%ng)
+    end do
+  end subroutine ml_multifab_mult_s_c
+
   subroutine ml_multifab_div_div(a, b)
     type(ml_multifab), intent(inout) :: a
     type(ml_multifab), intent(in)  :: b
@@ -227,6 +276,7 @@ contains
        call div_div(a%mf(n), b%mf(n))
     end do
   end subroutine ml_multifab_div_div
+
   subroutine ml_multifab_div_div_s(a, b)
     type(ml_multifab), intent(inout) :: a
     real(kind=dp_t), intent(in)  :: b
@@ -235,6 +285,7 @@ contains
        call div_div(a%mf(n), b)
     end do
   end subroutine ml_multifab_div_div_s
+
   subroutine ml_multifab_div_div_c_s(a, ia, b)
     type(ml_multifab), intent(inout) :: a
     integer, intent(in) :: ia
