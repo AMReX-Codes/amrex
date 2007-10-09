@@ -80,14 +80,12 @@ contains
     integer :: num_flag
     integer :: dm, i
     integer :: bboxinte
-    integer :: lblocking_factor
     type(box) :: bx
     real(dp_t) :: bx_eff
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "cluster")
 
-    lblocking_factor = 1
     if ( present(blocking_factor) ) then
        call bl_error("CLUSTER: blocking factor not implemented yet")
     end if
@@ -171,7 +169,7 @@ contains
     subroutine pd_mask(mask)
       type(lmultifab), intent(inout) :: mask
       integer :: i, j
-      type(box) :: bxi, bxj, bxij, pd
+      type(box) :: bxi, pd
       type(boxarray) :: ba
 
       pd = get_pd(get_layout(mask))
@@ -205,7 +203,7 @@ contains
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:)
       logical, intent(out) :: bb(1-ng:)
-      integer :: i, j, k, l, m, n
+      integer :: i
 
       do i = 1, size(tt,1)
          if ( any(tt(i,:)) ) bb(i-ng:i+ng) = .true.
@@ -217,7 +215,7 @@ contains
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:)
-      integer :: i, j, k, l, m, n
+      integer :: i, j
 
       do j = 1, size(tt,2); do i = 1, size(tt,1)
          if ( any(tt(i,j,:)) ) bb(i-ng:i+ng,j-ng:j+ng) = .true.
@@ -229,7 +227,7 @@ contains
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:,1-ng:)
-      integer :: i, j, k, l, m, n
+      integer :: i, j, k
 
       do k = 1, size(tt,3); do j = 1, size(tt,2); do i = 1, size(tt,1)
          if ( any(tt(i,j,k,:)) ) bb(i-ng:i+ng,j-ng:j+ng,k-ng:k+ng) = .true.
@@ -430,11 +428,8 @@ contains
     integer, intent(in) :: ll(:), hh(:)
     integer, intent(in) :: sx(ll(1):), sy(ll(2):), sz(ll(3):)
     integer, allocatable :: lx(:), ly(:), lz(:)
-    integer :: dm, n, i, j, k, ii, jj, kk
-    type(box) :: bx1
+    integer :: i, j, k
     integer :: hi(3), ip(3)
-
-    dm = bx%dim
 
     if ( holes(bx, b1, b2, sx, ll(1), hh(1), minwidth, 1) ) return
     if ( holes(bx, b1, b2, sy, ll(2), hh(2), minwidth, 2) ) return
@@ -526,7 +521,6 @@ contains
     end function holes
 
     subroutine inflection(lp, ll, hh, minwidth, hiv, infp)
-      logical :: r
       integer, intent(in) :: minwidth
       integer, intent(in) :: ll, hh
       integer, intent(in) :: lp(ll:hh)

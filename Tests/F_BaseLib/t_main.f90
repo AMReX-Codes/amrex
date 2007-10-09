@@ -327,6 +327,9 @@ subroutine t_mf_fabio
   type (multifab) :: mf
   type (boxassoc) :: bxasc
   integer :: rrs(1)
+  logical :: nodal(MAX_SPACEDIM)
+
+  nodal = .false.
 
   rrs = 2
   bx = refine(unit_box(dim=2),2)
@@ -337,7 +340,7 @@ subroutine t_mf_fabio
   call build(ba, bxs)
   call boxarray_print(ba, "BOXARRAY")
   call build(la, ba)
-  bxasc = layout_boxassoc(la, 1)
+  bxasc = layout_boxassoc(la, 1, nodal = nodal, cross = .false.)
   call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
@@ -421,7 +424,7 @@ subroutine t_nodal_mf_fabio_1
   call build(ba, bxs)
   call boxarray_print(ba, "BOXARRAY")
   call build(la, ba)
-  bxasc = layout_boxassoc(la, 1)
+  bxasc = layout_boxassoc(la, 1, nodal = nodal, cross = .false.)
   call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1, nodal = nodal)
   call multifab_build(mfc, la, nc = 1, ng=1)

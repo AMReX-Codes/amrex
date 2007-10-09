@@ -37,7 +37,7 @@ subroutine t_boxassoc_1
   pd = bbox(ba)
   call build(la, ba, pd = pd, pmask = pmask(1:dm))
 
-  call boxassoc_build(bxasc, la%lap, ng, nodal = nodal(1:dm))
+  call boxassoc_build(bxasc, la%lap, ng, nodal = nodal(1:dm), cross = .false.)
 
   call boxassoc_print(bxasc)
 
@@ -64,9 +64,12 @@ subroutine t_boxassoc
   type(box) :: pd
   type(ml_boxarray) :: mba
   character(len=64) :: test_set
+  logical :: nodal(MAX_SPACEDIM)
 
   ng = 1
   test_set = "grids.5034"
+
+  nodal = .false.
 
   call read_a_mglib_grid(mba, test_set)
 
@@ -75,7 +78,7 @@ subroutine t_boxassoc
 
   call build(la, ba, pd = pd, pmask = pmask(1:dm))
 
-  call boxassoc_build(bxasc, la%lap, ng)
+  call boxassoc_build(bxasc, la%lap, ng, nodal = nodal, cross = .false.)
 
   !! call boxassoc_print(bxasc)
 
