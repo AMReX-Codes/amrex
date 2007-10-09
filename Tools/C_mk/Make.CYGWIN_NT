@@ -10,8 +10,8 @@ ifeq ($(COMP),KCC)
 endif
 
 FORT_CPP    := gcc -E -traditional
-#FC  := g77 -fno-second-underscore
-#fC  := $(FC)
+FC  := g77 -fno-second-underscore
+fC  := $(FC)
 
 ifeq ($(FCOMP),Fujitsu)
   FC  := frt
@@ -37,7 +37,7 @@ endif
 CXXPRFF += -pg
 FPRF    += -pg
 
-override XTRALIBS +=   -lm
+override XTRALIBS +=   -lm -lg2c
 
 FDEBF += -g
 fDEBF += -g
