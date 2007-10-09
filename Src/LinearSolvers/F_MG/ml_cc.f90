@@ -640,11 +640,10 @@ contains
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm
-    integer :: mglev, mglev_crse, iter
-    logical :: fine_converged,lcross
+    integer :: mglev, mglev_crse
+    logical :: lcross
 
     real(dp_t) :: Anorm, bnorm
-    real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng

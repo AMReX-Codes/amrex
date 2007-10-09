@@ -157,7 +157,7 @@ contains
     type( multifab), intent(inout) :: uu
     type(imultifab), intent(in   ) :: mm
 
-    integer :: face, dim, i, n, ngu, ngf
+    integer :: dim, i, ngu, ngf
     logical :: lcross
 
     real(kind=dp_t), pointer :: fp(:,:,:,:)
