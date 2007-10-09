@@ -3,7 +3,7 @@ program main
   use bl_prof_module
   implicit none
   external log2
-  integer log2, i
+  integer log2
 
   call boxlib_initialize()
   call bl_prof_initialize(on = .true.)
