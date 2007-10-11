@@ -75,6 +75,8 @@ contains
     real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
 
+!   real(dp_t) :: uu_temp(0:256,0:256)
+
     hi = ubound(uu)-ng
 
     if (present(skwd) ) then
@@ -146,6 +148,7 @@ contains
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
+       ! USE THIS FOR GAUSS-SEIDEL
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
@@ -158,6 +161,23 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
+
+       ! USE THIS FOR JACOBI
+!      do j = lo(2),hi(2)
+!         do i = lo(1), hi(1)
+!            if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
+!              dd = ss(i,j,0)*uu(i,j) &
+!                   + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
+!                   + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
+!              uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+!            end if
+!         end do
+!      end do
+!      do j = lo(2),hi(2)
+!         do i = lo(1), hi(1)
+!              uu(i,j) = uu_temp(i,j)
+!         end do
+!      end do
     end if
   end subroutine gs_rb_smoother_2d
 
@@ -508,6 +528,8 @@ contains
     logical :: offset
     real (kind = dp_t) :: dd
 
+!   real (kind = dp_t) :: uu_temp(0:256,0:256)
+
     hi = ubound(uu)-ng
     dd = ZERO
 
@@ -559,6 +581,7 @@ contains
       end if
 
       !$OMP PARALLEL DO PRIVATE(j,i,dd)
+!     USE THIS FOR GAUSS-SEIDEL ITERATION
       ipar = 1-red_black
       do j = jstart,hi(2)
              ipar = 1 - ipar
@@ -572,6 +595,24 @@ contains
              end do
       end do
       !$OMP END PARALLEL DO
+
+!     USE THIS FOR JACOBI ITERATION
+!     do j = jstart,hi(2)
+!            do i = istart,hi(1)
+!               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+!                  dd =   ss(i,j,0) * uu(i  ,j ) &
+!                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+!                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+!                  uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+!               end if
+!            end do
+!     end do
+!     do j = jstart,hi(2)
+!            do i = istart,hi(1)
+!               uu(i,j) = uu_temp(i,j)
+!            end do
+!     end do
+
     end if
   end subroutine nodal_smoother_2d
 
