@@ -558,7 +558,7 @@ contains
     end if
 
     do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
-       rp => dataptr(rr, i, get_ibox(rr,i), cr)
+       rp => dataptr(rr, i, cr)
        up => dataptr(uu, i, cu)
        sp => dataptr(st%ss, i)
        mp => dataptr(st%mm, i)
@@ -620,13 +620,13 @@ contains
           if ( .not. mask(n) ) return
        end if
        do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
-          rp => dataptr(rr, i, get_ibox(rr,i))
+          rp => dataptr(rr, i)
           up => dataptr(uu, i, n)
-          upn => dataptr(uu, i, get_ibox(uu,i), n)
           sp => dataptr(st%ss, i)
           mp => dataptr(st%mm, i)
           select case ( st%type )
           case (ST_DIAG)
+            upn => dataptr(uu, i, get_ibox(uu,i), n)
              rp = sp*upn
           case (ST_CROSS)
              skwd = st%skewed(i)
@@ -659,9 +659,9 @@ contains
              end if
              rp => dataptr(rr, i, get_ibox(rr,i), n)
              up => dataptr(uu, i, n)
-             upn => dataptr(uu, i, get_ibox(uu,i), n)
              select case ( st%type )
              case (ST_DIAG)
+               upn => dataptr(uu, i, get_ibox(uu,i), n)
                 rp = sp*upn
              case (ST_CROSS)
                 skwd = st%skewed(i)
