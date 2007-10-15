@@ -117,6 +117,7 @@ else
   CXX := pgCC
   FC  := pgf90 
   fC  := pgf90
+  LIBRARIES += -lrt
 endif
   CXXOPTF += -O --no_exceptions
   FOPTF   += -O
