@@ -110,24 +110,24 @@ contains
           select case(rr%dim)
           case (1)
              if ( .not. nodal_flag) then
-                call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), uu%ng)
+                call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), rr%ng, up(:,1,1,n), uu%ng,  &
+                     mp(:,1,1,1))
              else
                 call stencil_apply_1d_nodal(ap(:,1,1,:), rp(:,1,1,n), up(:,1,1,n),  &
                      mp(:,1,1,1), uu%ng)
              end if
           case (2)
              if ( .not. nodal_flag) then
-                call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), uu%ng)
+                call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), rr%ng, up(:,:,1,n), uu%ng,  &
+                     mp(:,:,1,1))
              else
                 call stencil_apply_2d_nodal(ap(:,:,1,:), rp(:,:,1,n), up(:,:,1,n),  &
                      mp(:,:,1,1), uu%ng)
              end if
           case (3)
              if ( .not. nodal_flag) then
-                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), uu%ng)
+                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), rr%ng, up(:,:,:,n), uu%ng,  &
+                     mp(:,:,:,1))
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
                      mp(:,:,:,1), uu%ng, luniform_dh)

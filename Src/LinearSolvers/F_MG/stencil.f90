@@ -570,20 +570,20 @@ contains
           skwd = st%skewed(i)
           select case( st%dim )
           case (1)
-             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng, skwd)
+             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
           case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng, skwd)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
           case (3)
-             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng, skwd)
+             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
        case (ST_DENSE)
           select case( st%dim )
           case (1)
-             call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng)
+             call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
           case (2)
-             call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng)
+             call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
           case (3)
-             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng)
+             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
           end select
        end select
     end do
@@ -632,20 +632,20 @@ contains
              skwd = st%skewed(i)
              select case( st%dim )
              case (1)
-                call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng, skwd)
+                call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
              case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng, skwd)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
              case (3)
-                call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng, skwd)
+                call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
              end select
           case (ST_DENSE)
              select case( st%dim )
              case (1)
-                call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng)
+                call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
              case (2)
-                call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng)
+                call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
              case (3)
-                call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng)
+                call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
              end select
           end select
        end do
@@ -667,20 +667,20 @@ contains
                 skwd = st%skewed(i)
                 select case( st%dim )
                 case (1)
-                   call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng, skwd)
+                   call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
                 case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng, skwd)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
                 case (3)
-                   call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng, skwd)
+                   call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
                 end select
              case (ST_DENSE)
                 select case( st%dim )
                 case (1)
-                   call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng)
+                   call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
                 case (2)
-                   call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng)
+                   call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
                 case (3)
-                   call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng)
+                   call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
                 end select
              end select
           end do
@@ -2300,11 +2300,11 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine stencil_apply_1d(ss, dd, uu, mm, ng, skwd)
-    integer, intent(in) :: ng
+  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, skwd)
+    integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in)  :: ss(:,0:)
-    real (kind = dp_t), intent(out) :: dd(:)
-    real (kind = dp_t), intent(in)  :: uu(1-ng:)
+    real (kind = dp_t), intent(out) :: dd(1-ng_d:)
+    real (kind = dp_t), intent(in)  :: uu(1-ng_u:)
     integer           , intent(in)  :: mm(:)
     logical, intent(in), optional :: skwd
     integer nx
@@ -2388,11 +2388,11 @@ contains
 
   end subroutine stencil_flux_1d
 
-  subroutine stencil_apply_2d(ss, dd, uu, mm, ng, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: dd(:,:)
+  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, skwd)
+    integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in ) :: ss(:,:,0:)
+    real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:)
+    real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:)
     logical, intent(in), optional :: skwd
     integer           , intent(in)  :: mm(:,:)
     integer nx,ny
@@ -2560,11 +2560,11 @@ contains
 
   end subroutine stencil_flux_2d
 
-  subroutine stencil_apply_3d(ss, dd, uu, mm, ng, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: dd(:,:,:)
-    real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
+  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
+    integer, intent(in) :: ng_d,ng_u
+    real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
+    real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
     logical, intent(in), optional :: skwd
     integer           , intent(in) :: mm(:,:,:)
     integer nx,ny,nz
@@ -2811,11 +2811,11 @@ contains
 
   end subroutine stencil_flux_3d
 
-  subroutine stencil_dense_apply_1d(ss, dd, uu, mm, ng)
-    integer, intent(in) :: ng
+  subroutine stencil_dense_apply_1d(ss, dd, ng_d, uu, ng_u, mm)
+    integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,0:)
-    real (kind = dp_t), intent(  out) :: dd(:)
-    real (kind = dp_t), intent(in   ) :: uu(1-ng:)
+    real (kind = dp_t), intent(  out) :: dd(1-ng_d:)
+    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:)
     integer           , intent(in   ) :: mm(:)
     integer i, nx
    
@@ -2826,11 +2826,11 @@ contains
 
   end subroutine stencil_dense_apply_1d
 
-  subroutine stencil_dense_apply_2d(ss, dd, uu, mm, ng)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in   ) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(  out) :: dd(:,:)
+  subroutine stencil_dense_apply_2d(ss, dd, ng_d, uu, ng_u, mm)
+    integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
+    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:)
+    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:)
     integer           , intent(in   ) :: mm(:,:)
     integer i, j, nx, ny
 
@@ -2848,11 +2848,11 @@ contains
 
   end subroutine stencil_dense_apply_2d
 
-  subroutine stencil_dense_apply_3d(ss, dd, uu, mm, ng)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in   ) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(  out) :: dd(:,:,:)
+  subroutine stencil_dense_apply_3d(ss, dd, ng_d, uu, ng_u, mm)
+    integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
+    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
     integer           , intent(in   ) :: mm(:,:,:)
     integer i, j, k, nx, ny, nz
 
