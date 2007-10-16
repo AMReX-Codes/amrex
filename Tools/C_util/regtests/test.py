@@ -609,12 +609,16 @@ def test(argv):
     #--------------------------------------------------------------------------
     now = time.localtime(time.time())
     cvsTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
+
+    os.chdir(testTopDir)
     
     if (not no_cvs_update):
 
         # Parallel
+        print "cvs update Parallel"
         os.system("cvs update Parallel >& cvs.Parallel.out")
-
+        print "\n"
+        
         # make sure that the cvs update was not aborted -- this can happen, for
         # instance, if the CVSROOT was not defined
         try:
@@ -642,8 +646,10 @@ def test(argv):
 
 
 	# fParallel
+        print "cvs update fParallel"
         os.system("cvs update fParallel >& cvs.fParallel.out")
-
+        print "\n"
+        
         # make sure that the cvs update was not aborted -- this can happen, for
         # instance, if the CVSROOT was not defined
         try:
@@ -668,7 +674,71 @@ def test(argv):
 	    abortTests("ERROR: cvs update was aborted.  See cvs.fParallel.out for details")
 
         shutil.copy("cvs.fParallel.out", webDir)
-        
+
+
+    #--------------------------------------------------------------------------
+    # generate the ChangeLogs
+    #--------------------------------------------------------------------------
+    # Parallel
+    have_cvs2cl = 0
+
+    os.chdir(testTopDir)
+
+    print "Generating ChangeLog for Parallel/"
+    
+    if (not os.path.isfile("Parallel/cvs2cl.pl")):
+        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+            print "WARNING: unable to locate cvs2cl.pl script."
+            print "         no ChangeLog will be generated"
+        else:
+            shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
+            have_cvs2cl = 1
+    else:
+        have_cvs2cl = 1
+
+    os.chdir("Parallel/")
+
+    if (have_cvs2cl):
+        os.system("./cvs2cl.pl -f ChangeLog.Parallel")
+    else:
+        cf = open("ChangeLog.Parallel", 'w')
+        cf.write("unable to generate ChangeLog")
+        cf.close()
+
+    os.chdir(testTopDir)
+
+
+    # fParallel
+    have_cvs2cl = 0
+
+    os.chdir(testTopDir)
+
+    print "Generating ChangeLog for fParallel/"
+    
+    if (not os.path.isfile("fParallel/cvs2cl.pl")):
+        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+            print "WARNING: unable to locate cvs2cl.pl script."
+            print "         no ChangeLog will be generated"
+        else:
+            shutil.copy("fParallel/scripts/cvs2cl.pl", "fParallel/")
+            have_cvs2cl = 1
+    else:
+        have_cvs2cl = 1
+
+    os.chdir("fParallel/")
+
+    if (have_cvs2cl):
+        os.system("./cvs2cl.pl -f ChangeLog.fParallel")
+    else:
+        cf = open("ChangeLog.fParallel", 'w')
+        cf.write("unable to generate ChangeLog")
+        cf.close()
+
+    os.chdir(testTopDir)
+   
+    shutil.copy("Parallel/ChangeLog.Parallel", webDir)
+    shutil.copy("fParallel/ChangeLog.fParallel", webDir)    
+    
 
     #--------------------------------------------------------------------------
     # build the comparison tool
@@ -901,7 +971,7 @@ def test(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     print "creating new test report..."
-    reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir)
+    reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir)
 
     
     #--------------------------------------------------------------------------
@@ -1041,7 +1111,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
     hf.write("</HEAD>\n")
     hf.write("<BODY>\n")
 
-    hf.write("<CENTER><H1>%s %s</H1></CENTER>\n" % (testDir, testName) )
+    hf.write("<CENTER><H1><A HREF=\"index.html\">%s</A> %s</H1></CENTER>\n" % (testDir, testName) )
 
 
     # write out the information about the test
@@ -1117,7 +1187,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir):
+def reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -1148,14 +1218,14 @@ def reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFil
     hf.write("<HTML>\n")
     hf.write("<HEAD>\n")
 
-    hf.write("<TITLE>%s</TITLE>\n" % (testDir) )
+    hf.write("<TITLE>%s %s</TITLE>\n" % (suiteName, testDir) )
     hf.write("<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">\n")
     hf.write("<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"tests.css\">\n")
 
     hf.write("</HEAD>\n")
     hf.write("<BODY>\n")
 
-    hf.write("<CENTER><H1>%s</H1></CENTER>\n" % (testDir) )
+    hf.write("<CENTER><H1><A HREF=\"../\">%s</A> %s</H1></CENTER>\n" % (suiteName, testDir) )
 
     if (make_benchmarks):
             hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">%s</font>\n" % (comment) )
@@ -1169,10 +1239,15 @@ def reportThisTestRun(make_benchmarks, comment, cvsTime, tests, testDir, testFil
     hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.Parallel.out", "cvs.Parallel.out") )
-
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.fParallel.out", "cvs.fParallel.out") )        
     hf.write("<p>&nbsp;\n")
+    
+    hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+             ("ChangeLog.Parallel", "ChangeLog.Parallel") )
+    hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+             ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
+    hf.write("<p>&nbsp;\n")    
 
     hf.write("<P><TABLE BORDER=0 CELLPADDING=3>\n")
     
