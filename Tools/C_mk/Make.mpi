@@ -15,13 +15,20 @@ endif
 
 ifeq ($(MACHINE), AIX)
   MPI_HOME:=/usr/lpp/ppe.poe
-  BL_MPI_LIBS += -lmpi
+  BL_MPI_LIBS += -lmpich
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
 endif
 
 ifeq ($(MACHINE), IRIX64)
   BL_MPI_LIBS += -lmpi
+endif
+
+ifeq ($(MACHINE),CYGWIN_NT)
+  MPI_HOME:=../MPICH
+  BL_MPI_LIBS += -lmpich
+  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+  INCLUDE_LOCATIONS += $(MPI_HOME)/include
 endif
 
 ifeq ($(MACHINE), Linux)
