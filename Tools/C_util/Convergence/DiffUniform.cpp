@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffUniform.cpp,v 1.9 2006-12-15 00:55:42 almgren Exp $
+// $Id: DiffUniform.cpp,v 1.10 2007-10-19 21:22:05 almgren Exp $
 //
 
 #include <new>
@@ -176,10 +176,7 @@ main (int   argc,
             MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
             BL_ASSERT(data.boxArray() == error[iLevel]->boxArray());
             for (MFIter dmfi(data); dmfi.isValid(); ++dmfi)
-            {
-                FArrayBox err((*error[iLevel])[dmfi]);
-                err.minus(data[dmfi],0,iComp,1);
-            }
+              (*error[iLevel])[dmfi].minus(data[dmfi],0,iComp,1);
         }
     }
 
