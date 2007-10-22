@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.43 2007-10-22 02:49:57 almgren Exp $
+// $Id: CGSolver.cpp,v 1.44 2007-10-22 03:47:32 almgren Exp $
 //
 #include <winstd.H>
 
@@ -363,6 +363,11 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         {
             ph.setVal(0.0);
             mg_precond->jacobi_smooth(ph, p, temp_bc_mode);
+//          In theory this should also work (instead of above) -- much simpler!
+//          Lp.apply(v, ph, lev, temp_bc_mode);
+//          v.minus(p);
+//          v.mult(-1.);
+//          ph.copy(v);
         }
         else 
         {
@@ -413,6 +418,11 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         {
             sh.setVal(0.0);
             mg_precond->jacobi_smooth(sh, s, temp_bc_mode);
+//          In theory this should also work (instead of above) -- much simpler!
+//          Lp.apply(t, sh, lev, temp_bc_mode);
+//          t.minus(s);
+//          t.mult(-1.);
+//          ph.copy(t);
         }
         else
         {
