@@ -3,7 +3,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.7 2007-02-16 00:10:50 lijewski Exp $
+// $Id: Laplacian.H,v 1.8 2007-10-22 02:49:57 almgren Exp $
 //
 
 #include <LinOp.H>
@@ -70,12 +70,19 @@ protected:
                          const MultiFab& in,
                          int             level);
     //
-    //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
+    //@ManDoc: apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag);
+    //
+    //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    //
+    virtual void Fsmooth_jacobi (MultiFab&       solnL,
+                                 MultiFab&       solnL_temp,
+                                 const MultiFab& rhsL,
+                                 int             level);
 };
 
 #endif /*_LAPLACIAN_H_*/

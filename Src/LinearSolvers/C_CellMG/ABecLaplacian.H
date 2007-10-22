@@ -3,7 +3,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.12 2007-02-16 00:09:16 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.13 2007-10-22 02:49:57 almgren Exp $
 //
 
 #include <Tuple.H>
@@ -164,12 +164,20 @@ protected:
                          const MultiFab& in,
                          int             level);
     //
-    //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
+    //@ManDoc: apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag);
+    //
+    //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    //
+    virtual void Fsmooth_jacobi (MultiFab&       solnL,
+                                 MultiFab&       solnL_temp,
+                                 const MultiFab& rhsL,
+                                 int             level);
+    //
     //
     //@ManDoc: Array (on level) of "a" coefficients
     //

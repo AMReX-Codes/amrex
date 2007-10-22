@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.12 2007-02-16 00:12:58 lijewski Exp $
+// $Id: CGSolver.H,v 1.13 2007-10-22 02:49:57 almgren Exp $
 //
 
 #include <cmath>
@@ -221,6 +221,7 @@ protected:
     bool       use_mg_precond; // Use multigrid as a preconditioner.
 
     static bool use_jbb_precond; // Use JBB's new method as a preconditioner.
+    static bool use_jacobi_precond; // Use Jacobi smoothing as a preconditioner.
     
 private:
     //
