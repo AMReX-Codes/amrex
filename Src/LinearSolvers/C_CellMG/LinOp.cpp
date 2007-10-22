@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.33 2007-10-22 02:49:57 almgren Exp $
+// $Id: LinOp.cpp,v 1.34 2007-10-22 20:27:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -510,10 +510,7 @@ LinOp::jacobi_smooth (MultiFab&       solnL,
                       LinOp::BC_Mode  bc_mode)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::jacobi_smooth()");
-
-    applyBC(solnL, 0, 1, level, bc_mode);
-    MultiFab solnL_temp(solnL.boxArray(),1,solnL.nGrow(),Fab_allocate);
-    Fsmooth_jacobi(solnL, solnL_temp, rhsL, level);
+    Fsmooth_jacobi(solnL, rhsL, level);
 }
 
 Real

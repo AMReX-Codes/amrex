@@ -3,7 +3,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.13 2007-10-22 02:49:57 almgren Exp $
+// $Id: MultiGrid.H,v 1.14 2007-10-22 20:27:04 almgren Exp $
 //
 
 #include <Array.H>
@@ -107,10 +107,6 @@ public:
                         Real            eps_rel = -1.0,
                         Real            eps_abs = -1.0,
                         LinOp::BC_Mode  bc_mode=LinOp::Inhomogeneous_BC);
-
-    virtual void jacobi_smooth (MultiFab&       solution,
-                                const MultiFab& _rhs,
-                                LinOp::BC_Mode  bc_mode=LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: return the linear operator
     //
@@ -227,11 +223,6 @@ protected:
                         Real           _eps_abs,
                         LinOp::BC_Mode bc_mode,
                         int            level);
-
-    virtual void jacobi_smooth_ (MultiFab&       _sol,
-                                 const MultiFab& _rhs,
-                                 int            level,
-                                 LinOp::BC_Mode bc_mode);
     //
     //@ManDoc: Put the system in r-c form
     //
