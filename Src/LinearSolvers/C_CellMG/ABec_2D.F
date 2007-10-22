@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.11 2007-10-22 02:49:57 almgren Exp $
+c $Id: ABec_2D.F,v 1.12 2007-10-22 20:27:04 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -270,7 +270,7 @@ c     element.
 c     
 c-----------------------------------------------------------------------
       subroutine FORT_JACOBI (
-     $     phi,phi_temp,DIMS(phi),
+     $     phi,DIMS(phi),
      $     rhs,DIMS(rhs),
      $     alpha, beta,
      $     a,  DIMS(a),
@@ -313,7 +313,6 @@ c-----------------------------------------------------------------------
       integer m3(DIMV(m3))
       REAL_T  h(BL_SPACEDIM)
       REAL_T   phi(DIMV(phi),nc)
-      REAL_T   phi_temp(DIMV(phi))
       REAL_T   rhs(DIMV(rhs),nc)
       REAL_T     a(DIMV(a))
       REAL_T    bX(DIMV(bX))
@@ -322,7 +321,7 @@ c
       integer  i, j, n
 c
       REAL_T dhx, dhy, cf0, cf1, cf2, cf3
-      REAL_T delta, gamma, rho
+      REAL_T delta, gamma
 c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
@@ -347,17 +346,8 @@ c
      $              +   dhx*( bX(i,j) + bX(i+1,j) )
      $              +   dhy*( bY(i,j) + bY(i,j+1) )
 c     
-               rho = dhx*(bX(i,j)*phi(i-1,j,n) + bX(i+1,j)*phi(i+1,j,n))
-     $              +dhy*(bY(i,j)*phi(i,j-1,n) + bY(i,j+1)*phi(i,j+1,n))
+               phi(i,j,n) = rhs(i,j,n) / (gamma - delta)
 c     
-               phi_temp(i,j) = (rhs(i,j,n) + rho - phi(i,j,n)*delta)
-     $              /                (gamma - delta)
-c     
-            end do
-         end do
-         do j = lo(2), hi(2)
-            do i = lo(1),hi(1)
-               phi(i,j,n) = phi_temp(i,j)
             end do
          end do
       end do

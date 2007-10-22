@@ -3,7 +3,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.8 2007-10-22 02:49:57 almgren Exp $
+// $Id: Laplacian.H,v 1.9 2007-10-22 20:27:04 almgren Exp $
 //
 
 #include <LinOp.H>
@@ -80,7 +80,6 @@ protected:
     //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
-                                 MultiFab&       solnL_temp,
                                  const MultiFab& rhsL,
                                  int             level);
 };

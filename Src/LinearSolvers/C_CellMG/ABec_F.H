@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.6 2007-10-22 02:49:57 almgren Exp $
+** $Id: ABec_F.H,v 1.7 2007-10-22 20:27:04 almgren Exp $
 */
 
 #include <REAL.H>
@@ -109,7 +109,7 @@ extern "C"
         );
 
     void FORT_JACOBI (
-        Real* phi       , Real* phi_temp, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        Real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const Real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
         const Real* alpha, const Real* beta,
         const Real* a   , ARLIM_P(a_lo),   ARLIM_P(a_hi),
@@ -199,7 +199,7 @@ extern "C"
         );
 
     void FORT_JACOBI (
-        Real* phi,       Real* phi_temp, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        Real* phi,       ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const Real* rhs, ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
         const Real* alpha, const Real* beta,
         const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),

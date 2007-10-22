@@ -3,7 +3,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.13 2007-10-22 02:49:57 almgren Exp $
+// $Id: ABecLaplacian.H,v 1.14 2007-10-22 20:27:04 almgren Exp $
 //
 
 #include <Tuple.H>
@@ -174,7 +174,6 @@ protected:
     //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
-                                 MultiFab&       solnL_temp,
                                  const MultiFab& rhsL,
                                  int             level);
     //

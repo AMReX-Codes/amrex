@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.41 2007-10-22 02:49:57 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.42 2007-10-22 20:27:04 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -541,25 +541,4 @@ MultiGrid::interpolate (MultiFab&       f,
                     ARLIM(c[fmfi].loVect()), ARLIM(c[fmfi].hiVect()),
                     bx.loVect(), bx.hiVect(), &nc);
     }
-}
-
-void
-MultiGrid::jacobi_smooth (MultiFab&       _sol,
-                          const MultiFab& _rhs,
-                          LinOp::BC_Mode  bc_mode)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::solve()");
-    const int level = 0;
-    prepareForLevel(level);
-    jacobi_smooth_(_sol, _rhs, level, LinOp::Homogeneous_BC); 
-}
-
-void
-MultiGrid::jacobi_smooth_(MultiFab&            solL,
-                          const MultiFab&      rhsL,
-                          int                  level,
-                          LinOp::BC_Mode       bc_mode)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::jacobi_smooth_()");
-    Lp.jacobi_smooth(solL, rhsL, level, bc_mode);
 }

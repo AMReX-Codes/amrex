@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.18 2007-10-22 02:49:57 almgren Exp $
+// $Id: LinOp.H,v 1.19 2007-10-22 20:27:04 almgren Exp $
 //
 
 #include <Array.H>
@@ -234,7 +234,6 @@ protected:
                           int             rgbflag) = 0;
 
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
-                                 MultiFab&       solnL_temp,
                                  const MultiFab& rhsL,
                                  int             level) = 0;
     //

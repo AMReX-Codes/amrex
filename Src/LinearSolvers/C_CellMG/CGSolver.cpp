@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.44 2007-10-22 03:47:32 almgren Exp $
+// $Id: CGSolver.cpp,v 1.45 2007-10-22 20:27:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -65,6 +65,7 @@ CGSolver::initialize ()
 	std::cout << "   def_unstable_criterion = " << def_unstable_criterion << '\n';
 	std::cout << "   def_cg_solver          = " << def_cg_solver          << '\n';
 	std::cout << "   use_jbb_precond        = " << use_jbb_precond        << '\n';
+	std::cout << "   use_jacobi_precond     = " << use_jacobi_precond     << '\n';
     }
     
     initialized = 1;
@@ -362,12 +363,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         else if ( use_jacobi_precond )
         {
             ph.setVal(0.0);
-            mg_precond->jacobi_smooth(ph, p, temp_bc_mode);
-//          In theory this should also work (instead of above) -- much simpler!
-//          Lp.apply(v, ph, lev, temp_bc_mode);
-//          v.minus(p);
-//          v.mult(-1.);
-//          ph.copy(v);
+            Lp.jacobi_smooth(ph, p, lev, temp_bc_mode);
         }
         else 
         {
@@ -417,12 +413,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         else if ( use_jacobi_precond )
         {
             sh.setVal(0.0);
-            mg_precond->jacobi_smooth(sh, s, temp_bc_mode);
-//          In theory this should also work (instead of above) -- much simpler!
-//          Lp.apply(t, sh, lev, temp_bc_mode);
-//          t.minus(s);
-//          t.mult(-1.);
-//          ph.copy(t);
+            Lp.jacobi_smooth(sh, t, lev, temp_bc_mode);
         }
         else
         {

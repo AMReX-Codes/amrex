@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.24 2007-10-22 02:49:57 almgren Exp $
+// $Id: ABecLaplacian.cpp,v 1.25 2007-10-22 20:27:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -470,7 +470,6 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 
 void
 ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
-                               MultiFab&       solnL_temp,
                                const MultiFab& rhsL,
                                int             level)
 {
@@ -510,8 +509,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        FORT_JACOBI(solnL[solnLmfi].dataPtr(), solnL_temp[solnLmfi].dataPtr(),
-                    ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
+        FORT_JACOBI(solnL[solnLmfi].dataPtr(), ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
                     rhsL[solnLmfi].dataPtr(), ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
                     &alpha, &beta,
                     a[solnLmfi].dataPtr(), ARLIM(a[solnLmfi].loVect()),    ARLIM(a[solnLmfi].hiVect()),
@@ -530,8 +528,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 3)
-        FORT_JACOBI(solnL[solnLmfi].dataPtr(), solnL_temp[solnLmfi].dataPtr(),
-                    ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
+        FORT_JACOBI(solnL[solnLmfi].dataPtr(), ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
                     rhsL[solnLmfi].dataPtr(), ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
                     &alpha, &beta,
                     a[solnLmfi].dataPtr(), ARLIM(a[solnLmfi].loVect()), ARLIM(a[solnLmfi].hiVect()),
