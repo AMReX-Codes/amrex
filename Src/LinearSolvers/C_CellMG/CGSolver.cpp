@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.45 2007-10-22 20:27:04 almgren Exp $
+// $Id: CGSolver.cpp,v 1.46 2007-10-22 20:29:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -92,7 +92,7 @@ void
 CGSolver::set_mg_precond ()
 {
     delete mg_precond;
-    if (use_mg_precond || use_jacobi_precond)
+    if (use_mg_precond)
     {
         mg_precond = new MultiGrid(Lp);
     }
