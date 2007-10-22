@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.9 2006-08-03 18:47:06 almgren Exp $
+c $Id: ABec_3D.F,v 1.10 2007-10-22 02:49:57 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -358,6 +358,154 @@ c
                end do
             end do
          endif
+      end do
+c     
+      end
+c-----------------------------------------------------------------------
+c      
+c     Jacobi:
+c     Apply the Jacobi relaxation to the state phi for the equation
+c     L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)
+c     central differenced, according to the arrays of boundary
+c     masks (m#) and auxiliary data (f#).
+c     
+c     In general, if the linear operator L=gamma*y-rho, the GS relaxation
+c     is y = (R - rho)/gamma.  Near a boundary, the ghost data is filled
+c     using a polynomial interpolant based on the "old" phi values, so
+c     L=(gamma-delta)*y - rho + delta*yOld.  The resulting iteration is
+c     
+c     y = (R - delta*yOld + rho)/(gamma - delta)
+c     
+c     This expression is valid additionally in the interior provided
+c     delta->0 there.  delta is constructed by summing all the
+c     contributions to the central stencil element coming from boundary 
+c     interpolants.  The f#s contain the corresponding coefficient of 
+c     the interpolating polynomial.  The masks are set > 0 if the boundary 
+c     value was filled with an interpolant involving the central stencil 
+c     element.
+c     
+c-----------------------------------------------------------------------
+      subroutine FORT_JACOBI (
+     $     phi,phi_temp,DIMS(phi),
+     $     rhs,DIMS(rhs),
+     $     alpha, beta,
+     $     a,  DIMS(a),
+     $     bX, DIMS(bX), 
+     $     bY, DIMS(bY),
+     $     bZ, DIMS(bZ),
+     $     f0, DIMS(f0),
+     $     m0, DIMS(m0),
+     $     f1, DIMS(f1),
+     $     m1, DIMS(m1),
+     $     f2, DIMS(f2),
+     $     m2, DIMS(m2),
+     $     f3, DIMS(f3),
+     $     m3, DIMS(m3),
+     $     f4, DIMS(f4),
+     $     m4, DIMS(m4),
+     $     f5, DIMS(f5),
+     $     m5, DIMS(m5),
+     $     lo,hi,nc,
+     $     h
+     $     )
+      REAL_T alpha, beta
+      integer DIMDEC(phi)
+      integer DIMDEC(rhs)
+      integer DIMDEC(a)
+      integer DIMDEC(bX)
+      integer DIMDEC(bY)
+      integer DIMDEC(bZ)
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      integer nc
+      integer DIMDEC(f0)
+      REAL_T f0(DIMV(f0))
+      integer DIMDEC(f1)
+      REAL_T f1(DIMV(f1))
+      integer DIMDEC(f2)
+      REAL_T f2(DIMV(f2))
+      integer DIMDEC(f3)
+      REAL_T f3(DIMV(f3))
+      integer DIMDEC(f4)
+      REAL_T f4(DIMV(f4))
+      integer DIMDEC(f5)
+      REAL_T f5(DIMV(f5))
+      integer DIMDEC(m0)
+      integer m0(DIMV(m0))
+      integer DIMDEC(m1)
+      integer m1(DIMV(m1))
+      integer DIMDEC(m2)
+      integer m2(DIMV(m2))
+      integer DIMDEC(m3)
+      integer m3(DIMV(m3))
+      integer DIMDEC(m4)
+      integer m4(DIMV(m4))
+      integer DIMDEC(m5)
+      integer m5(DIMV(m5))
+      REAL_T  h(BL_SPACEDIM)
+      REAL_T   phi(DIMV(phi),nc)
+      REAL_T   phi_temp(DIMV(phi))
+      REAL_T   rhs(DIMV(rhs),nc)
+      REAL_T     a(DIMV(a))
+      REAL_T    bX(DIMV(bX))
+      REAL_T    bY(DIMV(bY))
+      REAL_T    bZ(DIMV(bZ))
+c
+      integer  i, j, k, n
+c
+      REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
+      REAL_T delta, gamma, rho
+c
+      dhx = beta/h(1)**2
+      dhy = beta/h(2)**2
+      dhz = beta/h(3)**2
+
+      do n = 1, nc
+          do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1),hi(1)
+c
+                  cf0 = cvmgt(f0(lo(1),j,k), 0.0D0,
+     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
+                  cf1 = cvmgt(f1(i,lo(2),k), 0.D00,
+     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
+                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0D0,
+     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
+                  cf3 = cvmgt(f3(hi(1),j,k), 0.0D0,
+     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
+                  cf4 = cvmgt(f4(i,hi(2),k), 0.0D0,
+     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
+                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0D0,
+     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+c
+                  delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5)
+c                  
+                  gamma = alpha*a(i,j,k)
+     $                 +   dhx*(bX(i,j,k)+bX(i+1,j,k))
+     $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
+     $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
+c
+                  rho =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
+     $                 +       bX(i+1,j,k)*phi(i+1,j,k,n) )
+     $                 + dhy*( bY(i,j  ,k)*phi(i,j-1,k,n)
+     $                 +       bY(i,j+1,k)*phi(i,j+1,k,n) )
+     $                 + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
+     $                 +       bZ(i,j,k+1)*phi(i,j,k+1,n) )
+c
+                  phi_temp(i,j,k) = (rhs(i,j,k,n)+rho-phi(i,j,k,n)*delta)
+     $                 /                   (gamma - delta)
+c                  
+               end do
+            end do
+          end do
+          do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1),hi(1)
+                  phi(i,j,k,n) = phi_temp(i,j,k)
+               end do
+            end do
+          end do
       end do
 c     
       end

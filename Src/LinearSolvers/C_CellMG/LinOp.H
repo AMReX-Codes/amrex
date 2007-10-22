@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.17 2007-02-16 00:15:01 lijewski Exp $
+// $Id: LinOp.H,v 1.18 2007-10-22 02:49:57 almgren Exp $
 //
 
 #include <Array.H>
@@ -141,6 +141,11 @@ public:
                  const MultiFab& rhsL,
                  int             level   = 0,
                  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+
+    void jacobi_smooth (MultiFab&       solnL,
+                        const MultiFab& rhsL,
+                        int             level   = 0,
+                        LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     // Estimate the norm of the operator
     //
@@ -227,6 +232,11 @@ protected:
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag) = 0;
+
+    virtual void Fsmooth_jacobi (MultiFab&       solnL,
+                                 MultiFab&       solnL_temp,
+                                 const MultiFab& rhsL,
+                                 int             level) = 0;
     //
     //@ManDoc: build coefficients at coarser level by interpolating "fine"
     //  (builds in appropriate node/cell centering)

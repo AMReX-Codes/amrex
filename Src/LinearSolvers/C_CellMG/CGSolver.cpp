@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.42 2007-07-05 20:51:20 almgren Exp $
+// $Id: CGSolver.cpp,v 1.43 2007-10-22 02:49:57 almgren Exp $
 //
 #include <winstd.H>
 
@@ -22,6 +22,7 @@ CGSolver::Solver CGSolver::def_cg_solver          = BiCGStab;
 //CGSolver::Solver CGSolver::def_cg_solver          = CG;
 double           CGSolver::def_unstable_criterion = 10.;
 bool             CGSolver::use_jbb_precond        = 0;
+bool             CGSolver::use_jacobi_precond     = 0;
 
 static
 void
@@ -42,6 +43,7 @@ CGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("verbose", def_verbose);
     pp.query("use_jbb_precond", use_jbb_precond);
+    pp.query("use_jacobi_precond", use_jacobi_precond);
     pp.query("unstable_criterion",def_unstable_criterion);
 
     int ii;
@@ -89,7 +91,7 @@ void
 CGSolver::set_mg_precond ()
 {
     delete mg_precond;
-    if (use_mg_precond)
+    if (use_mg_precond || use_jacobi_precond)
     {
         mg_precond = new MultiGrid(Lp);
     }
@@ -357,7 +359,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             ph.setVal(0.0);
             mg_precond->solve(ph, p, eps_rel, eps_abs, temp_bc_mode);
         }
-        else
+        else if ( use_jacobi_precond )
+        {
+            ph.setVal(0.0);
+            mg_precond->jacobi_smooth(ph, p, temp_bc_mode);
+        }
+        else 
         {
             ph.copy(p);
         }
@@ -401,6 +408,11 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         {
             sh.setVal(0.0);
             mg_precond->solve(sh, s, eps_rel, eps_abs, temp_bc_mode);
+        }
+        else if ( use_jacobi_precond )
+        {
+            sh.setVal(0.0);
+            mg_precond->jacobi_smooth(sh, s, temp_bc_mode);
         }
         else
         {

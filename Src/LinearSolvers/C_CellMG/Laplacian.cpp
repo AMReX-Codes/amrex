@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.16 2007-07-05 20:50:32 almgren Exp $
+// $Id: Laplacian.cpp,v 1.17 2007-10-22 02:49:57 almgren Exp $
 //
 #include <winstd.H>
 
@@ -138,6 +138,14 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             h[level], &redBlackFlag);
 #endif
     }
+}
+
+void
+Laplacian::Fsmooth_jacobi (MultiFab&       solnL,
+                           MultiFab&       solnL_temp,
+                           const MultiFab& rhsL,
+                           int            level)
+{
 }
 
 void
