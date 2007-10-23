@@ -9,31 +9,39 @@
 
 c-----------------------------------------------------------------------
       subroutine FORT_SET_CC_COEF (
-     $     coef, DIMS(coef), lo, hi, dx)
+     $     coef, DIMS(coef), lo, hi, dx, prob_lo, prob_hi)
 
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer DIMDEC(coef)
       REAL_T coef(DIMV(coef))
       REAL_T dx(BL_SPACEDIM)
+      REAL_T prob_lo(BL_SPACEDIM)
+      REAL_T prob_hi(BL_SPACEDIM)
 c
       integer i,j,k
       REAL_T  x,y,z,r
       REAL_T  xcent,ycent,zcent
+      REAL_T  xlen ,ylen ,zlen
 
-      xcent = 0.5d0
-      ycent = 0.5d0
-      zcent = 0.5d0
+      xlen = prob_hi(1)-prob_lo(1)
+      ylen = prob_hi(2)-prob_lo(2)
+      zlen = prob_hi(3)-prob_lo(3)
+
+      xcent = prob_lo(1) + 0.5d0 * xlen
+      ycent = prob_lo(2) + 0.5d0 * ylen
+      zcent = prob_lo(3) + 0.5d0 * zlen
 c
       do k = lo(3)-1, hi(3)+1
-       z = (dble(k)+0.5)*dx(3) - zcent
+       z = ( (dble(k)+0.5)*dx(3) - zcent ) / zlen
        do j = lo(2)-1, hi(2)+1
-         y = (dble(j)+0.5)*dx(2) - ycent
+         y = ( (dble(j)+0.5)*dx(2) - ycent ) / ylen
          do i = lo(1)-1, hi(1)+1
-            x = (dble(i)+0.5)*dx(1) - xcent
+            x = ( (dble(i)+0.5)*dx(1) - xcent ) / xlen
             r = sqrt(x**2 + y**2 + z**2) / 0.1d0
-            coef(i,j,k) = 1.d0 + 1000.d0 * (0.5d0 * (1.0d0 + tanh((2.d0-r))))
-            coef(i,j,k) = 1.d0 / coef(i,j,k)
+c           coef(i,j,k) = 1.d0 + 1000.d0 * (0.5d0 * (1.0d0 + tanh((2.d0-r))))
+            coef(i,j,k) = 1.d0 + 10.d0 * (0.5d0 * (1.0d0 + tanh((2.d0-r))))
+c           coef(i,j,k) = 1.d0
          end do
       end do
       end do
