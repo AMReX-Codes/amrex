@@ -449,7 +449,6 @@ contains
        call multifab_destroy(uu_hold(n))
     end do
 
-
     if (need_grad_phi) then
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
@@ -463,12 +462,12 @@ contains
           end do
        end do
 
-       !   Make sure all periodic and internal boundaries are filled
-       do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n))
-       end do
-
     end if
+
+    !   Make sure all periodic and internal boundaries are filled
+    do n = 1,nlevs
+       call multifab_fill_boundary(full_soln(n))
+    end do
 
     do n = nlevs, 1, -1
        call multifab_destroy(    soln(n))
