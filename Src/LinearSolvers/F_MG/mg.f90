@@ -48,7 +48,7 @@ module mg_module
 
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
-     integer :: min_width  = 1
+     integer :: min_width  = 2
 
      ! good for many problems
      integer :: max_iter = 20
