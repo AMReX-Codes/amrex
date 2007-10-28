@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.36 2007-07-05 20:02:11 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.37 2007-10-28 19:34:25 almgren Exp $
 //
 #include <winstd.H>
 #include <climits>
@@ -333,7 +333,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
-#if (BL_SPACEDIM > 1)
 
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
@@ -341,7 +340,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       cdat,ARLIM(clo),ARLIM(chi),
                       ARLIM(cvcblo), ARLIM(cvcbhi),
                       ucc_xsldat, lcc_xsldat, xslfac_dat,
+#if (BL_SPACEDIM>=2)
                       ucc_ysldat, lcc_ysldat, yslfac_dat,
+#endif
 #if (BL_SPACEDIM==3)
                       ucc_zsldat, lcc_zsldat, zslfac_dat,
 #endif
@@ -356,7 +357,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
-#endif /*(BL_SPACEDIM > 1)*/
 }
 
 CellQuadratic::CellQuadratic (bool limit)
