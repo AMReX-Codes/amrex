@@ -1,13 +1,14 @@
+ 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
-
+ 
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "COORDSYS_F.H"
-#include "DIMS.H"
-
+#include "ArrayLim.H"
+ 
 #define SDIM 1
 
 c :: ----------------------------------------------------------
