@@ -603,3 +603,279 @@ c :::
 
       return
       end
+
+c ::: 
+c ::: --------------------------------------------------------------
+c ::: linccinterp:   linear conservative interpolation from coarse grid to
+c ::: subregion of fine grid defined by (fblo,fbhi)
+c ::: 
+c ::: The interpolation is linear in that it uses a
+c ::: a limiting scheme that preserves the value of 
+c ::: any linear combination of the
+c ::: coarse grid data components--e.g.,
+c ::: if sum_ivar a(ic,ivar)*fab(ic,ivar) = 0, then
+c ::: sum_ivar a(ic,ivar)*fab(if,ivar) = 0 is satisfied
+c ::: in all fine cells if covering coarse cell ic.
+c ::: 
+c ::: If lin_limit = 0, the interpolation scheme is identical to
+c ::: the used in ccinterp for limslope=1; the results should
+c ::: be exactly the same -- difference = hard 0.
+c ::: 
+c ::: Inputs/Outputs
+c ::: fine        <=>  (modify) fine grid array
+c ::: flo,fhi      =>  (const)  index limits of fine grid
+c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+c ::: nvar         =>  (const)  number of variables in state vector
+c ::: lratio(1)    =>  (const)  refinement ratio between levels
+c ::: 
+c ::: crse         =>  (const)  coarse grid data widended by 1 zone
+c ::: clo,chi      =>  (const)  index limits of crse grid
+c ::: cslo,cshi    =>  (const)  coarse grid index limits where
+c :::				slopes are to be defined. This is
+c :::				the projection of (fblo,fbhi) down
+c :::				to the coarse level 
+c ::: ucslope      =>  (modify) temp array of unlimited coarse grid slopes
+c ::: lcslope      =>  (modify) temp array of limited coarse grid slopes
+c ::: slope_factor =>  (modify) temp array of slope limiting factors
+c ::: lin_limit    =>  (const)  != 0 => do linear slope limiting scheme
+c :::
+c ::: --------------------------------------------------------------
+c ::: 
+       subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi,
+     &                             DIMS(fvcb),
+     &                             crse, DIMS(crse), DIMS(cvcb),
+     &                             uc_xslope, lc_xslope, xslope_factor,
+     &                             DIMS(cslope),
+     &                             cslopelo, cslopehi,
+     $                             nvar, lratiox, 
+     $                             bc, lim_slope, lin_limit,
+     $                             fvcx, cvcx,
+     &                             voffx, alpha, cmax, cmin)
+
+       implicit none
+
+       integer DIMDEC(fine)
+       integer DIMDEC(crse)
+       integer DIMDEC(fvcb)
+       integer DIMDEC(cvcb)
+       integer DIMDEC(cslope)
+       integer fblo(1), fbhi(1)
+       integer cslopelo(1), cslopehi(1)
+       integer lratiox, nvar
+       integer lim_slope, lin_limit
+       integer bc(1,2,nvar)
+       REAL_T fine(DIMV(fine),nvar)
+       REAL_T crse(DIMV(crse), nvar)
+       REAL_T uc_xslope(DIMV(cslope),nvar)
+       REAL_T lc_xslope(DIMV(cslope),nvar)
+       REAL_T xslope_factor(DIMV(cslope))
+       REAL_T alpha(DIMV(cslope),nvar)
+       REAL_T cmax(DIMV(cslope),nvar)
+       REAL_T cmin(DIMV(cslope),nvar)
+       REAL_T fvcx(DIM1(fvcb))
+       REAL_T voffx(DIM1(fvcb))
+       REAL_T cvcx(DIM1(cvcb))
+
+#define bclo(i,n) bc(i,1,n)
+#define bchi(i,n) bc(i,2,n)
+
+       integer n
+       integer i, ic
+       REAL_T cen, forw, back, slp
+       REAL_T factorn, denom
+       REAL_T fxcen, cxcen, fycen, cycen
+       REAL_T orig_corr_fact,corr_fact
+       REAL_T dummy_fine
+       logical xok, yok
+       integer ncbx, ncby
+       integer ioff
+       integer voff_lo(1),voff_hi(1)
+
+       ncbx = cslopehi(1)-cslopelo(1)+1
+
+       voff_lo(1) = cslopelo(1) * lratiox
+       voff_hi(1) = (cslopehi(1)+1) * lratiox - 1
+
+       xok = (ncbx .ge. 2)
+
+       do i = voff_lo(1),voff_hi(1)
+          ic = IX_PROJ(i,lratiox)
+          fxcen = half*(fvcx(i)+fvcx(i+1))
+          cxcen = half*(cvcx(ic)+cvcx(ic+1))
+          voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
+       end do
+
+       do n = 1, nvar
+c
+c ...     Prevent underflow for small crse values.
+c
+          do i = cslopelo(1)-1, cslopehi(1)+1
+             crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
+          end do
+c
+c ...     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
+c
+          do i = cslopelo(1), cslopehi(1)
+             alpha(i,n) = 1.d0
+             cmax(i,n) = crse(i,n)
+             cmin(i,n) = crse(i,n)
+             do ioff = -1,1
+               cmax(i,n) = max(cmax(i,n),crse(i+ioff,n))
+               cmin(i,n) = min(cmin(i,n),crse(i+ioff,n))
+             end do
+          end do
+
+       end do
+c
+c ...  Compute unlimited and limited slopes
+c
+       do n = 1, nvar
+
+          do i=cslopelo(1), cslopehi(1)
+             uc_xslope(i,n) = half*(crse(i+1,n)-crse(i-1,n))
+             cen  = uc_xslope(i,n)
+             forw = two*(crse(i+1,n)-crse(i,n))
+             back = two*(crse(i,n)-crse(i-1,n))
+             slp  = min(abs(forw),abs(back))
+             slp  = cvmgp(slp,zero,forw*back)
+             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
+          end do
+
+          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+            i = cslopelo(1)
+            if (xok) then
+                uc_xslope(i,n)  = -sixteen/fifteen*crse(i-1,n)
+     &              + half*crse(i,n)
+     &               + two3rd*crse(i+1,n) - tenth*crse(i+2,n)
+            else
+                uc_xslope(i,n)  = fourth * (
+     &            crse(i+1,n) + five*crse(i,n) - six*crse(i-1,n) )
+            endif
+            cen  = uc_xslope(i,n)
+            forw = two*(crse(i+1,n)-crse(i,n))
+            back = two*(crse(i,n)-crse(i-1,n))
+            slp  = min(abs(forw),abs(back))
+            slp  = cvmgp(slp,zero,forw*back)
+            lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
+          end if
+
+          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+            i = cslopehi(1)
+            if (xok) then
+                uc_xslope(i,n) = sixteen/fifteen*crse(i+1,n)
+     &               - half*crse(i,n)
+     &               - two3rd*crse(i-1,n) + tenth*crse(i-2,n)
+            else
+                uc_xslope(i,n) = -fourth * (
+     &            crse(i-1,n) + five*crse(i,n) - six*crse(i+1,n) )
+            endif
+            cen  = uc_xslope(i,n)
+            forw = two*(crse(i+1,n)-crse(i,n))
+            back = two*(crse(i,n)-crse(i-1,n))
+            slp  = min(abs(forw),abs(back))
+            slp  = cvmgp(slp,zero,forw*back)
+            lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
+          end if
+
+       end do
+
+       if (lim_slope.eq.0) then
+c
+c ...    Do the interpolation using unlimited slopes.
+c
+          do n = 1, nvar
+             do i = fblo(1), fbhi(1)
+                ic = IX_PROJ(i,lratiox)
+                fine(i,n) = crse(ic,n) 
+     &               + voffx(i)*uc_xslope(ic,n)
+             end do
+          end do
+
+       else 
+
+         if (lin_limit.eq.1) then
+c
+c ...      compute linear limited slopes
+c          Note that the limited and the unlimited slopes
+c          have the same sign, and it is assumed that they do.
+c
+c ... --> compute slope factors
+c
+           do i=cslopelo(1), cslopehi(1)
+             xslope_factor(i) = one
+           end do
+
+           do n = 1, nvar
+             do i=cslopelo(1), cslopehi(1)
+                denom = uc_xslope(i,n)
+                denom = cvmgt(denom,one,denom.ne.zero)
+                factorn = lc_xslope(i,n)/denom
+                factorn = cvmgt(one,factorn,denom.eq.zero)
+                xslope_factor(i) = min(xslope_factor(i),factorn)
+             end do
+           end do
+c
+c ... -->  compute linear limited slopes
+c
+           do n = 1, nvar
+             do i=cslopelo(1), cslopehi(1)
+                lc_xslope(i,n) = xslope_factor(i)*uc_xslope(i,n)
+             end do
+           end do
+
+         else
+c
+c          Limit slopes so as to not introduce new maxs or mins.
+c
+
+            do n = 1, nvar
+               do i = voff_lo(1),voff_hi(1)
+                  ic = IX_PROJ(i,lratiox)
+
+                     orig_corr_fact = voffx(i)*lc_xslope(ic,n)
+                     dummy_fine = crse(ic,n) + orig_corr_fact
+                     if ( (dummy_fine .gt. cmax(ic,n)) .and.
+     $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,n)))) then
+                        corr_fact = (cmax(ic,n) - crse(ic,n)) / orig_corr_fact
+                        alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                     endif
+                     if ( (dummy_fine .lt. cmin(ic,n)) .and.
+     $                    (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,n)))) then
+                        corr_fact = (cmin(ic,n) - crse(ic,n)) / orig_corr_fact
+                        alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                     endif
+
+#ifndef NDEBUG
+                     if (alpha(ic,n) .lt. 0.d0) then
+                        print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
+                        print *,'ALPHA = ',alpha(ic,n)
+                        print *,'AT (I,N) = ',ic,n
+                        print *,'ORIG_CORR_FACT = ',orig_corr_fact
+                        call bl_abort(" ")
+                     endif
+                     if (alpha(ic,n) .gt. 1.d0) then
+                        print *,'OOPS - ALPHA SHOULD BE <= 1.0 IN CCINTERP '
+                        print *,'ALPHA = ',alpha(ic,n)
+                        print *,'AT (I,N) = ',ic,n
+                        print *,'ORIG_CORR_FACT = ',orig_corr_fact
+                        call bl_abort(" ")
+                     endif
+#endif
+               end do
+            end do
+
+         end if
+c
+c ...    Do the interpolation with limited slopes.
+c
+          do n = 1, nvar
+            do i = fblo(1), fbhi(1)
+               ic = IX_PROJ(i,lratiox)
+               fine(i,n) = crse(ic,n) + alpha(ic,n)*
+     &              voffx(i)*lc_xslope(ic,n)
+            end do
+          end do
+
+       end if
+
+       end

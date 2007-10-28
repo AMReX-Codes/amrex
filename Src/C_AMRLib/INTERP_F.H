@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.14 2003-09-15 21:17:03 lijewski Exp $
+** $Id: INTERP_F.H,v 1.15 2007-10-28 19:34:25 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -101,8 +101,10 @@ extern "C"
                            ARLIM_P(cvcblo), ARLIM_P(cvcbhi),
                            Real* ucc_xslopes, Real* lcc_xslopes,
                            Real* xslope_factors,
+#if (BL_SPACEDIM>=2)
                            Real* ucc_yslopes, Real* lcc_yslopes,
                            Real* yslope_factors,
+#endif
 #if (BL_SPACEDIM==3)
                            Real* ucc_zslopes, Real* lcc_zslopes,
                            Real* zslope_factors,
