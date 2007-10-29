@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.70 2007-04-18 17:29:15 lijewski Exp $
+// $Id: Geometry.cpp,v 1.71 2007-10-29 04:03:02 almgren Exp $
 //
 #include <winstd.H>
 
@@ -664,7 +664,7 @@ Geometry::GetVolume (MultiFab&       vol,
     }
 }
 
-#if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM <= 2)
 void
 Geometry::GetDLogA (MultiFab&       dloga,
                     const BoxArray& grds, 
