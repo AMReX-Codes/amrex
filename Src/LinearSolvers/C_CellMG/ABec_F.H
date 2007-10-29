@@ -2,12 +2,19 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.7 2007-10-22 20:27:04 almgren Exp $
+** $Id: ABec_F.H,v 1.8 2007-10-29 04:26:20 almgren Exp $
 */
 
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
+
+#if (BL_SPACEDIM == 1)
+#define FORT_GSRB          gsrb1daabbec
+#define FORT_ADOTX         adotx1daabbec
+#define FORT_NORMA         norma1daabbec
+#define FORT_FLUX          flux1daabbec
+#endif
 
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB          gsrb2daabbec
@@ -28,6 +35,27 @@
 #endif
 
 #else
+
+#if (BL_SPACEDIM == 1)
+ 
+#if  defined(BL_FORT_USE_UPPERCASE)
+#define FORT_GSRB     GSRB1DAABBEC
+#define FORT_ADOTX    ADOTX1DAABBEC
+#define FORT_NORMA    NORMA1DAABBEC
+#define FORT_FLUX     FLUX1DAABBEC
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_GSRB     gsrb1daabbec
+#define FORT_ADOTX    adotx1daabbec
+#define FORT_NORMA    norma1daabbec
+#define FORT_FLUX     flux1daabbec
+#elif defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_GSRB     gsrb1daabbec_
+#define FORT_ADOTX    adotx1daabbec_
+#define FORT_NORMA    norma1daabbec_
+#define FORT_FLUX     flux1daabbec_
+#endif
+ 
+#endif
 
 #if (BL_SPACEDIM == 2)
 
@@ -88,6 +116,51 @@
 
 extern "C"
 {
+
+#if (BL_SPACEDIM == 1)
+    void FORT_GSRB (
+        Real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        const Real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a   , ARLIM_P(a_lo),   ARLIM_P(a_hi),
+        const Real* bX  , ARLIM_P(bX_lo),  ARLIM_P(bX_hi),
+        const Real* den0, ARLIM_P(den0_lo),ARLIM_P(den0_hi),
+        const int* m0   , ARLIM_P(m0_lo),  ARLIM_P(m0_hi),
+        const Real* den2, ARLIM_P(den2_lo),ARLIM_P(den2_hi),
+        const int* m2   , ARLIM_P(m2_lo),  ARLIM_P(m2_hi),
+        const int* lo, const int* hi, const int *nc,
+        const Real *h
+        );
+
+    void FORT_ADOTX(
+        Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h
+        );
+    
+    void FORT_NORMA(
+        Real* res      ,
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h
+        );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        const Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
+        );
+#endif    
 #if (BL_SPACEDIM == 2)
     void FORT_GSRB (
         Real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),

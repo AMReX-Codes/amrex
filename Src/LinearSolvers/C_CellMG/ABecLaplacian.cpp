@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.25 2007-10-22 20:27:04 almgren Exp $
+// $Id: ABecLaplacian.cpp,v 1.26 2007-10-29 04:26:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -231,18 +231,22 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
 		  bX[inmfi].dataPtr(), 
 		  ARLIM(bX[inmfi].loVect()), ARLIM(bX[inmfi].hiVect()),
+#if (BL_SPACEDIM >= 2)
 		  bY[inmfi].dataPtr(), 
 		  ARLIM(bY[inmfi].loVect()), ARLIM(bY[inmfi].hiVect()),
 #if (BL_SPACEDIM == 3)
 		  bZ[inmfi].dataPtr(), 
 		  ARLIM(bZ[inmfi].loVect()), ARLIM(bZ[inmfi].hiVect()),
 #endif
+#endif
 		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
 		  h[level],
 		  xflux[inmfi].dataPtr(),
-		  ARLIM(xflux[inmfi].loVect()), ARLIM(xflux[inmfi].hiVect()),
-		  yflux[inmfi].dataPtr(),
+		  ARLIM(xflux[inmfi].loVect()), ARLIM(xflux[inmfi].hiVect())
+#if (BL_SPACEDIM >= 2)
+		  ,yflux[inmfi].dataPtr(),
 		  ARLIM(yflux[inmfi].loVect()), ARLIM(yflux[inmfi].hiVect())
+#endif
 #if (BL_SPACEDIM == 3)
 		  ,zflux[inmfi].dataPtr(),
 		  ARLIM(zflux[inmfi].loVect()), ARLIM(zflux[inmfi].hiVect())

@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.18 2007-10-22 20:27:04 almgren Exp $
+// $Id: Laplacian.cpp,v 1.19 2007-10-29 04:26:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -37,9 +37,11 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
 		  h[level],
 		  xflux[inmfi].dataPtr(),
-		  ARLIM(xflux[inmfi].loVect()), ARLIM(xflux[inmfi].hiVect()),
-		  yflux[inmfi].dataPtr(),
+		  ARLIM(xflux[inmfi].loVect()), ARLIM(xflux[inmfi].hiVect())
+#if (BL_SPACEDIM >= 2)
+		  ,yflux[inmfi].dataPtr(),
 		  ARLIM(yflux[inmfi].loVect()), ARLIM(yflux[inmfi].hiVect())
+#endif
 #if (BL_SPACEDIM == 3)
 		  ,zflux[inmfi].dataPtr(),
 		  ARLIM(zflux[inmfi].loVect()), ARLIM(zflux[inmfi].hiVect())
