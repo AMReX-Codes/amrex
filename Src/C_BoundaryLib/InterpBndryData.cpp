@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.20 2006-09-01 23:10:37 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.21 2007-10-29 04:26:20 almgren Exp $
 //
 #include <winstd.H>
 
@@ -36,6 +36,10 @@ bdfunc_init ()
     bdfunc[zhiface] = FORT_BDINTERPZHI;
 #endif
 }
+
+#if (BL_SPACEDIM == 1)
+#define NUMDERIV 2
+#endif
 
 #if (BL_SPACEDIM == 2)
 #define NUMDERIV 2

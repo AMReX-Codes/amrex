@@ -2,12 +2,18 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.8 2007-07-02 23:00:36 lijewski Exp $
+** $Id: LP_F.H,v 1.9 2007-10-29 04:26:20 almgren Exp $
 */
 
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
+
+#if (BL_SPACEDIM == 1)
+#define FORT_GSRB      gsrb1dsim
+#define FORT_ADOTX     adotx1dsim
+#define FORT_FLUX      flux1dsim
+#endif
 
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB      gsrb2dsim
@@ -24,6 +30,22 @@
 #endif
 
 #else
+
+#if (BL_SPACEDIM == 1)
+#if defined(BL_FORT_USE_UPPERCASE)
+#define FORT_GSRB      GSRB1DSIM
+#define FORT_ADOTX     ADOTX1DSIM
+#define FORT_FLUX      FLUX1DSIM
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_GSRB      gsrb1dsim
+#define FORT_ADOTX     adotx1dsim
+#define FORT_FLUX      flux1dsim
+#elif defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_GSRB      gsrb1dsim_
+#define FORT_ADOTX     adotx1dsim_
+#define FORT_FLUX      flux1dsim_
+#endif
+#endif
 
 #if (BL_SPACEDIM == 2)
 #if defined(BL_FORT_USE_UPPERCASE)
@@ -68,6 +90,25 @@
 
 extern "C"
 {
+#if (BL_SPACEDIM == 1)
+    void FORT_GSRB (
+        Real* phi       , ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
+        const Real* rhs , ARLIM_P(rhs_lo),  ARLIM_P(rhs_hi),
+        const Real* den0, ARLIM_P(den0_lo), ARLIM_P(den0_hi),
+        const int* m0   , ARLIM_P(m0_lo),   ARLIM_P(m0_hi),
+        const Real* den2, ARLIM_P(den2_lo), ARLIM_P(den2_hi),
+        const int* m2   , ARLIM_P(m2_lo),   ARLIM_P(m2_hi),
+        const int* lo, const int* hi, const int *nc,
+        const Real *h
+        );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
+        );
+#endif
 #if (BL_SPACEDIM == 2)
     void FORT_GSRB (
         Real* phi       , ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
