@@ -28,25 +28,34 @@
 #define mgt_get_defaults          MGT_GET_DEFAULTS
 #define mgt_get_nodal_defaults    MGT_GET_NODAL_DEFAULTS
 
+#define mgt_set_rh_1d             MGT_SET_RH_1D
 #define mgt_set_rh_2d             MGT_SET_RH_2D
 #define mgt_set_rh_3d             MGT_SET_RH_3D
 
+#define mgt_set_uu_1d             MGT_SET_UU_1D
+#define mgt_get_uu_1d             MGT_GET_UU_1D
 #define mgt_set_uu_2d             MGT_SET_UU_2D
 #define mgt_get_uu_2d             MGT_GET_UU_2D
 #define mgt_set_uu_3d             MGT_SET_UU_3D
 #define mgt_get_uu_3d             MGT_GET_UU_3D
 
+#define mgt_get_res_1d            MGT_GET_RES_1D
 #define mgt_get_res_2d            MGT_GET_RES_2D
 #define mgt_get_res_3d            MGT_GET_RES_3D
 
+#define mgt_set_pr_1d             MGT_SET_PR_1D
+#define mgt_get_pr_1d             MGT_GET_PR_1D
 #define mgt_set_pr_2d             MGT_SET_PR_2D
 #define mgt_get_pr_2d             MGT_GET_PR_2D
 #define mgt_set_pr_3d             MGT_SET_PR_3D
 #define mgt_get_pr_3d             MGT_GET_PR_3D
 
+#define mgt_get_gp_1d             MGT_SET_GP_1D
 #define mgt_get_gp_2d             MGT_SET_GP_2D
 #define mgt_get_gp_3d             MGT_SET_GP_3D
 
+#define mgt_set_cfa_1d            MGT_SET_CFA_1D
+#define mgt_set_cfbx_1d           MGT_SET_CFBX_1D
 #define mgt_set_cfa_2d            MGT_SET_CFA_2D
 #define mgt_set_cfbx_2d           MGT_SET_CFBX_2D
 #define mgt_set_cfby_2d           MGT_SET_CFBY_2D
@@ -55,6 +64,8 @@
 #define mgt_set_cfby_3d           MGT_SET_CFBY_3D
 #define mgt_set_cfbz_3d           MGT_SET_CFBZ_3D
 
+#define mgt_set_cfa_1d_const      MGT_SET_CFA_1D_CONST
+#define mgt_set_cfbx_1d_const     MGT_SET_CFBX_1D_CONST
 #define mgt_set_cfa_2d_const      MGT_SET_CFA_2D_CONST
 #define mgt_set_cfbx_2d_const     MGT_SET_CFBX_2D_CONST
 #define mgt_set_cfby_2d_const     MGT_SET_CFBY_2D_CONST
@@ -63,12 +74,16 @@
 #define mgt_set_cfby_3d_const     MGT_SET_CFBY_3D_CONST
 #define mgt_set_cfbz_3d_const     MGT_SET_CFBZ_3D_CONST
 
+#define mgt_set_cfs_1d            MGT_SET_CFS_1D
 #define mgt_set_cfs_2d            MGT_SET_CFS_2D
 #define mgt_set_cfs_3d            MGT_SET_CFS_3D
 
+#define mgt_set_cfs_1d_const      MGT_SET_CFS_1D_CONST
 #define mgt_set_cfs_2d_const      MGT_SET_CFS_2D_CONST
 #define mgt_set_cfs_3d_const      MGT_SET_CFS_3D_CONST
 
+#define mgt_get_vel_1d            MGT_GET_VEL_1D
+#define mgt_set_vel_1d            MGT_SET_VEL_1D
 #define mgt_get_vel_2d            MGT_GET_VEL_2D
 #define mgt_set_vel_2d            MGT_SET_VEL_2D
 #define mgt_get_vel_3d            MGT_GET_VEL_3D
@@ -102,25 +117,34 @@
 #define mgt_get_defaults          mgt_get_defaults_
 #define mgt_get_nodal_defaults    mgt_get_nodal_defaults_
 
+#define mgt_set_rh_1d             mgt_set_rh_1d_
 #define mgt_set_rh_2d             mgt_set_rh_2d_
 #define mgt_set_rh_3d             mgt_set_rh_3d_
 
+#define mgt_set_uu_1d             mgt_set_uu_1d_
+#define mgt_get_uu_1d             mgt_get_uu_1d_
 #define mgt_set_uu_2d             mgt_set_uu_2d_
-#define mgt_set_uu_3d             mgt_set_uu_3d_
 #define mgt_get_uu_2d             mgt_get_uu_2d_
+#define mgt_set_uu_3d             mgt_set_uu_3d_
 #define mgt_get_uu_3d             mgt_get_uu_3d_
 
+#define mgt_get_res_1d            mgt_get_res_1d_
 #define mgt_get_res_2d            mgt_get_res_2d_
 #define mgt_get_res_3d            mgt_get_res_3d_
 
+#define mgt_set_pr_1d             mgt_set_pr_1d_
 #define mgt_set_pr_2d             mgt_set_pr_2d_
 #define mgt_set_pr_3d             mgt_set_pr_3d_
+#define mgt_get_pr_1d             mgt_get_pr_1d_
 #define mgt_get_pr_2d             mgt_get_pr_2d_
 #define mgt_get_pr_3d             mgt_get_pr_3d_
 
+#define mgt_get_gp_1d             mgt_get_gp_1d_
 #define mgt_get_gp_2d             mgt_get_gp_2d_
 #define mgt_get_gp_3d             mgt_get_gp_3d_
 
+#define mgt_set_cfa_1d            mgt_set_cfa_1d_
+#define mgt_set_cfbx_1d           mgt_set_cfbx_1d_
 #define mgt_set_cfa_2d            mgt_set_cfa_2d_
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d_
 #define mgt_set_cfby_2d           mgt_set_cfby_2d_
@@ -129,6 +153,8 @@
 #define mgt_set_cfby_3d           mgt_set_cfby_3d_
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d_
 
+#define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const_
+#define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const_
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const_
 #define mgt_set_cfbx_2d_const     mgt_set_cfbx_2d_const_
 #define mgt_set_cfby_2d_const     mgt_set_cfby_2d_const_
@@ -137,9 +163,12 @@
 #define mgt_set_cfby_3d_const     mgt_set_cfby_3d_const_
 #define mgt_set_cfbz_3d_const     mgt_set_cfbz_3d_const_
 
+#define mgt_set_cfs_1d            mgt_set_cfs_1d_
 #define mgt_set_cfs_2d            mgt_set_cfs_2d_
 #define mgt_set_cfs_3d            mgt_set_cfs_3d_
 
+#define mgt_set_vel_1d            mgt_set_vel_1d_
+#define mgt_get_vel_1d            mgt_get_vel_1d_
 #define mgt_set_vel_2d            mgt_set_vel_2d_
 #define mgt_get_vel_2d            mgt_get_vel_2d_
 #define mgt_set_vel_3d            mgt_set_vel_3d_ 
@@ -172,25 +201,34 @@
 #define mgt_get_defaults          mgt_get_defaults__
 #define mgt_get_nodal_defaults    mgt_get_nodal_defaults__
 
+#define mgt_set_rh_1d             mgt_set_rh_1d__
 #define mgt_set_rh_2d             mgt_set_rh_2d__
 #define mgt_set_rh_3d             mgt_set_rh_3d__
 
+#define mgt_set_uu_1d             mgt_set_uu_1d__
+#define mgt_get_uu_1d             mgt_get_uu_1d__
 #define mgt_set_uu_2d             mgt_set_uu_2d__
 #define mgt_get_uu_2d             mgt_get_uu_2d__
 #define mgt_set_uu_3d             mgt_set_uu_3d__
 #define mgt_get_uu_3d             mgt_get_uu_3d__
 
+#define mgt_get_res_1d            mgt_get_res_1d__
 #define mgt_get_res_2d            mgt_get_res_2d__
 #define mgt_get_res_3d            mgt_get_res_3d__
 
+#define mgt_set_pr_1d             mgt_set_pr_1d__
+#define mgt_get_pr_1d             mgt_get_pr_1d__
 #define mgt_set_pr_2d             mgt_set_pr_2d__
 #define mgt_get_pr_2d             mgt_get_pr_2d__
 #define mgt_set_pr_3d             mgt_set_pr_3d__
 #define mgt_get_pr_3d             mgt_get_pr_3d__
 
+#define mgt_get_gp_1d             mgt_get_gp_1d__
 #define mgt_get_gp_2d             mgt_get_gp_2d__
 #define mgt_set_gp_3d             mgt_get_gp_3d__
 
+#define mgt_set_cfa_1d            mgt_set_cfa_1d__
+#define mgt_set_cfbx_1d           mgt_set_cfbx_1d__
 #define mgt_set_cfa_2d            mgt_set_cfa_2d__
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d__
 #define mgt_set_cfby_2d           mgt_set_cfby_2d__
@@ -199,6 +237,8 @@
 #define mgt_set_cfby_3d           mgt_set_cfby_3d__
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d__
 
+#define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const__
+#define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const__
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const__
 #define mgt_set_cfbx_2d_const     mgt_set_cfbx_2d_const__
 #define mgt_set_cfby_2d_const     mgt_set_cfby_2d_const__
@@ -207,9 +247,12 @@
 #define mgt_set_cfby_3d_const     mgt_set_cfby_3d_const__
 #define mgt_set_cfbz_3d_const     mgt_set_cfbz_3d_const__
 
+#define mgt_set_cfs_1d            mgt_set_cfs_1d__
 #define mgt_set_cfs_2d            mgt_set_cfs_2d__
 #define mgt_set_cfs_3d            mgt_set_cfs_3d__
 
+#define mgt_set_vel_1d            mgt_set_vel_2d__
+#define mgt_get_vel_2d            mgt_get_vel_1d__
 #define mgt_set_vel_2d            mgt_set_vel_2d__
 #define mgt_get_vel_2d            mgt_get_vel_2d__
 #define mgt_set_vel_3d            mgt_set_vel_3d__
@@ -263,6 +306,76 @@ extern "C"
 
   void mgt_finalize_nodal_stencil_lev(const int* lev);
   
+  void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_get_uu_1d(const int* lev, const int* n, Real* uu, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi, const int* ng);
+  
+  void mgt_get_res_1d(const int* lev, const int* n, Real* uu, 
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
+  void mgt_set_uu_1d(const int* lev, const int* n, const Real* uu, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_get_gp_1d(const int* lev, const int* dir, const int* n,
+		     Real* gp,
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_get_pr_1d(const int* lev, const int* n, Real* uu, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_set_pr_1d(const int* lev, const int* n, const Real* uu, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+  
+  void mgt_set_cfa_1d(const int* lev, const int* n, const Real* cf,
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
+  void mgt_set_cfbx_1d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  
+  void mgt_set_cfby_1d(const int* lev, const int* n, const Real* cf,
+		       const Real* b,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  
+  void mgt_set_cfa_1d_const(const int* lev, const int* n, 
+		            const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfbx_1d_const(const int* lev, const int* n, 
+		             const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfby_1d_const(const int* lev, const int* n,
+		             const int* lo, const int* hi, const Real* value);
+  
+  void mgt_set_cfs_1d(const int* lev, const int* n, const Real* cf,
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
+  void mgt_get_vel_1d(const int* lev, const int* n, Real* cf,
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+  
+  void mgt_set_vel_1d(const int* lev, const int* n, const Real* cf,
+		      const int* plo, const int* phi, 
+		      const int* lo, const int* hi);
+
+
+
   void mgt_set_rh_2d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
