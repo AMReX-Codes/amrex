@@ -482,6 +482,21 @@ subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
 
 end subroutine mgt_set_cfs_2d
 
+subroutine mgt_set_pr_1d(lev, n, uu, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: uu(plo(1):phi(1))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  up => dataptr(mgts%uu(flev), fn)
+  up(lo(1)-1:hi(1)+1,1,1,1) = uu(lo(1)-1:hi(1)+1)
+
+end subroutine mgt_set_pr_1d
+
 subroutine mgt_set_pr_2d(lev, n, uu, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
@@ -533,6 +548,21 @@ subroutine mgt_set_pr_3d(lev, n, uu, plo, phi, lo, hi)
      uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
 
 end subroutine mgt_set_pr_3d
+
+subroutine mgt_get_pr_1d(lev, n, uu, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(inout) :: uu(plo(1):phi(1))
+  real(kind=dp_t), pointer :: up(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  up => dataptr(mgts%uu(flev), fn)
+  uu(lo(1):hi(1)) = up(lo(1):hi(1),1,1,1)
+
+end subroutine mgt_get_pr_1d
 
 subroutine mgt_get_pr_2d(lev, n, uu, plo, phi, lo, hi)
   use nodal_cpp_mg_module
