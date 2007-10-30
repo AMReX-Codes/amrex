@@ -57,13 +57,9 @@ c
 c
       do n = 1, nc
          do i = lo(1), hi(1)+1
-            if (den .ne. 0.0D0) then
-              c(i,j,n) =  f(2*i,2*j,n)
-            else
-              c(i,j,n) =  0.0D0
-            end if
+            c(i,n) =  f(2*i,n)
+         end do
       end do
-   end do
 c
       end
 c-----------------------------------------------------------------------
@@ -196,12 +192,10 @@ c
       if(cdir .eq. 0) then
          if (is_neumann(bct)) then
             do n = 1, nc
-               do j = lo(2), hi(2)
-                  phi(lo(1)-1,n) = cvmgt(
-     $                 phi(lo(1),n),
-     $                 phi(lo(1)-1,n),
-     $                 mask(lo(1)-1) .gt. 0)
-               end do
+               phi(lo(1)-1,n) = cvmgt(
+     $              phi(lo(1),n),
+     $              phi(lo(1)-1,n),
+     $              mask(lo(1)-1) .gt. 0)
             end do
             if ( flagden .eq. 1) then
                den(lo(1)) = 1.0D0
@@ -277,7 +271,8 @@ c
             x(-1) = - bcl/h(1)
             xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
-            do n = 1, nc if ( flagbc .eq. 1 ) then
+            do n = 1, nc 
+               if ( flagbc .eq. 1 ) then
                   phi(hi(1)+1,n) = cvmgt(
      $                 bcval(hi(1)+1,n)*coef(-1),
      $                 phi(hi(1)+1,n),
@@ -289,6 +284,7 @@ c
      $                 mask(hi(1)+1) .gt. 0)
                end if
                do m = 0, lenx
+                  phi(hi(1)+1,n) = cvmgt(
      $                 phi(hi(1)+1,n)
      $                 + phi(hi(1)-m,n)*coef(m),
      $                 phi(hi(1)+1,n),
@@ -297,7 +293,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                den(hi(1))   = cvmgt(coef(0), 0.0D0,
-     $              mask(hi(1)+1j) .gt. 0)
+     $              mask(hi(1)+1) .gt. 0)
             end if
 
          else if ( bct .eq. LO_REFLECT_ODD ) then
