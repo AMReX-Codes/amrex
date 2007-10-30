@@ -2,12 +2,17 @@
 #define _MG_F_H_
 
 /*
-** $Id: MG_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
+** $Id: MG_F.H,v 1.4 2007-10-30 20:48:24 almgren Exp $
 */
 
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
+
+#if (BL_SPACEDIM == 1) 
+#define FORT_AVERAGE   average1dgen
+#define FORT_INTERP    interp1dgen
+#endif
 
 #if (BL_SPACEDIM == 2) 
 #define FORT_AVERAGE   average2dgen
@@ -20,6 +25,21 @@
 #endif
 
 #else
+
+#if (BL_SPACEDIM == 1)
+
+#if    defined(BL_FORT_USE_UPPERCASE)
+#define FORT_AVERAGE   AVERAGE1DGEN
+#define FORT_INTERP    INTERP1DGEN
+#elif  defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGE   average1dgen
+#define FORT_INTERP    interp1dgen
+#elif  defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_AVERAGE   average1dgen_
+#define FORT_INTERP    interp1dgen_
+#endif
+
+#endif
 
 #if (BL_SPACEDIM == 2)
 

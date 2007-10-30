@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.9 2007-10-29 04:26:20 almgren Exp $
+** $Id: LP_F.H,v 1.10 2007-10-30 20:47:09 almgren Exp $
 */
 
 #include <REAL.H>
@@ -10,7 +10,7 @@
 #if        defined(BL_LANG_FORT)
 
 #if (BL_SPACEDIM == 1)
-#define FORT_GSRB      gsrb1dsim
+#define FORT_LINESOLVE linesolve1dsim
 #define FORT_ADOTX     adotx1dsim
 #define FORT_FLUX      flux1dsim
 #endif
@@ -33,15 +33,15 @@
 
 #if (BL_SPACEDIM == 1)
 #if defined(BL_FORT_USE_UPPERCASE)
-#define FORT_GSRB      GSRB1DSIM
+#define FORT_LINESOLVE LINESOLVE1DSIM
 #define FORT_ADOTX     ADOTX1DSIM
 #define FORT_FLUX      FLUX1DSIM
 #elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_GSRB      gsrb1dsim
+#define FORT_LINESOLVE linesolve1dsim
 #define FORT_ADOTX     adotx1dsim
 #define FORT_FLUX      flux1dsim
 #elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_GSRB      gsrb1dsim_
+#define FORT_LINESOLVE linesolve1dsim_
 #define FORT_ADOTX     adotx1dsim_
 #define FORT_FLUX      flux1dsim_
 #endif
@@ -91,7 +91,7 @@
 extern "C"
 {
 #if (BL_SPACEDIM == 1)
-    void FORT_GSRB (
+    void FORT_LINESOLVE (
         Real* phi       , ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
         const Real* rhs , ARLIM_P(rhs_lo),  ARLIM_P(rhs_hi),
         const Real* den0, ARLIM_P(den0_lo), ARLIM_P(den0_hi),

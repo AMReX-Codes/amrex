@@ -2,12 +2,20 @@
 #define _LO_F_H_
 
 /*
-** $Id: LO_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
+** $Id: LO_F.H,v 1.4 2007-10-30 20:47:09 almgren Exp $
 */
 
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
+
+#if (BL_SPACEDIM == 1)
+#define FORT_AVERAGECC          averagecc1dgen
+#define FORT_AVERAGEEC          averageec1dgen
+#define FORT_HARMONIC_AVERAGEEC haraverageec1dgen
+#define FORT_APPLYBC            applybc1dgen
+#define FORT_RESIDL             resid1dgen
+#endif
 
 #if (BL_SPACEDIM == 2)
 #define FORT_AVERAGECC          averagecc2dgen
@@ -26,6 +34,28 @@
 #endif
 
 #else
+
+#if (BL_SPACEDIM == 1)
+#if    defined(BL_FORT_USE_UPPERCASE)
+#define FORT_AVERAGECC          AVERAGECC1DGEN
+#define FORT_AVERAGEEC          AVERAGEEC1DGEN
+#define FORT_HARMONIC_AVERAGEEC HARAVERAGEEC1DGEN
+#define FORT_APPLYBC            APPLYBC1DGEN
+#define FORT_RESIDL             RESID1DGEN
+#elif  defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGECC          averagecc1dgen
+#define FORT_AVERAGEEC          averageec1dgen
+#define FORT_HARMONIC_AVERAGEEC haraverageec1dgen
+#define FORT_APPLYBC            applybc1dgen
+#define FORT_RESIDL             resid1dgen
+#elif  defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_AVERAGECC          averagecc1dgen_
+#define FORT_AVERAGEEC          averageec1dgen_
+#define FORT_HARMONIC_AVERAGEEC haraverageec1dgen_
+#define FORT_APPLYBC            applybc1dgen_
+#define FORT_RESIDL             resid1dgen_
+#endif
+#endif
 
 #if (BL_SPACEDIM == 2)
 #if    defined(BL_FORT_USE_UPPERCASE)

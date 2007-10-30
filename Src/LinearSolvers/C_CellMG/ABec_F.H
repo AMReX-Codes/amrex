@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.8 2007-10-29 04:26:20 almgren Exp $
+** $Id: ABec_F.H,v 1.9 2007-10-30 20:47:09 almgren Exp $
 */
 
 #include <REAL.H>
@@ -10,7 +10,7 @@
 #if        defined(BL_LANG_FORT)
 
 #if (BL_SPACEDIM == 1)
-#define FORT_GSRB          gsrb1daabbec
+#define FORT_LINESOLVE     linesolve1daabbec
 #define FORT_ADOTX         adotx1daabbec
 #define FORT_NORMA         norma1daabbec
 #define FORT_FLUX          flux1daabbec
@@ -39,17 +39,17 @@
 #if (BL_SPACEDIM == 1)
  
 #if  defined(BL_FORT_USE_UPPERCASE)
-#define FORT_GSRB     GSRB1DAABBEC
+#define FORT_LINESOLVE     LINESOLVE1DAABBEC
 #define FORT_ADOTX    ADOTX1DAABBEC
 #define FORT_NORMA    NORMA1DAABBEC
 #define FORT_FLUX     FLUX1DAABBEC
 #elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_GSRB     gsrb1daabbec
+#define FORT_LINESOLVE     linesolve1daabbec_
 #define FORT_ADOTX    adotx1daabbec
 #define FORT_NORMA    norma1daabbec
 #define FORT_FLUX     flux1daabbec
 #elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_GSRB     gsrb1daabbec_
+#define FORT_LINESOLVE     linesolve1daabbec_
 #define FORT_ADOTX    adotx1daabbec_
 #define FORT_NORMA    norma1daabbec_
 #define FORT_FLUX     flux1daabbec_
@@ -118,7 +118,7 @@ extern "C"
 {
 
 #if (BL_SPACEDIM == 1)
-    void FORT_GSRB (
+    void FORT_LINESOLVE (
         Real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const Real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
         const Real* alpha, const Real* beta,
