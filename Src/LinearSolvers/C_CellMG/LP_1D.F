@@ -32,7 +32,7 @@ c     value was filled with an interpolant involving the central stencil
 c     element.
 c     
 c-----------------------------------------------------------------------
-      subroutine FORT_LINE_SOLVE (
+      subroutine FORT_LINESOLVE (
      $     phi, DIMS(phi),
      $     rhs, DIMS(rhs),
      $     f0, DIMS(f0), m0, DIMS(m0),

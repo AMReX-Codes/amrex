@@ -1,5 +1,5 @@
 c
-c $Id: ABec_1D.F,v 1.1 2007-10-30 19:43:55 almgren Exp $
+c $Id: ABec_1D.F,v 1.2 2007-10-30 20:47:09 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -14,7 +14,7 @@ c
 
 c-----------------------------------------------------------------------
 c      
-c     LINE_SOLVE 
+c     LINESOLVE 
 c     Apply the line solve to the state phi for the equation
 c     L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)
 c     central differenced, according to the arrays of boundary
@@ -36,7 +36,7 @@ c     value was filled with an interpolant involving the central stencil
 c     element.
 c     
 c-----------------------------------------------------------------------
-      subroutine FORT_LINE_SOLVE (
+      subroutine FORT_LINESOLVE (
      $     phi,DIMS(phi),
      $     rhs,DIMS(rhs),
      $     alpha, beta,
