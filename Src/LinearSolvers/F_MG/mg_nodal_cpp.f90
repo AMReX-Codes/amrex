@@ -389,6 +389,39 @@ subroutine mgt_finalize_nodal_stencil()
    mgts%final = .true.
 end subroutine mgt_finalize_nodal_stencil
 
+subroutine mgt_set_vel_1d(lev, n, vel_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: vel_in(plo(1):phi(1), 1)
+  real(kind=dp_t), pointer :: vp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  call mgt_verify_n("MGT_SET_VEL_2D", flev, fn, lo, hi)
+
+  vp => dataptr(mgts%vel(flev), fn)
+  vp(:,:,:,:) = ZERO
+  vp(lo(1):hi(1),1,1,1) = vel_in(lo(1):hi(1),1)
+
+end subroutine mgt_set_vel_1d
+
+subroutine mgt_get_vel_1d(lev, n, vel_out, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(inout) :: vel_out(plo(1):phi(1), 1)
+  real(kind=dp_t), pointer :: vp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  vp => dataptr(mgts%vel(flev), fn)
+  vel_out(lo(1):hi(1),1) = vp(lo(1):hi(1),1,1,1)
+
+end subroutine mgt_get_vel_1d
+
 subroutine mgt_set_vel_2d(lev, n, vel_in, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
@@ -461,6 +494,27 @@ subroutine mgt_get_vel_3d(lev, n, vel_out, plo, phi, lo, hi)
 
 end subroutine mgt_get_vel_3d
 
+subroutine mgt_set_cfs_1d(lev, n, cf, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  real(kind=dp_t), pointer :: acp(:,:,:,:)
+  integer :: flev, fn, nlev
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts%coeffs)
+  call mgt_verify_n("MGT_SET_CFS_1D", flev, fn, lo, hi)
+
+  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1))
+
+  acp => dataptr(mgts%amr_coeffs(flev), fn)
+  acp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1))
+
+end subroutine mgt_set_cfs_1d
+
 subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
@@ -481,6 +535,27 @@ subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
   acp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2))
 
 end subroutine mgt_set_cfs_2d
+
+subroutine mgt_set_cfs_3d(lev, n, cf, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  real(kind=dp_t), pointer :: acp(:,:,:,:)
+  integer :: flev, fn, nlev
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts%coeffs)
+  call mgt_verify_n("MGT_SET_CFS_3D", flev, fn, lo, hi)
+
+  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+
+  acp => dataptr(mgts%amr_coeffs(flev), fn)
+  acp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+
+end subroutine mgt_set_cfs_3d
 
 subroutine mgt_set_pr_1d(lev, n, uu, plo, phi, lo, hi)
   use nodal_cpp_mg_module
@@ -511,27 +586,6 @@ subroutine mgt_set_pr_2d(lev, n, uu, plo, phi, lo, hi)
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1)
 
 end subroutine mgt_set_pr_2d
-
-subroutine mgt_set_cfs_3d(lev, n, cf, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
-  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
-  real(kind=dp_t), pointer :: cp(:,:,:,:)
-  real(kind=dp_t), pointer :: acp(:,:,:,:)
-  integer :: flev, fn, nlev
-  fn = n + 1
-  flev = lev+1
-  nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CFS_3D", flev, fn, lo, hi)
-
-  cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
-
-  acp => dataptr(mgts%amr_coeffs(flev), fn)
-  acp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
-
-end subroutine mgt_set_cfs_3d
 
 subroutine mgt_set_pr_3d(lev, n, uu, plo, phi, lo, hi)
   use nodal_cpp_mg_module
