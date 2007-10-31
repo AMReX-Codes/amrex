@@ -420,7 +420,7 @@ subroutine mgt_set_cf_1d(lev, n, cf, plo, phi, lo, hi)
   integer :: fn, nlev
   fn = n + 1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
+  call mgt_verify_n("MGT_SET_CF_1D", lev, n, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), 1,1, 1:4) = cf(lo(1):hi(1), 1:4)
@@ -436,7 +436,7 @@ subroutine mgt_set_cf_1d_const(lev, n, lo, hi, coeff_value)
   integer :: fn, nlev
   fn = n + 1
   nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
+  call mgt_verify_n("MGT_SET_CF_1D_CONST", lev, n, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1), 1,1, 1:4) = coeff_value
@@ -733,10 +733,11 @@ subroutine mgt_set_uu_1d(lev, n, uu, plo, phi, lo, hi)
   integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
   real(kind=dp_t), intent(in) :: uu(plo(1):phi(1))
   real(kind=dp_t), pointer :: up(:,:,:,:)
-  integer :: fn
+  integer :: flev,fn
   fn = n + 1
-  
-  call mgt_verify_n("MGT_SET_UU", lev, n, lo, hi)
+  flev = lev+1
+
+  call mgt_verify_n("MGT_SET_UU_1D", flev, n, lo, hi)
 
   up => dataptr(mgts%uu(lev), fn)
   up(lo(1)-1:hi(1)+1, 1,1,1) = uu(lo(1)-1:hi(1)+1)
@@ -753,7 +754,7 @@ subroutine mgt_set_uu_2d(lev, n, uu, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  call mgt_verify_n("MGT_SET_UU", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_UU_2D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = &
@@ -771,7 +772,7 @@ subroutine mgt_set_uu_3d(lev, n, uu, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_SET_UU", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_SET_UU_3D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
@@ -789,7 +790,7 @@ subroutine mgt_get_uu_1d(lev, n, uu, plo, phi, lo, hi, ng)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_GET_UU_1D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   uu(lo(1)-ng:hi(1)+ng) = up(lo(1)-ng:hi(1)+ng, 1,1,1)
@@ -805,7 +806,7 @@ subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi, ng)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_GET_UU_2D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng) = up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,1,1)
@@ -821,7 +822,7 @@ subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi ,ng)
   fn = n + 1
   flev = lev+1
   
-  call mgt_verify_n("MGT_GET_UU", flev, fn, lo, hi)
+  call mgt_verify_n("MGT_GET_UU_3D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
   uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng) = &
