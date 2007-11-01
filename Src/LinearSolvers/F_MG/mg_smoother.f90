@@ -178,7 +178,9 @@ contains
 !              uu(i,j) = uu_temp(i,j)
 !         end do
 !      end do
+
     end if
+
   end subroutine gs_rb_smoother_2d
 
   subroutine gs_rb_smoother_3d_transpose(omega, ss, uu, ff, mm, lo, ng, n, skwd)
@@ -461,7 +463,7 @@ contains
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
-       ! USE THIS FOR GAUSS_SEIDEL
+       ! USE THIS FOR GAUSS-SEIDEL
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
@@ -497,7 +499,9 @@ contains
 !             end do
 !          end do
 !       enddo
+
     end if
+
   end subroutine gs_rb_smoother_3d
 
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
@@ -635,6 +639,7 @@ contains
 !     end do
 
     end if
+
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, red_black)
@@ -653,6 +658,8 @@ contains
     integer :: hi(size(lo))
     logical :: offset
     real (kind = dp_t) :: dd
+
+!   real (kind = dp_t) :: uu_temp(0:256,0:256,0:256)
 
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
@@ -699,6 +706,7 @@ contains
         kstart = lo(3)
       end if
 
+!     USE THIS FOR GAUSS-SEIDEL ITERATION
       ipar0 = red_black
       do k = kstart,hi(3)
           ipar0 = 1 - ipar0
@@ -707,17 +715,37 @@ contains
              ipar = 1 - ipar
              do i = istart+ipar,hi(1),2
                 if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-
                    dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
                         + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
                         + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
                         + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
-
                    uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
                 end if
              end do
           end do
       end do
+
+!     USE THIS FOR JACOBI ITERATION
+!      do k = kstart,hi(3)
+!          do j = jstart,hi(2)
+!             do i = istart,hi(1)
+!                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+!                   dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+!                        + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
+!                        + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
+!                        + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+!                   uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+!                end if
+!             end do
+!          end do
+!      end do
+!      do k = kstart,hi(3)
+!          do j = jstart,hi(2)
+!             do i = istart,hi(1)
+!                uu(i,j,k) = uu_temp(i,j,k)
+!             end do
+!          end do
+!      end do
 
     else if (size(ss,dim=4) .eq. 21) then
 
