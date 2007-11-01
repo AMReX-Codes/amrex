@@ -350,6 +350,8 @@ contains
     real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: dd
 
+!   real(dp_t) :: uu_temp(0:256,0:256,0:256)
+
     hi = ubound(uu)-ng
 
     if (present(skwd) ) then
@@ -459,24 +461,43 @@ contains
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+       ! USE THIS FOR GAUSS_SEIDEL
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
-
                   dd = ss(i,j,k,0)*uu(i,j,k)
                   dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
                   dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
                   dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
-
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-
              end do
           end do
        end do
        !$OMP END PARALLEL DO
-    end if
 
+       ! USE THIS FOR JACOBI
+!       do k = lo(3), hi(3)
+!          do j = lo(2), hi(2)
+!             do i = lo(1), hi(1)
+!                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+!                   dd = ss(i,j,k,0)*uu(i,j,k)
+!                   dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
+!                   dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
+!                   dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+!                   uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+!                endif
+!             end do
+!          end do
+!       end do
+!       do k=lo(3),hi(3)
+!          do j = lo(2),hi(2)
+!             do i = lo(1), hi(1)
+!                uu(i,j,k) = uu_temp(i,j,k)
+!             end do
+!          end do
+!       enddo
+    end if
   end subroutine gs_rb_smoother_3d
 
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
