@@ -12,10 +12,9 @@ module mg_smoother_module
 
 contains
 
-  subroutine gs_rb_smoother_1d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_line_solve_1d(omega, ss, uu, ff, mm, lo, ng, skwd)
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng
-    integer, intent(in) :: n
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
@@ -24,37 +23,46 @@ contains
     logical, intent(in), optional :: skwd
 
     real (kind = dp_t) :: dd
-    integer :: ioff, i, hi(size(lo))
+    real (kind = dp_t), allocatable :: a_ls(:), b_ls(:), c_ls(:), r_ls(:), u_ls(:)
+    integer :: ilen, i, hi(size(lo))
     integer, parameter ::  XBC = 3
-    logical :: lskwd
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     hi = ubound(uu)-ng
 
-    if ( lskwd ) then
-       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
-       do i = lo(1) + ioff, hi(1), 2
-          dd = ss(i,0) * uu(i) + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1)
-          if ( hi(1) > lo(1) ) then
-             if (bc_skewed(mm(i),1,+1)) then
-                dd = dd + ss(i,XBC)*uu(i+2)
-             else if (bc_skewed(mm(i),1,-1)) then
-                dd = dd + ss(i,XBC)*uu(i-2)
-             end if
-          end if
-          if (abs(ss(i,0)) .gt. 0.0_dp_t) &
-               uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
-       end do
-    else
-       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
-       do i = lo(1) + ioff, hi(1), 2
-          dd = ss(i,0) * uu(i) + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1)
-          if (abs(ss(i,0)) .gt. 0.0_dp_t) &
-               uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
-       end do
-    end if
-  end subroutine gs_rb_smoother_1d
+    ilen = hi(1)-lo(1)+1
+    allocate(a_ls(0:hi(1)-lo(1)))
+    allocate(b_ls(0:hi(1)-lo(1)))
+    allocate(c_ls(0:hi(1)-lo(1)))
+    allocate(r_ls(0:hi(1)-lo(1)))
+    allocate(u_ls(0:hi(1)-lo(1)))
+
+    do i = lo(1), hi(1)
+      a_ls(i-lo(1)) = ss(i,2)
+      b_ls(i-lo(1)) = ss(i,0)
+      c_ls(i-lo(1)) = ss(i,1)
+      r_ls(i-lo(1)) = ff(i)
+
+      if ( hi(1) > lo(1) ) then
+         if (bc_skewed(mm(i),1,+1)) then
+            print *,'SKEWED AT I ',i
+            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i+2)
+         else if (bc_skewed(mm(i),1,-1)) then
+            print *,'SKEWED AT I ',i
+            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i-2)
+         end if
+      end if
+
+    end do
+
+    call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
+ 
+    do i = lo(1), hi(1)
+       uu(i) = u_ls(i-lo(1))
+    end do
+   
+    deallocate(a_ls,b_ls,c_ls,r_ls,u_ls)
+
+  end subroutine gs_line_solve_1d
 
   subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     integer, intent(in) :: ng
@@ -1509,5 +1517,37 @@ contains
     end do
 
   end subroutine dgtsl
+
+  subroutine tridiag(a,b,c,r,u,n)
+
+      integer           , intent(in   ) ::  n
+      real (kind = dp_t), intent(in   ) :: a(n), b(n), c(n), r(n)
+      real (kind = dp_t), intent(inout) :: u(n)
+
+      integer j
+      real (kind = dp_t), allocatable :: gam(:)
+      real (kind = dp_t) :: bet
+
+      allocate(gam(n))
+
+      if (b(1) .eq. 0) call bl_error('tridiag: CANT HAVE B(1) = ZERO')
+
+      bet = b(1)
+      u(1) = r(1)/bet
+
+      do j = 2,n
+        gam(j) = c(j-1)/bet
+        bet = b(j) - a(j)*gam(j)
+        if (bet .eq. 0) call bl_error('tridiag: TRIDIAG FAILED')
+        u(j) = (r(j)-a(j)*u(j-1))/bet
+      end do
+
+      do j = n-1,1,-1
+        u(j) = u(j) - gam(j+1)*u(j+1)
+      end do
+
+      deallocate(gam)
+
+  end subroutine tridiag
 
 end module mg_smoother_module

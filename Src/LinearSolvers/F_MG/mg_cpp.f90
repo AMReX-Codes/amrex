@@ -399,7 +399,6 @@ subroutine mgt_set_cfa_1d_const(lev, n, lo, hi, coeff_value)
   real(kind=dp_t), intent(in) :: coeff_value
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev
-
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%coeffs)
@@ -410,42 +409,9 @@ subroutine mgt_set_cfa_1d_const(lev, n, lo, hi, coeff_value)
 
 end subroutine mgt_set_cfa_1d_const
 
-
-subroutine mgt_set_cf_1d(lev, n, cf, plo, phi, lo, hi)
-  use cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
-  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1),*)
-  real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: fn, nlev
-  fn = n + 1
-  nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF_1D", lev, n, lo, hi)
-
-  cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), 1,1, 1:4) = cf(lo(1):hi(1), 1:4)
-
-end subroutine mgt_set_cf_1d
-
-subroutine mgt_set_cf_1d_const(lev, n, lo, hi, coeff_value)
-  use cpp_mg_module
-  implicit none
-  integer        , intent(in) :: lev, n, lo(1), hi(1)
-  real(kind=dp_t), intent(in) :: coeff_value
-  real(kind=dp_t), pointer :: cp(:,:,:,:)
-  integer :: fn, nlev
-  fn = n + 1
-  nlev = size(mgts%coeffs)
-  call mgt_verify_n("MGT_SET_CF_1D_CONST", lev, n, lo, hi)
-
-  cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), 1,1, 1:4) = coeff_value
-
-end subroutine mgt_set_cf_1d_const
-
 subroutine mgt_set_cfbx_1d(lev, n, cf, b, plo, phi, lo, hi)
   use cpp_mg_module
-  implicit none
+  implicit none 
   integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
   real(kind=dp_t), intent(in) :: cf(plo(1):phi(1))
   real(kind=dp_t), intent(in) :: b
@@ -526,7 +492,7 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   integer :: flev, fn, nlev
 
   fn = n + 1
-  flev = lev+1
+  flev = lev+1 
   nlev = size(mgts%coeffs)
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
@@ -737,10 +703,10 @@ subroutine mgt_set_uu_1d(lev, n, uu, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  call mgt_verify_n("MGT_SET_UU_1D", flev, n, lo, hi)
+  call mgt_verify_n("MGT_SET_UU_1D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(lev), fn)
-  up(lo(1)-1:hi(1)+1, 1,1,1) = uu(lo(1)-1:hi(1)+1)
+  up => dataptr(mgts%uu(flev), fn)
+  up(lo(1)-1:hi(1)+1,1,1,1) = uu(lo(1)-1:hi(1)+1)
 
 end subroutine mgt_set_uu_1d
 

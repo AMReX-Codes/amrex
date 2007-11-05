@@ -703,8 +703,10 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
-                      call gs_rb_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                           mp(:,1,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
+                      if (nn .eq. 0) then
+                        call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                             mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
+                      end if
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                            mp(:,:,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
@@ -733,8 +735,8 @@ contains
              do n = 1, mgt%nc
                 select case ( mgt%dim)
                 case (1)
-                   call jac_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                        mp(:,1,1,1), mgt%ng)
+                   call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                        mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
                 case (2)
                    call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                         mp(:,:,1,1), mgt%ng)
@@ -756,8 +758,8 @@ contains
              do n = 1, mgt%nc
                 select case ( mgt%dim)
                 case (1)
-                   call gs_lex_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                        mp(:,1,1,1), mgt%ng)
+                   call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                        mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
                 case (2)
                    call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                         mp(:,:,1,1), mgt%ng)
