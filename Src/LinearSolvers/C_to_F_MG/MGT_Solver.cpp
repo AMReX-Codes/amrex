@@ -41,7 +41,22 @@ typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu,
                            const int* lo, const int* hi);
 typedef void (*mgt_set_c)(const int* lev, const int* n, 
 		          const int* lo, const int* hi, const Real* value);
-#if BL_SPACEDIM == 2
+#if BL_SPACEDIM == 1
+mgt_get_ng mgt_get_uu   = mgt_get_uu_1d;
+mgt_set mgt_set_uu   = mgt_set_uu_1d;
+mgt_get mgt_get_pr   = mgt_get_pr_1d;
+mgt_get mgt_get_res  = mgt_get_res_1d;
+mgt_get_dir mgt_get_gp   = mgt_get_gp_1d;
+mgt_set mgt_set_pr   = mgt_set_pr_1d;
+mgt_set mgt_set_rh   = mgt_set_rh_1d;
+mgt_set mgt_set_cfa  = mgt_set_cfa_1d;
+mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_1d;
+mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_1d_const;
+mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
+mgt_set mgt_set_cfs  = mgt_set_cfs_1d;
+mgt_get mgt_get_vel  = mgt_get_vel_1d;
+mgt_set mgt_set_vel  = mgt_set_vel_1d;
+#elif BL_SPACEDIM == 2
 mgt_get_ng mgt_get_uu   = mgt_get_uu_2d;
 mgt_set mgt_set_uu   = mgt_set_uu_2d;
 mgt_get mgt_get_pr   = mgt_get_pr_2d;
@@ -269,9 +284,11 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 	   const int* bxhi = b[0]->box().hiVect();
 	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi);
 
+#if (BL_SPACEDIM >= 2)
 	   const int* bylo = b[1]->box().loVect();
 	   const int* byhi = b[1]->box().hiVect();
 	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi);
+#endif
 
 #if (BL_SPACEDIM == 3)
            const int* bzlo = b[2]->box().loVect();
@@ -285,9 +302,9 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
-                                     Array< Array<Real> >& xa,
-                                     Array< Array<Real> >& xb)
+MGT_Solver::set_const_gravity_coefficients(const std::vector<Geometry>& geom,
+                                           Array< Array<Real> >& xa,
+                                           Array< Array<Real> >& xb)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -313,11 +330,68 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
            const int* hi = m_grids[lev][n].hiVect();
            mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
            mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
+#if (BL_SPACEDIM >= 2)
            mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
+#endif
 #if (BL_SPACEDIM == 3)
            mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
 #endif
         }
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb);
+    }
+
+  mgt_finalize_stencil();
+}
+
+void
+MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
+                                     Array< PArray<MultiFab> >& area,
+                                     Array< Array<Real> >& xa,
+                                     Array< Array<Real> >& xb)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      mgt_init_coeffs_lev(&lev);
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+	{
+	  pxa[i] = pxb[i] = 0;
+	}
+
+//    NOTE: the sign convention is because the elliptic solver solves
+//           (alpha MINUS del dot beta grad) phi = RHS
+//           Here alpha is zero and we want to solve del dot grad phi = RHS,
+//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
+      Real value_zero = 0.0;
+      Real value_one  = 1.0;
+
+      for (MFIter mfi((area[lev][0])); mfi.isValid(); ++mfi)
+        {
+          const FArrayBox* areaFab[BL_SPACEDIM]; 
+           int n = mfi.index();
+           const int* lo = m_grids[lev][n].loVect();
+           const int* hi = m_grids[lev][n].hiVect();
+ 
+           mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
+ 
+           const int* bxlo = area[lev][0][n].box().loVect();
+           const int* bxhi = area[lev][0][n].box().hiVect();
+	   mgt_set_cfbx(&lev, &n, area[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
+ 
+#if (BL_SPACEDIM >= 2) 
+           const int* bylo = area[lev][1][n].box().loVect(); 
+           const int* byhi = area[lev][1][n].box().hiVect();
+	   mgt_set_cfby(&lev, &n, &area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+#endif
+ 
+#if (BL_SPACEDIM == 3)
+           const int* bzlo = area[lev][2][n].box().loVect();
+           const int* bzhi = area[lev][2][n].box().hiVect();
+	   mgt_set_cfbz(&lev, &n, &area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+#endif
+        }
+
       mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb);
     }
 
@@ -370,9 +444,11 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
 	   const int* bxhi = b[0]->box().hiVect();
 	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi);
 
+#if (BL_SPACEDIM >= 2)
 	   const int* bylo = b[1]->box().loVect();
 	   const int* byhi = b[1]->box().hiVect();
 	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi);
+#endif
 
 #if (BL_SPACEDIM == 3)
            const int* bzlo = b[2]->box().loVect();
@@ -533,7 +609,6 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
 void 
 MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
 {
-
   mgt_compute_flux(lev);
 
   for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
@@ -553,9 +628,6 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
           gp.mult(dx[dir]);
         }
     }
-
-//std::cout << "FLUX[0] " << flux[0][0] << std::endl;
-//std::cout << "FLUX[1] " << flux[1][0] << std::endl;
 }
 
 void 
