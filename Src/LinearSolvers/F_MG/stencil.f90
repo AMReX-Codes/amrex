@@ -3039,6 +3039,58 @@ contains
 
   end subroutine stencil_fine_flux_1d
 
+  subroutine stencil_all_flux_1d(ss, flux, uu, mm, ngu, ngf, dim, skwd)
+    integer, intent(in) :: ngu, ngf
+    real (kind = dp_t), intent(in ) ::   uu(-ngu:)
+    real (kind = dp_t), intent(out) :: flux(-ngf:)
+    real (kind = dp_t), intent(in ) :: ss(0:,0:)
+    integer           , intent(in)  :: mm(0:)
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: dim
+    integer nx
+    integer i
+    integer, parameter :: XBC = 3, YBC = 4
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
+    nx = size(ss,dim=1)
+
+    do i = 1,nx-1
+      flux(i) = ss(i,2) * (uu(i)-uu(i-1)) 
+    end do
+
+    ! Lo i face
+     i = 0
+     if (bc_dirichlet(mm(i),1,-1)) then
+        flux(0) = &
+               ss(i,1)*(uu(i+1)-uu(i)) + ss(i  ,2)*(uu(i-1)-uu(i)) &
+                                             - ss(i+1,2)*(uu(i+1)-uu(i))
+        if (bc_skewed(mm(i),1,+1)) &
+             flux(0) = flux(0) + ss(i,XBC)*(uu(i+2)-uu(i)) 
+        flux(0) = -flux(0)
+     else if (bc_neumann(mm(i),1,-1)) then
+        flux(0) = -ss(i,2)*uu(i-1)
+        else   
+        flux(0) = ss(i,2)*(uu(i)-uu(i-1))
+     end if
+
+    ! Hi i face
+     i = nx-1
+     if (bc_dirichlet(mm(i),1,+1)) then
+        flux(nx) = &
+               ss(i  ,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
+             - ss(i-1,1)*(uu(i-1)-uu(i))
+        if (bc_skewed(mm(i),1,-1)) &
+             flux(nx) = flux(nx) + ss(i,XBC)*(uu(i-2)-uu(i))
+     else if (bc_neumann(mm(i),1,+1)) then
+        flux(nx) = ss(i,1)*uu(i+1)
+     else 
+        flux(nx) = ss(i,1)*(uu(i+1)-uu(i))
+     end if
+
+  end subroutine stencil_all_flux_1d
+
   subroutine stencil_fine_flux_2d(ss, flux, uu, mm, ng, face, dim, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)

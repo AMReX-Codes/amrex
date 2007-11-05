@@ -187,6 +187,9 @@ contains
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
        select case(ss%dim)
+       case (1)
+          call stencil_all_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
+               mp(:,1,1,1), ngu, ngf, dim)
        case (2)
           call stencil_all_flux_2d(sp(:,:,1,:), fp(:,:,1,1), up(:,:,1,1), &
                mp(:,:,1,1), ngu, ngf, dim)
