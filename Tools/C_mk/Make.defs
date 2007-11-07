@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.110 2007-10-05 21:04:46 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.111 2007-11-07 00:38:58 marc Exp $
 #
 
 #
@@ -265,8 +265,13 @@ endif
 
 ifeq ($(COMP),Intel)
    ifeq ($(UNAMEM),ia64)
-     _icpc := ecc
-     _icc  := ecc
+     ifeq ($(WHICHLINUX),DAVINCI)
+        _icpc := icc
+        _icc  := icc
+     else
+        _icpc := ecc
+        _icc  := ecc
+     endif
    else
      _icpc := icc
      _icc  := icc
