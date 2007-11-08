@@ -382,13 +382,13 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
 #if (BL_SPACEDIM >= 2) 
            const int* bylo = area[lev][1][n].box().loVect(); 
            const int* byhi = area[lev][1][n].box().hiVect();
-	   mgt_set_cfby(&lev, &n, &area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+	   mgt_set_cfby(&lev, &n, area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
 #endif
  
 #if (BL_SPACEDIM == 3)
            const int* bzlo = area[lev][2][n].box().loVect();
            const int* bzhi = area[lev][2][n].box().hiVect();
-	   mgt_set_cfbz(&lev, &n, &area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+	   mgt_set_cfbz(&lev, &n, area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
 #endif
         }
 
