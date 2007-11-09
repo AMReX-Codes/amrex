@@ -119,9 +119,9 @@ else
   fC  := pgf90
   LIBRARIES += -lrt
 endif
-  CXXOPTF += -O --no_exceptions
-  FOPTF   += -O
-  fOPTF   += -O 
+  CXXOPTF += -O --no_exceptions #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  FOPTF   += -O -fast #-Minline=levels:10 -Mvect=nosse -Mnoflushz
+  fOPTF   += -O -fast #-Minline=levels:10 -Mvect=nosse -Mnoflushz
   fFLAGS  += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
 endif
 
