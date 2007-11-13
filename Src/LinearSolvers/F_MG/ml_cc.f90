@@ -752,6 +752,20 @@ contains
        end do
     enddo
 
+    do n = 2,nlevs-1
+       call destroy(uu_hold(n))
+    end do
+
+    do n = nlevs, 1, -1
+       call destroy(soln(n))
+       call destroy(uu(n))
+       call destroy(rh(n))
+       call destroy(temp_res(n))
+    end do
+
+    deallocate(uu_hold)
+    deallocate(soln,uu,rh,temp_res)
+
   end subroutine ml_cc_applyop
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
