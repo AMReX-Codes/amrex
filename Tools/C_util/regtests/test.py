@@ -776,7 +776,7 @@ def test(argv):
             os.system("gmake DIM=2 executable=%s2d.exe clean" % (suiteName) )
             os.system("gmake DIM=3 executable=%s3d.exe clean" % (suiteName) )
         else:
-            os.system("gmake MPI= clean")
+            os.system("gmake MPI= clean NDEBUG=t")
             
     print "\n"
 
@@ -822,7 +822,7 @@ def test(argv):
 
             
         elif (sourceTree == "fParallel"):
-            os.system("gmake MPI= >& %s/%s.make.out" % (outputDir, test))
+            os.system("gmake MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
 
             # we need a better way to get the executable name here
             executable = "main.Linux.Intel.exe"   
