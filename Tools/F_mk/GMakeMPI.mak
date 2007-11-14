@@ -18,23 +18,30 @@ ifeq ($(ARCH),Darwin)
 endif
 
 ifeq ($(ARCH),Linux)
-  ifeq ($(COMP),PathScale)
-    FC = mpif90
-    F90 = mpif90
-    ifdef MPIHOME
-      mpi_include_dir = $(MPIHOME)/include
-    else
-      $(error MPIHOME probably needs to be declared for PathScale)
-    endif
-  endif
   ifeq ($(COMP),g95)
     F90FLAGS += -fno-second-underscore
     FFLAGS   += -fno-second-underscore
     override F_C_LINK := UNDERSCORE
   endif
+  ifeq ($(COMP),PathScale)
+    FC = mpif90
+    F90 = mpif90
+    ifdef MPIHOME
+      mpi_include_dir = $(MPIHOME)/include
+    endif
+  endif
 endif
-
-# Host changes.....
+#
+# Host changes ....
+#
+ifeq ($(findstring nid, $(HOST)), nid)
+    #
+    # franklin.nersc.gov
+    #
+    CXX := CC -target=linux
+    FC  := ftn -target=linux
+    F90 := ftn -target=linux
+endif
 ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
