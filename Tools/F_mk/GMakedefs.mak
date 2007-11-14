@@ -162,8 +162,8 @@ ifeq ($(ARCH),Linux)
       F90 := pgf95 -module $(mdir) -I$(mdir) 
     endif        
     ifdef NDEBUG
-      FFLAGS   += -O -fast
-      F90FLAGS += -O -fast
+      FFLAGS   += -O
+      F90FLAGS += -O
     else
       FFLAGS   += -g
       F90FLAGS += -g
@@ -177,6 +177,7 @@ ifeq ($(ARCH),Linux)
     ifdef NDEBUG
       FFLAGS   += -O
       F90FLAGS += -O
+      CFLAGS   += -O
     else
       FFLAGS   += -g
       F90FLAGS += -g
@@ -187,27 +188,34 @@ ifeq ($(ARCH),Linux)
     FC = f95
     F90 = f95
   endif
+
   ifeq ($(COMP),PathScale)
-    FC = pathf90
-    F90 = pathf90
+    FC = pathf95
+    F90 = pathf95
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
     CC  = pathcc
+
+    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+    endif
+
+
 #   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
-      F90FLAGS += -g
-      FFLAGS += -g
-      CFLAGS += -g
+      F90FLAGS += -g -fno-second-underscore
+      FFLAGS += -g -fno-second-underscore
+      CFLAGS += -g -fno-second-underscore
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -O2
-      FFLAGS += -O2
-      CFLAGS += -O2
+      F90FLAGS += -fno-second-underscore -Ofast
+      FFLAGS   += -fno-second-underscore -Ofast
+      CFLAGS   += -fno-second-underscore -Ofast
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
   endif
+
   ifeq ($(COMP),Intel)
     _unamem := $(shell uname -m)
     _ifc := ifort
