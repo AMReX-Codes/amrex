@@ -74,8 +74,8 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF  += -O -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
-  fOPTF  += -O -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  FOPTF  += -O #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  fOPTF  += -O #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
   FDEBF += -g
   fDEBF += -g
