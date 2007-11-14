@@ -22,7 +22,7 @@ else
 ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXDEBF += -g
-  CXXOPTF += -O --no_exceptions -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  CXXOPTF += -O --no_exceptions #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
   ifeq ($(USE_MPI),TRUE)
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
   else
