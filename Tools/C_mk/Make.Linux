@@ -9,8 +9,8 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-  CXXOPTF += -O3 -OPT:Olimit=20000
-  CXXDEBF += -O0 -OPT:Olimit=0 -g
+  CXXOPTF += -O2 -OPT:Olimit=0 -fno-exceptions -OPT:Ofast -Wno-deprecated
+  CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
 else
 ifeq ($(COMP),KCC)
   CXX      = KCC
@@ -20,8 +20,13 @@ ifeq ($(COMP),KCC)
 else
 ifeq ($(COMP),PGI)
   CXX = pgCC
-  CXXOPTF +=
   CXXDEBF += -g
+  CXXOPTF += -O --no_exceptions -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  ifeq ($(USE_MPI),TRUE)
+    override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
+  else
+    override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
+  endif
 endif
 endif
 endif
@@ -32,13 +37,14 @@ FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional
 
 ifeq ($(FCOMP),PathScale)
-  FC  = pathf90 -fixedform -fno-second-underscore
-  fC  = pathf90 -fixedform -fno-second-underscore
-  F90 = pathf90 -fno-second-underscore
+  FC  = pathf95 -fno-second-underscore
+  fC  = pathf95 -fno-second-underscore
+  F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  FOPTF += -O3
-  fOPTF += -O3
+  FOPTF += -O2 -OPT:Ofast
+  fOPTF += -O2 -OPT:Ofast
+  fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
 #  LDFLAGS += -static
@@ -67,12 +73,12 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF += -O -fast
-  fOPTF += -O -fast
+  FOPTF  += -O -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  fOPTF  += -O -fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
   FDEBF += -g
   fDEBF += -g
-  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
-  override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpgc
+#  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
 else
 ifeq ($(FCOMP),Intel)
   # mostly in Make.defs
@@ -107,22 +113,12 @@ endif
 # Overrides for specific machines.
 #
 ifeq ($(WHICHLINUX), FRANKLIN)
-  LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
   DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX
-ifeq ($(USE_MPI),TRUE)
-  CXX := CC -target=linux
-  FC  := ftn -target=linux
-  fC  := ftn -target=linux
-else
-  CXX := pgCC
-  FC  := pgf90 
-  fC  := pgf90
-  LIBRARIES += -lrt
-endif
-  CXXOPTF += -O --no_exceptions #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
-  FOPTF   += -O -fast #-Minline=levels:10 -Mvect=nosse -Mnoflushz
-  fOPTF   += -O -fast #-Minline=levels:10 -Mvect=nosse -Mnoflushz
-  fFLAGS  += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC -target=linux
+    FC  := ftn -target=linux
+    fC  := ftn -target=linux
+  endif
 endif
 
 ifeq ($(WHICHLINUX), JVN)
