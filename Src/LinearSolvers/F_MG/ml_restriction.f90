@@ -12,6 +12,8 @@ module ml_restriction_module
 
 contains
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine ml_cc_restriction_c(crse, cc, fine, cf, ir, nc)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
@@ -54,6 +56,8 @@ contains
 
   end subroutine ml_cc_restriction_c
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine ml_cc_restriction(crse, fine, ir)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
@@ -64,11 +68,13 @@ contains
     call ml_cc_restriction_c(crse, 1, fine, 1, ir, crse%nc)
   end subroutine ml_cc_restriction
 
-  subroutine ml_edge_restriction(crse, fine, ir, n)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine ml_edge_restriction(crse, fine, ir, face)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: ir(:)
-    integer,        intent(in)    :: n
+    integer,        intent(in)    :: face
 
     integer             :: i
     integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
@@ -92,9 +98,9 @@ contains
        case (1)
           call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
        case (2)
-          call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, n)
+          call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, face)
        case (3)
-          call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, n)
+          call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, face)
        end select
     end do
 
@@ -103,6 +109,8 @@ contains
     call destroy(cfine)
 
   end subroutine ml_edge_restriction
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_restrict_copy_sum(out, in)
      use bl_types
@@ -122,6 +130,8 @@ contains
         end do
      end do
   end subroutine ml_restrict_copy_sum
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
     type(multifab),  intent(inout)        :: crse
@@ -225,6 +235,8 @@ contains
     call destroy(cfine)
 
   end subroutine ml_nodal_restriction
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine periodic_add_copy(dst,src,synced)
 
@@ -362,6 +374,8 @@ contains
 
   end subroutine periodic_add_copy
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
     type(multifab),  intent(inout) :: fine
     type(multifab),  intent(inout) :: crse
@@ -383,5 +397,7 @@ contains
     end if
     call destroy(bpt)
  end subroutine ml_restriction
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end module ml_restriction_module
