@@ -70,17 +70,20 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine ml_edge_restriction(crse, fine, ir, face)
+  subroutine ml_edge_restriction_c(crse, cc, fine, cf, ir, face, nc)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
-    integer,        intent(in)    :: ir(:)
+    integer,        intent(in)    :: cc, cf, ir(:)
     integer,        intent(in)    :: face
+    integer, intent(in), optional :: nc
 
-    integer             :: i
+    integer             :: i, n, lnc
     integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine
     type(multifab)      :: cfine
+
+    lnc = 1; if ( present(nc) ) lnc = nc
 
     call layout_build_coarse(lacfine, fine%la, ir)
 
@@ -92,21 +95,38 @@ contains
        hi  = upb(get_ibox(cfine,i))
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
-       fp  => dataptr(fine,  i)
-       cp  => dataptr(cfine, i)
-       select case (crse%dim)
-       case (1)
-          call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
-       case (2)
-          call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, face)
-       case (3)
-          call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, face)
-       end select
+       do n = 1, lnc
+          fp  => dataptr(fine,  i, n+cf-1, 1)
+          cp  => dataptr(cfine, i, n,      1)
+          select case (crse%dim)
+          case (1)
+             call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+          case (2)
+             call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, face)
+          case (3)
+             call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, face)
+          end select
+       enddo
     end do
 
-    call copy(crse, cfine)
+    call copy(crse, cc, cfine, 1, lnc)
 
     call destroy(cfine)
+
+  end subroutine ml_edge_restriction_c
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine ml_edge_restriction(crse, fine, ir, face)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(inout) :: crse
+    integer,        intent(in)    :: ir(:)
+    integer,        intent(in)    :: face
+
+    if ( crse%nc .ne. fine%nc ) then
+       call bl_error('ml_edge_restriction: crse & fine must have same # of components')
+    end if
+    call ml_edge_restriction_c(crse, 1, fine, 1, ir, face, crse%nc)
 
   end subroutine ml_edge_restriction
 
