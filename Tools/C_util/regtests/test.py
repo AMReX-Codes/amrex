@@ -10,7 +10,7 @@ are separated as such in this file.
 This test framework understands source based out of the Parallel/ and
 fParallel/ frameworks.
 
-2007-08-02
+2007-11-14
 """
 
 import os
@@ -146,7 +146,9 @@ def keyIsValid(key):
 #==============================================================================
 def getSections():
     """ return the sections """
-    return globalSections
+    sections = globalSections
+    sections.sort()
+    return sections
 
 
 
@@ -207,51 +209,77 @@ def getValidTests(sourceTree):
     tests = getSections()
     newTests = tests[:]
 
+    print newTests
+
     # [main] is reserved for test suite parameters
     newTests.remove("main")
+
+    removeList = []
     
     for test in newTests:
 
         # buildDir
 	if (not keyIsValid("%s.buildDir" % (test)) ):
-            print "ERROR: test %s is missing buildDir parameter" % (test)
-            newTests.remove(test)
+            print "ERROR: test %s is missing buildDir parameter.\n" % (test)
+            removeList.append(test)
             continue
 
         # inputFile
 	if (not keyIsValid("%s.inputFile" % (test)) ):
-            print "ERROR: test %s is missing inputFile parameter" % (test)
-            newTests.remove(test)
+            print "ERROR: test %s is missing inputFile parameter.\n" % (test)
+            removeList.append(test)
             continue
 
         if (sourceTree == "Parallel"):
             
             # probinFile
 	    if (not keyIsValid("%s.probinFile" % (test)) ):
-                print "ERROR: test %s is missing probinFile parameter" % (test)
-                newTests.remove(test)
+                print "ERROR: test %s is missing probinFile parameter.\n" % (test)
+                removeList.append(test)
                 continue
 
         # useFParallel
 	if (not keyIsValid("%s.useFParallel" % (test)) ):
-            print "ERROR: test %s is missing useFParallel parameter" % (test)
-            newTests.remove(test)
+            print "ERROR: test %s is missing useFParallel parameter.\n" % (test)
+            removeList.append(test)
             continue
 
 
         # needs_helmeos
 	if (not keyIsValid("%s.needs_helmeos" % (test)) ):
-            print "ERROR: test %s is missing needs_helmeos parameter" % (test)
-            newTests.remove(test)
+            print "ERROR: test %s is missing needs_helmeos parameter.\n" % (test)
+            removeList.append(test)
             continue        
 
 
         # dim
         if (not keyIsValid("%s.dim" % (test)) ):
-            print "ERROR: test %s is missing dim parameter" % (test)
-            newTests.remove(test)
+            print "ERROR: test %s is missing dim parameter.\n" % (test)
+            removeList.append(test)
             continue        
 
+
+        # restartTest
+        if (not keyIsValid("%s.restartTest" % (test)) ):
+            print "WARNING: test %s didn't set restartTest parameter.  Assuming normal run.\n" % (test)
+            globalParams["%s.restartTest" % (test)] = 0
+        else:
+
+           if (getParam("%s.restartTest" % (test)) ):
+              # if we are doing a restart test, make sure that the file
+              # number to restart from has been defined
+
+              if (not keyIsValid("%s.restartFileNum" % (test)) ):
+                 print "ERROR: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test)
+                 removeList.append(test)
+                 continue
+      
+
+
+    # remove the invalid tests
+    for test in removeList:
+       newTests.remove(test)
+       
     return newTests
 
 
@@ -280,6 +308,31 @@ def getAuxFiles(test):
         i = i + 1
         
     return auxFiles
+
+
+#==============================================================================
+# getLastPlotfile
+#==============================================================================
+def getLastPlotfile(outputDir, test):
+    """ given an output directory and the test name, find the last
+        plotfile written """
+        
+    plotNum = -1
+        
+    # start by finding the last plotfile
+    for file in os.listdir(outputDir):
+       if (file.startswith("%s_plt" % (test))):
+           key = "_plt"
+           index = string.rfind(file, key)
+           plotNum = max(int(file[index+len(key):]), plotNum)
+
+    if (plotNum == -1):
+       print "WARNING: test did not produce any output"
+       compareFile = ""
+    else:
+       compareFile = "%s_plt%4.4d" % (test, plotNum)
+
+    return compareFile
 
 
 
@@ -316,6 +369,8 @@ def test(argv):
             probinFile = < probin file name >
             needs_helmeos = < need Helmholtz eos? 0 for no, 1 for yes >
             useFParallel = < need fParallel sources? 0 for no, 1 for yes >
+            restartTest = < is this a restart test? 0 for no, 1 for yes >
+            restartFileNum = < # of file to restart from (if restart test) >
             dim = < dimensionality: 2 or 3 >
 
 
@@ -375,6 +430,11 @@ def test(argv):
           defining the problem.  The name between the [..] will be how
           the test is referred to on the webpages.
 
+            restartTest = 1 means that this is a restart test.  Instead of
+            comparing to a stored benchmark, we will run the test and then
+            restart from restartFileNum and run until the end.  The last
+            file from the original run and the last from the restart will
+            be compared.
 
     options:
     
@@ -556,6 +616,10 @@ def test(argv):
         else:
             abortTests("ERROR: %s is not a valid test" % (single_test))
         
+
+    PrintAllParams()
+    print tests
+    
     
     #--------------------------------------------------------------------------
     # create the output directories
@@ -698,7 +762,7 @@ def test(argv):
 
     os.chdir("Parallel/")
 
-    if (have_cvs2cl):
+    if (have_cvs2cl and not no_cvs_update):
         os.system("./cvs2cl.pl -f ChangeLog.Parallel")
     else:
         cf = open("ChangeLog.Parallel", 'w')
@@ -727,7 +791,7 @@ def test(argv):
 
     os.chdir("fParallel/")
 
-    if (have_cvs2cl):
+    if (have_cvs2cl and not no_cvs_update):
         os.system("./cvs2cl.pl -f ChangeLog.fParallel")
     else:
         cf = open("ChangeLog.fParallel", 'w')
@@ -746,11 +810,11 @@ def test(argv):
     print "building the comparison tools..."
 
     os.chdir(compareToolDir)
-    os.system("gmake EBASE=DiffSameGrid2 DIM=2 executable=DiffSameGrid2_2d.exe " +
+    os.system("gmake -j 4 EBASE=DiffSameGrid2 DIM=2 executable=DiffSameGrid2_2d.exe " +
               "COMP=Intel FCOMP=Intel >& " +
               fullTestDir + "/make_difftool_2d.out")
 
-    os.system("gmake EBASE=DiffSameGrid2 DIM=3 executable=DiffSameGrid2_3d.exe " +
+    os.system("gmake -j 4 EBASE=DiffSameGrid2 DIM=3 executable=DiffSameGrid2_3d.exe " +
               "COMP=Intel FCOMP=Intel >& " +
               fullTestDir + "/make_difftool_3d.out")
 
@@ -789,7 +853,12 @@ def test(argv):
     for test in tests:
 
         print "working on " + test + " test"
-    
+
+        if (getParam(test + ".restartTest") and make_benchmarks):
+            print "  WARNING: test %s is a restart test -- no benchmarks are stored."
+            print "           skipping"
+            continue
+     
 
         #----------------------------------------------------------------------
         # make the run directory
@@ -813,16 +882,16 @@ def test(argv):
             executable = "%s%dd.exe" % (suiteName, dim)
 
             if (use_fParallel):
-                os.system("gmake DIM=%d executable=%s FBOXLIB_HOME=%s/fParallel >& %s/%s.make.out" %
+                os.system("gmake -j 4 DIM=%d executable=%s FBOXLIB_HOME=%s/fParallel >& %s/%s.make.out" %
                           (dim, executable, sourceDir, outputDir, test))
             else:
-                os.system("gmake DIM=%d executable=%s FBOXLIB_HOME= >& %s/%s.make.out" %
+                os.system("gmake -j 4 DIM=%d executable=%s FBOXLIB_HOME= >& %s/%s.make.out" %
                           (dim, executable, outputDir, test))
 
 
             
         elif (sourceTree == "fParallel"):
-            os.system("gmake MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
+            os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
 
             # we need a better way to get the executable name here
             executable = "main.Linux.Intel.exe"   
@@ -835,7 +904,20 @@ def test(argv):
 
         inputsFile = getParam(test + ".inputFile")
 
-        shutil.copy(executable, outputDir)
+        try: shutil.copy(executable, outputDir)
+        except IOError:
+           print '  ERROR: compilation failed'
+
+           statusFile = webDir + "%s.status" % (test)
+           sf = open(statusFile, 'w')
+
+           sf.write("FAILED\n")
+           sf.close()
+           
+           print "\n"           
+           continue
+
+
         shutil.copy(inputsFile, outputDir)
 
         # if we are a "Parallel" build, we need the probin file
@@ -872,32 +954,48 @@ def test(argv):
                       (executable, inputsFile, test, test))
 
 
+        # if it is a restart test, then rename the final output file and
+        # restart the test
+        restart = getParam(test + ".restartTest")
+
+        if (restart):
+           lastFile = getLastPlotfile(outputDir, test)
+           origLastFile = "orig_%s" % (lastFile)
+           shutil.move(lastFile, origLastFile)
+
+           # get the file number to restart from
+           restartFileNum = getParam(test + ".restartFileNum")
+           restartFile = "%s_plt%4.4d" % (test, restartFileNum)
+
+           print "    restarting from %s ... " % (restartFile)
+           
+           if (sourceTree == "Parallel"):
+              os.system("./%s %s amr.plot_file=%s_plt amr.restart=%s >>  %s.run.out 2>&1" %
+                      (executable, inputsFile, test, restartFile, test))
+
+           elif (sourceTree == "fParallel"):
+              os.system("./%s %s --plot_base_name %s_plt --restart %d >> %s.run.out 2>&1" %
+                      (executable, inputsFile, test, restartFileNum, test))
+           
+            
+
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
-        plotNum = -1
-        
-        # start by finding the last plotfile
-        for file in os.listdir(outputDir):
-            if (file.startswith("%s_plt" % (test))):
-                key = "_plt"
-                index = string.rfind(file, key)
-                plotNum = max(int(file[index+len(key):]), plotNum)
-
-        if (plotNum == -1):
-            print "WARNING: test did not produce any output"
-            compareFile = ""
-        else:
-            compareFile = "%s_plt%4.4d" % (test, plotNum)
+        compareFile = getLastPlotfile(outputDir, test)
 
         if (not make_benchmarks):
 
             print "  doing the comparison..."
             print "    comparison file: ", compareFile
 
-            # the benchmark file should have the same name -- see if it exists
+            if (not restart):
+               benchFile = benchDir + compareFile
+            else:
+               benchFile = outputDir + origLastFile
+
+            # see if it exists
             # note, with BoxLib, the plotfiles are actually directories
-            benchFile = benchDir + compareFile
             
             if (not os.path.isdir(benchFile)):
                 print "WARNING: no corresponding benchmark found"
@@ -910,9 +1008,17 @@ def test(argv):
                     
             else:
                 if (not compareFile == ""):
+
+                    print "    benchmark file: ", benchFile
+                    
                     dim = getParam(test + ".dim")
-                    os.system("../DiffSameGrid2_%dd.exe norm=0 infile1=%s infile2=%s >& %s.compare.out" %
-                              (dim, benchFile, compareFile, test))
+                    command = "../DiffSameGrid2_%dd.exe norm=0 infile1=%s infile2=%s >> %s.compare.out 2>&1" % (dim, benchFile, compareFile, test)
+
+                    cf = open("%s.compare.out" % (test), 'w')
+                    cf.write(command)
+                    cf.close()
+                    
+                    os.system(command)
 
                 else:
                     print "WARNING: unable to do a comparison"
@@ -1113,6 +1219,15 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 
     hf.write("<CENTER><H1><A HREF=\"index.html\">%s</A> %s</H1></CENTER>\n" % (testDir, testName) )
 
+    # is this a restart test?
+    restart = getParam("%s.restartTest" % (testName) )
+    if (restart):
+
+       restartFileNum = getParam("%s.restartTest" % (testName) )
+       
+       hf.write("<P><b>Restart Test</b><br>Job was run as normal and then restarted from checkpoint # %d, and the two final outputs were compared\n" % (restartFileNum) )
+
+    hf.write("<P>&nbsp;\n")       
 
     # write out the information about the test
     buildDir = getParam("%s.buildDir" % (testName) )
