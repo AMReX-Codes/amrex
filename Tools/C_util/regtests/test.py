@@ -342,7 +342,10 @@ def getLastPlotfile(outputDir, test):
 def test(argv):
 
     usage = """
-    ./test.py [--make_benchmarks comment, --no_cvs_update, --single_test test]
+    ./test.py [--make_benchmarks comment,
+               --no_cvs_update,
+               --single_test test,
+               --note note]
         testfile.ini
 
 
@@ -454,6 +457,9 @@ def test(argv):
 
        --single_test mytest
           run only the test named mytest
+
+       --note \"note\"
+          print the note on the resulting test webpages
           
 
     Getting started:
@@ -483,7 +489,8 @@ def test(argv):
         opts, next = getopt.getopt(argv[1:], "",
                                    ["make_benchmarks=",
                                     "no_cvs_update",
-                                    "single_test="])
+                                    "single_test=",
+                                    "note="])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -496,6 +503,7 @@ def test(argv):
     no_cvs_update = 0
     single_test = ""
     comment = ""
+    note = ""
     
     for o, a in opts:
 
@@ -509,6 +517,8 @@ def test(argv):
         if o == "--single_test":
             single_test = a
             
+        if o == "--note":
+            note = a
             
     try:
         testFile = next[0]
@@ -855,8 +865,8 @@ def test(argv):
         print "working on " + test + " test"
 
         if (getParam(test + ".restartTest") and make_benchmarks):
-            print "  WARNING: test %s is a restart test -- no benchmarks are stored."
-            print "           skipping"
+            print "  WARNING: test %s is a restart test -- no benchmarks are stored." % (test)
+            print "           skipping\n"
             continue
      
 
@@ -1077,7 +1087,7 @@ def test(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     print "creating new test report..."
-    reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir)
+    reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, webDir)
 
     
     #--------------------------------------------------------------------------
@@ -1189,8 +1199,10 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 
     if (compileSuccessful and compareSuccessful):
         sf.write("PASSED\n")
+        print "    %s PASSED" % (testName)
     else:
         sf.write("FAILED\n")
+        print "    %s FAILED" % (testName)
 
     sf.close()
 
@@ -1302,7 +1314,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testDir, testFile, webDir):
+def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, webDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -1342,9 +1354,12 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testD
 
     hf.write("<CENTER><H1><A HREF=\"../\">%s</A> %s</H1></CENTER>\n" % (suiteName, testDir) )
 
+    if (not note == ""):
+       hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
+       
     if (make_benchmarks):
-            hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">%s</font>\n" % (comment) )
-            hf.write("<p>&nbsp;\n")
+       hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">%s</font>\n" % (comment) )
+       hf.write("<p>&nbsp;\n")
 
     
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
@@ -1406,6 +1421,9 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, cvsTime, tests, testD
 
         else:
 
+            if (getParam(test + ".restartTest")):
+                continue
+                
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.benchmark.out" % (test)
 
