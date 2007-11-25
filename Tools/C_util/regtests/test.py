@@ -1045,7 +1045,7 @@ def test(argv):
 
             os.system("cp -rf %s %s" % (compareFile, benchDir))
 
-            cf = open("%s.benchmark.out" % (test), 'w')
+            cf = open("%s.status" % (test), 'w')
             cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
             cf.close()
             
@@ -1068,7 +1068,7 @@ def test(argv):
                 shutil.copy(file, "%s/%s.%s" % (webDir, test, file) )
 
         else:
-            shutil.copy("%s.benchmark.out" % (test), webDir)
+            shutil.copy("%s.status" % (test), webDir)
             
 
         #----------------------------------------------------------------------
@@ -1425,7 +1425,7 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
                 continue
                 
             # the benchmark was updated -- find the name of the new benchmark file
-            benchStatusFile = "%s.benchmark.out" % (test)
+            benchStatusFile = "%s.status" % (test)
 
             bf = open(benchStatusFile, 'r')
             lines = bf.readlines()
@@ -1490,7 +1490,8 @@ def reportAllRuns(suiteName, webTopDir):
         create_css()
 
     validDirs = []
-
+    allTests = []
+    
     #--------------------------------------------------------------------------
     # start by finding the list of valid test directories
     #--------------------------------------------------------------------------
@@ -1511,8 +1512,29 @@ def reportAllRuns(suiteName, webTopDir):
     
 
     #--------------------------------------------------------------------------
+    # now find all of the unique problems in the test directories
+    #--------------------------------------------------------------------------
+    for dir in validDirs:
+
+        for file in os.listdir(webTopDir + dir):
+
+            if (file.endswith(".status") and not file.startswith("20")):
+
+                index = string.rfind(file, ".status")
+                testName = file[0:index]
+
+                if (allTests.count(testName) == 0):
+                    allTests.append(testName)
+
+
+    allTests.sort()
+    
+
+    #--------------------------------------------------------------------------
     # generate the HTML
     #--------------------------------------------------------------------------
+    numTests = len(allTests)
+
     htmlFile = "index.html"
 
     title = "%s regression tests" % (suiteName)
@@ -1531,55 +1553,64 @@ def reportAllRuns(suiteName, webTopDir):
 
     hf.write("<CENTER><H1>%s</H1></CENTER>\n" % (title) )
 
-    hf.write("<P><TABLE BORDER=0 CELLPADDING=3>\n")
+    hf.write("<P><TABLE BORDER=0 CELLPADDING=5>\n")
 
+    # write out the header
+    hf.write("<TR><TD ALIGN=CENTER>date</TD><TD>&nbsp;</TD>")
+    for test in allTests:
+        hf.write("<TD ALIGN=CENTER>%s</TD>" % (test))
+    
+    hf.write("</TR>\n")
+
+
+    # loop over all the test runs 
     for dir in validDirs:
 
-        # check if it passed or failed
-        statusFile = "%s/%s.status" % (dir, dir)
-
-        sf = open(statusFile, 'r')
-        lines = sf.readlines()
-
-        # status = -1 (all failed); 0 (some failed); 1 (all passed);
-        # 99 (benchmark update)
-        status = -1  
-                                    
-        for line in lines:
-            if (string.find(line, "ALL PASSED") >= 0):
-                status = 1
-                break
-            elif (string.find(line, "SOME FAILED") >= 0):
-                status = 0
-                break
-            elif (string.find(line, "ALL FAILED") >= 0):
-                status = -1
-                break
-            elif (string.find(line, "BENCHMARKS UPDATED") >= 0):
-                status = 99
-                break
-                    
-        sf.close()
-
-
-        # write out this test's status
         hf.write("<TR><TD><A HREF=\"%s/index.html\">%s</A></TD><TD>&nbsp;</TD>" %
                  (dir, dir) )
         
-        if (status == 1):
-            hf.write("<TD><H3 class=\"passed\">ALL PASSED</H3></TD></TR>\n")
-        elif (status == 0):
-            hf.write("<TD><H3 class=\"somefailed\">SOME FAILED</H3></TD></TR>\n")
-        elif (status == -1):
-            hf.write("<TD><H3 class=\"failed\">ALL FAILED</H3></TD></TR>\n")
-        elif (status == 99):
-            hf.write("<TD><H3 class=\"benchmade\">BENCHMARKS UPDATED</H3></TD></TR>\n")
-        else:
-            print "invalid status in test summary"
+        for test in allTests:
+            
+            # look to see if the current test was part of this suite run
+            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
+
+            status = 0
+
+            if (os.path.isfile(statusFile)):            
+
+                sf = open(statusFile, 'r')
+                lines = sf.readlines()
+
+                # status = -1 (failed); 1 (passed); 10 (benchmark update)
+                status = -1  
+                                    
+                for line in lines:
+                    if (string.find(line, "PASSED") >= 0):
+                        status = 1
+                        break
+                    elif (string.find(line, "FAILED") >= 0):
+                        status = -1
+                        break
+                    elif (string.find(line, "benchmarks updated") >= 0):
+                        status = 10
+                        break
+                    
+                sf.close()
+
+                
+            # write out this test's status
+            if (status == 1):
+                hf.write("<TD ALIGN=CENTER><H3 class=\"passed\">PASSED</H3></TD>")
+            elif (status == -1):
+                hf.write("<TD ALIGN=CENTER><H3 class=\"failed\">FAILED</H3></TD>")
+            elif (status == 10):
+                hf.write("<TD ALIGN=CENTER><H3 class=\"benchmade\">new benchmark</H3></TD>")
+            else:
+                hf.write("<TD>&nbsp;</TD>")
+
+
+        hf.write("</TR>\n")
         
-        hf.write("<TR><TD>&nbsp;</TD></TR>\n")
-
-
     hf.write("</TABLE>\n")    
 
     # close
@@ -1587,7 +1618,6 @@ def reportAllRuns(suiteName, webTopDir):
     hf.write("</HTML>\n")    
 
     hf.close()
-
 
 
 
