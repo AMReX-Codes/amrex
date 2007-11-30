@@ -225,7 +225,7 @@ contains
 
        if (bc(2,1,n)  == EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
           j = cslope_lo(2)
-          if ( xok(1) ) then
+          if ( xok(2) ) then
              do i = cslope_lo(1), cslope_hi(1)
                 uc_yslope(i,j,n) = -SIXTEEN/FIFTEEN*crse(i,j-1,n)+ HALF*crse(i,j,n) &
                      + TWO3RD*crse(i,j+1,n) - TENTH*crse(i,j+2,n)
