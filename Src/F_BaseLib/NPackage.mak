@@ -82,6 +82,12 @@ f90objects = $(f90objects) $(obj_dir)\interp.obj
 f90sources = $(f90sources) $(boxlib_dir)\bndry_reg.f90
 f90objects = $(f90objects) $(obj_dir)\bndry_reg.obj
 
+f90sources = $(f90sources) $(boxlib_dir)\fillpatch.f90
+f90objects = $(f90objects) $(obj_dir)\fillpatch.obj
+
+f90sources = $(f90sources) $(boxlib_dir)\multifab_fill_ghost_cells.f90
+f90objects = $(f90objects) $(obj_dir)\multifab_fill_ghost_cells.obj
+
 f90sources = $(f90sources) $(boxlib_dir)\list_box.f90
 f90objects = $(f90objects) $(obj_dir)\list_box.obj
 
