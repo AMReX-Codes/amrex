@@ -115,7 +115,6 @@ contains
     call destroy(blc)
     call build(latmp, bac, explicit_mapping = get_proc(lac))
     call destroy(bac)
-    call init_box_hash_bin(latmp)
 
     do i = 1, dm
        do f = 0, 1

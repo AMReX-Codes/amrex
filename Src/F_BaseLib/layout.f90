@@ -1002,7 +1002,6 @@ contains
     call destroy(bltmp)
     call build(latmp, batmp, explicit_mapping = get_proc(la))
     call destroy(batmp)
-    call init_box_hash_bin(latmp)
 
     bxasc%nodal = nodal
 
@@ -1190,7 +1189,6 @@ contains
     call destroy(bltmp)
     call build(latmp, batmp, explicit_mapping = get_proc(la))
     call destroy(batmp)
-    call init_box_hash_bin(latmp)
 
     allocate(filled(bxa%nboxes))
     do i = 1, bxa%nboxes
@@ -1622,7 +1620,6 @@ contains
     call destroy(bltmp)
     call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
     call destroy(batmp)
-    call init_box_hash_bin(lasrctmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
@@ -1836,7 +1833,6 @@ contains
     call destroy(bltmp)
     call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
     call destroy(batmp)
-    call init_box_hash_bin(lasrctmp)
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
@@ -2252,6 +2248,9 @@ contains
     integer, parameter :: MAX_BI = 100
     integer :: cnt
     type(box_intersector) :: tbi(MAX_BI)
+
+    if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
+
     dm = la%lap%dim
     ba = get_boxarray(la)
     bins => la%lap%bins
