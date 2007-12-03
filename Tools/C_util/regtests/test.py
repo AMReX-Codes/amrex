@@ -549,6 +549,11 @@ def test(argv):
 
     else:
         sourceDir = getParam("main.sourceDir")
+
+        # make sure we end in a "/"
+        if (not (string.rfind(sourceDir, "/") == len(sourceDir)-1)):
+           sourceDir = sourceDir + "/"
+           
         if (not os.path.isdir(sourceDir)):
             abortTests("ERROR: sourceDir is not a valid directory")
 
@@ -559,6 +564,11 @@ def test(argv):
 
     else:
         testTopDir = getParam("main.testTopDir")
+
+        # make sure we end in a "/"
+        if (not (string.rfind(testTopDir, "/") == len(testTopDir)-1)):
+           testTopDir = testTopDir + "/"
+           
         if (not os.path.isdir(testTopDir)):
             abortTests("ERROR: testTopDir is not a valid directory")
     
@@ -569,6 +579,11 @@ def test(argv):
 
     else:
         compareToolDir = getParam("main.compareToolDir")
+
+        # make sure we end in a "/"
+        if (not (string.rfind(compareToolDir, "/") == len(compareToolDir)-1)):
+           compareToolDir = compareToolDir + "/"
+           
         if (not os.path.isdir(compareToolDir)):
             abortTests("ERROR: compareToolDir is not a valid directory")
     
@@ -579,6 +594,11 @@ def test(argv):
 
     else:
         helmeosDir = getParam("main.helmeosDir")
+
+        # make sure we end in a "/"
+        if (not (string.rfind(helmeosDir, "/") == len(helmeosDir)-1)):
+           helmeosDir = helmeosDir + "/"
+           
         if (not os.path.isdir(helmeosDir)):
             abortTests("ERROR: helmeosDir is not a valid directory")
     
@@ -627,7 +647,6 @@ def test(argv):
             abortTests("ERROR: %s is not a valid test" % (single_test))
         
 
-    PrintAllParams()
     print tests
     
     
