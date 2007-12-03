@@ -26,6 +26,18 @@ endif
 
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
+    ifeq ($(WHICHLINUX), ATLAS)
+      MPI_HOME=/usr/lib/mpi/default/mvapich-gen2/
+      ifeq ($(FCOMP), Intel)
+        MPI_HOME=/usr/lib/mpi/icc/mvapich-gen2/
+      endif
+      ifeq ($(FCOMP), PGI)
+        MPI_HOME=/usr/lib/mpi/pgi/mvapich-gen2/
+      endif
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
+      BL_MPI_LIBS += -lmpichfarg
+    endif
     ifeq ($(WHICHLINUX), HOMER)
       MPI_HOME=/usr/local/mpich/default/
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
