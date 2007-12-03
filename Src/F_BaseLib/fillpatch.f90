@@ -79,7 +79,7 @@ contains
 
     call boxarray_coarsen(ba, ir)
 
-    call boxarray_grow(ba, 1) ! Grow by one for stencil in lin_cc_interp
+    call boxarray_grow(ba, 1) ! Grow by one for stencil in lin_cc_interp.
 
     call build(la, ba, explicit_mapping = get_proc(fine%la))
 
@@ -105,8 +105,8 @@ contains
 
     do i = 1, nboxes(crse)
        if ( remote(crse, i) ) cycle
-       src => dataptr(crse,    i, 1,     nc)
-       dst => dataptr(tmpcrse, i, icomp, nc)
+       src => dataptr(crse,    i, icomp, nc)
+       dst => dataptr(tmpcrse, i, 1    , nc)
        dst = src
     end do
 
@@ -123,7 +123,7 @@ contains
 
        cbx      = get_ibox(cfine,i)
        fine_box = get_ibox(fine,i)
-       fbx      =  box_intersection(grow(fine_box,ng),pdomain)
+       fbx      = box_intersection(grow(fine_box,ng),pdomain)
 
        cslope_lo(1:dm) = lwb(grow(cbx, -1))
        cslope_hi(1:dm) = upb(grow(cbx, -1))
