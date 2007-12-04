@@ -60,7 +60,7 @@ contains
     !
     pdomain = fine_domain
     pmask(1:dm) = layout_get_pmask(fine%la)
-    gv(:) = 0
+    gv = 0
     do i = 1, dm
        if (pmask(i)) gv(i) = ng
     end do
@@ -70,7 +70,8 @@ contains
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
        !
-       call push_back(bl,box_intersection(grow(get_ibox(fine,i),ng),pdomain))
+       bx = box_intersection(grow(get_ibox(fine,i),ng),pdomain)
+       if ( .not. empty(bx) ) call push_back(bl, bx)
     end do
 
     call build(ba, bl, sort = .false.)
