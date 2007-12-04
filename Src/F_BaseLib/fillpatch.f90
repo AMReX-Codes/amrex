@@ -71,7 +71,8 @@ contains
        ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
        !
        bx = box_intersection(grow(get_ibox(fine,i),ng),pdomain)
-       if ( .not. empty(bx) ) call push_back(bl, bx)
+       if ( empty(bx) ) call bl_error('fillpatch: OOPS empty box')
+       call push_back(bl, bx)
     end do
 
     call build(ba, bl, sort = .false.)
