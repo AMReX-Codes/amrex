@@ -48,7 +48,6 @@ contains
 
     if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
     if ( .not. cell_centered_q(crse) ) call bl_error('fillpatch: crse is NOT cell centered')
-
     dx        = ONE
     dm        = crse%dim
     lim_slope = .true.
@@ -293,9 +292,12 @@ contains
     call multifab_physbc(fine,icomp,bcomp,nc,dx,bc_fine)
 
     call destroy(la)
-    call destroy(fla) 
     call destroy(cfine)
-    call destroy(tmpfine)
+
+    if (nextra > 0) then
+       call destroy(fla) 
+       call destroy(tmpfine)
+    end if
 
   end subroutine
 
