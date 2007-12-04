@@ -13,7 +13,9 @@ module fillpatch_module
   implicit none
 
 contains
-
+  !
+  ! TODO - remove fine_domain.  We already have it as get_pd(fine%la).
+  !
   subroutine fillpatch(fine, crse, fine_domain, ng, ir, bc_crse, bc_fine, icomp, bcomp, nc)
 
     type(multifab), intent(inout) :: fine
@@ -24,20 +26,22 @@ contains
     type(bc_level), intent(in   ) :: bc_crse, bc_fine
     integer       , intent(in   ) :: icomp, bcomp, nc
 
-    integer         :: i, j, dm, local_bc(fine%dim,2,nc), gv(fine%dim)
+    integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
     integer         :: lo(4), lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
-    type(layout)    :: la, tmpla
-    type(multifab)  :: cfine, tmpcrse
-    type(box)       :: bx, fbx, cbx, fine_box, pdomain, crse_domain
-    type(list_box)  :: bl
+    integer         :: nextra, np
+    type(layout)    :: la, fla, tmpla
+    type(multifab)  :: cfine, tmpcrse, tmpfine
+    type(box)       :: bx, fbx, cbx, fine_box, domain, crse_domain, bxs(3**fine%dim)
+    type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(fine%dim)
 
-    real(kind=dp_t), allocatable :: fvcx(:), fvcy(:), fvcz(:)
-    real(kind=dp_t), allocatable :: cvcx(:), cvcy(:), cvcz(:)
-
-    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
+    type(list_box_node),   pointer     :: bln
+    type(box_intersector), pointer     :: bi(:)
+    real(kind=dp_t),       allocatable :: fvcx(:), fvcy(:), fvcz(:), cvcx(:), cvcy(:), cvcz(:)
+    integer,               allocatable :: procmap(:)
+    real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
 
     if ( nghost(fine) <  ng          ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
     if ( nghost(crse) <  ng          ) call bl_error('fillpatch: crse does NOT have enough ghost cells')
@@ -57,52 +61,108 @@ contains
     call multifab_physbc(crse,icomp,bcomp,nc,dx,bc_crse)
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
+    ! We don't try to directly fill anything at fine level outside of the domain.
     !
-    pdomain = fine_domain
-    pmask(1:dm) = layout_get_pmask(fine%la)
-    gv = 0
-    do i = 1, dm
-       if (pmask(i)) gv(i) = ng
-    end do
-    pdomain = grow(pdomain,gv)
+    domain = get_pd(fine%la)
 
     do i = 1, nboxes(fine)
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
        !
-       bx = box_intersection(grow(get_ibox(fine,i),ng),pdomain)
-       if ( empty(bx) ) call bl_error('fillpatch: OOPS empty box')
+       bx = box_intersection(grow(get_ibox(fine,i),ng),domain)
+       if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
        call push_back(bl, bx)
     end do
 
+    pmask(1:dm) = layout_get_pmask(fine%la)
+
+    if ( any(pmask) ) then
+       !
+       ! Collect additional boxes that contribute to periodically filling fine ghost cells.
+       !
+       do i = 1, nboxes(fine)
+          bx = grow(get_ibox(fine,i),ng)
+          call box_periodic_shift(domain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
+          do j = 1, cnt
+             call push_back(pbl, bxs(j))
+          end do
+          bln => begin(pbl)
+          do while (associated(bln))
+             bx =  value(bln)
+             bi => layout_get_box_intersector(fine%la, bx)
+             do j = 1, size(bi)
+                call push_back(pieces, bi(j)%bx)
+             end do
+             deallocate(bi)
+             leftover = boxlist_boxlist_diff(bx, pieces)
+             call splice(extra, leftover)
+             call destroy(pieces)
+             bln => next(bln)
+          end do
+          call destroy(pbl)
+       end do
+    end if
+
+    nextra = size(extra)
+
+    allocate(procmap(1:nboxes(fine)+nextra))
+
+    procmap(1:nboxes(fine)) = get_proc(fine%la)
+
+    if (nextra > 0) then
+       np = parallel_nprocs()
+       do i = 1, nextra
+          !
+          ! Distribute extra boxes round-robin.
+          !
+          procmap(nboxes(fine)+i) = mod(i,np)
+       end do
+       !
+       ! tmpfine looks like fine with extra boxes added.
+       !
+       do i = 1, nboxes(fine)
+          call push_back(pbl, get_ibox(fine,i))
+       end do
+       bln => begin(extra)
+       do while (associated(bln))
+          call push_back(pbl, value(bln))
+          bln => next(bln)
+       end do
+       call build(ba, pbl, sort = .false.)
+       call destroy(pbl)
+       call build(fla, ba, pd = fine_domain, pmask = pmask, explicit_mapping = procmap)
+       call destroy(ba)
+       call build(tmpfine, fla, nc = nc, ng = ng)
+       !
+       ! Now grow the boxes in extra in preparation for building cfine.
+       !
+       bln => begin(extra)
+       do while (associated(bln))
+          call set(bln, box_intersection(grow(value(bln),ng),domain))
+          bln => next(bln)
+       end do
+    end if
+
+    call splice(bl, extra)
     call build(ba, bl, sort = .false.)
-
     call destroy(bl)
-
     call boxarray_coarsen(ba, ir)
-
     call boxarray_grow(ba, 1) ! Grow by one for stencil in lin_cc_interp.
-
-    call build(la, ba, explicit_mapping = get_proc(fine%la))
-
+    call build(la, ba, pd = crse_domain, pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
-
     call build(cfine, la, nc = nc, ng = 0)
     !
-    ! Fill cfine from crse.  Got to do it in stages as parallel copy only goes from valid -> valid.
+    ! Fill cfine from crse.
+    ! Got to do it in stages as parallel copy only goes from valid -> valid.
     !
     do i = 1, nboxes(crse)
        call push_back(bl, get_pbox(crse,i))
     end do
 
     call build(tmpba, bl, sort = .false.)
-
     call destroy(bl)
-
     call build(tmpla, tmpba, explicit_mapping = get_proc(crse%la))
-
     call destroy(tmpba)
-
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
     do i = 1, nboxes(crse)
@@ -115,17 +175,22 @@ contains
     call copy(cfine, 1, tmpcrse, 1, nc)
 
     call destroy(tmpcrse)
-
     call destroy(tmpla)
 
-    crse_domain = coarsen(fine_domain,ir)
+    crse_domain = get_pd(crse%la)
 
     do i = 1, nboxes(cfine)
        if ( remote(cfine, i) ) cycle
 
-       cbx      = get_ibox(cfine,i)
-       fine_box = get_ibox(fine,i)
-       fbx      = box_intersection(grow(fine_box,ng),pdomain)
+       cbx = get_ibox(cfine,i)
+
+       if (nextra > 0) then
+          fine_box = get_ibox(tmpfine,i)
+       else
+          fine_box = get_ibox(fine,   i)
+       end if
+
+       fbx = box_intersection(grow(fine_box,ng),domain)
 
        cslope_lo(1:dm) = lwb(grow(cbx, -1))
        cslope_hi(1:dm) = upb(grow(cbx, -1))
@@ -161,8 +226,6 @@ contains
        lo_f(1:dm) = lwb(fbx)
        hi_f(1:dm) = upb(fbx)
 
-       allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
-
        allocate(fvcx(lo_f(1):hi_f(1)+1))
        forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
        if (dm > 1) then
@@ -189,18 +252,24 @@ contains
 
        select case (dm)
        case (2)
+          allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
           call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
              fvcx, lo_f(1), fvcy, lo_f(2), &
              cvcx, lo_c(1), cvcy, lo_c(2), &
              cslope_lo, cslope_hi, lim_slope, lin_limit)
        case (3)
+          allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
           call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
                fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
                cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
                cslope_lo, cslope_hi, lim_slope, lin_limit)
        end select
 
-       dst => dataptr(fine,  i, fbx, icomp, nc)
+       if (nextra > 0) then
+          dst => dataptr(tmpfine,  i, fbx, 1,     nc)
+       else
+          dst => dataptr(fine,     i, fbx, icomp, nc)
+       end if
 
        dst = fp
 
@@ -210,10 +279,23 @@ contains
 
     end do
 
+    if (nextra > 0) then
+       call fill_boundary(tmpfine, 1, nc, ng)
+       do i = 1, nboxes(fine)
+          if ( remote(fine, i) ) cycle
+          bx  =  grow(get_ibox(fine,i), ng)
+          dst => dataptr(fine,    i, bx, icomp, nc)
+          src => dataptr(tmpfine, i, bx, 1    , nc)
+          dst =  src
+       end do
+    end if
+
     call multifab_physbc(fine,icomp,bcomp,nc,dx,bc_fine)
 
     call destroy(la)
+    call destroy(fla) 
     call destroy(cfine)
+    call destroy(tmpfine)
 
   end subroutine
 
