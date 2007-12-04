@@ -613,6 +613,12 @@ contains
             mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
     enddo
 
+    do n = nlevs, 1, -1
+       if ( n == 1 ) exit
+       call bndry_reg_destroy(brs_flx(n))
+       call bndry_reg_destroy(brs_bcs(n))
+    end do
+
   end subroutine ml_resid
 
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
@@ -761,6 +767,9 @@ contains
        call destroy(uu(n))
        call destroy(rh(n))
        call destroy(temp_res(n))
+       if ( n == 1 ) exit
+       call bndry_reg_destroy(brs_flx(n))
+       call bndry_reg_destroy(brs_bcs(n))
     end do
 
     deallocate(uu_hold)
