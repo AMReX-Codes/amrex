@@ -31,7 +31,7 @@ contains
     integer         :: nextra, np
     type(layout)    :: la, fla, tmpla
     type(multifab)  :: cfine, tmpcrse, tmpfine
-    type(box)       :: bx, fbx, cbx, fine_box, domain, crse_domain, bxs(3**fine%dim)
+    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**fine%dim)
     type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
@@ -62,13 +62,13 @@ contains
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
     ! We don't try to directly fill anything at fine level outside of the domain.
     !
-    domain = get_pd(fine%la)
+    fdomain = get_pd(fine%la)
 
     do i = 1, nboxes(fine)
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
        !
-       bx = box_intersection(grow(get_ibox(fine,i),ng),domain)
+       bx = box_intersection(grow(get_ibox(fine,i),ng),fdomain)
        if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
        call push_back(bl, bx)
     end do
@@ -81,7 +81,7 @@ contains
        !
        do i = 1, nboxes(fine)
           bx = grow(get_ibox(fine,i),ng)
-          call box_periodic_shift(domain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
+          call box_periodic_shift(fdomain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
           do j = 1, cnt
              call push_back(pbl, bxs(j))
           end do
@@ -129,7 +129,7 @@ contains
        end do
        call build(ba, pbl, sort = .false.)
        call destroy(pbl)
-       call build(fla, ba, pd = fine_domain, pmask = pmask, explicit_mapping = procmap)
+       call build(fla, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
        call destroy(ba)
        call build(tmpfine, fla, nc = nc, ng = ng)
        !
@@ -137,7 +137,7 @@ contains
        !
        bln => begin(extra)
        do while (associated(bln))
-          call set(bln, box_intersection(grow(value(bln),ng),domain))
+          call set(bln, box_intersection(grow(value(bln),ng),fdomain))
           bln => next(bln)
        end do
     end if
@@ -147,7 +147,7 @@ contains
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
     call boxarray_grow(ba, 1) ! Grow by one for stencil in lin_cc_interp.
-    call build(la, ba, pd = crse_domain, pmask = pmask, explicit_mapping = procmap)
+    call build(la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
     !
@@ -176,7 +176,7 @@ contains
     call destroy(tmpcrse)
     call destroy(tmpla)
 
-    crse_domain = get_pd(crse%la)
+    cdomain = get_pd(crse%la)
 
     do i = 1, nboxes(cfine)
        if ( remote(cfine, i) ) cycle
@@ -189,32 +189,32 @@ contains
           fine_box = get_ibox(fine,   i)
        end if
 
-       fbx = box_intersection(grow(fine_box,ng),domain)
+       fbx = box_intersection(grow(fine_box,ng),fdomain)
 
        cslope_lo(1:dm) = lwb(grow(cbx, -1))
        cslope_hi(1:dm) = upb(grow(cbx, -1))
 
        local_bc(:,:,1:nc) = INTERIOR
 
-       if (cslope_lo(1) == crse_domain%lo(1)) then
+       if (cslope_lo(1) == cdomain%lo(1)) then
           local_bc(1,1,1:nc) = bc_crse%adv_bc_level_array(0,1,1,bcomp:bcomp+nc-1)
        end if
-       if (cslope_hi(1) == crse_domain%hi(1)) then
+       if (cslope_hi(1) == cdomain%hi(1)) then
           local_bc(1,2,1:nc) = bc_crse%adv_bc_level_array(0,1,2,bcomp:bcomp+nc-1)
        end if
        if (dm > 1) then
-          if (cslope_lo(2) == crse_domain%lo(2)) then
+          if (cslope_lo(2) == cdomain%lo(2)) then
              local_bc(2,1,1:nc) = bc_crse%adv_bc_level_array(0,2,1,bcomp:bcomp+nc-1)
           end if
-          if (cslope_hi(2) == crse_domain%hi(2)) then
+          if (cslope_hi(2) == cdomain%hi(2)) then
              local_bc(2,2,1:nc) = bc_crse%adv_bc_level_array(0,2,2,bcomp:bcomp+nc-1)
           end if
        end if
        if (dm > 2) then
-          if (cslope_lo(dm) == crse_domain%lo(dm)) then
+          if (cslope_lo(dm) == cdomain%lo(dm)) then
              local_bc(dm,1,1:nc) = bc_crse%adv_bc_level_array(0,dm,1,bcomp:bcomp+nc-1)
           end if
-          if (cslope_hi(dm) == crse_domain%hi(dm)) then
+          if (cslope_hi(dm) == cdomain%hi(dm)) then
              local_bc(dm,2,1:nc) = bc_crse%adv_bc_level_array(0,dm,2,bcomp:bcomp+nc-1)
           end if
        end if
@@ -291,12 +291,12 @@ contains
 
     call multifab_physbc(fine,icomp,bcomp,nc,dx,bc_fine)
 
-    call destroy(la)
     call destroy(cfine)
+    call destroy(la)
 
     if (nextra > 0) then
-       call destroy(fla) 
        call destroy(tmpfine)
+       call destroy(fla) 
     end if
 
   end subroutine
