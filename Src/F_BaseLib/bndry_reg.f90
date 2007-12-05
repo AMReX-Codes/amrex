@@ -385,16 +385,73 @@ contains
   subroutine bndry_reg_copy(br, mf)
     type(multifab) , intent(in   ) :: mf
     type(bndry_reg), intent(inout) :: br
-    integer :: i, f
+
+    integer         :: i, f, j
+    type(list_box)  :: bl
+    type(multifab)  :: tmf
+    type(boxarray)  :: ba
+    type(box)       :: domain
+    type(layout)    :: la
+    logical         :: doit
+    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy")
 
-    do i = 1, br%dim
-       do f = 0, 1
-          call copy(br%bmf(i,f), mf)
+    doit = .false.
+
+    if ( any(layout_get_pmask(mf%la)) ) then
+       domain = grow(get_pd(mf%la), nghost(mf), .not. layout_get_pmask(mf%la))
+       loop: do i = 1, br%dim
+          do f = 0, 1
+             do j = 1, nboxes(br%bmf(i,f))
+                if ( .not. contains(domain, get_box(br%bmf(i,f),j)) ) then
+                   doit = .true.
+                   exit loop
+                end if
+             end do
+          end do
+       end do loop
+    end if
+
+    if ( doit) then
+       !
+       ! We're periodic & have boxes that extend outside the domain in periodic direction.
+       ! In order to fill those boxes we do the usual trick of copy()ing from a multifab
+       ! whose valid region has been extended to cover the ghost region.
+       !
+       do i = 1, nboxes(mf)
+          call push_back(bl, get_pbox(mf,i))
        end do
-    end do
+
+       call build(ba, bl, sort = .false.)
+       call destroy(bl)
+       call build(la, ba, get_pd(mf%la), get_pmask(mf%la), explicit_mapping = get_proc(mf%la))
+       call destroy(ba)
+       call build(tmf, la, nc = ncomp(mf), ng = 0)
+
+       do i = 1, nboxes(mf)
+          if ( remote(mf,i) ) cycle
+          src => dataptr(mf,  i)
+          dst => dataptr(tmf, i)
+          dst =  src
+       end do
+
+       do i = 1, br%dim
+          do f = 0, 1
+             call copy(br%bmf(i,f), tmf)
+          end do
+       end do
+
+       call destroy(la)
+       call destroy(tmf)
+    else
+       do i = 1, br%dim
+          do f = 0, 1
+             call copy(br%bmf(i,f), mf)
+          end do
+       end do
+    end if
 
     call destroy(bpt)
   end subroutine bndry_reg_copy
