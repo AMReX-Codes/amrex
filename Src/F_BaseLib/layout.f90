@@ -549,7 +549,6 @@ contains
     type(layout), intent(inout) :: la
     if ( la%la_type /= LA_BASE ) call bl_error("LAYOUT_DESTROY: confused")
     call layout_rep_destroy(la%lap, LA_BASE)
-!   deallocate(la%lap)
   end subroutine layout_destroy
 
   subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
