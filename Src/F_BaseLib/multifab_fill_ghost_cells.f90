@@ -24,16 +24,15 @@ contains
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
 
-    integer        :: i, j
-    type(multifab) :: ghost, tmpfine
-    type(box)      :: bx
-    type(boxarray) :: ba
-    type(list_box) :: bl, pieces, leftover
-    type(layout)   :: la, tmpla
-
-    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
+    integer         :: i, j
+    type(multifab)  :: ghost, tmpfine
+    type(box)       :: bx
+    type(boxarray)  :: ba
+    type(list_box)  :: bl, pieces, leftover
+    type(layout)    :: la, tmpla
     real(kind=dp_t) :: dx(3)
 
+    real(kind=dp_t),       pointer :: src(:,:,:,:), dst(:,:,:,:)
     type(box_intersector), pointer :: bi(:)
 
     if (ng == 0) return
@@ -73,24 +72,18 @@ contains
     !
     ! Now fillpatch a temporary multifab on those ghost cells.
     !
-    ! We use an extra grow cell so we get wide enough strips to enable HOEXTRAP.
+    ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
     call build(ba, bl, sort = .false.)
-
     call boxarray_simplify(ba)
-
     call destroy(bl)
-
     call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
-
     call destroy(ba)
-
     call build(ghost, la, nc, ng = 1)
-
     call fillpatch(ghost, crse, fine_domain, 1, ir, bc_crse, bc_fine, 1, bcomp, nc)
     !
     ! Copy fillpatch()d ghost cells to fine.
-    !
+    ! We want to copy the valid region of ghost -> valid + ghost region of fine.
     ! Got to do it in two stages since copy()s only go from valid -> valid.
     !
     do i = 1, nboxes(fine)
@@ -98,13 +91,9 @@ contains
     end do
 
     call build(ba, bl, sort = .false.)
-
     call destroy(bl)
-
-    call build(tmpla, ba, explicit_mapping = get_proc(fine%la))
-
+    call build(tmpla, ba, get_pd(fine%la), get_pmask(fine%la), explicit_mapping = get_proc(fine%la))
     call destroy(ba)
-
     call build(tmpfine, tmpla, nc = nc, ng = 0)
 
     do i = 1, nboxes(fine)
@@ -115,7 +104,7 @@ contains
        dst =  src
     end do
 
-    call copy(tmpfine, 1, ghost, 1, nc)
+    call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
 
     do i = 1, nboxes(fine)
        if ( remote(fine, i) ) cycle
