@@ -13,22 +13,20 @@ module fillpatch_module
   implicit none
 
 contains
-  !
-  ! TODO - remove fine_domain.  We already have it as get_pd(fine%la).
-  !
-  subroutine fillpatch(fine, crse, fine_domain, ng, ir, bc_crse, bc_fine, icomp, bcomp, nc)
 
-    type(multifab), intent(inout) :: fine
-    type(multifab), intent(inout) :: crse
-    type(box     ), intent(in   ) :: fine_domain
-    integer       , intent(in   ) :: ng
-    integer       , intent(in   ) :: ir(:)
-    type(bc_level), intent(in   ) :: bc_crse, bc_fine
-    integer       , intent(in   ) :: icomp, bcomp, nc
+  subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp, bcomp, nc, no_final_physbc)
+
+    type(multifab), intent(inout)           :: fine
+    type(multifab), intent(inout)           :: crse
+    integer       , intent(in   )           :: ng
+    integer       , intent(in   )           :: ir(:)
+    type(bc_level), intent(in   )           :: bc_crse, bc_fine
+    integer       , intent(in   )           :: icomp, bcomp, nc
+    logical       , intent(in   ), optional :: no_final_physbc
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
     integer         :: lo(4), lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
-    integer         :: nextra, np
+    integer         :: n_extra_valid_regions, np
     type(layout)    :: la, fla, tmpla
     type(multifab)  :: cfine, tmpcrse, tmpfine
     type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**fine%dim)
@@ -36,6 +34,7 @@ contains
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(fine%dim), have_periodic_gcells
+    logical         :: lno_final_physbc
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -54,6 +53,9 @@ contains
     lim_slope            = .true.
     lin_limit            = .false.
     have_periodic_gcells = .false.
+    lno_final_physbc     = .false.
+
+    if ( present(no_final_physbc) ) lno_final_physbc = no_final_physbc
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed in case has more than ng).
     !
@@ -105,21 +107,23 @@ contains
        end do
     end if
     !
-    ! nextra > 0 ==> Must add additional valid regions to 'fine' to enable the setting
-    !                of periodic ghost cells via fill_boundary().  We do this by using
-    !                an intermediate multifab 'tmpfine'.
+    ! n_extra_valid_regions > 0 implies:
     !
-    nextra = size(extra)
+    !     Must add additional valid regions to 'fine' to enable the setting
+    !     of periodic ghost cells via fill_boundary().  We do this by using
+    !     an intermediate multifab 'tmpfine'.
+    !
+    n_extra_valid_regions = size(extra)
     !
     ! Force first nboxes(fine) in 'tmpfine' to have the same distribution as 'fine'.
     !
-    allocate(procmap(1:nboxes(fine)+nextra))
+    allocate(procmap(1:nboxes(fine)+n_extra_valid_regions))
 
     procmap(1:nboxes(fine)) = get_proc(fine%la)
 
-    if (nextra > 0) then
+    if ( n_extra_valid_regions > 0 ) then
        np = parallel_nprocs()
-       do i = 1, nextra
+       do i = 1, n_extra_valid_regions
           !
           ! Distribute extra boxes round-robin.
           !
@@ -192,7 +196,7 @@ contains
 
        cbx = get_ibox(cfine,i)
 
-       if (nextra > 0) then
+       if ( n_extra_valid_regions > 0 ) then
           fine_box = get_ibox(tmpfine,i)
        else
           fine_box = get_ibox(fine,   i)
@@ -205,25 +209,25 @@ contains
 
        local_bc(:,:,1:nc) = INTERIOR
 
-       if (cslope_lo(1) == cdomain%lo(1)) then
+       if ( cslope_lo(1) == cdomain%lo(1) ) then
           local_bc(1,1,1:nc) = bc_crse%adv_bc_level_array(0,1,1,bcomp:bcomp+nc-1)
        end if
-       if (cslope_hi(1) == cdomain%hi(1)) then
+       if ( cslope_hi(1) == cdomain%hi(1) ) then
           local_bc(1,2,1:nc) = bc_crse%adv_bc_level_array(0,1,2,bcomp:bcomp+nc-1)
        end if
-       if (dm > 1) then
-          if (cslope_lo(2) == cdomain%lo(2)) then
+       if ( dm > 1 ) then
+          if ( cslope_lo(2) == cdomain%lo(2) ) then
              local_bc(2,1,1:nc) = bc_crse%adv_bc_level_array(0,2,1,bcomp:bcomp+nc-1)
           end if
-          if (cslope_hi(2) == cdomain%hi(2)) then
+          if ( cslope_hi(2) == cdomain%hi(2) ) then
              local_bc(2,2,1:nc) = bc_crse%adv_bc_level_array(0,2,2,bcomp:bcomp+nc-1)
           end if
        end if
-       if (dm > 2) then
-          if (cslope_lo(dm) == cdomain%lo(dm)) then
+       if ( dm > 2 ) then
+          if ( cslope_lo(dm) == cdomain%lo(dm) ) then
              local_bc(dm,1,1:nc) = bc_crse%adv_bc_level_array(0,dm,1,bcomp:bcomp+nc-1)
           end if
-          if (cslope_hi(dm) == cdomain%hi(dm)) then
+          if ( cslope_hi(dm) == cdomain%hi(dm) ) then
              local_bc(dm,2,1:nc) = bc_crse%adv_bc_level_array(0,dm,2,bcomp:bcomp+nc-1)
           end if
        end if
@@ -236,10 +240,10 @@ contains
 
        allocate(fvcx(lo_f(1):hi_f(1)+1))
        forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
-       if (dm > 1) then
+       if ( dm > 1 ) then
           allocate(fvcy(lo_f(2):hi_f(2)+1))
           forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
-          if (dm > 2) then
+          if ( dm > 2 ) then
              allocate(fvcz(lo_f(3):hi_f(3)+1))
              forall (j = lo_f(3):hi_f(3)+1) fvcy(j) = dble(j)
           end if
@@ -247,10 +251,10 @@ contains
 
        allocate(cvcx(lo_c(1):hi_c(1)+1))
        forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = dble(j) * TWO
-       if (dm > 1) then
+       if ( dm > 1 ) then
           allocate(cvcy(lo_c(2):hi_c(2)+1))
           forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = dble(j) * TWO
-          if (dm > 2) then
+          if ( dm > 2 ) then
              allocate(cvcz(lo_c(3):hi_c(3)+1))
              forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = dble(j) * TWO
           end if
@@ -273,7 +277,7 @@ contains
                cslope_lo, cslope_hi, lim_slope, lin_limit)
        end select
 
-       if (nextra > 0) then
+       if ( n_extra_valid_regions > 0 ) then
           dst => dataptr(tmpfine,  i, fbx, 1,     nc)
        else
           dst => dataptr(fine,     i, fbx, icomp, nc)
@@ -282,13 +286,13 @@ contains
        dst = fp
 
        deallocate(cvcx, fvcx, fp)
-       if (dm > 1) deallocate(cvcy, fvcy)
-       if (dm > 2) deallocate(cvcz, fvcz)
+       if ( dm > 1 ) deallocate(cvcy, fvcy)
+       if ( dm > 2 ) deallocate(cvcz, fvcz)
 
     end do
 
-    if (have_periodic_gcells) then
-       if (nextra > 0) then
+    if ( have_periodic_gcells ) then
+       if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
           do i = 1, nboxes(fine)
              if ( remote(fine, i) ) cycle
@@ -305,12 +309,12 @@ contains
        end if
     end if
 
-    call multifab_physbc(fine, icomp, bcomp, nc, dx, bc_fine)
+    if ( .not. lno_final_physbc ) call multifab_physbc(fine, icomp, bcomp, nc, dx, bc_fine)
 
     call destroy(cfine)
     call destroy(la)
 
-    if (nextra > 0) then
+    if ( n_extra_valid_regions > 0 ) then
        call destroy(tmpfine)
        call destroy(fla) 
     end if
