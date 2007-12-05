@@ -35,7 +35,7 @@ contains
     type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
-    logical         :: lim_slope, lin_limit, pmask(fine%dim)
+    logical         :: lim_slope, lin_limit, pmask(fine%dim), have_periodic_gcells
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -48,10 +48,12 @@ contains
 
     if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
     if ( .not. cell_centered_q(crse) ) call bl_error('fillpatch: crse is NOT cell centered')
-    dx        = ONE
-    dm        = crse%dim
-    lim_slope = .true.
-    lin_limit = .false.
+
+    dx                   = ONE
+    dm                   = crse%dim
+    lim_slope            = .true.
+    lin_limit            = .false.
+    have_periodic_gcells = .false.
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed in case has more than ng).
     !
@@ -82,6 +84,7 @@ contains
        do i = 1, nboxes(fine)
           bx = grow(get_ibox(fine,i),ng)
           call box_periodic_shift(fdomain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
+          if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
              call push_back(pbl, bxs(j))
           end do
@@ -101,9 +104,15 @@ contains
           call destroy(pbl)
        end do
     end if
-
+    !
+    ! nextra > 0 ==> Must add additional valid regions to 'fine' to enable the setting
+    !                of periodic ghost cells via fill_boundary().  We do this by using
+    !                an intermediate multifab 'tmpfine'.
+    !
     nextra = size(extra)
-
+    !
+    ! Force first nboxes(fine) in 'tmpfine' to have the same distribution as 'fine'.
+    !
     allocate(procmap(1:nboxes(fine)+nextra))
 
     procmap(1:nboxes(fine)) = get_proc(fine%la)
@@ -278,18 +287,25 @@ contains
 
     end do
 
-    if (nextra > 0) then
-       call fill_boundary(tmpfine, 1, nc, ng)
-       do i = 1, nboxes(fine)
-          if ( remote(fine, i) ) cycle
-          bx  =  grow(get_ibox(fine,i), ng)
-          dst => dataptr(fine,    i, bx, icomp, nc)
-          src => dataptr(tmpfine, i, bx, 1    , nc)
-          dst =  src
-       end do
+    if (have_periodic_gcells) then
+       if (nextra > 0) then
+          call fill_boundary(tmpfine, 1, nc, ng)
+          do i = 1, nboxes(fine)
+             if ( remote(fine, i) ) cycle
+             bx  =  grow(get_ibox(fine,i), ng)
+             dst => dataptr(fine,    i, bx, icomp, nc)
+             src => dataptr(tmpfine, i, bx, 1    , nc)
+             dst =  src
+          end do
+       else
+          !
+          ! We can fill periodic ghost cells simply by calling fill_boundary().
+          !
+          call fill_boundary(fine, icomp, nc, ng)
+       end if
     end if
 
-    call multifab_physbc(fine,icomp,bcomp,nc,dx,bc_fine)
+    call multifab_physbc(fine, icomp, bcomp, nc, dx, bc_fine)
 
     call destroy(cfine)
     call destroy(la)
