@@ -284,7 +284,6 @@ contains
           ! Interpolate uu to supply boundary conditions for new 
           ! residual calculation
           call bndry_reg_copy(brs_bcs(n), uu(n-1))
-!         call bndry_reg_copy_from_other(brs_bcs(n))
           do i = 1, dm
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
                                 ref_ratio(n-1,:), -i)
