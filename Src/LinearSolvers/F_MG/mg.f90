@@ -1067,6 +1067,7 @@ contains
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
+       
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
        if (do_diag) then
@@ -1261,7 +1262,7 @@ contains
                            uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, &
                            gamma)
        call mg_defect(mgt%ss(mgt%nlevels), &
-                            mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
+                      mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then
           nrm(1) = norm_inf(mgt%dd(mgt%nlevels))
           if ( parallel_IOProcessor() ) then
