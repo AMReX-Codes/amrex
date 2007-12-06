@@ -260,6 +260,9 @@ contains
                 if ( parallel_ioprocessor()) then
                    print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
                 end if
+             else
+                ! Seem to need this in periodic case to get right answer...
+                call multifab_fill_boundary(uu(n), cross = lcross)
              end if
 
           end if
