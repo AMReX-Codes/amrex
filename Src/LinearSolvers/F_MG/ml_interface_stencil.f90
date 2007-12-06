@@ -57,6 +57,8 @@ contains
 
     dm = res%dim
 
+    ! This loop only operates on crse data on the same crse layout -- should be
+    !   easy to parallelize
     do j = 1, crse%nboxes
        if ( remote(crse, j) ) cycle
 
@@ -99,38 +101,100 @@ contains
           fp => dataptr(flux, i, cf)
           select case (dm)
           case (1)
-             call ml_interface_1d(rp(:,1,1,1), lor, &
-                  fp(:,1,1,1), lof, &
+             call ml_interface_1d_crse( &
+                  rp(:,1,1,1), lor, &
                   cp(:,1,1,1), loc, &
                   sp(:,1,1,:), los, &
                   lo, hi, face, dim, efactor)
           case (2)
-             call ml_interface_2d(rp(:,:,1,1), lor, &
-                  fp(:,:,1,1), lof, &
+             call ml_interface_2d_crse( &
+                  rp(:,:,1,1), lor, &
                   cp(:,:,1,1), loc, &
                   sp(:,:,1,:), los, &
                   lo, hi, face, dim, efactor)
           case (3)
-             call ml_interface_3d(rp(:,:,:,1), lor, &
-                  fp(:,:,:,1), lof, &
+             call ml_interface_3d_crse( &
+                  rp(:,:,:,1), lor, &
                   cp(:,:,:,1), loc, &
                   sp(:,:,:,:), los, &
                   lo, hi, face, dim, efactor)
           end select
        end do
     end do
+
+    ! This loop only uses flux registers from the fine layout to modify crse data on the crse layout 
+    !   -- harder to parallelize
+    do j = 1, crse%nboxes
+       if ( remote(crse, j) ) cycle
+
+       cbox = get_ibox(crse,j)
+       loc = lwb(cbox) - crse%ng
+
+       rbox = get_ibox(res,j)
+       lor = lwb(rbox) - res%ng
+
+       sbox = get_ibox(ss,j)
+       los = lwb(sbox) - ss%ng
+
+       cp => dataptr(crse, j, cr)
+       rp => dataptr(res, j, cr)
+       sp => dataptr(ss, j)
+
+       do i = 1, flux%nboxes
+
+          if ( remote(flux, i) ) cycle
+
+          fbox = get_ibox(flux,i)
+
+          if (pmask(dim)) then
+             isect = box_intersection(crse_domain,fbox)
+             if ( empty(isect) ) then
+                if (face .eq. -1) then
+                   fbox = box_shift_d(fbox,extent(crse_domain,dim),dim)
+                else
+                   fbox = box_shift_d(fbox,-extent(crse_domain,dim),dim)
+                end if
+             end if
+          end if
+
+          lof = lwb(fbox)
+
+          isect = box_intersection(cbox,fbox)
+          if ( empty(isect) ) cycle
+          lo = lwb(isect)
+          hi = upb(isect)
+          fp => dataptr(flux, i, cf)
+          select case (dm)
+          case (1)
+             call ml_interface_1d_fine( &
+                  rp(:,1,1,1), lor, &
+                  fp(:,1,1,1), lof, &
+                  lo, hi, efactor)
+          case (2)
+             call ml_interface_2d_fine( &
+                  rp(:,:,1,1), lor, &
+                  fp(:,:,1,1), lof, &
+                  lo, hi, efactor)
+          case (3)
+             call ml_interface_3d_fine( &
+                  rp(:,:,:,1), lor, &
+                  fp(:,:,:,1), lof, &
+                  lo, hi, efactor)
+          end select
+       end do
+    end do
+
     call destroy(bpt)
+
   end subroutine ml_interface_c
 
-  subroutine ml_interface_1d(res, lor, fine_flux, lof, cc, loc, &
+  subroutine ml_interface_1d_crse(res, lor, cc, loc, &
        ss , los, lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
     integer, intent(in) :: face, dim
@@ -144,25 +208,39 @@ contains
     !   Lo side
     if (face == -1) then
        crse_flux = ss(i,1)*(cc(i)-cc(i+1))
-       res(i) = res(i) + efactor*(fine_flux(i) - crse_flux)
+       res(i) = res(i) - efactor*crse_flux
 
        !   Hi side
     else if (face == 1) then
        crse_flux = ss(i,2)*(cc(i)-cc(i-1))
-       res(i) = res(i) + efactor*(fine_flux(i) - crse_flux)
+       res(i) = res(i) - efactor*crse_flux
     end if
 
-  end subroutine ml_interface_1d
+  end subroutine ml_interface_1d_crse
 
-  subroutine ml_interface_2d(res, lor, fine_flux, lof, cc, loc, &
-       ss , los, lo, hi, face, dim, efactor)
+  subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
+
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: lof(:) 
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: res(lor(1):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
+    real (kind = dp_t), intent(in   ) :: efactor
+
+    integer :: i 
+
+    i = lo(1)
+    res(i) = res(i) + efactor*fine_flux(i)
+
+  end subroutine ml_interface_1d_fine
+
+  subroutine ml_interface_2d_crse(res, lor, cc, loc, &
+                                  ss , los, lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,0:)
     integer, intent(in) :: face, dim
@@ -171,21 +249,20 @@ contains
     integer :: i, j
     real (kind = dp_t) :: crse_flux
 
-
     !   Hi i side
     if ( dim == 1 ) then
        if (face == 1) then
           i = lo(1)
           do j = lo(2),hi(2)
              crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
-             res(i,j) = res(i,j) + efactor*(fine_flux(i,j) - crse_flux)
+             res(i,j) = res(i,j) - efactor*crse_flux
           end do
           !   Lo i side
        else if (face == -1) then
           i = lo(1)
           do j = lo(2),hi(2)
              crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
-             res(i,j) = res(i,j) + efactor*(fine_flux(i,j) - crse_flux)
+             res(i,j) = res(i,j) - efactor*crse_flux
           end do
        end if
     else if ( dim == 2 ) then
@@ -194,28 +271,45 @@ contains
           j = lo(2)
           do i = lo(1),hi(1)
              crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
-             res(i,j) = res(i,j) + efactor*(fine_flux(i,j) - crse_flux)
+             res(i,j) = res(i,j) - efactor*crse_flux
           end do
           !   Lo j side
        else if (face == -1) then
           j = lo(2)
           do i = lo(1),hi(1)
              crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
-             res(i,j) = res(i,j) + efactor*(fine_flux(i,j) - crse_flux)
+             res(i,j) = res(i,j) - efactor*crse_flux
           end do
        end if
     end if
-  end subroutine ml_interface_2d
+  end subroutine ml_interface_2d_crse
 
-  subroutine ml_interface_3d(res, lor, fine_flux, lof, cc, loc, &
+  subroutine ml_interface_2d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
+
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
+    real (kind = dp_t), intent(in   ) :: efactor
+
+    integer :: i, j
+    
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          res(i,j) = res(i,j) + efactor*fine_flux(i,j)
+       end do
+    end do
+
+  end subroutine ml_interface_2d_fine
+
+  subroutine ml_interface_3d_crse(res, lor, cc, loc, &
        ss , los, lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):,loc(3):)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,los(3):,0:)
     integer, intent(in) :: face, dim
@@ -231,7 +325,7 @@ contains
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 crse_flux = ss(i,j,k,2)*(cc(i,j,k)-cc(i-1,j,k))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
           !   Lo i side
@@ -240,7 +334,7 @@ contains
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 crse_flux = ss(i,j,k,1)*(cc(i,j,k)-cc(i+1,j,k))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
        end if
@@ -251,7 +345,7 @@ contains
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
                 crse_flux = ss(i,j,k,4)*(cc(i,j,k)-cc(i,j-1,k))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
           !   Lo j side
@@ -260,7 +354,7 @@ contains
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
                 crse_flux = ss(i,j,k,3)*(cc(i,j,k)-cc(i,j+1,k))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
        end if
@@ -271,7 +365,7 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 crse_flux = ss(i,j,k,6)*(cc(i,j,k)-cc(i,j,k-1))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
           !   Lo k side
@@ -280,12 +374,34 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 crse_flux = ss(i,j,k,5)*(cc(i,j,k)-cc(i,j,k+1))
-                res(i,j,k) = res(i,j,k) + efactor*(fine_flux(i,j,k) - crse_flux)
+                res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
        end if
     end if
-  end subroutine ml_interface_3d
+
+  end subroutine ml_interface_3d_crse
+
+  subroutine ml_interface_3d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
+
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
+    real( kind = dp_t), intent(in   ) :: efactor
+
+    integer :: i, j, k
+
+    do k = lo(3),hi(3)
+     do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          res(i,j,k) = res(i,j,k) + efactor*fine_flux(i,j,k)
+       end do
+     end do
+    end do
+
+  end subroutine ml_interface_3d_fine
 
   subroutine ml_crse_contrib_fancy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
 
