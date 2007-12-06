@@ -300,6 +300,7 @@ contains
     integer   :: loc(fine%dim), hic(fine%dim)
     integer   :: lof(fine%dim)
     integer   :: dm, i, n, lnc, dir, face
+    logical   :: pmask(1:fine%dim)
 
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(bl_prof_timer), save :: bpt
@@ -311,6 +312,8 @@ contains
     dm   = fine%dim
     dir  = abs(side)
     face = sign(1, side)
+
+    pmask = layout_get_pmask(fine%la)
 
     do i = 1, fine%nboxes
        if ( remote(fine,i) ) cycle
@@ -326,7 +329,7 @@ contains
 
        if ( .not. nodal_q(crse) ) then
           fbox_grown = grow(fbox, 1, dir, face)
-          fbox_grown = intersection(fbox_grown, fine_domain)
+          if (.not. pmask(dir)) fbox_grown = intersection(fbox_grown, fine_domain)
        else
           fbox_grown = fbox
        end if
@@ -425,10 +428,12 @@ contains
        xloc(3) =  THREE_EIGHTHS
     end if
 
+
 !   This is the same interpolation as done in IAMR.
     if ( abs(side) == 1 ) then
+      call bl_assert(size(cc,dim=1) .eq. 1, "cc must be one cell wide in ml_interp_bcs_2d")
       i  = lo(1)
-      ic = i / ir(1)
+      ic = loc(1)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
         first_der  = ZERO
         second_der = ZERO
@@ -461,8 +466,9 @@ contains
 
     else if ( abs(side) == 2 ) then
 
+      call bl_assert(size(cc,dim=2) .eq. 1, "cc must be one cell wide in ml_interp_bcs_2d")
       j  = lo(2)
-      jc = j / ir(2)
+      jc = loc(2)
       do ic = lo(1)/ir(1), hi(1)/ir(1)
         first_der  = ZERO
         second_der = ZERO
