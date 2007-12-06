@@ -43,6 +43,7 @@ contains
     integer :: los(res%dim)
     integer :: dm
     integer :: i, j
+    logical :: pmask(res%dim)
 
     real(kind=dp_t), pointer :: rp(:,:,:,:)
     real(kind=dp_t), pointer :: fp(:,:,:,:)
@@ -51,6 +52,8 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_interf_c")
+
+    pmask = layout_get_pmask(res%la)
 
     dm = res%dim
 
@@ -75,35 +78,45 @@ contains
           if ( remote(flux, i) ) cycle
 
           fbox = get_ibox(flux,i)
+
+          if (pmask(dim)) then
+             isect = box_intersection(crse_domain,fbox)
+             if ( empty(isect) ) then
+                if (face .eq. -1) then
+                   fbox = box_shift_d(fbox,extent(crse_domain,dim),dim)
+                else
+                   fbox = box_shift_d(fbox,-extent(crse_domain,dim),dim)
+                end if
+             end if
+          end if
+
           lof = lwb(fbox)
 
-          if ( contains(crse_domain,fbox) ) then
-             isect = box_intersection(cbox,fbox)
-             if ( empty(isect) ) cycle
-             lo = lwb(isect)
-             hi = upb(isect)
-             fp => dataptr(flux, i, cf)
-             select case (dm)
-             case (1)
-                call ml_interface_1d(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lof, &
-                     cp(:,1,1,1), loc, &
-                     sp(:,1,1,:), los, &
-                     lo, hi, face, dim, efactor)
-             case (2)
-                call ml_interface_2d(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lof, &
-                     cp(:,:,1,1), loc, &
-                     sp(:,:,1,:), los, &
-                     lo, hi, face, dim, efactor)
-             case (3)
-                call ml_interface_3d(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lof, &
-                     cp(:,:,:,1), loc, &
-                     sp(:,:,:,:), los, &
-                     lo, hi, face, dim, efactor)
-             end select
-          end if
+          isect = box_intersection(cbox,fbox)
+          if ( empty(isect) ) cycle
+          lo = lwb(isect)
+          hi = upb(isect)
+          fp => dataptr(flux, i, cf)
+          select case (dm)
+          case (1)
+             call ml_interface_1d(rp(:,1,1,1), lor, &
+                  fp(:,1,1,1), lof, &
+                  cp(:,1,1,1), loc, &
+                  sp(:,1,1,:), los, &
+                  lo, hi, face, dim, efactor)
+          case (2)
+             call ml_interface_2d(rp(:,:,1,1), lor, &
+                  fp(:,:,1,1), lof, &
+                  cp(:,:,1,1), loc, &
+                  sp(:,:,1,:), los, &
+                  lo, hi, face, dim, efactor)
+          case (3)
+             call ml_interface_3d(rp(:,:,:,1), lor, &
+                  fp(:,:,:,1), lof, &
+                  cp(:,:,:,1), loc, &
+                  sp(:,:,:,:), los, &
+                  lo, hi, face, dim, efactor)
+          end select
        end do
     end do
     call destroy(bpt)
@@ -157,6 +170,7 @@ contains
 
     integer :: i, j
     real (kind = dp_t) :: crse_flux
+
 
     !   Hi i side
     if ( dim == 1 ) then
