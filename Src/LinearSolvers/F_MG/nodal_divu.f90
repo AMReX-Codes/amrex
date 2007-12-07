@@ -367,6 +367,8 @@ contains
      real(kind=dp_t), pointer :: up(:,:,:,:)
      integer,         pointer :: mp(:,:,:,:)
 
+     if ( parallel_nprocs() > 1 ) call bl_error('ml_crse_divu_contrib(): not parallelized yet')
+
      nodal = .true.
 
      dm  = rh%dim
@@ -421,7 +423,7 @@ contains
          end if
        end do
      end do
-    end subroutine ml_crse_divu_contrib
+   end subroutine ml_crse_divu_contrib
 
 !   ********************************************************************************************* !
 
@@ -455,102 +457,103 @@ contains
 !   Lo i side
     if (side == -1) then
 
-      do j = lo(2),hi(2)
+       do j = lo(2),hi(2)
 
-        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
-          if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
-            crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-          else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
-            crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-          else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
-            crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-          else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
-            crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-          else
-            crse_flux = (HALF*(uc(i,j,1) + uc(i,j-1,1))/dx(1) &
-                        +HALF*(uc(i,j,2) - uc(i,j-1,2))/dx(2))
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+             if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
+             else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
+             else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
+             else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
+             else
+                crse_flux = (HALF*(uc(i,j,1) + uc(i,j-1,1))/dx(1) &
+                     +HALF*(uc(i,j,2) - uc(i,j-1,2))/dx(2))
+             end if
+
+             rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
           end if
 
-          rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
-        end if
-
-      end do
+       end do
 
 !   Hi i side
     else if (side ==  1) then
 
-      do j = lo(2),hi(2)
+       do j = lo(2),hi(2)
 
-        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
-          if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
-            crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-          else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
-            crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-          else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
-            crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
-          else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
-            crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
-          else
-            crse_flux = (HALF*(-uc(i-1,j,1)-uc(i-1,j-1,1))/dx(1)  &
-                        +HALF*( uc(i-1,j,2)-uc(i-1,j-1,2))/dx(2))
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+             if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
+             else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
+             else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
+             else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
+             else
+                crse_flux = (HALF*(-uc(i-1,j,1)-uc(i-1,j-1,1))/dx(1)  &
+                     +HALF*( uc(i-1,j,2)-uc(i-1,j-1,2))/dx(2))
+             end if
+
+             rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
           end if
 
-          rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
-        end if
+       end do
 
-      end do
+    !   Lo j side
+ else if (side == -2) then
 
-!   Lo j side
-    else if (side == -2) then
+    do i = lo(1),hi(1)
 
-      do i = lo(1),hi(1)
-
-        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+       if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
 
           if (i == lof(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
-            crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
+             crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
           else if (i == lof(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
-            crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
+             crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
           else if (i == hif(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
-            crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
+             crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
           else if (i == hif(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
-            crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
+             crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
           else
-            crse_flux = (HALF*(uc(i,j,1)-uc(i-1,j,1))/dx(1)  &
-                        +HALF*(uc(i,j,2)+uc(i-1,j,2))/dx(2))
+             crse_flux = (HALF*(uc(i,j,1)-uc(i-1,j,1))/dx(1)  &
+                  +HALF*(uc(i,j,2)+uc(i-1,j,2))/dx(2))
           end if
 
           rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
-        end if
+       end if
 
-      end do
+    end do
 
-!   Hi j side
-    else if (side ==  2) then
+    !   Hi j side
+ else if (side ==  2) then
 
-      do i = lo(1),hi(1)
+    do i = lo(1),hi(1)
 
-        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+       if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
 
           if (i == lof(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
-            crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
+             crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
           else if (i == lof(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
-            crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
+             crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
           else if (i == hif(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
-            crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
+             crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
           else if (i == hif(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
-            crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
+             crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
           else
-            crse_flux = (HALF*( uc(i,j-1,1)-uc(i-1,j-1,1))/dx(1) &
-                        +HALF*(-uc(i,j-1,2)-uc(i-1,j-1,2))/dx(2))
+             crse_flux = (HALF*( uc(i,j-1,1)-uc(i-1,j-1,1))/dx(1) &
+                  +HALF*(-uc(i,j-1,2)-uc(i-1,j-1,2))/dx(2))
           end if
 
           rh(i,j) = rh(i,j) - crse_flux + fac*fine_flux(i,j)
-        end if
 
-      end do
+       end if
 
-    end if
+    end do
+
+ end if
 
   end subroutine ml_interface_2d_divu
 
