@@ -6,6 +6,7 @@ module ml_interface_stencil_module
   use stencil_module
   use bl_prof_module
   use bl_constants_module
+  use vector_i_module
 
   implicit none
 
@@ -30,76 +31,64 @@ contains
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
-    integer, intent(in) :: cr, cf
-    type(box), intent(in) :: crse_domain
-    integer, intent(in) :: face, dim
-    real(kind=dp_t), intent(in) :: efactor
+    integer,        intent(in   ) :: cr, cf
+    type(box),      intent(in   ) :: crse_domain
+    integer,        intent(in   ) :: face, dim
+    real(kind=dp_t),intent(in   ) :: efactor
 
-    type(box) :: rbox, fbox, cbox, sbox, isect
-    integer :: lo (res%dim), hi (res%dim)
-    integer :: loc(res%dim)
-    integer :: lof(res%dim)
-    integer :: lor(res%dim)
-    integer :: los(res%dim)
-    integer :: dm
-    integer :: i, j
-    logical :: pmask(res%dim)
+    type(box)      :: fbox, cbox, isect
+    integer        :: lor(res%dim), los(res%dim), i, j, shft
+    integer        :: lo (res%dim), hi (res%dim), loc(res%dim), proc
+    logical        :: pmask(res%dim)
+    type(multifab) :: tflux
+    type(list_box) :: bl
+    type(boxarray) :: ba
+    type(layout)   :: la
+    type(vector_i) :: procmap, indxmap, shftmap
 
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_interf_c")
 
+    !call print(get_boxarray(res),  'boxarray(res)')
+    !call print(get_boxarray(crse), 'boxarray(crse)')
+    !call print(get_boxarray(flux), 'boxarray(flux)')
+
     pmask = layout_get_pmask(res%la)
 
-    dm = res%dim
-
-    ! This loop only operates on crse data on the same crse layout -- should be
-    !   easy to parallelize
     do j = 1, crse%nboxes
-       if ( remote(crse, j) ) cycle
+       if ( remote(crse,j) ) cycle
 
-       cbox = get_ibox(crse,j)
-       loc = lwb(cbox) - crse%ng
-
-       rbox = get_ibox(res,j)
-       lor = lwb(rbox) - res%ng
-
-       sbox = get_ibox(ss,j)
-       los = lwb(sbox) - ss%ng
-
-       cp => dataptr(crse, j, cr)
-       rp => dataptr(res, j, cr)
-       sp => dataptr(ss, j)
+       cbox =  get_ibox(crse,j)
+       loc  =  lwb(cbox) - crse%ng
+       lor  =  lwb(get_ibox(res,j)) - res%ng
+       los  =  lwb(get_ibox(ss,j)) - ss%ng
+       sp   => dataptr(ss, j)
+       rp   => dataptr(res, j, cr)
+       cp   => dataptr(crse, j, cr)
 
        do i = 1, flux%nboxes
 
-          if ( remote(flux, i) ) cycle
-
           fbox = get_ibox(flux,i)
 
-          if (pmask(dim)) then
-             isect = box_intersection(crse_domain,fbox)
-             if ( empty(isect) ) then
-                if (face .eq. -1) then
-                   fbox = box_shift_d(fbox,extent(crse_domain,dim),dim)
-                else
-                   fbox = box_shift_d(fbox,-extent(crse_domain,dim),dim)
-                end if
+          if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
+             if ( face .eq. -1 ) then
+                fbox = shift(fbox,  extent(crse_domain,dim), dim)
+             else
+                fbox = shift(fbox, -extent(crse_domain,dim), dim)
              end if
           end if
 
-          lof = lwb(fbox)
+          isect = intersection(cbox,fbox)
 
-          isect = box_intersection(cbox,fbox)
           if ( empty(isect) ) cycle
+
           lo = lwb(isect)
           hi = upb(isect)
-          fp => dataptr(flux, i, cf)
-          select case (dm)
+
+          select case (res%dim)
           case (1)
              call ml_interface_1d_crse( &
                   rp(:,1,1,1), lor, &
@@ -121,69 +110,118 @@ contains
           end select
        end do
     end do
+    !
+    ! Build a multifab based on the intersections of flux with crse in such a way that each 
+    ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
+    !
+    call build(procmap)
+    call build(indxmap)
+    call build(shftmap)
 
-    ! This loop only uses flux registers from the fine layout to modify crse data on the crse layout 
-    !   -- harder to parallelize
     do j = 1, crse%nboxes
-       if ( remote(crse, j) ) cycle
-
-       cbox = get_ibox(crse,j)
-       loc = lwb(cbox) - crse%ng
-
-       rbox = get_ibox(res,j)
-       lor = lwb(rbox) - res%ng
-
-       sbox = get_ibox(ss,j)
-       los = lwb(sbox) - ss%ng
-
-       cp => dataptr(crse, j, cr)
-       rp => dataptr(res, j, cr)
-       sp => dataptr(ss, j)
+       cbox = get_ibox(crse,   j)
+       proc = get_proc(crse%la,j)
 
        do i = 1, flux%nboxes
-
-          if ( remote(flux, i) ) cycle
-
+          shft = 0
           fbox = get_ibox(flux,i)
 
-          if (pmask(dim)) then
-             isect = box_intersection(crse_domain,fbox)
-             if ( empty(isect) ) then
-                if (face .eq. -1) then
-                   fbox = box_shift_d(fbox,extent(crse_domain,dim),dim)
-                else
-                   fbox = box_shift_d(fbox,-extent(crse_domain,dim),dim)
-                end if
+          if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
+             shft = 1
+             if ( face .eq. -1 ) then
+                fbox = shift(fbox,  extent(crse_domain,dim), dim)
+             else
+                fbox = shift(fbox, -extent(crse_domain,dim), dim)
              end if
           end if
 
-          lof = lwb(fbox)
+          isect = intersection(cbox,fbox)
 
-          isect = box_intersection(cbox,fbox)
           if ( empty(isect) ) cycle
-          lo = lwb(isect)
-          hi = upb(isect)
-          fp => dataptr(flux, i, cf)
-          select case (dm)
-          case (1)
-             call ml_interface_1d_fine( &
-                  rp(:,1,1,1), lor, &
-                  fp(:,1,1,1), lof, &
-                  lo, hi, efactor)
-          case (2)
-             call ml_interface_2d_fine( &
-                  rp(:,:,1,1), lor, &
-                  fp(:,:,1,1), lof, &
-                  lo, hi, efactor)
-          case (3)
-             call ml_interface_3d_fine( &
-                  rp(:,:,:,1), lor, &
-                  fp(:,:,:,1), lof, &
-                  lo, hi, efactor)
-          end select
+          !
+          ! We need to remember the original flux box & whether or not it need to be shifted.
+          !
+          if ( shft .eq. 1 ) then
+             if ( face .eq. -1 ) then
+                isect = shift(isect, -extent(crse_domain,dim), dim)
+             else
+                isect = shift(isect,  extent(crse_domain,dim), dim)
+             end if
+          end if
+          call push_back(bl, isect)
+          call push_back(procmap, proc)
+          call push_back(indxmap, j)
+          call push_back(shftmap, shft)
        end do
     end do
 
+    !print*, 'procmap: ', dataptr(procmap, 1, size(procmap))
+    !print*, 'indxmap: ', dataptr(indxmap, 1, size(indxmap))
+    !print*, 'shftmap: ', dataptr(shftmap, 1, size(shftmap))
+
+    if ( empty(procmap) ) then
+       !
+       ! Nothing else to do ...
+       !
+       call destroy(bpt)
+       call destroy(shftmap)
+       call destroy(indxmap)
+       call destroy(procmap)
+       return
+    end if
+
+    call build(ba, bl, sort = .false.)
+    call destroy(bl)
+    call build(la, ba, pmask = pmask, explicit_mapping = dataptr(procmap, 1, size(procmap)))
+    call destroy(ba)
+    call build(tflux, la, nc = ncomp(flux), ng = 0)
+    call copy(tflux, 1, flux, cf)  ! parallel copy
+
+    do i = 1, nboxes(tflux)
+
+       if ( remote(tflux,i) ) cycle
+
+       j    =  at(indxmap,i)
+       cbox =  get_ibox(crse,j)
+       loc  =  lwb(cbox) - crse%ng
+       lor  =  lwb(get_ibox(res,j)) - res%ng
+       los  =  lwb(get_ibox(ss,j)) - ss%ng
+       cp   => dataptr(crse, j, cr)
+       rp   => dataptr(res, j, cr)
+       sp   => dataptr(ss, j)
+
+       fbox = get_ibox(tflux,i)
+
+       if ( at(shftmap,i) .eq. 1 ) then
+          if (face .eq. -1) then
+             fbox = shift(fbox,  extent(crse_domain,dim), dim)
+          else
+             fbox = shift(fbox, -extent(crse_domain,dim), dim)
+          end if
+       end if
+
+       call bl_assert(intersects(cbox,fbox), 'ml_interface_c(): how did this happen?')
+
+       lo  =  lwb(fbox)
+       hi  =  upb(fbox)
+       fp  => dataptr(tflux, i, 1)
+
+       select case (res%dim)
+       case (1)
+          call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, hi, efactor)
+       case (2)
+          call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
+       case (3)
+          call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
+       end select
+
+    end do
+
+    call destroy(shftmap)
+    call destroy(indxmap)
+    call destroy(procmap)
+    call destroy(tflux)
+    call destroy(la)
     call destroy(bpt)
 
   end subroutine ml_interface_c
