@@ -445,6 +445,7 @@ contains
     ! Add: soln += full_soln
     do n = 1,nlevs
        call saxpy(full_soln(n),ONE,soln(n))
+       call multifab_fill_boundary(full_soln(n))
     end do
 
     do n = 2,nlevs-1
