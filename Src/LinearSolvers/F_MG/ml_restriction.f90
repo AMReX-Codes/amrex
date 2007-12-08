@@ -54,6 +54,8 @@ contains
 
     call destroy(cfine)
 
+    call multifab_fill_boundary(crse)
+
   end subroutine ml_cc_restriction_c
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
