@@ -33,7 +33,7 @@ contains
 
     do i = 1, fine%nboxes
        if ( remote(fine, i) ) cycle
-       lof = lwb(get_ibox(fine, i)) - fine%ng 
+       lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
        do n = 1, lnc
@@ -304,6 +304,8 @@ contains
     call build(bpt, "periodic_add_copy")
 
     dm     = dst%dim
+    lo     = 1
+    hi     = 1
     nodal  = .true.
     domain = box_nodalize(dst%la%lap%pd,nodal)
 
@@ -314,12 +316,13 @@ contains
        if ( dm < 3  .and. kdir /= 0                                    ) cycle
        if ( dm == 3 .and. (.not. dst%la%lap%pmask(dm)) .and. kdir /= 0 ) cycle
 
-       if ( dm == 3 ) shift_vector(3) = kdir * (box_extent_d(domain,dm) - 1)
+       if ( dm == 3 ) shift_vector(3) = kdir * (extent(domain,dm) - 1)
 
        do jdir = -1,1
 
           if ( .not. dst%la%lap%pmask(2) .and. jdir /= 0 ) cycle
-          shift_vector(2) = jdir * (box_extent_d(domain,2) - 1)
+
+          shift_vector(2) = jdir * (extent(domain,2) - 1)
 
           do idir = -1,1
 
@@ -327,7 +330,7 @@ contains
              if ( dm == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
              if ( dm == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
 
-             shift_vector(1) = idir * (box_extent_d(domain,1) - 1)
+             shift_vector(1) = idir * (extent(domain,1) - 1)
 
              domain_edge_src = intersection(domain,shift(domain, shift_vector))
              domain_edge_dst = intersection(domain,shift(domain,-shift_vector))
@@ -369,7 +372,6 @@ contains
                       !
                       ! We own dst.  Got to get src from processor owning it.
                       !
-                      lo = 1; hi = 1
                       lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
                       proc = get_proc(src%la,i)
                       allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:dst%nc))

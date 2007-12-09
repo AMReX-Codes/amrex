@@ -146,8 +146,7 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   call build(mgts%pd(flev), pd_lo(1:dm), pd_hi(1:dm))
   if (flev > 1) then
     do i = 1, dm
-      mgts%mla%mba%rr(flev-1,i) = &
-         box_extent_d(mgts%mla%mba%pd(flev),i) / box_extent_d(mgts%mla%mba%pd(flev-1),i)
+      mgts%mla%mba%rr(flev-1,i) = extent(mgts%mla%mba%pd(flev),i) / extent(mgts%mla%mba%pd(flev-1),i)
     end do
   end if
   do i = 1, nb 

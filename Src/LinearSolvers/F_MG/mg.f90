@@ -611,22 +611,23 @@ contains
 
     do i = 1, mgt%nboxes
        if ( multifab_remote(crse, i) ) cycle
-       cp => dataptr(crse, i)
-       fp => dataptr(fine, i)
-       mp_fine => dataptr(mm_fine, i)
-       mp_crse => dataptr(mm_crse, i)
 
-       loc(:) = lwb(get_ibox(crse,i)) - crse%ng
-       lof(:) = lwb(get_ibox(fine,i)) - fine%ng
-       lom_fine(:) = lwb(get_ibox(mm_fine,i)) - mm_fine%ng
-       lom_crse(:) = lwb(get_ibox(mm_crse,i)) - mm_crse%ng
-       lo(:)  = lwb(get_ibox(crse,i))
-       hi(:)  = upb(get_ibox(crse,i))
+       cp       => dataptr(crse, i)
+       fp       => dataptr(fine, i)
+       mp_fine  => dataptr(mm_fine, i)
+       mp_crse  => dataptr(mm_crse, i)
+
+       loc      = lwb(get_pbox(crse,i))
+       lof      = lwb(get_pbox(fine,i))
+       lom_fine = lwb(get_pbox(mm_fine,i))
+       lom_crse = lwb(get_pbox(mm_crse,i))
+       lo       = lwb(get_ibox(crse,i))
+       hi       = upb(get_ibox(crse,i))
 
        do n = 1, mgt%nc
           select case ( mgt%dim)
           case (1)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
              else
                call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
@@ -634,7 +635,7 @@ contains
                     mp_crse(:,1,1,1), lom_crse, lo, hi, ir, .false., mg_restriction_mode)
              end if  
           case (2)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
              else
                call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
@@ -642,7 +643,7 @@ contains
                     mp_crse(:,:,1,1), lom_crse, lo, hi, ir, .false., mg_restriction_mode)
              end if
           case (3)
-             if ( .not.nodal_flag ) then
+             if ( .not. nodal_flag ) then
                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
              else
                call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
@@ -711,13 +712,8 @@ contains
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                            mp(:,:,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                    case (3)
-                      ! allocate(tsp(size(sp,4),size(sp,1),size(sp,2),size(sp,3)))
-                      ! do nnn = 1, size(sp,4); do kkk = 1, size(sp,3); do jjj = 1, size(sp,2); do iii = 1, size(sp,1)
-                      !    tsp(nnn,iii,jjj,kkk) = sp(iii+lo(1)-1,jjj+lo(2)-1,kkk+lo(3)-1,nnn)
-                      ! end do; end do; end do; end do;
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
                            mp(:,:,:,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
-                      ! deallocate(tsp)
                    end select
                 end do
              end do

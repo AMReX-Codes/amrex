@@ -260,11 +260,11 @@ contains
              bx1 = shift(bx,ib,1)
              if (dm > 1) bx1 = shift(bx1,jb,2)
              if (dm > 2) bx1 = shift(bx1,kb,3)
-             bx1 = box_intersection(bx1, pd_periodic)
+             bx1 = intersection(bx1, pd_periodic)
              if ( empty(bx1) ) cycle
              call boxarray_boxarray_diff(ba, bx1, bxa_periodic)
              do ii = 1, ba%nboxes
-                bx1 = box_intersection(box_nodalize(ba%bxs(ii),nodal), nbx)
+                bx1 = intersection(box_nodalize(ba%bxs(ii),nodal), nbx)
                 if ( empty(bx1) ) cycle
                 mp => dataptr(mask%fbs(idx), bx1)
                 mp = ibset(mp, BC_BIT(BC_DIR,1,0))
