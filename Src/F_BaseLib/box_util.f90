@@ -113,7 +113,7 @@ contains
        mba%pd(i) = bx1
        if (i > 1) then
           do n = 1, mba%dim
-             mba%rr(i-1,n) = box_extent_d(mba%pd(i),n) / box_extent_d(mba%pd(i-1),n)
+             mba%rr(i-1,n) = extent(mba%pd(i),n) / extent(mba%pd(i-1),n)
           end do
        end if
        read(unit=un, fmt=*) n
