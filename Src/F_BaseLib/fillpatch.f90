@@ -72,7 +72,7 @@ contains
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
        !
-       bx = box_intersection(grow(get_ibox(fine,i),ng),fdomain)
+       bx = intersection(grow(get_ibox(fine,i),ng),fdomain)
        if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
        call push_back(bl, bx)
     end do
@@ -150,7 +150,7 @@ contains
        !
        bln => begin(extra)
        do while (associated(bln))
-          call set(bln, box_intersection(grow(value(bln),ng),fdomain))
+          call set(bln, intersection(grow(value(bln),ng),fdomain))
           bln => next(bln)
        end do
     end if
@@ -202,7 +202,7 @@ contains
           fine_box = get_ibox(fine,   i)
        end if
 
-       fbx = box_intersection(grow(fine_box,ng),fdomain)
+       fbx = intersection(grow(fine_box,ng),fdomain)
 
        cslope_lo(1:dm) = lwb(grow(cbx, -1))
        cslope_hi(1:dm) = upb(grow(cbx, -1))
@@ -234,7 +234,6 @@ contains
 
        lo_c(1:dm) = lwb(cbx)
        hi_c(1:dm) = upb(cbx)
-
        lo_f(1:dm) = lwb(fbx)
        hi_f(1:dm) = upb(fbx)
 
