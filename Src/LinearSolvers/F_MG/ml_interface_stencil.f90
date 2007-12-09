@@ -62,9 +62,9 @@ contains
        if ( remote(crse,j) ) cycle
 
        cbox =  get_ibox(crse,j)
-       loc  =  lwb(cbox) - crse%ng
-       lor  =  lwb(get_ibox(res,j)) - res%ng
-       los  =  lwb(get_ibox(ss,j)) - ss%ng
+       loc  =  lwb(get_pbox(crse,j))
+       lor  =  lwb(get_pbox(res,j))
+       los  =  lwb(get_pbox(ss,j))
        sp   => dataptr(ss, j)
        rp   => dataptr(res, j, cr)
        cp   => dataptr(crse, j, cr)
@@ -90,23 +90,11 @@ contains
 
           select case (res%dim)
           case (1)
-             call ml_interface_1d_crse( &
-                  rp(:,1,1,1), lor, &
-                  cp(:,1,1,1), loc, &
-                  sp(:,1,1,:), los, &
-                  lo, hi, face, dim, efactor)
+             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, hi, face, dim, efactor)
           case (2)
-             call ml_interface_2d_crse( &
-                  rp(:,:,1,1), lor, &
-                  cp(:,:,1,1), loc, &
-                  sp(:,:,1,:), los, &
-                  lo, hi, face, dim, efactor)
+             call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,1,:), los, lo, hi, face, dim, efactor)
           case (3)
-             call ml_interface_3d_crse( &
-                  rp(:,:,:,1), lor, &
-                  cp(:,:,:,1), loc, &
-                  sp(:,:,:,:), los, &
-                  lo, hi, face, dim, efactor)
+             call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, sp(:,:,:,:), los, lo, hi, face, dim, efactor)
           end select
        end do
     end do
@@ -139,7 +127,7 @@ contains
 
           if ( empty(isect) ) cycle
           !
-          ! We need to remember the original flux box & whether or not it need to be shifted.
+          ! We need to remember the original flux box & whether or not it needs to be shifted.
           !
           if ( shft .eq. 1 ) then
              if ( face .eq. -1 ) then
@@ -183,9 +171,9 @@ contains
 
        j    =  at(indxmap,i)
        cbox =  get_ibox(crse,j)
-       loc  =  lwb(cbox) - crse%ng
-       lor  =  lwb(get_ibox(res,j)) - res%ng
-       los  =  lwb(get_ibox(ss,j)) - ss%ng
+       loc  =  lwb(get_pbox(crse,j))
+       lor  =  lwb(get_pbox(res,j))
+       los  =  lwb(get_pbox(ss,j))
        cp   => dataptr(crse, j, cr)
        rp   => dataptr(res, j, cr)
        sp   => dataptr(ss, j)
