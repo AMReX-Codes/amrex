@@ -188,13 +188,12 @@ contains
       type(     box) :: pdc
       integer :: i,dm,n_crse,ng
       integer :: mglev_fine, mglev_crse
-      logical, allocatable :: nodal(:)
+      logical :: nodal(u(n_fine)%dim)
 
       dm = u(n_fine)%dim
       n_crse = n_fine-1
 
       ng = u(nlevs)%ng
-      allocate(nodal(dm))
       nodal = .true.
 
       la_crse = u(n_crse)%la
@@ -247,7 +246,6 @@ contains
       end do
 
     call multifab_destroy(temp_rhs)
-    deallocate(nodal)
 
     end subroutine crse_fine_divu
 
@@ -340,6 +338,9 @@ contains
 
 !   ********************************************************************************************* !
 
+    !
+    ! TODO - implement more efficient parallel version?
+    !
     subroutine ml_crse_divu_contrib(rh, flux, u, mm, dx, crse_domain, ir, side)
      type(multifab), intent(inout) :: rh
      type(multifab), intent(inout) :: flux
@@ -350,89 +351,111 @@ contains
      integer        ,intent(in   ) :: ir(:)
      integer        ,intent(in   ) :: side
 
-     type(box) :: rbox, fbox, ubox, mbox
-     integer :: lo (rh%dim), hi (rh%dim)
-     integer :: lou(rh%dim)
-     integer :: lof(rh%dim), hif(rh%dim)
-     integer :: lor(rh%dim)
-     integer :: lom(rh%dim)
-     integer :: lo_dom(rh%dim), hi_dom(rh%dim)
-     integer :: dir
-     integer :: i, j
-     logical :: nodal(rh%dim)
+     type(box) :: fbox, ubox, mbox, isect
+     integer   :: lo (rh%dim), hi (rh%dim), lou(rh%dim), dims(4)
+     integer   :: lof(rh%dim), hif(rh%dim), lor(rh%dim), lom(rh%dim)
+     integer   :: lodom(rh%dim), hidom(rh%dim), dir, i, j, proc
+     logical   :: nodal(rh%dim)
 
-     integer :: dm
-     real(kind=dp_t), pointer :: rp(:,:,:,:)
-     real(kind=dp_t), pointer :: fp(:,:,:,:)
-     real(kind=dp_t), pointer :: up(:,:,:,:)
+     integer, parameter :: tag = 1371
+
+     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), up(:,:,:,:)
      integer,         pointer :: mp(:,:,:,:)
 
-     if ( parallel_nprocs() > 1 ) call bl_error('ml_crse_divu_contrib(): not parallelized yet')
+    type(bl_prof_timer), save :: bpt
 
-     nodal = .true.
+    call build(bpt, "ml_crse_divu_contrib")
 
-     dm  = rh%dim
-     dir = iabs(side)
-
-     lo_dom = lwb(crse_domain)
-     hi_dom = upb(crse_domain)+1
+     dims   = 1;
+     nodal  = .true.
+     dir    = iabs(side)
+     lodom  = lwb(crse_domain)
+     hidom  = upb(crse_domain)+1
 
      do j = 1, u%nboxes
-
-       ubox = get_ibox(u,j)
-       lou = lwb(ubox) - u%ng
-       ubox = box_nodalize(ubox,nodal)
-
-       rbox = get_ibox(rh,j)
-       lor = lwb(rbox) - rh%ng
+       ubox = box_nodalize(get_ibox(u,j),nodal)
+       lou  = lwb(get_pbox(u,j))
+       lor  = lwb(get_pbox(rh,j))
 
        do i = 1, flux%nboxes
+          if ( remote(flux,i) .and. remote(u,j) ) cycle
+          
+          fbox  = get_ibox(flux,i)
+          isect = intersection(ubox,fbox)
+          lof   = lwb(fbox)
+          hif   = upb(fbox)
 
-         fbox = get_ibox(flux,i)
-         lof  = lwb(fbox)
-         hif  = upb(fbox)
+          if ( lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir) .or. empty(isect) ) cycle
 
-         mbox = get_ibox(mm,i)
-         lom  = lwb(mbox) - mm%ng
+          lo = lwb(isect)
+          hi = upb(isect)
 
-         if ((.not. (lof(dir) == lo_dom(dir) .or. lof(dir) == hi_dom(dir))) .and. & 
-             box_intersects(ubox,fbox)) then
-           lo(:) = lwb(box_intersection(ubox,fbox))
-           hi(:) = upb(box_intersection(ubox,fbox))
-
-           fp => dataptr(flux,i)
-           mp => dataptr(mm  ,i)
-
-           up => dataptr(u  ,j)
-           rp => dataptr(rh ,j)
-
-           select case (dm)
-           case (2)
-               call ml_interface_2d_divu(rp(:,:,1,1), lor, &
-                                         fp(:,:,1,1), lof, hif, &
-                                         up(:,:,1,:), lou, &
-                                         mp(:,:,1,1), lom, &
-                                         lo, hi, ir, side, dx)
-           case (3)
-               call ml_interface_3d_divu(rp(:,:,:,1), lor, &
-                                         fp(:,:,:,1), lof, hif, &
-                                         up(:,:,:,:), lou, &
-                                         mp(:,:,:,1), lom, &
-                                         lo, hi, ir, side, dx)
-           end select
-         end if
+          if ( local(flux,i) .and. local(u,j) ) then
+             lom  =  lwb(get_pbox(mm,i))
+             fp   => dataptr(flux,i)
+             mp   => dataptr(mm  ,i)
+             up   => dataptr(u   ,j)
+             rp   => dataptr(rh  ,j)
+             select case (rh%dim)
+             case (2)
+                call ml_interface_2d_divu(rp(:,:,1,1), lor, &
+                     fp(:,:,1,1), lof, hif, lof, hif, &
+                     up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx)
+             case (3)
+                call ml_interface_3d_divu(rp(:,:,:,1), lor, &
+                     fp(:,:,:,1), lof, hif, lof, hif,  &
+                     up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx)
+             end select
+          else if ( local(flux,i) ) then
+             !
+             ! Must send flux & mm.
+             !
+             mbox =  intersection(refine(isect,ir), get_pbox(mm,i))
+             fp   => dataptr(flux, i, isect, 1, ncomp(flux))
+             mp   => dataptr(mm,   i, mbox,  1, ncomp(mm))
+             proc =  get_proc(u%la, j)
+             call parallel_send(fp, proc, tag)
+             call parallel_send(mp, proc, tag)
+          else if ( local(u,j) ) then
+             !
+             ! Must receive flux & mm.
+             !
+             proc = get_proc(flux%la, i)
+             mbox = intersection(refine(isect,ir), get_pbox(mm,i))
+             lom  = lwb(mbox)
+             dims(1:rh%dim) = extent(isect)
+             allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
+             dims(1:rh%dim) = extent(mbox)
+             allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
+             call parallel_recv(fp, proc, tag)
+             call parallel_recv(mp, proc, tag)
+             up => dataptr(u  ,j)
+             rp => dataptr(rh ,j)
+             select case (rh%dim)
+             case (2)
+                call ml_interface_2d_divu(rp(:,:,1,1), lor, &
+                     fp(:,:,1,1), lo, hi, lof, hif, &
+                     up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx)
+             case (3)
+                call ml_interface_3d_divu(rp(:,:,:,1), lor, &
+                     fp(:,:,:,1), lo, hi, lof, hif, &
+                     up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx)
+             end select
+             deallocate(fp,mp)
+          end if
        end do
-     end do
+    end do
+    call destroy(bpt)
    end subroutine ml_crse_divu_contrib
 
 !   ********************************************************************************************* !
 
-    subroutine ml_interface_2d_divu(rh, lor, fine_flux, lof, hif, uc, loc, &
+    subroutine ml_interface_2d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
                                     mm, lom, lo, hi, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
-    integer, intent(in) :: lof(:), hif(:)
+    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
@@ -460,13 +483,13 @@ contains
        do j = lo(2),hi(2)
 
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
-             if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+             if (j == loflx(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                 crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-             else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+             else if (j == loflx(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                 crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-             else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+             else if (j == hiflx(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                 crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-             else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+             else if (j == hiflx(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                 crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
              else
                 crse_flux = (HALF*(uc(i,j,1) + uc(i,j-1,1))/dx(1) &
@@ -484,13 +507,13 @@ contains
        do j = lo(2),hi(2)
 
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
-             if (j == lof(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+             if (j == loflx(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                 crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-             else if (j == lof(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+             else if (j == loflx(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                 crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-             else if (j == hif(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+             else if (j == hiflx(2) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                 crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
-             else if (j == hif(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+             else if (j == hiflx(2) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                 crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
              else
                 crse_flux = (HALF*(-uc(i-1,j,1)-uc(i-1,j-1,1))/dx(1)  &
@@ -509,13 +532,13 @@ contains
 
        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
 
-          if (i == lof(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+          if (i == loflx(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-          else if (i == lof(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+          else if (i == loflx(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux =      (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-          else if (i == hif(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+          else if (i == hiflx(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
              crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-          else if (i == hif(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+          else if (i == hiflx(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
              crse_flux =      (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
           else
              crse_flux = (HALF*(uc(i,j,1)-uc(i-1,j,1))/dx(1)  &
@@ -534,13 +557,13 @@ contains
 
        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
 
-          if (i == lof(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+          if (i == loflx(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-          else if (i == lof(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+          else if (i == loflx(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
              crse_flux =      (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-          else if (i == hif(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+          else if (i == hiflx(1) .and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
              crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
-          else if (i == hif(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+          else if (i == hiflx(1) .and. bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
              crse_flux =      (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
           else
              crse_flux = (HALF*( uc(i,j-1,1)-uc(i-1,j-1,1))/dx(1) &
@@ -559,12 +582,12 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine ml_interface_3d_divu(rh, lor, fine_flux, lof, hif, uc, loc, &
+    subroutine ml_interface_3d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
                                     mm, lom, lo, hi, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
-    integer, intent(in) :: lof(:), hif(:)
+    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):,lor(3):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
@@ -619,14 +642,14 @@ contains
                    - (uc(i,j-1,k-1,2) )/dx(2) &
                    - (uc(i,j-1,k-1,3) )/dx(3)
 
-          lo_j_not = ( (j == lof(2)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1) ) 
-          hi_j_not = ( (j == hif(2)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1) ) 
-          lo_j_neu = ( (j == lof(2)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1) ) 
-          hi_j_neu = ( (j == hif(2)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1) ) 
-          lo_k_not = ( (k == lof(3)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1) ) 
-          hi_k_not = ( (k == hif(3)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1) ) 
-          lo_k_neu = ( (k == lof(3)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1) ) 
-          hi_k_neu = ( (k == hif(3)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1) ) 
+          lo_j_not = ( (j == loflx(2)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1) ) 
+          hi_j_not = ( (j == hiflx(2)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1) ) 
+          lo_j_neu = ( (j == loflx(2)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1) ) 
+          hi_j_neu = ( (j == hiflx(2)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1) ) 
+          lo_k_not = ( (k == loflx(3)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1) ) 
+          hi_k_not = ( (k == hiflx(3)).and. .not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1) ) 
+          lo_k_neu = ( (k == loflx(3)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1) ) 
+          hi_k_neu = ( (k == hiflx(3)).and.       bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1) ) 
 
           if (lo_k_not) then
              if (lo_j_not) then
@@ -712,14 +735,14 @@ contains
 
         if (bc_dirichlet(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,0)) then
 
-          lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1) ) 
-          hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1) ) 
-          lo_i_neu = ( (i == lof(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1) ) 
-          hi_i_neu = ( (i == hif(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1) ) 
-          lo_k_not = ( (k == lof(3)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1) ) 
-          hi_k_not = ( (k == hif(3)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1) ) 
-          lo_k_neu = ( (k == lof(3)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1) ) 
-          hi_k_neu = ( (k == hif(3)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1) ) 
+          lo_i_not = ( (i == loflx(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1) ) 
+          hi_i_not = ( (i == hiflx(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1) ) 
+          lo_i_neu = ( (i == loflx(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1) ) 
+          hi_i_neu = ( (i == hiflx(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1) ) 
+          lo_k_not = ( (k == loflx(3)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1) ) 
+          hi_k_not = ( (k == hiflx(3)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1) ) 
+          lo_k_neu = ( (k == loflx(3)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1) ) 
+          hi_k_neu = ( (k == hiflx(3)).and.       bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1) ) 
 
           cell_pp =  (uc(i  ,j,k  ,1) )/dx(1) &
                     +(uc(i  ,j,k  ,2) )/dx(2) * ifac &
@@ -818,14 +841,14 @@ contains
 
         if (bc_dirichlet(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,0)) then
 
-          lo_i_not = ( (i == lof(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1) ) 
-          hi_i_not = ( (i == hif(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1) ) 
-          lo_i_neu = ( (i == lof(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1) ) 
-          hi_i_neu = ( (i == hif(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1) ) 
-          lo_j_not = ( (j == lof(2)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1) ) 
-          hi_j_not = ( (j == hif(2)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1) ) 
-          lo_j_neu = ( (j == lof(2)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1) ) 
-          hi_j_neu = ( (j == hif(2)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1) ) 
+          lo_i_not = ( (i == loflx(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1) ) 
+          hi_i_not = ( (i == hiflx(1)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1) ) 
+          lo_i_neu = ( (i == loflx(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1) ) 
+          hi_i_neu = ( (i == hiflx(1)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1) ) 
+          lo_j_not = ( (j == loflx(2)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1) ) 
+          hi_j_not = ( (j == hiflx(2)).and. .not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1) ) 
+          lo_j_neu = ( (j == loflx(2)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1) ) 
+          hi_j_neu = ( (j == hiflx(2)).and.       bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1) ) 
 
           cell_pp =  (uc(i  ,j  ,k,1) )/dx(1) &
                     +(uc(i  ,j  ,k,2) )/dx(2) &
