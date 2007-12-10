@@ -138,6 +138,7 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_build")
+
     ! Paste in optional arguments
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
@@ -306,7 +307,7 @@ contains
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
     if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
 
 !   if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
 !     call mg_tower_print(mgt)
@@ -463,6 +464,7 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_bottom_solve")
+
     stat = 0
     select case ( mgt%bottom_solver )
     case (0)
@@ -508,7 +510,9 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     end if
-    call bl_prof_timer_destroy(bpt)
+
+    call destroy(bpt)
+
   end subroutine mg_tower_bottom_solve
 
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
@@ -521,7 +525,7 @@ contains
     call build(bpt, "mg_defect")
     call itsol_stencil_apply(ss, dd, uu, mm, uniform_dh)
     call saxpy(dd, ff, -1.0_dp_t, dd)
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
   end subroutine mg_defect
 
   subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type, uniform_dh)
@@ -572,7 +576,9 @@ contains
           end select
        end do
     end do
-    call bl_prof_timer_destroy(bpt)
+
+    call destroy(bpt)
+
   end subroutine grid_res
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
@@ -654,7 +660,8 @@ contains
        end do
     end do
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
+
   end subroutine mg_tower_restriction
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
@@ -672,7 +679,6 @@ contains
     integer :: i, k, n, nn
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
-    ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
     logical :: lcross
 
     call build(bpt, "mgt_smoother")
@@ -695,7 +701,7 @@ contains
              call multifab_fill_boundary(uu, cross = lcross)
              !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
              do i = 1, mgt%nboxes
-                if ( multifab_remote(ff, i) ) cycle
+                if ( remote(ff, i) ) cycle
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -722,7 +728,7 @@ contains
        case ( MG_SMOOTHER_JACOBI )
           call multifab_fill_boundary(uu, cross = lcross)
           do i = 1, mgt%nboxes
-             if ( multifab_remote(ff, i) ) cycle
+             if ( remote(ff, i) ) cycle
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
@@ -745,7 +751,7 @@ contains
        case ( MG_SMOOTHER_GS_LEX )
           call multifab_fill_boundary(uu, cross = lcross)
           do i = 1, mgt%nboxes
-             if ( multifab_remote(ff, i) ) cycle
+             if ( remote(ff, i) ) cycle
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
@@ -774,7 +780,7 @@ contains
        do k = 0, 1
         call multifab_fill_boundary(uu, cross = lcross)
         do i = 1, mgt%nboxes
-          if ( multifab_remote(ff, i) ) cycle
+          if ( remote(ff, i) ) cycle
           up => dataptr(uu, i)
           fp => dataptr(ff, i)
           sp => dataptr(ss, i)
@@ -797,7 +803,7 @@ contains
         ! This value of k isn't used
         k = 0
         do i = 1, mgt%nboxes
-          if ( multifab_remote(ff, i) ) cycle
+          if ( remote(ff, i) ) cycle
           up => dataptr(uu, i)
           fp => dataptr(ff, i)
           sp => dataptr(ss, i)
@@ -822,7 +828,8 @@ contains
        call multifab_internal_sync(uu)
     end if
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
+
   end subroutine mg_tower_smoother
 
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
@@ -839,7 +846,6 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, iter
     type(bl_prof_timer), save :: bpt
-    ! real(kind=dp_t), allocatable :: tsp(:,:,:,:)
     logical :: lcross
 
     call build(bpt, "mgt_jacobi_smoother")
@@ -856,14 +862,13 @@ contains
     end if
 
     if ( .not. cell_centered_q(uu) ) then
-       print *,'MG_JACOBI_SMOOTHER ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW '
-       stop 
+       call bl_error('MG_JACOBI_SMOOTHER ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW')
     end if
 
     do iter = 1, mgt%nu1
       call multifab_fill_boundary(uu, cross = lcross)
       do i = 1, mgt%nboxes
-         if ( multifab_remote(ff, i) ) cycle
+         if ( remote(ff, i) ) cycle
          up => dataptr(uu, i)
          fp => dataptr(ff, i)
          sp => dataptr(ss, i)
@@ -884,7 +889,7 @@ contains
       end do
     end do
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
 
   end subroutine mg_jacobi_smoother
 
@@ -908,7 +913,7 @@ contains
 
     if ( .not.nodal_flag ) then
       do i = 1, mgt%nboxes
-         if ( multifab_remote(mgt%ff(lev), i) ) cycle
+         if ( remote(mgt%ff(lev), i) ) cycle
          fp => dataptr(uu,  i, get_box(uu,i))
          cp => dataptr(uu1, i, get_box(uu1,i))
          do n = 1, mgt%nc
@@ -924,7 +929,7 @@ contains
       end do
     else
       do i = 1, mgt%nboxes
-         if ( multifab_remote(mgt%ff(lev), i) ) cycle
+         if ( remote(mgt%ff(lev), i) ) cycle
          nbox  = box_grow_n_f(get_box(uu,i),1,1)
          nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
          fp => dataptr(uu,  i, nbox )
@@ -942,7 +947,8 @@ contains
       end do
     endif
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
+
   end subroutine mg_tower_prolongation
 
   function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
@@ -1128,7 +1134,8 @@ contains
        end if
     end if
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
+
   end subroutine mg_tower_cycle
 
   subroutine mini_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
@@ -1289,7 +1296,7 @@ contains
 
     if ( present(num_iter) ) num_iter = it
 
-    call bl_prof_timer_destroy(bpt)
+    call destroy(bpt)
 
   end subroutine mg_tower_solve
 
