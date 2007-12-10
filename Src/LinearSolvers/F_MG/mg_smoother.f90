@@ -3,10 +3,9 @@ module mg_smoother_module
   use stencil_module
   use stencil_nodal_module
   use bl_constants_module
+  use bl_prof_module
 
   implicit none
-
-! real(dp_t), private, parameter :: ZERO = 0.0_dp_t
 
   private dgtsl
 
@@ -74,9 +73,7 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     logical, intent(in), optional :: skwd
-    integer :: j, i
-    integer :: hi(size(lo))
-    integer :: ioff
+    integer :: j, i, hi(size(lo)), ioff
     integer, parameter ::  XBC = 5, YBC = 6
     real (kind = dp_t) :: dd
     logical :: lskwd
@@ -84,6 +81,10 @@ contains
     real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
 
 !   real(dp_t) :: uu_temp(0:256,0:256)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_2d")
 
     hi = ubound(uu)-ng
 
@@ -112,6 +113,7 @@ contains
              uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end if
        end if
+       call destroy(bpt)
        return
     end if
     !! Assumption; bc_skewed is never true if hi==lo
@@ -189,6 +191,8 @@ contains
 
     end if
 
+    call destroy(bpt)
+
   end subroutine gs_rb_smoother_2d
 
   subroutine gs_rb_smoother_3d_transpose(omega, ss, uu, ff, mm, lo, ng, n, skwd)
@@ -202,14 +206,17 @@ contains
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in), optional :: skwd
 
-    integer :: i, j, k, ioff
-    integer :: hi(size(lo))
+    integer :: i, j, k, ioff, hi(size(lo))
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
     logical :: lskwd
     real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
     real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
     real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: dd
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_3d_transpose")
 
     hi = ubound(uu)-ng
 
@@ -248,6 +255,7 @@ contains
              uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
           end if
        end if
+       call destroy(bpt)
        return
     end if
 
@@ -339,6 +347,8 @@ contains
 
     end if
 
+    call destroy(bpt)
+
   end subroutine gs_rb_smoother_3d_transpose
 
   subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
@@ -361,6 +371,10 @@ contains
     real(dp_t) :: dd
 
 !   real(dp_t) :: uu_temp(0:256,0:256,0:256)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_3d")
 
     hi = ubound(uu)-ng
 
@@ -399,6 +413,7 @@ contains
              uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
           end if
        end if
+       call destroy(bpt)
        return
     end if
 
@@ -510,6 +525,8 @@ contains
 
     end if
 
+    call destroy(bpt)
+
   end subroutine gs_rb_smoother_3d
 
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
@@ -562,6 +579,10 @@ contains
     real (kind = dp_t) :: dd
 
 !   real (kind = dp_t) :: uu_temp(0:256,0:256)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "nodal_smoother_2d")
 
     hi = ubound(uu)-ng
     dd = ZERO
@@ -648,6 +669,8 @@ contains
 
     end if
 
+    call destroy(bpt)
+
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, red_black)
@@ -661,13 +684,15 @@ contains
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
 
-    integer :: i, j, k, ipar, ipar0
-    integer :: istart,jstart,kstart
-    integer :: hi(size(lo))
+    integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo))
     logical :: offset
     real (kind = dp_t) :: dd
 
 !   real (kind = dp_t) :: uu_temp(0:256,0:256,0:256)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "nodal_smoother_3d")
 
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
@@ -814,11 +839,11 @@ contains
       end do
 
     else
-
-      print *,'BAD SS IN NODAL_SMOOTHER ',size(ss,dim=4)
-      stop
-
+      call bl_error('BAD SS IN NODAL_SMOOTHER ',size(ss,dim=4))
     end if
+
+    call destroy(bpt)
+
   end subroutine nodal_smoother_3d
 
   subroutine gs_lex_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
@@ -853,6 +878,10 @@ contains
     real (kind = dp_t) :: dd
     logical :: lskwd
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_lex_smoother_2d")
+
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     !$OMP PARALLEL DO PRIVATE(j,i,dd)
@@ -868,6 +897,7 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+    call destroy(bpt)
   end subroutine gs_lex_smoother_2d
 
   subroutine gs_lex_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
@@ -881,6 +911,10 @@ contains
     integer :: i, j, k
     real (kind = dp_t) :: dd
     logical :: lskwd
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_lex_smoother_3d")
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
@@ -901,6 +935,8 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    call destroy(bpt)
 
   end subroutine gs_lex_smoother_3d
 
@@ -937,6 +973,10 @@ contains
     real (kind = dp_t) :: dd
     logical :: lskwd
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_lex_dense_smoother_2d")
+
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     !$OMP PARALLEL DO PRIVATE(j,i,dd)
@@ -958,6 +998,9 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    call destroy(bpt)
+
   end subroutine gs_lex_dense_smoother_2d
 
   subroutine gs_lex_dense_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
@@ -971,6 +1014,10 @@ contains
     integer :: i, j, k
     real (kind = dp_t) :: dd
     logical :: lskwd
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_lex_dense_smoother_3d")
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
@@ -1015,6 +1062,8 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    call destroy(bpt)
 
   end subroutine gs_lex_dense_smoother_3d
 
@@ -1083,6 +1132,10 @@ contains
     real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 5, YBC = 6
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "jac_smoother_2d")
+
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
 
@@ -1118,6 +1171,9 @@ contains
     end do
     !$OMP END DO
     !$OMP END PARALLEL
+
+    call destroy(bpt)
+
   end subroutine jac_smoother_2d
 
   subroutine jac_dense_smoother_2d(omega, ss, uu, ff, ng)
@@ -1129,6 +1185,10 @@ contains
     real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
     integer :: i, j
     integer :: nx, ny
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "jac_dense_smoother_2d")
 
     nx=size(ss,dim=1)
     ny=size(ss,dim=2)
@@ -1159,6 +1219,9 @@ contains
     end do
     !$OMP END DO
     !$OMP END PARALLEL
+
+    call destroy(bpt)
+
   end subroutine jac_dense_smoother_2d
 
   subroutine jac_smoother_3d(omega, ss, uu, ff, mm, ng)
@@ -1173,6 +1236,10 @@ contains
     integer :: nx, ny, nz
     integer :: i, j, k
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "jac_smoother_3d")
 
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
@@ -1225,6 +1292,9 @@ contains
     end do
     !$OMP END DO
     !$OMP END PARALLEL
+
+    call destroy(bpt)
+
   end subroutine jac_smoother_3d
 
   subroutine jac_dense_smoother_3d(omega, ss, uu, ff, ng)
@@ -1236,6 +1306,10 @@ contains
     real (kind = dp_t), allocatable :: wrk(:,:,:)
     integer :: nx, ny, nz
     integer :: i, j, k
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "jac_dense_smoother_3d")
 
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
@@ -1291,6 +1365,9 @@ contains
     end do
     !$OMP END DO
     !$OMP END PARALLEL
+
+    call destroy(bpt)
+
   end subroutine jac_dense_smoother_3d
 
   subroutine lgs_x_2d(omega, ss, uu, ff, lo, ng)
