@@ -657,7 +657,7 @@ contains
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
     real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
-    call build(bpt, "ml_cc")
+    call build(bpt, "ml_cc_applyop")
 
     nlevs = mla%nlevel
 
@@ -777,6 +777,7 @@ contains
 
     deallocate(uu_hold)
     deallocate(soln,uu,rh,temp_res)
+    call destroy(bpt)
 
   end subroutine ml_cc_applyop
 
