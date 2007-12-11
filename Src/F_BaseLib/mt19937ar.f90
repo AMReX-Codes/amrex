@@ -949,7 +949,7 @@ contains
   subroutine mt_random_number_r_0(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest
-    harvest = mt_genrand_real2(mt)
+    harvest = real(mt_genrand_real2(mt),kind=wf)
   end subroutine mt_random_number_r_0
 
   subroutine mt_random_number_r_1a(harvest)
@@ -962,7 +962,7 @@ contains
     real(kind = wf), intent(out) :: harvest(:)
     integer :: i
     do i = 1, size(harvest)
-       harvest(i) = mt_genrand_real2(mt)
+       harvest(i) = real(mt_genrand_real2(mt),kind=wf)
     end do
   end subroutine mt_random_number_r_1
 
@@ -977,7 +977,7 @@ contains
     integer :: i,j
     do j = 1, size(harvest,dim=2)
        do i = 1, size(harvest, dim=1)
-          harvest(i,j) = mt_genrand_real2(mt)
+          harvest(i,j) = real(mt_genrand_real2(mt),kind=wf)
        end do
     end do
   end subroutine mt_random_number_r_2
@@ -994,7 +994,7 @@ contains
     do k = 1, size(harvest,dim=3)
        do j = 1, size(harvest,dim=2)
           do i = 1, size(harvest, dim=1)
-             harvest(i,j,k) = mt_genrand_real2(mt)
+             harvest(i,j,k) = real(mt_genrand_real2(mt),kind=wf)
           end do
        end do
     end do
@@ -1013,7 +1013,7 @@ contains
        do k = 1, size(harvest,dim=3)
           do j = 1, size(harvest,dim=2)
              do i = 1, size(harvest, dim=1)
-                harvest(i,j,k,l) = mt_genrand_real2(mt)
+                harvest(i,j,k,l) = real(mt_genrand_real2(mt),kind=wf)
              end do
           end do
        end do
@@ -1034,7 +1034,7 @@ contains
           do k = 1, size(harvest,dim=3)
              do j = 1, size(harvest,dim=2)
                 do i = 1, size(harvest, dim=1)
-                   harvest(i,j,k,l,m) = mt_genrand_real2(mt)
+                   harvest(i,j,k,l,m) = real(mt_genrand_real2(mt),kind=wf)
                 end do
              end do
           end do
@@ -1057,7 +1057,7 @@ contains
              do k = 1, size(harvest,dim=3)
                 do j = 1, size(harvest,dim=2)
                    do i = 1, size(harvest, dim=1)
-                      harvest(i,j,k,l,m,n) = mt_genrand_real2(mt)
+                      harvest(i,j,k,l,m,n) = real(mt_genrand_real2(mt),kind=wf)
                    end do
                 end do
              end do
@@ -1082,7 +1082,7 @@ contains
                 do k = 1, size(harvest,dim=3)
                    do j = 1, size(harvest,dim=2)
                       do i = 1, size(harvest, dim=1)
-                         harvest(i,j,k,l,m,n,o) = mt_genrand_real2(mt)
+                         harvest(i,j,k,l,m,n,o) = real(mt_genrand_real2(mt),kind=wf)
                       end do
                    end do
                 end do
