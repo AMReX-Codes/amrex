@@ -1030,7 +1030,7 @@ contains
     if (do_diag) then
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
-       nrm2 = norm_inf(ss)
+!       nrm2 = norm_inf(ss)
        if ( parallel_IOProcessor() ) then
 !         print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
           print *,'IN: NORM RH ',lev,nrm1
