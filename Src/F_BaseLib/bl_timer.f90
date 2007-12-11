@@ -120,7 +120,7 @@ contains
     integer :: un
     character(len=3) :: adv
     logical :: ltotal
-    real :: r
+    real(dp_t) :: r
 
     !! Timer allows 9.9999999e9 as largest number of milliseconds print
     !! this is 3 years.

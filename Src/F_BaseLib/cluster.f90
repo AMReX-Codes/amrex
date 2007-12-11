@@ -79,7 +79,7 @@ contains
     integer :: b
     integer :: num_flag
     integer :: dm, i
-    integer :: bboxinte
+    integer(kind=ll_t) :: bboxinte
     type(box) :: bx
     real(dp_t) :: bx_eff
     type(bl_prof_timer), save :: bpt
