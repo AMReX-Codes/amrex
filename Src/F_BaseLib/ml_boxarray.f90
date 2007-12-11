@@ -257,13 +257,11 @@ contains
     r = .true.
   end function ml_boxarray_properly_nested_new
 
-  function ml_boxarray_properly_nested(mba, ng) result(r)
+  function ml_boxarray_properly_nested(mba) result(r)
     logical :: r
     type(ml_boxarray), intent(in) :: mba
-    integer, intent(in), optional :: ng
     type(boxarray) :: ba
-    integer :: i, lng
-    lng = 0; if ( present(ng) ) lng = ng
+    integer :: i
     do i = 1, mba%nlevel-1
        call boxarray_build_copy(ba, mba%bas(i+1))
        call boxarray_coarsen(ba, mba%rr(i,:))
