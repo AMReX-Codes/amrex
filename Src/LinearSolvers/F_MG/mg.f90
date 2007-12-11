@@ -1193,6 +1193,7 @@ contains
 
   subroutine mg_tower_solve(mgt, uu, rh, qq, num_iter, defect_history, defect_dirname, stat)
     use fabio_module
+    use bl_prof_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, rh
     integer, intent(out), optional :: stat
