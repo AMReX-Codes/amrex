@@ -1,4 +1,4 @@
-!! Knapsack performs a form of load balancing where the 
+
 module knapsack_module
 
   use bl_types
@@ -22,6 +22,7 @@ contains
     use vector_i_module
     use sort_d_module
     use bl_error_module
+    use bl_prof_module
     !    use named_comparisons_module, only : greater_d
     integer, intent(out), dimension(:) :: prc
     integer, intent(in), dimension(:) :: ibxs
@@ -40,6 +41,10 @@ contains
     real(kind=dp_t) :: total_weight
     integer :: ierr
     integer :: lverb
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'knapsack')
 
     lverb   = knapsack_verbose  ; if ( present(verbose  ) ) lverb   = verbose
     lthresh = knapsack_threshold; if ( present(threshold) ) lthresh = threshold
@@ -132,6 +137,8 @@ contains
 
     !! INTEL FIXME !!
     deallocate(procs, iprocs, pweights)
+
+    call destroy(bpt)
 
   contains
 
