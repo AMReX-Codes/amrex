@@ -19,7 +19,7 @@ module box_module
   !! are ill-defined on default boxes.
   type box
      integer :: dim  = 0
-     integer :: lo(MAX_SPACEDIM) = Huge(1)
+     integer :: lo(MAX_SPACEDIM) =  Huge(1)
      integer :: hi(MAX_SPACEDIM) = -Huge(1)
   end type box
 
@@ -46,7 +46,7 @@ module box_module
      module procedure box_dim
   end interface
 
-  !! Returns the volume of the box as a ll_t
+  !! Returns the volume of the box as an integer; aborts on overflow.
   interface volume
      module procedure box_volume
   end interface
@@ -100,7 +100,6 @@ module box_module
 
   !! grows a box
   interface grow
-!    module procedure box_grow_m
      module procedure box_grow_n
      module procedure box_grow_n_f
      module procedure box_grow_n_d_f
@@ -163,12 +162,6 @@ module box_module
      module procedure box_extent
      module procedure box_extent_d
   end interface
-
-  !! Returns the boundary of a box as a matrix of boxes.
-!  interface boundary
-!     module procedure box_boundary_n
-!    module procedure box_boundary_m
-!  end interface
 
   !! Prints a box.
   interface print
@@ -868,13 +861,18 @@ contains
     end if
   end subroutine box_peel
 
-  elemental function box_volume(bx) result(r)
+  function box_volume(bx) result(r)
     type(box), intent(in) :: bx
-    integer(kind=ll_t) :: r
-    integer :: i
-    r = 1_ll_t
+    integer :: r, i, l
+    r = 1
     do i = 1, bx%dim
-       r = r*(bx%hi(i)-bx%lo(i)+1)
+       l = (bx%hi(i)-bx%lo(i)+1)
+       if ( r .le. Huge(r) / l ) then
+          r = r*l
+       else
+          call print(bx, 'bad box')
+          call bl_error('box_volume(): overflow')
+       end if
     end do
   end function box_volume
 
@@ -895,45 +893,6 @@ contains
     r%lo(1:r%dim) = min(b1%lo(1:b1%dim),b2%lo(1:b2%dim))
     r%hi(1:r%dim) = max(b1%hi(1:b1%dim),b2%hi(1:b2%dim))
   end function box_bbox
-
-!   function box_boundary_n(bx, igrow) result(r)
-!     type(box), intent(in) :: bx
-!     integer, intent(in)  :: igrow
-!     type(box), dimension(MAX_SPACEDIM, 2) :: r
-!     type(box) :: tbx
-!     integer :: i, j, jj
-!     if ( igrow < 0 ) then
-!        call bl_error('box_boundary_n: grow < 0: ', igrow)
-!     end if
-!     tbx = grow(bx, igrow)
-!     do i = 1, bx%dim
-!        do j = -1, 1, 2
-!           jj = (3+j)/2
-!           call box_peel(tbx, i, j, igrow, r(i,jj))
-!        end do
-!     end do
-!     if ( tbx /= bx ) then
-!        call bl_error('box_boundary_n: tbx /= bx')
-!     end if
-!   end function box_boundary_n
-
-!   function box_boundary_m(bx, mat) result(r)
-!     type(box), intent(in) :: bx
-!     integer, intent(in)  :: mat(:,:)
-!     type(box), dimension(MAX_SPACEDIM, 2) :: r
-!     type(box) :: tbx
-!     integer :: i, j, jj
-!     tbx = grow(bx, mat)
-!     do i = 1, bx%dim
-!        do j = -1, 1, 2
-!           jj = (3+j)/2
-!           call box_peel(tbx, i, j, mat(i,jj), r(i,jj))
-!        end do
-!     end do
-!     if ( tbx /= bx ) then
-!        call bl_error('box_boundary_all: tbx /= bx')
-!     end if
-!   end function box_boundary_m
 
   function box_reduce(bx, dim) result(r)
     type(box), intent(in) :: bx
@@ -1031,8 +990,6 @@ contains
     character(len=3) :: adv
     integer :: i
     logical :: llegacy
-!   logical :: lfixw
-!   integer :: maxdig
     un = unit_stdout(unit)
     adv = unit_advance(advance)
     llegacy = .FALSE.; if ( present(legacy) ) llegacy = legacy
