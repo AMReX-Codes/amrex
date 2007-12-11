@@ -26,7 +26,7 @@ contains
     logical       , intent(in   ), optional :: no_final_physbc
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
-    integer         :: lo(4), lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
+    integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
     integer         :: n_extra_valid_regions, np
     type(layout)    :: la, fla, tmpla
     type(multifab)  :: cfine, tmpcrse, tmpfine
