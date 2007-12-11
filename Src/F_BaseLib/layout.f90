@@ -8,8 +8,6 @@ module layout_module
 
   implicit none
 
-  logical, parameter, private :: verbose = .false.
-
   integer, private, parameter :: LA_UNDF = 0
   integer, private, parameter :: LA_BASE = 1
   integer, private, parameter :: LA_CRSN = 2
@@ -963,7 +961,7 @@ contains
     type(layout)                   :: la, latmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
     integer                        :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
-    integer                        :: svol_max, rvol_max, ioproc
+    integer                        :: svol_max, rvol_max
     integer, parameter             :: chunksize = 100
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -1133,13 +1131,12 @@ contains
        end if
     end do
 
-    if ( verbose ) then
-       ioproc = parallel_IOProcessorNode()
-       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = ioproc)
-       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = ioproc)
-       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = ioproc)
+    if ( .false. ) then
+       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = parallel_IOProcessorNode())
+       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = parallel_IOProcessorNode())
        if ( parallel_IOProcessor() ) then
           print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
           print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
@@ -1243,7 +1240,7 @@ contains
     !
     ! Test that we're a unique cover; i.e. no overlap.  Is there a better way to do this?
     !
-    if ( verbose ) then
+    if ( .false. ) then
        do i = 1, bxa%nboxes
           if ( filled(i)%ncpy > 0 ) then
              allocate(bxs(filled(i)%ncpy))
@@ -1253,10 +1250,12 @@ contains
              call boxarray_add_clean_boxes(ba1, bxs, simplify = .false.)
              call boxarray_build_v(ba2, bxs, sort = .false.)
              if ( .not. boxarray_same_q(ba1, ba2) ) then
-                print*, "*** NOT a unique covering !!!"
-                call print(ba1, "ba1")
-                call print(ba2, "ba2")
-                stop
+                if ( parallel_IOProcessor() ) then
+                   print*, "*** NOT a unique covering !!!"
+                   call print(ba1, "ba1")
+                   call print(ba2, "ba2")
+                   call bl_error('internal_sync_unique_cover() bust')
+                end if
              end if
              deallocate(bxs)
              call destroy(ba1)
@@ -1380,7 +1379,7 @@ contains
     end do
     deallocate(filled)
 
-    if ( verbose ) then
+    if ( .false. ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1686,7 +1685,7 @@ contains
 
     call destroy(lasrctmp)
 
-    if ( verbose ) then
+    if ( .false. ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1936,7 +1935,7 @@ contains
 
     call destroy(lasrctmp)
 
-    if ( verbose ) then
+    if ( .false. ) then
        call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
        call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())

@@ -1120,9 +1120,7 @@ contains
     type(bl_prof_timer), save :: bpt
     call build(bpt, "ba_add_clean_boxes")
     lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
-    if ( empty(ba) ) then
-       call boxarray_build_bx(ba, bxs(1))
-    end if
+    if ( empty(ba) ) call boxarray_build_bx(ba, bxs(1))
     call build(bl, ba%bxs)
     do i = 1, size(bxs)
        call build(check, bxs(i:i))
@@ -1143,25 +1141,12 @@ contains
        end do
        call splice(bl, check)
     end do
-    if ( lsimplify ) then
-       call boxlist_simplify(bl)
-    end if
+    if ( lsimplify ) call boxlist_simplify(bl)
     call boxarray_build_copy_l(ba, bl)
     call destroy(bl)
     call destroy(bpt)
 
   end subroutine boxarray_add_clean_boxes
-
-  subroutine boxarray_to_domain_1(ba)
-    type(boxarray), intent(inout) :: ba
-    type(boxarray) :: ba1
-    integer :: i
-    do i = 1, ba%nboxes
-       call boxarray_add_clean(ba1, ba%bxs(i))
-    end do
-    call boxarray_destroy(ba)
-    ba = ba1
-  end subroutine boxarray_to_domain_1
 
   subroutine boxarray_to_domain(ba)
     type(boxarray), intent(inout) :: ba
