@@ -8,6 +8,7 @@ module multifab_fill_ghost_module
   use setbc_module
   use interp_module
   use fillpatch_module
+  use bl_prof_module
 
   implicit none
 
@@ -34,7 +35,11 @@ contains
     real(kind=dp_t),       pointer :: src(:,:,:,:), dst(:,:,:,:)
     type(box_intersector), pointer :: bi(:)
 
+    type(bl_prof_timer), save :: bpt
+
     if (ng == 0) return
+
+    call build(bpt, "mf_fill_ghost_cells")
 
     if ( nghost(fine) <  ng          ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
 
@@ -126,6 +131,8 @@ contains
 
     call destroy(la)
     call destroy(tmpla)
+
+    call destroy(bpt)
 
   end subroutine
 
