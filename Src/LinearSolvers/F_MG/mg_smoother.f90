@@ -21,7 +21,6 @@ contains
     integer            ,intent(in)    :: mm(lo(1):)
     logical, intent(in), optional :: skwd
 
-    real (kind = dp_t) :: dd
     real (kind = dp_t), allocatable :: a_ls(:), b_ls(:), c_ls(:), r_ls(:), u_ls(:)
     integer :: ilen, i, hi(size(lo))
     integer, parameter ::  XBC = 3

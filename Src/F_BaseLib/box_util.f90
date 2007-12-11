@@ -27,8 +27,8 @@ contains
     else
        call mt_random_number(aa)
     end if
-    hwide = (mn + aa(:,1)*(mx-mn))/2
-    spot = lwb(world) + aa(:,2)*(upb(world)-lwb(world))
+    hwide = int((mn + aa(:,1)*(mx-mn))/2)
+    spot = int(lwb(world) + aa(:,2)*(upb(world)-lwb(world)))
     call build(r, spot-hwide, spot+hwide)
     r = intersection(r, world)
 
