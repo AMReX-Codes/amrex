@@ -4,6 +4,7 @@ module interp_module
   use bl_error_module
   use bl_constants_module
   use bc_module
+  use bl_prof_module
 
   implicit none
 
@@ -34,6 +35,10 @@ contains
     real(kind=dp_t) :: fx, fy
     real(kind=dp_t) :: RX, RY, RXY
     real(kind=dp_t) :: dx0, d0x, dx1
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'bl_nd_interp_2d')
 
     RX = ONE/real(lratio(1),kind=dp_t)
     RY = ONE/real(lratio(2),kind=dp_t)
@@ -78,6 +83,8 @@ contains
           end do
        end do
     end do
+
+    call destroy(bpt)
 
   end subroutine bl_nd_interp_2d
 
@@ -131,6 +138,10 @@ contains
     logical :: xok(2)
     integer :: nxc(2)
     integer :: ioff, joff
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'lin_cc_interp_2d')
 
     forall (i =1:2) nxc(i) = size(crse,i)-2
 
@@ -352,6 +363,8 @@ contains
 
     end if
 
+    call destroy(bpt)
+
   contains
 
     function uclc_slope(uslope, crse, crse_lo, i, j, n, dim) result(lc)
@@ -389,6 +402,10 @@ contains
 
     integer :: i, j, ic, jc, ioff, joff, n
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'pc_cc_interp_2d')
+
     do n = 1, size(crse,3)
        do jc = 0, ubound(crse,2)
           do ic = 0, ubound(crse,1)
@@ -402,6 +419,8 @@ contains
           end do
        end do
     end do
+
+    call destroy(bpt)
 
   end subroutine pc_cc_interp_2d
 
@@ -429,6 +448,10 @@ contains
     integer :: ilo, ihi, jlo, jhi
     integer :: i, j, ic, jc, n
     integer :: icase
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'pr_cc_interp_2d')
 
     do jc = 0, size(crse,2)-1
        do ic = 0, size(crse,1)-1
@@ -640,6 +663,9 @@ contains
           ! End of coarse index loops
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine pr_cc_interp_2d
 
 
@@ -660,6 +686,10 @@ contains
     REAL(kind=dp_t) :: fx, fy,fz
     REAL(kind=dp_t) :: RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
     REAL(kind=dp_t) :: dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'bl_nd_interp_3d')
 
     RX = ONE/real(lratio(1),kind=dp_t)
     RY = ONE/real(lratio(2),kind=dp_t)
@@ -762,6 +792,8 @@ contains
        end do
     end do
 
+    call destroy(bpt)
+
   end subroutine bl_nd_interp_3d
 
 
@@ -825,6 +857,10 @@ contains
     logical :: xok(3)
     integer :: nxc(3)
     integer :: ioff, joff, koff
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'lin_cc_interp_3d')
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
     xok = (nxc >=  2)
@@ -1158,6 +1194,9 @@ contains
        end do
 
     end if
+
+    call destroy(bpt)
+
   contains
 
     function uclc_slope(uslope, crse, crse_lo, i, j, k, n, dim) result(lc)
@@ -1198,6 +1237,10 @@ contains
 
     integer i, j, k, ic, jc, kc, ioff, joff, koff, n
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'pc_cc_interp_3d')
+
     do n = 1, size(crse,4)
        do kc = 0, ubound(crse,4)
           do jc = 0, ubound(crse,2)
@@ -1216,6 +1259,8 @@ contains
           end do
        end do
     end do
+
+    call destroy(bpt)
 
   end subroutine pc_cc_interp_3d
 
@@ -1236,6 +1281,10 @@ contains
     integer :: i, j, k, ic, jc, kc, n
     integer :: numFineCells
     integer :: icase, nxc(3)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, 'pr_cc_interp_3d')
 
     forall(i=1:3) nxc(i) = size(crse,dim=i)-2
 
@@ -1423,6 +1472,9 @@ contains
           end do
        end do
     end do
+
+    call destroy(bpt)
+
   end subroutine pr_cc_interp_3d
 
 end module interp_module
