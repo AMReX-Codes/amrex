@@ -338,9 +338,6 @@ contains
 
 !   ********************************************************************************************* !
 
-    !
-    ! TODO - implement more efficient parallel version?
-    !
     subroutine ml_crse_divu_contrib(rh, flux, u, mm, dx, crse_domain, ir, side)
      type(multifab), intent(inout) :: rh
      type(multifab), intent(inout) :: flux
@@ -354,7 +351,7 @@ contains
      type(box) :: fbox, ubox, mbox, isect
      integer   :: lo (rh%dim), hi (rh%dim), lou(rh%dim), dims(4)
      integer   :: lof(rh%dim), hif(rh%dim), lor(rh%dim), lom(rh%dim)
-     integer   :: lodom(rh%dim), hidom(rh%dim), dir, i, j, proc
+     integer   :: lodom(rh%dim), hidom(rh%dim), dir, i, j, k, proc
      logical   :: nodal(rh%dim)
 
      integer, parameter :: tag = 1371
@@ -362,9 +359,11 @@ contains
      real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), up(:,:,:,:)
      integer,         pointer :: mp(:,:,:,:)
 
-    type(bl_prof_timer), save :: bpt
+     type(box_intersector), pointer :: bi(:)
 
-    call build(bpt, "ml_crse_divu_contrib")
+     type(bl_prof_timer), save :: bpt
+
+     call build(bpt, "ml_crse_divu_contrib")
 
      dims   = 1;
      nodal  = .true.
@@ -377,15 +376,20 @@ contains
        lou  = lwb(get_pbox(u,j))
        lor  = lwb(get_pbox(rh,j))
 
-       do i = 1, flux%nboxes
+       bi => layout_get_box_intersector(flux%la, ubox)
+
+       do k = 1, size(bi)
+
+          i = bi(k)%i
+
           if ( remote(flux,i) .and. remote(u,j) ) cycle
           
           fbox  = get_ibox(flux,i)
-          isect = intersection(ubox,fbox)
+          isect = bi(k)%bx
           lof   = lwb(fbox)
           hif   = upb(fbox)
 
-          if ( lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir) .or. empty(isect) ) cycle
+          if ( lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir) ) cycle
 
           lo = lwb(isect)
           hi = upb(isect)
@@ -406,6 +410,7 @@ contains
                      fp(:,:,:,1), lof, hif, lof, hif,  &
                      up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx)
              end select
+
           else if ( local(flux,i) ) then
              !
              ! Must send flux & mm.
@@ -416,6 +421,7 @@ contains
              proc =  get_proc(u%la, j)
              call parallel_send(fp, proc, tag)
              call parallel_send(mp, proc, tag)
+
           else if ( local(u,j) ) then
              !
              ! Must receive flux & mm.
@@ -444,6 +450,7 @@ contains
              deallocate(fp,mp)
           end if
        end do
+       deallocate(bi)
     end do
     call destroy(bpt)
    end subroutine ml_crse_divu_contrib
