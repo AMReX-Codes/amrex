@@ -23,45 +23,45 @@ module layout_module
   integer, private :: def_mapping = LA_KNAPSACK
 
   type comm_dsc
-     integer   :: nd = 0        ! dst box number
-     integer   :: ns = 0        ! src box number
-     type(box) :: dbx           ! dst sub-box
-     type(box) :: sbx           ! src sub-box
-     integer   :: pv = 0        ! number of points in buf prior to this
-     integer   :: av = 0        ! number of points in buf including this one
+     integer   :: nd = 0                 ! dst box number
+     integer   :: ns = 0                 ! src box number
+     type(box) :: dbx                    ! dst sub-box
+     type(box) :: sbx                    ! src sub-box
+     integer   :: pv = 0                 ! number of points in buf prior to this
+     integer   :: av = 0                 ! number of points in buf including this one
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
-     integer   :: s1(1) = 0     ! shape for data from rcvbuf
-     integer   :: pr            ! Processors number of src or dest
+     integer   :: s1(1) = 0              ! shape for data from rcvbuf
+     integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
 
   type trns_dsc
-     integer :: sz = 0          ! Size of chunk 
-     integer :: pv = -1         ! Number points in buf prior to this
+     integer :: sz = 0              ! Size of chunk 
+     integer :: pv = -1             ! Number points in buf prior to this
      integer :: pr = MPI_ANY_SOURCE ! src or destination processor
   end type trns_dsc
 
   type remote_conn
-     integer :: svol = 0        ! numpts in snd volume
-     integer :: rvol = 0        ! numpts in rcv volume
-     integer :: nsnd = 0        ! Number of snd chunks, redundant
-     integer :: nrcv = 0        ! Number of rcv chunks, redundant
+     integer :: svol = 0                         ! numpts in snd volume
+     integer :: rvol = 0                         ! numpts in rcv volume
+     integer :: nsnd = 0                         ! Number of snd chunks
+     integer :: nrcv = 0                         ! Number of rcv chunks
      type(comm_dsc), pointer :: snd(:) => Null()
      type(comm_dsc), pointer :: rcv(:) => Null()
-     integer :: nrp  = 0        ! Number of processes receiving from, redundant
-     integer :: nsp  = 0        ! Number of processes sending to, redundant
+     integer :: nrp  = 0                         ! Number of processes receiving from
+     integer :: nsp  = 0                         ! Number of processes sending to
      type(trns_dsc), pointer :: str(:) => Null()
      type(trns_dsc), pointer :: rtr(:) => Null()
   end type remote_conn
 
   type local_copy_desc
-     integer   :: ns = 0         ! Source box in layout
-     integer   :: nd = 0         ! Destination box in layout
-     type(box) :: sbx            ! Sub-box for this copy
-     type(box) :: dbx            ! Sub-box for this copy
+     integer   :: ns = 0    ! Source box in layout
+     integer   :: nd = 0    ! Destination box in layout
+     type(box) :: sbx       ! Sub-box for this copy
+     type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
 
   type local_conn
-     integer :: ncpy            ! Number of cpy chunks, redundant
+     integer :: ncpy   ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
 
@@ -114,7 +114,7 @@ module layout_module
   end type fluxassoc
 
   type box_intersector
-     integer :: i
+     integer   :: i
      type(box) :: bx
   end type box_intersector
 
@@ -135,25 +135,24 @@ module layout_module
      type(layout_rep), pointer :: lap => Null()
   end type layout
 
-  !! Defines the box distribution and box connectivity
-  !! of a boxarray
+  !! Defines the box distribution and box connectivity of a boxarray.
   type layout_rep
-     integer :: dim = 0         ! spatial dimension 1, 2, or 3
-     integer :: id  = 0
-     integer :: nboxes = 0
-     type(box) :: pd            ! Problem Domain 
-     logical, pointer  :: pmask(:) => Null() ! periodic mask
-     integer, pointer, dimension(:) :: prc => Null()
-     type(boxarray) :: bxa
-     type(boxassoc), pointer :: bxasc => Null()
-     type(syncassoc), pointer :: snasc => Null()
+     integer                         :: dim = 0            ! spatial dimension 1, 2, or 3
+     integer                         :: id  = 0
+     integer                         :: nboxes = 0
+     type(box)                       :: pd                 ! Problem Domain 
+     logical, pointer                :: pmask(:) => Null() ! periodic mask
+     integer, pointer, dimension(:)  :: prc => Null()
+     type(boxarray)                  :: bxa
+     type(boxassoc), pointer         :: bxasc => Null()
+     type(syncassoc), pointer        :: snasc => Null()
      type(coarsened_layout), pointer :: crse_la => Null()
-     type(pn_layout), pointer :: pn_children => Null()
-     type(derived_layout), pointer :: dlay => Null()
+     type(pn_layout), pointer        :: pn_children => Null()
+     type(derived_layout), pointer   :: dlay => Null()
      ! Box Hashing
-     integer :: crsn = -1
-     integer :: plo(MAX_SPACEDIM) = 0
-     integer :: phi(MAX_SPACEDIM) = 0
+     integer :: crsn                = -1
+     integer :: plo(MAX_SPACEDIM)   = 0
+     integer :: phi(MAX_SPACEDIM)   = 0
      integer :: vshft(MAX_SPACEDIM) = 0
      type(box_hash_bin), pointer :: bins(:,:,:) => Null()
   end type layout_rep
@@ -164,22 +163,22 @@ module layout_module
   !! in multigrid solvers that keep coarsened grids on the same
   !! processor as their parent in the hierarchy.
   type coarsened_layout
-     integer :: dim = 0
-     integer, pointer :: crse(:) => Null()
-     type(layout) :: la
+     integer                         :: dim = 0
+     integer, pointer                :: crse(:) => Null()
+     type(layout)                    :: la
      type(coarsened_layout), pointer :: next => Null()
   end type coarsened_layout
 
   type pn_layout
-     integer :: dim = 0
-     integer, pointer :: refr(:) => Null()
-     type(layout) :: la
+     integer                  :: dim = 0
+     integer, pointer         :: refr(:) => Null()
+     type(layout)             :: la
      type(pn_layout), pointer :: next => Null()
   end type pn_layout
 
   type derived_layout
-     integer :: dim = 0
-     type(layout) :: la
+     integer                       :: dim = 0
+     type(layout)                  :: la
      type(derived_layout), pointer :: next => Null()
   end type derived_layout
 
@@ -747,7 +746,10 @@ contains
     integer, intent(out), dimension(:) :: prc
     type(box), intent(in), dimension(:) :: bxs
     integer :: ibxs(size(bxs))
-    ibxs = volume(bxs)
+    integer :: i
+    do i = 1, size(ibxs,1)
+       ibxs(i) = volume(bxs(i))
+    end do
     call knapsack_i(prc, ibxs, parallel_nprocs())
   end subroutine layout_knapsack
 
@@ -954,21 +956,21 @@ contains
     type(boxassoc),   intent(inout)      :: bxasc
     logical,          intent(in)         :: cross
 
-    integer                        :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer                        :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
-    type(box)                      :: abx
-    type(boxarray)                 :: bxa, bxai, batmp
-    type(layout)                   :: la, latmp
-    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
-    integer                        :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
-    integer                        :: svol_max, rvol_max
-    integer, parameter             :: chunksize = 100
-    integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
-    type(local_copy_desc), pointer :: n_cpy(:) => Null()
-    type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
-    type(list_box)                 :: bltmp
-    type(box_intersector), pointer :: bi(:)
-    type(bl_prof_timer), save      :: bpt
+    integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                         :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
+    type(box)                       :: abx
+    type(boxarray)                  :: bxa, bxai, batmp
+    type(layout)                    :: la, latmp
+    integer                         :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
+    integer                         :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
+    integer                         :: svol_max, rvol_max
+    integer, parameter              :: chunksize = 100
+    integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(local_copy_desc), pointer  :: n_cpy(:) => Null()
+    type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
+    type(list_box)                  :: bltmp
+    type(box_intersector), pointer  :: bi(:)
+    type(bl_prof_timer), save       :: bpt
 
     if ( built_q(bxasc) ) call bl_error("BOXASSOC_BUILD: already built")
 
