@@ -9,6 +9,7 @@ module fillpatch_module
   use define_bc_module
   use multifab_physbc_module
   use interp_module
+  use bl_prof_module
 
   implicit none
 
@@ -41,6 +42,10 @@ contains
     real(kind=dp_t),       allocatable :: fvcx(:), fvcy(:), fvcz(:), cvcx(:), cvcy(:), cvcz(:)
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "fillpatch")
 
     if ( nghost(fine) <  ng          ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
     if ( nghost(crse) <  ng          ) call bl_error('fillpatch: crse does NOT have enough ghost cells')
@@ -317,6 +322,8 @@ contains
        call destroy(tmpfine)
        call destroy(fla) 
     end if
+
+    call destroy(bpt)
 
   end subroutine
 

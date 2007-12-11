@@ -870,6 +870,9 @@ contains
     type(list_box), intent(in) :: bxl
     type(list_box) :: r, bl
     type(list_box_node), pointer :: blp, bp
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "boxlist_boxlist_diff")
 
     call push_back(r, bx)
     blp => begin(bxl)
@@ -886,6 +889,8 @@ contains
        end do
        blp => next(blp)
     end do
+
+    call destroy(bpt)
 
   end function boxlist_boxlist_diff
 
@@ -905,11 +910,17 @@ contains
   subroutine boxlist_simplify(bxl)
     type(list_box), intent(inout) :: bxl
     integer :: dm
-    
+    type(bl_prof_timer), save :: bpt
+
     if ( size(bxl) == 0 ) return
+
+    call build(bpt, "boxlist_simplify")
+
     dm = box_dim(front(bxl))
     do while ( simp() > 0 )
     end do
+
+    call destroy(bpt)
 
   contains
 
@@ -1072,7 +1083,7 @@ contains
        call boxarray_build_bx(ba, bx)
        return
     end if
-    call build(bpt, "boxarray_add_clean")
+    call build(bpt, "ba_add_clean")
     call build(bl, ba%bxs)
     call push_back(check, bx)
     lp => begin(bl)
@@ -1107,7 +1118,7 @@ contains
     type(list_box_node), pointer :: cp, lp
     integer :: i
     type(bl_prof_timer), save :: bpt
-    call build(bpt, "boxarray_add_clean_boxes")
+    call build(bpt, "ba_add_clean_boxes")
     lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
     if ( empty(ba) ) then
        call boxarray_build_bx(ba, bxs(1))
