@@ -785,7 +785,7 @@ contains
     end do
   end subroutine box_decompose_mod
   
-  !! Box_decompose decompoes a box, bx1, into boxes that are
+  !! Box_decompose decomposes a box, bx1, into boxes that are
   !! either completely inside, or completely outside the regions of
   !! index spaces delineated by bx2.  Up to 3**dim boxes are returned;
   !! and failure results if not enough space is passed.
