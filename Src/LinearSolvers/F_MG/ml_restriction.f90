@@ -260,10 +260,13 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !
+  ! TODO - cache the communication pattern here in the dst layout?
+  !
   subroutine periodic_add_copy(dst,src,synced)
 
     type(multifab), intent(inout) :: dst
-    type(multifab), intent(in   ) :: src
+    type(multifab), intent(inout) :: src    ! Not changed except by layout_get_box_intersector()
     logical,        intent(in   ) :: synced
     !
     ! if ( synced )
@@ -286,10 +289,12 @@ contains
     type(box)             :: domain_edge_src, domain_edge_dst
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
-    integer               :: i,j,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
+    integer               :: i,j,ii,jj,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
     logical               :: nodal(dst%dim)
     integer               :: shift_vector(3)
     integer,  parameter   :: tag = 1111
+
+    type(box_intersector), pointer :: bisrc(:), bidst(:)
 
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
 
@@ -339,14 +344,16 @@ contains
              !
              ! Add values from domain_edge_src side to domain_edge_dst side
              !
-             do j = 1, dst%nboxes
-                bxj = intersection(get_ibox(dst,j),domain_edge_dst)
-                if ( empty(bxj) ) cycle
-                do i = 1, src%nboxes
+             bidst => layout_get_box_intersector(dst%la, domain_edge_dst)
+
+             do jj = 1, size(bidst)
+                j     =  bidst(jj)%i
+                bxj   =  bidst(jj)%bx
+                bisrc => layout_get_box_intersector(src%la, domain_edge_src)
+                do ii = 1, size(bisrc)
+                   i = bisrc(ii)%i
                    if ( remote(dst,j) .and. remote(src,i) ) cycle
-                   bxi = intersection(get_ibox(src,i),domain_edge_src)
-                   if ( empty(bxi) ) cycle
-                   bxi     = shift(bxi,-shift_vector)
+                   bxi     = shift(bisrc(ii)%bx,-shift_vector)
                    bx_from = intersection(bxi,bxj)
                    if ( empty(bx_from) ) cycle
                    bx_to   = bx_from
@@ -386,7 +393,9 @@ contains
                       deallocate(pt)
                    end if
                 end do
+                deallocate(bisrc)
              end do
+             deallocate(bidst)
              if ( synced ) call saxpy(dst,ONE,temp_dst)
           end do
        end do
