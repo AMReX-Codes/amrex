@@ -338,6 +338,9 @@ contains
 
 !   ********************************************************************************************* !
 
+    !
+    ! TODO - cache the communication pattern here in the flux layout?
+    !
     subroutine ml_crse_divu_contrib(rh, flux, u, mm, dx, crse_domain, ir, side)
      type(multifab), intent(inout) :: rh
      type(multifab), intent(inout) :: flux
