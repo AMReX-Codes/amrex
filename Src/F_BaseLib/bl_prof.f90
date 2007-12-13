@@ -334,12 +334,8 @@ contains
        end do
     end if
     call parallel_bcast(ok)
-    if ( .not. ok) then
-       if ( parallel_ioprocessor() ) then
-          print*, "*** bl_prof_glean: proc trees are NOT identical !!!"
-       end if
-       return
-    end if
+
+    if ( .not. ok) call bl_error("*** bl_prof_glean: proc trees are NOT identical !!!")
 
     call s_activation(the_call_tree, sm, local = .false.)
 
@@ -362,6 +358,7 @@ contains
     end if
 
     call p_activation(the_call_tree, un, 0, local = .false.)
+
     if ( parallel_ioprocessor() ) then
        close(unit = un)
     end if
