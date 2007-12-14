@@ -30,7 +30,7 @@ contains
 
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
-    integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
+    integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
     integer         :: n_extra_valid_regions, np
     type(layout)    :: la, fla, tmpla
     type(multifab)  :: cfine, tmpcrse, tmpfine
@@ -259,7 +259,7 @@ contains
           forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
           if ( dm > 2 ) then
              allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcy(j) = dble(j)
+             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = dble(j)
           end if
        end if
 
