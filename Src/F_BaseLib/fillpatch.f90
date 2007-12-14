@@ -16,7 +16,7 @@ module fillpatch_module
 contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
-                       bcomp, nc, no_final_physbc)
+                       bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input)
 
     type(multifab), intent(inout)           :: fine
     type(multifab), intent(inout)           :: crse
@@ -24,7 +24,10 @@ contains
     integer       , intent(in   )           :: ir(:)
     type(bc_level), intent(in   )           :: bc_crse, bc_fine
     integer       , intent(in   )           :: icomp_fine, icomp_crse, bcomp, nc
-    logical       , intent(in   ), optional :: no_final_physbc
+    logical       , intent(in   ), optional :: no_final_physbc_input
+    logical       , intent(in   ), optional :: lim_slope_input
+    logical       , intent(in   ), optional :: lin_limit_input
+
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
     integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(2), cslope_hi(2)
@@ -36,7 +39,7 @@ contains
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(fine%dim), have_periodic_gcells
-    logical         :: lno_final_physbc
+    logical         :: no_final_physbc
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -60,9 +63,12 @@ contains
     lim_slope            = .true.
     lin_limit            = .false.
     have_periodic_gcells = .false.
-    lno_final_physbc     = .false.
+    no_final_physbc      = .false.
 
-    if ( present(no_final_physbc) ) lno_final_physbc = no_final_physbc
+    if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
+    if ( present(lim_slope_input) ) lim_slope = lim_slope_input
+    if ( present(lin_limit_input) ) lin_limit = lin_limit_input
+
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
@@ -317,7 +323,7 @@ contains
        end if
     end if
 
-    if(.not. lno_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, dx, bc_fine)
+    if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, dx, bc_fine)
 
     call destroy(cfine)
     call destroy(la)

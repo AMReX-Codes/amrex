@@ -41,9 +41,11 @@ contains
 
     call build(bpt, "mf_fill_ghost_cells")
 
-    if ( nghost(fine) <  ng          ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
+    if ( nghost(fine) <  ng          ) &
+         call bl_error('fillpatch: fine does NOT have enough ghost cells')
 
-    if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
+    if ( .not. cell_centered_q(fine) ) &
+         call bl_error('fillpatch: fine is NOT cell centered')
     !
     ! Build list of all ghost cells not covered by valid region.
     !
@@ -84,7 +86,8 @@ contains
     call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
     call destroy(ba)
     call build(ghost, la, nc, ng = 1)
-    call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, no_final_physbc = .true.)
+    call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
+                   no_final_physbc_input = .true.)
     !
     ! Copy fillpatch()d ghost cells to fine.
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.
@@ -96,7 +99,8 @@ contains
 
     call build(ba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, ba, get_pd(fine%la), get_pmask(fine%la), explicit_mapping = get_proc(fine%la))
+    call build(tmpla, ba, get_pd(fine%la), get_pmask(fine%la), &
+               explicit_mapping = get_proc(fine%la))
     call destroy(ba)
     call build(tmpfine, tmpla, nc = nc, ng = 0)
 

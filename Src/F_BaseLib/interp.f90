@@ -52,7 +52,8 @@ contains
              if (j  /=  size(crse,2)-1 ) d0x = crse(i,j+1,n) - crse(i,j,n)
 
              dx1 = ZERO
-             if (i  /=  size(crse,1)-1 .and. j  /=  size(crse,2)-1 ) dx1 = crse(i+1,j+1,n) - crse(i,j+1,n)
+             if (i  /=  size(crse,1)-1 .and. j  /=  size(crse,2)-1 ) &
+                  dx1 = crse(i+1,j+1,n) - crse(i,j+1,n)
 
              sl(i,1) = RX*dx0
              sl(i,2) = RY*d0x
@@ -85,9 +86,9 @@ contains
   !! lin_cc_interp:   linear conservative interpolation from coarse grid to fine
 
   subroutine lin_cc_interp_2d (fine, fine_lo, crse, crse_lo, &
-       lratio, bc, &
-       fvcx, fvcx_lo, fvcy, fvcy_lo, cvcx, cvcx_lo, cvcy, cvcy_lo, &
-       cslope_lo, cslope_hi, lim_slope, lin_limit)
+                               lratio, bc, &
+                               fvcx, fvcx_lo, fvcy, fvcy_lo, cvcx, cvcx_lo, cvcy, cvcy_lo, &
+                               cslope_lo, cslope_hi, lim_slope, lin_limit)
 
     integer, intent(in) :: fine_lo(:),crse_lo(:)
     integer, intent(in) :: cslope_lo(:),cslope_hi(:)
@@ -104,23 +105,23 @@ contains
 
 
     real(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) ::     lc_xslope(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) :: xslope_factor(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2))
+         cslope_lo(2):cslope_hi(2))
     real(kind=dp_t) ::     uc_yslope(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) ::     lc_yslope(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) :: yslope_factor(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2))
+         cslope_lo(2):cslope_hi(2))
     real(kind=dp_t) ::         alpha(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) ::          cmax(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) ::          cmin(cslope_lo(1):cslope_hi(1), &
-                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+         cslope_lo(2):cslope_hi(2),size(fine,3))
     real(kind=dp_t) ::         voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
     real(kind=dp_t) ::         voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
 
@@ -192,7 +193,8 @@ contains
              end do
           else
              do j = cslope_lo(2), cslope_hi(2)
-                uc_xslope(i,j,n) = FOURTH * (crse(i+1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i-1,j,n) )
+                uc_xslope(i,j,n) = &
+                     FOURTH * (crse(i+1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i-1,j,n) )
              end do
           end if
           do j = cslope_lo(2), cslope_hi(2)
@@ -209,7 +211,8 @@ contains
              end do
           else
              do j = cslope_lo(2), cslope_hi(2)
-                uc_xslope(i,j,n) = -FOURTH * (crse(i-1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i+1,j,n) )
+                uc_xslope(i,j,n) = &
+                     -FOURTH * (crse(i-1,j,n) + FIVE*crse(i,j,n) - SIX*crse(i+1,j,n) )
              end do
           end if
           do j = cslope_lo(2), cslope_hi(2)
@@ -233,7 +236,8 @@ contains
              end do
           else
              do i = cslope_lo(1), cslope_hi(1)
-                uc_yslope(i,j,n) = FOURTH * (crse(i,j+1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j-1,n) )
+                uc_yslope(i,j,n) = &
+                     FOURTH * (crse(i,j+1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j-1,n) )
              end do
           end if
           do i = cslope_lo(1), cslope_hi(1)
@@ -250,7 +254,8 @@ contains
              end do
           else
              do i = cslope_lo(1), cslope_hi(1)
-                uc_yslope(i,j,n) = -FOURTH * (crse(i,j-1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j+1,n) )
+                uc_yslope(i,j,n) = &
+                     -FOURTH * (crse(i,j-1,n) + FIVE*crse(i,j,n) - SIX*crse(i,j+1,n) )
              end do
           end if
           do i = cslope_lo(1), cslope_hi(1)
@@ -260,21 +265,7 @@ contains
 
     end do
 
-    if ( lim_slope ) then
-
-       ! Do the interpolation using unlimited slopes.
-
-       do n = 1, size(fine,3)
-          do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
-             jc = IX_PROJ(j,lratio(2))
-             do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
-                ic = IX_PROJ(i,lratio(1))
-                fine(i,j,n) = crse(ic,jc,n) + voffx(i)*uc_xslope(ic,jc,n)+ voffy(j)*uc_yslope(ic,jc,n)
-             end do
-          end do
-       end do
-
-    else 
+    if (lim_slope) then
 
        if ( lin_limit ) then
 
@@ -351,6 +342,20 @@ contains
           end do
        end do
 
+    else
+
+       ! Do the interpolation using unlimited slopes.
+
+       do n = 1, size(fine,3)
+          do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
+             jc = IX_PROJ(j,lratio(2))
+             do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
+                ic = IX_PROJ(i,lratio(1))
+                fine(i,j,n) = &
+                     crse(ic,jc,n) + voffx(i)*uc_xslope(ic,jc,n)+ voffy(j)*uc_yslope(ic,jc,n)
+             end do
+          end do
+       end do
     end if
 
   contains
@@ -410,7 +415,7 @@ contains
   !! generates under- or overshoots.
 
   subroutine pr_cc_interp_2d (fine, crse, lratio, fine_state, &
-       fvcx, fvcy, cvcx, cvcy)
+                              fvcx, fvcy, cvcx, cvcy)
 
     integer, intent(in) :: lratio(:)
     real(kind=dp_t), intent(out) :: fine(0:,0:,0:)
@@ -571,7 +576,8 @@ contains
 
                 end if
 
-                if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  >  ZERO) then
+                if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP &
+                     .and. (sumP+sumN+crseTot)  >  ZERO) then
                    ! Here we have enough positive states to absorb all the
                    ! negative correction *and* redistribute to make negative cells
                    ! positive. 
@@ -588,7 +594,8 @@ contains
 
                 end if
 
-                if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  <=  ZERO) then
+                if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP &
+                     .and. (sumP+sumN+crseTot)  <=  ZERO) then
                    ! Here we have enough positive states to absorb all the
                    ! negative correction, but not to fix the states already negative. 
                    ! We bring all the positive states to ZERO, and use whatever 
@@ -720,8 +727,9 @@ contains
                      d0x1 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
 
                 dx11 = ZERO
-                if (i  /=  ubound(crse,1) .and. j  /=  ubound(crse,2) .and. k  /=  ubound(crse,3) ) &
-                    dx11 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
+                if (i  /=  ubound(crse,1) .and. j  /=  ubound(crse,2) &
+                     .and. k  /=  ubound(crse,3) ) &
+                     dx11 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
 
                 sl(i,1) = RX*dx00
                 sl(i,2) = RY*d0x0
@@ -770,10 +778,10 @@ contains
   !! linccinterp:   linear conservative interpolation from coarse grid to
 
   subroutine lin_cc_interp_3d (fine, fine_lo, crse, crse_lo, &
-       lratio, bc, &
-       fvcx, fvcx_lo, fvcy, fvcy_lo, fvcz, fvcz_lo, &
-       cvcx, cvcx_lo, cvcy, cvcy_lo, cvcz, cvcz_lo, &
-       cslope_lo, cslope_hi, lim_slope, lin_limit)
+                               lratio, bc, &
+                               fvcx, fvcx_lo, fvcy, fvcy_lo, fvcz, fvcz_lo, &
+                               cvcx, cvcx_lo, cvcy, cvcy_lo, cvcz, cvcz_lo, &
+                               cslope_lo, cslope_hi, lim_slope, lin_limit)
 
     integer, intent(in) :: fine_lo(:),crse_lo(:)
     integer, intent(in) :: cslope_lo(:),cslope_hi(:)
@@ -791,29 +799,29 @@ contains
     logical        , intent(in) :: lim_slope, lin_limit
 
     REAL(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) ::     lc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) :: xslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3))
+         cslope_lo(3):cslope_hi(3))
     REAL(kind=dp_t) ::     uc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) ::     lc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) :: yslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3))
+         cslope_lo(3):cslope_hi(3))
     REAL(kind=dp_t) ::     uc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) ::     lc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) :: zslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3))
+         cslope_lo(3):cslope_hi(3))
     REAL(kind=dp_t) ::         alpha(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) ::          cmax(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) ::          cmin(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                                     cslope_lo(3):cslope_hi(3),size(fine,4))
+         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) :: voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
     REAL(kind=dp_t) :: voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
     REAL(kind=dp_t) :: voffz(fvcz_lo:fvcz_lo+size(fine,3)-1)
@@ -853,9 +861,11 @@ contains
     ! Prevent underflow for small crse values.
     where(abs(crse) < 1.0d-20) crse = ZERO
     alpha = ONE
-    cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),cslope_lo(3):cslope_hi(3),:)
-    cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2),cslope_lo(3):cslope_hi(3),:)
-    
+    cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+         cslope_lo(3):cslope_hi(3),:)
+    cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+         cslope_lo(3):cslope_hi(3),:)
+
     do n = 1, size(crse,4) 
        !
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
@@ -885,7 +895,8 @@ contains
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
                 uc_xslope(i,j,k,n) = HALF*(crse(i+1,j,k,n)-crse(i-1,j,k,n))
-                lc_xslope(i,j,k,n) = uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
+                lc_xslope(i,j,k,n) = &
+                     uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
              end do
           end do
        end do
@@ -902,13 +913,15 @@ contains
           else
              do k = cslope_lo(3),cslope_hi(3)
                 do j = cslope_lo(2),cslope_hi(2)
-                   uc_xslope(i,j,k,n) = FOURTH * (crse(i+1,j,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i-1,j,k,n) )
+                   uc_xslope(i,j,k,n) = &
+                        FOURTH * (crse(i+1,j,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i-1,j,k,n))
                 end do
              end do
           end if
           do k = cslope_lo(3),cslope_hi(3)
              do j = cslope_lo(2),cslope_hi(2)
-                lc_xslope(i,j,k,n) = uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
+                lc_xslope(i,j,k,n) = &
+                     uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
              end do
           end do
        end if
@@ -932,7 +945,8 @@ contains
           end if
           do k = cslope_lo(3),cslope_hi(3)
              do j = cslope_lo(2),cslope_hi(2)
-                lc_xslope(i,j,k,n) = uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
+                lc_xslope(i,j,k,n) = &
+                     uclc_slope(uc_xslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=1)
              end do
           end do
        end if
@@ -941,7 +955,8 @@ contains
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
                 uc_yslope(i,j,k,n) = HALF*(crse(i,j+1,k,n)-crse(i,j-1,k,n))
-                lc_yslope(i,j,k,n) = uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
+                lc_yslope(i,j,k,n) = &
+                     uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
              end do
           end do
        end do
@@ -958,13 +973,15 @@ contains
           else
              do k = cslope_lo(3),cslope_hi(3)
                 do i = cslope_lo(1),cslope_hi(1)
-                   uc_yslope(i,j,k,n) = FOURTH * (crse(i,j+1,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j-1,k,n) )
+                   uc_yslope(i,j,k,n) = &
+                        FOURTH * (crse(i,j+1,k,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j-1,k,n))
                 end do
              end do
           end if
           do k = cslope_lo(3),cslope_hi(3)
              do i = cslope_lo(1),cslope_hi(1)
-                lc_yslope(i,j,k,n) = uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
+                lc_yslope(i,j,k,n) = &
+                     uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
              end do
           end do
        end if
@@ -988,7 +1005,8 @@ contains
           end if
           do k = cslope_lo(3),cslope_hi(3)
              do i = cslope_lo(1),cslope_hi(1)
-                lc_yslope(i,j,k,n) = uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
+                lc_yslope(i,j,k,n) = &
+                     uclc_slope(uc_yslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=2)
              end do
           end do
        end if
@@ -997,7 +1015,8 @@ contains
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
                 uc_zslope(i,j,k,n) = HALF*(crse(i,j,k+1,n)-crse(i,j,k-1,n))
-                lc_zslope(i,j,k,n) = uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
+                lc_zslope(i,j,k,n) = &
+                     uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
              end do
           end do
        end do
@@ -1014,13 +1033,15 @@ contains
           else
              do j = cslope_lo(2),cslope_hi(2)
                 do i = cslope_lo(1),cslope_hi(1)
-                   uc_zslope(i,j,k,n) = FOURTH * (crse(i,j,k+1,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j,k-1,n) )
+                   uc_zslope(i,j,k,n) = &
+                        FOURTH * (crse(i,j,k+1,n) + FIVE*crse(i,j,k,n) - SIX*crse(i,j,k-1,n))
                 end do
              end do
           end if
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
-                lc_zslope(i,j,k,n) = uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
+                lc_zslope(i,j,k,n) = &
+                     uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
              end do
           end do
        end if
@@ -1044,7 +1065,8 @@ contains
           end if
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
-                lc_zslope(i,j,k,n) = uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
+                lc_zslope(i,j,k,n) = &
+                     uclc_slope(uc_zslope(i,j,k,n),crse,crse_lo,i,j,k,n,dim=3)
              end do
           end do
        end if
@@ -1052,26 +1074,6 @@ contains
     end do
 
     if ( lim_slope ) then
-
-       ! Do the interpolation using unlimited slopes.
-
-       do n = 1, size(crse,4)
-          do k = fine_lo(3), fine_lo(3)+size(fine,3) - 1
-             kc = IX_PROJ(k,lratio(3))
-             do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
-                jc = IX_PROJ(j,lratio(2))
-                do i = fine_lo(1), fine_lo(1)+size(fine,1) - 1
-                   ic = IX_PROJ(i,lratio(1))
-                   fine(i,j,k,n) = crse(ic,jc,kc,n) &
-                        + voffx(i)*uc_xslope(ic,jc,kc,n) &
-                        + voffy(j)*uc_yslope(ic,jc,kc,n) &
-                        + voffz(k)*uc_zslope(ic,jc,kc,n)
-                end do
-             end do
-          end do
-       end do
-
-    else
 
        if ( lin_limit ) then
 
@@ -1154,6 +1156,26 @@ contains
                         + voffy(j)*lc_yslope(ic,jc,kc,n)&
                         + voffz(k)*lc_zslope(ic,jc,kc,n) &
                         )
+                end do
+             end do
+          end do
+       end do
+
+    else
+
+       ! Do the interpolation using unlimited slopes.
+
+       do n = 1, size(crse,4)
+          do k = fine_lo(3), fine_lo(3)+size(fine,3) - 1
+             kc = IX_PROJ(k,lratio(3))
+             do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
+                jc = IX_PROJ(j,lratio(2))
+                do i = fine_lo(1), fine_lo(1)+size(fine,1) - 1
+                   ic = IX_PROJ(i,lratio(1))
+                   fine(i,j,k,n) = crse(ic,jc,kc,n) &
+                        + voffx(i)*uc_xslope(ic,jc,kc,n) &
+                        + voffy(j)*uc_yslope(ic,jc,kc,n) &
+                        + voffz(k)*uc_zslope(ic,jc,kc,n)
                 end do
              end do
           end do
@@ -1255,7 +1277,8 @@ contains
 
              do n = 1, ubound(fine,4)
 
-                redo_me = any(fine_state(ilo:ihi,jlo:jhi,klo:khi,n) < -fine(ilo:ihi,jlo:jhi,klo:khi,n))
+                redo_me = any(fine_state(ilo:ihi,jlo:jhi,klo:khi,n) &
+                     < -fine(ilo:ihi,jlo:jhi,klo:khi,n))
 
                 ! **************************************************************************
                 !
@@ -1293,7 +1316,7 @@ contains
                 ! SumN = sum of all negative values of fine_state
                 ! SumP = sum of all positive values of fine_state
                 !
-                ! ****************************************************************************************
+                ! *********************************************************************
                 !
 
                 if ( redo_me ) then
@@ -1316,20 +1339,23 @@ contains
 
                       icase = 1
                       where(fine_state(ilo:ihi,jlo:jhi,klo:khi,n)<=ZERO) &
-                           fine(ilo:ihi,jlo:jhi,klo:khi,n) = -fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                           fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                           -fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
 
                       if (sumP > ZERO) then
 
                          alpha = (crseTot - abs(sumN)) / sumP
-                         
+
                          where(fine_state(ilo:ihi,jlo:jhi,klo:khi,n)>=ZERO) &
-                           fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                              fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
 
                       else
 
                          posVal = (crseTot - abs(sumN)) / float(numFineCells)
 
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = fine(ilo:ihi,jlo:jhi,klo:khi,n) + posVal
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              fine(ilo:ihi,jlo:jhi,klo:khi,n) + posVal
 
                       end if
 
@@ -1345,7 +1371,8 @@ contains
                       alpha = crseTot / abs(sumN)
 
                       where(fine_state(ilo:ihi,jlo:jhi,klo:khi,n) < ZERO)
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*abs(fine_state(ilo:ihi,jlo:jhi,klo:khi,n))
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              alpha*abs(fine_state(ilo:ihi,jlo:jhi,klo:khi,n))
                       elsewhere
                          fine(ilo:ihi,jlo:jhi,klo:khi,n) = ZERO
                       end where
@@ -1360,11 +1387,13 @@ contains
                       icase = 3
                       negVal = (sumP + sumN + crseTot)/float(numFineCells)
 
-                      fine(ilo:ihi,jlo:jhi,klo:khi,n) = negVal - fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                      fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                           negVal - fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
 
                    end if
 
-                   if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  >  ZERO) then
+                   if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP&
+                        .and. (sumP+sumN+crseTot)  >  ZERO) then
                       ! Here we have enough positive states to absorb all the
                       ! negative correction *and* redistribute to make negative cells
                       ! positive. 
@@ -1373,14 +1402,17 @@ contains
                       alpha = (crseTot + sumN) / sumP
 
                       where(fine_state(ilo:ihi,jlo:jhi,klo:khi,n) < ZERO)
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = -fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = -&
+                              fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       elsewhere
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       end where
 
                    end if
 
-                   if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP.and. (sumP+sumN+crseTot)  <= ZERO) then
+                   if (crseTot  <  ZERO .and. abs(crseTot)  <  sumP &
+                        .and. (sumP+sumN+crseTot)  <= ZERO) then
                       ! Here we have enough positive states to absorb all the
                       ! negative correction, but not to fix the states already negative. 
                       ! We bring all the positive states to ZERO, and use whatever 
@@ -1390,9 +1422,11 @@ contains
                       alpha = (crseTot + sumP) / sumN
 
                       where(fine_state(ilo:ihi,jlo:jhi,klo:khi,n) > ZERO)
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = -fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              -fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       elsewhere
-                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
+                         fine(ilo:ihi,jlo:jhi,klo:khi,n) = &
+                              alpha*fine_state(ilo:ihi,jlo:jhi,klo:khi,n)
                       end where
 
                    end if
@@ -1410,7 +1444,8 @@ contains
                          do j = jlo,jhi
                             do i = ilo,ihi
                                print *,'FINE OLD NEW ', &
-                                    i, j, k, orig_fine(i-ilo,j-jlo,k-klo), fine(i,j,k,n), fine_state(i,j,k,n)
+                                    i, j, k, orig_fine(i-ilo,j-jlo,k-klo), &
+                                    fine(i,j,k,n), fine_state(i,j,k,n)
                             end do
                          end do
                       end do
