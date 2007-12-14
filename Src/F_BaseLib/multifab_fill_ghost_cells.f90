@@ -84,7 +84,7 @@ contains
     call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
     call destroy(ba)
     call build(ghost, la, nc, ng = 1)
-    call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, bcomp, nc, no_final_physbc = .true.)
+    call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, no_final_physbc = .true.)
     !
     ! Copy fillpatch()d ghost cells to fine.
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.
@@ -156,7 +156,7 @@ contains
 
     call build(tfine, fine%la, nc, ng)
 
-    call fillpatch(tfine, crse, ng, ir, bc_crse, bc_fine, 1, bcomp, nc)
+    call fillpatch(tfine, crse, ng, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc)
     !
     ! Copy ghost cells in tfine to fine.
     !
