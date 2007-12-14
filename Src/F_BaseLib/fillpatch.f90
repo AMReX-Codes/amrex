@@ -15,14 +15,15 @@ module fillpatch_module
 
 contains
 
-  subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp, bcomp, nc, no_final_physbc)
+  subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
+                       bcomp, nc, no_final_physbc)
 
     type(multifab), intent(inout)           :: fine
     type(multifab), intent(inout)           :: crse
     integer       , intent(in   )           :: ng
     integer       , intent(in   )           :: ir(:)
     type(bc_level), intent(in   )           :: bc_crse, bc_fine
-    integer       , intent(in   )           :: icomp, bcomp, nc
+    integer       , intent(in   )           :: icomp_fine, icomp_crse, bcomp, nc
     logical       , intent(in   ), optional :: no_final_physbc
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
@@ -39,7 +40,8 @@ contains
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
-    real(kind=dp_t),       allocatable :: fvcx(:), fvcy(:), fvcz(:), cvcx(:), cvcy(:), cvcz(:)
+    real(kind=dp_t),       allocatable :: fvcx(:), fvcy(:), fvcz(:)
+    real(kind=dp_t),       allocatable :: cvcx(:), cvcy(:), cvcz(:)
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
 
@@ -47,8 +49,8 @@ contains
 
     call build(bpt, "fillpatch")
 
-    if ( nghost(fine) <  ng          ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
-    if ( nghost(crse) <  ng          ) call bl_error('fillpatch: crse does NOT have enough ghost cells')
+    if (nghost(fine) < ng) call bl_error('fillpatch: fine does NOT have enough ghost cells')
+    if (nghost(crse) < ng) call bl_error('fillpatch: crse does NOT have enough ghost cells')
 
     if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
     if ( .not. cell_centered_q(crse) ) call bl_error('fillpatch: crse is NOT cell centered')
@@ -62,11 +64,12 @@ contains
 
     if ( present(no_final_physbc) ) lno_final_physbc = no_final_physbc
     !
-    ! Force crse to have good data in ghost cells (only the ng that are needed in case has more than ng).
+    ! Force crse to have good data in ghost cells (only the ng that are needed 
+    ! in case has more than ng).
     !
-    call fill_boundary(crse, icomp, nc, ng)
+    call fill_boundary(crse, icomp_crse, nc, ng)
 
-    call multifab_physbc(crse,icomp,bcomp,nc,dx,bc_crse)
+    call multifab_physbc(crse,icomp_crse,bcomp,nc,dx,bc_crse)
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
     ! We don't try to directly fill anything at fine level outside of the domain.
@@ -75,7 +78,8 @@ contains
 
     do i = 1, nboxes(fine)
        !
-       ! We don't use get_pbox here as we only want to fill ng ghost cells of fine & it may have more ghost cells than that.
+       ! We don't use get_pbox here as we only want to fill ng ghost cells of 
+       ! fine & it may have more ghost cells than that.
        !
        bx = intersection(grow(get_ibox(fine,i),ng),fdomain)
        if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
@@ -184,8 +188,8 @@ contains
 
     do i = 1, nboxes(crse)
        if ( remote(crse, i) ) cycle
-       src => dataptr(crse,    i, icomp, nc)
-       dst => dataptr(tmpcrse, i, 1    , nc)
+       src => dataptr(crse,    i, icomp_crse, nc)
+       dst => dataptr(tmpcrse, i, 1         , nc)
        dst = src
     end do
 
@@ -282,9 +286,9 @@ contains
        end select
 
        if ( n_extra_valid_regions > 0 ) then
-          dst => dataptr(tmpfine,  i, fbx, 1,     nc)
+          dst => dataptr(tmpfine,  i, fbx, 1         , nc)
        else
-          dst => dataptr(fine,     i, fbx, icomp, nc)
+          dst => dataptr(fine,     i, fbx, icomp_fine, nc)
        end if
 
        dst = fp
@@ -301,19 +305,19 @@ contains
           do i = 1, nboxes(fine)
              if ( remote(fine, i) ) cycle
              bx  =  grow(get_ibox(fine,i), ng)
-             dst => dataptr(fine,    i, bx, icomp, nc)
-             src => dataptr(tmpfine, i, bx, 1    , nc)
+             dst => dataptr(fine,    i, bx, icomp_fine, nc)
+             src => dataptr(tmpfine, i, bx, 1         , nc)
              dst =  src
           end do
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().
           !
-          call fill_boundary(fine, icomp, nc, ng)
+          call fill_boundary(fine, icomp_fine, nc, ng)
        end if
     end if
 
-    if ( .not. lno_final_physbc ) call multifab_physbc(fine, icomp, bcomp, nc, dx, bc_fine)
+    if(.not. lno_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, dx, bc_fine)
 
     call destroy(cfine)
     call destroy(la)
