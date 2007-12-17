@@ -511,7 +511,10 @@ contains
       ba%bxs(i) = refine(ba%bxs(i), ri)
     end do
   end subroutine boxarray_refine_i
-
+  !
+  ! This is a very naive implementation.
+  ! You should really be using the box_intersector stuff in layout to do this.
+  !
   subroutine boxarray_intersection_ba(bai, ba)
     type(boxarray), intent(inout) :: bai
     type(boxarray), intent(in)    :: ba
@@ -533,16 +536,7 @@ contains
     end do
     call boxarray_simplify(ba)
   end subroutine boxarray_intersection_bx
-    
-!   subroutine boxarray_box_boundary_m(bao, bx, mat)
-!     type(boxarray), intent(out) :: bao
-!     type(box), intent(in)  :: bx
-!     integer, intent(in) :: mat(:,:)
-!     type(boxarray) :: baa
-!     call boxarray_build_bx(baa, bx)
-!     call boxarray_boundary(bao, baa, mat)
-!     call boxarray_destroy(baa)
-!   end subroutine boxarray_box_boundary_m
+
   subroutine boxarray_box_boundary_v_f(bao, bx, nv, face)
     type(boxarray), intent(out) :: bao
     type(box), intent(in)  :: bx
@@ -579,7 +573,6 @@ contains
     call boxarray_boundary_n_d_f(bao, baa, n, dim, face)
     call boxarray_destroy(baa)
   end subroutine boxarray_box_boundary_n_d_f
-
   subroutine boxarray_box_boundary_n(bao, bx, n)
     type(boxarray), intent(out) :: bao
     type(box), intent(in)  :: bx
@@ -590,14 +583,6 @@ contains
     call boxarray_destroy(baa)
   end subroutine boxarray_box_boundary_n
 
-!   subroutine boxarray_boundary_m(bao, ba, mat)
-!     type(boxarray), intent(out) :: bao
-!     type(boxarray), intent(in)  :: ba
-!     integer, intent(in) :: mat(:,:)
-!     call boxarray_build_copy(bao, ba)
-!     call boxarray_grow(bao, mat)
-!     call boxarray_diff(bao, ba)
-!   end subroutine boxarray_boundary_m
   subroutine boxarray_boundary_v_f(bao, ba, nv, face)
     type(boxarray), intent(out) :: bao
     type(boxarray), intent(in)  :: ba
@@ -867,10 +852,7 @@ contains
   subroutine boxarray_simplify(bxa)
     type(boxarray), intent(inout) :: bxa
     type(list_box) :: bxl
-    integer :: i
-    do i = 1, bxa%nboxes
-       call push_back(bxl, bxa%bxs(i))
-    end do
+    call build(bxl, bxa%bxs)
     call boxlist_simplify(bxl)
     call boxarray_destroy(bxa)
     call boxarray_build_l(bxa, bxl)
@@ -887,6 +869,9 @@ contains
     call build(bpt, "boxlist_simplify")
 
     dm = box_dim(front(bxl))
+    !
+    ! TODO -- limit number of simp() calls to 1, 2 or 3?
+    !
     do while ( simp() > 0 )
     end do
 
