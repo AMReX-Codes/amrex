@@ -41,14 +41,14 @@ module layout_module
   end type trns_dsc
 
   type remote_conn
-     integer :: svol = 0                         ! numpts in snd volume
-     integer :: rvol = 0                         ! numpts in rcv volume
-     integer :: nsnd = 0                         ! Number of snd chunks
-     integer :: nrcv = 0                         ! Number of rcv chunks
+     integer                 :: svol = 0          ! numpts in snd volume
+     integer                 :: rvol = 0          ! numpts in rcv volume
+     integer                 :: nsnd = 0          ! Number of snd chunks
+     integer                 :: nrcv = 0          ! Number of rcv chunks
      type(comm_dsc), pointer :: snd(:) => Null()
      type(comm_dsc), pointer :: rcv(:) => Null()
-     integer :: nrp  = 0                         ! Number of processes receiving from
-     integer :: nsp  = 0                         ! Number of processes sending to
+     integer                 :: nrp  = 0          ! Number of processes receiving from
+     integer                 :: nsp  = 0          ! Number of processes sending to
      type(trns_dsc), pointer :: str(:) => Null()
      type(trns_dsc), pointer :: rtr(:) => Null()
   end type remote_conn
@@ -61,41 +61,50 @@ module layout_module
   end type local_copy_desc
 
   type local_conn
-     integer :: ncpy   ! Number of cpy chunks
+     integer                        :: ncpy   ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
 
   type boxassoc
-     integer :: dim    = 0                  ! spatial dimension 1, 2, or 3
-     integer :: nboxes = 0                  ! number of boxes
-     integer :: grwth  = 0                  ! growth factor
-     logical, pointer :: nodal(:) => Null() ! nodal flag
-     logical :: cross = .false.             ! cross/full stencil?
-     type(local_conn)  :: l_con
-     type(remote_conn) :: r_con
-     type(boxassoc), pointer :: next => Null()
+     integer                 :: dim      = 0       ! spatial dimension 1, 2, or 3
+     integer                 :: nboxes   = 0       ! number of boxes
+     integer                 :: grwth    = 0       ! growth factor
+     logical, pointer        :: nodal(:) => Null() ! nodal flag
+     logical                 :: cross    = .false. ! cross/full stencil?
+     type(local_conn)        :: l_con
+     type(remote_conn)       :: r_con
+     type(boxassoc), pointer :: next     => Null()
   end type boxassoc
+  !
+  ! Used to cache the boxarray used by multifab_fill_ghost_cells().
+  !
+  type fgassoc
+     integer                :: dim      = 0       ! spatial dimension 1, 2, or 3
+     integer                :: grwth    = 0       ! growth factor
+     type(boxarray)         :: ba
+     type(fgassoc), pointer :: next     => Null()
+  end type fgassoc
 
   type syncassoc
-     integer :: dim    = 0                  ! spatial dimension 1, 2, or 3
-     integer :: nboxes = 0                  ! number of boxes
-     integer :: grwth  = 0                  ! growth factor
-     logical :: lall   = .false.            ! use valid region or everything
-     logical, pointer :: nodal(:) => Null() ! nodal flag
-     type(local_conn)  :: l_con
-     type(remote_conn) :: r_con
-     type(syncassoc), pointer :: next => Null()
+     integer                  :: dim      = 0       ! spatial dimension 1, 2, or 3
+     integer                  :: nboxes   = 0       ! number of boxes
+     integer                  :: grwth    = 0       ! growth factor
+     logical                  :: lall     = .false. ! use valid region or everything
+     logical, pointer         :: nodal(:) => Null() ! nodal flag
+     type(local_conn)         :: l_con
+     type(remote_conn)        :: r_con
+     type(syncassoc), pointer :: next     => Null()
   end type syncassoc
 
   type copyassoc
-     integer           :: dim = 0             ! spatial dimension 1, 2, or 3
-     logical, pointer  :: nd_dst(:) => Null() ! dst nodal flag
-     logical, pointer  :: nd_src(:) => Null() ! src nodal flag
-     type(local_conn)  :: l_con
-     type(remote_conn) :: r_con
-     type(copyassoc),  pointer :: next    => Null()
-     type(layout_rep), pointer :: lap_dst => Null()
-     type(layout_rep), pointer :: lap_src => Null()
+     integer                   :: dim       = 0       ! spatial dimension 1, 2, or 3
+     logical, pointer          :: nd_dst(:) => Null() ! dst nodal flag
+     logical, pointer          :: nd_src(:) => Null() ! src nodal flag
+     type(local_conn)          :: l_con
+     type(remote_conn)         :: r_con
+     type(copyassoc),  pointer :: next      => Null()
+     type(layout_rep), pointer :: lap_dst   => Null()
+     type(layout_rep), pointer :: lap_src   => Null()
   end type copyassoc
 
   type fluxassoc
@@ -131,30 +140,31 @@ module layout_module
   type(fluxassoc), pointer, save, private :: the_fluxassoc_head => Null()
 
   type layout
-     integer :: la_type = LA_UNDF
-     type(layout_rep), pointer :: lap => Null()
+     integer                   :: la_type =  LA_UNDF
+     type(layout_rep), pointer :: lap     => Null()
   end type layout
 
   !! Defines the box distribution and box connectivity of a boxarray.
   type layout_rep
-     integer                         :: dim = 0            ! spatial dimension 1, 2, or 3
-     integer                         :: id  = 0
+     integer                         :: dim    = 0            ! spatial dimension 1, 2, or 3
+     integer                         :: id     = 0
      integer                         :: nboxes = 0
-     type(box)                       :: pd                 ! Problem Domain 
-     logical, pointer                :: pmask(:) => Null() ! periodic mask
-     integer, pointer, dimension(:)  :: prc => Null()
+     type(box)                       :: pd                    ! Problem Domain 
+     logical, pointer                :: pmask(:)    => Null() ! periodic mask
+     integer, pointer, dimension(:)  :: prc         => Null()
      type(boxarray)                  :: bxa
-     type(boxassoc), pointer         :: bxasc => Null()
-     type(syncassoc), pointer        :: snasc => Null()
-     type(coarsened_layout), pointer :: crse_la => Null()
+     type(boxassoc), pointer         :: bxasc       => Null()
+     type(fgassoc), pointer          :: fgasc       => Null()
+     type(syncassoc), pointer        :: snasc       => Null()
+     type(coarsened_layout), pointer :: crse_la     => Null()
      type(pn_layout), pointer        :: pn_children => Null()
      type(derived_layout), pointer   :: dlay => Null()
      ! Box Hashing
-     integer :: crsn                = -1
-     integer :: plo(MAX_SPACEDIM)   = 0
-     integer :: phi(MAX_SPACEDIM)   = 0
-     integer :: vshft(MAX_SPACEDIM) = 0
-     type(box_hash_bin), pointer :: bins(:,:,:) => Null()
+     integer                         :: crsn                = -1
+     integer                         :: plo(MAX_SPACEDIM)   = 0
+     integer                         :: phi(MAX_SPACEDIM)   = 0
+     integer                         :: vshft(MAX_SPACEDIM) = 0
+     type(box_hash_bin), pointer     :: bins(:,:,:)         => Null()
   end type layout_rep
 
   !! A layout that is derived by coarsening an existing layout,
@@ -187,6 +197,7 @@ module layout_module
   interface built_q
      module procedure layout_built_q
      module procedure boxassoc_built_q
+     module procedure fgassoc_built_q
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
      module procedure fluxassoc_built_q
@@ -400,6 +411,7 @@ contains
     type(pn_layout), pointer :: pnp, opnp
     type(derived_layout), pointer :: dla, odla
     type(boxassoc),  pointer :: bxa, obxa
+    type(fgassoc),  pointer  :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(copyassoc), pointer :: cpa, ncpa, pcpa
     type(fluxassoc), pointer :: fla, nfla, pfla
@@ -418,7 +430,6 @@ contains
        oclp => clp%next
        deallocate(clp%crse)
        call layout_rep_destroy(clp%la%lap, LA_CRSN)
-!      deallocate(clp%la%lap)
        deallocate(clp)
        clp => oclp
     end do
@@ -438,7 +449,7 @@ contains
        dla  => odla
     end do
     !
-    ! Get rid of boxassocs
+    ! Get rid of boxassocs.
     !
     bxa => lap%bxasc
     do while ( associated(bxa) )
@@ -448,7 +459,17 @@ contains
        bxa => obxa
     end do
     !
-    ! Get rid of syncassocs
+    ! Get rid of fgassocs.
+    !
+    fgxa => lap%fgasc
+    do while ( associated(fgxa) )
+       ofgxa => fgxa%next
+       call fgassoc_destroy(fgxa)
+       deallocate(fgxa)
+       fgxa => ofgxa
+    end do
+    !
+    ! Get rid of syncassocs.
     !
     snxa => lap%snasc
     do while ( associated(snxa) )
@@ -458,7 +479,7 @@ contains
        snxa => osnxa
     end do
     !
-    ! remove any boxarray hash
+    ! Remove any boxarray hash.
     !
     if ( associated(lap%bins) ) then
        do k = lbound(lap%bins,3), ubound(lap%bins,3)
@@ -816,6 +837,13 @@ contains
     r = bxa%grwth == ng .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
   end function boxassoc_check
 
+  function fgassoc_check(fgxa, ng) result(r)
+    type(fgassoc), intent(in) :: fgxa
+    integer,       intent(in) :: ng
+    logical                   :: r
+    r = fgxa%grwth == ng
+  end function fgassoc_check
+
   function syncassoc_check(snxa, ng, nodal, lall) result(r)
     type(syncassoc), intent(in) :: snxa
     integer,         intent(in) :: ng
@@ -843,14 +871,39 @@ contains
        bp => bp%next
     end do
     !
-    ! Didn't find; so have to go looking for it.
+    ! Have to build one.
     !
     allocate (bp)
     call boxassoc_build(bp, la%lap, ng, nodal, cross)
-    bp%next => la%lap%bxasc
+    bp%next      => la%lap%bxasc
     la%lap%bxasc => bp
     r = bp
   end function layout_boxassoc
+
+  function layout_fgassoc(la, ng) result(r)
+    type(fgassoc)                :: r
+    type(layout) , intent(inout) :: la
+    integer, intent(in)          :: ng
+
+    type(fgassoc), pointer :: fgp
+
+    fgp => la%lap%fgasc
+    do while ( associated(fgp) )
+       if ( fgassoc_check(fgp, ng) ) then
+          r = fgp
+          return
+       end if
+       fgp => fgp%next
+    end do
+    !
+    ! Have to go build one.
+    !
+    allocate (fgp)
+    call fgassoc_build(fgp, la, ng)
+    fgp%next     => la%lap%fgasc
+    la%lap%fgasc => fgp
+    r = fgp
+  end function layout_fgassoc
 
   function layout_syncassoc(la, ng, nodal, lall) result(r)
     type(syncassoc)              :: r
@@ -869,11 +922,11 @@ contains
        sp => sp%next
     end do
     !
-    ! Didn't find; so have to go looking for it.
+    ! Have to go looking for it.
     !
     allocate (sp)
     call syncassoc_build(sp, la%lap, ng, nodal, lall)
-    sp%next => la%lap%snasc
+    sp%next      => la%lap%snasc
     la%lap%snasc => sp
     r = sp
   end function layout_syncassoc
@@ -883,6 +936,12 @@ contains
     type(boxassoc), intent(in) :: bxasc
     r = bxasc%dim /= 0
   end function boxassoc_built_q
+
+  function fgassoc_built_q(fgasc) result(r)
+    logical :: r
+    type(fgassoc), intent(in) :: fgasc
+    r = fgasc%dim /= 0
+  end function fgassoc_built_q
 
   function syncassoc_built_q(snasc) result(r)
     logical :: r
@@ -1153,6 +1212,63 @@ contains
     call destroy(bpt)
 
   end subroutine boxassoc_build
+
+  subroutine fgassoc_build(fgasc, la, ng)
+
+    integer,       intent(in   ) :: ng
+    type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
+    type(fgassoc), intent(inout) :: fgasc
+
+    integer                        :: i, j
+    type(box)                      :: bx
+    type(list_box)                 :: bl, pieces, leftover
+    type(box_intersector), pointer :: bi(:)
+    type(bl_prof_timer), save      :: bpt
+
+    if ( built_q(fgasc) ) call bl_error("fgassoc_build(): already built")
+
+    call build(bpt, "fgassoc_build")
+
+    fgasc%dim   = la%lap%dim
+    fgasc%grwth = ng
+    !
+    ! Build list of all ghost cells not covered by valid region.
+    !
+    do i = 1, nboxes(la%lap%bxa)
+       bx = get_box(la%lap%bxa,i)
+       call boxarray_box_diff(fgasc%ba, grow(bx,ng), bx)
+       do j = 1, nboxes(fgasc%ba)
+          call push_back(bl, get_box(fgasc%ba,j))
+       end do
+       call destroy(fgasc%ba)
+    end do
+
+    call build(fgasc%ba, bl, sort = .false.)
+
+    call destroy(bl)
+
+    do i = 1, nboxes(fgasc%ba)
+       bx = get_box(fgasc%ba,i)
+       bi => layout_get_box_intersector(la, bx)
+       do j = 1, size(bi)
+          call push_back(pieces, bi(j)%bx)
+       end do
+       deallocate(bi)
+       leftover = boxlist_boxlist_diff(bx, pieces)
+       call splice(bl, leftover)
+       call destroy(pieces)
+    end do
+    !
+    ! Remove any overlaps on remaining cells.
+    !
+    call destroy(fgasc%ba)
+    call build(fgasc%ba, bl, sort = .false.)
+    call destroy(bl)
+    call boxarray_to_domain(fgasc%ba)
+
+    call destroy(bpt)
+
+  end subroutine fgassoc_build
 
   subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
 
@@ -1466,6 +1582,12 @@ contains
     deallocate(bxasc%r_con%rtr)
     call mem_stats_dealloc(bxa_ms)
   end subroutine boxassoc_destroy
+
+  subroutine fgassoc_destroy(fgasc)
+    type(fgassoc), intent(inout) :: fgasc
+    if ( .not. built_q(fgasc) ) call bl_error("FGASSOC_DESTROY: not built")
+    call destroy(fgasc%ba)
+  end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
     type(syncassoc), intent(inout) :: snasc
