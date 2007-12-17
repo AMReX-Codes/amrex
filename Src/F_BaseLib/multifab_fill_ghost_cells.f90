@@ -26,7 +26,7 @@ contains
     integer         :: i, j
     type(multifab)  :: ghost, tmpfine
     type(box)       :: bx
-    type(boxarray)  :: ba,batmp
+    type(boxarray)  :: ba
     type(list_box)  :: bl, pieces, leftover
     type(layout)    :: la, tmpla
     real(kind=dp_t) :: dx(3)
@@ -78,10 +78,9 @@ contains
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
     call destroy(ba)
-    call build(batmp, bl, sort = .false.)
+    call build(ba, bl, sort = .false.)
     call destroy(bl)
-    call boxarray_add_clean_boxes(ba, batmp%bxs, simplify = .true.)
-    call destroy(batmp)
+    call boxarray_to_domain(ba)
     call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
     call destroy(ba)
     call build(ghost, la, nc, ng = 1)
