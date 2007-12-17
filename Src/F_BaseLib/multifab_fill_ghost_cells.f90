@@ -14,7 +14,6 @@ module multifab_fill_ghost_module
 
 contains
 
-!  subroutine multifab_fill_ghost_cells_new(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
 
     type(multifab), intent(inout) :: fine
@@ -27,7 +26,7 @@ contains
     integer         :: i, j
     type(multifab)  :: ghost, tmpfine
     type(box)       :: bx
-    type(boxarray)  :: ba
+    type(boxarray)  :: ba,batmp
     type(list_box)  :: bl, pieces, leftover
     type(layout)    :: la, tmpla
     real(kind=dp_t) :: dx(3)
@@ -73,16 +72,16 @@ contains
        call splice(bl, leftover)
        call destroy(pieces)
     end do
-
-    call destroy(ba)
     !
-    ! Now fillpatch a temporary multifab on those ghost cells.
-    !
+    ! Remove any overlaps on remaining cells.
+    ! Then fillpatch a temporary multifab on those ghost cells.
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
-    call build(ba, bl, sort = .false.)
-    call boxarray_simplify(ba)
+    call destroy(ba)
+    call build(batmp, bl, sort = .false.)
     call destroy(bl)
+    call boxarray_add_clean_boxes(ba, batmp%bxs, simplify = .true.)
+    call destroy(batmp)
     call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
     call destroy(ba)
     call build(ghost, la, nc, ng = 1)
@@ -137,50 +136,6 @@ contains
     call destroy(tmpla)
 
     call destroy(bpt)
-
-  end subroutine
-
-  subroutine multifab_fill_ghost_cells_old(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
-!  subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
-
-    type(multifab), intent(inout) :: fine
-    type(multifab), intent(inout) :: crse
-    integer       , intent(in   ) :: ng
-    integer       , intent(in   ) :: ir(:)
-    type(bc_level), intent(in   ) :: bc_crse,bc_fine
-    integer       , intent(in   ) :: icomp,bcomp,nc
-
-    integer        :: i, j
-    type(multifab) :: tfine
-    type(box)      :: bx
-    type(boxarray) :: ba
-
-    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
-    real(kind=dp_t) :: dx(3)
-
-    call build(tfine, fine%la, nc, ng)
-
-    call fillpatch(tfine, crse, ng, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc)
-    !
-    ! Copy ghost cells in tfine to fine.
-    !
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
-       call boxarray_box_diff(ba, get_pbox(tfine,i), get_ibox(tfine,i))
-       do j = 1, nboxes(ba)
-          bx  =  get_box(ba, j)
-          src => dataptr(tfine, i, bx, 1,     nc)
-          dst => dataptr(fine,  i, bx, icomp, nc)
-          dst =  src
-       end do
-       call destroy(ba)
-    end do
-
-    dx = ONE
-
-    call multifab_physbc(fine,icomp,bcomp,nc,dx,bc_fine)
-
-    call destroy(tfine)
 
   end subroutine
 
