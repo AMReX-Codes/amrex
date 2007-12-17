@@ -155,7 +155,7 @@ contains
        do i = 1, ba1%nboxes
          if ( ba1%bxs(i) /= ba2%bxs(i) ) then
             r = .false.
-            exit
+            return
          end if
        end do
        r = .true.
