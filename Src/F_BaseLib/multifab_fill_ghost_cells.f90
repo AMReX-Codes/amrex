@@ -23,16 +23,16 @@ contains
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
 
-    integer         :: i, j
+    integer         :: i
     type(multifab)  :: ghost, tmpfine
     type(box)       :: bx
     type(boxarray)  :: ba
-    type(list_box)  :: bl, pieces, leftover
+    type(list_box)  :: bl
     type(layout)    :: la, tmpla
     real(kind=dp_t) :: dx(3)
+    type(fgassoc)   :: fgasc
 
-    real(kind=dp_t),       pointer :: src(:,:,:,:), dst(:,:,:,:)
-    type(box_intersector), pointer :: bi(:)
+    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -46,44 +46,18 @@ contains
     if ( .not. cell_centered_q(fine) ) &
          call bl_error('fillpatch: fine is NOT cell centered')
     !
-    ! Build list of all ghost cells not covered by valid region.
+    ! Grab the cached boxarray of all ghost cells not covered by valid region.
     !
-    do i = 1, nboxes(fine)
-       bx = get_ibox(fine,i)
-       call boxarray_box_diff(ba, grow(bx,ng), bx)
-       do j = 1, nboxes(ba)
-          call push_back(bl, get_box(ba,j))
-       end do
-       call destroy(ba)
-    end do
-
-    call build(ba, bl, sort = .false.)
-
-    call destroy(bl)
-
-    do i = 1, nboxes(ba)
-       bx = get_box(ba,i)
-       bi => layout_get_box_intersector(fine%la, bx)
-       do j = 1, size(bi)
-          call push_back(pieces, bi(j)%bx)
-       end do
-       deallocate(bi)
-       leftover = boxlist_boxlist_diff(bx, pieces)
-       call splice(bl, leftover)
-       call destroy(pieces)
-    end do
+    fgasc = layout_fgassoc(fine%la, ng)
     !
-    ! Remove any overlaps on remaining cells.
-    ! Then fillpatch a temporary multifab on those ghost cells.
+    ! Now fillpatch a temporary multifab on those ghost cells.
+    !
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
-    call destroy(ba)
-    call build(ba, bl, sort = .false.)
-    call destroy(bl)
-    call boxarray_to_domain(ba)
-    call build(la, ba, get_pd(fine%la), get_pmask(fine%la))
-    call destroy(ba)
+    call build(la, fgasc%ba, get_pd(fine%la), get_pmask(fine%la))
+
     call build(ghost, la, nc, ng = 1)
+
     call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
                    no_final_physbc_input = .true.)
     !
