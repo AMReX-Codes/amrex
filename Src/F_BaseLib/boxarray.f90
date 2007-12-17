@@ -97,24 +97,6 @@ module boxarray_module
      module procedure boxarray_grow_v_f
   end interface
 
-! interface boxarray_boundary
-!    module procedure boxarray_boundary_m
-!    module procedure boxarray_boundary_n
-!    module procedure boxarray_boundary_n_f
-!    module procedure boxarray_boundary_n_d_f
-!    module procedure boxarray_boundary_v
-!    module procedure boxarray_boundary_v_f
-! end interface
-
-! interface boxarray_box_boundary
-!    module procedure boxarray_box_boundary_m
-!    module procedure boxarray_box_boundary_n
-!    module procedure boxarray_box_boundary_n_f
-!    module procedure boxarray_box_boundary_n_d_f
-!    module procedure boxarray_box_boundary_v
-!    module procedure boxarray_box_boundary_v_f
-! end interface
-
   interface bbox
      module procedure boxarray_bbox
   end interface
@@ -734,18 +716,6 @@ contains
     call destroy(bl1)
   end subroutine boxarray_boxarray_diff
 
-  subroutine boxarray_boxarray_diff_old(ba, bx, ba1)
-    type(boxarray), intent(out) :: ba
-    type(boxarray), intent(in) :: ba1
-    type(box), intent(in) :: bx
-    type(list_box) :: bl1, bl
-    call build(bl1, ba1%bxs)
-    bl = boxlist_boxlist_diff(bx, bl1)
-    call boxarray_build_l(ba, bl)
-    call destroy(bl)
-    call destroy(bl1)
-  end subroutine boxarray_boxarray_diff_old
-
   subroutine boxarray_diff(bao, ba)
     type(boxarray), intent(inout) :: bao
     type(boxarray), intent(in) :: ba
@@ -1118,10 +1088,17 @@ contains
     type(list_box_node), pointer :: cp, lp
     integer :: i
     type(bl_prof_timer), save :: bpt
+
     call build(bpt, "ba_add_clean_boxes")
+
     lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
+
+    if ( size(bxs) .eq. 0 ) return
+    
     if ( empty(ba) ) call boxarray_build_bx(ba, bxs(1))
+
     call build(bl, ba%bxs)
+
     do i = 1, size(bxs)
        call build(check, bxs(i:i))
        lp => begin(bl)
@@ -1141,7 +1118,9 @@ contains
        end do
        call splice(bl, check)
     end do
+
     if ( lsimplify ) call boxlist_simplify(bl)
+
     call boxarray_build_copy_l(ba, bl)
     call destroy(bl)
     call destroy(bpt)
