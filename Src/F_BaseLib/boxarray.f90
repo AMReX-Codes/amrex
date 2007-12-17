@@ -207,27 +207,21 @@ contains
   subroutine boxarray_build_copy(ba, ba1)
     type(boxarray), intent(inout) :: ba
     type(boxarray), intent(in) :: ba1
-    
     if ( built_q(ba) ) call bl_error("BOXARRAY_BUILD_COPY: already built")
-    ! If ba1 is not built then return
     if ( .not. built_q(ba1) ) return
     ba%nboxes = size(ba1%bxs)
     allocate(ba%bxs(size(ba1%bxs)))
     ba%bxs = ba1%bxs
     ba%dim = ba1%dim
     call boxarray_verify_dim(ba)
-    ! call boxarray_sort(ba) ! shouldn't be needed, ba1 same sort as ba
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_copy
 
   subroutine boxarray_build_copy_l(ba, bl)
     type(boxarray), intent(inout) :: ba
     type(list_box), intent(in) :: bl
-    
     if ( built_q(ba) ) call destroy(ba)
     call boxarray_build_l(ba, bl)
-    ! call boxarray_sort(ba) ! boxarray_build_l already does it
-    ! call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_copy_l
 
   subroutine boxarray_build_v(ba, bxs, sort)
