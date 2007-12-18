@@ -1281,7 +1281,7 @@ contains
     type(box)                      :: jbx, abx
     integer                        :: i, j, k, ii, jj, cnt
     integer                        :: shft(2*3**(la%lap%dim),la%lap%dim)
-    integer, parameter             :: chunksize = 20
+    integer, parameter             :: chunksize = 10
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2, bltmp
@@ -1367,7 +1367,7 @@ contains
              end do
              call boxarray_add_clean_boxes(ba1, bxs, simplify = .false.)
              call boxarray_build_v(ba2, bxs, sort = .false.)
-             if ( .not. boxarray_same_q(ba1, ba2) ) then
+             if ( volume(ba1) .ne. volume(ba2) ) then
                 if ( parallel_IOProcessor() ) then
                    print*, "*** NOT a unique covering !!!"
                    call print(ba1, "ba1")
