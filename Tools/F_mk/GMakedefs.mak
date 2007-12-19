@@ -199,7 +199,6 @@ ifeq ($(ARCH),Linux)
     ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     endif
 
-
 #   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
       F90FLAGS += -g -fno-second-underscore
@@ -208,9 +207,9 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -fno-second-underscore -Ofast
-      FFLAGS   += -fno-second-underscore -Ofast
-      CFLAGS   += -fno-second-underscore -Ofast
+      F90FLAGS += -Ofast #-fno-second-underscore
+      FFLAGS   += -Ofast #-fno-second-underscore
+      CFLAGS   += -Ofast #-fno-second-underscore
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
