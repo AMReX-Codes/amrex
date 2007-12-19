@@ -8,17 +8,16 @@ module ml_nd_module
   use ml_layout_module
   use itsol_module
 
-  use ml_restriction_module
-  use ml_prolongation_module
-  use ml_interface_stencil_module
-  use ml_util_module
   use bndry_reg_module
+  use ml_restriction_module
 
   implicit none
 
 contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+
+    use ml_prolongation_module
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
@@ -417,6 +416,9 @@ contains
 
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
          crse_soln,fine_soln,one_sided_ss,ref_ratio,pdc)
+
+      use ml_util_module
+      use ml_interface_stencil_module
 
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)

@@ -8,11 +8,8 @@ module ml_cc_module
   use ml_layout_module
   use itsol_module
 
-  use ml_restriction_module
-  use ml_prolongation_module
-  use ml_interface_stencil_module
-  use ml_util_module
   use bndry_reg_module
+  use ml_restriction_module
 
   implicit none
 
@@ -20,6 +17,8 @@ contains
 
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
                    do_diagnostics, eps, need_grad_phi_in)
+
+    use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -500,6 +499,9 @@ contains
     end function ml_fine_converged
 
     function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
+
+      use ml_util_module
+
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
@@ -514,6 +516,10 @@ contains
   end subroutine ml_cc
 
   subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
+
+      use ml_util_module
+      use ml_interface_stencil_module
+
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
       type(bndry_reg), intent(inout) :: brs_flx
@@ -546,6 +552,8 @@ contains
   end subroutine crse_fine_residual_cc
 
   subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
+
+    use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -626,6 +634,8 @@ contains
 
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
                            do_diagnostics)
+
+    use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
