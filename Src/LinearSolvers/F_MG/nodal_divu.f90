@@ -1,5 +1,6 @@
 module nodal_divu_module
 
+  use bl_constants_module
   use stencil_module
   use bndry_reg_module
   use mg_module
@@ -10,9 +11,9 @@ module nodal_divu_module
   use bl_IO_module
 
   use ml_restriction_module
-  use ml_prolongation_module
-  use ml_interface_stencil_module
-  use ml_util_module
+!  use ml_prolongation_module
+!  use ml_interface_stencil_module
+!  use ml_util_module
 
   implicit none
 
@@ -172,6 +173,8 @@ contains
 !   ********************************************************************************************* !
 
     subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,ref_ratio,mgt)
+
+      use ml_util_module
 
       integer        , intent(in   ) :: n_fine,nlevs
       type(multifab) , intent(inout) :: rh_crse
