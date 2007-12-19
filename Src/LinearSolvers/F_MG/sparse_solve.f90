@@ -1,9 +1,9 @@
 module sparse_solve_module
 
   use bl_types
+  use box_module
   use multifab_module
   use stencil_module
-  use sort_box_module
 
   implicit none
 
@@ -74,6 +74,7 @@ contains
   end subroutine sparse_build_st
 
   subroutine sparse_build(spo, ss, mm, la, order, verbose)
+    use sort_box_module
     type(   layout), intent(in) :: la
     type(imultifab), intent(in) :: mm
     type(multifab) , intent(in) :: ss
@@ -84,7 +85,7 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), allocatable :: temp_aa(:)
     type(box) :: b,mbx,ibx,jbx,shifted_box
-    type(box) :: bbox
+    type(box) :: bbx
 
     type(box), allocatable :: barray(:)
     integer  , allocatable :: iarray(:)
@@ -196,9 +197,9 @@ contains
     allocate(spo%smt%ia(numpts+1))
 
     !   Create the minimum box containing all the grids
-    bbox = get_ibox(ss, 1)
+    bbx = get_ibox(ss, 1)
     do igrid = 2,ngrids
-       bbox = box_bbox(bbox,get_ibox(ss,igrid))
+       bbx = box_bbox(bbx,get_ibox(ss,igrid))
     end do
 
     !   Convert the ss into CSR format.
@@ -267,8 +268,8 @@ contains
 
     case(2)
 
-       jlo = bbox%lo(2)
-       jhi = bbox%hi(2)
+       jlo = bbx%lo(2)
+       jhi = bbx%hi(2)
 
        allocate(num_grids_for_j(jlo:jhi))
        allocate(new_iarray_ij(jlo:jhi,ngrids))
@@ -371,10 +372,10 @@ contains
 
     case(3)
 
-       jlo = bbox%lo(2)
-       jhi = bbox%hi(2)
-       klo = bbox%lo(3)
-       khi = bbox%hi(3)
+       jlo = bbx%lo(2)
+       jhi = bbx%hi(2)
+       klo = bbx%lo(3)
+       khi = bbx%hi(3)
 
        allocate(num_grids_for_jk(jlo:jhi,klo:khi))
        allocate(new_iarray_ijk(jlo:jhi,klo:khi,ngrids))
@@ -1548,6 +1549,7 @@ contains
   end subroutine sparse_build
 
   subroutine sparse_nodal_build(spo, ss, mm, la, face_type, verbose)
+    use sort_box_module
     type(   layout), intent(in) :: la
     type(imultifab), intent(in) :: mm
     type(multifab) , intent(in) :: ss
@@ -1559,7 +1561,7 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), allocatable :: temp_aa(:)
     type(box) :: b,ibx
-    type(box) :: bbox,jbox
+    type(box) :: bbx,jbox
 
     type(imultifab) :: mm_grown
 
@@ -1617,9 +1619,9 @@ contains
     allocate(spo%smt%ia(numpts+1))
 
     !   Create the minimum box containing all the grids
-    bbox = get_ibox(ss, 1)
+    bbx = get_ibox(ss, 1)
     do igrid = 2,ngrids
-       bbox = box_bbox(bbox,get_ibox(ss,igrid))
+       bbx = box_bbox(bbx,get_ibox(ss,igrid))
     end do
 
     !   Convert the ss into CSR format.
@@ -1696,8 +1698,8 @@ contains
 
     case(2)
 
-       jlo = bbox%lo(2)
-       jhi = bbox%hi(2)
+       jlo = bbx%lo(2)
+       jhi = bbx%hi(2)
 
        allocate(num_grids_for_j(jlo:jhi))
        allocate(new_iarray_ij(jlo:jhi,ngrids))
@@ -1807,10 +1809,10 @@ contains
 
     case(3)
 
-       jlo = bbox%lo(2)
-       jhi = bbox%hi(2)
-       klo = bbox%lo(3)
-       khi = bbox%hi(3)
+       jlo = bbx%lo(2)
+       jhi = bbx%hi(2)
+       klo = bbx%lo(3)
+       khi = bbx%hi(3)
 
        allocate(num_grids_for_jk(jlo:jhi,klo:khi))
        allocate(new_iarray_ijk(jlo:jhi,klo:khi,ngrids))

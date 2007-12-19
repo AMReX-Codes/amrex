@@ -1,8 +1,8 @@
 module cpp_mg_module
+
   use mg_module
+  use multifab_module
   use ml_layout_module
-  use ml_multifab_module
-  use bndry_reg_module
 
   implicit none
 

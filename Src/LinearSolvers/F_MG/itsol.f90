@@ -3,8 +3,6 @@ module itsol_module
   use bl_types
   use multifab_module
   use stencil_module
-  use stencil_nodal_module
-  use bl_prof_module
 
   implicit none
 
@@ -53,6 +51,7 @@ contains
   end function itsol_breakdown
 
   function itsol_converged(rr, uu, Anorm, bnorm, eps, abs_eps) result(r)
+    use bl_prof_module
     type(multifab), intent(in) :: rr, uu
     real(dp_t), intent(in) :: Anorm, bnorm, eps
     real(dp_t), intent(in), optional :: abs_eps
@@ -76,6 +75,8 @@ contains
   end function itsol_converged
 
   subroutine itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
+    use bl_prof_module
+    use stencil_nodal_module
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
@@ -141,6 +142,7 @@ contains
   end subroutine itsol_stencil_apply
 
   subroutine itsol_defect(aa, rr, rh, uu, mm, uniform_dh)
+    use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in) :: rh, aa
     type(imultifab), intent(in) :: mm
@@ -154,6 +156,7 @@ contains
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, &
        stat, singular_in, uniform_dh)
+    use bl_prof_module
     integer, intent(in) :: max_iter
     type(imultifab), intent(in) :: mm
     type(multifab), intent(inout) :: uu
@@ -367,6 +370,7 @@ contains
 
   subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, &
        stat, singular_in, uniform_dh)
+    use bl_prof_module
     integer, intent(in   )           :: max_iter, verbose
     integer, intent(  out), optional :: stat
     logical, intent(in   ), optional :: singular_in
@@ -542,6 +546,7 @@ contains
   end subroutine itsol_CG_Solve
 
   subroutine itsol_precon(aa, uu, rh, mm, method)
+    use bl_prof_module
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh

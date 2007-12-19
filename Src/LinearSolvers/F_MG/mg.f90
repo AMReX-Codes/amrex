@@ -3,10 +3,8 @@ module mg_module
   use multifab_module
   use stencil_module
   use stencil_nodal_module
-  use itsol_module
   use sparse_solve_module
   use bl_timer_module
-  use bl_prof_module
 
   implicit none
 
@@ -105,6 +103,7 @@ contains
        verbose, cg_verbose, nodal)
 
     use bl_IO_module
+    use bl_prof_module
     type(mg_tower), intent(inout) :: mgt
     type(layout), intent(inout) :: la
     type(box), intent(in) :: pd
@@ -453,6 +452,8 @@ contains
   end subroutine mg_tower_v_cycle
 
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+    use bl_prof_module
+    use itsol_module
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in) :: rh
@@ -516,7 +517,8 @@ contains
   end subroutine mg_tower_bottom_solve
 
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
-
+    use bl_prof_module
+    use itsol_module
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
@@ -529,6 +531,7 @@ contains
   end subroutine mg_defect
 
   subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type, uniform_dh)
+    use bl_prof_module
     use mg_defect_module
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
@@ -582,6 +585,7 @@ contains
   end subroutine grid_res
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
+    use bl_prof_module
     use mg_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
@@ -665,6 +669,7 @@ contains
   end subroutine mg_tower_restriction
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
+    use bl_prof_module
     use mg_smoother_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
@@ -833,6 +838,7 @@ contains
   end subroutine mg_tower_smoother
 
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
+    use bl_prof_module
     use mg_smoother_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
@@ -894,6 +900,7 @@ contains
   end subroutine mg_jacobi_smoother
 
   subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
+    use bl_prof_module
     use mg_prolongation_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
@@ -952,6 +959,7 @@ contains
   end subroutine mg_tower_prolongation
 
   function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
+    use itsol_module
     logical :: r
     type(mg_tower), intent(inout) :: mgt
     integer, intent(in) :: lev
@@ -1002,6 +1010,7 @@ contains
   end subroutine mg_tower_v_cycle_c
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, bottom_level)
+    use bl_prof_module
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
     type(multifab), intent(inout) :: uu

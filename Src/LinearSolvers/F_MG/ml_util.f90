@@ -2,13 +2,13 @@ module ml_util_module
 
   use stencil_module
   use stencil_nodal_module
-  use bl_prof_module
 
   implicit none
 
 contains
 
   subroutine ml_fill_fluxes(ss, flux, uu, mm, ratio, face, dim)
+    use bl_prof_module
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
@@ -55,6 +55,7 @@ contains
   end subroutine ml_fill_fluxes
 
   subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
+    use bl_prof_module
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
@@ -100,6 +101,7 @@ contains
   end subroutine ml_fill_fluxes_c
 
   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
+    use bl_prof_module
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
@@ -152,6 +154,7 @@ contains
   end subroutine ml_fill_fine_fluxes
 
   subroutine ml_fill_all_fluxes(ss, flux, uu, mm)
+    use bl_prof_module
     type( multifab), intent(in   ) :: ss
     type( multifab), intent(inout) :: flux(:)
     type( multifab), intent(inout) :: uu
@@ -205,6 +208,7 @@ contains
   end subroutine ml_fill_all_fluxes
 
   subroutine ml_fine_contrib(flux, res, mm, ratio, crse_domain, side)
+    use bl_prof_module
     type(multifab), intent(inout) :: flux
     type(multifab), intent(inout) :: res
     type(imultifab), intent(in) :: mm

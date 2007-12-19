@@ -3,7 +3,6 @@ module mg_smoother_module
   use stencil_module
   use stencil_nodal_module
   use bl_constants_module
-  use bl_prof_module
 
   implicit none
 
@@ -63,6 +62,7 @@ contains
   end subroutine gs_line_solve_1d
 
   subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -195,6 +195,7 @@ contains
   end subroutine gs_rb_smoother_2d
 
   subroutine gs_rb_smoother_3d_transpose(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -351,6 +352,7 @@ contains
   end subroutine gs_rb_smoother_3d_transpose
 
   subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
@@ -563,6 +565,7 @@ contains
   end subroutine nodal_smoother_1d
 
   subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, red_black)
+    use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
@@ -673,6 +676,7 @@ contains
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, red_black)
+    use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
@@ -866,6 +870,7 @@ contains
   end subroutine gs_lex_smoother_1d
 
   subroutine gs_lex_smoother_2d(omega, ss, uu, ff, mm, ng, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
@@ -900,6 +905,7 @@ contains
   end subroutine gs_lex_smoother_2d
 
   subroutine gs_lex_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
@@ -961,6 +967,7 @@ contains
   end subroutine gs_lex_dense_smoother_1d
 
   subroutine gs_lex_dense_smoother_2d(omega, ss, uu, ff, mm, ng, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
@@ -1003,6 +1010,7 @@ contains
   end subroutine gs_lex_dense_smoother_2d
 
   subroutine gs_lex_dense_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
@@ -1119,6 +1127,7 @@ contains
   end subroutine jac_dense_smoother_1d
 
   subroutine jac_smoother_2d(omega, ss, uu, ff, mm, ng)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) ::  omega
     real (kind = dp_t), intent(in) ::  ss(:,:,0:)
@@ -1176,6 +1185,7 @@ contains
   end subroutine jac_smoother_2d
 
   subroutine jac_dense_smoother_2d(omega, ss, uu, ff, ng)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(:,:,0:)
@@ -1224,6 +1234,7 @@ contains
   end subroutine jac_dense_smoother_2d
 
   subroutine jac_smoother_3d(omega, ss, uu, ff, mm, ng)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
@@ -1297,6 +1308,7 @@ contains
   end subroutine jac_smoother_3d
 
   subroutine jac_dense_smoother_3d(omega, ss, uu, ff, ng)
+    use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
