@@ -5,6 +5,11 @@ module ml_util_module
 
   implicit none
 
+  private
+
+  public :: ml_fill_fluxes, ml_fill_fluxes_c, ml_fill_fine_fluxes, ml_fill_all_fluxes
+  public :: ml_fine_contrib, ml_norm_inf, ml_norm_l2
+
 contains
 
   subroutine ml_fill_fluxes(ss, flux, uu, mm, ratio, face, dim)
@@ -261,5 +266,33 @@ contains
     end do
     call destroy(bpt)
   end subroutine ml_fine_contrib
+
+  function ml_norm_inf(mf, mask) result(r)
+    type( multifab), intent(in) :: mf(:)
+    type(lmultifab), intent(in) :: mask(:)
+    real(dp_t)                  :: r, r1
+    integer                     :: n,nlevs
+    nlevs = size(mf)
+    r = norm_inf(mf(nlevs))
+    do n = nlevs-1, 1, -1
+       r1 = norm_inf(mf(n), mask(n))
+       r = max(r1, r)
+    end do
+  end function ml_norm_inf
+
+  function ml_norm_l2(mf, rr, mask) result(r)
+    type( multifab), intent(in) :: mf(:)
+    integer                     :: rr(:,:)
+    type(lmultifab), intent(in) :: mask(:)
+    real(dp_t)                  :: r
+    integer                     :: n,nlevs
+    nlevs = size(mf)
+    r = norm_l2(mf(nlevs))**2
+    do n = nlevs-1, 1, -1
+       r =  r / product(rr(n,:)) &
+          + norm_l2(mf(n), mask = mask(n))**2
+    end do
+    r = sqrt(r)
+  end function ml_norm_l2
 
 end module ml_util_module

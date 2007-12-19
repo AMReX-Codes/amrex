@@ -13,6 +13,7 @@ contains
 
     use bl_prof_module
     use stencil_module
+    use ml_util_module
     use ml_restriction_module
     use ml_prolongation_module
 
@@ -498,6 +499,7 @@ contains
     end function ml_fine_converged
 
     function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
+      use ml_util_module
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
@@ -510,33 +512,5 @@ contains
     end function ml_converged
 
   end subroutine ml_nd
-
-  function ml_norm_inf(mf, mask) result(r)
-    type( multifab), intent(in) :: mf(:)
-    type(lmultifab), intent(in) :: mask(:)
-    real(dp_t)                  :: r, r1
-    integer                     :: n,nlevs
-    nlevs = size(mf)
-    r = norm_inf(mf(nlevs))
-    do n = nlevs-1, 1, -1
-       r1 = norm_inf(mf(n), mask(n))
-       r = max(r1, r)
-    end do
-  end function ml_norm_inf
-
-  function ml_norm_l2(mf, rr, mask) result(r)
-    type( multifab), intent(in) :: mf(:)
-    integer                     :: rr(:,:)
-    type(lmultifab), intent(in) :: mask(:)
-    real(dp_t)                  :: r
-    integer                     :: n,nlevs
-    nlevs = size(mf)
-    r = norm_l2(mf(nlevs))**2
-    do n = nlevs-1, 1, -1
-       r =  r / product(rr(n,:)) &
-          + norm_l2(mf(n), mask = mask(n))**2
-    end do
-    r = sqrt(r)
-  end function ml_norm_l2
 
 end module ml_nd_module
