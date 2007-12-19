@@ -22,6 +22,7 @@ contains
 end subroutine t_bx
 
 subroutine t_ba_self_intersection
+  use bl_error_module
   use ml_boxarray_module
   use box_util_module
   use layout_module

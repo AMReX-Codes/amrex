@@ -1,10 +1,11 @@
+!!
 !! A _BoxArray_ is an array of boxes.
+!!
 module boxarray_module
 
   use bl_types
   use box_module
   use list_box_module
-  use bl_prof_module
   use bl_mem_stat_module
 
   implicit none
@@ -89,7 +90,6 @@ module boxarray_module
   end interface
 
   interface boxarray_grow
-!     module procedure boxarray_grow_m
      module procedure boxarray_grow_n
      module procedure boxarray_grow_n_f
      module procedure boxarray_grow_n_d_f
@@ -205,6 +205,7 @@ contains
   end function boxarray_get_box
 
   subroutine boxarray_build_copy(ba, ba1)
+    use bl_error_module
     type(boxarray), intent(inout) :: ba
     type(boxarray), intent(in) :: ba1
     if ( built_q(ba) ) call bl_error("BOXARRAY_BUILD_COPY: already built")
@@ -225,6 +226,7 @@ contains
   end subroutine boxarray_build_copy_l
 
   subroutine boxarray_build_v(ba, bxs, sort)
+    use bl_error_module
     type(boxarray), intent(inout) :: ba
     type(box), intent(in), dimension(:) :: bxs
     logical, intent(in), optional :: sort
@@ -244,6 +246,7 @@ contains
   end subroutine boxarray_build_v
 
   subroutine boxarray_build_bx(ba, bx)
+    use bl_error_module
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
     
@@ -258,6 +261,7 @@ contains
   end subroutine boxarray_build_bx
 
   subroutine boxarray_build_l(ba, bl, sort)
+    use bl_error_module
     type(boxarray), intent(inout) :: ba
     type(list_box), intent(in) :: bl
     logical, intent(in), optional :: sort
@@ -315,6 +319,7 @@ contains
   end subroutine boxarray_sort
 
   subroutine boxarray_verify_dim(ba, stat)
+    use bl_error_module
     type(boxarray), intent(in) :: ba
     integer, intent(out), optional :: stat
     integer :: i, dm
@@ -341,6 +346,7 @@ contains
   end subroutine boxarray_verify_dim
 
   subroutine boxlist_verify_dim(bl, stat)
+    use bl_error_module
     type(list_box), intent(in) :: bl
     integer, intent(out), optional :: stat
     type(list_box_node), pointer :: bln
@@ -365,14 +371,6 @@ contains
     end do
   end subroutine boxlist_verify_dim
 
-!   subroutine boxarray_grow_m(ba, mat)
-!     type(boxarray), intent(inout) :: ba
-!     integer, intent(in) :: mat(:,:)
-!     integer :: i
-!     do i = 1, ba%nboxes
-!        ba%bxs(i) = grow(ba%bxs(i), mat)
-!     end do
-!   end subroutine boxarray_grow_m
   subroutine boxarray_grow_v(ba, rv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:)
@@ -815,6 +813,9 @@ contains
 
   ! r = bx - bxl
   function boxlist_boxlist_diff(bx, bxl) result(r)
+
+    use bl_prof_module
+
     type(box), intent(in) :: bx
     type(list_box), intent(in) :: bxl
     type(list_box) :: r, bl
@@ -854,6 +855,9 @@ contains
   end subroutine boxarray_simplify
 
   subroutine boxlist_simplify(bxl)
+
+    use bl_prof_module
+
     type(list_box), intent(inout) :: bxl
     integer :: dm
     type(bl_prof_timer), save :: bpt
@@ -1022,6 +1026,9 @@ contains
   end function boxarray_clean
 
   subroutine boxarray_add_clean(ba, bx)
+
+    use bl_prof_module
+
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
     type(list_box) :: check, tmp, tmpbl, bl
@@ -1059,6 +1066,9 @@ contains
   end subroutine boxarray_add_clean
 
   subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
+
+    use bl_prof_module
+
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bxs(:)
     logical, intent(in), optional :: simplify
@@ -1231,6 +1241,8 @@ contains
   end subroutine boxarray_decompose
 
   subroutine boxarray_box_corners(ba, bx, ng)
+    use bl_error_module
+
     type(boxarray), intent(out) :: ba
     type(box),      intent(in)  :: bx
     integer,        intent(in)  :: ng

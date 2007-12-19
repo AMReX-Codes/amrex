@@ -1,8 +1,7 @@
-!! Provide methods for accessing problem definition files and the
-!! command line
+!!
+!! Provide methods for accessing problem definition files and the command line
+!!
 module bl_parmparse_module
-
-  use bl_error_module
 
   implicit none
 
@@ -19,6 +18,9 @@ contains
   !! the NML is not found.
 
   subroutine parmparse_seek_to(unit, nml, stat)
+
+    use bl_error_module
+
     integer, intent(in) :: unit
     character(len=*), intent(in) :: nml
     logical, intent(out), optional :: stat

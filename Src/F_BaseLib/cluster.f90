@@ -1,12 +1,10 @@
 module cluster_module
 
   use bl_types
-  use bl_error_module
   use box_module
   use list_box_module
   use boxarray_module
   use multifab_module
-  use bl_prof_module
 
   implicit none
 
@@ -64,6 +62,8 @@ contains
   end subroutine filter_lor
 
   subroutine cls_3d_mf(boxes, tagboxes, minwidth, buf_wid, min_eff, overall_eff, blocking_factor)
+    use bl_error_module
+    use bl_prof_module
     type(boxarray), intent(out) :: boxes
     type(lmultifab), intent(in) :: tagboxes
     integer, intent(in) :: minwidth

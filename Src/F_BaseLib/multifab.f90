@@ -1,5 +1,6 @@
 module multifab_module
 
+  use bl_error_module
   use layout_module
   use fab_module
   use bl_mem_stat_module

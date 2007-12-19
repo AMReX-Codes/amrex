@@ -7,9 +7,9 @@ module ml_layout_module
   implicit none
 
   type ml_layout
-     integer :: dim = 0
-     integer :: nlevel = 0
-     type(ml_boxarray) :: mba
+     integer                  :: dim    = 0
+     integer                  :: nlevel = 0
+     type(ml_boxarray)        :: mba
      type(layout)   , pointer ::    la(:) => Null()
      type(lmultifab), pointer ::  mask(:) => Null() ! cell-centered mask
      logical        , pointer :: pmask(:) => Null() ! periodic mask

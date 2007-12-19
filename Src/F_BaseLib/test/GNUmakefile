@@ -4,7 +4,7 @@ OMP    :=
 
 COMP := Lahey
 COMP := g95
-COMP := Intel
+COMP := PathScale
 
 FPARALLEL := ../..
 

@@ -2,9 +2,7 @@ module layout_module
 
   use parallel
   use boxarray_module
-  use knapsack_module
   use bl_mem_stat_module
-  use bl_prof_module
 
   implicit none
 
@@ -357,6 +355,7 @@ contains
   end function layout_get_pmask
 
   subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
+    use bl_error_module
     type(layout_rep), intent(out) :: lap
     type(boxarray), intent(in) :: ba
     type(box), intent(in) :: pd
@@ -564,12 +563,14 @@ contains
   end subroutine layout_build_ba
 
   subroutine layout_destroy(la)
+    use bl_error_module
     type(layout), intent(inout) :: la
     if ( la%la_type /= LA_BASE ) call bl_error("LAYOUT_DESTROY: confused")
     call layout_rep_destroy(la%lap, LA_BASE)
   end subroutine layout_destroy
 
   subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
+    use bl_error_module
     type(layout), intent(out)   :: lapn
     type(layout), intent(inout) :: la
     type(boxarray), intent(in) :: ba
@@ -616,6 +617,7 @@ contains
   end subroutine layout_build_pn
 
   subroutine layout_build_derived(lad, la, prc, root)
+    use bl_error_module
     type(layout), intent(out) :: lad
     type(layout), intent(inout) :: la
     integer, intent(in), optional :: prc(:)
@@ -676,6 +678,7 @@ contains
   end subroutine layout_build_derived
 
   subroutine layout_build_coarse(lac, la, cr)
+    use bl_error_module
     type(layout), intent(out)   :: lac
     type(layout), intent(inout) :: la
     integer, intent(in) :: cr(:)
@@ -1008,6 +1011,8 @@ contains
   end subroutine boxarray_bndry_periodic
 
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
+    use bl_prof_module
+    use bl_error_module
 
     integer,          intent(in)         :: ng
     logical,          intent(in)         :: nodal(:)
@@ -1214,6 +1219,8 @@ contains
   end subroutine boxassoc_build
 
   subroutine fgassoc_build(fgasc, la, ng)
+    use bl_prof_module
+    use bl_error_module
 
     integer,       intent(in   ) :: ng
     type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
@@ -1271,6 +1278,7 @@ contains
   end subroutine fgassoc_build
 
   subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
+    use bl_error_module
 
     type(layout), intent(in)  :: la
     integer, intent(in)       :: ng
@@ -1385,6 +1393,8 @@ contains
   end subroutine internal_sync_unique_cover
 
   subroutine syncassoc_build(snasc, lap, ng, nodal, lall)
+    use bl_prof_module
+    use bl_error_module
 
     integer,          intent(in)         :: ng
     logical,          intent(in)         :: nodal(:)
@@ -1572,6 +1582,7 @@ contains
   end subroutine syncassoc_build
 
   subroutine boxassoc_destroy(bxasc)
+    use bl_error_module
     type(boxassoc), intent(inout) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("BOXASSOC_DESTROY: not built")
     deallocate(bxasc%nodal)
@@ -1584,12 +1595,14 @@ contains
   end subroutine boxassoc_destroy
 
   subroutine fgassoc_destroy(fgasc)
+    use bl_error_module
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("FGASSOC_DESTROY: not built")
     call destroy(fgasc%ba)
   end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
+    use bl_error_module
     type(syncassoc), intent(inout) :: snasc
     if ( .not. built_q(snasc) ) call bl_error("SYNCASSOC_DESTROY: not built")
     deallocate(snasc%nodal)
@@ -1691,6 +1704,8 @@ contains
   end subroutine boxassoc_print
 
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
+    use bl_prof_module
+    use bl_error_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -1884,6 +1899,8 @@ contains
   end subroutine copyassoc_build
 
   subroutine fluxassoc_build(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir)
+    use bl_prof_module
+    use bl_error_module
 
     type(fluxassoc),  intent(inout) :: flasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -2182,6 +2199,7 @@ contains
   end subroutine fluxassoc_build
 
   subroutine copyassoc_destroy(cpasc)
+    use bl_error_module
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) )        call bl_error("COPYASSOC_DESTROY: not built")
     if ( associated(cpasc%nd_dst)    ) deallocate(cpasc%nd_dst)
@@ -2195,6 +2213,7 @@ contains
   end subroutine copyassoc_destroy
 
   subroutine fluxassoc_destroy(flasc)
+    use bl_error_module
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) )     call bl_error("FLUXASSOC_DESTROY: not built")
     call copyassoc_destroy(flasc%flux)
@@ -2303,6 +2322,8 @@ contains
   end function fluxassoc_built_q
 
   subroutine init_box_hash_bin(la, crsn)
+    use bl_prof_module
+    use bl_error_module
     type(layout), intent(inout) :: la
     integer, intent(in), optional :: crsn
     type(boxarray) :: ba

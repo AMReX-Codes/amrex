@@ -5,12 +5,12 @@ module ml_multifab_module
   implicit none
 
   type ml_multifab
-     integer :: dim = 0
-     integer :: nlevel = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     type(ml_layout) :: mla
-     type(multifab), pointer :: mf(:) => Null()
+     integer                 :: dim    =  0
+     integer                 :: nlevel =  0
+     integer                 :: nc     =  1
+     integer                 :: ng     =  0
+     type(ml_layout)         :: mla
+     type(multifab), pointer :: mf(:)  => Null()
   end type ml_multifab
 
   interface built_q

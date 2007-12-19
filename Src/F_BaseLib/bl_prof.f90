@@ -1,8 +1,6 @@
 module bl_prof_module
 
   use bl_types
-  use parallel
-  use bl_error_module
 
   implicit none
 
@@ -116,6 +114,8 @@ contains
   end subroutine benchmark
 
   subroutine bl_prof_initialize(on)
+    use parallel
+    use bl_error_module
     logical, intent(in), optional :: on
     if ( present(on) ) call bl_prof_set_state(on)
     if ( associated(timers) .or. associated(the_stack) ) then
@@ -145,11 +145,10 @@ contains
   end subroutine f_activation
 
   subroutine bl_prof_finalize
+    use bl_error_module
     !! will be used to tear down the execution stack
     integer i
-    if ( stk_p /= 1 ) then
-       call bl_error("BL_PROF_FINALIZE: stk_p :", stk_p)
-    end if
+    if ( stk_p /= 1 ) call bl_error("BL_PROF_FINALIZE: stk_p :", stk_p)
     do i = 1, size(timers)
        if ( timers(i)%managed ) then
           deallocate(timers(i)%bpt)
@@ -164,6 +163,7 @@ contains
   end subroutine bl_prof_timer_init
 
   subroutine bl_prof_timer_build(bpt, name, no_start)
+    use bl_error_module
     type(bl_prof_timer), intent(inout), target :: bpt
     character(len=*), intent(in) :: name
     logical, intent(in), optional :: no_start
@@ -230,11 +230,10 @@ contains
   end subroutine bl_prof_timer_build
 
   subroutine bl_prof_timer_destroy(bpt)
+    use bl_error_module
     type(bl_prof_timer), intent(inout), target :: bpt
     if ( .not. bpt_on ) return
-    if ( stk_p < 1 ) then
-       call bl_error("BL_PROF_TIMER_DESTROY: stack underflow: ", stk_p)
-    end if
+    if ( stk_p < 1 ) call bl_error("BL_PROF_TIMER_DESTROY: stack underflow: ", stk_p)
     if ( the_stack(stk_p)%a_p%running ) then
        call bl_prof_timer_stop(bpt)
     end if
@@ -242,9 +241,9 @@ contains
   end subroutine bl_prof_timer_destroy
 
   subroutine p_start(a)
+    use bl_error_module
     type(activation_n), intent(inout) :: a
-    if ( a%running ) &
-         call bl_error("P_START: should not be be running before start")
+    if ( a%running ) call bl_error("P_START: should not be be running before start")
     if ( wall ) then
        call wall_second(a%strt)
     else
@@ -254,10 +253,10 @@ contains
   end subroutine p_start
 
   subroutine p_stop(a)
+    use bl_error_module
     type(activation_n), intent(inout) :: a
     real(dp_t) :: time
-    if ( .not. a%running ) &
-         call bl_error("P_STOP: should be be running before start")
+    if ( .not. a%running ) call bl_error("P_STOP: should be be running before start")
     if ( wall ) then
        call wall_second(time)
     else
@@ -291,8 +290,10 @@ contains
   end subroutine bl_prof_timer_stop
 
   subroutine bl_prof_glean(fname, note)
+    use parallel
     use bl_IO_module
     use sort_d_module
+    use bl_error_module
     character(len=*), intent(in) :: fname
     character(len=*), intent(in), optional :: note
     integer :: un
@@ -305,9 +306,8 @@ contains
     integer              :: cksum(1)
     logical              :: ok
 
-    if ( stk_p /= 1 ) then
-       call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
-    end if
+    if ( stk_p /= 1 ) call bl_error("BL_PROF_GLEAN: stk_p :", stk_p)
+
     call p_stop(the_stack(1)%a_p)
 
     if ( parallel_ioprocessor() ) then
@@ -396,6 +396,7 @@ contains
   end subroutine bl_prof_glean
 
   function p_value(a, local) result(r)
+    use parallel
     type(activation_n), intent(inout) :: a
     type(timer_rec) :: r
     logical, intent(in) :: local
@@ -443,6 +444,7 @@ contains
   end function greater_d
 
   recursive subroutine s_debug(a)
+    use parallel
     type(activation_n), intent(inout) :: a
     integer :: i
     write(unit = 100 + parallel_myproc(), fmt=*) timers(a%reg)%name
@@ -492,6 +494,7 @@ contains
   end subroutine s_activation
 
   recursive subroutine p_activation(a, un, skip, local)
+    use parallel
     use bl_IO_module
     use sort_d_module
     type(activation_n), intent(inout) :: a

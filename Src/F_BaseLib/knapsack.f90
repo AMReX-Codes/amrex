@@ -6,6 +6,7 @@ module knapsack_module
   implicit none
 
   integer, private :: knapsack_verbose = 0
+
   real(kind=dp_t), private :: knapsack_threshold = 1_dp_t
 
   private :: greater_d
@@ -23,7 +24,7 @@ contains
     use sort_d_module
     use bl_error_module
     use bl_prof_module
-    !    use named_comparisons_module, only : greater_d
+
     integer, intent(out), dimension(:) :: prc
     integer, intent(in), dimension(:) :: ibxs
     integer, intent(in) :: np
