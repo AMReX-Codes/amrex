@@ -1,21 +1,8 @@
 module nodal_newu_module
- 
-!  use stencil_module
-!  use bndry_reg_module
-!  use mg_module
-!  use ml_boxarray_module
-!  use ml_layout_module
-!  use bl_mem_stat_module
-!  use bl_timer_module
-!  use bl_IO_module
 
+  use bl_constants_module
   use multifab_module
- 
-!  use ml_restriction_module
-!  use ml_prolongation_module
-!  use ml_interface_stencil_module
-!  use ml_util_module
- 
+
   implicit none
  
 contains
