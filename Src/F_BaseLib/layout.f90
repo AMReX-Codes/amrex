@@ -1013,6 +1013,7 @@ contains
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
     use bl_prof_module
     use bl_error_module
+    use boxarray_module
 
     integer,          intent(in)         :: ng
     logical,          intent(in)         :: nodal(:)
@@ -1221,6 +1222,7 @@ contains
   subroutine fgassoc_build(fgasc, la, ng)
     use bl_prof_module
     use bl_error_module
+    use boxarray_module
 
     integer,       intent(in   ) :: ng
     type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
@@ -1706,6 +1708,7 @@ contains
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
+    use boxarray_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -1901,6 +1904,7 @@ contains
   subroutine fluxassoc_build(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir)
     use bl_prof_module
     use bl_error_module
+    use boxarray_module
 
     type(fluxassoc),  intent(inout) :: flasc
     type(layout),     intent(in)    :: la_src, la_dst
