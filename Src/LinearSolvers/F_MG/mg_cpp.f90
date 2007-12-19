@@ -978,9 +978,10 @@ end subroutine mgt_compute_residual
 subroutine mgt_compute_flux(lev)
   use cpp_mg_module
   use ml_cc_module
+  use ml_util_module
   use fabio_module
   implicit none
-
+ 
   integer, intent(in) :: lev
   integer             :: mglev,flev
   integer             :: dir
