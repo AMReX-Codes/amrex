@@ -19,8 +19,6 @@
 
 module mt19937_module
 
-  use bl_error_module
-
   implicit none
 
   private
@@ -430,6 +428,7 @@ contains
     r = mt_genrand_real(the_mt, lo_open, hi_open)
   end function genrand_real
   function mt_genrand_real(mt, lo_open, hi_open) result(r)
+    use bl_error_module
     real( kind = wr )  :: r
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: lo_open, hi_open
@@ -455,6 +454,7 @@ contains
   end subroutine mt_random_seed_0
 
   subroutine mt_random_seed_a(mt, size, put, get)
+    use bl_error_module
     type(mt19937), intent(inout) :: mt
     integer, intent(out), optional :: size
     integer, intent(in), optional :: put(:)

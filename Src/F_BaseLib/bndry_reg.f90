@@ -47,6 +47,7 @@ contains
   end subroutine bndry_reg_destroy
 
   subroutine bndry_reg_rr_build_1(br, la, lac, rr, pdc, nc, width, nodal)
+    use bl_error_module
     type(layout), intent(inout) :: la, lac
     type(bndry_reg), intent(out) :: br
     integer, intent(in) :: rr(:)
@@ -197,6 +198,7 @@ contains
   end subroutine bndry_reg_rr_build_1
 
   subroutine bndry_reg_rr_build(br, la, rr, pd, nc, width, nodal)
+    use bl_error_module
     type(layout), intent(inout) :: la
     type(bndry_reg), intent(out) :: br
     integer, intent(in) :: rr(:)
@@ -303,6 +305,7 @@ contains
   end subroutine bndry_reg_rr_build
 
   subroutine bndry_reg_build(br, la, pd, nc, nodal)
+    use bl_error_module
     type(layout), intent(inout) :: la
     type(bndry_reg), intent(out) :: br
     type(box), intent(in) :: pd

@@ -533,6 +533,8 @@ end subroutine t_box_mod
 
 
 subroutine t_domain
+  use bl_error_module
+  use parallel
   use f2kcli
   use bl_IO_module
   use ml_boxarray_module

@@ -1,15 +1,7 @@
 module fillpatch_module
 
-  use layout_module
-  use fab_module
-  use bl_mem_stat_module
   use multifab_module
-  use bc_module
-  use setbc_module
   use define_bc_module
-  use multifab_physbc_module
-  use interp_module
-  use bl_prof_module
 
   implicit none
 
@@ -17,6 +9,14 @@ contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
                        bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input)
+
+    use bc_module
+    use setbc_module
+    use layout_module
+    use interp_module
+    use bl_prof_module
+    use bl_constants_module
+    use multifab_physbc_module
 
     type(multifab), intent(inout)           :: fine
     type(multifab), intent(inout)           :: crse

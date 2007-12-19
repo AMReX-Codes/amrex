@@ -5,11 +5,11 @@ module ml_boxarray_module
   implicit none
 
   type ml_boxarray
-     integer :: dim = 0
-     integer :: nlevel = 0
-     integer, pointer :: rr(:,:) => Null()
-     type(boxarray), pointer :: bas(:) => Null()
-     type(box), pointer :: pd(:) => Null()
+     integer                 :: dim     =  0
+     integer                 :: nlevel  =  0
+     integer, pointer        :: rr(:,:) => Null()
+     type(boxarray), pointer :: bas(:)  => Null()
+     type(box), pointer      :: pd(:)   => Null()
   end type ml_boxarray
 
   interface get_dim
@@ -116,6 +116,7 @@ contains
   end subroutine ml_boxarray_build_n
 
   subroutine ml_boxarray_alloc_rr(mba, dim)
+    use bl_error_module
     type(ml_boxarray), intent(inout) :: mba
     integer, intent(in) :: dim
     if ( .not. associated(mba%bas) ) then
@@ -180,6 +181,7 @@ contains
   end function ml_boxarray_get_pd
 
   function ml_boxarray_refrat_n_d(mba, n, dim) result(r)
+    use bl_error_module
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     integer, intent(in) :: dim
@@ -192,6 +194,7 @@ contains
   end function ml_boxarray_refrat_n_d
 
   function ml_boxarray_refrat_n(mba, n) result(r)
+    use bl_error_module
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     integer :: r(mba%dim)

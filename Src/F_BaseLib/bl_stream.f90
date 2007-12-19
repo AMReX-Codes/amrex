@@ -5,10 +5,6 @@
 !! primitive parsing.
 
 module bl_stream_module
-  
-  use bl_error_module
-  use bl_string_module
-  use bl_IO_module
 
   implicit none
 
@@ -36,6 +32,7 @@ module bl_stream_module
 contains
 
   subroutine bl_stream_build(strm, unit)
+    use bl_IO_module
     type(bl_stream), intent(out) :: strm
     integer, intent(in), optional :: unit
     if ( present(unit) ) then
@@ -59,6 +56,7 @@ contains
   end function bl_stream_the_unit
 
   subroutine bl_stream_eat_whitespace(strm)
+    use bl_string_module
     type(bl_stream), intent(inout) :: strm
     character :: c
     do
@@ -84,6 +82,8 @@ contains
   end function bl_stream_peek_chr
 
   function bl_stream_scan_int(strm) result(r)
+    use bl_error_module
+    use bl_string_module
     integer :: r
     type(bl_stream), intent(inout) :: strm
     character :: c
@@ -99,9 +99,7 @@ contains
           read(unit=strm%unit, fmt='(a)', advance = 'no', eor = 100) c
        end if
        if ( .not. is_digit(c) ) then
-          if ( .not. started ) then
-             call bl_error("BL_STREAM_SCAN_INT: first character in scan: ", c)
-          end if
+          if ( .not. started ) call bl_error("BL_STREAM_SCAN_INT: first character in scan: ", c)
           call bl_stream_putback_chr(strm, c)
           exit
        end if
@@ -112,6 +110,7 @@ contains
   end function bl_stream_scan_int
 
   function bl_stream_scan_chr(strm, set) result(r)
+    use bl_string_module
     type(bl_stream), intent(inout) :: strm
     character(len=*), intent(in), optional :: set
     character :: r
@@ -136,6 +135,7 @@ contains
   end function bl_stream_scan_chr
 
   subroutine bl_stream_expect_str(strm, str)
+    use bl_error_module
     type(bl_stream), intent(inout) :: strm
     character(len=*), intent(in) :: str
     character :: c
@@ -143,8 +143,7 @@ contains
     c = bl_stream_scan_chr(strm)
     do i = 1, len(str)
        if ( c /= str(i:i) ) then
-          call bl_error('expect_chr: expected "'// str// '" got: ', &
-               '"'//c//'"')
+          call bl_error('expect_chr: expected "'// str// '" got: ', '"'//c//'"')
         end if
        if ( i == len(str) ) exit
        c = bl_stream_scan_chr(strm)
@@ -161,15 +160,12 @@ contains
   end subroutine bl_stream_expect_chr_v
 
   subroutine bl_stream_putback_chr(strm, char)
+    use bl_error_module
     type(bl_stream), intent(inout) :: strm
     character, intent(in) :: char
-
-    if ( strm%lpb ) then
-       call bl_error('PUTBACK_CHR: already pushed back')
-    end if
+    if ( strm%lpb ) call bl_error('PUTBACK_CHR: already pushed back')
     strm%pb = char
     strm%lpb = .TRUE.
-
   end subroutine bl_stream_putback_chr
 
 end module bl_stream_module

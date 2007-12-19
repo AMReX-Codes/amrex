@@ -51,6 +51,7 @@ contains
 
   subroutine read_a_mglib_grid_ba(ba, bx, str)
     use bl_IO_module
+    use bl_error_module
     type(boxarray), intent(out) :: ba
     character(len=*), intent(in) :: str
     type(box), intent(out) :: bx
@@ -87,6 +88,7 @@ contains
 
   subroutine read_a_hgproj_grid(mba, str, max_lev_of_mba)
     use bl_IO_module
+    use bl_error_module
     type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
     integer, optional, intent(in) :: max_lev_of_mba
@@ -140,6 +142,7 @@ contains
   !! errors, no checks are done.
   subroutine ml_boxarray_read_boxes(mba, str)
     use bl_IO_module
+    use bl_error_module
     type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
     integer :: nl, nr, dm, un

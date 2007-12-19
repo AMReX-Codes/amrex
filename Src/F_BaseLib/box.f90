@@ -6,7 +6,6 @@ module box_module
 
   use bl_types
   use bl_space
-  use bl_error_module
 
   implicit none
 
@@ -257,14 +256,11 @@ contains
   !! for the sizes of _lo_ and _hi_ to be unequal or for the size of _lo_
   !! to exceed MAX_SPACEDIM.
   subroutine box_build_2(bx, lo, hi)
+    use bl_error_module
     type(box), intent(out) :: bx
     integer, intent(in) :: lo(:), hi(:)
-    if ( size(lo) /= size(hi) ) then
-       call bl_error("BOX_BUILD_2: lo /= hi")
-    end if
-    if ( size(lo) > MAX_SPACEDIM ) then
-       call bl_error("BOX_BUILD_2: size(lo,hi) > MAX_SPACEDIM")
-    end if
+    if ( size(lo) /= size(hi)    ) call bl_error("BOX_BUILD_2: lo /= hi")
+    if ( size(lo) > MAX_SPACEDIM ) call bl_error("BOX_BUILD_2: size(lo,hi) > MAX_SPACEDIM")
     bx%dim = size(lo)
     bx%lo(1:bx%dim) = lo
     bx%hi(1:bx%dim) = hi
@@ -406,6 +402,7 @@ contains
   end function box_denodalize
 
   function box_grow_v_f(bx, rv, face) result(r)
+    use bl_error_module
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
     integer, intent(in) :: face
@@ -420,6 +417,7 @@ contains
     end if
   end function box_grow_v_f
   function box_grow_n_d_f(bx, ri, dim, face) result(r)
+    use bl_error_module
     type(box), intent(in) :: bx
     integer, intent(in) :: ri, dim
     integer, intent(in) :: face
@@ -434,6 +432,7 @@ contains
     end if
   end function box_grow_n_d_f
   function box_grow_n_f(bx, ri, face) result(r)
+    use bl_error_module
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
     integer, intent(in) :: face
@@ -784,6 +783,9 @@ contains
   !! and failure results if not enough space is passed.
 
   subroutine box_decompose(boxes, n, bx1, bx2)
+
+    use bl_error_module
+
     type(box), intent(in) :: bx1
     type(box), intent(in) :: bx2
     type(box), intent(out) :: boxes(:)
@@ -816,9 +818,7 @@ contains
     do i = 1, 3**dm
        if ( empty(r(i)) ) cycle
        n = n + 1
-       if ( n > size(boxes) ) then
-          call bl_error("BOX_DECOMPOSE: no room")
-       end if
+       if ( n > size(boxes) ) call bl_error("BOX_DECOMPOSE: no room")
        boxes(n) = r(i)
     end do
 
@@ -846,6 +846,7 @@ contains
   end subroutine box_chop
 
   subroutine box_peel(bx, dim, face, thk, bx1)
+    use bl_error_module
     type(box), intent(inout) :: bx
     integer, intent(in) :: dim, thk, face
     type(box), intent(out) :: bx1
@@ -862,6 +863,7 @@ contains
   end subroutine box_peel
 
   function box_volume(bx) result(r)
+    use bl_error_module
     type(box), intent(in) :: bx
     integer :: r, i, l
     r = 1
@@ -870,7 +872,7 @@ contains
        if ( r .le. Huge(r) / l ) then
           r = r*l
        else
-          call print(bx, 'bad box')
+          call print(bx, 'BAD BOX')
           call bl_error('box_volume(): overflow')
        end if
     end do
@@ -1051,6 +1053,7 @@ contains
 
   subroutine box_read(bx, unit, stat, nodal)
     use bl_IO_module
+    use bl_error_module
     use bl_stream_module
     type(box), intent(out) :: bx
     type(bl_stream) :: strm
@@ -1072,12 +1075,14 @@ contains
     call destroy(strm)
   contains
     subroutine read_box
+      use bl_error_module
       call bl_stream_expect(strm, "BOX")
       call bl_stream_expect(strm, "[")
       call bl_error("READ_BOX: this is as far as I got")
       call bl_stream_expect(strm, "]")
     end subroutine read_box
     subroutine read_a_legacy_box
+      use bl_error_module
       character(len=1) :: c
       integer :: i
       integer :: dm

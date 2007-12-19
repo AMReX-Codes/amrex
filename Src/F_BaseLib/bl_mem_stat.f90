@@ -1,7 +1,6 @@
 module bl_mem_stat_module
   
   use bl_types
-  use parallel
 
   implicit none
 
@@ -31,6 +30,7 @@ module bl_mem_stat_module
 contains
 
   subroutine mem_stats_print(ms, str, unit, advance, total)
+    use parallel
     use bl_IO_module
     use bl_string_module
     type(mem_stats), intent(in) :: ms

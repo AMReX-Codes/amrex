@@ -1,7 +1,6 @@
 module cluster2d_module
 
   use bl_types
-  use bl_error_module
   use box_module
   use list_box_module
   use multifab_module
@@ -47,6 +46,7 @@ contains
   end subroutine bit_print
 
   subroutine cls_2d_mf(boxes, tagboxes, minwidth, buf_wid, min_eff, crse_domain)
+    use bl_error_module
     type(list_box), intent(out) :: boxes
     type(lmultifab), intent(in) :: tagboxes
     integer, intent(in) :: minwidth

@@ -1,20 +1,18 @@
 module multifab_fill_ghost_module
 
-  use layout_module
-  use fab_module
-  use bl_mem_stat_module
-  use multifab_module
-  use bc_module
-  use setbc_module
-  use interp_module
   use fillpatch_module
-  use bl_prof_module
 
   implicit none
 
 contains
 
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
+
+    use setbc_module
+    use layout_module
+    use bl_prof_module
+    use bl_constants_module
+    use multifab_physbc_module
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse

@@ -837,6 +837,7 @@ contains
   end function lfab_dataptr
 
   function fab_dataptr_bx(fb, bx) result(r)
+    use bl_error_module
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     real(kind=dp_t), pointer :: r(:,:,:,:)
@@ -851,6 +852,7 @@ contains
     end select
   end function fab_dataptr_bx
   function zfab_dataptr_bx(fb, bx) result(r)
+    use bl_error_module
     type(zfab), intent(in) :: fb
     type(box), intent(in) :: bx
     complex(kind=dp_t), pointer :: r(:,:,:,:)
@@ -865,6 +867,7 @@ contains
     end select
   end function zfab_dataptr_bx
   function ifab_dataptr_bx(fb, bx) result(r)
+    use bl_error_module
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, pointer :: r(:,:,:,:)
@@ -879,6 +882,7 @@ contains
     end select
   end function ifab_dataptr_bx
   function lfab_dataptr_bx(fb, bx) result(r)
+    use bl_error_module
     type(lfab), intent(in) :: fb
     type(box), intent(in) :: bx
     logical, pointer :: r(:,:,:,:)
@@ -980,6 +984,7 @@ contains
   end subroutine fab_debug_fill
 
   function fab_dataptr_c(fb, c, nc) result(r)
+    use bl_error_module
     type(fab), intent(in) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -990,6 +995,7 @@ contains
     r => fb%p(:,:,:,c:c+lnc-1)
   end function fab_dataptr_c
   function zfab_dataptr_c(fb, c, nc) result(r)
+    use bl_error_module
     type(zfab), intent(in) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1000,6 +1006,7 @@ contains
     r => fb%p(:,:,:,c:c+lnc-1)
   end function zfab_dataptr_c
   function ifab_dataptr_c(fb, c, nc) result(r)
+    use bl_error_module
     type(ifab), intent(in) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1010,6 +1017,7 @@ contains
     r => fb%p(:,:,:,c:c+lnc-1)
   end function ifab_dataptr_c
   function lfab_dataptr_c(fb, c, nc) result(r)
+    use bl_error_module
     type(lfab), intent(in) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1021,6 +1029,7 @@ contains
   end function lfab_dataptr_c
 
   function fab_dataptr_bx_c(fb, bx, c, nc) result(r)
+    use bl_error_module
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1040,6 +1049,7 @@ contains
     end select
   end function fab_dataptr_bx_c
   function zfab_dataptr_bx_c(fb, bx, c, nc) result(r)
+    use bl_error_module
     type(zfab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1059,6 +1069,7 @@ contains
     end select
   end function zfab_dataptr_bx_c
   function ifab_dataptr_bx_c(fb, bx, c, nc) result(r)
+    use bl_error_module
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1078,6 +1089,7 @@ contains
     end select
   end function ifab_dataptr_bx_c
   function lfab_dataptr_bx_c(fb, bx, c, nc) result(r)
+    use bl_error_module
     type(lfab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1098,24 +1110,28 @@ contains
   end function lfab_dataptr_bx_c
 
   subroutine fab_setval(fb, val)
+    use bl_error_module
     type(fab), intent(inout) :: fb
     real(kind=dp_t), intent(in) :: val
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine fab_setval
   subroutine zfab_setval(fb, val)
+    use bl_error_module
     type(zfab), intent(inout) :: fb
     complex(kind=dp_t), intent(in) :: val
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine zfab_setval
   subroutine ifab_setval(fb, val)
+    use bl_error_module
     type(ifab), intent(inout) :: fb
     integer, intent(in) :: val
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine ifab_setval
   subroutine lfab_setval(fb, val)
+    use bl_error_module
     type(lfab), intent(inout) :: fb
     logical, intent(in) :: val
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
@@ -1164,6 +1180,7 @@ contains
   end subroutine lfab_setval_mask
 
   subroutine fab_setval_bx(fb, val, bx)
+    use bl_error_module
     type(fab), intent(inout) :: fb
     type(box), intent(in) :: bx
     real(kind=dp_t), intent(in) :: val
@@ -1173,6 +1190,7 @@ contains
     p = val
   end subroutine fab_setval_bx
   subroutine zfab_setval_bx(fb, val, bx)
+    use bl_error_module
     type(zfab), intent(inout) :: fb
     type(box), intent(in) :: bx
     complex(kind=dp_t), intent(in) :: val
@@ -1182,6 +1200,7 @@ contains
     p = val
   end subroutine zfab_setval_bx
   subroutine ifab_setval_bx(fb, val, bx)
+    use bl_error_module
     type(ifab), intent(inout) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: val
@@ -1191,6 +1210,7 @@ contains
     p = val
   end subroutine ifab_setval_bx
   subroutine lfab_setval_bx(fb, val, bx)
+    use bl_error_module
     type(lfab), intent(inout) :: fb
     type(box), intent(in) :: bx
     logical, intent(in) :: val
@@ -1201,6 +1221,7 @@ contains
   end subroutine lfab_setval_bx
 
   subroutine fab_setval_c(fb, val, c, nc)
+    use bl_error_module
     type(fab), intent(inout) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1211,6 +1232,7 @@ contains
     p = val
   end subroutine fab_setval_c
   subroutine zfab_setval_c(fb, val, c, nc)
+    use bl_error_module
     type(zfab), intent(inout) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1221,6 +1243,7 @@ contains
     p = val
   end subroutine zfab_setval_c
   subroutine ifab_setval_c(fb, val, c, nc)
+    use bl_error_module
     type(ifab), intent(inout) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1231,6 +1254,7 @@ contains
     p = val
   end subroutine ifab_setval_c
   subroutine lfab_setval_c(fb, val, c, nc)
+    use bl_error_module
     type(lfab), intent(inout) :: fb
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
@@ -1242,6 +1266,7 @@ contains
   end subroutine lfab_setval_c
 
   subroutine fab_setval_bx_c(fb, val, bx, c, nc)
+    use bl_error_module
     type(fab), intent(inout) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1253,6 +1278,7 @@ contains
     p = val
   end subroutine fab_setval_bx_c
   subroutine zfab_setval_bx_c(fb, val, bx, c, nc)
+    use bl_error_module
     type(zfab), intent(inout) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1264,6 +1290,7 @@ contains
     p = val
   end subroutine zfab_setval_bx_c
   subroutine ifab_setval_bx_c(fb, val, bx, c, nc)
+    use bl_error_module
     type(ifab), intent(inout) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c
@@ -1275,6 +1302,7 @@ contains
     p = val
   end subroutine ifab_setval_bx_c
   subroutine lfab_setval_bx_c(fb, val, bx, c, nc)
+    use bl_error_module
     type(lfab), intent(inout) :: fb
     type(box), intent(in) :: bx
     integer, intent(in) :: c

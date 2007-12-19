@@ -1,8 +1,5 @@
 module ppm_util_module
 
-  use bl_error_module
-  use bl_string_module
-
   interface
      subroutine store_pgm_str(ifilename, width, height, iimage)
        integer, intent(in) :: ifilename(*)
@@ -25,6 +22,7 @@ module ppm_util_module
 contains
 
   subroutine load_palette(fname, r, g, b, a)
+    use bl_string_module
     integer, intent(out), dimension(:) :: r, g, b, a
     character(len=*), intent(in) :: fname
     integer :: istr(128)
@@ -33,6 +31,7 @@ contains
   end subroutine load_palette
 
   subroutine store_pgm(fname, image)
+    use bl_string_module
     integer, intent(in) :: image(:,:)
     character(len=*), intent(in) :: fname
     integer :: width, height
@@ -56,6 +55,7 @@ contains
   end subroutine store_pgm
 
   subroutine store_ppm(fname, image, r, g, b)
+    use bl_string_module
     integer, intent(in) :: image(:,:)
     integer, intent(in) :: r(:), g(:), b(:)
     character(len=*), intent(in) :: fname

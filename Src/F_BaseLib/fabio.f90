@@ -3,14 +3,11 @@
 !! can be procesed by amrvis?d and the amrderive code.
 module fabio_module
 
-  use bl_error_module
-  use bl_string_module
   use bl_types
   use fab_module
   use multifab_module
   use ml_boxarray_module
   use ml_multifab_module
-  use parallel
 
   implicit none
 
@@ -83,6 +80,7 @@ module fabio_module
 contains
 
   subroutine fabio_mkdir(dirname, stat)
+    use bl_string_module
     character(len=*), intent(in) :: dirname
     integer, intent(out), optional :: stat
     interface
@@ -103,6 +101,7 @@ contains
   end subroutine fabio_mkdir
 
   subroutine fabio_open(fd, filename, mode)
+    use bl_string_module
     character(len=*), intent(in):: filename
     integer, intent(out) :: fd
     integer, intent(in), optional :: mode
@@ -127,6 +126,7 @@ contains
   end subroutine fabio_open
 
   subroutine fabio_fab_write_d(fd, offset, fb, nodal, all, prec)
+    use bl_error_module
     integer, intent(in) :: fd
     integer, intent(out) :: offset
     type(fab), intent(in) :: fb
@@ -160,7 +160,9 @@ contains
   end subroutine fabio_fab_write_d
 
   subroutine fabio_multifab_write_d(mf, dirname, header, all, prec)
+    use parallel
     use bl_IO_module
+    use bl_error_module
     type(multifab), intent(in) :: mf
     character(len=*), intent(in) :: dirname, header
     logical, intent(in), optional :: all
@@ -265,6 +267,7 @@ contains
   subroutine fabio_multifab_read_d(mf, dirname, header)
     use bl_stream_module
     use bl_IO_module
+    use bl_error_module
     type(multifab), intent(out) :: mf
     character(len=*), intent(in) :: dirname, header
     integer :: lun
@@ -312,6 +315,7 @@ contains
     !       ]
 
     subroutine build_vismf_multifab()
+      use bl_error_module
       integer :: j, nc
       character(len=FABIO_MAX_PATH_NAME) :: cdummy, filename
       integer :: offset
@@ -363,7 +367,9 @@ contains
   end subroutine fabio_multifab_read_d
 
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx)
+    use parallel
     use bl_IO_module
+    use bl_error_module
     type(multifab), intent(in) :: mfs(:)
     integer, intent(in) :: rrs(:)
     character(len=*), intent(in) :: dirname
@@ -487,6 +493,7 @@ contains
   subroutine fabio_ml_multifab_read_d(mmf, root, unit, ng)
     use bl_stream_module
     use bl_IO_module
+    use bl_error_module
     type(multifab), pointer :: mmf(:)
     character(len=*), intent(in) :: root
     integer, intent(in), optional :: unit
@@ -569,6 +576,7 @@ contains
     !     ]
 
     subroutine build_ns_plotfile()
+      use bl_error_module
       integer :: i, n, k
       integer :: j, nc
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
@@ -690,6 +698,7 @@ contains
   subroutine fabio_ml_boxarray_read(mba, root)
     use bl_stream_module
     use bl_IO_module
+    use bl_error_module
     type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: root
     integer :: lun
@@ -767,6 +776,7 @@ contains
     !     ]
 
     subroutine build_ns_plotfile()
+      use bl_error_module
       integer :: i, n, k
       integer :: j, nc
       character(len=256) :: str, str1, cdummy

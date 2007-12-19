@@ -1,8 +1,6 @@
 !! Module for string/character manipulations
 module bl_string_module
 
-  use bl_error_module
-
   implicit none
 
   integer, parameter, private :: EOS = -1
@@ -12,6 +10,7 @@ contains
   !! Converts an integer encoding of a character string
   !! to a Fortran string
   subroutine int2str(str, iarr, n)
+    use bl_error_module
     character(len=*), intent(out) :: str
     integer, intent(in) :: n
     integer, intent(in) :: iarr(n)
@@ -29,6 +28,7 @@ contains
 
   !! Converts a Fortran string to an integer encoding.
   subroutine str2int(iarr, n, str)
+    use bl_error_module
     character(len=*), intent(in) :: str
     integer, intent(in) :: n
     integer :: i, j

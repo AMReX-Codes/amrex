@@ -2,8 +2,6 @@
 module bl_timer_module
 
   use bl_types
-  use bl_error_module
-  use parallel
 
   implicit none
 
@@ -58,6 +56,7 @@ contains
   end subroutine timer_build
 
   subroutine timer_start(tm)
+    use bl_error_module
     type(timer), intent(inout) :: tm
 
     if ( tm%running ) &
@@ -72,6 +71,7 @@ contains
   end subroutine timer_start
 
   subroutine timer_stop(tm)
+    use bl_error_module
     type(timer), intent(inout) :: tm
 
     if ( .not. tm%running ) &
@@ -91,6 +91,8 @@ contains
 
   ! This is dangerous since it forces a reduction!
   function timer_value(tm, total, proc) result(r)
+    use parallel
+    use bl_error_module
     real(kind=dp_t) :: r
     type(timer), intent(in) :: tm
     logical, intent(in), optional :: total
@@ -110,6 +112,7 @@ contains
   end function timer_value
 
   subroutine timer_print(tm, str, unit, advance, total)
+    use parallel
     use bl_IO_module
     use bl_string_module
     type(timer), intent(in) :: tm

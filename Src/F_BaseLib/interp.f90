@@ -1,10 +1,8 @@
 module interp_module
 
   use bl_types
-  use bl_error_module
   use bl_constants_module
   use bc_module
-  use bl_prof_module
 
   implicit none
 
