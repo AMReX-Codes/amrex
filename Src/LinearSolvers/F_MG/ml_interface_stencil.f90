@@ -3,16 +3,14 @@ module ml_interface_stencil_module
   use bl_types
   use layout_module
   use multifab_module
-  use stencil_module
-  use bl_prof_module
   use bl_constants_module
-  use vector_i_module
 
   implicit none
 
 contains
 
   subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim, efactor)
+    use bl_prof_module
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
@@ -27,6 +25,9 @@ contains
   end subroutine ml_interface
 
   subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim, efactor)
+    use bl_prof_module
+    use vector_i_module
+
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
@@ -606,6 +607,7 @@ contains
   end subroutine ml_crse_contrib_fancy
 
   subroutine ml_crse_contrib(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
+    use bl_prof_module
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
@@ -654,6 +656,7 @@ contains
 
   subroutine ml_interface_2d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
        ss , los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
+    use stencil_module
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
@@ -892,6 +895,7 @@ contains
 
   subroutine ml_interface_3d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
        ss, los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
+    use stencil_module
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)

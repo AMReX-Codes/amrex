@@ -1,7 +1,6 @@
 module ml_prolongation_module
 
   use bl_types
-  use bl_prof_module
   use multifab_module
 
   implicit none
@@ -19,6 +18,7 @@ module ml_prolongation_module
 contains
 
   subroutine ml_prolongation(fine, crse, fine_domain, ir)
+    use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in   ) :: fine_domain
@@ -288,6 +288,7 @@ contains
   end subroutine ml_prolongation_3d_nodal
 
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, side, nc)
+    use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain

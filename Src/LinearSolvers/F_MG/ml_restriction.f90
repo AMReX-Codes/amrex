@@ -1,20 +1,21 @@
 module ml_restriction_module
 
   use bl_types
-  use bl_prof_module
   use multifab_module
-  use mg_restriction_module
 
   implicit none
 
   real(dp_t), private, parameter :: ZERO = 0.0_dp_t
   real(dp_t), private, parameter :: ONE  = 1.0_dp_t
 
+  private :: ml_restrict_copy_sum
+
 contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_cc_restriction_c(crse, cc, fine, cf, ir, nc)
+    use mg_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer, intent(in)           :: cc, cf, ir(:)
@@ -73,6 +74,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_edge_restriction_c(crse, cc, fine, cf, ir, face, nc)
+    use mg_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: cc, cf, ir(:)
@@ -156,6 +158,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+    use mg_restriction_module
     type(multifab),  intent(inout)        :: crse
     type(multifab),  intent(inout)        :: fine
     type(imultifab), intent(in   )        :: mm_fine
@@ -264,6 +267,8 @@ contains
   ! TODO - cache the communication pattern here in the dst layout?
   !
   subroutine periodic_add_copy(dst,src,synced)
+
+    use bl_prof_module
 
     type(multifab), intent(inout) :: dst
     type(multifab), intent(inout) :: src    ! Not changed except by layout_get_box_intersector()
@@ -410,6 +415,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+    use bl_prof_module
     type(multifab),  intent(inout) :: fine
     type(multifab),  intent(inout) :: crse
     type(imultifab), intent(in   ) :: mm_fine

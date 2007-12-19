@@ -1,10 +1,8 @@
 module nodal_cpp_mg_module
+
   use mg_module
+  use multifab_module
   use ml_layout_module
-  use ml_multifab_module
-  use bndry_reg_module
-  use nodal_mask_module
-  use nodal_divu_module
 
   implicit none
 
@@ -339,6 +337,8 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 end subroutine mgt_finalize_nodal_stencil_lev
 
 subroutine mgt_divu()
+
+  use nodal_divu_module
   use nodal_cpp_mg_module
 
   integer    :: n
@@ -372,6 +372,7 @@ subroutine mgt_newu()
 end subroutine mgt_newu
 
 subroutine mgt_finalize_nodal_stencil()
+   use nodal_mask_module
    use nodal_cpp_mg_module
    implicit none
    integer :: i

@@ -3,7 +3,6 @@ module stencil_module
   use bl_types
   use bc_module
   use multifab_module
-  use bl_prof_module
 
   implicit none
 
@@ -473,6 +472,7 @@ contains
   end function stencil_norm_st
 
   function stencil_norm(ss, mask) result(r)
+    use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
@@ -531,6 +531,7 @@ contains
   end subroutine stencil_defect_st
 
   subroutine stencil_apply_st_c(st, rr, cr, uu, cu)
+    use bl_prof_module
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
@@ -591,6 +592,7 @@ contains
   end subroutine stencil_apply_st_c
 
   subroutine stencil_apply_st(st, rr, uu, c, mask)
+    use bl_prof_module
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
@@ -690,6 +692,7 @@ contains
   end subroutine stencil_apply_st
 
   subroutine stencil_fill(st, pdv, bc_face, fill, coeffs, iparm, rparm, fill_fcn, alpha, beta)
+    use bl_prof_module
     type(stencil), intent(inout)  :: st
     type(multifab), intent(inout), optional :: coeffs
     type(boxarray), intent(in) :: pdv
@@ -918,6 +921,7 @@ contains
   end subroutine stencil_print
 
   subroutine stencil_extrap_bc(st, uu, c)
+    use bl_prof_module
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: uu
     integer, intent(in), optional :: c
@@ -1427,6 +1431,7 @@ contains
   end subroutine stencil_set_bc
 
   subroutine stencil_fill_cc(ss, coeffs, dh, pdv, mask, xa, xb, pxa, pxb, pd, order, bc_face, fnc)
+    use bl_prof_module
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
     real(kind=dp_t), intent(in) :: dh(:)

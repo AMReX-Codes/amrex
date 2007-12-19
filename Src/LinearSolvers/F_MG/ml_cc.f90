@@ -1,15 +1,9 @@
 module ml_cc_module
 
-  use bl_prof_module
   use bl_constants_module
-  use stencil_module
   use mg_module
-  use ml_boxarray_module
   use ml_layout_module
-  use itsol_module
-
   use bndry_reg_module
-  use ml_restriction_module
 
   implicit none
 
@@ -18,6 +12,9 @@ contains
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
                    do_diagnostics, eps, need_grad_phi_in)
 
+    use bl_prof_module
+    use stencil_module
+    use ml_restriction_module
     use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
@@ -553,6 +550,7 @@ contains
 
   subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
 
+    use ml_restriction_module
     use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
@@ -635,6 +633,9 @@ contains
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
                            do_diagnostics)
 
+    use bl_prof_module
+    use stencil_module
+    use ml_restriction_module
     use ml_prolongation_module
 
     type(ml_layout), intent(in)    :: mla
@@ -828,7 +829,6 @@ contains
   enddo
 
   end subroutine scale_residual_3d
-
 
   function ml_norm_inf(mf, mask) result(r)
     type( multifab), intent(in) :: mf(:)

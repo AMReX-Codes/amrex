@@ -1,15 +1,9 @@
 module ml_nd_module
 
-  use bl_prof_module
   use bl_constants_module
-  use stencil_module
   use mg_module
-  use ml_boxarray_module
   use ml_layout_module
-  use itsol_module
-
   use bndry_reg_module
-  use ml_restriction_module
 
   implicit none
 
@@ -17,6 +11,9 @@ contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
 
+    use bl_prof_module
+    use stencil_module
+    use ml_restriction_module
     use ml_prolongation_module
 
     type(ml_layout), intent(in   ) :: mla
