@@ -349,16 +349,15 @@ contains
      integer   :: lodom(rh%dim), hidom(rh%dim), dir, i, j, k, proc
      logical   :: nodal(rh%dim)
 
-     integer, parameter :: tag = 1371
-
-     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), up(:,:,:,:)
-     integer,         pointer :: mp(:,:,:,:)
-
-     type(box_intersector), pointer :: bi(:)
-
-     type(bl_prof_timer), save :: bpt
+     integer,               parameter :: tag = 1371
+     real(kind=dp_t),       pointer   :: rp(:,:,:,:), fp(:,:,:,:), up(:,:,:,:)
+     integer,               pointer   :: mp(:,:,:,:)
+     type(box_intersector), pointer   :: bi(:)
+     type(bl_prof_timer),   save      :: bpt
 
      call build(bpt, "ml_crse_divu_contrib")
+
+     if ( .not. cell_centered_q(flux) ) call bl_error('ml_crse_divu_contrib(): flux NOT cell centered')
 
      dims   = 1;
      nodal  = .true.
