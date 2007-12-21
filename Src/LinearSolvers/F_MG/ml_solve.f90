@@ -135,29 +135,38 @@ contains
        type(imultifab), intent(in   ) :: mm_fine
        integer        , intent(in   ) :: ir(:)
 
-       type(box)          :: cbox, fbox, isect
-       logical, pointer   :: mkp(:,:,:,:)
-       integer            :: loc(mask%dim), lof(mask%dim), i, j, k, dims(4), proc
-       integer, pointer   :: cmp(:,:,:,:), fmp(:,:,:,:)
-       integer, parameter :: tag = 1071
+       type(box)                        :: cbox, fbox, isect
+       type(boxarray)                   :: ba
+       type(layout)                     :: la
+       logical,               pointer   :: mkp(:,:,:,:)
+       integer                          :: loc(mask%dim), lof(mask%dim), i, j, k, dims(4), proc
+       integer,               pointer   :: cmp(:,:,:,:), fmp(:,:,:,:)
+       integer,               parameter :: tag = 1071
+       type(box_intersector), pointer   :: bi(:)
+       type(bl_prof_timer),   save      :: bpt
 
-       type(box_intersector), pointer :: bi(:)
-
-       type(bl_prof_timer), save :: bpt
+       if ( .not. nodal_q(mask) ) call bl_error('create_nodal_mask(): mask NOT nodal')
 
        call build(bpt, "create_nodal_mask")
 
-       call setval(mask,.true.)
-
-       !       Note :          mm_fine is  in fine space
-       !       Note : mask and mm_crse are in crse space
-
+       call setval(mask, .true.)
+       !
+       ! Need to build temporary layout with nodal boxarray for the intersection tests below.
+       !
+       call copy(ba, get_boxarray(mask%la))
+       call boxarray_nodalize(ba, mask%nodal)
+       call build(la, ba)
+       call destroy(ba)
+       !
+       !   Note :          mm_fine is  in fine space
+       !   Note : mask and mm_crse are in crse space
+       !
        dims = 1
 
        do i = 1,mm_fine%nboxes
 
           fbox =  get_ibox(mm_fine,i)
-          bi   => layout_get_box_intersector(mask%la, coarsen(fbox,ir))
+          bi   => layout_get_box_intersector(la, coarsen(fbox,ir))
 
           do k = 1, size(bi)
              j = bi(k)%i
@@ -216,6 +225,7 @@ contains
           deallocate(bi)
        end do
 
+       call destroy(la)
        call destroy(bpt)
 
      end subroutine create_nodal_mask
