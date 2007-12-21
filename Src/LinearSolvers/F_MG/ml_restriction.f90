@@ -271,7 +271,7 @@ contains
     use bl_prof_module
 
     type(multifab), intent(inout) :: dst
-    type(multifab), intent(inout) :: src    ! Not changed except by layout_get_box_intersector()
+    type(multifab), intent(in   ) :: src
     logical,        intent(in   ) :: synced
     !
     ! if ( synced )
@@ -292,6 +292,8 @@ contains
     type(multifab)        :: temp_dst
     type(box)             :: domain,bxi,bxj,bx_to,bx_from
     type(box)             :: domain_edge_src, domain_edge_dst
+    type(layout)          :: dstla, srcla
+    type(boxarray)        :: ba
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
     integer               :: i,j,ii,jj,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
@@ -311,6 +313,9 @@ contains
 
     if ( all(dst%la%lap%pmask .eqv. .false.) ) return
 
+    if ( .not. nodal_q(dst) ) call bl_error('periodic_add_copy(): dst NOT nodal')
+    if ( .not. nodal_q(src) ) call bl_error('periodic_add_copy(): src NOT nodal')
+
     call build(bpt, "periodic_add_copy")
 
     dm     = dst%dim
@@ -320,6 +325,17 @@ contains
     domain = box_nodalize(dst%la%lap%pd,nodal)
 
     if ( synced ) call multifab_build(temp_dst,dst%la,dst%nc,dst%ng,nodal)
+    !
+    ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
+    !
+    call copy(ba, get_boxarray(dst%la))
+    call boxarray_nodalize(ba, nodal)
+    call build(dstla, ba)
+    call destroy(ba)
+    call copy(ba, get_boxarray(src%la))
+    call boxarray_nodalize(ba, nodal)
+    call build(srcla, ba)
+    call destroy(ba)
 
     do kdir = -1,1
 
@@ -349,12 +365,12 @@ contains
              !
              ! Add values from domain_edge_src side to domain_edge_dst side
              !
-             bidst => layout_get_box_intersector(dst%la, domain_edge_dst)
+             bidst => layout_get_box_intersector(dstla, domain_edge_dst)
 
              do jj = 1, size(bidst)
                 j     =  bidst(jj)%i
                 bxj   =  bidst(jj)%bx
-                bisrc => layout_get_box_intersector(src%la, domain_edge_src)
+                bisrc => layout_get_box_intersector(srcla, domain_edge_src)
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
                    if ( remote(dst,j) .and. remote(src,i) ) cycle
@@ -407,6 +423,9 @@ contains
     end do
  
     if ( synced ) call destroy(temp_dst)
+
+    call destroy(dstla)
+    call destroy(srcla)
 
     call destroy(bpt)
 
