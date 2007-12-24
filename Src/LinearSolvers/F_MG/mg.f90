@@ -506,7 +506,7 @@ contains
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
     if ( stat /= 0 ) then
-       call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
+       if ( parallel_IOProcessor() ) call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
        do i = 1, 2
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
