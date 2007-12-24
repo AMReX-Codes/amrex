@@ -106,7 +106,6 @@ module list_box_module
 
   interface splice
      module procedure list_splice_box
-     ! module procedure list_splice_v_box
   end interface splice
 
   interface unique
@@ -471,12 +470,13 @@ contains
   end function list_erase_range_box
 
   subroutine list_clear_box(l)
+    use bl_error_module
     type(list_box), intent(inout) :: l
     type(list_box_node), pointer :: r
 
     r => erase(l, l%head, Null(r))
-    if ( .not. empty(l) ) STOP 'CLEAR: is broken'
-    if ( l%size /= 0 ) stop 'CLEAR: size is broken'
+    if ( .not. empty(l) ) call bl_error('list_clear_box(): clear is broken')
+    if ( l%size /= 0 ) call bl_error('list_clear_box(): clear is broken')
 
   end subroutine list_clear_box
 
@@ -560,59 +560,6 @@ contains
     l2%size = 0
 
   end subroutine list_splice_box
-
-  subroutine list_splice_v_box(l1, pos, l2, first, last)
-    type(list_box), intent(inout) :: l1, l2
-    type(list_box_node), pointer :: pos
-    type(list_box_node), pointer, optional :: first,last
-    type(list_box_node), pointer :: p,f,l
-
-    if ( empty(l2) ) return
-    stop 'SPLICE_V: NOT WRITTEN YET'
-    p => pos
-    if ( present(first) ) then
-       f => first
-    else
-       f => begin(l2)
-    end if
-    if ( present(last) ) then
-       l => last
-    else
-       l => f
-    end if
-    if ( associated(l) ) then
-       do while ( .not. associated(f,l) )
-          call splice_one(p,f)
-          f => next(f)
-       end do
-    else
-       do while ( associated(f) )
-          call splice_one(p, f)
-          f => next(f)
-       end do
-    end if
-
-  contains
-
-    subroutine splice_one(p,f)
-      type(list_box_node), pointer :: p, f
-
-      ! remove f from its list
-      f%prev%next => f%next
-      f%next%prev => f%prev
-      ! place f into list ahead of p
-      f%next => p
-      f%prev => p%prev
-      ! place f ahead of p
-      p%prev%next => f
-      p%prev => f
-      l1%size = l1%size + 1
-      l2%size = l2%size - 1
-
-    end subroutine splice_one
-
-  end subroutine list_splice_v_box
-
 
   subroutine list_reverse_box(l)
     type(list_box), intent(inout) :: l
