@@ -1274,7 +1274,16 @@ contains
     call build(fgasc%ba, bl, sort = .false.)
     call destroy(bl)
     call boxarray_to_domain(fgasc%ba)
-
+    !
+    ! Chop things up a bit so no one processor gets too much data.
+    !
+    select case ( la%lap%dim ) 
+    case (3)
+       call boxarray_maxsize(fgasc%ba, 32)
+    case (2)
+       call boxarray_maxsize(fgasc%ba, 128)
+    end select
+    
     call destroy(bpt)
 
   end subroutine fgassoc_build
