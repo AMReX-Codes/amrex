@@ -155,7 +155,7 @@ contains
                                    face_type(i,:,:), dh)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
-            stop
+            call bl_error('stencil_fill_nodal')
           end if
        case (3)
           if (stencil_type == ST_DENSE) then
@@ -165,8 +165,8 @@ contains
             call s_cross_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
                                    face_type(i,:,:), dh)
           else 
-            print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
-            stop
+            print*,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
+            call bl_error('stencil_fill_nodal')
           end if
        end select
     end do
@@ -1190,8 +1190,8 @@ contains
       end do
 
     else 
-      print *,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
-      stop
+      print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
+      call bl_error(' ')
 
     end if
 
