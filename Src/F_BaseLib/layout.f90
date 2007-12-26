@@ -268,8 +268,12 @@ module layout_module
   private layout_rep_build
   private layout_rep_destroy
 
-  type(mem_stats), private, save :: bxa_ms
   type(mem_stats), private, save :: la_ms
+  type(mem_stats), private, save :: bxa_ms
+  type(mem_stats), private, save :: fgx_ms
+  type(mem_stats), private, save :: snx_ms
+  type(mem_stats), private, save :: cpx_ms
+  type(mem_stats), private, save :: flx_ms
 
 contains
 
@@ -282,23 +286,55 @@ contains
     r = def_mapping
   end function layout_get_mapping
 
-  subroutine boxassoc_set_mem_stats(ms)
-    type(mem_stats), intent(in) :: ms
-    bxa_ms = ms
-  end subroutine boxassoc_set_mem_stats
   subroutine layout_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
     la_ms = ms
   end subroutine layout_set_mem_stats
+  subroutine boxassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    bxa_ms = ms
+  end subroutine boxassoc_set_mem_stats
+  subroutine fgassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    fgx_ms = ms
+  end subroutine fgassoc_set_mem_stats
+  subroutine syncassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    snx_ms = ms
+  end subroutine syncassoc_set_mem_stats
+  subroutine copyassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    cpx_ms = ms
+  end subroutine copyassoc_set_mem_stats
+  subroutine fluxassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    flx_ms = ms
+  end subroutine fluxassoc_set_mem_stats
 
-  function boxassoc_mem_stats() result(r)
-    type(mem_stats) :: r
-    r = bxa_ms
-  end function boxassoc_mem_stats
   function layout_mem_stats() result(r)
     type(mem_stats) :: r
     r = la_ms
   end function layout_mem_stats
+  function boxassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = bxa_ms
+  end function boxassoc_mem_stats
+  function fgassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = fgx_ms
+  end function fgassoc_mem_stats
+  function syncassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = snx_ms
+  end function syncassoc_mem_stats
+  function copyassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = cpx_ms
+  end function copyassoc_mem_stats
+  function fluxassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = flx_ms
+  end function fluxassoc_mem_stats
 
   function layout_next_id() result(r)
     integer :: r
@@ -560,6 +596,7 @@ contains
     allocate(la%lap)
     la%la_type = LA_BASE
     call layout_rep_build(la%lap, ba, lpd, lpmask, mapping, explicit_mapping)
+    call mem_stats_alloc(la_ms)
   end subroutine layout_build_ba
 
   subroutine layout_destroy(la)
@@ -567,6 +604,7 @@ contains
     type(layout), intent(inout) :: la
     if ( la%la_type /= LA_BASE ) call bl_error("LAYOUT_DESTROY: confused")
     call layout_rep_destroy(la%lap, LA_BASE)
+    call mem_stats_dealloc(la_ms)
   end subroutine layout_destroy
 
   subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
@@ -1283,6 +1321,8 @@ contains
     case (2)
        call boxarray_maxsize(fgasc%ba, 128)
     end select
+
+    call mem_stats_alloc(fgx_ms)
     
     call destroy(bpt)
 
@@ -1588,6 +1628,8 @@ contains
        end if
     end do
 
+    call mem_stats_alloc(snx_ms)
+
     call destroy(bpt)
 
   end subroutine syncassoc_build
@@ -1610,6 +1652,7 @@ contains
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("FGASSOC_DESTROY: not built")
     call destroy(fgasc%ba)
+    call mem_stats_dealloc(fgx_ms)
   end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
@@ -1622,6 +1665,7 @@ contains
     deallocate(snasc%r_con%rcv)
     deallocate(snasc%r_con%str)
     deallocate(snasc%r_con%rtr)
+    call mem_stats_dealloc(snx_ms)
   end subroutine syncassoc_destroy
 
   subroutine boxassoc_print(bxasc, str, unit, skip)
@@ -1905,6 +1949,8 @@ contains
           pi_s = pi_s + 1
        end if
     end do
+
+    call mem_stats_alloc(cpx_ms)
 
     call destroy(bpt)
 
@@ -2207,6 +2253,8 @@ contains
        end if
     end do
 
+    call mem_stats_alloc(flx_ms)
+
     call destroy(bpt)
 
   end subroutine fluxassoc_build
@@ -2223,6 +2271,7 @@ contains
     if ( associated(cpasc%r_con%str) ) deallocate(cpasc%r_con%str)
     if ( associated(cpasc%r_con%rtr) ) deallocate(cpasc%r_con%rtr)
     cpasc%dim = 0
+    call mem_stats_dealloc(cpx_ms)
   end subroutine copyassoc_destroy
 
   subroutine fluxassoc_destroy(flasc)
@@ -2235,6 +2284,7 @@ contains
     if ( associated(flasc%nd_dst) ) deallocate(flasc%nd_dst)
     if ( associated(flasc%nd_src) ) deallocate(flasc%nd_src)
     flasc%dim = 0
+    call mem_stats_dealloc(flx_ms)
   end subroutine fluxassoc_destroy
 
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
