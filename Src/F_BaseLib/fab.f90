@@ -274,6 +274,7 @@ contains
     else
        r = volume(get_box(fb))
     end if
+    r = r * fb%nc
   end function fab_volume
   function zfab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
@@ -284,6 +285,7 @@ contains
     else
        r = volume(get_box(fb))
     end if
+    r = r * fb%nc
   end function zfab_volume
   function ifab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
@@ -294,6 +296,7 @@ contains
     else
        r = volume(get_box(fb))
     end if
+    r = r * fb%nc
   end function ifab_volume
   function lfab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
@@ -304,6 +307,7 @@ contains
     else
        r = volume(get_box(fb))
     end if
+    r = r * fb%nc
   end function lfab_volume
 
   function fab_lwb(fb) result(r)

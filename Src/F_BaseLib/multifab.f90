@@ -836,22 +836,23 @@ contains
     mf%nboxes = 0
   end subroutine zmultifab_destroy
 
-  function multifab_volume(mf, all) result(r)
-    integer(kind=ll_t) :: r
-    type(multifab), intent(in) :: mf
-    logical, optional :: all
-    integer :: i
-    logical :: lall
-    lall = .false.; if (present(all) ) lall = all
-    if ( lall ) then
-       r = 0_ll_t
-       do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
-       end do
-    else
-       r = volume(get_boxarray(mf))
-    end if
-  end function multifab_volume
+   function multifab_volume(mf, all) result(r)
+     integer(kind=ll_t) :: r
+     type(multifab), intent(in) :: mf
+     logical, optional :: all
+     integer :: i
+     logical :: lall
+     lall = .false.; if (present(all) ) lall = all
+     if ( lall ) then
+        r = 0_ll_t
+        do i = 1, mf%nboxes
+           r = r + volume(get_pbox(mf, i))
+        end do
+     else
+        r = volume(get_boxarray(mf))
+     end if
+     r = r * mf%nc
+   end function multifab_volume
   function imultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
     type(imultifab), intent(in) :: mf
@@ -867,6 +868,7 @@ contains
     else
        r = volume(get_boxarray(mf))
     end if
+     r = r * mf%nc
   end function imultifab_volume
   function lmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -883,6 +885,7 @@ contains
     else
        r = volume(get_boxarray(mf))
     end if
+     r = r * mf%nc
   end function lmultifab_volume
   function zmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -899,6 +902,7 @@ contains
     else
        r = volume(get_boxarray(mf))
     end if
+     r = r * mf%nc
   end function zmultifab_volume
 
   function multifab_get_dim(mf) result(r)
