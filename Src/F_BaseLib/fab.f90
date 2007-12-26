@@ -670,8 +670,8 @@ contains
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, fab_default_init)
+       call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
     end if
-    call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
   end subroutine fab_build
 
   subroutine zfab_build(fb, bx, nc, ng, nodal, alloc)
@@ -699,8 +699,8 @@ contains
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, zfab_default_init)
+       call mem_stats_alloc(zfab_ms, volume(fb, all=.TRUE.))
     end if
-    call mem_stats_alloc(zfab_ms, volume(fb, all=.TRUE.))
   end subroutine zfab_build
 
   subroutine ifab_build(fb, bx, nc, ng, nodal, alloc)
@@ -728,8 +728,8 @@ contains
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, ifab_default_init)
+       call mem_stats_alloc(ifab_ms, volume(fb, all=.TRUE.))
     end if
-    call mem_stats_alloc(ifab_ms, volume(fb, all=.TRUE.))
   end subroutine ifab_build
 
   subroutine lfab_build(fb, bx, nc, ng, nodal, alloc)
@@ -757,14 +757,16 @@ contains
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, lfab_default_init)
+       call mem_stats_alloc(lfab_ms, volume(fb, all=.TRUE.))
     end if
-    call mem_stats_alloc(lfab_ms, volume(fb, all=.TRUE.))
   end subroutine lfab_build
 
   subroutine fab_destroy(fb)
     type(fab), intent(inout) :: fb
-    call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
-    if ( associated(fb%p) ) deallocate(fb%p)
+    if ( associated(fb%p) ) then
+       deallocate(fb%p)
+       call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
+    end if
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
@@ -772,8 +774,10 @@ contains
   end subroutine fab_destroy
   subroutine zfab_destroy(fb)
     type(zfab), intent(inout) :: fb
-    call mem_stats_dealloc(zfab_ms, volume(fb, all=.TRUE.))
-    if ( associated(fb%p) ) deallocate(fb%p)
+    if ( associated(fb%p) ) then
+       deallocate(fb%p)
+       call mem_stats_dealloc(zfab_ms, volume(fb, all=.TRUE.))
+    end if
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
@@ -781,8 +785,10 @@ contains
   end subroutine zfab_destroy
   subroutine ifab_destroy(fb)
     type(ifab), intent(inout) :: fb
-    call mem_stats_dealloc(ifab_ms, volume(fb, all=.TRUE.))
-    if ( associated(fb%p) ) deallocate(fb%p)
+    if ( associated(fb%p) ) then
+       deallocate(fb%p)
+       call mem_stats_dealloc(ifab_ms, volume(fb, all=.TRUE.))
+    end if
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
@@ -790,8 +796,10 @@ contains
   end subroutine ifab_destroy
   subroutine lfab_destroy(fb)
     type(lfab), intent(inout) :: fb
-    call mem_stats_dealloc(lfab_ms, volume(fb, all=.TRUE.))
-    if ( associated(fb%p) ) deallocate(fb%p)
+    if ( associated(fb%p) ) then
+       deallocate(fb%p)
+       call mem_stats_dealloc(lfab_ms, volume(fb, all=.TRUE.))
+    end if
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
