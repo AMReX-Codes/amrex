@@ -18,6 +18,8 @@ module layout_module
   integer, parameter :: LA_LOCAL      = 103
   integer, parameter :: LA_EXPLICIT   = 104
 
+  integer, private :: verbose = 0
+
   integer, private :: def_mapping = LA_KNAPSACK
 
   type comm_dsc
@@ -104,7 +106,9 @@ module layout_module
      type(layout_rep), pointer :: lap_dst   => Null()
      type(layout_rep), pointer :: lap_src   => Null()
   end type copyassoc
-
+  !
+  ! Note that a fluxassoc contains two copyassocs.
+  !
   type fluxassoc
      integer                   :: dim = 0             ! spatial dimension 1, 2, or 3
      integer                   :: side
@@ -276,6 +280,15 @@ module layout_module
   type(mem_stats), private, save :: flx_ms
 
 contains
+
+  subroutine layout_set_verbosity(v)
+    integer, intent(in) :: v
+    verbose = v
+  end subroutine layout_set_verbosity
+  function layout_get_verbosity() result(r)
+    integer :: r
+    r = verbose
+  end function layout_get_verbosity
 
   subroutine layout_set_mapping(mapping)
     integer, intent(in) :: mapping
@@ -1066,8 +1079,8 @@ contains
     type(layout)                    :: la, latmp
     integer                         :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
     integer                         :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
-    integer                         :: svol_max, rvol_max
-    integer, parameter              :: chunksize = 100
+    integer                         :: svol_max, rvol_max, ioproc
+    integer, parameter              :: chunksize = 20
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
@@ -1181,6 +1194,23 @@ contains
     bxasc%r_con%nsnd = cnt_s
     bxasc%r_con%nrcv = cnt_r
     !
+    ! Trim off unused space.
+    !
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = bxasc%l_con%cpy(1:lcnt_r)
+    deallocate(bxasc%l_con%cpy)
+    bxasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = bxasc%r_con%snd(1:cnt_s)
+    deallocate(bxasc%r_con%snd)
+    bxasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = bxasc%r_con%rcv(1:cnt_r)
+    deallocate(bxasc%r_con%rcv)
+    bxasc%r_con%rcv => n_rcv
+    !
     ! This region packs the src/recv boxes into processor order
     !
     do i = 0, np-1
@@ -1236,12 +1266,13 @@ contains
        end if
     end do
 
-    if ( .false. ) then
-       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = parallel_IOProcessorNode())
+    if ( verbose > 0 ) then
+       ioproc = parallel_IOProcessorNode()
+       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = ioproc)
+       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = ioproc)
+       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = ioproc)
        if ( parallel_IOProcessor() ) then
           print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
           print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
@@ -1251,7 +1282,7 @@ contains
        end if
     end if
 
-    call mem_stats_alloc(bxa_ms)
+    call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
     call destroy(bpt)
 
@@ -1322,7 +1353,7 @@ contains
        call boxarray_maxsize(fgasc%ba, 128)
     end select
 
-    call mem_stats_alloc(fgx_ms)
+    call mem_stats_alloc(fgx_ms, volume(fgasc%ba))
     
     call destroy(bpt)
 
@@ -1340,7 +1371,7 @@ contains
     type(box)                      :: jbx, abx
     integer                        :: i, j, k, ii, jj, cnt
     integer                        :: shft(2*3**(la%lap%dim),la%lap%dim)
-    integer, parameter             :: chunksize = 10
+    integer, parameter             :: chunksize = 5
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2, bltmp
@@ -1414,32 +1445,6 @@ contains
        end do
     end do
     call destroy(latmp)
-    !
-    ! Test that we're a unique cover; i.e. no overlap.  Is there a better way to do this?
-    !
-    if ( .false. ) then
-       do i = 1, bxa%nboxes
-          if ( filled(i)%ncpy > 0 ) then
-             allocate(bxs(filled(i)%ncpy))
-             do j = 1, filled(i)%ncpy
-                bxs(j) = filled(i)%cpy(j)%dbx
-             end do
-             call boxarray_add_clean_boxes(ba1, bxs, simplify = .false.)
-             call boxarray_build_v(ba2, bxs, sort = .false.)
-             if ( volume(ba1) .ne. volume(ba2) ) then
-                if ( parallel_IOProcessor() ) then
-                   print*, "*** NOT a unique covering !!!"
-                   call print(ba1, "ba1")
-                   call print(ba2, "ba2")
-                   call bl_error('internal_sync_unique_cover() bust')
-                end if
-             end if
-             deallocate(bxs)
-             call destroy(ba1)
-             call destroy(ba2)
-          end if
-       end do
-    end if
 
   end subroutine internal_sync_unique_cover
 
@@ -1459,7 +1464,8 @@ contains
     type(layout)                   :: la
     integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
-    integer, parameter             :: chunksize = 100
+    integer                        :: svol_max, rvol_max, ioproc
+    integer, parameter             :: chunksize = 20
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
@@ -1558,20 +1564,26 @@ contains
     end do
     deallocate(filled)
 
-    if ( .false. ) then
-       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       if ( parallel_IOProcessor() ) then
-          print*, '*** syncassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** syncassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** syncassoc_build(): max(cnt_r)  = ', cnt_r_max
-       end if
-    end if
-
     snasc%l_con%ncpy = lcnt_r
     snasc%r_con%nsnd = cnt_s
     snasc%r_con%nrcv = cnt_r
+    !
+    ! Trim off unused space.
+    !
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = snasc%l_con%cpy(1:lcnt_r)
+    deallocate(snasc%l_con%cpy)
+    snasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = snasc%r_con%snd(1:cnt_s)
+    deallocate(snasc%r_con%snd)
+    snasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = snasc%r_con%rcv(1:cnt_r)
+    deallocate(snasc%r_con%rcv)
+    snasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1628,7 +1640,23 @@ contains
        end if
     end do
 
-    call mem_stats_alloc(snx_ms)
+    if ( verbose > 0 ) then
+       ioproc = parallel_IOProcessorNode()
+       call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_r_max,             cnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(svol_max,   snasc%r_con%svol, MPI_MAX, proc = ioproc)
+       call parallel_reduce(rvol_max,   snasc%r_con%rvol, MPI_MAX, proc = ioproc)
+       if ( parallel_IOProcessor() ) then
+          print*, '*** syncassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** syncassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** syncassoc_build(): max(cnt_r)  = ', cnt_r_max
+          print*, '*** syncassoc_build(): max(svol)   = ', svol_max
+          print*, '*** syncassoc_build(): max(rvol)   = ', rvol_max
+       end if
+    end if
+
+    call mem_stats_alloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
 
     call destroy(bpt)
 
@@ -1638,34 +1666,34 @@ contains
     use bl_error_module
     type(boxassoc), intent(inout) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("BOXASSOC_DESTROY: not built")
+    call mem_stats_dealloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
     deallocate(bxasc%nodal)
     deallocate(bxasc%l_con%cpy)
     deallocate(bxasc%r_con%snd)
     deallocate(bxasc%r_con%rcv)
     deallocate(bxasc%r_con%str)
     deallocate(bxasc%r_con%rtr)
-    call mem_stats_dealloc(bxa_ms)
   end subroutine boxassoc_destroy
 
   subroutine fgassoc_destroy(fgasc)
     use bl_error_module
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("FGASSOC_DESTROY: not built")
+    call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
     call destroy(fgasc%ba)
-    call mem_stats_dealloc(fgx_ms)
   end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
     use bl_error_module
     type(syncassoc), intent(inout) :: snasc
     if ( .not. built_q(snasc) ) call bl_error("SYNCASSOC_DESTROY: not built")
+    call mem_stats_dealloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
     deallocate(snasc%nodal)
     deallocate(snasc%l_con%cpy)
     deallocate(snasc%r_con%snd)
     deallocate(snasc%r_con%rcv)
     deallocate(snasc%r_con%str)
     deallocate(snasc%r_con%rtr)
-    call mem_stats_dealloc(snx_ms)
   end subroutine syncassoc_destroy
 
   subroutine boxassoc_print(bxasc, str, unit, skip)
@@ -1778,7 +1806,8 @@ contains
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
-    integer, parameter             :: chunksize = 100
+    integer                        :: svol_max, rvol_max, ioproc
+    integer, parameter             :: chunksize = 20
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
 
@@ -1880,20 +1909,26 @@ contains
 
     call destroy(lasrctmp)
 
-    if ( .false. ) then
-       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       if ( parallel_IOProcessor() ) then
-          print*, '*** copyassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** copyassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** copyassoc_build(): max(cnt_r)  = ', cnt_r_max
-       end if
-    end if
-
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s
     cpasc%r_con%nrcv = cnt_r
+    !
+    ! Trim off unused space.
+    !
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = cpasc%l_con%cpy(1:lcnt_r)
+    deallocate(cpasc%l_con%cpy)
+    cpasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = cpasc%r_con%snd(1:cnt_s)
+    deallocate(cpasc%r_con%snd)
+    cpasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = cpasc%r_con%rcv(1:cnt_r)
+    deallocate(cpasc%r_con%rcv)
+    cpasc%r_con%rcv => n_rcv
     !
     ! This region packs the src/recv boxes into processor order
     !
@@ -1950,7 +1985,23 @@ contains
        end if
     end do
 
-    call mem_stats_alloc(cpx_ms)
+    if ( verbose > 0 ) then
+       ioproc = parallel_IOProcessorNode()
+       call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_r_max,             cnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(svol_max,   cpasc%r_con%svol, MPI_MAX, proc = ioproc)
+       call parallel_reduce(rvol_max,   cpasc%r_con%rvol, MPI_MAX, proc = ioproc)
+       if ( parallel_IOProcessor() ) then
+          print*, '*** copyassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** copyassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** copyassoc_build(): max(cnt_r)  = ', cnt_r_max
+          print*, '*** copyassoc_build(): max(svol)   = ', svol_max
+          print*, '*** copyassoc_build(): max(rvol)   = ', rvol_max
+       end if
+    end if
+
+    call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
     call destroy(bpt)
 
@@ -1982,7 +2033,8 @@ contains
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
-    integer, parameter             :: chunksize = 100
+    integer                        :: svol_max, rvol_max, ioproc
+    integer, parameter             :: chunksize = 20
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("FLUXASSOC_BUILD: already built")
@@ -2005,8 +2057,9 @@ contains
     flasc%flux%dim    =  dm
     flasc%mask%dim    =  dm
 
-    allocate(flasc%nd_dst(dm))
-    allocate(flasc%nd_src(dm))
+    allocate(flasc%nd_dst(dm), flasc%nd_src(dm))
+    allocate(flasc%flux%nd_dst(0), flasc%flux%nd_src(0)) ! So copyassoc_destroy() works.
+    allocate(flasc%mask%nd_dst(0), flasc%mask%nd_src(0)) ! So copyassoc_destroy() works.
 
     flasc%nd_dst = nd_dst
     flasc%nd_src = nd_src
@@ -2018,6 +2071,7 @@ contains
     allocate(flasc%flux%l_con%cpy(chunksize))
     allocate(flasc%flux%r_con%snd(chunksize))
     allocate(flasc%flux%r_con%rcv(chunksize))
+    allocate(flasc%mask%l_con%cpy(        0)) ! So copyassoc_destroy() works.
     allocate(flasc%mask%r_con%snd(chunksize))
     allocate(flasc%mask%r_con%rcv(chunksize))
     allocate(flasc%fbxs(chunksize))
@@ -2135,20 +2189,40 @@ contains
 
     call destroy(lasrctmp)
 
-    if ( .false. ) then
-       call parallel_reduce(lcnt_r_max, lcnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_s_max,   cnt_s, MPI_MAX, proc = parallel_IOProcessorNode())
-       call parallel_reduce(cnt_r_max,   cnt_r, MPI_MAX, proc = parallel_IOProcessorNode())
-       if ( parallel_IOProcessor() ) then
-          print*, '*** fluxassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** fluxassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** fluxassoc_build(): max(cnt_r)  = ', cnt_r_max
-       end if
-    end if
-
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
     flasc%flux%r_con%nrcv = cnt_r
+    flasc%mask%r_con%nsnd = cnt_s
+    flasc%mask%r_con%nrcv = cnt_r
+    !
+    ! Trim off unused space.
+    !
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = flasc%flux%l_con%cpy(1:lcnt_r)
+    deallocate(flasc%flux%l_con%cpy)
+    flasc%flux%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = flasc%flux%r_con%snd(1:cnt_s)
+    deallocate(flasc%flux%r_con%snd)
+    flasc%flux%r_con%snd => n_snd
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = flasc%mask%r_con%snd(1:cnt_s)
+    deallocate(flasc%mask%r_con%snd)
+    flasc%mask%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = flasc%flux%r_con%rcv(1:cnt_r)
+    deallocate(flasc%flux%r_con%rcv)
+    flasc%flux%r_con%rcv => n_rcv
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = flasc%mask%r_con%rcv(1:cnt_r)
+    deallocate(flasc%mask%r_con%rcv)
+    flasc%mask%r_con%rcv => n_rcv
+    allocate(pfbxs(cnt_r))
+    pfbxs(1:cnt_r) = flasc%fbxs(1:cnt_r)
+    deallocate(flasc%fbxs)
+    flasc%fbxs => pfbxs
 
     do i = 0, np-1
        ppvol(i,1) = sum(pvol(0:i-1,1))
@@ -2195,19 +2269,6 @@ contains
        end if
     end do
 
-    flasc%mask%r_con%nsnd = cnt_s
-    flasc%mask%r_con%nrcv = cnt_r
-
-    allocate(n_snd(cnt_s))
-    n_snd(1:cnt_s)  = flasc%mask%r_con%snd(1:cnt_s)
-    deallocate(flasc%mask%r_con%snd)
-    flasc%mask%r_con%snd => n_snd
-
-    allocate(n_rcv(cnt_r))
-    n_rcv(1:cnt_r)  = flasc%mask%r_con%rcv(1:cnt_r)
-    deallocate(flasc%mask%r_con%rcv)
-    flasc%mask%r_con%rcv => n_rcv
-
     do i = 0, np-1
        ppvol(i,1) = sum(mpvol(0:i-1,1))
        ppvol(i,2) = sum(mpvol(0:i-1,2))
@@ -2253,7 +2314,27 @@ contains
        end if
     end do
 
-    call mem_stats_alloc(flx_ms)
+    if ( verbose > 0 ) then
+       ioproc = parallel_IOProcessorNode()
+       call parallel_reduce(lcnt_r_max,              lcnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_s_max,                cnt_s, MPI_MAX, proc = ioproc)
+       call parallel_reduce(cnt_r_max,                cnt_r, MPI_MAX, proc = ioproc)
+       call parallel_reduce(svol_max, flasc%flux%r_con%svol, MPI_MAX, proc = ioproc)
+       call parallel_reduce(rvol_max, flasc%flux%r_con%rvol, MPI_MAX, proc = ioproc)
+       if ( parallel_IOProcessor() ) then
+          print*, '*** fluxassoc_build(): max(lcnt_r) = ', lcnt_r_max
+          print*, '*** fluxassoc_build(): max(cnt_s)  = ', cnt_s_max
+          print*, '*** fluxassoc_build(): max(cnt_r)  = ', cnt_r_max
+          print*, '*** fluxassoc_build(): max(svol)   = ', svol_max
+          print*, '*** fluxassoc_build(): max(rvol)   = ', rvol_max
+       end if
+    end if
+    !
+    ! Recall that fluxassoc contains two copyassocs.
+    !
+    call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_alloc(flx_ms, size(flasc%fbxs))
 
     call destroy(bpt)
 
@@ -2262,29 +2343,29 @@ contains
   subroutine copyassoc_destroy(cpasc)
     use bl_error_module
     type(copyassoc), intent(inout) :: cpasc
-    if ( .not. built_q(cpasc) )        call bl_error("COPYASSOC_DESTROY: not built")
-    if ( associated(cpasc%nd_dst)    ) deallocate(cpasc%nd_dst)
-    if ( associated(cpasc%nd_src)    ) deallocate(cpasc%nd_src)
-    if ( associated(cpasc%l_con%cpy) ) deallocate(cpasc%l_con%cpy)
-    if ( associated(cpasc%r_con%snd) ) deallocate(cpasc%r_con%snd)
-    if ( associated(cpasc%r_con%rcv) ) deallocate(cpasc%r_con%rcv)
-    if ( associated(cpasc%r_con%str) ) deallocate(cpasc%r_con%str)
-    if ( associated(cpasc%r_con%rtr) ) deallocate(cpasc%r_con%rtr)
+    if ( .not. built_q(cpasc) ) call bl_error("COPYASSOC_DESTROY: not built")
+    call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+    deallocate(cpasc%nd_dst)
+    deallocate(cpasc%nd_src)
+    deallocate(cpasc%l_con%cpy)
+    deallocate(cpasc%r_con%snd)
+    deallocate(cpasc%r_con%rcv)
+    deallocate(cpasc%r_con%str)
+    deallocate(cpasc%r_con%rtr)
     cpasc%dim = 0
-    call mem_stats_dealloc(cpx_ms)
   end subroutine copyassoc_destroy
 
   subroutine fluxassoc_destroy(flasc)
     use bl_error_module
     type(fluxassoc), intent(inout) :: flasc
-    if ( .not. built_q(flasc) )     call bl_error("FLUXASSOC_DESTROY: not built")
+    if ( .not. built_q(flasc) ) call bl_error("FLUXASSOC_DESTROY: not built")
+    call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
     call copyassoc_destroy(flasc%flux)
     call copyassoc_destroy(flasc%mask)
-    if ( associated(flasc%fbxs)   ) deallocate(flasc%fbxs)
-    if ( associated(flasc%nd_dst) ) deallocate(flasc%nd_dst)
-    if ( associated(flasc%nd_src) ) deallocate(flasc%nd_src)
+    deallocate(flasc%fbxs)
+    deallocate(flasc%nd_dst)
+    deallocate(flasc%nd_src)
     flasc%dim = 0
-    call mem_stats_dealloc(flx_ms)
   end subroutine fluxassoc_destroy
 
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
