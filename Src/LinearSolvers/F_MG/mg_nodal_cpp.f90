@@ -3,6 +3,7 @@ module nodal_cpp_mg_module
   use mg_module
   use multifab_module
   use ml_layout_module
+  use bl_constants_module
 
   implicit none
 
