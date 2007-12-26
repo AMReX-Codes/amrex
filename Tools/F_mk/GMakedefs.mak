@@ -172,8 +172,10 @@ ifeq ($(ARCH),Linux)
 
   ifeq ($(COMP),PGI)
     CC  := pgcc
-    FC  := pgf95 -module $(mdir) -I$(mdir) 
-    F90 := pgf95 -module $(mdir) -I$(mdir) 
+    FC  := pgf95
+    F90 := pgf95
+    FFLAGS   += -module $(mdir) -I$(mdir) 
+    F90FLAGS += -module $(mdir) -I$(mdir)
     ifdef NDEBUG
       FFLAGS   += -O
       F90FLAGS += -O
@@ -201,6 +203,7 @@ ifeq ($(ARCH),Linux)
 
 #   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
+
       F90FLAGS += -g -fno-second-underscore
       FFLAGS += -g -fno-second-underscore
       CFLAGS += -g -fno-second-underscore
