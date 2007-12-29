@@ -13,7 +13,6 @@ module multifab_module
   logical, parameter, private :: Do_AllToAllV = .false.
 
   type multifab
-     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -24,7 +23,6 @@ module multifab_module
   end type multifab
 
   type zmultifab
-     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -35,7 +33,6 @@ module multifab_module
   end type zmultifab
 
   type imultifab
-     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -46,7 +43,6 @@ module multifab_module
   end type imultifab
 
   type lmultifab
-     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -774,12 +770,10 @@ contains
   subroutine multifab_destroy(mf)
     type(multifab), intent(inout) :: mf
     integer :: i
-    if ( .not. mf%bound ) then
-       call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes
-          call destroy(mf%fbs(i))
-       end do
-    end if
+    call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
+    do i = 1, mf%nboxes
+       call destroy(mf%fbs(i))
+    end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -790,12 +784,10 @@ contains
   subroutine imultifab_destroy(mf)
     type(imultifab), intent(inout) :: mf
     integer :: i
-    if ( .not. mf%bound ) then
-       call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes
-          call destroy(mf%fbs(i))
-       end do
-    end if
+    call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
+    do i = 1, mf%nboxes
+       call destroy(mf%fbs(i))
+    end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -806,12 +798,10 @@ contains
   subroutine lmultifab_destroy(mf)
     type(lmultifab), intent(inout) :: mf
     integer :: i
-    if ( .not. mf%bound ) then
-       call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes
-          call destroy(mf%fbs(i))
-       end do
-    end if
+    call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
+    do i = 1, mf%nboxes
+       call destroy(mf%fbs(i))
+    end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -822,12 +812,10 @@ contains
   subroutine zmultifab_destroy(mf)
     type(zmultifab), intent(inout) :: mf
     integer :: i
-    if ( .not. mf%bound ) then
-       call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes
-          call destroy(mf%fbs(i))
-       end do
-    end if
+    call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
+    do i = 1, mf%nboxes
+       call destroy(mf%fbs(i))
+    end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
