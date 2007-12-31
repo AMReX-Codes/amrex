@@ -869,7 +869,7 @@ def test(argv):
             os.system("gmake DIM=2 executable=%s2d.exe clean" % (suiteName) )
             os.system("gmake DIM=3 executable=%s3d.exe clean" % (suiteName) )
         else:
-            os.system("gmake MPI= clean NDEBUG=t")
+            os.system("gmake MPI= realclean NDEBUG=t")
             
     print "\n"
 
@@ -979,7 +979,7 @@ def test(argv):
                       (executable, inputsFile, test, test))
 
         elif (sourceTree == "fParallel"):
-            os.system("./%s %s --plot_base_name %s_plt >& %s.run.out" %
+            os.system("./%s %s --plot_base_name %s_plt --chk_int 0 >& %s.run.out" %
                       (executable, inputsFile, test, test))
 
 
@@ -1045,6 +1045,7 @@ def test(argv):
 
                     cf = open("%s.compare.out" % (test), 'w')
                     cf.write(command)
+                    cf.write("\n")
                     cf.close()
                     
                     os.system(command)
