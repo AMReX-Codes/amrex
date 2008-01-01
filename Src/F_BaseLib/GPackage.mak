@@ -44,6 +44,7 @@ f90sources += list_box.f90
 f90sources += sort_box.f90
 f90sources += vector_i.f90 
 f90sources += sort_d.f90
+f90sources += sort_i.f90
 
 f90sources += ppm_util.f90
 
