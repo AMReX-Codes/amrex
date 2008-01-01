@@ -170,7 +170,7 @@ contains
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t) :: rho_hg, rho_orig, volume, tres0, small
+    real(dp_t) :: rho_hg, rho_orig, volume, tres0, small, norm_rr, norm_uu
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
@@ -227,24 +227,30 @@ contains
     rho_orig = rho
 
     tres0 = norm_inf(rr)
-
     Anorm = stencil_norm(aa)
     small = epsilon(Anorm)
     bnorm = norm_inf(rh)
+
     if ( parallel_IOProcessor() .and. verbose > 0) then
-!      write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, tres0
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if
 
     i = 0
     if ( itsol_converged(rr, uu, Anorm, bnorm, eps) ) then
-      if (parallel_IOProcessor() .and. verbose > 0) then
-        if (tres0 < eps*bnorm) then
-          write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                tres0,eps*bnorm
-        else if (norm_inf(rr) < epsilon(Anorm)*Anorm) then
-          write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                tres0,small*Anorm
+      if ( verbose > 0 ) then
+         if ( tres0 < eps*bnorm ) then
+            if ( parallel_IOProcessor() ) then
+               write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                    tres0,eps*bnorm
+            end if
+        else
+           norm_rr = norm_inf(rr)
+           if ( norm_rr < epsilon(Anorm)*Anorm ) then
+              if ( parallel_IOProcessor() ) then
+                 write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                      tres0,small*Anorm
+              end if
+           end if
         end if
      end if
      go to 100
@@ -328,18 +334,29 @@ contains
 
     end do
 
-    if (parallel_IOProcessor() .and. verbose > 0) then
-         write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
-            rnorm/ (bnorm)
-       if (rnorm < eps*bnorm) then
-         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-             rnorm,eps*bnorm
-       else if (rnorm < eps*Anorm*norm_inf(uu)) then
-         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
-             rnorm,eps*Anorm*norm_inf(uu)
-       else if (rnorm < epsilon(Anorm)*Anorm) then
-         write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-          rnorm,small*Anorm
+    if ( verbose > 0 ) then
+       if ( parallel_IOProcessor() ) then
+          write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
+               rnorm/ (bnorm)
+       end if
+       if ( rnorm < eps*bnorm ) then
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                  rnorm,eps*bnorm
+          end if
+       else
+          norm_uu = norm_inf(uu)
+          if ( rnorm < eps*Anorm*norm_uu ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
+                     rnorm,eps*Anorm*norm_uu
+             end if
+          else if ( rnorm < epsilon(Anorm)*Anorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                     rnorm,small*Anorm
+             end if
+          end if
        end if
     end if
 
@@ -390,7 +407,7 @@ contains
     logical :: singular 
     integer :: cnt
 
-    real(dp_t) :: rho_hg, rho_orig, volume, rho_hg_orig
+    real(dp_t) :: rho_hg, rho_orig, volume, rho_hg_orig, norm_uu
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
@@ -433,10 +450,9 @@ contains
     Anorm = stencil_norm(aa)
     small = epsilon(Anorm)
     bnorm = norm_inf(rh)
+    tres0 = norm_inf(rr)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
-       tres0 = norm_inf(rr)
-!      write(unit=*, fmt='(i3,": Anorm=",g15.8,", bnorm=",g15.8,", Rnorm=",g15.8)') cnt, Anorm, bnorm, tres0
        write(unit=*, fmt='("          CG: Initial error (error0) =        ",g15.8)') tres0
     end if
 
@@ -509,18 +525,29 @@ contains
 
     end do
 
-    if ( parallel_IOProcessor() .and. verbose > 0) then
-         write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
-            rnorm/ (bnorm)
-       if (rnorm < eps*bnorm) then
-         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-             rnorm,eps*bnorm
-       else if (rnorm < eps*Anorm*norm_inf(uu)) then
-         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
-          rnorm,eps*Anorm*norm_inf(uu)
-       else if (rnorm < epsilon(Anorm)*Anorm) then
-         write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-             rnorm,small*Anorm
+    if ( verbose > 0 ) then
+       if ( parallel_IOProcessor() ) then
+          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
+               rnorm/ (bnorm)
+       end if
+       if ( rnorm < eps*bnorm ) then
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                  rnorm,eps*bnorm
+          end if
+       else
+          norm_uu = norm_inf(uu)
+          if ( rnorm < eps*Anorm*norm_uu ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
+                     rnorm,eps*Anorm*norm_uu
+             end if
+          else if ( rnorm < epsilon(Anorm)*Anorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                     rnorm,small*Anorm
+             end if
+          end if
        end if
     end if
 
