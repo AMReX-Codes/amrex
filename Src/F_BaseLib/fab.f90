@@ -31,7 +31,6 @@ module fab_module
      type(box) :: pbx
      type(box) :: ibx
      integer   :: nc = 1
-     integer   :: ng = 0
      real(kind = dp_t), pointer, dimension(:,:,:,:) :: p => Null()
   end type fab
 
@@ -41,7 +40,6 @@ module fab_module
      type(box) :: pbx
      type(box) :: ibx
      integer   :: nc = 1
-     integer   :: ng = 0
      complex(kind = dp_t), pointer, dimension(:,:,:,:) :: p => Null()
   end type zfab
 
@@ -51,7 +49,6 @@ module fab_module
      type(box) :: pbx
      type(box) :: ibx
      integer   :: nc = 1
-     integer   :: ng = 0
      integer, pointer, dimension(:,:,:,:) :: p => Null()
   end type ifab
 
@@ -61,7 +58,6 @@ module fab_module
      type(box) :: pbx
      type(box) :: ibx
      integer   :: nc = 1
-     integer   :: ng = 0
      logical, pointer, dimension(:,:,:,:) :: p => Null()
   end type lfab
 
@@ -96,13 +92,6 @@ module fab_module
      module procedure zfab_built_q
      module procedure ifab_built_q
      module procedure lfab_built_q
-  end interface
-
-  interface conformant_q
-     module procedure fab_conformant_q
-     module procedure zfab_conformant_q
-     module procedure ifab_conformant_q
-     module procedure lfab_conformant_q
   end interface
 
   interface max_val
@@ -237,15 +226,11 @@ contains
 
   subroutine print_and_reset_fab_byte_spread()
     use parallel
-
     integer    :: ioproc
     real(dp_t) :: lo, hi
-
     ioproc = parallel_IOProcessorNode()
-
     call parallel_reduce(lo, real(fab_high_water_mark,dp_t), MPI_MIN, proc = ioproc)
     call parallel_reduce(hi, real(fab_high_water_mark,dp_t), MPI_MAX, proc = ioproc)
-
     if ( parallel_IOProcessor() ) then
        !
        ! This assumes sizeof(dp_t) == 8
@@ -254,9 +239,7 @@ contains
        write(6,fmt='("FAB byte spread across CPUs: [",i10," ... ",i10, "]")') int(8*lo,ll_t), int(8*hi,ll_t)
        print*, ''
     end if
-
     fab_high_water_mark = 0
-
   end subroutine print_and_reset_fab_byte_spread
 
   subroutine fab_set_mem_stats(ms)
@@ -545,134 +528,6 @@ contains
     r = fb%dim /= 0
   end function lfab_built_q
 
-  function fab_conformant_q(a,b) result(r)
-    logical :: r
-    type(fab), intent(in) :: a, b
-    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
-       r = .true.
-    else if ( built_q(a) .and. built_q(b) ) then
-       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%ibx == b%ibx
-    else
-       r = .FALSE.
-    end if 
-  end function fab_conformant_q
-  function zfab_conformant_q(a,b) result(r)
-    logical :: r
-    type(zfab), intent(in) :: a, b
-    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
-       r = .true.
-    else if ( built_q(a) .and. built_q(b) ) then
-       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%ibx == b%ibx
-    else
-       r = .FALSE.
-    end if 
-  end function zfab_conformant_q
-  function ifab_conformant_q(a,b) result(r)
-    logical :: r
-    type(ifab), intent(in) :: a, b
-    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
-       r = .true.
-    else if ( built_q(a) .and. built_q(b) ) then
-       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%ibx == b%ibx
-    else
-       r = .FALSE.
-    end if 
-  end function ifab_conformant_q
-  function lfab_conformant_q(a,b) result(r)
-    logical :: r
-    type(lfab), intent(in) :: a, b
-    if ( .not. built_q(a) .AND. .not. built_q(b) ) then
-       r = .true.
-    else if ( built_q(a) .and. built_q(b) ) then
-       r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%ibx == b%ibx
-    else
-       r = .FALSE.
-    end if 
-  end function lfab_conformant_q
-
-  subroutine fab_set_border_val(fb, val)
-    type(fab), intent(inout) :: fb
-    real(kind=dp_t), intent(in), optional :: val
-    real(kind=dp_t) :: tval
-    integer :: i,j,k,n
-    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
-    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
-    tval = 0.0_dp_t; if ( present(val) ) tval = val
-    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
-    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
-    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
-    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
-    do n = 1, fb%nc
-       do k = plo(3), phi(3)
-          do j = plo(2), phi(2)
-             do i = plo(1), phi(1)
-                 if ( k >= lo(3) .and. k <= hi(3) .and. &
-                      j >= lo(2) .and. j <= hi(2) .and. &
-                      i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = tval
-             end do
-          end do
-       end do
-    end do
-  end subroutine fab_set_border_val
-  subroutine ifab_set_border_val(fb, val)
-    type(ifab), intent(inout) :: fb
-    integer, intent(in), optional :: val
-    integer :: tval
-    integer :: i,j,k,n
-    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
-    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
-    tval = 0; if ( present(val) ) tval = val
-    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
-    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
-    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
-    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
-    do n = 1, fb%nc
-       do k = plo(3), phi(3)
-          do j = plo(2), phi(2)
-             do i = plo(1), phi(1)
-                 if ( k >= lo(3) .and. k <= hi(3) .and. &
-                      j >= lo(2) .and. j <= hi(2) .and. &
-                      i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = tval
-             end do
-          end do
-       end do
-    end do
-  end subroutine ifab_set_border_val
-  !! lfab_set_border_val:
-  !! The default value is .false. since that is sort of mask
-  !! like on 'non-valid' data.
-  subroutine lfab_set_border_val(fb, val)
-    type(lfab), intent(inout) :: fb
-    logical, intent(in), optional :: val
-    logical :: tval
-    integer :: i,j,k,n
-    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
-    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
-    tval = .false.; if ( present(val) ) tval = val
-    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
-    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
-    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
-    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
-    do n = 1, fb%nc
-       do k = plo(3), phi(3)
-          do j = plo(2), phi(2)
-             do i = plo(1), phi(1)
-                 if ( k >= lo(3) .and. k <= hi(3) .and. &
-                      j >= lo(2) .and. j <= hi(2) .and. &
-                      i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = tval
-             end do
-          end do
-       end do
-    end do
-  end subroutine lfab_set_border_val
-
   subroutine fab_build(fb, bx, nc, ng, nodal, alloc)
     type(fab), intent(out) :: fb
     type(box), intent(in)  :: bx
@@ -689,7 +544,6 @@ contains
     hi = 1
     fb%dim = bx%dim
     fb%bx = bx
-    fb%ng = lng
     fb%nc = lnc
     fb%ibx = box_nodalize(bx, nodal)
     fb%pbx = grow(fb%ibx, lng)
@@ -721,7 +575,6 @@ contains
     hi = 1
     fb%dim = bx%dim
     fb%bx = bx
-    fb%ng = lng
     fb%nc = lnc
     fb%ibx = box_nodalize(bx, nodal)
     fb%pbx = grow(fb%ibx, lng)
@@ -750,7 +603,6 @@ contains
     hi = 1
     fb%dim = bx%dim
     fb%bx = bx
-    fb%ng = lng
     fb%nc = lnc
     fb%ibx = box_nodalize(bx, nodal)
     fb%pbx = grow(fb%ibx, lng)
@@ -779,7 +631,6 @@ contains
     hi = 1
     fb%dim = bx%dim
     fb%bx = bx
-    fb%ng = lng
     fb%nc = lnc
     fb%ibx = box_nodalize(bx, nodal)
     fb%pbx = grow(fb%ibx, lng)
@@ -801,7 +652,6 @@ contains
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
-    fb%ng  = 0
   end subroutine fab_destroy
   subroutine zfab_destroy(fb)
     type(zfab), intent(inout) :: fb
@@ -812,7 +662,6 @@ contains
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
-    fb%ng  = 0
   end subroutine zfab_destroy
   subroutine ifab_destroy(fb)
     type(ifab), intent(inout) :: fb
@@ -823,7 +672,6 @@ contains
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
-    fb%ng  = 0
   end subroutine ifab_destroy
   subroutine lfab_destroy(fb)
     type(lfab), intent(inout) :: fb
@@ -834,7 +682,6 @@ contains
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
     fb%nc  = 0
-    fb%ng  = 0
   end subroutine lfab_destroy
 
   function fab_dim(fb) result(r)
@@ -939,92 +786,6 @@ contains
        r => fb%p(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),:)
     end select
   end function lfab_dataptr_bx
-
-  subroutine fab_debug_fill(fb, ii, all, loc)
-    type(fab), intent(inout) :: fb
-    integer, intent(in) :: ii
-    logical, intent(in), optional :: all, loc
-    logical :: lall, lloc
-    integer :: i, j, k, n
-    real(kind=dp_t) :: xx,yy,zz,fc,nn
-    real(kind=dp_t) :: sgn
-    lall = .false.; if ( present(all) ) lall = all
-    lloc = .false.; if ( present(loc) ) lloc = loc
-    do n = lbound(fb%p,4), ubound(fb%p,4)
-       if ( lall ) then
-          sgn = 1
-       else
-          sgn = -1
-       end if
-       select case (fb%dim)
-       case (3)
-          nn = og(n)/100/100/100/100
-          do k = lbound(fb%p,3), ubound(fb%p,3)
-             zz = og(k)/100/100/100
-             do j = lbound(fb%p,2), ubound(fb%p,2)
-                yy = og(j)/100/100
-                do i = lbound(fb%p,1), ubound(fb%p,1)
-                   xx = og(i)/100
-                   fc = 0; if ( lloc ) fc = xx + yy + zz + nn
-                   fb%p(i,j,k,n) = sgn*(ii+fc)
-                end do
-             end do
-          end do
-          do k = fab_ilwb_n(fb,3), fab_iupb_n(fb,3)
-             zz = og(k)/100/100/100
-             do j = fab_ilwb_n(fb,2), fab_iupb_n(fb,2)
-                yy = og(j)/100/100
-                do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
-                   xx = og(i)/100
-                   fc = 0; if ( lloc ) fc = xx + yy + zz + nn
-                   fb%p(i,j,k,n) = ii+fc
-                end do
-             end do
-          end do
-       case (2)
-          nn = og(n)/100/100/100
-          do j = lbound(fb%p,2), ubound(fb%p,2)
-             yy = og(j)/100/100
-             do i = lbound(fb%p,1), ubound(fb%p,1)
-                xx = og(i)/100
-                fc = 0; if ( lloc ) fc = xx + yy + nn
-                fb%p(i,j,1,n) = sgn*(ii+fc)
-             end do
-          end do
-          do j = fab_ilwb_n(fb,2), fab_iupb_n(fb,2)
-             yy = og(j)/100/100
-             do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
-                xx = og(i)/100
-                fc = 0; if ( lloc ) fc = xx + yy + nn
-                fb%p(i,j,1,n) = ii+fc
-             end do
-          end do
-       case (1)
-          nn = og(n)/100/100
-          do i = lbound(fb%p,1), ubound(fb%p,1)
-             xx = og(i)/100
-             fc = 0; if ( lloc ) fc = xx + nn
-             fb%p(i,1,1,n) = sgn*(ii+fc)
-          end do
-          do i = fab_ilwb_n(fb,1), fab_iupb_n(fb,1)
-             xx = og(i)/100
-             fc = 0; if ( lloc ) fc = xx + nn
-             fb%p(i,1,1,n) = ii+fc
-          end do
-       end select
-    end do
-  contains
-    function og(ii) result(r)
-      real(kind=dp_t) :: r
-      integer, intent(in) :: ii
-      if ( ii >= 0 ) then
-         r = ii
-      else
-         r = 100-abs(ii)
-      end if
-    end function og
-      
-  end subroutine fab_debug_fill
 
   function fab_dataptr_c(fb, c, nc) result(r)
     use bl_error_module
@@ -1383,8 +1144,6 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
-    call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
@@ -1522,8 +1281,6 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
-    call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
@@ -1650,8 +1407,6 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
-    call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
@@ -1777,8 +1532,6 @@ contains
     end if
     call unit_skip(un, skip)
     write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
