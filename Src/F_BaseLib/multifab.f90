@@ -108,13 +108,6 @@ module multifab_module
      module procedure zmultifab_copy
   end interface
 
-  interface conformant_q
-     module procedure multifab_conformant_q
-     module procedure imultifab_conformant_q
-     module procedure lmultifab_conformant_q
-     module procedure zmultifab_conformant_q
-  end interface
-
   interface dataptr
      module procedure multifab_dataptr
      module procedure multifab_dataptr_bx
@@ -441,11 +434,6 @@ contains
     r = zmultifab_ms
   end function zmultifab_mem_stats
 
-  subroutine check_conformance(a,b)
-    type(multifab), intent(in) :: a, b
-    if ( not_equal(a%la, b%la) ) call bl_error("MULTIFAB::CHECK_CONFORMANCE: not conformant")
-  end subroutine check_conformance
-
   function multifab_cell_centered_q(mf) result(r)
     logical :: r
     type(multifab), intent(in) :: mf
@@ -508,27 +496,6 @@ contains
     type(zmultifab), intent(in) :: mf
     r = mf%dim /= 0
   end function zmultifab_built_q
-  
-  function multifab_conformant_q(a,b) result(r)
-    logical :: r
-    type(multifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
-  end function multifab_conformant_q
-  function imultifab_conformant_q(a,b) result(r)
-    logical :: r
-    type(imultifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
-  end function imultifab_conformant_q
-  function lmultifab_conformant_q(a,b) result(r)
-    logical :: r
-    type(lmultifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
-  end function lmultifab_conformant_q
-  function zmultifab_conformant_q(a,b) result(r)
-    logical :: r
-    type(zmultifab), intent(in) :: a, b
-    r = equal(a%la, b%la) .and. a%dim == b%dim .and. a%ng == b%ng .and. a%nc == b%nc
-  end function zmultifab_conformant_q
 
   function multifab_get_layout(mf) result(r)
     type(layout) :: r
@@ -1617,47 +1584,6 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine zmultifab_setval_c
-
-  subroutine multifab_debug_fill(mf, all, loc)
-    type(multifab), intent(inout) :: mf
-    logical, intent(in), optional :: all
-    logical, intent(in), optional :: loc
-    integer :: i
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       call fab_debug_fill(mf%fbs(i), i, all, loc)
-    end do
-  end subroutine multifab_debug_fill
-  subroutine imultifab_debug_fill(mf, all)
-    type(imultifab), intent(inout) :: mf
-    logical, intent(in), optional :: all
-    integer :: i
-    type(box) :: bx
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       if ( lall ) then
-          bx = get_pbox(mf, i)
-       else
-          call setval(mf%fbs(i), -i)
-          bx = get_ibox(mf, i)
-       end if
-       call setval(mf%fbs(i), i, bx)
-    end do
-  end subroutine imultifab_debug_fill
-
-  !! MULTIFAB_SET_BOUNDARY_VAL
-  !! BUG: sets ghost cell values of the fabs, but
-  !! will corrupt f/f ghost cell values
-  subroutine multifab_set_border_val(mf, val)
-    type(multifab), intent(inout) :: mf
-    real(dp_t), intent(in), optional :: val
-    integer :: i
-    do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
-       call fab_set_border_val(mf%fbs(i), val)
-    end do
-  end subroutine multifab_set_border_val
 
   subroutine cpy_d(out, in, filter)
      real(dp_t), intent(inout) :: out(:,:,:,:)
