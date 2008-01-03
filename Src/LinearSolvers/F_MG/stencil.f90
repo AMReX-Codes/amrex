@@ -265,8 +265,6 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
-    call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
