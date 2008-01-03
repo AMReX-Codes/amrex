@@ -219,17 +219,46 @@ module fab_module
      module procedure lfab_ncomp
   end interface
 
-  real(kind=dp_t), parameter :: fab_default_init = -Huge(1.0_dp_t)
-  complex(kind=dp_t), parameter :: zfab_default_init = -Huge(1.0_dp_t)
-  integer, parameter :: ifab_default_init = -Huge(1)
-  logical, parameter :: lfab_default_init = .FALSE.
+  real(dp_t),    private, parameter ::  fab_default_init = -Huge(1.0_dp_t)
+  complex(dp_t), private, parameter :: zfab_default_init = -Huge(1.0_dp_t)
+  integer,       private, parameter :: ifab_default_init = -Huge(1)
+  logical,       private, parameter :: lfab_default_init = .FALSE.
 
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
   type(mem_stats), private, save :: ifab_ms
   type(mem_stats), private, save :: lfab_ms
+  !
+  ! The high-water mark for number of double precision values allocated in fabs.
+  !
+  integer(ll_t), private, save :: doubles_allocated_in_fabs_hwm = 0
 
 contains
+
+  subroutine print_and_reset_fab_byte_spread()
+    use parallel
+
+    integer    :: ioproc
+    real(dp_t) :: lo, hi
+
+    ioproc = parallel_IOProcessorNode()
+
+    call parallel_reduce(lo, real(doubles_allocated_in_fabs_hwm,dp_t), MPI_MIN, proc = ioproc)
+    call parallel_reduce(hi, real(doubles_allocated_in_fabs_hwm,dp_t), MPI_MAX, proc = ioproc)
+
+    if ( parallel_IOProcessor() ) then
+       !
+       ! This assumes sizeof(dp_t) == 8
+       !
+       print*, ''
+!       print*, 'FAB byte spread across CPUs: [', int(8*lo,ll_t), ' ... ', int(8*hi,ll_t)
+       write(6,fmt='("FAB byte spread across CPUs: [",i9," ... ",i9, "]")') int(8*lo,ll_t), int(8*hi,ll_t)
+       print*, ''
+    end if
+
+    doubles_allocated_in_fabs_hwm = 0
+
+  end subroutine print_and_reset_fab_byte_spread
 
   subroutine fab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -671,6 +700,7 @@ contains
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, fab_default_init)
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
+       if (fab_ms%num_alloc > doubles_allocated_in_fabs_hwm) doubles_allocated_in_fabs_hwm = fab_ms%num_alloc
     end if
   end subroutine fab_build
 
