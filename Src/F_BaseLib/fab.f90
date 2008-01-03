@@ -231,7 +231,7 @@ module fab_module
   !
   ! The high-water mark for number of double precision values allocated in fabs.
   !
-  integer(ll_t), private, save :: doubles_allocated_in_fabs_hwm = 0
+  integer(ll_t), private, save :: fab_high_water_mark = 0
 
 contains
 
@@ -243,20 +243,19 @@ contains
 
     ioproc = parallel_IOProcessorNode()
 
-    call parallel_reduce(lo, real(doubles_allocated_in_fabs_hwm,dp_t), MPI_MIN, proc = ioproc)
-    call parallel_reduce(hi, real(doubles_allocated_in_fabs_hwm,dp_t), MPI_MAX, proc = ioproc)
+    call parallel_reduce(lo, real(fab_high_water_mark,dp_t), MPI_MIN, proc = ioproc)
+    call parallel_reduce(hi, real(fab_high_water_mark,dp_t), MPI_MAX, proc = ioproc)
 
     if ( parallel_IOProcessor() ) then
        !
        ! This assumes sizeof(dp_t) == 8
        !
        print*, ''
-!       print*, 'FAB byte spread across CPUs: [', int(8*lo,ll_t), ' ... ', int(8*hi,ll_t)
-       write(6,fmt='("FAB byte spread across CPUs: [",i9," ... ",i9, "]")') int(8*lo,ll_t), int(8*hi,ll_t)
+       write(6,fmt='("FAB byte spread across CPUs: [",i10," ... ",i10, "]")') int(8*lo,ll_t), int(8*hi,ll_t)
        print*, ''
     end if
 
-    doubles_allocated_in_fabs_hwm = 0
+    fab_high_water_mark = 0
 
   end subroutine print_and_reset_fab_byte_spread
 
@@ -700,7 +699,9 @@ contains
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
        call setval(fb, fab_default_init)
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
-       if (fab_ms%num_alloc > doubles_allocated_in_fabs_hwm) doubles_allocated_in_fabs_hwm = fab_ms%num_alloc
+       if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then
+          fab_high_water_mark = (fab_ms%num_alloc-fab_ms%num_dealloc)
+       end if
     end if
   end subroutine fab_build
 
