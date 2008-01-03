@@ -261,7 +261,6 @@ nodal = .false.
 
   call multifab_build(mf, la, nc = 1, ng = 1, nodal = nodal)
 
-  call multifab_debug_fill(mf, loc = .true.)
   call parallel_barrier()
   call print(mf, "before")
 
@@ -344,7 +343,6 @@ subroutine t_mf_fabio
   call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
-  call multifab_debug_fill(mf, loc = .True.)
 !   do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
 !      fp => dataptr(mf, n, get_ibox(mf, n))
 !      nx = size(fp,1)
