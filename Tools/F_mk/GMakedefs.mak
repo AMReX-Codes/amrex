@@ -108,9 +108,9 @@ ifeq ($(COMP),gfortran)
     CFLAGS += -O
   else
     F90FLAGS += -g -fno-range-check 
-#    F90FLAGS += -fbounds-check 
+    F90FLAGS += -fbounds-check 
     FFLAGS += -g -fno-range-check 
-#    FFLAGS += -fbounds-check 
+    FFLAGS += -fbounds-check 
     CFLAGS += -g
   endif
 endif
