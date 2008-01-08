@@ -972,6 +972,8 @@ def test(argv):
         #----------------------------------------------------------------------        
         print "  running the test..."
 
+        restart = getParam(test + ".restartTest")
+
         os.chdir(outputDir)
 
         if (sourceTree == "Parallel"):
@@ -979,13 +981,18 @@ def test(argv):
                       (executable, inputsFile, test, test))
 
         elif (sourceTree == "fParallel"):
-            os.system("./%s %s --plot_base_name %s_plt --chk_int 0 >& %s.run.out" %
-                      (executable, inputsFile, test, test))
+
+            # keep around the checkpoint files only for the restart runs
+            if (restart):
+                os.system("./%s %s --plot_base_name %s_plt >& %s.run.out" %
+                          (executable, inputsFile, test, test))
+            else:
+                os.system("./%s %s --plot_base_name %s_plt --chk_int 0 >& %s.run.out" %
+                          (executable, inputsFile, test, test))
 
 
         # if it is a restart test, then rename the final output file and
         # restart the test
-        restart = getParam(test + ".restartTest")
 
         if (restart):
            lastFile = getLastPlotfile(outputDir, test)
