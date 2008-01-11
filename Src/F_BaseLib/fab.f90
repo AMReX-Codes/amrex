@@ -226,7 +226,7 @@ contains
 
   subroutine print_and_reset_fab_byte_spread()
     use parallel
-    integer    :: ioproc
+    integer    :: ioproc, ihi, ilo
     real(dp_t) :: lo, hi
     ioproc = parallel_IOProcessorNode()
     call parallel_reduce(lo, real(fab_high_water_mark,dp_t), MPI_MIN, proc = ioproc)
@@ -235,17 +235,19 @@ contains
        !
        ! This assumes sizeof(dp_t) == 8
        !
+       ilo = int(8*lo,ll_t)
+       ihi = int(8*hi,ll_t)
        print*, ''
-       write(6,fmt='("FAB byte spread across CPUs: [",i10," ... ",i10, "]")') int(8*lo,ll_t), int(8*hi,ll_t)
+       write(6,fmt='("FAB byte spread across CPUs: [",i10," ... ",i10, "]")') ilo, ihi
        print*, ''
     end if
     fab_high_water_mark = 0
   end subroutine print_and_reset_fab_byte_spread
   !
-  ! Returns a pointer to an integer array 1:nprocs of the CPU numbers [0..nprocs-1],
-  ! where the CPU numbers are sorted from least amount of fab memory in use on the CPU
-  ! to largest amount of fab memory in use on that CPU.
-  ! The pointer must be deallocated by the calling routine.
+  ! Returns a pointer to an integer array 0:nprocs-1 of the CPU numbers
+  ! [0..nprocs-1], where the CPU numbers are sorted from least amount of
+  ! fab memory in use on the CPU to largest amount of fab memory in use
+  ! on that CPU.  The pointer must be deallocated by the calling routine.
   !
   function least_used_cpus () result(r)
 
@@ -258,7 +260,7 @@ contains
 
     integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
 
-    allocate(r(parallel_nprocs()))
+    allocate(r(0:parallel_nprocs()-1))
 
     allocate(snd(1), rcv(parallel_nprocs()), idx(parallel_nprocs()))
 
@@ -270,13 +272,11 @@ contains
 
     call sort(rcv, idx)
 
-    do i = 1, parallel_nprocs()
-       r(i) = idx(i) - 1
-    end do
+    r = idx - 1
 
     if ( .false. .and. parallel_ioprocessor() ) then
        print*, '*** least_used_cpus(): '
-       do i = 1, parallel_nprocs()
+       do i = 0, parallel_nprocs()-1
           print*, i, ' : ', r(i)
        end do
     end if
