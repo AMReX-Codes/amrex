@@ -241,6 +241,47 @@ contains
     end if
     fab_high_water_mark = 0
   end subroutine print_and_reset_fab_byte_spread
+  !
+  ! Returns a pointer to an integer array 1:nprocs of the CPU numbers [0..nprocs-1],
+  ! where the CPU numbers are sorted from least amount of fab memory in use on the CPU
+  ! to largest amount of fab memory in use on that CPU.
+  ! The pointer must be deallocated by the calling routine.
+  !
+  function least_used_cpus () result(r)
+
+    use parallel
+    use sort_i_module
+
+    integer, pointer     :: r(:)
+    integer              :: i
+    integer, allocatable :: snd(:), rcv(:), idx(:)
+
+    integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
+
+    allocate(r(parallel_nprocs()))
+
+    allocate(snd(1), rcv(parallel_nprocs()), idx(parallel_nprocs()))
+
+    val = fab_ms%num_alloc - fab_ms%num_dealloc
+
+    snd(1) = int(val)
+
+    call parallel_allgather(snd, rcv, 1)
+
+    call sort(rcv, idx)
+
+    do i = 1, parallel_nprocs()
+       r(i) = idx(i) - 1
+    end do
+
+    if ( .false. .and. parallel_ioprocessor() ) then
+       print*, '*** least_used_cpus(): '
+       do i = 1, parallel_nprocs()
+          print*, i, ' : ', r(i)
+       end do
+    end if
+
+  end function least_used_cpus
 
   subroutine fab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
