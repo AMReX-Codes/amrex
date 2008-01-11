@@ -294,9 +294,7 @@ module layout_module
      module procedure layout_get_pmask
   end interface
 
-  private layout_next_id
-  private layout_rep_build
-  private layout_rep_destroy
+  private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
@@ -855,23 +853,74 @@ contains
     r = la%lap%prc
   end function layout_get_proc_v
 
-  subroutine layout_roundrobin(prc, bxs)
-    integer, intent(out), dimension(:) :: prc
-    type(box), intent(in), dimension(:) :: bxs
-    integer :: i
-    prc = mod((/(i,i=0,size(bxs)-1)/),parallel_nprocs())
-  end subroutine layout_roundrobin
+  function greater_i(a,b) result(r)
+    logical :: r
+    integer, intent(in) :: a, b
+    r = a > b
+  end function greater_i
 
-  subroutine layout_knapsack(prc, bxs)
-    use knapsack_module
-    integer, intent(out), dimension(:) :: prc
-    type(box), intent(in), dimension(:) :: bxs
-    integer :: ibxs(size(bxs))
-    integer :: i
+  subroutine layout_roundrobin(prc, bxs)
+    use fab_module
+    use sort_i_module
+    use bl_error_module
+    integer,   intent(out), dimension(:) :: prc
+    type(box), intent(in ), dimension(:) :: bxs
+
+    integer          :: i
+    integer, pointer :: luc(:)
+    integer, allocatable :: ibxs(:), idx(:)
+
+    if ( size(bxs) /= size(prc) ) call bl_error('layout_roundrobin: how did this happen?')
+
+    allocate(ibxs(size(bxs)), idx(size(bxs)))
+
     do i = 1, size(ibxs,1)
        ibxs(i) = volume(bxs(i))
     end do
-    call knapsack_i(prc, ibxs, parallel_nprocs())
+
+    call sort(ibxs, idx, greater_i)
+
+    luc => least_used_cpus()
+
+    do i = 0, size(prc,1)-1
+       prc(i) = luc(mod(idx(i)-1,parallel_nprocs()))
+    end do
+
+    deallocate(luc)
+
+  end subroutine layout_roundrobin
+
+  subroutine layout_knapsack(prc, bxs)
+    use fab_module
+    use bl_error_module
+    use knapsack_module
+    integer,   intent(out), dimension(:) :: prc
+    type(box), intent(in ), dimension(:) :: bxs
+
+    integer              :: i
+    integer, pointer     :: luc(:)
+    integer, allocatable :: ibxs(:), tprc(:)
+
+    if ( size(bxs) /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
+
+    allocate(ibxs(size(bxs)), tprc(size(bxs)))
+
+    do i = 1, size(ibxs,1)
+       ibxs(i) = volume(bxs(i))
+    end do
+    !
+    ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
+    !
+    call knapsack_i(tprc, ibxs, parallel_nprocs())
+
+    luc => least_used_cpus()
+
+    do i = 1, size(prc,1)
+       prc(i) = luc(tprc(i))
+    end do
+
+    deallocate(luc)
+
   end subroutine layout_knapsack
 
   function layout_efficiency(la, np) result(r)
