@@ -175,6 +175,14 @@ module parallel
      module procedure parallel_gather_zv
   end interface parallel_gather
 
+  interface parallel_allgather
+     module procedure parallel_allgather_dv
+     module procedure parallel_allgather_rv
+     module procedure parallel_allgather_iv
+     module procedure parallel_allgather_lv
+     module procedure parallel_allgather_zv
+  end interface parallel_allgather
+
   interface parallel_alltoall
      module procedure parallel_alltoall_d
      module procedure parallel_alltoall_dv
@@ -1202,7 +1210,58 @@ contains
     rcv(1:n) = snd(1:n)
   end subroutine parallel_gather_zv
 
-  ! PARALLEL_GATHER
+
+  subroutine parallel_allgather_dv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    real(kind=dp_t), intent(in) :: snd(*)
+    real(kind=dp_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_dv
+  subroutine parallel_allgather_rv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    real(kind=sp_t), intent(in) :: snd(*)
+    real(kind=sp_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_rv
+  subroutine parallel_allgather_iv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    integer, intent(in) :: snd(*)
+    integer, intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_iv
+  subroutine parallel_allgather_lv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    logical, intent(in) :: snd(*)
+    logical, intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_lv
+  subroutine parallel_allgather_zv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    complex(dp_t), intent(in) :: snd(*)
+    complex(dp_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_zv
+
 
   subroutine parallel_scatter_dv(snd, rcv, n, root, comm)
     integer, intent(in) :: n
