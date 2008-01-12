@@ -374,8 +374,8 @@ contains
           end do
 
           call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa)
-          call build(br%olaf(i,f), baa) ! FIXME
+          call build(br%laf(i,f), baa, explicit_mapping = get_proc(la))
+          call build(br%olaf(i,f), baa, explicit_mapping = get_proc(la))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
           call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
