@@ -92,9 +92,9 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
                                  width = 0)
-       call bndry_reg_rr_build_1(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
                                  width = 2)
 
     end do
@@ -586,8 +586,8 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
-       call bndry_reg_rr_build_1(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
 
     end do
 
@@ -707,9 +707,9 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build_1(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
                                  width = 0)
-       call bndry_reg_rr_build_1(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
                                  width = 2)
 
     end do
