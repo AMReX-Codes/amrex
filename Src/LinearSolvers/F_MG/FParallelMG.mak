@@ -46,6 +46,7 @@ f90EXE_sources += box.f90
 f90EXE_sources += sort_box.f90
 f90EXE_sources += list_box.f90
 f90EXE_sources += fab.f90
+f90EXE_sources += sort_i.f90
 f90EXE_sources += boxarray.f90
 f90EXE_sources += ml_boxarray.f90
 f90EXE_sources += layout.f90
