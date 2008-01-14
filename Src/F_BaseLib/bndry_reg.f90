@@ -5,7 +5,7 @@ module bndry_reg_module
 
   implicit none
 
-  type, public :: bndry_reg
+  type :: bndry_reg
      integer :: dim = 0
      integer :: nc  = 1
      type(multifab), pointer ::  bmf(:,:) => Null()
@@ -14,11 +14,6 @@ module bndry_reg_module
      type(layout), pointer :: laf(:,:) => Null()
      type(layout), pointer :: olaf(:,:) => Null()
   end type bndry_reg
-
-  interface build
-     module procedure bndry_reg_rr_build
-     module procedure bndry_reg_build
-  end interface
 
   interface destroy
      module procedure bndry_reg_destroy
@@ -46,35 +41,31 @@ contains
     br%dim = 0
   end subroutine bndry_reg_destroy
 
-  subroutine bndry_reg_rr_build_1(br, la, lac, rr, pdc, nc, width, nodal)
+  subroutine bndry_reg_rr_build(br, la, lac, rr, pdc, nc, width, nodal)
     use bl_error_module
-    type(layout), intent(inout) :: la, lac
-    type(bndry_reg), intent(out) :: br
-    integer, intent(in) :: rr(:)
-    type(box), intent(in) :: pdc
-    integer, intent(in), optional :: nc
-    integer, intent(in), optional :: width
-    logical, intent(in), optional :: nodal(:)
-    type(box) :: rbox
-    integer :: i, j, id, f, kk
-    integer :: dm
-    integer :: nb
-    integer :: lw
-    integer :: lo(size(rr)), hi(size(rr))
-    integer :: lo1(size(rr)), hi1(size(rr))
-    type(box), allocatable :: bxs(:), bxs1(:), bxsc(:)
+    type(layout),    intent(inout)           :: la, lac
+    type(bndry_reg), intent(out  )           :: br
+    integer,         intent(in   )           :: rr(:)
+    type(box),       intent(in   )           :: pdc
+    integer,         intent(in   ), optional :: nc
+    integer,         intent(in   ), optional :: width
+    logical,         intent(in   ), optional :: nodal(:)
+
+    integer                        :: i, j, id, f, kk, dm, nb, lw, lnc, cnt
+    integer                        :: lo(size(rr)), hi(size(rr))
+    integer                        :: lo1(size(rr)), hi1(size(rr))
+    type(box), allocatable         :: bxs(:), bxs1(:), bxsc(:)
     type(box_intersector), pointer :: bi(:)
-    integer, allocatable :: prcc(:)
-    type(box) :: lpdc
-    type(box) :: bx, bx1
-    type(boxarray) :: baa, bac
-    type(list_box) :: blc
-    type(layout) :: latmp
-    logical :: nd_flag(size(rr))
-    integer :: lnc, cnt
+    integer, allocatable           :: prcc(:)
+    type(box)                      :: rbox, lpdc, bx, bx1
+    type(boxarray)                 :: baa, bac
+    type(list_box)                 :: blc
+    type(layout)                   :: latmp
+    logical                        :: nd_flag(size(rr))
+
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "br_rr_build_1")
+    call build(bpt, "bndry_reg_rr_build")
 
     lnc = 1 ; if ( present(nc)    ) lnc = nc
     lw  = 0 ; if ( present(width) ) lw  = width
@@ -83,10 +74,8 @@ contains
     nb = nboxes(la)
 
     allocate(bxs(nb), bxs1(nb))
-    allocate(br%bmf(dm,0:1))
-    allocate(br%obmf(dm,0:1))
-    allocate(br%laf(dm,0:1))
-    allocate(br%olaf(dm,0:1))
+    allocate(br%bmf(dm,0:1), br%obmf(dm,0:1))
+    allocate(br%laf(dm,0:1), br%olaf(dm,0:1))
 
     br%dim = dm
     br%la  = la
@@ -195,140 +184,31 @@ contains
 
     call destroy(latmp)
     call destroy(bpt)
-  end subroutine bndry_reg_rr_build_1
-
-  subroutine bndry_reg_rr_build(br, la, rr, pd, nc, width, nodal)
-    use bl_error_module
-    type(layout), intent(inout) :: la
-    type(bndry_reg), intent(out) :: br
-    integer, intent(in) :: rr(:)
-    type(box), intent(in) :: pd
-    integer, intent(in), optional :: nc
-    integer, intent(in), optional :: width
-    logical, intent(in), optional :: nodal(:)
-    type(box) :: rbox
-    integer :: i, j, id, f
-    integer :: dm
-    integer :: nb
-    integer :: lw
-    integer :: lo(size(rr)), hi(size(rr))
-    type(box), allocatable :: bxs(:)
-    type(box) :: lpd
-    type(boxarray) :: baa
-    logical :: nd_flag(size(rr))
-    integer :: lnc
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "br_rr_build")
-
-    lnc = 1; if ( present(nc) ) lnc = nc
-    lw = 0; if ( present(width) ) lw = width
-
-    dm = get_dim(la)
-    nb = nboxes(la)
-
-    allocate(bxs(nb))
-    allocate(br%bmf(dm,0:1))
-    allocate(br%obmf(dm,0:1))
-    allocate(br%laf(dm,0:1))
-    allocate(br%olaf(dm,0:1))
-
-    br%dim = dm
-    br%la  = la
-    br%nc  = lnc
-
-    lpd = box_nodalize(pd, nodal)
-
-    nd_flag = .false.; if ( present(nodal) ) nd_flag = nodal
-
-    if ( dm /= get_dim(la) .or. &
-         dm /= box_dim(pd)) then
-       call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
-    end if
-
-    do i = 1, dm
-       do f = 0, 1
-          do j = 1, nb
-
-             rbox = coarsen(box_nodalize(get_box(la,j), nodal), rr)
-
-             lo = lwb(rbox)
-             hi = upb(rbox)
-
-             select case (f)
-             case ( 0 )
-                !! LO SIDE OBJECTS
-                if ( nd_flag(i) ) then
-                   lo(i) = lo(i)
-                else
-                   lo(i) = lo(i)-1
-                end if
-                hi(i) = lo(i)
-             case ( 1 )
-                !! Build hi-side objects
-                if ( nd_flag(i) ) then
-                   hi(i) = hi(i)
-                else
-                   hi(i) = hi(i)+1
-                end if
-                lo(i) = hi(i)
-             case default
-                call bl_error("BUILD_BNDRY_REG: This can't be happening")
-             end select
-
-             ! Grow in the other directions for interping bc's
-             ! Grow by lw if possible; if not lw then lw-1, etc; then none.
-             ! Note that this makes sure not to leave the physical boundary,
-             ! but doesn't see the other grids.  NEEDS TO BE FIXED.
-
-             do id = 1, dm
-                if ( id /= i ) then
-                   lo(id) = max(lo(id)-lw, lpd%lo(id))
-                   hi(id) = min(hi(id)+lw, lpd%hi(id))
-                end if
-             end do
-
-             call build(bxs(j), lo, hi)
-
-          end do
-
-          call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa)
-          call build(br%olaf(i,f), baa) ! FIXME
-          call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
-          call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
-          call destroy(baa)
-
-       end do
-    end do
-    call destroy(bpt)
   end subroutine bndry_reg_rr_build
 
   subroutine bndry_reg_build(br, la, pd, nc, nodal)
     use bl_error_module
-    type(layout), intent(inout) :: la
-    type(bndry_reg), intent(out) :: br
-    type(box), intent(in) :: pd
-    integer, intent(in), optional :: nc
-    logical, intent(in), optional :: nodal(:)
-    type(box) :: rbox
-    integer :: i, j, f
-    integer :: dm,nb
+    type(layout),    intent(inout)           :: la
+    type(bndry_reg), intent(out  )           :: br
+    type(box),       intent(in   )           :: pd
+    integer,         intent(in   ), optional :: nc
+    logical,         intent(in   ), optional :: nodal(:)
+
+    type(box)              :: rbox
+    integer                :: i, j, f, dm, nb, lnc
     type(box), allocatable :: bxs(:)
-    type(boxarray) :: baa
-    integer, allocatable :: lo(:),hi(:)
-    logical, allocatable :: nd_flag(:)
-    integer :: lnc
+    type(boxarray)         :: baa
+    integer                :: lo(la%lap%dim), hi(la%lap%dim)
+    logical                :: nd_flag(la%lap%dim)
+
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "br_build")
+    call build(bpt, "bndry_reg_build")
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
     dm = get_dim(la)
     nb = nboxes(la)
-
-    allocate(lo(dm),hi(dm),nd_flag(dm))
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1))
@@ -349,9 +229,8 @@ contains
           do j = 1, nb
 
              rbox = get_box(la,j)
-
-             lo = lwb(rbox)
-             hi = upb(rbox)
+             lo   = lwb(rbox)
+             hi   = upb(rbox)
 
              select case (f)
              case ( 0 )
@@ -359,11 +238,7 @@ contains
                 hi(i) = lo(i)
              case ( 1 )
                 !! Build hi-side objects
-                if ( nd_flag(i) ) then
-                   hi(i) = hi(i)
-                else
-                   hi(i) = hi(i)+1
-                end if
+                if ( .not. nd_flag(i) ) hi(i) = hi(i)+1
                 lo(i) = hi(i)
              case default
                 call bl_error("BUILD_FLUX_REG: This can't be happening")
@@ -462,21 +337,27 @@ contains
   subroutine bndry_reg_copy_to_other(br)
     type(bndry_reg), intent(inout) :: br
     integer :: i, f
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "br_copy_to_other")
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%obmf(i,f), br%bmf(i,f))
        end do
     end do
+    call destroy(bpt)
   end subroutine bndry_reg_copy_to_other
 
   subroutine bndry_reg_copy_from_other(br)
     type(bndry_reg), intent(inout) :: br
     integer :: i, f
+    type(bl_prof_timer), save :: bpt
+    call build(bpt, "br_copy_from_other")
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), br%obmf(i,f))
        end do
     end do
+    call destroy(bpt)
   end subroutine bndry_reg_copy_from_other
 
   subroutine bndry_reg_copy_c(br, cb, mf, cm, nc)
@@ -486,17 +367,13 @@ contains
     integer, intent(in), optional :: nc
     integer :: i, f
     type(bl_prof_timer), save :: bpt
-
     call build(bpt, "br_copy_c")
-
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), cb, mf, cm, nc = nc)
        end do
     end do
-
     call destroy(bpt)
-
   end subroutine bndry_reg_copy_c
 
   subroutine bndry_reg_setval(br, val, all)
