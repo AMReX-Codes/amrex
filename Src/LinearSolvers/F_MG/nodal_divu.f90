@@ -64,8 +64,8 @@ contains
          la_crse = unew(n-1)%la
          pdc = layout_get_pd(la_crse)
 
-         call bndry_reg_rr_build(brs_flx,la_fine,la_crse, &
-                                   ref_ratio(n-1,:),pdc,nodal=nodal)
+         call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
+              pdc, nodal = nodal, other = .false.)
          call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,ref_ratio(n-1,:),mgt)
          call bndry_reg_destroy(brs_flx)
       end do
