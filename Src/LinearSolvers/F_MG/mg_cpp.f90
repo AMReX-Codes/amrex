@@ -958,23 +958,6 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
 
 end subroutine mgt_solve
 
-subroutine mgt_compute_residual()
-  use cpp_mg_module
-  use ml_cc_module
-  use fabio_module
-  implicit none
-
-  call mgt_verify("MGT_COMPUTE_RESIDUAL")
-  if ( .not. mgts%final ) then
-     call bl_error("MGT_COMPUTE_RESIDUAL: MGT not finalized")
-  end if
-
-  call ml_resid(mgts%mla, mgts%mgt, &
-                mgts%rh, mgts%res, mgts%uu, &
-                mgts%rr)
-
-end subroutine mgt_compute_residual
-
 subroutine mgt_compute_flux(lev)
   use cpp_mg_module
   use ml_cc_module
