@@ -547,6 +547,88 @@ contains
 
   end subroutine crse_fine_residual_cc
 
+  subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
+
+    use ml_restriction_module
+    use ml_prolongation_module
+
+    type(ml_layout), intent(in)    :: mla
+    type(mg_tower) , intent(inout) :: mgt(:)
+    type( multifab), intent(inout) :: rh(:)
+    type( multifab), intent(inout) :: res(:)
+    type( multifab), intent(inout) :: full_soln(:)
+    integer        , intent(in   ) :: ref_ratio(:,:)
+
+    type(bndry_reg), allocatable :: brs_flx(:)
+    type(bndry_reg), allocatable :: brs_bcs(:)
+
+    type(box)    :: pd, pdc
+    type(layout) :: la, lac
+    integer      :: i, n, dm, nlevs, mglev, mglev_crse
+
+    dm = rh(1)%dim
+
+    nlevs = mla%nlevel
+
+    allocate(brs_bcs(2:nlevs))
+    allocate(brs_flx(2:nlevs))
+
+    do n = nlevs, 1, -1
+
+       la = mla%la(n)
+
+       if ( n == 1 ) exit
+
+       ! Build the (coarse resolution) flux registers to be used in computing
+       !  the residual at a non-finest AMR level.
+
+       pdc = layout_get_pd(mla%la(n-1))
+       lac = mla%la(n-1)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2, other = .false.)
+
+    end do
+
+    !  Make sure full_soln at fine grid has the correct coarse grid bc's in its ghost cells 
+    !   before we evaluate the initial residual  
+    do n = 2,nlevs
+       pd = layout_get_pd(mla%la(n))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       do i = 1, dm
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+       end do
+    end do
+
+    !   Make sure all periodic and internal boundaries are filled as well
+    do n = 1,nlevs   
+       call multifab_fill_boundary(full_soln(n))
+    end do
+
+    do n = 1,nlevs,1
+       mglev = mgt(n)%nlevels
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev))
+    end do
+
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
+
+       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+    enddo
+
+    do n = nlevs, 1, -1
+       if ( n == 1 ) exit
+       call bndry_reg_destroy(brs_flx(n))
+       call bndry_reg_destroy(brs_bcs(n))
+    end do
+
+  end subroutine ml_resid
+
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
                            do_diagnostics)
 
