@@ -564,10 +564,11 @@ contains
 
   end subroutine nodal_smoother_1d
 
-  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, red_black)
+  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, red_black)
     use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
+    logical, intent(in) :: pmask(:)
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1)-1:, lo(2)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
@@ -575,12 +576,12 @@ contains
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     integer            ,intent(in) :: red_black
 
-    integer :: j, i, ipar, istart, jstart
+    integer :: j, i, ipar, istart, jstart, half_x
     integer :: hi(size(lo))
-    logical :: offset
+    logical :: offset, x_is_odd
     real (kind = dp_t) :: dd
 
-!   real (kind = dp_t) :: uu_temp(0:256,0:256)
+    real (kind = dp_t), allocatable :: uu_temp(:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -636,38 +637,54 @@ contains
         jstart = lo(2)
       end if
 
-      !$OMP PARALLEL DO PRIVATE(j,i,dd)
-!     USE THIS FOR GAUSS-SEIDEL ITERATION
-      ipar = 1-red_black
-      do j = jstart,hi(2)
-             ipar = 1 - ipar
-             do i = istart+ipar,hi(1),2
-                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                   dd =   ss(i,j,0) * uu(i  ,j ) &
-                        + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-                        + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-                   uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-                end if
-             end do
-      end do
-      !$OMP END PARALLEL DO
+      half_x = (hi(1)-lo(1))/2
+      if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
+         x_is_odd = .false.
+      else
+         x_is_odd = .true.
+      end if
+
+      if (x_is_odd .and. pmask(1)) then
 
 !     USE THIS FOR JACOBI ITERATION
-!     do j = jstart,hi(2)
-!            do i = istart,hi(1)
-!               if (.not. bc_dirichlet(mm(i,j),1,0)) then
-!                  dd =   ss(i,j,0) * uu(i  ,j ) &
-!                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-!                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-!                  uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!               end if
-!            end do
-!     end do
-!     do j = jstart,hi(2)
-!            do i = istart,hi(1)
-!               uu(i,j) = uu_temp(i,j)
-!            end do
-!     end do
+        allocate(uu_temp(istart:hi(1),jstart:hi(2)))
+        do j = jstart,hi(2)
+          do i = istart,hi(1)
+             if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                dd =   ss(i,j,0) * uu(i  ,j ) &
+                     + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+                     + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+                uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             end if
+          end do
+        end do
+        do j = jstart,hi(2)
+          do i = istart,hi(1)
+             if (.not. bc_dirichlet(mm(i,j),1,0)) &
+               uu(i,j) = uu_temp(i,j)
+          end do
+        end do
+        deallocate(uu_temp)
+
+      else
+
+      !$OMP PARALLEL DO PRIVATE(j,i,dd)
+!       USE THIS FOR GAUSS-SEIDEL ITERATION
+        ipar = 1-red_black
+        do j = jstart,hi(2)
+          ipar = 1 - ipar
+          do i = istart+ipar,hi(1),2
+             if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                dd =   ss(i,j,0) * uu(i  ,j ) &
+                     + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+                     + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             end if
+          end do
+        end do
+        !$OMP END PARALLEL DO
+
+      end if
 
     end if
 
@@ -675,10 +692,11 @@ contains
 
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, red_black)
+  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, red_black)
     use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
+    logical, intent(in) :: pmask(:)
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
@@ -687,11 +705,11 @@ contains
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
 
-    integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo))
-    logical :: offset
+    integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo)), half_x, half_y
+    logical :: offset, x_is_odd, y_is_odd
     real (kind = dp_t) :: dd
 
-!   real (kind = dp_t) :: uu_temp(0:256,0:256,0:256)
+    real (kind = dp_t), allocatable :: uu_temp(:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -742,46 +760,68 @@ contains
         kstart = lo(3)
       end if
 
-!     USE THIS FOR GAUSS-SEIDEL ITERATION
-      ipar0 = red_black
-      do k = kstart,hi(3)
-          ipar0 = 1 - ipar0
-          ipar = ipar0
-          do j = jstart,hi(2)
-             ipar = 1 - ipar
-             do i = istart+ipar,hi(1),2
-                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                   dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
-                        + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-                        + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-                        + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
-                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-                end if
-             end do
-          end do
-      end do
+      half_x = (hi(1)-lo(1))/2
+      if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
+         x_is_odd = .false.
+      else
+         x_is_odd = .true.
+      end if
 
-!     USE THIS FOR JACOBI ITERATION
-!      do k = kstart,hi(3)
-!          do j = jstart,hi(2)
-!             do i = istart,hi(1)
-!                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-!                   dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
-!                        + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-!                        + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-!                        + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
-!                   uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-!                end if
-!             end do
-!          end do
-!      end do
-!      do k = kstart,hi(3)
-!          do j = jstart,hi(2)
-!             do i = istart,hi(1)
-!                uu(i,j,k) = uu_temp(i,j,k)
-!             end do
-!          end do
-!      end do
+      half_y = (hi(2)-lo(2))/2
+      if ( 2*half_y .eq. ( hi(2)-lo(2) ) ) then
+         y_is_odd = .false.
+      else
+         y_is_odd = .true.
+      end if
+
+      if ( (x_is_odd .and. pmask(1)) .or. (y_is_odd .and. pmask(2)) ) then
+
+!       USE THIS FOR JACOBI ITERATION
+        allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
+        do k = kstart,hi(3)
+             do j = jstart,hi(2)
+                do i = istart,hi(1)
+                   if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                      dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                           + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
+                           + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
+                           + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+                      uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                   end if
+                end do
+             end do
+        end do
+        do k = kstart,hi(3)
+             do j = jstart,hi(2)
+                do i = istart,hi(1)
+                   uu(i,j,k) = uu_temp(i,j,k)
+                end do
+             end do
+        end do
+        deallocate(uu_temp)
+
+      else
+
+!       USE THIS FOR GAUSS-SEIDEL ITERATION
+        ipar0 = red_black
+        do k = kstart,hi(3)
+            ipar0 = 1 - ipar0
+            ipar = ipar0
+            do j = jstart,hi(2)
+               ipar = 1 - ipar
+               do i = istart+ipar,hi(1),2
+                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                     dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                          + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
+                          + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
+                          + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+                     uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  end if
+               end do
+            end do
+        end do
+
+      end if
 
     else if (size(ss,dim=4) .eq. 21) then
 
