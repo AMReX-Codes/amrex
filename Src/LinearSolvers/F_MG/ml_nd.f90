@@ -384,8 +384,13 @@ contains
 
     end do
 
-    if ( mgt(nlevs)%verbose > 0 .AND. parallel_IOProcessor() ) &
-         write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter-1
+    iter = iter-1
+    if (iter < mgt(nlevs)%max_iter) then
+      if (mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) &
+          write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter
+    else
+      call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+    end if
 
     ! Add: soln += full_soln
     do n = 1,nlevs
