@@ -507,7 +507,7 @@ contains
     end select
     if ( stat /= 0 ) then
        if ( parallel_IOProcessor() ) call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
-       do i = 1, 2
+       do i = 1, 20
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     end if
@@ -684,8 +684,10 @@ contains
     integer :: i, k, n, nn
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
-    logical :: lcross
+    logical :: lcross, pmask(mgt%dim)
 
+    pmask = layout_get_pmask(uu%la)
+ 
     call build(bpt, "mgt_smoother")
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
@@ -795,10 +797,10 @@ contains
              select case ( mgt%dim)
              case (2)
                 call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                     mp(:,:,1,1), lo, mgt%ng, k)
+                     mp(:,:,1,1), lo, mgt%ng, pmask, k)
              case (3)
                 call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, k)
+                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
              end select
           end do
         end do
@@ -821,10 +823,10 @@ contains
                      mp(:,1,1,1), lo, mgt%ng)
              case (2)
                 call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                     mp(:,:,1,1), lo, mgt%ng, k)
+                     mp(:,:,1,1), lo, mgt%ng, pmask, k)
              case (3)
                 call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, k)
+                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
              end select
           end do
         end do
