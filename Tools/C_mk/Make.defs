@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.112 2007-11-08 02:37:58 marc Exp $
+# Make.defs $Id: Make.defs,v 1.113 2008-01-15 22:53:40 mzingale Exp $
 #
 
 #
@@ -336,6 +336,13 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 10
        ICC_MINOR_VERSION := 0
        _icpc := icpc
+   else
+   ifeq ($(findstring Version 10.1, $(__icc_version)), Version 10.1)
+       ICC_VERSION := 10.1
+       ICC_MAJOR_VERSION := 10
+       ICC_MINOR_VERSION := 1
+       _icpc := icpc
+   endif
    endif
    endif
    endif
@@ -433,6 +440,12 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 10.0
        IFC_MAJOR_VERSION := 10
        IFC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 10.1, $(__ifc_version)), Version 10.1)
+       IFC_VERSION := 10.1
+       IFC_MAJOR_VERSION := 10
+       IFC_MINOR_VERSION := 1
+   endif
    endif
    endif
    endif
