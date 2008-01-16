@@ -254,7 +254,7 @@ ifeq ($(ARCH),Linux)
     CFLAGS   =
     FFLAGS   += -module $(mdir)
     F90FLAGS += -module $(mdir)
-#    F90FLAGS += -mp
+    F90FLAGS += -mp
     FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
     ifdef OMP
@@ -265,8 +265,8 @@ ifeq ($(ARCH),Linux)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0
         FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all
-        FFLAGS   += -check all
+        F90FLAGS += -check all -warn all
+        FFLAGS   += -check all -warn all
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
