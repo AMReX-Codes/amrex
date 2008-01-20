@@ -225,8 +225,14 @@ ifeq ($(ARCH),Linux)
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
     ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
-      _ifc  := ifort
-      _comp := Intel10
+      ifeq ($(findstring homer, $(UNAMEN)), homer)
+        _ifc  := mpif90
+        _icc  := mpicc
+        _comp := Intel10
+      else
+        _ifc  := ifort
+        _comp := Intel10
+      endif
     else
     ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
       ifeq ($(findstring atlas, $(UNAMEN)), atlas)
@@ -274,7 +280,7 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip
+          F90FLAGS += -O3 -ip 
           FFLAGS += -O3 -ip
           CFLAGS += -O3 -ip
 	endif
