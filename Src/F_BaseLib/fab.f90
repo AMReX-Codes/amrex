@@ -208,10 +208,11 @@ module fab_module
      module procedure lfab_ncomp
   end interface
 
-  real(dp_t),    private, parameter ::  fab_default_init = -Huge(1.0_dp_t)
-  complex(dp_t), private, parameter :: zfab_default_init = -Huge(1.0_dp_t)
-  integer,       private, parameter :: ifab_default_init = -Huge(1)
-  logical,       private, parameter :: lfab_default_init = .FALSE.
+  logical,       private, save ::      do_init_fabs = .false.
+  real(dp_t),    private, save ::  fab_default_init = -Huge(1.0_dp_t)
+  complex(dp_t), private, save :: zfab_default_init = -Huge(1.0_dp_t)
+  integer,       private, save :: ifab_default_init = -Huge(1)
+  logical,       private, save :: lfab_default_init = .false.
 
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
@@ -223,6 +224,32 @@ module fab_module
   integer(ll_t), private, save :: fab_high_water_mark = 0
 
 contains
+  !
+  ! Toggle whether or not setval() is called immediately after a fab is built.
+  !
+  subroutine setval_fabs_on_init(yes_or_no)
+    logical, intent(in) :: yes_or_no
+    do_init_fabs = yes_or_no
+  end subroutine setval_fabs_on_init
+  !
+  ! Set the default value to which fabs are setval()d when built.
+  !
+  subroutine set_fab_default_init(val)
+    real(dp_t), intent(in) :: val
+    fab_default_init = val
+  end subroutine set_fab_default_init
+  subroutine set_zfab_default_init(val)
+    complex(dp_t), intent(in) :: val
+    zfab_default_init = val
+  end subroutine set_zfab_default_init
+  subroutine set_ifab_default_init(val)
+    integer, intent(in) :: val
+    ifab_default_init = val
+  end subroutine set_ifab_default_init
+  subroutine set_lfab_default_init(val)
+    logical, intent(in) :: val
+    lfab_default_init = val
+  end subroutine set_lfab_default_init
 
   subroutine print_and_reset_fab_byte_spread()
     use parallel
@@ -592,7 +619,7 @@ contains
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
-       call setval(fb, fab_default_init)
+       if ( do_init_fabs ) call setval(fb, fab_default_init)
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
        if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then
           fab_high_water_mark = (fab_ms%num_alloc-fab_ms%num_dealloc)
@@ -623,7 +650,7 @@ contains
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
-       call setval(fb, zfab_default_init)
+       if ( do_init_fabs ) call setval(fb, zfab_default_init)
        call mem_stats_alloc(zfab_ms, volume(fb, all=.TRUE.))
     end if
   end subroutine zfab_build
@@ -651,7 +678,7 @@ contains
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
-       call setval(fb, ifab_default_init)
+       if ( do_init_fabs ) call setval(fb, ifab_default_init)
        call mem_stats_alloc(ifab_ms, volume(fb, all=.TRUE.))
     end if
   end subroutine ifab_build
@@ -679,7 +706,7 @@ contains
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
     if ( lal ) then
        allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
-       call setval(fb, lfab_default_init)
+       if ( do_init_fabs ) call setval(fb, lfab_default_init)
        call mem_stats_alloc(lfab_ms, volume(fb, all=.TRUE.))
     end if
   end subroutine lfab_build
