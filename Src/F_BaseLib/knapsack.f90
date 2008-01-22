@@ -5,6 +5,8 @@ module knapsack_module
 
   implicit none
 
+  logical, private :: do_mcc = .true.
+
   integer, private :: knapsack_verbose = 1
 
   real(kind=dp_t), private :: knapsack_threshold = 1_dp_t
@@ -365,7 +367,7 @@ contains
        call destroy(procs(i))
     end do
 
-    if ( np > 1 ) call mcc(prc, ibxs, bxs, np, lverb)
+    if ( np > 1 .and. do_mcc ) call mcc(prc, ibxs, bxs, np, lverb)
 
     call cpu_time(t2)
 
