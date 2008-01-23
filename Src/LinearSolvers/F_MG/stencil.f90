@@ -2582,19 +2582,38 @@ contains
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
-    do k = 1,nz
-       do j = 1,ny
-          do i = 1,nx
-             dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-                  + ss(i,j,k,1)*uu(i+1,j  ,k  ) + ss(i,j,k,2)*uu(i-1,j  ,k  ) &
-                  + ss(i,j,k,3)*uu(i  ,j+1,k  ) + ss(i,j,k,4)*uu(i  ,j-1,k  ) &
-                  + ss(i,j,k,5)*uu(i  ,j  ,k+1) + ss(i,j,k,6)*uu(i  ,j  ,k-1)
-          end do
-       end do
-    end do
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k)
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,1)*uu(i+1,j  ,k  )
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,2)*uu(i-1,j  ,k  )
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,3)*uu(i  ,j+1,k  )
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,4)*uu(i  ,j-1,k  )
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,5)*uu(i  ,j  ,k+1)
+    end do; end do; end do
+
+    do k = 1,nz; do j = 1,ny; do i = 1,nx
+       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,6)*uu(i  ,j  ,k-1)
+    end do; end do; end do
 
     if ( lskwd ) then
+       !
        ! Corrections for skewed stencils
+       !
        if (nx > 1) then
           do k = 1, nz
              do j = 1, ny
