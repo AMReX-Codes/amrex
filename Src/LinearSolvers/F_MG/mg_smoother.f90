@@ -194,163 +194,6 @@ contains
 
   end subroutine gs_rb_smoother_2d
 
-  subroutine gs_rb_smoother_3d_transpose(omega, ss, uu, ff, mm, lo, ng, n, skwd)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    integer, intent(in) :: lo(:)
-    integer, intent(in) :: n
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):,lo(3):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):, lo(2):, lo(3):)
-    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
-    logical, intent(in), optional :: skwd
-
-    integer :: i, j, k, ioff, hi(size(lo))
-    integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
-    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
-    real(dp_t) :: dd
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "gs_rb_smoother_3d_transpose")
-
-    hi = ubound(uu)-ng
-
-    if (present(skwd) ) then
-       lskwd = skwd
-    else
-       lskwd = .false.
-       do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          if (bc_skewed(mm(lo(1),j,k),1,+1)) lskwd = .true.
-          if (bc_skewed(mm(hi(1),j,k),1,-1)) lskwd = .true.
-       end do
-       end do
-       do k = lo(3), hi(3)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,lo(2),k),2,+1)) lskwd = .true.
-          if (bc_skewed(mm(i,hi(2),k),2,-1)) lskwd = .true.
-       end do
-       end do
-       do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,j,lo(3)),3,+1)) lskwd = .true.
-          if (bc_skewed(mm(i,j,hi(3)),3,-1)) lskwd = .true.
-       end do
-       end do
-    end if
-
-    if ( all(lo == hi) ) then
-       k = lo(3); j = lo(2); i = lo(1)
-       if ( mod(i + j + k, 2) == n ) then
-          dd = ss(0,i,j,k)*uu(i,j,k)
-          dd = dd + ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k)
-          dd = dd + ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k)
-          dd = dd + ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
-          if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-          end if
-       end if
-       call destroy(bpt)
-       return
-    end if
-
-    if (lskwd) then
-
-    do k = lo(3), hi(3)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
-          if (bc_skewed(mm(i,hi(2),k),2,-1)) tb(i,k,2) = uu(i,hi(2)-2,k)
-       end do
-    end do
-    do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          if (bc_skewed(mm(lo(1),j,k),1,+1)) lr(j,k,1) = uu(lo(1)+2,j,k)
-          if (bc_skewed(mm(hi(1),j,k),1,-1)) lr(j,k,2) = uu(hi(1)-2,j,k)
-       end do
-    end do
-    do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,j,lo(3)),3,+1)) fb(i,j,1) = uu(i,j,lo(3)+2)
-          if (bc_skewed(mm(i,j,hi(3)),3,-1)) fb(i,j,2) = uu(i,j,hi(3)-2)
-       end do
-    end do
-
-    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
-    do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
-          do i = lo(1)+ioff, hi(1), 2
-
-             dd = ss(0,i,j,k)*uu(i,j,k)
-             dd = dd + ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k)
-             dd = dd + ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k)
-             dd = dd + ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
-
-             if ( i == lo(1) ) then
-                if (bc_skewed(mm(i,j,k),1,+1)) then
-                   dd = dd + ss(XBC,i,j,k)*lr(j,k,1)
-                end if
-             end if
-             if ( i == hi(1) ) then
-                if (bc_skewed(mm(i,j,k),1,-1)) then
-                   dd = dd + ss(XBC,i,j,k)*lr(j,k,2)
-                end if
-             end if
-             if ( j == lo(2) ) then 
-                if (bc_skewed(mm(i,j,k),2,+1)) then
-                   dd = dd + ss(YBC,i,j,k)*tb(i,k,1)
-                end if
-             end if
-             if ( j == hi(2) ) then
-                if (bc_skewed(mm(i,j,k),2,-1)) then
-                   dd = dd + ss(YBC,i,j,k)*tb(i,k,2)
-                end if
-             end if
-             if ( k == lo(3) ) then
-                if (bc_skewed(mm(i,j,k),3,+1)) then
-                   dd = dd + ss(ZBC,i,j,k)*fb(i,j,1)
-                end if
-             end if
-             if ( k == hi(3) ) then
-                if (bc_skewed(mm(i,j,k),3,-1)) then
-                   dd = dd + ss(ZBC,i,j,k)*fb(i,j,2)
-                end if
-             end if
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    ! not skewed
-    else
-
-    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
-    do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
-          do i = lo(1)+ioff, hi(1), 2
-             dd = ss(0,i,j,k)*uu(i,j,k)
-             dd = dd + ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k)
-             dd = dd + ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k)
-             dd = dd + ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    end if
-
-    call destroy(bpt)
-
-  end subroutine gs_rb_smoother_3d_transpose
-
   subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
@@ -394,7 +237,7 @@ contains
        return
     end if
 
-    if (present(skwd) ) then
+    if ( present(skwd) ) then
        lskwd = skwd
     else
        lskwd = .false.
@@ -451,10 +294,10 @@ contains
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
 
-                dd = ss(i,j,k,0)*uu(i,j,k)
-                dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-                dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-                dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+                dd = ss(i,j,k,0)*uu(i,j,k) + &
+                     ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k) + &
+                     ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
+                     ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
 
                 if ( i == lo(1) .and. bc_skewed(mm(i,j,k),1,+1) ) then
                    dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
@@ -486,10 +329,10 @@ contains
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
-                  dd = ss(i,j,k,0)*uu(i,j,k)
-                  dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-                  dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-                  dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+                  dd = ss(i,j,k,0)*uu(i,j,k) + &
+                       ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k) + &
+                       ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
+                       ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
                   uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
              end do
           end do
