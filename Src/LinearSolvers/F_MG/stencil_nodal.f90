@@ -1098,36 +1098,55 @@ contains
     real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
     integer           , intent(in   ) :: mm(:,:,:)
     logical, intent(in)               :: uniform_dh
-    integer i,j,k,lo(3)
+    integer i,j,k,lo(3),nx,ny,nz
 
-    lo(:) = 1
+    lo = 1
+
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
+
+    nz = size(ss,dim=3)
+    ny = size(ss,dim=2)
+    nx = size(ss,dim=1)
 
     if (size(ss,dim=4) .eq. 7) then
 
-      do k = 1,size(ss,dim=3)
-      do j = 1,size(ss,dim=2)
-      do i = 1,size(ss,dim=1)
-  
-         if (bc_dirichlet(mm(i,j,k),1,0)) then
-           dd(i,j,k) = ZERO
-         else
-           dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-             + ss(i,j,k,1) * uu(i+1,j  ,k  ) + ss(i,j,k,2) * uu(i-1,j  ,k  ) &
-             + ss(i,j,k,3) * uu(i  ,j+1,k  ) + ss(i,j,k,4) * uu(i  ,j-1,k  ) &
-             + ss(i,j,k,5) * uu(i  ,j  ,k+1) + ss(i,j,k,6) * uu(i  ,j  ,k-1) 
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k)
+       end do; end do; end do
 
-         end if
-  
-      end do
-      end do
-      end do
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,1) * uu(i+1,j  ,k  )
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,2) * uu(i-1,j  ,k  )
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,3) * uu(i  ,j+1,k  )
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,4) * uu(i  ,j-1,k  )
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          dd(i,j,k) = dd(i,j,k) + ss(i,j,k,6) * uu(i  ,j  ,k-1) 
+       end do; end do; end do
+
+       do k = 1,nz; do j = 1,ny; do i = 1,nx
+          if (bc_dirichlet(mm(i,j,k),1,0)) dd(i,j,k) = ZERO
+       end do; end do; end do
 
     else if (size(ss,dim=4) .eq. 21) then
 
-      do k = 1,size(ss,dim=3)
-      do j = 1,size(ss,dim=2)
-      do i = 1,size(ss,dim=1)
+      do k = 1,nz
+      do j = 1,ny
+      do i = 1,nx
 
          if (bc_dirichlet(mm(i,j,k),1,0)) then
            dd(i,j,k) = ZERO
@@ -1153,9 +1172,9 @@ contains
 
     else if (size(ss,dim=4) .eq. 27) then
 
-      do k = 1,size(ss,dim=3)
-      do j = 1,size(ss,dim=2)
-      do i = 1,size(ss,dim=1)
+      do k = 1,nz
+      do j = 1,ny
+      do i = 1,nx
   
          if (bc_dirichlet(mm(i,j,k),1,0)) then
            dd(i,j,k) = ZERO
