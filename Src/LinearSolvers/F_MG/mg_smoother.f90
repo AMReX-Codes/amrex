@@ -379,30 +379,6 @@ contains
 
     hi = ubound(uu)-ng
 
-    if (present(skwd) ) then
-       lskwd = skwd
-    else
-       lskwd = .false.
-       do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          if (bc_skewed(mm(lo(1),j,k),1,+1)) lskwd = .true.
-          if (bc_skewed(mm(hi(1),j,k),1,-1)) lskwd = .true.
-       end do
-       end do
-       do k = lo(3), hi(3)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,lo(2),k),2,+1)) lskwd = .true.
-          if (bc_skewed(mm(i,hi(2),k),2,-1)) lskwd = .true.
-       end do
-       end do
-       do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (bc_skewed(mm(i,j,lo(3)),3,+1)) lskwd = .true.
-          if (bc_skewed(mm(i,j,hi(3)),3,-1)) lskwd = .true.
-       end do
-       end do
-    end if
-
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
        if ( mod(i + j + k, 2) == n ) then
@@ -418,7 +394,37 @@ contains
        return
     end if
 
-    if ( lskwd ) then
+    if (present(skwd) ) then
+       lskwd = skwd
+    else
+       lskwd = .false.
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             if ( bc_skewed(mm(lo(1),j,k),1,+1) .or. bc_skewed(mm(hi(1),j,k),1,-1) ) then
+                lskwd = .true.
+                goto 1234
+             end if
+          end do
+       end do
+       do k = lo(3), hi(3)
+          do i = lo(1), hi(1)
+             if ( bc_skewed(mm(i,lo(2),k),2,+1) .or. bc_skewed(mm(i,hi(2),k),2,-1) ) then
+                lskwd = .true.
+                goto 1234
+             end if
+          end do
+       end do
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if ( bc_skewed(mm(i,j,lo(3)),3,+1) .or. bc_skewed(mm(i,j,hi(3)),3,-1) ) then
+                lskwd = .true.
+                goto 1234
+             end if
+          end do
+       end do
+    end if
+
+1234 if ( lskwd ) then
 
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
@@ -450,35 +456,23 @@ contains
                 dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
                 dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
 
-                if ( i == lo(1) ) then
-                   if (bc_skewed(mm(i,j,k),1,+1)) then
-                      dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
-                   end if
+                if ( i == lo(1) .and. bc_skewed(mm(i,j,k),1,+1) ) then
+                   dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
                 end if
-                if ( i == hi(1) ) then
-                   if (bc_skewed(mm(i,j,k),1,-1)) then
-                      dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
-                   end if
+                if ( i == hi(1) .and. bc_skewed(mm(i,j,k),1,-1) ) then
+                   dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
                 end if
-                if ( j == lo(2) ) then 
-                   if (bc_skewed(mm(i,j,k),2,+1)) then
-                      dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
-                   end if
+                if ( j == lo(2) .and. bc_skewed(mm(i,j,k),2,+1) ) then
+                   dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
                 end if
-                if ( j == hi(2) ) then
-                   if (bc_skewed(mm(i,j,k),2,-1)) then
-                      dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
-                   end if
+                if ( j == hi(2) .and. bc_skewed(mm(i,j,k),2,-1) ) then
+                   dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
                 end if
-                if ( k == lo(3) ) then
-                   if (bc_skewed(mm(i,j,k),3,+1)) then
-                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
-                   end if
+                if ( k == lo(3) .and. bc_skewed(mm(i,j,k),3,+1) ) then
+                   dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
                 end if
-                if ( k == hi(3) ) then
-                   if (bc_skewed(mm(i,j,k),3,-1)) then
-                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
-                   end if
+                if ( k == hi(3) .and. bc_skewed(mm(i,j,k),3,-1) ) then
+                   dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
                 end if
                 uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
              end do
@@ -706,7 +700,7 @@ contains
     integer, intent(in) :: red_black
 
     integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo)), half_x, half_y
-    logical :: offset, x_is_odd, y_is_odd
+    logical :: x_is_odd, y_is_odd
     real (kind = dp_t) :: dd
 
     real (kind = dp_t), allocatable :: uu_temp(:,:,:)
@@ -722,43 +716,38 @@ contains
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
     if (size(ss,dim=4) .eq. 7) then
-
+      !
       ! PURE HACK just to match up the gsrb with Parallel/hgproj
-      offset = .true.
-      do k = lo(3),hi(3)
-      do j = lo(2),hi(2)
-        if (.not. bc_dirichlet(mm(lo(1),j,k),1,0)) offset = .false.
-      end do
-      end do
-      if (offset) then 
-        istart = lo(1)+1
-      else
-        istart = lo(1)
-      end if
+      !
+      istart = lo(1)+1
+      outer1: do k = lo(3),hi(3)
+         do j = lo(2),hi(2)
+            if (.not. bc_dirichlet(mm(lo(1),j,k),1,0)) then
+               istart = lo(1)
+               exit outer1
+            end if
+         end do
+      end do outer1
 
-      offset = .true.
-      do k = lo(3),hi(3)
-      do i = lo(1),hi(1)
-        if (.not. bc_dirichlet(mm(i,lo(2),k),1,0)) offset = .false.
-      end do
-      end do
-      if (offset) then 
-        jstart = lo(2)+1
-      else
-        jstart = lo(2)
-      end if
+      jstart = lo(2)+1
+      outer2: do k = lo(3),hi(3)
+         do i = lo(1),hi(1)
+            if (.not. bc_dirichlet(mm(i,lo(2),k),1,0)) then
+               jstart = lo(2)
+               exit outer2
+            end if
+         end do
+      end do outer2
 
-      offset = .true.
-      do j = lo(2),hi(2)
-      do i = lo(1),hi(1)
-        if (.not. bc_dirichlet(mm(i,j,lo(3)),1,0)) offset = .false.
-      end do
-      end do
-      if (offset) then 
-        kstart = lo(3)+1
-      else
-        kstart = lo(3)
-      end if
+      kstart = lo(3)+1
+      outer3: do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
+            if (.not. bc_dirichlet(mm(i,j,lo(3)),1,0)) then
+               kstart = lo(3)
+               exit outer3
+            end if
+         end do
+      end do outer3
 
       half_x = (hi(1)-lo(1))/2
       if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
