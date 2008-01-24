@@ -12,6 +12,7 @@ ifeq ($(COMP),PathScale)
   #CXXOPTF += -O2 -OPT:Olimit=0 -fno-exceptions -OPT:Ofast -Wno-deprecated
   CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
+  override XTRALIBS += -lpathfortran  -lmv
 else
 ifeq ($(COMP),KCC)
   CXX      = KCC
