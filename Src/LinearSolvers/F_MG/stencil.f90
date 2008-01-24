@@ -2564,15 +2564,15 @@ contains
   end subroutine stencil_flux_2d
 
   subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
-    integer, intent(in) :: ng_d,ng_u
+
+    integer           , intent(in ) :: ng_d,ng_u
     real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
-    logical, intent(in), optional :: skwd
-    integer           , intent(in) :: mm(:,:,:)
-    integer nx,ny,nz
-    integer i,j,k
+    integer           , intent(in ) :: mm(:,:,:)
+    logical           , intent(in ), optional :: skwd
 
+    integer nx,ny,nz,i,j,k
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
     logical :: lskwd
 
@@ -2582,33 +2582,20 @@ contains
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k)
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,1)*uu(i+1,j  ,k  )
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,2)*uu(i-1,j  ,k  )
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,3)*uu(i  ,j+1,k  )
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,4)*uu(i  ,j-1,k  )
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,5)*uu(i  ,j  ,k+1)
-    end do; end do; end do
-
-    do k = 1,nz; do j = 1,ny; do i = 1,nx
-       dd(i,j,k) = dd(i,j,k) + ss(i,j,k,6)*uu(i  ,j  ,k-1)
-    end do; end do; end do
+    do k = 1,nz
+       do j = 1,ny
+          do i = 1,nx
+             dd(i,j,k) = &
+                  ss(i,j,k,0)*uu(i,j,k)       + &
+                  ss(i,j,k,1)*uu(i+1,j  ,k  ) + &
+                  ss(i,j,k,2)*uu(i-1,j  ,k  ) + &
+                  ss(i,j,k,3)*uu(i  ,j+1,k  ) + &
+                  ss(i,j,k,4)*uu(i  ,j-1,k  ) + &
+                  ss(i,j,k,5)*uu(i  ,j  ,k+1) + &
+                  ss(i,j,k,6)*uu(i  ,j  ,k-1)
+          end do
+       end do
+    end do
 
     if ( lskwd ) then
        !
