@@ -1116,7 +1116,15 @@ def test(argv):
     print "creating new test report..."
     reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, webDir)
 
-    
+
+    # make sure that all of the files in the web directory are world readable
+    for file in os.listdir(webDir):    
+       currentFile = webDir + file
+
+       if (os.path.isfile(currentFile)):
+          os.chmod(currentFile, 0644)
+          
+
     #--------------------------------------------------------------------------
     # generate the master report for all test instances 
     #--------------------------------------------------------------------------
