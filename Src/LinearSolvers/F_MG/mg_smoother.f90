@@ -56,8 +56,6 @@ contains
     do i = lo(1), hi(1)
        uu(i) = u_ls(i-lo(1))
     end do
-   
-    deallocate(a_ls,b_ls,c_ls,r_ls,u_ls)
 
   end subroutine gs_line_solve_1d
 
@@ -1505,8 +1503,6 @@ contains
       do j = n-1,1,-1
         u(j) = u(j) - gam(j+1)*u(j+1)
       end do
-
-      deallocate(gam)
 
   end subroutine tridiag
 
