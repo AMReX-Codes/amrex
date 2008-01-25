@@ -786,8 +786,6 @@ contains
        call bndry_reg_destroy(brs_bcs(n))
     end do
 
-    deallocate(uu_hold)
-    deallocate(soln,uu,rh,temp_res)
     call destroy(bpt)
 
   end subroutine ml_cc_applyop

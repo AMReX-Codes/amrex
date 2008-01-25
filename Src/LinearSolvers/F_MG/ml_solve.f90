@@ -27,17 +27,15 @@ contains
       integer        , intent(in   ) :: ref_ratio(:,:)
       integer        , intent(in   ) :: do_diagnostics
 
-      type(boxarray)           :: bac
-      type(lmultifab), pointer :: fine_mask(:) => Null()
-      integer                  :: i, dm, n, nlevs, mglev
-      real(dp_t)               :: eps
+      type(boxarray)  :: bac
+      type(lmultifab) :: fine_mask(mla%nlevel)
+      integer         :: i, dm, n, nlevs, mglev
+      real(dp_t)      :: eps
 
       dm    = mla%dim
       nlevs = mla%nlevel
 
       eps = 1.d-12
-
-      allocate(fine_mask(nlevs))
 
       do n = nlevs, 1, -1
         call lmultifab_build(fine_mask(n), mla%la(n), 1, 0)
@@ -71,7 +69,6 @@ contains
     do n = 1,nlevs
       call lmultifab_destroy(fine_mask(n))
     end do
-    deallocate(fine_mask)
 
    end subroutine ml_cc_solve
 
@@ -88,10 +85,10 @@ contains
        integer        , intent(in   )           :: do_diagnostics 
        real(dp_t)     , intent(in   ), optional :: eps_in
 
-       type(lmultifab), pointer :: fine_mask(:) => Null()
-       integer                  :: nlevs, n, dm, lo(rh(mla%nlevel)%dim), hi(rh(mla%nlevel)%dim)
-       logical                  :: nodal(rh(mla%nlevel)%dim)
-       real(dp_t)               :: eps
+       type(lmultifab) :: fine_mask(mla%nlevel)
+       integer         :: nlevs, n, dm, lo(rh(mla%nlevel)%dim), hi(rh(mla%nlevel)%dim)
+       logical         :: nodal(rh(mla%nlevel)%dim)
+       real(dp_t)      :: eps
 
        eps = 1.d-12; if ( present(eps_in) ) eps = eps_in
 
@@ -99,12 +96,9 @@ contains
        dm    = rh(nlevs)%dim
        nodal = .true.
 
-       allocate(fine_mask(nlevs))
-
 !      We are only considering the dense stencils here (3 in 1d, 9 in 2d, 27 in 3d)
 
        do n = nlevs, 1, -1
-
           call lmultifab_build(fine_mask(n), mla%la(n), 1, 0, nodal)
           if ( n < nlevs ) then
              call create_nodal_mask(fine_mask(n), &
@@ -122,11 +116,9 @@ contains
           call lmultifab_destroy(fine_mask(n))
        end do
 
-       deallocate(fine_mask)
-
    contains
      !
-     ! TODO - cache the communication stuff in the mask's layout?
+     ! TODO - cache the communication stuff in the mask's layout if costly?
      !
      subroutine create_nodal_mask(mask,mm_crse,mm_fine,ir)
 
