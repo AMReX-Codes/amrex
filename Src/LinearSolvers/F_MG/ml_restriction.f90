@@ -178,15 +178,19 @@ contains
     type(multifab)      :: cfine
     type(imultifab)     :: mm_cfine
 
+    type(bl_prof_timer), save :: bpt
+
     if ( crse%nc .ne. fine%nc ) then
        call bl_error('ml_nodal_restriction: crse & fine must have same # of components')
     end if
+
+    call build(bpt, "ml_nodal_restriction")
 
     linject    = .false. ; if ( present(inject   ) ) linject    = inject
     lzero_only = .false. ; if ( present(zero_only) ) lzero_only = zero_only
 
     call layout_build_coarse(lacfine, fine%la, ir)
-    call  multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
+    call multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
     call copy(cfine, crse)
 
     if ( .not. linject ) then
@@ -258,6 +262,8 @@ contains
     end if
 
     call destroy(cfine)
+
+    call destroy(bpt)
 
   end subroutine ml_nodal_restriction
 
