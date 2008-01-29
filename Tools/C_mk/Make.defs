@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.113 2008-01-15 22:53:40 mzingale Exp $
+# Make.defs $Id: Make.defs,v 1.114 2008-01-29 17:56:49 almgren Exp $
 #
 
 #
@@ -199,7 +199,7 @@ ifeq ($(COMP),gcc)
     CXXOPTF    += -g
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64 -Wno-deprected
+    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -280,7 +280,7 @@ ifeq ($(COMP),Intel)
    CXXOPTF += -O3
 #  CXXOPTF += -parallel
    CXXDEBF += -g
-   CXXOPTF += -ip
+#  CXXOPTF += -ip
 #  CXXOPTF += -ipo
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -323,7 +323,8 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 9.0
        ICC_MAJOR_VERSION := 9
        ICC_MINOR_VERSION := 0
-       _icpc := icpc
+#      _icpc := icpc
+       _icpc := g++ -m32
    else
    ifeq ($(findstring Version 9.1, $(__icc_version)), Version 9.1)
        ICC_VERSION := 9.1
