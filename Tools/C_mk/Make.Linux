@@ -160,9 +160,14 @@ ifeq ($(WHICHLINUX), ATLAS)
 endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
-  FOPTF   = -O3 -ip
-  fOPTF   = -O3 -ip
-  CXXOPTF = -O3 -ip -fno-exceptions
+  FOPTF   = -O3
+  fOPTF   = -O3
+  CXXOPTF = -O3
+  ifeq ($(COMP),Intel)
+    FOPTF   = -ip
+    fOPTF   = -ip
+    CXXOPTF = -ip -fno-exceptions
+  endif
   DEFINES += -DCOLUMBIA
 endif
 
