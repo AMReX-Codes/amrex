@@ -360,12 +360,12 @@ contains
        end if
     end if
 
-    if (rnorm > bnorm) then
-       call setval(uu,ZERO,all=.true.)
-       if ( present(stat) ) stat = 1
-       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-          print *,'   BiCGStab: solution reset to zero'
-    end if
+!    if (rnorm > bnorm) then
+!       call setval(uu,ZERO,all=.true.)
+!       if ( present(stat) ) stat = 1
+!       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
+!          print *,'   BiCGStab: solution reset to zero'
+!    end if
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
@@ -556,7 +556,7 @@ contains
        end if
     end if
 
-    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
+!    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
