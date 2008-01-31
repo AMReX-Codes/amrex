@@ -2612,22 +2612,26 @@ contains
     character(len=6) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt='("MULTIFAB")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
-    else
-       write(unit=un, fmt='()')
+
+    if ( parallel_IOProcessor() ) then
+       write(unit=un, fmt='("MULTIFAB")', advance = 'no')
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
     end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
           do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
@@ -2652,22 +2656,26 @@ contains
     character(len=6) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt='("IMULTIFAB")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
-    else
-       write(unit=un, fmt='()')
+
+    if ( parallel_IOProcessor() ) then
+       write(unit=un, fmt='("IMULTIFAB")', advance = 'no')
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
     end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
           do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
@@ -2691,22 +2699,26 @@ contains
     character(len=6) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt='("LMULTIFAB")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
-    else
-       write(unit=un, fmt='()')
+
+    if ( parallel_IOProcessor() ) then
+       write(unit=un, fmt='("LMULTIFAB")', advance = 'no')
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
     end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
           do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
@@ -2730,22 +2742,26 @@ contains
     character(len=6) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt='("ZMULTIFAB")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ",A)') str
-    else
-       write(unit=un, fmt='()')
+
+    if ( parallel_IOProcessor() ) then
+       write(unit=un, fmt='("ZMULTIFAB")', advance = 'no')
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
     end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
           do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
