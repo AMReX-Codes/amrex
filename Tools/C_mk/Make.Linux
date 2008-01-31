@@ -164,9 +164,9 @@ ifeq ($(WHICHLINUX), COLUMBIA)
   fOPTF   = -O3
   CXXOPTF = -O3
   ifeq ($(COMP),Intel)
-    FOPTF   = -ip
-    fOPTF   = -ip
-    CXXOPTF = -ip -fno-exceptions
+    FOPTF   += -ip
+    fOPTF   += -ip
+    CXXOPTF += -ip -fno-exceptions
   endif
   DEFINES += -DCOLUMBIA
 endif
