@@ -2,7 +2,7 @@
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.10 2002-06-04 16:48:48 car Exp $
+** $Id: ArrayLim.H,v 1.11 2008-01-31 23:18:18 sepp Exp $
 */
 
 #if !defined(BL_LANG_FORT)
@@ -101,8 +101,8 @@
 #endif
 
 #if (BL_SPACEDIM == 2)
-#define DIMS(a) a##_l1, a##_l2 , a##_h1, a##_h2
-#define DIMDEC(a) a##_l1, a##_l2 , a##_h1, a##_h2
+#define DIMS(a) a##_l1, a##_l2, a##_h1, a##_h2
+#define DIMDEC(a) a##_l1, a##_l2, a##_h1, a##_h2
 #define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2
 #define DIM1(a) a##_l1:a##_h1
 #define DIM2(a) a##_l2:a##_h2
@@ -114,8 +114,8 @@
 #endif
 
 #if (BL_SPACEDIM == 3)
-#define DIMS(a) a##_l1, a##_l2 , a##_l3, a##_h1, a##_h2, a##_h3
-#define DIMDEC(a) a##_l1, a##_l2 , a##_l3, a##_h1, a##_h2, a##_h3
+#define DIMS(a) a##_l1, a##_l2, a##_l3, a##_h1, a##_h2, a##_h3
+#define DIMDEC(a) a##_l1, a##_l2, a##_l3, a##_h1, a##_h2, a##_h3
 #define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2, a##_l3:a##_h3
 #define DIM1(a) a##_l1:a##_h1
 #define DIM2(a) a##_l2:a##_h2
@@ -145,8 +145,8 @@
 #endif
 
 #if (BL_SPACEDIM == 2)
-#define DIMS(a) a/**/_l1, a/**/_l2 , a/**/_h1, a/**/_h2
-#define DIMDEC(a) a/**/_l1, a/**/_l2 , a/**/_h1, a/**/_h2
+#define DIMS(a) a/**/_l1, a/**/_l2, a/**/_h1, a/**/_h2
+#define DIMDEC(a) a/**/_l1, a/**/_l2, a/**/_h1, a/**/_h2
 #define DIMV(a) a/**/_l1:a/**/_h1, a/**/_l2:a/**/_h2
 #define DIM1(a) a/**/_l1:a/**/_h1
 #define DIM2(a) a/**/_l2:a/**/_h2
@@ -158,8 +158,8 @@
 #endif
 
 #if (BL_SPACEDIM == 3)
-#define DIMS(a) a/**/_l1, a/**/_l2 , a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
-#define DIMDEC(a) a/**/_l1, a/**/_l2 , a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
+#define DIMS(a) a/**/_l1, a/**/_l2, a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
+#define DIMDEC(a) a/**/_l1, a/**/_l2, a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
 #define DIMV(a) a/**/_l1:a/**/_h1, a/**/_l2:a/**/_h2, a/**/_l3:a/**/_h3
 #define DIM1(a) a/**/_l1:a/**/_h1
 #define DIM2(a) a/**/_l2:a/**/_h2
