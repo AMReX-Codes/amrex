@@ -65,6 +65,13 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
 
+    ifeq ($(HOSTNAME), pleiades.ucsc.edu)
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DOMPI_SKIP_MPICXX
+      BL_MPI_LIBS += -lmpi_f77 -lmpi
+    endif
+
 # JFG 2006/05/04: CAR added the following ifeq block for the 64 bit
 # Intel compilers on hive
     ifeq ($(HOST),hive)
