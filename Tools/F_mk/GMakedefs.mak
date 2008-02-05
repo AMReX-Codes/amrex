@@ -280,9 +280,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip 
-          FFLAGS += -O3 -ip
-          CFLAGS += -O3 -ip
+          F90FLAGS += -O3 -ip -mp 
+          FFLAGS += -O3 -ip -mp
+          CFLAGS += -O3 -ip -mp
 	endif
       endif
       ifdef GPROF
@@ -304,9 +304,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip
-          FFLAGS += -O3 -ip
-          CFLAGS += -O3 -ip
+          F90FLAGS += -O3 -ip -mp
+          FFLAGS += -O3 -ip -mp
+          CFLAGS += -O3 -ip -mp
 #  ifndef GPROF
           F90FLAGS += #-ipo
           FFLAGS += #-ipo
