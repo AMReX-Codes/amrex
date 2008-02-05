@@ -9,8 +9,7 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-  #CXXOPTF += -O2 -OPT:Olimit=0 -fno-exceptions -OPT:Ofast -Wno-deprecated
-  CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+  CXXOPTF += -O2 -ipa -fno-exceptions -Wno-deprecated
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
   override XTRALIBS += -lpathfortran  -lmv
 else
@@ -23,7 +22,7 @@ else
 ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXDEBF += -g
-  CXXOPTF += -O --no_exceptions #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  CXXOPTF += -O --no_exceptions
   ifeq ($(USE_MPI),TRUE)
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
   else
@@ -44,8 +43,8 @@ ifeq ($(FCOMP),PathScale)
   F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  FOPTF += -Ofast
-  fOPTF += -Ofast
+  FOPTF += -O2 -ipa -fno-unsafe-math-optimizations
+  fOPTF += -O2 -ipa -fno-unsafe-math-optimizations
   fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
@@ -57,8 +56,6 @@ ifeq ($(FCOMP),Lahey)
   # FDEBF += -H aesu
   FDEBF += --chk u
   FDEBF += --chk
-  # FOPTF += -K fast
-  # fDEBF += -H aesu
   fDEBF += --chk u
   fDEBF += --chk
   # fOPTF += -K fast
@@ -75,8 +72,8 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF  += -O #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
-  fOPTF  += -O #-fast -Minline=levels:10 -Mvect=nosse -Mnoflushz
+  FOPTF  += -O
+  fOPTF  += -O
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
   FDEBF += -g
   fDEBF += -g
@@ -137,15 +134,15 @@ endif
 ifeq ($(WHICHLINUX), ATLAS)
   ifeq ($(COMP),Intel)
     CXX = icpc
-    CXXOPTF = -O3 -ip -fno-exceptions
+    CXXOPTF = -O3 -ip -mp -fno-exceptions
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
       CXX = mpiicpc
     endif
   endif
   ifeq ($(FCOMP),Intel)
-    FOPTF = -O3 -ip
-    fOPTF = -O3 -ip
+    FOPTF = -O3 -ip -mp
+    fOPTF = -O3 -ip -mp
   endif
   ifeq ($(COMP),PGI)
     CXX = pgCC
