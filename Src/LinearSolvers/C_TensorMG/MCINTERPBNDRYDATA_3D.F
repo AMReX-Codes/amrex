@@ -24,9 +24,6 @@ c ::: writing plain numbers.
 #define CY   2
 #define CZ   3
 
-
-
-
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPXLO : Interpolation on Xlo Face
 c ::       Quadratic Interpolation from crse data
@@ -52,6 +49,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -71,88 +70,33 @@ c ---------------------------------------------------------------
 
 c ::: ------------ functions ------------------------------
       logical notUsable,Usable
-      REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
       REAL_T ddycen,ddy2cen,ddyplus,ddyminus
       REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
-      REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
-      REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
       REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
-      logical okxypp,okxypm,okxymp,okxymm,okxycen
-      logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
       logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
-      REAL_T ddxlowp,ddxlowm
       REAL_T ddylowp,ddylowm
       REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
-      ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
       ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
       ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
-      ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
-     &     /(hc(1)**2)
       ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
      &     /(hc(2)**2)
       ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
      &     /(hc(3)**2)
 
-      ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
-     &     /(2*hc(1))
       ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(2))
       ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
      &     /(2*hc(3))
 
-      ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
-     &     /(2*hc(1))
       ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(2))
       ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
      &     /(2*hc(3))
-
-      ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
-      okxycen(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i-1,j-1,k))
-      ddxdypp(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i,j+1,k,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(2))
-      okxypp(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i,j+1,k)
-     &     .and.Usable(i+1,j,k))
-      ddxdypm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i,j-1,k,n))/(4*hc(1)*hc(2))
-      okxypm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i,j-1,k))
-      ddxdymp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(2))
-      okxymp(i,j,k)=(Usable(i,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i-1,j,k))
-      ddxdymm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j-1,k,n)+crse(i-1,j-1,k,n))/(hc(1)*hc(2))
-      okxymm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
-
-      ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzcen(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i-1,j,k-1))
-      ddxdzpp(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(3))
-      okxzpp(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i+1,j,k))
-      ddxdzpm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j,k-1,n)+crse(i,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzpm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i,j,k-1))
-      ddxdzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(3))
-      okxzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i-1,j,k))
-      ddxdzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j,k-1,n)+crse(i-1,j,k-1,n))/(hc(1)*hc(3))
-      okxzmm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
 
       ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
      &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
@@ -175,11 +119,9 @@ c ::: ------------ functions ------------------------------
       okyzmm(i,j,k)=(Usable(i,j-1,k)
      &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
 
-      ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
       ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
       ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
-      ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
       ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
       ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
 c ::: ------------ functions ------------------------------
@@ -354,6 +296,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -373,88 +317,33 @@ c ---------------------------------------------------------------
 
 c ::: ------------ functions ------------------------------
       logical notUsable,Usable
-      REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
       REAL_T ddycen,ddy2cen,ddyplus,ddyminus
       REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
-      REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
-      REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
       REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
-      logical okxypp,okxypm,okxymp,okxymm,okxycen
-      logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
       logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
-      REAL_T ddxlowp,ddxlowm
       REAL_T ddylowp,ddylowm
       REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
-      ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
       ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
       ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
-      ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
-     &     /(hc(1)**2)
       ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
      &     /(hc(2)**2)
       ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
      &     /(hc(3)**2)
 
-      ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
-     &     /(2*hc(1))
       ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(2))
       ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
      &     /(2*hc(3))
 
-      ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
-     &     /(2*hc(1))
       ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(2))
       ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
      &     /(2*hc(3))
-
-      ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
-      okxycen(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i-1,j-1,k))
-      ddxdypp(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i,j+1,k,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(2))
-      okxypp(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i,j+1,k)
-     &     .and.Usable(i+1,j,k))
-      ddxdypm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i,j-1,k,n))/(4*hc(1)*hc(2))
-      okxypm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i,j-1,k))
-      ddxdymp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(2))
-      okxymp(i,j,k)=(Usable(i,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i-1,j,k))
-      ddxdymm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j-1,k,n)+crse(i-1,j-1,k,n))/(hc(1)*hc(2))
-      okxymm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
-
-      ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzcen(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i-1,j,k-1))
-      ddxdzpp(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(3))
-      okxzpp(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i+1,j,k))
-      ddxdzpm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j,k-1,n)+crse(i,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzpm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i,j,k-1))
-      ddxdzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(3))
-      okxzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i-1,j,k))
-      ddxdzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j,k-1,n)+crse(i-1,j,k-1,n))/(hc(1)*hc(3))
-      okxzmm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
 
       ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
      &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
@@ -477,11 +366,9 @@ c ::: ------------ functions ------------------------------
       okyzmm(i,j,k)=(Usable(i,j-1,k)
      &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
 
-      ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
       ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
       ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
-      ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
       ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
       ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
 c ::: ------------ functions ------------------------------
@@ -659,6 +546,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -679,66 +568,32 @@ c ---------------------------------------------------------------
 c ::: ------------ functions ------------------------------
       logical notUsable,Usable
       REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
-      REAL_T ddycen,ddy2cen,ddyplus,ddyminus
       REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
-      REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
       REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
-      REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
-      logical okxypp,okxypm,okxymp,okxymm,okxycen
       logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
-      logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
       REAL_T ddxlowp,ddxlowm
-      REAL_T ddylowp,ddylowm
       REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
       ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
-      ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
       ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
       ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
      &     /(hc(1)**2)
-      ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
-     &     /(hc(2)**2)
       ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
      &     /(hc(3)**2)
 
       ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(1))
-      ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
-     &     /(2*hc(2))
       ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
      &     /(2*hc(3))
 
       ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(1))
-      ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
-     &     /(2*hc(2))
       ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
      &     /(2*hc(3))
-
-      ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
-      okxycen(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i-1,j-1,k))
-      ddxdypp(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i,j+1,k,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(2))
-      okxypp(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i,j+1,k)
-     &     .and.Usable(i+1,j,k))
-      ddxdypm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i,j-1,k,n))/(4*hc(1)*hc(2))
-      okxypm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i,j-1,k))
-      ddxdymp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(2))
-      okxymp(i,j,k)=(Usable(i,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i-1,j,k))
-      ddxdymm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j-1,k,n)+crse(i-1,j-1,k,n))/(hc(1)*hc(2))
-      okxymm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
 
       ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
      &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
@@ -761,33 +616,10 @@ c ::: ------------ functions ------------------------------
       okxzmm(i,j,k)=(Usable(i-1,j,k)
      &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
 
-      ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
-      okyzcen(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j-1,k-1))
-      ddydzpp(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i,j+1,k,n)+crse(i,j,k,n))/(hc(2)*hc(3))
-      okyzpp(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i,j+1,k))
-      ddydzpm(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j,k-1,n))/(4*hc(2)*hc(3))
-      okyzpm(i,j,k)=(Usable(i,j+1,k)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j,k-1))
-      ddydzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j,k,n)+crse(i,j-1,k,n))/(hc(2)*hc(3))
-      okyzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j-1,k))
-      ddydzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i,j-1,k,n)
-     &     -crse(i,j,k-1,n)+crse(i,j-1,k-1,n))/(hc(2)*hc(3))
-      okyzmm(i,j,k)=(Usable(i,j-1,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
-
       ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
-      ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
       ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
       ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
-      ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
       ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
 c ::: ------------ functions ------------------------------
 
@@ -961,6 +793,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -981,66 +815,32 @@ c ---------------------------------------------------------------
 c ::: ------------ functions ------------------------------
       logical notUsable,Usable
       REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
-      REAL_T ddycen,ddy2cen,ddyplus,ddyminus
       REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
-      REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
       REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
-      REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
-      logical okxypp,okxypm,okxymp,okxymm,okxycen
       logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
-      logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
       REAL_T ddxlowp,ddxlowm
-      REAL_T ddylowp,ddylowm
       REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
       ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
-      ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
       ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
       ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
      &     /(hc(1)**2)
-      ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
-     &     /(hc(2)**2)
       ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
      &     /(hc(3)**2)
 
       ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(1))
-      ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
-     &     /(2*hc(2))
       ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
      &     /(2*hc(3))
 
       ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(1))
-      ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
-     &     /(2*hc(2))
       ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
      &     /(2*hc(3))
-
-      ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
-      okxycen(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i-1,j-1,k))
-      ddxdypp(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i,j+1,k,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(2))
-      okxypp(i,j,k)=(Usable(i+1,j+1,k).and.Usable(i,j+1,k)
-     &     .and.Usable(i+1,j,k))
-      ddxdypm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j-1,k,n)+crse(i,j-1,k,n))/(4*hc(1)*hc(2))
-      okxypm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j-1,k).and.Usable(i,j-1,k))
-      ddxdymp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i-1,j+1,k,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(2))
-      okxymp(i,j,k)=(Usable(i,j+1,k).and.Usable(i-1,j+1,k)
-     &     .and.Usable(i-1,j,k))
-      ddxdymm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j-1,k,n)+crse(i-1,j-1,k,n))/(hc(1)*hc(2))
-      okxymm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
 
       ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
      &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
@@ -1063,33 +863,10 @@ c ::: ------------ functions ------------------------------
       okxzmm(i,j,k)=(Usable(i-1,j,k)
      &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
 
-      ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
-      okyzcen(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j-1,k-1))
-      ddydzpp(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i,j+1,k,n)+crse(i,j,k,n))/(hc(2)*hc(3))
-      okyzpp(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i,j+1,k))
-      ddydzpm(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j,k-1,n))/(4*hc(2)*hc(3))
-      okyzpm(i,j,k)=(Usable(i,j+1,k)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j,k-1))
-      ddydzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j,k,n)+crse(i,j-1,k,n))/(hc(2)*hc(3))
-      okyzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j-1,k))
-      ddydzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i,j-1,k,n)
-     &     -crse(i,j,k-1,n)+crse(i,j-1,k-1,n))/(hc(2)*hc(3))
-      okyzmm(i,j,k)=(Usable(i,j-1,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
-
       ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
-      ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
       ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
       ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
-      ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
       ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
 c ::: ------------ functions ------------------------------
 
@@ -1267,6 +1044,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -1288,44 +1067,31 @@ c ::: ------------ functions ------------------------------
       logical notUsable,Usable
       REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
       REAL_T ddycen,ddy2cen,ddyplus,ddyminus
-      REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
       REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
-      REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
-      REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
       logical okxypp,okxypm,okxymp,okxymm,okxycen
-      logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
-      logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
       REAL_T ddxlowp,ddxlowm
       REAL_T ddylowp,ddylowm
-      REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
       ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
       ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
-      ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
       ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
      &     /(hc(1)**2)
       ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
      &     /(hc(2)**2)
-      ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
-     &     /(hc(3)**2)
 
       ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(1))
       ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(2))
-      ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
-     &     /(2*hc(3))
 
       ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(1))
       ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(2))
-      ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
-     &     /(2*hc(3))
 
       ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
      &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
@@ -1348,55 +1114,11 @@ c ::: ------------ functions ------------------------------
       okxymm(i,j,k)=(Usable(i-1,j,k)
      &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
 
-      ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzcen(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i-1,j,k-1))
-      ddxdzpp(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(3))
-      okxzpp(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i+1,j,k))
-      ddxdzpm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j,k-1,n)+crse(i,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzpm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i,j,k-1))
-      ddxdzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(3))
-      okxzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i-1,j,k))
-      ddxdzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j,k-1,n)+crse(i-1,j,k-1,n))/(hc(1)*hc(3))
-      okxzmm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
-
-      ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
-      okyzcen(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j-1,k-1))
-      ddydzpp(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i,j+1,k,n)+crse(i,j,k,n))/(hc(2)*hc(3))
-      okyzpp(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i,j+1,k))
-      ddydzpm(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j,k-1,n))/(4*hc(2)*hc(3))
-      okyzpm(i,j,k)=(Usable(i,j+1,k)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j,k-1))
-      ddydzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j,k,n)+crse(i,j-1,k,n))/(hc(2)*hc(3))
-      okyzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j-1,k))
-      ddydzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i,j-1,k,n)
-     &     -crse(i,j,k-1,n)+crse(i,j-1,k-1,n))/(hc(2)*hc(3))
-      okyzmm(i,j,k)=(Usable(i,j-1,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
-
       ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
       ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
-      ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
       ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
       ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
-      ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
 c ::: ------------ functions ------------------------------
 
       jclo = ARG_L2(cb)
@@ -1570,6 +1292,8 @@ c ---------------------------------------------------------------
      &           lo,hi,DIMS(cb),nvar,ratio,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives,hfine)
 
+      implicit none
+
       integer  nvar, ratio, not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -1591,44 +1315,31 @@ c ::: ------------ functions ------------------------------
       logical notUsable,Usable
       REAL_T ddxcen,ddx2cen,ddxplus,ddxminus
       REAL_T ddycen,ddy2cen,ddyplus,ddyminus
-      REAL_T ddzcen,ddz2cen,ddzplus,ddzminus
       REAL_T ddxdycen,ddxdypp,ddxdypm,ddxdymp,ddxdymm
-      REAL_T ddxdzcen,ddxdzpp,ddxdzpm,ddxdzmp,ddxdzmm
-      REAL_T ddydzcen,ddydzpp,ddydzpm,ddydzmp,ddydzmm
       logical okxypp,okxypm,okxymp,okxymm,okxycen
-      logical okxzpp,okxzpm,okxzmp,okxzmm,okxzcen
-      logical okyzpp,okyzpm,okyzmp,okyzmm,okyzcen
       REAL_T ddxlowp,ddxlowm
       REAL_T ddylowp,ddylowm
-      REAL_T ddzlowp,ddzlowm
 
       notUsable(i,j,k) = (mask(i,j,k).ne.not_covered)
       Usable(i,j,k) = (mask(i,j,k).eq.not_covered)
 
       ddxcen(i,j,k,n) = (crse(i+1,j,k,n)-crse(i-1,j,k,n))/(2*hc(1))
       ddycen(i,j,k,n) = (crse(i,j+1,k,n)-crse(i,j-1,k,n))/(2*hc(2))
-      ddzcen(i,j,k,n) = (crse(i,j,k+1,n)-crse(i,j,k-1,n))/(2*hc(3))
 
       ddx2cen(i,j,k,n)=(crse(i+1,j,k,n)-2*crse(i,j,k,n)+crse(i-1,j,k,n))
      &     /(hc(1)**2)
       ddy2cen(i,j,k,n)=(crse(i,j+1,k,n)-2*crse(i,j,k,n)+crse(i,j-1,k,n))
      &     /(hc(2)**2)
-      ddz2cen(i,j,k,n)=(crse(i,j,k+1,n)-2*crse(i,j,k,n)+crse(i,j,k-1,n))
-     &     /(hc(3)**2)
 
       ddxplus(i,j,k,n)=(-crse(i+2,j,k,n)+4*crse(i+1,j,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(1))
       ddyplus(i,j,k,n)=(-crse(i,j+2,k,n)+4*crse(i,j+1,k,n)-3*crse(i,j,k,n))
      &     /(2*hc(2))
-      ddzplus(i,j,k,n)=(-crse(i,j,k+2,n)+4*crse(i,j,k+1,n)-3*crse(i,j,k,n))
-     &     /(2*hc(3))
 
       ddxminus(i,j,k,n)=(+crse(i-2,j,k,n)-4*crse(i-1,j,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(1))
       ddyminus(i,j,k,n)=(+crse(i,j-2,k,n)-4*crse(i,j-1,k,n)+3*crse(i,j,k,n))
      &     /(2*hc(2))
-      ddzminus(i,j,k,n)=(+crse(i,j,k-2,n)-4*crse(i,j,k-1,n)+3*crse(i,j,k,n))
-     &     /(2*hc(3))
 
       ddxdycen(i,j,k,n)=(crse(i+1,j+1,k,n)-crse(i-1,j+1,k,n)
      &     -crse(i+1,j-1,k,n)+crse(i-1,j-1,k,n))/(4*hc(1)*hc(2))
@@ -1651,55 +1362,12 @@ c ::: ------------ functions ------------------------------
       okxymm(i,j,k)=(Usable(i-1,j,k)
      &     .and.Usable(i,j-1,k).and.Usable(i-1,j-1,k))
 
-      ddxdzcen(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i+1,j,k-1,n)+crse(i-1,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzcen(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i-1,j,k-1))
-      ddxdzpp(i,j,k,n)=(crse(i+1,j,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i+1,j,k,n)+crse(i,j,k,n))/(hc(1)*hc(3))
-      okxzpp(i,j,k)=(Usable(i+1,j,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i+1,j,k))
-      ddxdzpm(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n)
-     &     -crse(i+1,j,k-1,n)+crse(i,j,k-1,n))/(4*hc(1)*hc(3))
-      okxzpm(i,j,k)=(Usable(i+1,j,k)
-     &     .and.Usable(i+1,j,k-1).and.Usable(i,j,k-1))
-      ddxdzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i-1,j,k+1,n)
-     &     -crse(i,j,k,n)+crse(i-1,j,k,n))/(hc(1)*hc(3))
-      okxzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i-1,j,k+1)
-     &     .and.Usable(i-1,j,k))
-      ddxdzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i-1,j,k,n)
-     &     -crse(i,j,k-1,n)+crse(i-1,j,k-1,n))/(hc(1)*hc(3))
-      okxzmm(i,j,k)=(Usable(i-1,j,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i-1,j,k-1))
-
-      ddydzcen(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j-1,k-1,n))/(4*hc(2)*hc(3))
-      okyzcen(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j-1,k-1))
-      ddydzpp(i,j,k,n)=(crse(i,j+1,k+1,n)-crse(i,j,k+1,n)
-     &     -crse(i,j+1,k,n)+crse(i,j,k,n))/(hc(2)*hc(3))
-      okyzpp(i,j,k)=(Usable(i,j+1,k+1).and.Usable(i,j,k+1)
-     &     .and.Usable(i,j+1,k))
-      ddydzpm(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n)
-     &     -crse(i,j+1,k-1,n)+crse(i,j,k-1,n))/(4*hc(2)*hc(3))
-      okyzpm(i,j,k)=(Usable(i,j+1,k)
-     &     .and.Usable(i,j+1,k-1).and.Usable(i,j,k-1))
-      ddydzmp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j-1,k+1,n)
-     &     -crse(i,j,k,n)+crse(i,j-1,k,n))/(hc(2)*hc(3))
-      okyzmp(i,j,k)=(Usable(i,j,k+1).and.Usable(i,j-1,k+1)
-     &     .and.Usable(i,j-1,k))
-      ddydzmm(i,j,k,n)=(crse(i,j,k,n)-crse(i,j-1,k,n)
-     &     -crse(i,j,k-1,n)+crse(i,j-1,k-1,n))/(hc(2)*hc(3))
-      okyzmm(i,j,k)=(Usable(i,j-1,k)
-     &     .and.Usable(i,j,k-1).and.Usable(i,j-1,k-1))
-
       ddxlowp(i,j,k,n)=(crse(i+1,j,k,n)-crse(i,j,k,n))/hc(1)
       ddylowp(i,j,k,n)=(crse(i,j+1,k,n)-crse(i,j,k,n))/hc(2)
-      ddzlowp(i,j,k,n)=(crse(i,j,k+1,n)-crse(i,j,k,n))/hc(3)
 
       ddxlowm(i,j,k,n)=(-crse(i-1,j,k,n)+crse(i,j,k,n))/hc(1)
       ddylowm(i,j,k,n)=(-crse(i,j-1,k,n)+crse(i,j,k,n))/hc(2)
-      ddzlowm(i,j,k,n)=(-crse(i,j,k-1,n)+crse(i,j,k,n))/hc(3)
+
 c ::: ------------ functions ------------------------------
 
       jclo = ARG_L2(cb)
@@ -1874,6 +1542,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -1885,24 +1556,18 @@ c ------------------------------------------------------------------------
       integer i,j,k,n
       REAL_T h(3)
 c ::: ------ begin functions -------
-      REAL_T ddxcen
       REAL_T ddycen
       REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddyplus,ddyminus,ddzplus,ddzminus
 
-      ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
       ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
       ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
-      ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
-     &     /(2*h(1))
       ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
      &     /(2*h(2))
       ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
      &     /(2*h(3))
 
-      ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
-     &     /(2*h(1))
       ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
      &     /(2*h(2))
       ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
@@ -1980,6 +1645,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -1991,24 +1659,18 @@ c ------------------------------------------------------------------------
       integer i,j,k,n
       REAL_T h(3)
 c ::: ------ begin functions -------
-      REAL_T ddxcen
       REAL_T ddycen
       REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddyplus,ddyminus,ddzplus,ddzminus
 
-      ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
       ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
       ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
-      ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
-     &     /(2*h(1))
       ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
      &     /(2*h(2))
       ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
      &     /(2*h(3))
 
-      ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
-     &     /(2*h(1))
       ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
      &     /(2*h(2))
       ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
@@ -2085,6 +1747,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -2097,25 +1762,19 @@ c ------------------------------------------------------------------------
       REAL_T h(3)
 c ::: ------ begin functions -------
       REAL_T ddxcen
-      REAL_T ddycen
       REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddxplus,ddxminus,ddzplus,ddzminus
 
       ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
-      ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
       ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
       ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
      &     /(2*h(1))
-      ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
-     &     /(2*h(2))
       ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
      &     /(2*h(3))
 
       ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
      &     /(2*h(1))
-      ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
-     &     /(2*h(2))
       ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
      &     /(2*h(3))
 c ::: ------ end   functions -------
@@ -2191,6 +1850,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -2203,25 +1865,19 @@ c ------------------------------------------------------------------------
       REAL_T h(3)
 c ::: ------ begin functions -------
       REAL_T ddxcen
-      REAL_T ddycen
       REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddxplus,ddxminus,ddzplus,ddzminus
 
       ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
-      ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
       ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
       ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
      &     /(2*h(1))
-      ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
-     &     /(2*h(2))
       ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
      &     /(2*h(3))
 
       ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
      &     /(2*h(1))
-      ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
-     &     /(2*h(2))
       ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
      &     /(2*h(3))
 c ::: ------ end   functions -------
@@ -2297,6 +1953,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -2310,26 +1969,21 @@ c ------------------------------------------------------------------------
 c ::: ------ begin functions -------
       REAL_T ddxcen
       REAL_T ddycen
-      REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddxplus,ddxminus,ddyplus,ddyminus
 
       ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
       ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
-      ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
       ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
      &     /(2*h(1))
       ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
      &     /(2*h(2))
-      ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
-     &     /(2*h(3))
 
       ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
      &     /(2*h(1))
       ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
      &     /(2*h(2))
-      ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
-     &     /(2*h(3))
+
 c ::: ------ end   functions -------
 
       k = lo(3)-1
@@ -2404,6 +2058,9 @@ c ------------------------------------------------------------------------
      &     lo, hi,
      &     fine, DIMS(fine),
      &     nvar, hfine)
+
+      implicit none
+
       integer nvar
       REAL_T  hfine(3)
       integer lo(SDIM), hi(SDIM)
@@ -2417,26 +2074,21 @@ c ------------------------------------------------------------------------
 c ::: ------ begin functions -------
       REAL_T ddxcen
       REAL_T ddycen
-      REAL_T ddzcen
-      REAL_T ddxplus,ddxminus,ddyplus,ddyminus,ddzplus,ddzminus
+      REAL_T ddxplus,ddxminus,ddyplus,ddyminus
 
       ddxcen(i,j,k,n) = (fine(i+1,j,k,n)-fine(i-1,j,k,n))/(2*h(1))
       ddycen(i,j,k,n) = (fine(i,j+1,k,n)-fine(i,j-1,k,n))/(2*h(2))
-      ddzcen(i,j,k,n) = (fine(i,j,k+1,n)-fine(i,j,k-1,n))/(2*h(3))
 
       ddxplus(i,j,k,n)=(-fine(i+2,j,k,n)+4*fine(i+1,j,k,n)-3*fine(i,j,k,n))
      &     /(2*h(1))
       ddyplus(i,j,k,n)=(-fine(i,j+2,k,n)+4*fine(i,j+1,k,n)-3*fine(i,j,k,n))
      &     /(2*h(2))
-      ddzplus(i,j,k,n)=(-fine(i,j,k+2,n)+4*fine(i,j,k+1,n)-3*fine(i,j,k,n))
-     &     /(2*h(3))
 
       ddxminus(i,j,k,n)=(+fine(i-2,j,k,n)-4*fine(i-1,j,k,n)+3*fine(i,j,k,n))
      &     /(2*h(1))
       ddyminus(i,j,k,n)=(+fine(i,j-2,k,n)-4*fine(i,j-1,k,n)+3*fine(i,j,k,n))
      &     /(2*h(2))
-      ddzminus(i,j,k,n)=(+fine(i,j,k-2,n)-4*fine(i,j,k-1,n)+3*fine(i,j,k,n))
-     &     /(2*h(3))
+
 c ::: ------ end   functions -------
 
       k = hi(3)+1
