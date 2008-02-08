@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_1D.F,v 1.2 2002-11-14 23:04:56 lijewski Exp $
+c $Id: FLUXREG_1D.F,v 1.3 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -28,6 +28,9 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_FRCRSEINIT (reg,DIMS(reg),flx,DIMS(flx),lo,hi,
      &                            numcomp,dir,mult)
+
+      implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    lo(SDIM), hi(SDIM)
@@ -45,7 +48,6 @@ c ::: -----------------------------------------------------------
          end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -65,6 +67,9 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FRCAINIT (reg,DIMS(reg),flx,DIMS(flx),
      &                          area,DIMS(area),lo,hi,
      &                          numcomp,dir,mult)
+
+      implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    DIMDEC(area)
@@ -84,7 +89,6 @@ c ::: -----------------------------------------------------------
          end do
       end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -106,6 +110,9 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx),
      &                          numcomp,dir,ratio,mult)
+
+      implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    ratio(1), dir, numcomp
@@ -133,7 +140,6 @@ c        ::::: flux normal to X direction
          end do
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -158,6 +164,9 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area),
      &                        numcomp,dir,ratio,mult)
+
+      implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    DIMDEC(area)
@@ -187,7 +196,6 @@ c        ::::: flux normal to X direction
          end do
       end if
 
-      return
       end
 
 c ::
@@ -209,6 +217,9 @@ c :: --------------------------------------------------------------
 c ::
       subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),lo,hi,
      &                          numcomp,mult)
+
+      implicit none
+
       integer    DIMDEC(s)
       integer    DIMDEC(vol)
       integer    DIMDEC(reg)
@@ -229,7 +240,6 @@ c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
          end do
       end do
 
-      return
       end
 
 c ::
@@ -249,6 +259,9 @@ c :: --------------------------------------------------------------
 c ::
       subroutine FORT_FRCVREFLUX (s,DIMS(s),dx,reg,DIMS(reg),lo,hi,
      &                            numcomp,mult)
+
+      implicit none
+
       integer    DIMDEC(s)
       integer    DIMDEC(reg)
       integer    lo(SDIM), hi(SDIM)
@@ -270,7 +283,6 @@ c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
          end do
       end do
 
-      return
       end
 
 
@@ -288,6 +300,8 @@ c ::: -----------------------------------------------------------
 
       subroutine FORT_SCALADDTO (flx,DIMS(flx),area,DIMS(area),reg,DIMS(reg),
      $                           lo,hi,numcomp,mult)
+
+      implicit none
 
       integer    DIMDEC(flx)
       integer    DIMDEC(area)
@@ -316,5 +330,4 @@ c ::: -----------------------------------------------------------
         end do
       end do
 
-      return
       end

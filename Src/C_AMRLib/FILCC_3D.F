@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_3D.F,v 1.8 2002-07-31 22:32:02 lijewski Exp $
+c $Id: FILCC_3D.F,v 1.9 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -34,6 +34,8 @@ c :::       reasonable values for arithmetic to live
 c ::: -----------------------------------------------------------
 
       subroutine filcc(q,DIMS(q),domlo,domhi,dx,xlo,bc)
+
+      implicit none
 
       integer    DIMDEC(q)
       integer    domlo(SDIM), domhi(SDIM)
@@ -837,6 +839,8 @@ c
       end
 
       subroutine hoextraptocc(q,DIMS(q),domlo,domhi,dx,xlo)
+
+      implicit none
 
       integer    DIMDEC(q)
       integer    domlo(SDIM), domhi(SDIM)
