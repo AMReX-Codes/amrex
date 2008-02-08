@@ -1,5 +1,5 @@
 c
-c $Id: MG_2D.F,v 1.4 2003-09-18 19:21:00 lijewski Exp $
+c $Id: MG_2D.F,v 1.5 2008-02-08 18:08:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -15,6 +15,7 @@ c
      $     c, DIMS(c),
      $     f, DIMS(f),
      $     lo, hi, nc)
+      implicit none
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -45,6 +46,7 @@ c
      $     f, DIMS(f),
      $     c, DIMS(c),
      $     lo, hi, nc)
+      implicit none
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)

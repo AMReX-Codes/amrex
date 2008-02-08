@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.6 2002-08-29 22:14:39 car Exp $
+c     $Id: CG_3D.F,v 1.7 2008-02-08 18:08:01 lijewski Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -30,6 +30,7 @@ c-----------------------------------------------------------------------
      $     pp,  DIMS(pp),
      $     lo, hi, nc
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -80,6 +81,7 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc
      $     )
 c
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -124,6 +126,7 @@ c-----------------------------------------------------------------------
      $     ww, DIMS(ww),
      $     lo, hi, nc
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -155,6 +158,7 @@ c-----------------------------------------------------------------------
      $     yy, DIMS(yy),
      $     lo, hi, nc
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)

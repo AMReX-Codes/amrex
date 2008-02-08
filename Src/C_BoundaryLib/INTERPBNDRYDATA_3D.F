@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.3 2007-07-03 21:54:58 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.4 2008-02-08 18:08:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -44,7 +44,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -166,7 +166,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -288,7 +288,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -410,7 +410,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -533,7 +533,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPZLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -655,7 +655,7 @@ c ---------------------------------------------------------------
       subroutine FORT_BDINTERPZHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
      &           mask,DIMS(mask),crse,DIMS(crse),derives)
-
+      implicit none
       integer  nvar, ratios(3), not_covered
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)

@@ -1,5 +1,5 @@
 c
-c $Id: LO_2D.F,v 1.6 2007-07-02 23:00:36 lijewski Exp $
+c $Id: LO_2D.F,v 1.7 2008-02-08 18:08:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -19,6 +19,7 @@ c-----------------------------------------------------------------------
      $     phi, DIMS(phi),
      $     lo, hi, nc
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -50,6 +51,7 @@ c-----------------------------------------------------------------------
      $     cdir
      $     )
 c
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -102,6 +104,7 @@ c-----------------------------------------------------------------------
      $     cdir
      $     )
 c
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -143,6 +146,7 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc
      $     )
 c
+      implicit none
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -179,6 +183,8 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc,
      $     h
      $     )
+
+      implicit none
 c
 c     If the boundary is of Neumann type, set the ghost cell value to
 c     that of the outermost point in the valid data (2nd order accurate)
