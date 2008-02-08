@@ -1,5 +1,5 @@
 c
-c $Id: LP_2D.F,v 1.6 2007-07-02 23:00:36 lijewski Exp $
+c $Id: LP_2D.F,v 1.7 2008-02-08 18:08:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -45,6 +45,7 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc,
      $     h, redblack
      $     )
+      implicit none
       integer nc
       integer DIMDEC(phi)
       REAL_T phi(DIMV(phi),nc)
@@ -114,6 +115,7 @@ c
      $     lo, hi, nc,
      $     h
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -151,6 +153,7 @@ c
      $     lo, hi, nc,
      $     h
      $     )
+      implicit none
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)

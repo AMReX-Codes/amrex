@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.12 2007-10-22 20:27:04 almgren Exp $
+c $Id: ABec_2D.F,v 1.13 2008-02-08 18:08:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -54,6 +54,9 @@ c-----------------------------------------------------------------------
      $     lo,hi,nc,
      $     h,redblack
      $     )
+
+      implicit none
+
       REAL_T alpha, beta
       integer DIMDEC(phi)
       integer DIMDEC(rhs)
@@ -287,6 +290,9 @@ c-----------------------------------------------------------------------
      $     lo,hi,nc,
      $     h
      $     )
+
+      implicit none
+
       REAL_T alpha, beta
       integer DIMDEC(phi)
       integer DIMDEC(rhs)
@@ -369,6 +375,9 @@ c
      $     lo,hi,nc,
      $     h
      $     )
+
+      implicit none
+
       REAL_T alpha, beta
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
       integer DIMDEC(zz)
@@ -416,6 +425,9 @@ c
      $     lo,hi,nc,
      $     h
      $     )
+
+      implicit none
+
       REAL_T alpha, beta
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
       integer DIMDEC(y)
@@ -464,6 +476,9 @@ c
      $     lo,hi,nc,
      $     h
      $     )
+
+      implicit none
+
       REAL_T res
       REAL_T alpha, beta
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
