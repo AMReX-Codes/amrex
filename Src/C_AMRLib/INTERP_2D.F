@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.29 2007-07-02 23:00:14 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.30 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -40,6 +40,8 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, nvar,
      $                          sl, num_slp)
+
+      implicit none
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -825,6 +827,9 @@ c :::
      &                          fine,DIMS(fine),fblo,fbhi,
      &                          longdir,lratiox,lratioy,nvar,
      &                          ftmp,ftmp_lo,ftmp_hi)
+
+      implicit none
+
       integer DIMDEC(crse)
       integer cblo(2), cbhi(2)
       integer DIMDEC(fine)

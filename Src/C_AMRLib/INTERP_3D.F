@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.32 2007-07-05 17:02:00 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.33 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -40,6 +40,8 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, lratioz, nvar,
      $                          sl, num_slp)
+
+      implicit none
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -217,6 +219,8 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, lratioz, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
+
+      implicit none
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -798,6 +802,8 @@ c
      $                          flen, voff, bc, limslope,
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
 
+      implicit none
+
       integer DIMDEC(fine)
       integer DIMDEC(fb)
       integer DIMDEC(cb)
@@ -836,6 +842,8 @@ c
      $                           cb_h1, cb_h2, cb_h3,
      $		                 fslo, fshi, cslope, clen, fslope, fdat,
      $                           flen, voff, bc, limslope)
+
+      implicit none
 
       integer DIMDEC(fine)
       integer fb_l1, fb_l2, fb_l3
@@ -1070,6 +1078,9 @@ c :::
      &                          fine,DIMS(fine),fblo,fbhi,
      &                          longdir,lratiox,lratioy,lratioz,nvar,
      &                          ftmp, ftmp_lo, ftmp_hi)
+
+      implicit none
+
       integer DIMDEC(crse)
       integer cblo(3), cbhi(3)
       integer DIMDEC(fine)

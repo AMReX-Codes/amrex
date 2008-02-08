@@ -35,6 +35,8 @@ c :::
      $		                lratio, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
 
+      implicit none
+
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
@@ -84,7 +86,7 @@ c ::: copy on intersection
               fine(i,n) = strip(i,0)
             enddo
 100   continue
-      return
+
       end
 
 #undef  SLX
@@ -119,6 +121,8 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $		                lratio, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
+
+      implicit none
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -295,6 +299,7 @@ c :::
      $                          flen, voff, bc, limslope,
      $                          fvcx, cvcx)
 
+      implicit none
 
       integer DIMDEC(fine)
       integer fslo(1), fshi(1)
@@ -390,6 +395,8 @@ c ::: .....::::: strip out a fine grid slope vector
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
      $                          fvcx, cvcx)
+
+      implicit none
 
       integer DIMDEC(fine)
       integer fslo(1), fshi(1)
@@ -567,6 +574,9 @@ c :::
       subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi,
      &                          fine,DIMS(fine),fblo,fbhi,
      &                          longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi)
+
+      implicit none
+
       integer DIMDEC(crse)
       integer cblo(2), cbhi(2)
       integer DIMDEC(fine)

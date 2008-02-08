@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_2D.F,v 1.8 2002-07-31 22:32:02 lijewski Exp $
+c $Id: FILCC_2D.F,v 1.9 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -33,6 +33,8 @@ c ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
 c ::: -----------------------------------------------------------
 
       subroutine filcc(q,DIMS(q),domlo,domhi,dx,xlo,bc)
+
+      implicit none
 
       integer    DIMDEC(q)
       integer    domlo(SDIM), domhi(SDIM)
@@ -302,6 +304,8 @@ c     ::::: first fill sides
       end
 
       subroutine hoextraptocc(q,DIMS(q),domlo,domhi,dx,xlo)
+
+      implicit none
 
       integer    DIMDEC(q)
       integer    domlo(SDIM), domhi(SDIM)

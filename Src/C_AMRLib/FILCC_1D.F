@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_1D.F,v 1.1 2001-08-16 23:06:48 lijewski Exp $
+c $Id: FILCC_1D.F,v 1.2 2008-02-08 17:48:46 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -33,6 +33,8 @@ c ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
 c ::: -----------------------------------------------------------
 
       subroutine filcc(q,DIMS(q),domlo,domhi,dx,xlo,bc)
+
+      implicit none
 
       integer    DIMDEC(q)
       integer    domlo(SDIM), domhi(SDIM)

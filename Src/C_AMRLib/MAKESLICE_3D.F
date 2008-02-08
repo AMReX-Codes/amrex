@@ -1,5 +1,5 @@
 c
-c $Id: MAKESLICE_3D.F,v 1.7 1998-11-03 18:16:38 lijewski Exp $
+c $Id: MAKESLICE_3D.F,v 1.8 2008-02-08 17:48:47 lijewski Exp $
 c
 
 #undef  BL_LANG_CC         
@@ -17,6 +17,8 @@ c
 
       subroutine FORT_MAKEMASKSLICE(data1,DIMS(data1),
      &  data2,DIMS(data2),data_min,data_max,slice_val,slice,dx)
+
+      implicit none
       
       integer DIMDEC(data1)
       integer DIMDEC(data2)
@@ -118,6 +120,8 @@ c
       subroutine FORT_MAKESLICE(data1,DIMS(data1),
      &  data2,DIMS(data2),data_min,data_max,slice_val,
      &  slice,dx)
+
+      implicit none
 
       integer DIMDEC(data1)
       integer DIMDEC(data2)
