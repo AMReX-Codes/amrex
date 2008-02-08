@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.115 2008-02-08 20:22:31 jbb Exp $
+# Make.defs $Id: Make.defs,v 1.116 2008-02-08 20:56:10 marc Exp $
 #
 
 #
@@ -283,7 +283,7 @@ ifeq ($(COMP),Intel)
    CXXOPTF += -O3
 #  CXXOPTF += -parallel
    CXXDEBF += -g
-#  CXXOPTF += -ip
+   CXXOPTF += -ip -mp
 #  CXXOPTF += -ipo
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -469,8 +469,8 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -O3
 #  FOPTF += -parallel
 #  fOPTF += -parallel
-   FOPTF += -ip
-   fOPTF += -ip
+   FOPTF += -ip -mp
+   fOPTF += -ip -mp
 #  FOPTF += -ipo
 #  fOPTF += -ipo
 
