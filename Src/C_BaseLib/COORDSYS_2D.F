@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.10 2002-12-30 22:09:45 almgren Exp $
+c $Id: COORDSYS_2D.F,v 1.11 2008-02-08 18:15:11 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -27,6 +27,7 @@ c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SETVOL(vol,DIMS(vol),offset,dx,coord)
+       implicit none
        integer    DIMDEC(vol)
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
@@ -82,7 +83,7 @@ c========================================================
 c========================================================
         subroutine FORT_SETVOLPT(vol,
      $          ro, ri, po, pi,  dx, coord)
-
+        implicit none
         integer coord
         REAL_T dx(SDIM)
         REAL_T     vol
@@ -121,7 +122,7 @@ c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SETDLOGA(dloga,DIMS(dloga),offset,dx,dir,coord)
-
+       implicit none
        integer    DIMDEC(dloga)
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
@@ -211,7 +212,7 @@ c ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SETAREA(area,DIMS(area),offset,dx,dir,coord)
-
+       implicit none
        integer    DIMDEC(area)
        integer    coord, dir
        REAL_T     dx(SDIM), offset(SDIM)
