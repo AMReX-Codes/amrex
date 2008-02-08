@@ -59,6 +59,15 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
 
+    ifeq ($(WHICHLINUX), MOTHRA)
+
+      LIBRARIES += -lpthread
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      MPI_HOME=/usr/local/mpich2
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+    endif
+
     ifeq ($(HOST), lijewski)
       MPI_HOME=/home/lijewski/mpich2
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
