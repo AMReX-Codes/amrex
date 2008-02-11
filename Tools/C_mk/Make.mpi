@@ -58,6 +58,12 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
+    ifeq ($(WHICHLINUX), GIMANTIS)
+      MPI_HOME=/usr/local/mpich2
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+    endif
 
     ifeq ($(WHICHLINUX), MOTHRA)
 
@@ -113,6 +119,9 @@ ifeq ($(MACHINE), Linux)
     endif
     ifeq ($(WHICHLINUX), COLUMBIA)
       BL_MPI_LIBS += -lmpi
+    endif
+    ifeq ($(WHICHLINUX), GIMANTIS)
+      BL_MPI_LIBS += -lpthread
     endif
     ifeq ($(WHICHLINUX), GENERICLINUX)
       LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
