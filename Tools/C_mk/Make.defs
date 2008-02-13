@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.117 2008-02-11 23:54:22 vince Exp $
+# Make.defs $Id: Make.defs,v 1.118 2008-02-13 21:24:57 vince Exp $
 #
 
 #
@@ -373,6 +373,11 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 
+   ifeq ($(WHICHLINUX), GIMANTIS)
+     CPPFLAGS += -gxx-name=/usr/bin/gcc-4.1
+     LDFLAGS += -static
+   endif
+
 endif
 
 ifeq ($(FCOMP),Intel)
@@ -499,6 +504,7 @@ ifeq ($(FCOMP),Intel)
     FC = $(_ifc)
     fC = $(_ifc)
    NEEDS_FLUSH_F := TRUE
+
 endif
 
 #
