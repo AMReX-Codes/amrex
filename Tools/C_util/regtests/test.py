@@ -330,7 +330,7 @@ def getLastPlotfile(outputDir, test):
        print "WARNING: test did not produce any output"
        compareFile = ""
     else:
-       compareFile = "%s_plt%4.4d" % (test, plotNum)
+       compareFile = "%s_plt%5.5d" % (test, plotNum)
 
     return compareFile
 
@@ -1001,7 +1001,7 @@ def test(argv):
 
            # get the file number to restart from
            restartFileNum = getParam(test + ".restartFileNum")
-           restartFile = "%s_plt%4.4d" % (test, restartFileNum)
+           restartFile = "%s_plt%5.5d" % (test, restartFileNum)
 
            print "    restarting from %s ... " % (restartFile)
            
@@ -1465,6 +1465,8 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
             bf = open(benchStatusFile, 'r')
             lines = bf.readlines()
 
+            benchFile = "none"
+
             for line in lines:
                 index = string.find(line, "file:")
                 if (index >= 0):
@@ -1472,9 +1474,14 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
                     break
                 
 
-            hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>&nbsp;</TD><TD>(new benchmark file is %s)</TD></TR>\n" %
-                     (test, benchFile) )            
-
+            if (not benchFile == "none"):
+                    
+                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>&nbsp;</TD><TD>(new benchmark file is %s)</TD></TR>\n" %
+                          (test, benchFile) )
+            else:
+                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>&nbsp;</TD><TD>(compilation or execution failed)</TD></TR>\n" %
+                          (test) )
+                 
             hf.write("<TR><TD>&nbsp;</TD></TR>\n")
 
 
