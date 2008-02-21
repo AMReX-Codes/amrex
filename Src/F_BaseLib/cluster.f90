@@ -110,6 +110,7 @@ contains
 
     call build(lboxes)
     call build(buf, get_layout(tagboxes), nc = 1, ng = buf_wid)
+    call setval(buf, .false.)
 
     num_flag = lmultifab_count(tagboxes)
 
