@@ -44,6 +44,16 @@ ifeq ($(findstring nid, $(HOST)), nid)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring jaguar, $(HOST)), jaguar)
+    #
+    # jaguar
+    #
+    ifdef MPI
+        CXX := CC -target=linux
+        FC  := ftn -target=linux
+        F90 := ftn -target=linux
+    endif
+endif
 ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
