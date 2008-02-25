@@ -516,6 +516,7 @@ contains
 
   end subroutine mg_tower_bottom_solve
 
+  ! computes dd = ss * uu - ff
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
     use bl_prof_module
     use itsol_module
@@ -990,6 +991,7 @@ contains
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
+       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
 
@@ -1041,9 +1043,7 @@ contains
     if (do_diag) then
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
-!       nrm2 = norm_inf(ss)
        if ( parallel_IOProcessor() ) then
-!         print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
           print *,'IN: NORM RH ',lev,nrm1
        end if
     end if
@@ -1051,6 +1051,7 @@ contains
     call timer_start(mgt%tm(lev))
     if ( lev == lbl ) then
        if (do_diag) then
+          ! compute mgt%cc(lev) = ss * uu - rh
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1060,6 +1061,7 @@ contains
        call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        if ( cyc == MG_FCycle ) gamma = 1
        if (do_diag) then
+          ! compute mgt%cc(lev) = ss * uu - rh
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1072,7 +1074,6 @@ contains
           nrm = norm_inf(rh)
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) then
-!            print *,'DN: NORM BEFORE RELAX ',lev, nrm, nrm1
              print *,'DN: NORM BEFORE RELAX ',lev, nrm
           end if
        end if
@@ -1080,7 +1081,8 @@ contains
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
-       
+
+       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
        if (do_diag) then
@@ -1111,6 +1113,7 @@ contains
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if (do_diag) then
+          ! compute mgt%cc(lev) = ss * uu - rh
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1123,6 +1126,7 @@ contains
        end do
 
        if (do_diag) then
+          ! compute mgt%cc(lev) = ss * uu - rh
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1171,6 +1175,7 @@ contains
 
     else 
 
+       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
@@ -1244,6 +1249,8 @@ contains
     cyc   = mgt%cycle
     Anorm = stencil_norm(mgt%ss(mgt%nlevels))
     ynorm = norm_inf(rh)
+
+    ! compute mgt%dd(mgt%nlevels) = mgt%ss(mgt%nlevels) * uu - rh
     call mg_defect(mgt%ss(mgt%nlevels), &
                    mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
     if ( i_qq < n_qq ) then
@@ -1276,6 +1283,7 @@ contains
        call mg_tower_cycle(mgt, cyc, mgt%nlevels, mgt%ss(mgt%nlevels), &
                            uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, &
                            gamma)
+       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(mgt%ss(mgt%nlevels), &
                       mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then

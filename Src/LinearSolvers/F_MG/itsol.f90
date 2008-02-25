@@ -74,6 +74,7 @@ contains
     call destroy(bpt)
   end function itsol_converged
 
+  ! computes rr = aa * uu
   subroutine itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
     use bl_prof_module
     use stencil_nodal_module
@@ -141,6 +142,7 @@ contains
 
   end subroutine itsol_stencil_apply
 
+  ! computes rr = aa * uu - rh
   subroutine itsol_defect(aa, rr, rh, uu, mm, uniform_dh)
     use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
@@ -210,6 +212,7 @@ contains
     call copy(sh, uu, ng = sh%ng)
 
     cnt = 0
+    ! compute rr = aa * uu - rh
     call itsol_defect(aa, rr, rh, uu, mm, uniform_dh); cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
@@ -439,6 +442,7 @@ contains
     call setval(pp, ZERO, all=.true.)
 
     cnt = 0
+    ! compute rr = aa * uu - rh
     call itsol_defect(aa, rr, rh, uu, mm, uniform_dh)  
     cnt = cnt + 1
 
