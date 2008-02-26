@@ -75,7 +75,7 @@ contains
     !
     call fill_boundary(crse, icomp_crse, nc, ng)
 
-    call multifab_physbc(crse,icomp_crse,bcomp,nc,dx,bc_crse)
+    call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
     ! We don't try to directly fill anything at fine level outside of the domain.
@@ -323,7 +323,7 @@ contains
        end if
     end if
 
-    if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, dx, bc_fine)
+    if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, bc_fine)
 
     call destroy(cfine)
     call destroy(la)
