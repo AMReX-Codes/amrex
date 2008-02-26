@@ -98,7 +98,7 @@ contains
 
     dx = ONE
 
-    call multifab_physbc(fine, icomp, bcomp, nc, dx, bc_fine)
+    call multifab_physbc(fine, icomp, bcomp, nc, bc_fine)
 
     call destroy(ghost)
     call destroy(tmpfine)
