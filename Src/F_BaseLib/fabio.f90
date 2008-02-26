@@ -380,7 +380,7 @@ contains
     integer :: i, j, k
     character(len=128) :: header, sd_name
     integer :: nc, un, nl, dm
-    real(kind=dp_t), allocatable :: plo(:), phi(:), ldx(:)
+    real(kind=dp_t), allocatable :: plo(:), phi(:), ldx(:), ldxlev(:)
     integer, allocatable ::  lo(:),  hi(:)
     integer :: idummy, rdummy
     type(box) :: lbbox
@@ -402,7 +402,7 @@ contains
        return
     end if
     dm = mfs(1)%dim
-    allocate(plo(dm),phi(dm),ldx(dm),lo(dm),hi(dm))
+    allocate(plo(dm),phi(dm),ldx(dm),ldxlev(dm),lo(dm),hi(dm))
     if ( present(bounding_box) ) then
        lbbox = bounding_box
     else
@@ -461,13 +461,15 @@ contains
        write(unit=un, fmt='()')
        do i = 1, nl
           call box_print(lbbox, unit=un, legacy = .True., advance = 'no')
-          write(unit=un, fmt='()')
+          write(unit=un, fmt='(" ")', advance = 'no')
           if ( i < nl ) lbbox = refine(lbbox, rrs(i))
        end do
+       write(unit=un, fmt='()')
        do i = 1, nl
           write(unit=un, fmt='(i0,1x)', advance = 'no') idummy
        end do
        write(unit=un, fmt='()')
+       ldxlev = ldx
        do i = 1, nl
           write(unit=un, fmt='(3es25.15e3)') ldx
           if ( i < nl ) ldx = ldx/rrs(i)
@@ -476,14 +478,17 @@ contains
        write(unit=un, fmt='(i0)') idummy
        ! SOME STUFF
        do i = 1, nl
-          write(unit=un, fmt=*) i-1, nboxes(mfs(i)), rdummy, idummy
+          write(unit=un, fmt='(i1)', advance = 'no') i-1
+          write(unit=un, fmt=*) nboxes(mfs(i)), rdummy
+          write(unit=un, fmt='(i1)') idummy
           do j = 1, nboxes(mfs(i))
              plo =  lwb(get_box(mfs(i),j))    
              phi = (upb(get_box(mfs(i),j))+1)
              do k = 1, dm
-                write(unit=un, fmt='(2es25.15e3)') plo(k)*ldx(k), phi(k)*ldx(k)
+                write(unit=un, fmt='(2es25.15e3)') plo(k)*ldxlev(k), phi(k)*ldxlev(k)
              end do
           end do
+          if (i < nl) ldxlev = ldxlev/rrs(i)
           write(unit=un, fmt='("Level_",i2.2,"/Cell")') i-1
        end do
        close(unit=un)
