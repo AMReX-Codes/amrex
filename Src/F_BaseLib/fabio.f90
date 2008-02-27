@@ -479,7 +479,8 @@ contains
        ! SOME STUFF
        do i = 1, nl
           write(unit=un, fmt='(i1)', advance = 'no') i-1
-          write(unit=un, fmt=*) nboxes(mfs(i)), rdummy
+          write(unit=un, fmt='(i6)', advance = 'no') nboxes(mfs(i))
+          write(unit=un, fmt='(i6)') rdummy
           write(unit=un, fmt='(i1)') idummy
           do j = 1, nboxes(mfs(i))
              plo =  lwb(get_box(mfs(i),j))    
