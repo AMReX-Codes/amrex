@@ -96,10 +96,10 @@ endif
 
 ifneq ($(MAKECMDGOALS),realclean)
 ifneq ($(MAKECMDGOALS),clean)
--include $(tdir)/f90.depends
+include $(tdir)/f90.depends
 
 ifdef csources
--include $(tdir)/c.depends
+include $(tdir)/c.depends
 endif
 endif
 endif
