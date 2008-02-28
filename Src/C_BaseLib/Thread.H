@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.23 2006-02-08 21:38:05 car Exp $
+// $Id: Thread.H,v 1.24 2008-02-28 17:48:22 lijewski Exp $
 //
 
 //#include <cstdio>
@@ -65,9 +65,7 @@ public:
 private:
     Mutex(const Mutex&);
     void operator=(const Mutex&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
-    void* operator new(size_t size);
-#endif
+    //void* operator new(size_t size); // Disallow heap instantiation.
 protected:
     Implementation* m_impl;
 };
@@ -113,9 +111,7 @@ public:
 private:
     Lock(const Lock&);
     void operator=(const Lock&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
-    void* operator new(size_t size);
-#endif
+    //void* operator new(size_t size); // Disallow heap instantiation.
     M& m_mutex;
 };
 
@@ -176,9 +172,7 @@ public:
 private:
     TryLock(const TryLock&);
     void operator=(const TryLock&);
-#if ! ( BL_ICC_MAJOR_VERSION == 5 || defined(BL_SUPERUX) || defined(BL_PGI) )
-    void* operator new(size_t size);
-#endif
+    //void* operator new(size_t size); // Disallow heap instantiation.
     M& m_mutex;
     bool m_locked;
 };
