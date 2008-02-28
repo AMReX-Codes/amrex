@@ -112,7 +112,7 @@ endif
 # Overrides for specific machines.
 #
 ifeq ($(WHICHLINUX), FRANKLIN)
-  DEFINES += -DBL_PGI -DMPICH_SKIP_MPICXX
+  DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
     FC  := ftn -target=linux

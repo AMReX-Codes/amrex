@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.57 2007-09-04 21:31:40 marc Exp $
+// $Id: Utility.H,v 1.58 2008-02-28 17:48:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -10,7 +10,7 @@
 
 #ifndef WIN32
 #include <sys/types.h>
-#if !defined(BL_PGI) && !defined(COLUMBIA)
+#if !defined(COLUMBIA)
 #include <sys/wait.h>
 #endif
 #endif
