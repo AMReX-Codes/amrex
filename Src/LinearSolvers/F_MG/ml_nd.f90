@@ -418,6 +418,7 @@ contains
        call multifab_destroy(      uu(n))
        call multifab_destroy(     res(n))
        call multifab_destroy(temp_res(n))
+       call multifab_destroy( zero_rh(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_flx(n))
     end do
