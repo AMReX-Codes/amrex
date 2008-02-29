@@ -34,6 +34,10 @@ contains
     type(multifab), allocatable  ::       res(:)
     type(multifab), allocatable  ::  temp_res(:)
 
+    ! This is just a holder for a zero array at the same size as rh --
+    !   we only need it to pass in to crse_fine_residual
+    type(multifab), allocatable  ::   zero_rh(:)
+
     type(bndry_reg), allocatable :: brs_flx(:)
 
     type(box   ) :: pd,pdc
@@ -63,6 +67,8 @@ contains
     allocate(temp_res(nlevs))
     allocate(brs_flx(2:nlevs))
 
+    allocate(zero_rh(nlevs))
+
     do n = 2,nlevs-1
        la = mla%la(n)
        call multifab_build( uu_hold(n), la, 1, 1, rh(nlevs)%nodal)
@@ -80,6 +86,9 @@ contains
        call setval(      uu(n), ZERO,all=.true.)
        call setval(     res(n), ZERO,all=.true.)
        call setval(temp_res(n), ZERO,all=.true.)
+
+       call multifab_build(zero_rh(n), la, 1, rh(n)%ng, rh(nlevs)%nodal)
+       call setval(zero_rh(n), ZERO,all=.true.)
 
        if ( n == 1 ) exit
 
@@ -208,7 +217,7 @@ contains
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
-             call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),rh(n),temp_res(n),temp_res(n-1), &
+             call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),zero_rh(n),temp_res(n),temp_res(n-1), &
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
 
              ! Copy u_hold = uu
@@ -346,7 +355,7 @@ contains
              !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
-                  rh(n),temp_res(n),temp_res(n-1), &
+                  zero_rh(n),temp_res(n),temp_res(n-1), &
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
              if (mgt(n)%ss(mglev)%dim .eq. 3) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
