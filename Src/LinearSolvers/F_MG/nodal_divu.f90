@@ -991,7 +991,6 @@ contains
       nx = size(mm,dim=1) - 1
       ny = size(mm,dim=2) - 1
 
-      print *,'NX NY IN SUBTRACT ',nx,ny
       do j = 0,ny
       do i = 0,nx
          if (.not. bc_dirichlet(mm(i,j),1,0)) &
