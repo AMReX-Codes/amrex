@@ -936,4 +936,95 @@ contains
 
   end subroutine ml_interface_3d_divu
 
+    subroutine subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs)
+
+      integer        , intent(in   ) :: nlevs
+      type(mg_tower) , intent(inout) :: mgt(:)
+      type(multifab) , intent(inout) :: rh(:)
+      type(multifab) , intent(in   ) :: divu_rhs(:)
+
+      real(kind=dp_t), pointer :: dp(:,:,:,:) 
+      real(kind=dp_t), pointer :: rp(:,:,:,:) 
+      integer        , pointer :: mp(:,:,:,:) 
+
+      integer :: i,n,dm,ng_r,ng_d
+      integer :: mglev_fine
+
+      dm = rh(nlevs)%dim
+      ng_r = rh(nlevs)%ng
+      ng_d = divu_rhs(nlevs)%ng
+
+!     Create the regular single-level divergence.
+      do n = 1, nlevs
+         mglev_fine = mgt(n)%nlevels
+         do i = 1, rh(n)%nboxes
+            if ( multifab_remote(rh(n), i) ) cycle
+            rp => dataptr(rh(n)      , i)
+            dp => dataptr(divu_rhs(n), i)
+            mp => dataptr(mgt(n)%mm(mglev_fine),i)
+            select case (dm)
+               case (2)
+                 call subtract_divu_from_rh_2d(rp(:,:,1,1), ng_r, &
+                                               dp(:,:,1,1), ng_d, &
+                                               mp(:,:,1,1) )
+               case (3)
+                 call subtract_divu_from_rh_3d(rp(:,:,:,1), ng_r, &
+                                               dp(:,:,:,1), ng_d, &
+                                               mp(:,:,:,1) )
+            end select
+         end do
+      end do
+
+    end subroutine subtract_divu_from_rh
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_2d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:)
+      integer        , intent(inout) :: mm(0:,0:)
+
+      integer         :: i,j,nx,ny
+
+      nx = size(mm,dim=1) - 1
+      ny = size(mm,dim=2) - 1
+
+      print *,'NX NY IN SUBTRACT ',nx,ny
+      do j = 0,ny
+      do i = 0,nx
+         if (.not. bc_dirichlet(mm(i,j),1,0)) &
+           rh(i,j) = rh(i,j) - divu_rhs(i,j)
+      end do
+      end do
+
+    end subroutine subtract_divu_from_rh_2d
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_3d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:,   -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:, -ng_divu:)
+      integer        , intent(inout) :: mm(0:,0:,0:)
+
+      integer         :: i,j,k,nx,ny,nz
+
+      nx = size(mm,dim=1) - 1
+      ny = size(mm,dim=2) - 1
+      nz = size(mm,dim=2) - 1
+
+      do k = 0,nz
+      do j = 0,ny
+      do i = 0,nx
+         if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+           rh(i,j,k) = rh(i,j,k) - divu_rhs(i,j,k)
+      end do
+      end do
+      end do
+
+    end subroutine subtract_divu_from_rh_3d
+
 end module nodal_divu_module
