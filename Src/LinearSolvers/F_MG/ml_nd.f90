@@ -180,7 +180,7 @@ contains
                   mgt(n)%gamma)
           end if
 
-          ! Add: Soln += uu
+          ! Add: soln += uu
           call saxpy(soln(n),ONE,uu(n))
 
           if (n > 1) then
@@ -263,7 +263,7 @@ contains
           !     Must do this in order to remove interpolated full_soln...
           if (iter == 1) call saxpy(uu(n),-ONE,full_soln(n))
 
-          ! Add: Soln += uu
+          ! Add: soln += uu
           call saxpy(soln(n), ONE, uu(n), .true.)
 
           ! Add: uu_hold += uu 
@@ -401,7 +401,7 @@ contains
       call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
     end if
 
-    ! Add: soln += full_soln
+    ! Add: full_soln += soln
     do n = 1,nlevs
        call saxpy(full_soln(n),ONE,soln(n))
     end do
