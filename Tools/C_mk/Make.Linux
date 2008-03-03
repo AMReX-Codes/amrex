@@ -156,6 +156,16 @@ ifeq ($(WHICHLINUX), ATLAS)
   endif
 endif
 
+ifeq ($(WHICHLINUX), HOMER)
+  ifeq ($(USE_MPI),TRUE)
+    CXX = mpicxx
+    FC = mpif90
+    fC = mpif90
+    CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
+    CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
+  endif
+endif
+
 ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3
   fOPTF   = -O3
