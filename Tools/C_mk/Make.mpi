@@ -39,7 +39,7 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpichfarg
     endif
     ifeq ($(WHICHLINUX), HOMER)
-      MPI_HOME=/usr/local/mpich/default/
+      MPI_HOME=/usr/local/mpich2/
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
     endif
