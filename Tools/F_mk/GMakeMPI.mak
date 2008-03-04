@@ -49,9 +49,9 @@ ifeq ($(findstring jaguar, $(HOST)), jaguar)
     # jaguar
     #
     ifdef MPI
-        CXX := CC -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
+        CXX := CC -target=linux 
+        FC  := ftn -target=linux -module $(mdir) -I$(mdir)
+        F90 := ftn -target=linux -module $(mdir) -I$(mdir)
     endif
 endif
 ifeq ($(HOST),cfe3)
