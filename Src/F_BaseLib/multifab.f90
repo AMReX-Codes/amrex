@@ -525,8 +525,6 @@ contains
     logical, intent(in), optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "mf_build")
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
@@ -545,7 +543,6 @@ contains
            alloc = local(mf, i))
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
-    call destroy(bpt)
   end subroutine multifab_build
 
   subroutine imultifab_build(mf, la, nc, ng, nodal)
@@ -555,8 +552,6 @@ contains
     logical, intent(in), optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "imf_build")
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
@@ -574,7 +569,6 @@ contains
             alloc = local(mf, i))
     end do
     call mem_stats_alloc(imultifab_ms, volume(mf, all = .TRUE.))
-    call destroy(bpt)
   end subroutine imultifab_build
 
   subroutine lmultifab_build(mf, la, nc, ng, nodal)
@@ -584,8 +578,6 @@ contains
     logical, intent(in),optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "lmf_build")
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
@@ -603,7 +595,6 @@ contains
             alloc = local(mf, i))
     end do
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
-    call destroy(bpt)
   end subroutine lmultifab_build
 
   subroutine zmultifab_build(mf, la, nc, ng, nodal)
@@ -3555,9 +3546,7 @@ contains
     real(dp_t) :: r1
     integer :: i
     logical :: lall
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_dot")
     lall = .FALSE.; if ( present(all) ) lall = all
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
@@ -3593,7 +3582,7 @@ contains
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
     call parallel_reduce(r,r1,MPI_SUM)
-    call destroy(bpt)
+
   end function multifab_dot
 
   subroutine multifab_rescale_2(mf, c, min, max, xmin, xmax, clip)
@@ -3688,9 +3677,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_saxpy_5")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
@@ -3700,7 +3687,6 @@ contains
        ap = b1*bp + c1*cp
     end do
     !$OMP END PARALLEL DO
-    call destroy(bpt)
   end subroutine multifab_saxpy_5
 
   subroutine multifab_saxpy_4(a, b, c1, c)
@@ -3711,9 +3697,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_saxpy_4")
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
@@ -3723,7 +3707,6 @@ contains
        ap = bp + c1*cp
     end do
     !$OMP END PARALLEL DO
-    call destroy(bpt)
   end subroutine multifab_saxpy_4
 
   subroutine multifab_saxpy_3(a, b1, b, all)
@@ -3735,9 +3718,7 @@ contains
     logical, intent(in), optional :: all
     integer :: i
     logical :: lall
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_saxpy_3")
 
     lall = .false.; if ( present(all) ) lall = all
 
@@ -3760,7 +3741,6 @@ contains
        end do
        !$OMP END PARALLEL DO
     end if
-    call destroy(bpt)
   end subroutine multifab_saxpy_3
 
   subroutine multifab_saxpy_3_c(a, ia, b1, b, all)
@@ -3839,9 +3819,7 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_norm_l1_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -3877,7 +3855,7 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
-    call destroy(bpt)
+
   end function multifab_norm_l1_c
   function multifab_norm_l1(mf, all) result(r)
     real(dp_t)                    :: r
@@ -3898,9 +3876,7 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_sum_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -3936,7 +3912,6 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
-    call destroy(bpt)
   end function multifab_sum_c
   function multifab_sum(mf, mask, all) result(r)
     real(dp_t)                            :: r
@@ -3959,9 +3934,7 @@ contains
     real(dp_t) :: r1
     logical :: lall
     integer :: lnc
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_norm_l2_c")
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
@@ -3999,7 +3972,6 @@ contains
     end if
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
-    call destroy(bpt)
   end function multifab_norm_l2_c
   function multifab_norm_l2(mf, mask, all) result(r)
     real(dp_t)                            :: r
@@ -4021,9 +3993,7 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
-    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mf_norm_inf_c")
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -4059,7 +4029,6 @@ contains
        !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_MAX)
-    call destroy(bpt)
   end function multifab_norm_inf_c
   function multifab_norm_inf(mf, mask, all) result(r)
     real(dp_t)                            :: r
