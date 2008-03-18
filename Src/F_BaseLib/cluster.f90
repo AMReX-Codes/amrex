@@ -119,6 +119,7 @@ contains
        if ( present(overall_eff) ) then
           overall_eff = 0
        end if
+       call destroy(buf)
        return
     end if
 
