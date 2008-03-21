@@ -1,5 +1,5 @@
 //
-// $Id: RealBox.cpp,v 1.10 2001-08-02 16:04:11 car Exp $
+// $Id: RealBox.cpp,v 1.11 2008-03-21 22:07:37 vince Exp $
 //
 #include <iostream>
 #include <string>
@@ -209,8 +209,17 @@ operator >> (std::istream &is, RealBox& b)
 
     Real lo[BL_SPACEDIM];
     Real hi[BL_SPACEDIM];
+#ifdef BL_USE_FLOAT
+    double dlotemp, dhitemp;
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+        is >> dlotemp >> dhitemp;
+        lo[i] = dlotemp;
+        hi[i] = dhitemp;
+    }
+#else
     for (int i = 0; i < BL_SPACEDIM; i++)
         is >> lo[i] >> hi[i];
+#endif
 
     is.ignore(BL_IGNORE_MAX, ')');
 
