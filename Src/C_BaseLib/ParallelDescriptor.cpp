@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.107 2007-05-09 19:52:05 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.108 2008-03-21 22:24:16 vince Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -1152,6 +1152,17 @@ BL_FORT_PROC_DECL(BL_PD_SECOND,bl_pd_second)(double* r)
     *r = ParallelDescriptor::second();
 }
 
+#ifdef BL_USE_FLOAT
+BL_FORT_PROC_DECL(BL_PD_REDUCE_REAL_MAX_TO_IOPROC,bl_pd_reduce_real_max_to_ioproc)(float* r)
+{
+    ParallelDescriptor::ReduceRealMax(*r,ParallelDescriptor::IOProcessorNumber());
+}
+
+BL_FORT_PROC_DECL(BL_PD_REDUCE_REAL_SUM_TO_IOPROC,bl_pd_reduce_real_sum_to_ioproc)(float* r)
+{
+    ParallelDescriptor::ReduceRealSum(*r,ParallelDescriptor::IOProcessorNumber());
+}
+#else
 BL_FORT_PROC_DECL(BL_PD_REDUCE_REAL_MAX_TO_IOPROC,bl_pd_reduce_real_max_to_ioproc)(double* r)
 {
     ParallelDescriptor::ReduceRealMax(*r,ParallelDescriptor::IOProcessorNumber());
@@ -1161,6 +1172,7 @@ BL_FORT_PROC_DECL(BL_PD_REDUCE_REAL_SUM_TO_IOPROC,bl_pd_reduce_real_sum_to_iopro
 {
     ParallelDescriptor::ReduceRealSum(*r,ParallelDescriptor::IOProcessorNumber());
 }
+#endif
 
 BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 {

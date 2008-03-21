@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.106 2007-09-18 20:03:57 lijewski Exp $
+// $Id: VisMF.cpp,v 1.107 2008-03-21 22:24:16 vince Exp $
 //
 
 #include <winstd.H>
@@ -132,6 +132,9 @@ operator>> (std::istream&         is,
 {
     char ch;
     long i = 0, N, M;
+#ifdef BL_USE_FLOAT
+    double dtemp;
+#endif
 
     is >> N >> ch >> M;
 
@@ -150,7 +153,12 @@ operator>> (std::istream&         is,
 
         for (long j = 0; j < M; j++)
         {
+#ifdef BL_USE_FLOAT
+            is >> dtemp >> ch;
+            ar[i][j] = static_cast<Real>(dtemp);
+#else
             is >> ar[i][j] >> ch;
+#endif
 	    if ( ch != ',' ) 
 	      BoxLib::Error("Expected a ',' got something else");
         }
