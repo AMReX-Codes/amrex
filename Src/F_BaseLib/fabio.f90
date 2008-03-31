@@ -389,11 +389,12 @@ contains
     if ( size(mfs) < 1 ) then
        call bl_error("FABIO_ML_MULTIFAB_WRITE_D: write a zero length mlmf")
     end if
-    if ( size(mfs) /= size(rrs) + 1 ) then
-       call bl_error("FABIO_ML_MULTIFAB_WRITE_D: size of mfs /= size (rrs,dim=1)+1")
-    end if
+!    if ( size(mfs) /= size(rrs) + 1 ) then
+!       call bl_error("FABIO_ML_MULTIFAB_WRITE_D: size of mfs /= size (rrs,dim=1)+1")
+!    end if
 
-    nl = size(mfs)
+!    nl = size(mfs)
+    nl = size(rrs)+1
     nc = ncomp(mfs(1))
     if ( nc == 0 ) then
        if ( parallel_IOProcessor() ) then
@@ -427,7 +428,8 @@ contains
     end if
     call parallel_barrier()
 
-    do i = 1, size(mfs)
+!    do i = 1, size(mfs)
+    do i = 1, nl
        write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
        call fabio_multifab_write_d(mfs(i), sd_name, "Cell")
     end do
