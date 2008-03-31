@@ -26,8 +26,10 @@ module regrid_module
        type(multifab) , intent(in   ) :: mf
        real(dp_t)     , intent(in   ) :: dx_crse
        integer        , intent(in   ) :: buf_wid
-! need to came back and change ref_ratio to vary
+
+       ! ref_ratio now fixed across levels and dimensions -- fix me?
        integer        , intent(in   ) :: rr(:,:)
+
        integer, optional, intent(in   ) :: lev
        logical, optional, intent(  out) :: new_grid
 
@@ -162,6 +164,15 @@ module regrid_module
                   end if
                end do
             end do
+         case (3)
+            ! for level 3 tag all boxes with a density >= 2.5
+            do j = lo(2),lo(2)+ny-1
+               do i = lo(1),lo(1)+nx-1
+                  if (mf(i,j) .gt. 1.5d0) then
+                     tagbox(i,j) = .true.
+                  end if
+               end do
+            end do
          end select
 
     end subroutine tag_boxes_2d
@@ -194,21 +205,44 @@ module regrid_module
 
     end subroutine tag_boxes_3d
 
-    subroutine buffer(mf,ba_new,buf_wid)
+    subroutine buffer(lev,mla,buff)
 
-      type(multifab), intent(in   ) :: mf
-      type(boxarray), intent(inout) :: ba_new
-      integer,        intent(in   ) :: buf_wid
+      integer,         intent(in   ) :: lev
+      type(ml_layout), intent(inout) :: mla
+      integer,         intent(in   ) :: buff
 
-      type(lmultifab) :: boxes
-      integer         :: minwidth
+      type(lmultifab) :: boxes, boxes2
+      type(boxarray)  :: ba_new, ba_lev
+      integer         :: minwidth, n
       real(kind = dp_t) :: min_eff
+      type(ml_boxarray) :: mba_new
+      type(ml_layout)   :: mla_new
+      type(layout)      :: la
+      
+      call lmultifab_build(boxes,mla%la(lev),1,0)
+      call setval(boxes,.true.,all=.true.)
+     
+      minwidth = 2
+      min_eff = .7
 
-      call lmultifab_build(boxes,mf%la,1,0)
-      call setval(boxes, .true., all=.true.)
+      call cluster(ba_new,boxes,minwidth,buff,min_eff)
 
+      call destroy(boxes)
+      call build(mba_new,lev,mla%dim)
+      do n = 1, lev-1
+         mba_new%pd(n) = mla%mba%pd(n)
+         mba_new%rr(n,:) = mla%mba%rr(n,:)
+         call copy(mba_new%bas(n),mla%mba%bas(n))
+      enddo
+      mba_new%pd(lev) = mla%mba%pd(lev)
+      mba_new%bas(lev) = ba_new
 
-      call cluster(ba_new,boxes, minwidth,buf_wid, min_eff)
+      call ml_layout_build(mla_new,mba_new,mla%pmask)
+      call destroy(mla)
+      call ml_layout_build(mla,mba_new,mla_new%pmask)
+      call destroy(mla_new)
+
+      call destroy(mba_new)
 
     end subroutine buffer
 
