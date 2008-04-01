@@ -8,47 +8,6 @@ module box_util_module
 
 contains
 
-  !! Places a box into the world.
-  !! The center of the is uniformly distributed in the world.
-  !! The size of the box is uniformly distrubed between MN and MX
-  !! The resulting box is intersected with the world
-  function box_random_box(world, mn, mx, mt) result(r)
-    use mt19937_module
-    type(mt19937), intent(inout), optional :: mt
-    type(box) :: r
-    type(box), intent(in) :: world
-    integer, intent(in) :: mn, mx
-    real(kind=dp_t) :: aa(world%dim,2)
-    integer ::  spot(world%dim)
-    integer :: hwide(world%dim)
-
-    if ( present(mt) ) then
-       call mt_random_number(mt, aa)
-    else
-       call mt_random_number(aa)
-    end if
-    hwide = int((mn + aa(:,1)*(mx-mn))/2)
-    spot = int(lwb(world) + aa(:,2)*(upb(world)-lwb(world)))
-    call build(r, spot-hwide, spot+hwide)
-    r = intersection(r, world)
-
-  end function box_random_box
-
-  !! Makes an array of random boxes
-  subroutine make_random_boxes_bv(bxs, world, mn, mx, mt)
-    use mt19937_module
-    type(box), dimension(:), intent(out) :: bxs
-    type(mt19937), intent(inout), optional :: mt
-    integer, intent(in) :: mn, mx
-    type(box), intent(in) :: world
-    integer :: i
-
-    do i = 1, size(bxs)
-       bxs(i) = box_random_box(world, mn, mx, mt)
-    end do
-
-  end subroutine make_random_boxes_bv
-
   subroutine read_a_mglib_grid_ba(ba, bx, str)
     use bl_IO_module
     use bl_error_module
@@ -180,28 +139,5 @@ contains
     end do
     close(unit=un)
   end subroutine ml_boxarray_read_boxes
-
-  subroutine build_random_boxarray(ba, pd, nb, mn, mx, bf)
-    use mt19937_module
-    implicit none
-    type(boxarray), intent(out) :: ba
-    integer, intent(in) :: nb, mn, mx, bf
-    type(box), intent(in) :: pd
-    type(box) :: tpd
-    type(box) :: bxs(nb)
-
-    integer :: tmn, tmx
-
-    tpd = coarsen(pd, bf)
-    tmn = max(mn/bf, 1)
-    tmx = max(mx/bf, 1)
-
-    call make_random_boxes_bv(bxs, tpd, tmn, tmx)
-    call boxarray_build_v(ba, bxs)
-    call boxarray_refine(ba, bf)
-
-    call boxarray_to_domain(ba)
-
-  end subroutine build_random_boxarray
 
 end module box_util_module

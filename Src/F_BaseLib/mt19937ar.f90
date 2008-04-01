@@ -59,7 +59,7 @@ module mt19937_module
   !     elements are random numbers on [0,1) interval with 53-bit resolution.
 
   ! mt_random_number returns floats,doubles in range [0,1) ala the build random_number
-  
+
   interface mt_random_number
      module procedure mt_random_number_l_0, mt_random_number_l_0a
      module procedure mt_random_number_l_1, mt_random_number_l_1a
@@ -131,6 +131,72 @@ module mt19937_module
   type(mt19937), save :: the_mt
 
 contains
+
+  !! Places a box into the world.
+  !! The center of the is uniformly distributed in the world.
+  !! The size of the box is uniformly distrubed between MN and MX
+  !! The resulting box is intersected with the world
+  function box_random_box(world, mn, mx, mt) result(r)
+
+    use box_module
+    type(mt19937), intent(inout), optional :: mt
+    type(box) :: r
+    type(box), intent(in) :: world
+    integer, intent(in) :: mn, mx
+    real(kind=dp_t) :: aa(world%dim,2)
+    integer ::  spot(world%dim)
+    integer :: hwide(world%dim)
+
+    if ( present(mt) ) then
+       call mt_random_number(mt, aa)
+    else
+       call mt_random_number(aa)
+    end if
+    hwide = int((mn + aa(:,1)*(mx-mn))/2)
+    spot = int(lwb(world) + aa(:,2)*(upb(world)-lwb(world)))
+    call build(r, spot-hwide, spot+hwide)
+    r = intersection(r, world)
+
+  end function box_random_box
+
+  !! Makes an array of random boxes
+  subroutine make_random_boxes_bv(bxs, world, mn, mx, mt)
+
+    use box_module
+    type(box), dimension(:), intent(out) :: bxs
+    type(mt19937), intent(inout), optional :: mt
+    integer, intent(in) :: mn, mx
+    type(box), intent(in) :: world
+    integer :: i
+
+    do i = 1, size(bxs)
+       bxs(i) = box_random_box(world, mn, mx, mt)
+    end do
+
+  end subroutine make_random_boxes_bv
+
+  subroutine build_random_boxarray(ba, pd, nb, mn, mx, bf)
+    use boxarray_module
+    implicit none
+    type(boxarray), intent(out) :: ba
+    integer, intent(in) :: nb, mn, mx, bf
+    type(box), intent(in) :: pd
+    type(box) :: tpd
+    type(box) :: bxs(nb)
+
+    integer :: tmn, tmx
+
+    tpd = coarsen(pd, bf)
+    tmn = max(mn/bf, 1)
+    tmx = max(mx/bf, 1)
+
+    call make_random_boxes_bv(bxs, tpd, tmn, tmx)
+    call boxarray_build_v(ba, bxs)
+    call boxarray_refine(ba, bf)
+
+    call boxarray_to_domain(ba)
+
+  end subroutine build_random_boxarray
 
   elemental function uiadd( a, b ) result( c )
     integer( kind = wi ), intent( in )  :: a, b
