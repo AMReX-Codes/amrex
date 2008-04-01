@@ -7,8 +7,8 @@ f90objects = $(f90objects) $(obj_dir)\omp.obj
 f90sources = $(f90sources) $(boxlib_dir)\f2kcli_win32.f90
 f90objects = $(f90objects) $(obj_dir)\f2kcli_win32.obj
 
-f90sources = $(f90sources) $(boxlib_dir)\mt19937ar.f90
-f90objects = $(f90objects) $(obj_dir)\mt19937ar.obj
+#f90sources = $(f90sources) $(boxlib_dir)\mt19937ar.f90
+#f90objects = $(f90objects) $(obj_dir)\mt19937ar.obj
 
 f90sources = $(f90sources) $(boxlib_dir)\bl_constants.f90
 f90objects = $(f90objects) $(obj_dir)\bl_constants.obj
