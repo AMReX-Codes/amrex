@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.83 2007-09-22 15:05:31 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.84 2008-04-02 19:21:23 almgren Exp $
 //
 #include <winstd.H>
 
@@ -401,6 +401,20 @@ MultiFab::max (const Box& region,
     ParallelDescriptor::ReduceRealMax(mn);
 
     return mn;
+}
+
+Real
+MultiFab::norm0 (int comp) const
+{
+
+    Real nm0 = -std::numeric_limits<Real>::max();
+
+    for ( MFIter mfi(*this); mfi.isValid(); ++mfi)
+        nm0 = std::max(nm0, get(mfi).norm(0));
+
+    ParallelDescriptor::ReduceRealMax(nm0);
+
+    return nm0;
 }
 
 void

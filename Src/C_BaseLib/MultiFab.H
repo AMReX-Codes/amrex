@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.47 2007-09-22 15:05:31 lijewski Exp $
+// $Id: MultiFab.H,v 1.48 2008-04-02 19:21:23 almgren Exp $
 //
 #include <winstd.H>
 
@@ -113,6 +113,11 @@ public:
     */
     Real max (int comp,
               int nghost = 0) const;
+
+    /*@ManDoc: Returns the maximum *absolute* value contained in 
+               component comp of the MultiFab.  No ghost cells are used.
+    */
+    Real norm0 (int comp = 0) const;
 
     /*@ManDoc: Identical to the previous max() function, but confines its
                search to intersection of Box b and the MultiFab.
