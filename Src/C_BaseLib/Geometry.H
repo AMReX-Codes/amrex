@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.42 2007-02-16 00:21:29 lijewski Exp $
+// $Id: Geometry.H,v 1.43 2008-04-10 20:31:23 almgren Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -152,6 +152,12 @@ public:
                                int       num_comp,
                                bool      do_corners = false,
                                bool      local      = false) const;
+
+    //
+    //@ManDoc: Find the ghost cells of a given BoxArray.
+    //
+    BoxArray GetBndryCells (const BoxArray& ba, int ngrow) const;
+
     //
     //@ManDoc: Flush the cache of PIRM information.
     //
