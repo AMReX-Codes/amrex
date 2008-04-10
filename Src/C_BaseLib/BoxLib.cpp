@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.33 2007-07-03 19:50:33 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.34 2008-04-10 21:14:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -221,6 +221,14 @@ BoxLib::Initialize (int& argc, char**& argv)
     bl_prf->start();
 
     ParallelDescriptor::StartParallel(&argc, &argv);
+
+    if (ParallelDescriptor::IOProcessor() &&
+        ParallelDescriptor::NProcs() > 1)
+    {
+        std::cout << "MPI initialized with "
+                  << ParallelDescriptor::NProcs()
+                  << " CPUs\n";
+    }
 
     if (argc == 1)
     {
