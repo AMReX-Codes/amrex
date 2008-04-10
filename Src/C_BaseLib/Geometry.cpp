@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.71 2007-10-29 04:03:02 almgren Exp $
+// $Id: Geometry.cpp,v 1.72 2008-04-10 20:31:23 almgren Exp $
 //
 #include <winstd.H>
 
@@ -546,6 +546,73 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
             mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
         }
     }
+}
+
+BoxArray
+Geometry::GetBndryCells (const BoxArray& ba,
+                         int             ngrow) const
+{
+    //
+    // First get list of all ghost cells.
+    //
+    BoxList gcells, bcells;
+
+    for (int i = 0; i < ba.size(); ++i)
+	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+    //
+    // Now strip out intersections with original BoxArray.
+    //
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    {
+        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
+
+        if (isects.empty())
+            bcells.push_back(*it);
+        else
+        {
+            //
+            // Collect all the intersection pieces.
+            //
+            BoxList pieces;
+            for (int i = 0; i < isects.size(); i++)
+                pieces.push_back(isects[i].second);
+            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            bcells.catenate(leftover);
+        }
+    }
+    //
+    // Now strip out overlaps.
+    //
+    gcells.clear();
+    gcells = BoxLib::removeOverlap(bcells);
+    bcells.clear();
+
+    if (isAnyPeriodic())
+    {
+        Array<IntVect> pshifts(27);
+
+        for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+        {
+            if (!domain.contains(*it))
+            {
+                //
+                // Add in periodic ghost cells shifted to valid region.
+                //
+                periodicShift(domain, *it, pshifts);
+
+                for (int i = 0; i < pshifts.size(); i++)
+                {
+                    const Box shftbox = *it + pshifts[i];
+
+                    bcells.push_back(domain & shftbox);
+                }
+            }
+        }
+
+        gcells.catenate(bcells);
+    }
+
+    return BoxArray(gcells);
 }
 
 Geometry::Geometry () {}
