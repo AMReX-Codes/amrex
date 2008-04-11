@@ -3510,7 +3510,7 @@ contains
                         flux(0,j,k) =  flux(0,j,k) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
                    flux(0,j,k) = -flux(0,j,k)
                 else if (bc_neumann(mm(i,j,k),1,-1)) then
-                   flux(0,j,k) = ss(i,j,k,2)*uu(i-1,j,k)
+                   flux(0,j,k) = -ss(i,j,k,2)*uu(i-1,j,k)
                 else 
                    flux(0,j,k) = ss(i,j,k,2)*(uu(i,j,k)-uu(i-1,j,k))
                 end if
@@ -3559,7 +3559,7 @@ contains
                         flux(i,0,k) =  flux(i,0,k) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
                    flux(i,0,k) = -flux(i,0,k)
                 else if (bc_neumann(mm(i,j,k),2,-1)) then
-                   flux(i,0,k) = ss(i,j,k,4)*uu(i,j-1,k)
+                   flux(i,0,k) = -ss(i,j,k,4)*uu(i,j-1,k)
                 else 
                    flux(i,0,k) = ss(i,j,k,4)*(uu(i,j,k)-uu(i,j-1,k))
                 end if
@@ -3608,7 +3608,7 @@ contains
                         flux(i,j,0) =  flux(i,j,0) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
                    flux(i,j,0) = -flux(i,j,0)
                 else if (bc_neumann(mm(i,j,k),3,-1)) then
-                   flux(i,j,0) = ss(i,j,k,6)*uu(i,j,k-1)
+                   flux(i,j,0) = -ss(i,j,k,6)*uu(i,j,k-1)
                 else 
                    flux(i,j,0) = ss(i,j,k,6)*(uu(i,j,k)-uu(i,j,k-1))
                 end if
