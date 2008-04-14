@@ -238,13 +238,6 @@ def getValidTests(sourceTree):
                 removeList.append(test)
                 continue
 
-        # useFParallel
-	if (not keyIsValid("%s.useFParallel" % (test)) ):
-            print "ERROR: test %s is missing useFParallel parameter.\n" % (test)
-            removeList.append(test)
-            continue
-
-
         # needs_helmeos
 	if (not keyIsValid("%s.needs_helmeos" % (test)) ):
             print "ERROR: test %s is missing needs_helmeos parameter.\n" % (test)
@@ -371,7 +364,6 @@ def test(argv):
             inputFile = < input file name >
             probinFile = < probin file name >
             needs_helmeos = < need Helmholtz eos? 0 for no, 1 for yes >
-            useFParallel = < need fParallel sources? 0 for no, 1 for yes >
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
             dim = < dimensionality: 2 or 3 >
@@ -424,9 +416,6 @@ def test(argv):
             This will ensure that the helm_table.dat file is copied
             into the run directory.
             
-            useFParallel = 1 means that we also need to build the
-            Fortran source for a Parallel/ sourceTree application.  
-
             dim is the dimensionality for the problem.
 
           Each test problem should get its own [testname] block
@@ -775,30 +764,34 @@ def test(argv):
     # Parallel
     have_cvs2cl = 0
 
-    os.chdir(testTopDir)
-
-    print "Generating ChangeLog for Parallel/"
+    if (sourceTree == "Parallel"):
     
-    if (not os.path.isfile("Parallel/cvs2cl.pl")):
-        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-            print "WARNING: unable to locate cvs2cl.pl script."
-            print "         no ChangeLog will be generated"
-        else:
-            shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
-            have_cvs2cl = 1
-    else:
-        have_cvs2cl = 1
+            os.chdir(testTopDir)
 
-    os.chdir("Parallel/")
+    
+            print "Generating ChangeLog for Parallel/"
+    
+            if (not os.path.isfile("Parallel/cvs2cl.pl")):
+                if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+                    print "WARNING: unable to locate cvs2cl.pl script."
+                    print "         no ChangeLog will be generated"
+                else:
+                    shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
+                    have_cvs2cl = 1
+            else:
+               have_cvs2cl = 1
 
-    if (have_cvs2cl and not no_cvs_update):
-        os.system("./cvs2cl.pl -f ChangeLog.Parallel")
-    else:
-        cf = open("ChangeLog.Parallel", 'w')
-        cf.write("unable to generate ChangeLog")
-        cf.close()
+            os.chdir("Parallel/")
 
-    os.chdir(testTopDir)
+            if (have_cvs2cl and not no_cvs_update):
+                os.system("./cvs2cl.pl -f ChangeLog.Parallel")
+            else:
+                cf = open("ChangeLog.Parallel", 'w')
+                cf.write("unable to generate ChangeLog")
+                cf.close()
+
+            os.chdir(testTopDir)
+
 
 
     # fParallel
@@ -866,8 +859,8 @@ def test(argv):
         os.chdir(sourceDir + dir)
 
         if (sourceTree == "Parallel"):
-            os.system("gmake DIM=2 executable=%s2d.exe clean" % (suiteName) )
-            os.system("gmake DIM=3 executable=%s3d.exe clean" % (suiteName) )
+            os.system("gmake DIM=2 executable=%s2d.exe realclean" % (suiteName) )
+            os.system("gmake DIM=3 executable=%s3d.exe realclean" % (suiteName) )
         else:
             os.system("gmake MPI= realclean NDEBUG=t")
             
@@ -905,19 +898,12 @@ def test(argv):
         print "  building..."
 
         if (sourceTree == "Parallel"):
-            use_fParallel = getParam(test + ".useFParallel")
             dim = getParam(test + ".dim")
 
             executable = "%s%dd.exe" % (suiteName, dim)
 
-            if (use_fParallel):
-                os.system("gmake -j 4 DIM=%d executable=%s FBOXLIB_HOME=%s/fParallel >& %s/%s.make.out" %
-                          (dim, executable, sourceDir, outputDir, test))
-            else:
-                os.system("gmake -j 4 DIM=%d executable=%s FBOXLIB_HOME= >& %s/%s.make.out" %
-                          (dim, executable, outputDir, test))
-
-
+            os.system("gmake -j 4 DIM=%d executable=%s  >& %s/%s.make.out" % 
+                      (dim, executable, outputDir, test))
             
         elif (sourceTree == "fParallel"):
             os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
@@ -1070,12 +1056,17 @@ def test(argv):
             print "  storing output of %s as the new benchmark..." % (test)
             print "     new benchmark file: ", compareFile
 
-            os.system("cp -rf %s %s" % (compareFile, benchDir))
+            if (not compareFile == ""):
+                os.system("cp -rf %s %s" % (compareFile, benchDir))
 
-            cf = open("%s.status" % (test), 'w')
-            cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
-            cf.close()
-            
+                cf = open("%s.status" % (test), 'w')
+                cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+                cf.close()
+            else:
+                cf = open("%s.status" % (test), 'w')
+                cf.write("benchmarks failed")
+                cf.close()
+                
             
         #----------------------------------------------------------------------
         # move the output files into the web directory
@@ -1407,9 +1398,12 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.fParallel.out", "cvs.fParallel.out") )        
     hf.write("<p>&nbsp;\n")
-    
-    hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("ChangeLog.Parallel", "ChangeLog.Parallel") )
+
+    sourceTree = getParam("main.sourceTree")
+    if (sourceTree == "Parallel"):
+            hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     ("ChangeLog.Parallel", "ChangeLog.Parallel") )
+            
     hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
              ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
     hf.write("<p>&nbsp;\n")    
