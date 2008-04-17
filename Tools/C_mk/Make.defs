@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.118 2008-02-13 21:24:57 vince Exp $
+# Make.defs $Id: Make.defs,v 1.119 2008-04-17 23:10:54 aaspden Exp $
 #
 
 #
@@ -375,7 +375,6 @@ ifeq ($(COMP),Intel)
 
    ifeq ($(WHICHLINUX), GIMANTIS)
      CPPFLAGS += -gxx-name=/usr/bin/gcc-4.1
-     LDFLAGS += -static
    endif
 
 endif
