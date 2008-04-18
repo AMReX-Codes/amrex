@@ -137,7 +137,17 @@ ifeq ($(WHICHLINUX), ATLAS)
     CXXOPTF = -O3 -ip -mp -fno-exceptions
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
-      CXX = mpiicpc
+# MAS: 4.17.2008
+# works for chaos3, but doesn't seem to work for chaos4, so hard
+# code everything contained in this mpiicpc script -- to see what's
+# contained in mpiicpc script, type "mpiicpc -show"
+#      CXX = mpiicpc
+      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
+	    -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
+            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
+	    -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
+	    -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
+	    -L/usr/local/tools/mvapich-intel/lib
     endif
   endif
   ifeq ($(FCOMP),Intel)

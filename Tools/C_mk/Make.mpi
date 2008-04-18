@@ -27,12 +27,13 @@ endif
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
     ifeq ($(WHICHLINUX), ATLAS)
-      MPI_HOME=/usr/lib/mpi/default/mvapich-gen2/
       ifeq ($(FCOMP), Intel)
-        MPI_HOME=/usr/lib/mpi/icc/mvapich-gen2/
+#        MPI_HOME=/usr/lib/mpi/icc/mvapich-gen2/
+	MPI_HOME=/usr/local/tools/mvapich-intel
       endif
       ifeq ($(FCOMP), PGI)
-        MPI_HOME=/usr/lib/mpi/pgi/mvapich-gen2/
+#        MPI_HOME=/usr/lib/mpi/pgi/mvapich-gen2/
+	MPI_HOME=/usr/local/tools/mvapich-pgi
       endif
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
