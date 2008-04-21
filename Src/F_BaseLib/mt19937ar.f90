@@ -33,7 +33,7 @@ module mt19937_module
   public :: mt_genrand_int
   public :: mt_genrand_int32, mt_genrand_int31
   public :: mt_genrand_real1, mt_genrand_real2, mt_genrand_real3, mt_genrand_res53
-  public :: mt_validate
+  public :: mt_validate, build_random_boxarray
 
   ! genrand_init
   ! Internal RNG state initialization function accepts either an genrand_intg integer
