@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.86 2008-04-25 19:30:49 almgren Exp $
+// $Id: MultiFab.cpp,v 1.87 2008-04-25 20:45:49 almgren Exp $
 //
 #include <winstd.H>
 
@@ -421,7 +421,7 @@ MultiFab::norm0 (int comp) const
 Real
 MultiFab::norm2 (int comp) const
 {
-    Real nm2 = 0.d0;
+    Real nm2 = 0.0;
     Real nm_grid;
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
