@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.85 2008-04-02 20:39:43 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.86 2008-04-25 19:30:49 almgren Exp $
 //
 #include <winstd.H>
 
@@ -417,6 +417,25 @@ MultiFab::norm0 (int comp) const
 
     return nm0;
 }
+
+Real
+MultiFab::norm2 (int comp) const
+{
+    Real nm2 = 0.d0;
+    Real nm_grid;
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+        nm_grid = get(mfi).norm(mfi.validbox(), 2, comp, 1);
+        nm2 += nm_grid*nm_grid;
+    }
+
+    ParallelDescriptor::ReduceRealSum(nm2);
+
+    nm2 = std::sqrt(nm2);
+
+    return nm2;
+}
+
 
 void
 MultiFab::minus (const MultiFab& mf,

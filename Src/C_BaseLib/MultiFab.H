@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.48 2008-04-02 19:21:23 almgren Exp $
+// $Id: MultiFab.H,v 1.49 2008-04-25 19:30:49 almgren Exp $
 //
 #include <winstd.H>
 
@@ -118,6 +118,11 @@ public:
                component comp of the MultiFab.  No ghost cells are used.
     */
     Real norm0 (int comp = 0) const;
+
+    /*@ManDoc: Returns the L2 norm of component "comp" over the MultiFab.
+               No ghost cells are used.
+    */
+    Real norm2 (int comp = 0) const;
 
     /*@ManDoc: Identical to the previous max() function, but confines its
                search to intersection of Box b and the MultiFab.
