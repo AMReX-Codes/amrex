@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.75 2007-09-04 21:25:12 marc Exp $
+// $Id: Utility.cpp,v 1.76 2008-04-25 21:06:54 almgren Exp $
 //
 
 #include <cstdlib>
@@ -281,7 +281,7 @@ BoxLib::Concatenate (const std::string& root,
 {
     std::string result = root;
     char buf[32];
-    sprintf(buf, "%04d", num);
+    sprintf(buf, "%05d", num);
     result += buf;
     return result;
 }
