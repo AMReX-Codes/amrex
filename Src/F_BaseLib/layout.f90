@@ -1634,8 +1634,7 @@ contains
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2, bltmp
-    type(boxarray)                 :: bxa, ba1, ba2, batmp
-    type(box), allocatable         :: bxs(:)
+    type(boxarray)                 :: bxa, batmp
     type(box_intersector), pointer :: bi(:)
     type(layout)                   :: latmp
 
