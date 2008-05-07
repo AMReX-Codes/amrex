@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_1D.F,v 1.3 2008-02-08 17:48:47 lijewski Exp $
+c $Id: FLUXREG_1D.F,v 1.4 2008-05-07 20:19:34 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -39,9 +39,8 @@ c ::: -----------------------------------------------------------
       REAL_T     reg(DIMV(reg),numcomp)
       REAL_T     flx(DIMV(flx),numcomp)
 
-      integer    n, i, lenx
+      integer    n, i
 
-      lenx = hi(1)-lo(1)+1
       do n = 1, numcomp
          do i = lo(1), hi(1)
             reg(i,n) =  mult*flx(i,n)
@@ -80,9 +79,8 @@ c ::: -----------------------------------------------------------
       REAL_T     flx(DIMV(flx),numcomp)
       REAL_T    area(DIMV(area))
 
-      integer    n, i, lenx
+      integer    n, i
 
-      lenx = hi(1)-lo(1)+1
       do n = 1, numcomp
          do i = lo(1), hi(1)
             reg(i,n) = mult*area(i)*flx(i,n)
@@ -231,8 +229,7 @@ c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
       REAL_T     vol(DIMV(vol))
 
-      integer n, i, lenx
-      lenx = hi(1) - lo(1) + 1
+      integer n, i
 
       do n = 1, numcomp
          do i = lo(1), hi(1)
@@ -271,11 +268,10 @@ c ::
 c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
 
-      integer n, i, lenx
+      integer n, i
       REAL_T vol
 
       vol = dx(1)
-      lenx = hi(1) - lo(1) + 1
 
       do n = 1, numcomp
          do i = lo(1), hi(1)
