@@ -29,7 +29,7 @@ c ::
        REAL_T     dx(SDIM), offset(SDIM)
        REAL_T     vol(DIMV(vol))
        
-       integer    i, j
+       integer    i
        REAL_T     ri, ro, v
        REAL_T     RZFACTOR
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
@@ -77,7 +77,7 @@ c         ::::: 1D spherical
 	REAL_T ro(roloi1:rohii1)
 	REAL_T ri(riloi1:rihii1)
 	
-	integer i,j
+	integer i
         REAL_T     RZFACTOR
         parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
 
@@ -132,7 +132,7 @@ c ::
        REAL_T     dloga(DIMV(dloga))
        integer dir
        
-       integer    i, j
+       integer    i
        REAL_T     ri, ro, dlga
        
        if (coord .eq. 0) then
@@ -191,8 +191,8 @@ c ::
        REAL_T     dx(SDIM), offset(SDIM)
        REAL_T     area(DIMV(area))
        
-       integer    i, j
-       REAL_T     ri, ro, a
+       integer    i
+       REAL_T     ri, a
        REAL_T     RZFACTOR
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
