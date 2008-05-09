@@ -802,7 +802,6 @@ subroutine mgt_get_gp_1d(lev, dir, n, gp, plo, phi, lo, hi)
   real(kind=dp_t), intent(inout) :: gp(plo(1):phi(1))
   real(kind=dp_t), pointer :: gpp(:,:,:,:)
   integer :: flev, fdir, fn
-  integer :: i,j
   fn = n + 1
   flev = lev+1
   fdir = dir+1
@@ -819,7 +818,6 @@ subroutine mgt_get_gp_2d(lev, dir, n, gp, plo, phi, lo, hi)
   real(kind=dp_t), intent(inout) :: gp(plo(1):phi(1), plo(2):phi(2))
   real(kind=dp_t), pointer :: gpp(:,:,:,:)
   integer :: flev, fdir, fn
-  integer :: i,j
   fn = n + 1
   flev = lev+1
   fdir = dir+1
