@@ -582,7 +582,7 @@ contains
           case (2)
              call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
           case (3)
-             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
+             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
           end select
        end select
     end do
@@ -645,7 +645,7 @@ contains
              case (2)
                 call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
              case (3)
-                call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
+                call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
              end select
           end select
        end do
@@ -680,7 +680,7 @@ contains
                 case (2)
                    call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
                 case (3)
-                   call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1))
+                   call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
                 end select
              end select
           end do
@@ -2857,12 +2857,11 @@ contains
 
   end subroutine stencil_dense_apply_2d
 
-  subroutine stencil_dense_apply_3d(ss, dd, ng_d, uu, ng_u, mm)
+  subroutine stencil_dense_apply_3d(ss, dd, ng_d, uu, ng_u)
     integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
     real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
-    integer           , intent(in   ) :: mm(:,:,:)
     integer i, j, k, nx, ny, nz
 
     nx = size(ss,dim=1)
