@@ -20,6 +20,9 @@ contains
   !! first routine called in the main PROGRAM unit.
   subroutine boxlib_initialize()
     call parallel_initialize()
+    if (parallel_IOProcessor() .and. parallel_nprocs() > 1) then
+       print*, "MPI initialized with ", parallel_nprocs(), " CPUs";
+    endif
   end subroutine boxlib_initialize
 
   !! Finalizes _BoxLib_ applications. This should be the final
