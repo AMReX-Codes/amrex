@@ -324,7 +324,7 @@ def getLastPlotfile(outputDir, test):
        compareFile = ""
     else:
        if (getParam("main.sourceTree") == "Parallel"):
-          compareFile = "%s_plt%4.4d" % (test, plotNum)
+          compareFile = "%s_plt%5.5d" % (test, plotNum)
        else:
           compareFile = "%s_plt%5.5d" % (test, plotNum)
 
@@ -991,7 +991,7 @@ def test(argv):
            # get the file number to restart from
            restartFileNum = getParam(test + ".restartFileNum")
 	   if (getParam("main.sourceTree") == "Parallel"):
-	      restartFile = "%s_plt%4.4d" % (test, restartFileNum)
+	      restartFile = "%s_plt%5.5d" % (test, restartFileNum)
 	   else:
 	      restartFile = "%s_plt%5.5d" % (test, restartFileNum)
 
