@@ -1,11 +1,12 @@
 /* 
-   $Id: fabio_c.c,v 1.7 2005-03-12 14:39:49 car Exp $ 
+   $Id: fabio_c.c,v 1.8 2008-05-13 21:52:48 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -517,6 +518,13 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
 	      (long)nc*count, strerror(errno));
       exit(1);
     }
+
+  if (offset > INT_MAX)
+  {
+      fprintf(stderr, "FABIO_WRITE_RAW_D: offset will overflow offsetp");
+      exit(1);
+  }
+
   *offsetp = offset;
 }
 
@@ -570,6 +578,13 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
 	      (long)nc*count, strerror(errno));
       exit(1);
     }
+
+  if (offset > INT_MAX)
+  {
+      fprintf(stderr, "FABIO_WRITE_RAW_S: offset will overflow offsetp");
+      exit(1);
+  }
+
   *offsetp = offset;
 }
 
