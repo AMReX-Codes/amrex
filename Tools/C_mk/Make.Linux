@@ -169,8 +169,8 @@ endif
 ifeq ($(WHICHLINUX), HOMER)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
-    FC = mpif90
-    fC = mpif90
+    FC = mpif90 -module $(fmoddir)
+    fC = mpif90 -module $(fmoddir)    
     CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
     CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
   endif
