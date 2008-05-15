@@ -73,6 +73,7 @@ module fabio_module
   integer, parameter :: FABIO_RDONLY = 0
   integer, parameter :: FABIO_WRONLY = 1
   integer, parameter :: FABIO_RDWR   = 2
+  integer, parameter :: FABIO_APPEND = 3
 
   integer, parameter :: FABIO_MAX_VAR_NAME = 20
   integer, parameter :: FABIO_MAX_PATH_NAME = 128
@@ -159,14 +160,18 @@ contains
     call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc, lprec)
   end subroutine fabio_fab_write_d
 
-  subroutine fabio_multifab_write_d(mf, dirname, header, all, prec)
+  subroutine fabio_multifab_write_d(mf, dirname, header, all, prec, nOutFiles, lUsingNFiles)
     use parallel
     use bl_IO_module
     use bl_error_module
-    type(multifab), intent(in) :: mf
-    character(len=*), intent(in) :: dirname, header
-    logical, intent(in), optional :: all
-    integer, intent(in), optional :: prec
+
+    type(multifab),   intent(in)           :: mf
+    character(len=*), intent(in)           :: dirname, header
+    logical,          intent(in), optional :: all
+    integer,          intent(in), optional :: prec
+    integer,          intent(in), optional :: nOutFiles
+    logical,          intent(in), optional :: lUsingNFiles
+
     character(len=128) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j, ng
@@ -176,13 +181,20 @@ contains
     real(kind=dp_t), allocatable :: mxl(:),  mnl(:)
     integer, parameter :: MSG_TAG = 1010
 
+    integer :: nSets, mySet, iSet, wakeUpPID, waitForPID, tag, iBuff(2)
+    integer :: nOutFilesLoc
+    logical :: lUsingNFilesLoc
+
+    nOutFilesLoc = 64        ; if (present(nOutFiles))    nOutFilesLoc    = nOutFiles
+    lUsingNFilesLoc = .true. ; if (present(lUsingNFiles)) lUsingNFilesLoc = lUsingNFiles
+
+    nOutFilesLoc = max(1, min(nOutFilesLoc, parallel_nprocs()))
+
     nc = multifab_ncomp(mf)
     nb = nboxes(mf)
     ng = 0
     if ( present(all) ) then
-       if ( all ) then
-          ng = mf%ng
-       end if
+       if ( all ) ng = mf%ng
     end if
     allocate(offset(nb),loffset(nb))
     allocate(mnl(nc), mxl(nc))
@@ -206,12 +218,53 @@ contains
 
     offset = -Huge(offset)
     ! Each processor writes his own FABS
-    write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
-    call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
-    do i = 1, nb; if ( remote(mf, i) ) cycle
-       call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
-    end do
-    call fabio_close(fd)
+    if ( lUsingNFilesLoc ) then
+      write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), mod(parallel_myproc(), nOutFilesLoc)
+
+      nSets = (parallel_nprocs() + (nOutFilesLoc - 1)) / nOutFilesLoc
+      mySet = parallel_myproc() / nOutFilesLoc
+
+      do iSet = 0, nSets - 1
+        if (mySet == iSet) then
+          if (iSet == 0) then
+            call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
+          else
+            call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_APPEND)
+          end if
+
+          do i = 1, nb
+             if ( remote(mf, i) ) cycle
+             call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
+          end do
+
+          call flush(fd)
+          call fabio_close(fd)
+
+          wakeUpPID = parallel_myproc() + nOutFilesLoc
+          tag       = mod(parallel_myproc(), nOutFilesLoc)
+          iBuff(1)  = tag
+          iBuff(2)  = wakeUpPID
+          if (wakeUpPID < parallel_nprocs()) &
+              call parallel_send(iBuff, wakeUpPID, tag)
+        end if
+
+        if (mySet == (iSet + 1)) then
+          waitForPID = parallel_myproc() - nOutFilesLoc
+          tag        = mod(parallel_myproc(), nOutFilesLoc)
+          iBuff(1)   = tag
+          iBuff(2)   = waitForPID
+          call parallel_recv(iBuff, waitForPID, tag)
+        end if
+      end do
+    else
+      write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
+      call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
+      do i = 1, nb; if ( remote(mf, i) ) cycle
+         call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
+      end do
+      call fabio_close(fd)
+    end if
+
     call parallel_reduce(loffset, offset, MPI_MAX, parallel_IOProcessorNode())
 
     do i = 1, nb
@@ -238,14 +291,18 @@ contains
     end do
 
     if ( parallel_IOProcessor() ) then
-       if ( any(loffset < 0) ) then
-          call bl_error("FABIO_MULTIFAB_WRITE: some loffsets < 0")
-       end if
        write(unit=un, fmt='(i0)') nb
-       do i = 1, nb
-          write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), get_proc(mf%la, i)
-          write(unit=un, fmt='("FabOnDisk: ", a, " ", i0)') trim(fname), loffset(i)
-       end do
+       if ( lUsingNFilesLoc ) then
+         do i = 1, nb
+            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), mod(get_proc(mf%la, i), nOutFilesLoc)
+            write(unit=un, fmt='("FabOnDisk: ", a, " ", i0)') trim(fname), loffset(i)
+         end do
+       else
+         do i = 1, nb
+            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), get_proc(mf%la, i)
+            write(unit=un, fmt='("FabOnDisk: ", a, " ", i0)') trim(fname), loffset(i)
+         end do
+       end if
        write(unit=un, fmt='()')
        write(unit=un, fmt='(i0,",",i0)') nb, nc
        do i = 1, nb
@@ -366,17 +423,20 @@ contains
     end subroutine build_vismf_multifab
   end subroutine fabio_multifab_read_d
 
-  subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx)
+  subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx, nOutFiles, lUsingNFiles)
     use parallel
     use bl_IO_module
     use bl_error_module
     type(multifab), intent(in) :: mfs(:)
     integer, intent(in) :: rrs(:)
     character(len=*), intent(in) :: dirname
+    character(len=FABIO_MAX_VAR_NAME), intent(in), optional :: names(:)
     type(box), intent(in), optional :: bounding_box
     real(kind=dp_t), intent(in), optional :: time
     real(kind=dp_t), intent(in), optional :: dx(:)
-    character(len=FABIO_MAX_VAR_NAME), intent(in), optional :: names(:)
+    integer,          intent(in), optional :: nOutFiles
+    logical,          intent(in), optional :: lUsingNFiles
+
     integer :: i, j, k
     character(len=128) :: header, sd_name
     integer :: nc, un, nl, dm
@@ -431,7 +491,7 @@ contains
 !    do i = 1, size(mfs)
     do i = 1, nl
        write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
-       call fabio_multifab_write_d(mfs(i), sd_name, "Cell")
+       call fabio_multifab_write_d(mfs(i), sd_name, "Cell", nOutFiles = nOutFiles, lUsingNFiles = lUsingNFiles)
     end do
 
     if ( parallel_IOProcessor() ) then
