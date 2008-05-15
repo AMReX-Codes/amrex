@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.8 2008-05-13 21:52:48 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.9 2008-05-15 16:54:02 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -99,6 +99,9 @@ FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
       break;
     case 2: 
       lflag = O_RDWR;
+      break;
+    case 3:
+      lflag = O_RDWR | O_APPEND;
       break;
     default:
       fprintf(stderr, "FABIO_OPEN_STR: invalid flag, %d, must be <=0<=2", *flagp);
@@ -482,7 +485,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   int ilen;
   double* dp = (double*)vp;
 
-  offset = lseek(fd, 0, SEEK_CUR);
+  offset = lseek(fd, 0, SEEK_END);
   sprintf(buffer, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d);
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
@@ -542,7 +545,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   int ilen;
   float* sp = (float*)vp;
 
-  offset = lseek(fd, 0, SEEK_CUR);
+  offset = lseek(fd, 0, SEEK_END);
   sprintf(buffer, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f);
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
