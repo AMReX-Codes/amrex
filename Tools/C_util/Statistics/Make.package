@@ -1,0 +1,6 @@
+CEXE_headers += 
+
+CEXE_sources += DataServices.cpp AmrData.cpp
+CEXE_sources += ComputeAmrDataStat.cpp DatasetClient.cpp WritePlotFile.cpp
+CEXE_headers += ComputeAmrDataStat.H  DatasetClient.H   WritePlotFile.H  
+FEXE_sources += FABUTIL_$(DIM)D.F AVGDOWN_$(DIM)D.F
