@@ -156,6 +156,8 @@ contains
     tres0 = ml_norm_inf(rh,fine_mask)
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
+             fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
+       write(unit=*, &
              fmt='("F90mg: Initial error (error0)       = ",g15.8)') tres0
     end if
 
@@ -163,9 +165,15 @@ contains
 
     fine_converged = .false.
 
-    do iter = 1, mgt(nlevs)%max_iter
+    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps) ) then
+       if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
+            write(unit=*, fmt='("F90mg: No iterations needed ")')
 
-       if ( (iter .eq. 1) .or. fine_converged ) then
+    else
+
+     do iter = 1, mgt(nlevs)%max_iter
+
+       if ( fine_converged ) then
           if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps) ) exit
        end if
 
@@ -423,24 +431,26 @@ contains
        end if
 
 
-    end do
+     end do
 
     ! ****************************************************************************
 
-    iter = iter-1
-    if (iter < mgt(nlevs)%max_iter) then
-       if ( mgt(nlevs)%verbose > 0 ) then
-         tres = ml_norm_inf(res,fine_mask)
-         if ( parallel_IOProcessor() ) then
-            if (tres0 .gt. 0.0_dp_t) then
-              write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter-1,tres/tres0
-            else
-              write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter-1,0.0_dp_t
-            end if
-         end if
-       end if
-    else
-       call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+     iter = iter-1
+     if (iter < mgt(nlevs)%max_iter) then
+        if ( mgt(nlevs)%verbose > 0 ) then
+          tres = ml_norm_inf(res,fine_mask)
+          if ( parallel_IOProcessor() ) then
+             if (tres0 .gt. 0.0_dp_t) then
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,tres/tres0
+             else
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,0.0_dp_t
+             end if
+          end if
+        end if
+     else
+        call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+     end if
+
     end if
 
     ! Add: soln += full_soln
