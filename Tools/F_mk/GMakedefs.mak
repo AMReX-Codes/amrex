@@ -165,8 +165,8 @@ ifeq ($(ARCH),Linux)
       FFLAGS   += -O
       F90FLAGS += -O
     else
-      FFLAGS   += -g
-      F90FLAGS += -g
+      FFLAGS   += -g -Mbounds
+      F90FLAGS += -g -Mbounds
     endif
   endif
 
@@ -194,9 +194,15 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = pathf95
     F90 = pathf95
-    FFLAGS   += -module $(mdir) -I$(mdir) 
-    F90FLAGS += -module $(mdir) -I$(mdir)
     CC  = pathcc
+
+    ifeq ($(findstring jaguar, $(HOST)), jaguar)
+       FFLAGS +=
+       F90FLAGS +=
+    else     
+       FFLAGS   += -module $(mdir) -I$(mdir) 
+       F90FLAGS += -module $(mdir) -I$(mdir)
+    endif
 
     ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     endif
