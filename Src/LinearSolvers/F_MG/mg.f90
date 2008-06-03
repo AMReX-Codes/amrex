@@ -105,7 +105,7 @@ contains
     use bl_IO_module
     use bl_prof_module
     type(mg_tower), intent(inout) :: mgt
-    type(layout), intent(inout) :: la
+    type(layout), intent(in   ) :: la
     type(box), intent(in) :: pd
     integer, intent(in) :: domain_bc(:,:)
 

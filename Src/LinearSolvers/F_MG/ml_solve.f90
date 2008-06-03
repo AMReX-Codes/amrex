@@ -19,7 +19,7 @@ contains
       use ml_util_module
       use ml_cc_module
 
-      type(ml_layout), intent(inout) :: mla
+      type(ml_layout), intent(in   ) :: mla
       type(mg_tower ), intent(inout) :: mgt(:)
       type(multifab ), intent(inout) :: rh(:)
       type(multifab ), intent(inout) :: full_soln(:)
@@ -76,7 +76,7 @@ contains
 
        use ml_nd_module
 
-       type(ml_layout), intent(inout)           :: mla
+       type(ml_layout), intent(in   )           :: mla
        type(mg_tower) , intent(inout)           :: mgt(:)
        type(multifab) , intent(inout)           :: rh(:)
        type(multifab) , intent(inout)           :: full_soln(:)

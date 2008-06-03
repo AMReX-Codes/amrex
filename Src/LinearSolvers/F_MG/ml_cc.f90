@@ -18,7 +18,7 @@ contains
     use ml_restriction_module
     use ml_prolongation_module
 
-    type(ml_layout), intent(in)    :: mla
+    type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
