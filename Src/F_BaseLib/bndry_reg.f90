@@ -197,7 +197,7 @@ contains
 
   subroutine bndry_reg_build(br, la, pd, nc, nodal)
     use bl_error_module
-    type(layout),    intent(inout)           :: la
+    type(layout),    intent(in   )           :: la
     type(bndry_reg), intent(out  )           :: br
     type(box),       intent(in   )           :: pd
     integer,         intent(in   ), optional :: nc
