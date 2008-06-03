@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.107 2008-03-21 22:24:16 vince Exp $
+// $Id: VisMF.cpp,v 1.108 2008-06-03 20:09:14 aaspden Exp $
 //
 
 #include <winstd.H>
@@ -714,6 +714,8 @@ VisMF::Write (const MultiFab&    mf,
 #endif
 
 #ifdef BL_USE_MPI
+    ParallelDescriptor::Barrier();
+
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     Array<int> nmtags(ParallelDescriptor::NProcs(),0);
