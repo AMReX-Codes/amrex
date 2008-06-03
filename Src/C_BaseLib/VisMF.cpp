@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.108 2008-06-03 20:09:14 aaspden Exp $
+// $Id: VisMF.cpp,v 1.109 2008-06-03 23:45:09 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -640,9 +640,8 @@ VisMF::Write (const MultiFab&    mf,
 
     std::string FullFileName = mf_name;
 
-    if(nOutFiles == -1) {
-      nOutFiles = ParallelDescriptor::NProcs();
-    }
+    if (nOutFiles == -1) 
+        nOutFiles = NProcs;
 
     FullFileName += VisMF::FabFileSuffix;
     sprintf(buf, "%04d", MyProc % nOutFiles);
@@ -718,8 +717,8 @@ VisMF::Write (const MultiFab&    mf,
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
-    Array<int> offset(ParallelDescriptor::NProcs(),0);
+    Array<int> nmtags(NProcs,0);
+    Array<int> offset(NProcs,0);
 
     const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
@@ -739,9 +738,8 @@ VisMF::Write (const MultiFab&    mf,
 
     int ioffset = 0;
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
-    }
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
 
@@ -759,39 +757,28 @@ VisMF::Write (const MultiFab&    mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
+        Array<int> cnt(NProcs,0);
 
-        for (int i(0); i < nmtags.size(); ++i)
+        for (int j = 0; j < mf.size(); ++j)
         {
-            int cnt = 0;
+            const int i = pmap[j];
 
-            for (int j(0); j < mf.size(); ++j)
-            {
-                if (pmap[j] == i)
-                {
-                    hdr.m_fod[j].m_head = recvdata[offset[i]+cnt];
+            hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
-                    std::string name = mf_name;
-                    name += VisMF::FabFileSuffix;
-                    sprintf(buf, "%04d", i % nOutFiles);
-                    name += buf;
+            std::string name = mf_name;
+            name += VisMF::FabFileSuffix;
+            sprintf(buf, "%04d", i % nOutFiles);
+            name += buf;
 
-                    hdr.m_fod[j].m_name = VisMF::BaseName(name);
+            hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
-                    cnt++;
-                }
-            }
-
-            BL_ASSERT(cnt == nmtags[i]);
+            cnt[i]++;
         }
     }
 #endif /*BL_USE_MPI*/
 
-    if(nOutFiles == NProcs) {
-      if(VisMF::FileOffset(FabFile) <= 0) {
+    if (nOutFiles == NProcs && VisMF::FileOffset(FabFile) <= 0)
         BoxLib::UnlinkFile(FullFileName);
-      }
-    }
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
