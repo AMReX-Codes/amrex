@@ -3,6 +3,7 @@ module nodal_divu_module
   use bl_constants_module
   use bndry_reg_module
   use mg_module
+  use ml_restriction_module
 
   implicit none
 
@@ -92,7 +93,7 @@ contains
 
       do j = 0,ny
       do i = 0,nx
-         if (.not. bc_dirichlet(mm(i,j),1,0)) then
+         if (.not.bc_dirichlet(mm(i,j),1,0)) then 
            rh(i,j) = (u(i  ,j,1) + u(i  ,j-1,1) &
                      -u(i-1,j,1) - u(i-1,j-1,1)) / dx(1) + &
                      (u(i,j  ,2) + u(i-1,j  ,2) &
@@ -175,7 +176,7 @@ contains
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
 
-      type(multifab) :: temp_rhs
+      type(multifab) :: temp_rhs, temp_rhs_crse
       type(  layout) :: la_crse,la_fine
       type(     box) :: pdc
       integer :: i,dm,n_crse,ng
@@ -228,16 +229,24 @@ contains
       end do
 
 !     Compute the crse contributions at edges and corners and add to rh(n-1).
+
+      call multifab_build(temp_rhs_crse, la_crse, 1, 1, nodal)
+      call setval(temp_rhs_crse, ZERO, 1, all=.true.)
+
       do i = 1,dm
-         call ml_crse_divu_contrib(rh_crse, brs_flx%bmf(i,0), u(n_crse), &
+         call ml_crse_divu_contrib(temp_rhs_crse, brs_flx%bmf(i,0), u(n_crse), &
                                    mgt(n_fine)%mm(mglev_fine), mgt(n_crse)%dh(:,mglev_crse), &
                                    pdc,ref_ratio, -i)
-         call ml_crse_divu_contrib(rh_crse, brs_flx%bmf(i,1), u(n_crse), &
+         call ml_crse_divu_contrib(temp_rhs_crse, brs_flx%bmf(i,1), u(n_crse), &
                                    mgt(n_fine)%mm(mglev_fine), mgt(n_crse)%dh(:,mglev_crse), &
                                    pdc,ref_ratio, +i)
       end do
 
-    call multifab_destroy(temp_rhs)
+      call multifab_plus_plus(rh_crse,temp_rhs_crse)
+      call periodic_add_copy(rh_crse,temp_rhs_crse,synced=.true.)
+
+      call multifab_destroy(temp_rhs)
+      call multifab_destroy(temp_rhs_crse)
 
     end subroutine crse_fine_divu
 
@@ -450,6 +459,7 @@ contains
        deallocate(bi)
     end do
     call destroy(bpt)
+
    end subroutine ml_crse_divu_contrib
 
 !   ********************************************************************************************* !
