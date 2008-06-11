@@ -42,15 +42,15 @@ module fabio_module
        real(kind=sp_t), intent(out) :: s(count)
      end subroutine fabio_read_comp_s
 
-     subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc, prec)
+     subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc)
        use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc, prec
+       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
        real(kind=dp_t), intent(in) :: d(count)
        integer, intent(out) :: offset
      end subroutine fabio_write_raw_d
-     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc, prec)
+     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc)
        use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc, prec
+       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
        real(kind=sp_t), intent(in) :: s(count)
        integer, intent(out) :: offset
      end subroutine fabio_write_raw_s
@@ -137,7 +137,13 @@ contains
     type(box) :: bx
     logical :: lall
     real(kind=dp_t), pointer :: fbp(:,:,:,:)
+
+    real(kind=sp_t), allocatable :: sbp(:)
+
     integer :: count, lo(fb%dim), hi(fb%dim), nd(fb%dim), nc, lprec
+
+    integer :: i,j,k,l,m
+
     lprec = FABIO_DOUBLE; if ( present(prec) ) lprec = prec
     if ( lprec /= FABIO_DOUBLE .and. lprec /= FABIO_SINGLE ) then
        call bl_error("FABIO_WRITE: prec is wrong ", lprec)
@@ -157,7 +163,24 @@ contains
     if ( present(nodal) ) then
        where ( nodal ) nd = 1
     end if
-    call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc, lprec)
+    if ( lprec == FABIO_DOUBLE ) then
+       call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc)
+    else
+       allocate(sbp(nc*count))
+       m = 1
+       do l = 1, nc
+          do k = 1, size(fbp,3)
+             do j = 1, size(fbp,2)
+                do i = 1, size(fbp,1)
+                   sbp(m) = fbp(i,j,k,l)
+                   m = m + 1
+                end do
+             end do
+          end do
+       end do
+       call fabio_write_raw_s(fd, offset, sbp, count, fb%dim, lo, hi, nd, nc)
+    end if
+
   end subroutine fabio_fab_write_d
 
   subroutine fabio_multifab_write_d(mf, dirname, header, all, prec, nOutFiles, lUsingNFiles)
@@ -423,7 +446,7 @@ contains
     end subroutine build_vismf_multifab
   end subroutine fabio_multifab_read_d
 
-  subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx, nOutFiles, lUsingNFiles)
+  subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx, nOutFiles, lUsingNFiles, prec)
     use parallel
     use bl_IO_module
     use bl_error_module
@@ -436,6 +459,7 @@ contains
     real(kind=dp_t), intent(in), optional :: dx(:)
     integer,          intent(in), optional :: nOutFiles
     logical,          intent(in), optional :: lUsingNFiles
+    integer,          intent(in), optional :: prec
 
     integer :: i, j, k
     character(len=128) :: header, sd_name
@@ -491,7 +515,7 @@ contains
 !    do i = 1, size(mfs)
     do i = 1, nl
        write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
-       call fabio_multifab_write_d(mfs(i), sd_name, "Cell", nOutFiles = nOutFiles, lUsingNFiles = lUsingNFiles)
+       call fabio_multifab_write_d(mfs(i), sd_name, "Cell", nOutFiles = nOutFiles, lUsingNFiles = lUsingNFiles, prec = prec)
     end do
 
     if ( parallel_IOProcessor() ) then
