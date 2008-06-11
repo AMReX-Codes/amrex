@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.9 2008-05-15 16:54:02 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.10 2008-06-11 17:03:38 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -474,7 +474,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
 void
 FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* countp, 
 		  const int* dmp, const int lo[], const int hi[], const int nd[],
-		  const int* ncp, const int* prec)
+		  const int* ncp)
 {
   int fd = *fdp;
   int dm = *dmp;
@@ -534,7 +534,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
 void
 FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* countp, 
 		  const int* dmp, const int lo[], const int hi[], const int nd[], 
-		  const int* ncp, const int* prec)
+		  const int* ncp)
 {
   int fd = *fdp;
   int dm = *dmp;
