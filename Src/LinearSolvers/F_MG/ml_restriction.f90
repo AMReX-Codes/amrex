@@ -81,11 +81,18 @@ contains
     integer,        intent(in)    :: face
     integer, intent(in), optional :: nc
 
-    integer             :: i, n, lnc
+    integer             :: i, n, lnc, dm, len
     integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine
-    type(multifab)      :: cfine
+    type(box)           :: bx,fine_domain,crse_domain
+    type(layout)        :: lacfine, lacfine_lo, lacfine_hi 
+    type(layout)        :: la_lo,la_hi
+    type(multifab)      :: cfine, fine_lo, fine_hi
+    type(list_box)      :: bxs_lo,bxs_hi
+    type(boxarray)      :: ba_lo,ba_hi
+    logical             :: nodal(fine%dim)
+
+    dm = crse%dim
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
@@ -116,6 +123,114 @@ contains
     call copy(crse, cc, cfine, 1, lnc)
 
     call destroy(cfine)
+
+    ! Now do periodic fix-up if necessary 
+    if (crse%la%lap%pmask(face)) then
+
+       fine_domain = fine%la%lap%pd
+       crse_domain = crse%la%lap%pd
+       nodal(:)    = .false.
+       nodal(face) = .true.
+       len = box_extent_d(fine_domain,face)
+
+       ! First copy from lo edges to hi edges
+       do i = 1, fine%nboxes
+         bx = get_ibox(fine,i)
+         if (bx%lo(face) == fine_domain%lo(face)) then
+           bx = shift(bx, len, face)
+           bx = intersection(bx,box_nodalize(fine_domain,nodal))
+           call push_back(bxs_lo,bx)
+         end if
+       end do
+
+       if (.not. empty(bxs_lo)) then
+
+          call build(ba_lo,bxs_lo,sort=.false.)
+          call build(la_lo,ba_lo,fine_domain,fine%la%lap%pmask)
+          call multifab_build(fine_lo, la_lo, nc = fine%nc, ng = 0, nodal = nodal)
+   
+          call multifab_copy_on_shift(fine_lo, 1, fine, cf, lnc, len, face)
+
+          call layout_build_coarse(lacfine_lo, fine_lo%la, ir)
+          call multifab_build(cfine, lacfine_lo, nc = crse%nc, ng = 0, nodal = crse%nodal)
+   
+          do i = 1, fine_lo%nboxes
+             if ( remote(fine_lo,i) ) cycle
+             lo  = lwb(get_ibox(cfine,i))
+             hi  = upb(get_ibox(cfine,i))
+             hi(face) = lo(face)
+             loc = lwb(get_pbox(cfine,i))
+             lof = lwb(get_pbox(fine_lo, i))
+             do n = 1, lnc
+                fp  => dataptr(fine_lo, i, n, 1)
+                cp  => dataptr(cfine     , i, n, 1)
+                select case (crse%dim)
+                case (1)
+                   call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+                case (2)
+                   call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, face)
+                case (3)
+                   call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, face)
+                end select
+             enddo
+          end do
+   
+          call copy(crse, cc, cfine, 1, lnc)
+          call destroy(cfine)
+          call destroy(fine_lo)
+       
+       end if
+
+       ! Next copy from hi edges to lo edges
+       do i = 1, fine%nboxes
+         bx = get_ibox(fine,i)
+         ! bx is face-centered but domain is cell-centered (hence the +1)
+         if (bx%hi(face) == fine_domain%hi(face)+1) then
+           bx = shift(bx, -len, face)
+           bx = intersection(bx,box_nodalize(fine_domain,nodal))
+           call push_back(bxs_hi,bx)
+         end if
+       end do
+
+       if (.not. empty(bxs_hi)) then
+
+          call build(ba_hi,bxs_hi,sort=.false.)
+          call build(la_hi,ba_hi,fine_domain,fine%la%lap%pmask)
+          call multifab_build(fine_hi, la_hi, nc = fine%nc, ng = 0, nodal = nodal)
+   
+          call multifab_copy_on_shift(fine_hi, 1, fine, cf, lnc, -len, face)
+
+          call layout_build_coarse(lacfine_hi, fine_hi%la, ir)
+          call multifab_build(cfine, lacfine_hi, nc = crse%nc, ng = 0, nodal = crse%nodal)
+
+          do i = 1, fine_hi%nboxes
+             if ( remote(fine_hi,i) ) cycle
+             lo  = lwb(get_ibox(cfine,i))
+             hi  = upb(get_ibox(cfine,i))
+             hi(face) = lo(face)
+             loc = lwb(get_pbox(cfine,i))
+             lof = lwb(get_pbox(fine_hi, i))
+             do n = 1, lnc
+                fp  => dataptr(fine_hi, i, n, 1)
+                cp  => dataptr(cfine     , i, n, 1)
+                select case (crse%dim)
+                case (1)
+                   call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+                case (2)
+                   call edge_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir, face)
+                case (3)
+                   call edge_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir, face)
+                end select
+             enddo
+          end do
+
+          call copy(crse, cc, cfine, 1, lnc)
+          call destroy(cfine)
+          call destroy(fine_hi)
+
+       end if ! .not. empty
+
+    end if ! pmask(face)
 
   end subroutine ml_edge_restriction_c
 
