@@ -123,30 +123,34 @@ contains
     call copy(crse, cc, cfine, 1, lnc)
 
     call destroy(cfine)
-
-    ! Now do periodic fix-up if necessary 
+    !
+    ! Now do periodic fix-up if necessary.
+    !
     if (crse%la%lap%pmask(face)) then
 
        fine_domain = fine%la%lap%pd
        crse_domain = crse%la%lap%pd
        nodal(:)    = .false.
        nodal(face) = .true.
-       len = box_extent_d(fine_domain,face)
-
-       ! First copy from lo edges to hi edges
+       len         = box_extent_d(fine_domain,face)
+       !
+       ! First copy from lo edges to hi edges.
+       !
        do i = 1, fine%nboxes
-         bx = get_ibox(fine,i)
-         if (bx%lo(face) == fine_domain%lo(face)) then
-           bx = shift(bx, len, face)
-           bx = intersection(bx,box_nodalize(fine_domain,nodal))
-           call push_back(bxs_lo,bx)
-         end if
+          bx = get_ibox(fine,i)
+          if (bx%lo(face) == fine_domain%lo(face)) then
+             bx = shift(bx, len, face)
+             bx = intersection(bx,box_nodalize(fine_domain,nodal))
+             call push_back(bxs_lo,bx)
+          end if
        end do
 
        if (.not. empty(bxs_lo)) then
 
           call build(ba_lo,bxs_lo,sort=.false.)
+          call destroy(bxs_lo)
           call build(la_lo,ba_lo,fine_domain,fine%la%lap%pmask)
+          call destroy(ba_lo)
           call multifab_build(fine_lo, la_lo, nc = fine%nc, ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_lo, 1, fine, cf, lnc, len, face)
@@ -176,26 +180,31 @@ contains
           end do
    
           call copy(crse, cc, cfine, 1, lnc)
+
           call destroy(cfine)
           call destroy(fine_lo)
+          call destroy(la_lo)
        
        end if
-
-       ! Next copy from hi edges to lo edges
+       !
+       ! Next copy from hi edges to lo edges.
+       !
        do i = 1, fine%nboxes
-         bx = get_ibox(fine,i)
-         ! bx is face-centered but domain is cell-centered (hence the +1)
-         if (bx%hi(face) == fine_domain%hi(face)+1) then
-           bx = shift(bx, -len, face)
-           bx = intersection(bx,box_nodalize(fine_domain,nodal))
-           call push_back(bxs_hi,bx)
-         end if
+          bx = get_ibox(fine,i)
+          ! bx is face-centered but domain is cell-centered (hence the +1)
+          if (bx%hi(face) == fine_domain%hi(face)+1) then
+             bx = shift(bx, -len, face)
+             bx = intersection(bx,box_nodalize(fine_domain,nodal))
+             call push_back(bxs_hi,bx)
+          end if
        end do
 
        if (.not. empty(bxs_hi)) then
 
           call build(ba_hi,bxs_hi,sort=.false.)
+          call destroy(bxs_hi)
           call build(la_hi,ba_hi,fine_domain,fine%la%lap%pmask)
+          call destroy(ba_hi)
           call multifab_build(fine_hi, la_hi, nc = fine%nc, ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_hi, 1, fine, cf, lnc, -len, face)
@@ -225,8 +234,10 @@ contains
           end do
 
           call copy(crse, cc, cfine, 1, lnc)
+
           call destroy(cfine)
           call destroy(fine_hi)
+          call destroy(la_hi)
 
        end if ! .not. empty
 
