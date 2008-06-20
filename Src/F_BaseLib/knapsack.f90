@@ -7,7 +7,7 @@ module knapsack_module
 
   logical, private :: do_mcc = .true.
 
-  integer, private :: knapsack_verbose = 1
+  integer, private :: knapsack_verbose = 0
 
   real(kind=dp_t), private :: knapsack_threshold = 1_dp_t
 
@@ -108,7 +108,7 @@ contains
        call swap_and_test()
     end do
 
-    if ( verbose > 0 .and. parallel_ioprocessor() ) then
+    if ( verbose > 1 .and. parallel_ioprocessor() ) then
        print*, 'MCC: initial off-CPU connection count: ', icc
        print*, 'MCC:   final off-CPU connection count: ', sum(percpu)
     end if
