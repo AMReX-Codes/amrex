@@ -72,62 +72,53 @@ contains
     real(dp_t), intent(out), optional :: overall_eff
     integer, intent(in), optional :: blocking_factor
 
+    type(layout) :: la
     type(list_box) :: lboxes
-    type(lmultifab) :: buf
-    logical, pointer :: mt(:,:,:,:)
-    logical, pointer :: mb(:,:,:,:)
-    integer :: b
-    integer :: num_flag
-    integer :: dm, i
+    type(lmultifab) :: buf, lbuf
+    logical, pointer :: mt(:,:,:,:), mb(:,:,:,:)
+    integer :: b, dm, num_flag, i, k, bxcnt, lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
+    integer, allocatable :: iprocs(:), ibxs(:), bxs(:)
     integer(kind=ll_t) :: bboxinte
     type(box) :: bx
     real(dp_t) :: bx_eff
+    type(list_box_node), pointer :: bln
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "cluster")
 
-    if ( present(blocking_factor) ) then
+    if ( present(blocking_factor) ) &
        call bl_error("CLUSTER: blocking factor not implemented yet")
-    end if
 
-    if ( nghost(tagboxes) /= 0 ) then
+    if ( nghost(tagboxes) /= 0 ) &
        call bl_error("CLUSTER: tagboxes must have NG = 0")
-    end if
 
-    if ( minwidth < 1 ) then
+    if ( minwidth < 1 ) &
        call bl_error("CLUSTER: minwidth  must be > 0; ", minwidth)
-    end if
 
-    if ( min_eff < 0 .or. min_eff > 1.0_dp_t ) then
+    if ( min_eff < 0 .or. min_eff > 1.0_dp_t ) &
        call bl_error("CLUSTER: min_eff must be >= 0 and <= 1: ", min_eff)
-    end if
 
-    if ( buf_wid < 0 ) then
+    if ( buf_wid < 0 ) &
        call bl_error("CLUSTER: buf_wid must be >= 0: ", buf_wid)
-    end if
 
-    dm = tagboxes%dim
-
-    call build(lboxes)
-    call build(buf, get_layout(tagboxes), nc = 1, ng = buf_wid)
-    call setval(buf, .false., all=.true.)
-
+    dm       = tagboxes%dim
     num_flag = lmultifab_count(tagboxes)
 
     if ( num_flag == 0 ) then
        call bl_warn("No cells are flagged/No boxes returned")
-       if ( present(overall_eff) ) then
-          overall_eff = 0
-       end if
-       call destroy(buf)
+       if ( present(overall_eff) ) overall_eff = 0
        return
     end if
 
-    ! buffer the cells
+    call build(buf, get_layout(tagboxes), nc = 1, ng = buf_wid)
+    call setval(buf, .false., all = .true.)
+    !
+    ! Buffer the cells.
+    !
     do b = 1, buf%nboxes; if ( remote(buf, b) ) cycle
        mt => dataptr(tagboxes, b, get_box(tagboxes,b))
        mb => dataptr(buf, b)
-       select case (dm)
+       select case (tagboxes%dim)
        case (1)
           call buffer_1d(mb(:,1,1,1), mt(:,1,1,:), buf_wid)
        case (2)
@@ -136,30 +127,94 @@ contains
           call buffer_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
        end select
     end do
-
-    ! remove any tags outside the problem domain.
+    !
+    ! Remove any tags outside the problem domain.
+    !
     call pd_mask(buf)
-    ! make sure that all tagged cells in are replicated in the high
-    ! indexed boxes
+    !
+    ! Make sure that all tagged cells in are replicated in the high indexed boxes.
+    !
     call internal_sync(buf, all = .true., filter = filter_lor)
-    ! remove all tags from the low index fabs that overlap high index fabs
+    !
+    ! Remove all tags from the low index fabs that overlap high index fabs.
+    !
     call owner_mask(buf)
 
     bx = get_pd(get_layout(buf))
-    call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf, minwidth, min_eff)
+
+    if ( parallel_nprocs() > 1 ) then
+       !
+       ! The cluster algorithm is inherently serial.
+       ! We'll set up the problem to do on the IO processor.
+       !
+       allocate(iprocs(nboxes(get_layout(buf))))
+
+       iprocs = parallel_IOProcessorNode()
+
+       call build(la, get_boxarray(buf%la), bx, get_pmask(buf%la), explicit_mapping = iprocs)
+
+       call build(lbuf, la, nc = 1, ng = buf_wid)
+
+       call setval(lbuf, .false., all = .true.)
+
+       call copy(lbuf, buf)
+
+       if ( parallel_IOProcessor() ) then
+          call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf, minwidth, min_eff)
+          bxcnt = size(lboxes)
+       end if
+
+       call destroy(lbuf)
+
+       call destroy(la)
+       !
+       ! We now must broadcast the info in "lboxes" back to all CPUs.
+       !
+       ! First broadcast the number of boxes to expect.
+       !
+       call parallel_bcast(bxcnt, parallel_IOProcessorNode())
+       !
+       ! We'll pass 2*MAX_SPACEDIM integers for each box we need to send.
+       !
+       allocate(bxs(2*MAX_SPACEDIM*bxcnt))
+
+       if ( parallel_IOProcessor() ) then
+          i   =  1
+          bln => begin(lboxes)
+          do while (associated(bln))
+             bx = value(bln)
+             bxs(i:i+MAX_SPACEDIM-1) = bx%lo
+             i = i + MAX_SPACEDIM
+             bxs(i:i+MAX_SPACEDIM-1) = bx%hi
+             i = i + MAX_SPACEDIM
+             bln => next(bln)
+          end do
+       end if
+
+       call parallel_bcast(bxs, parallel_IOProcessorNode())
+
+       if ( .not. parallel_IOProcessor() ) then
+          i = 1
+          do k = 1, bxcnt
+             lo = bxs(i:i+MAX_SPACEDIM-1)
+             i  = i + MAX_SPACEDIM
+             hi = bxs(i:i+MAX_SPACEDIM-1)
+             i  = i + MAX_SPACEDIM
+             call push_back(lboxes, make_box(lo(1:dm), hi(1:dm)))
+          end do
+       end if
+
+    else
+       call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf, minwidth, min_eff)
+    end if
 
     call build(boxes, lboxes)
 
     call destroy(lboxes)
 
     if ( present(overall_eff) ) then
-       bboxinte = volume(boxes)
+       bboxinte    = volume(boxes)
        overall_eff = real(count(buf,all=.true.),dp_t) / real(bboxinte, dp_t)
-       if ( verbose ) then
-          do i = 1, nboxes(boxes)
-             print *, i, box_eff_mf(buf, get_box(boxes,i))
-          end do
-       end if
     end if
 
     call destroy(buf)
@@ -206,11 +261,9 @@ contains
       logical, intent(in) :: tt(:,:)
       logical, intent(out) :: bb(1-ng:)
       integer :: i
-
       do i = 1, size(tt,1)
          if ( any(tt(i,:)) ) bb(i-ng:i+ng) = .true.
       end do
-
     end subroutine buffer_1d
 
     subroutine buffer_2d(bb, tt, ng)
@@ -218,11 +271,9 @@ contains
       logical, intent(in) :: tt(:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:)
       integer :: i, j
-
       do j = 1, size(tt,2); do i = 1, size(tt,1)
          if ( any(tt(i,j,:)) ) bb(i-ng:i+ng,j-ng:j+ng) = .true.
       end do; end do
-
     end subroutine buffer_2d
 
     subroutine buffer_3d(bb, tt, ng)
@@ -230,11 +281,9 @@ contains
       logical, intent(in) :: tt(:,:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:,1-ng:)
       integer :: i, j, k
-
       do k = 1, size(tt,3); do j = 1, size(tt,2); do i = 1, size(tt,1)
          if ( any(tt(i,j,k,:)) ) bb(i-ng:i+ng,j-ng:j+ng,k-ng:k+ng) = .true.
       end do; end do; end do
-
     end subroutine buffer_3d
 
   end subroutine cls_3d_mf
@@ -330,12 +379,9 @@ contains
 
     dm  = tagboxes%dim
 
-    if ( verbose ) then
-       call print(bx, 'in bx')
-    end if
-    if ( empty(bx) ) then
-       return
-    endif
+    if ( verbose ) call print(bx, 'in bx')
+
+    if ( empty(bx) ) return
 
     ll = 1; ll(1:dm) = lwb(bx)
     hh = 1; hh(1:dm) = upb(bx)
@@ -344,13 +390,9 @@ contains
 
     bbx = cluster_tally(tagboxes, bx, sx, sy, sz, ll, hh, minwidth)
 
-    if ( verbose ) then
-       call print(bbx, '  bbx')
-    end if
+    if ( verbose ) call print(bbx, '  bbx')
 
-    if ( empty(bbx) ) then
-       return
-    endif
+    if ( empty(bbx) ) return
 
     bx_eff = box_eff_mf(tagboxes, bbx)
 
@@ -402,26 +444,26 @@ contains
        end if
     end if
 
+    contains
+
+      function box_eff_mf(tagboxes, bx) result(r)
+        real(dp_t) :: r
+        type(box), intent(in) :: bx
+        type(lmultifab), intent(in) :: tagboxes
+        logical, pointer :: tp(:,:,:,:)
+        integer :: n
+        type(box) :: bx1
+        r = 0
+        do n = 1, tagboxes%nboxes;
+           bx1 = intersection(get_pbox(tagboxes, n), bx)
+           if ( empty(bx1) ) cycle
+           tp => dataptr(tagboxes, n, bx1)
+           r = r + real(count(tp),dp_t)
+        end do
+        r = r/dvolume(bx)
+      end function box_eff_mf
+
   end subroutine cluster_mf_private_recursive
-
-  function box_eff_mf(tagboxes, bx) result(r)
-    real(dp_t) :: r, r1
-    type(box), intent(in) :: bx
-    type(lmultifab), intent(in) :: tagboxes
-    logical, pointer :: tp(:,:,:,:)
-    integer :: n
-    type(box) :: bx1
-
-    r1 = 0
-    do n = 1, tagboxes%nboxes; if ( remote(tagboxes, n) ) cycle
-       bx1 = intersection(get_pbox(tagboxes, n), bx)
-       if ( empty(bx1) ) cycle
-       tp => dataptr(tagboxes, n, bx1)
-       r1 = r1 + real(count(tp),dp_t)
-    end do
-    call parallel_reduce(r,r1, MPI_SUM)
-    r = r/dvolume(bx)
-  end function box_eff_mf
 
   subroutine find_split(bx, b1, b2, minwidth, sx, sy, sz, ll, hh)
     type(box), intent(in) ::  bx
