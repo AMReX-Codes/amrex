@@ -153,7 +153,7 @@ contains
 
        call build(la, get_boxarray(buf%la), bx, get_pmask(buf%la), explicit_mapping = iprocs)
 
-       call build(lbuf, la, nc = 1, ng = buf_wid)
+       call build(lbuf, la, nc = 1)
 
        call setval(lbuf, .false., all = .true.)
 
