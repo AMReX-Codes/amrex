@@ -462,11 +462,14 @@ contains
     integer, intent(in) :: iv
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer i
     r = bx
-    where ( mask(1:bx%dim) ) 
-       r%lo = bx%lo - iv
-       r%hi = bx%hi + iv
-    end where
+    do i=1,bx%dim
+       if(mask(i)) then
+          r%lo(i) = bx%lo(i) - iv
+          r%hi(i) = bx%hi(i) - iv
+       end if
+    end do
   end function box_grow_i_m
   function box_grow_v(bx, rv) result(r)
     type(box), intent(in) :: bx
