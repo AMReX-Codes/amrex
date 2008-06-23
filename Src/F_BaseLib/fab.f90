@@ -145,25 +145,21 @@ module fab_module
      module procedure fab_setval_bx
      module procedure fab_setval_c
      module procedure fab_setval_bx_c
-     module procedure fab_setval_mask
 
      module procedure zfab_setval
      module procedure zfab_setval_bx
      module procedure zfab_setval_c
      module procedure zfab_setval_bx_c
-     module procedure zfab_setval_mask
 
      module procedure ifab_setval
      module procedure ifab_setval_bx
      module procedure ifab_setval_c
      module procedure ifab_setval_bx_c
-     module procedure ifab_setval_mask
 
      module procedure lfab_setval
      module procedure lfab_setval_bx
      module procedure lfab_setval_c
      module procedure lfab_setval_bx_c
-     module procedure lfab_setval_mask
   end interface
 
   interface print
@@ -1009,47 +1005,6 @@ contains
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
     fb%p = val
   end subroutine lfab_setval
-
-  subroutine fab_setval_mask(fb, val, mask)
-    type(fab), intent(inout) :: fb
-    real(kind=dp_t), intent(in) :: val
-    type(lfab), intent(in)  :: mask
-    real(dp_t), pointer :: pp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    pp => dataptr(fb, get_box(fb))
-    lp => dataptr(mask, get_box(mask))
-    where(lp) pp = val
-  end subroutine fab_setval_mask
-  subroutine zfab_setval_mask(fb, val, mask)
-    type(zfab), intent(inout) :: fb
-    complex(kind=dp_t), intent(in) :: val
-    type(lfab), intent(in)  :: mask
-    complex(dp_t), pointer :: pp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    pp => dataptr(fb, get_box(fb))
-    lp => dataptr(mask, get_box(mask))
-    where(lp) pp = val
-  end subroutine zfab_setval_mask
-  subroutine ifab_setval_mask(fb, val, mask)
-    type(ifab), intent(inout) :: fb
-    integer, intent(in) :: val
-    type(lfab), intent(in)  :: mask
-    integer, pointer :: pp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    pp => dataptr(fb, get_box(fb))
-    lp => dataptr(mask, get_box(mask))
-    where(lp) pp = val
-  end subroutine ifab_setval_mask
-  subroutine lfab_setval_mask(fb, val, mask)
-    type(lfab), intent(inout) :: fb
-    logical, intent(in) :: val
-    type(lfab), intent(in)  :: mask
-    logical, pointer :: pp(:,:,:,:)
-    logical, pointer :: lp(:,:,:,:)
-    pp => dataptr(fb, get_box(fb))
-    lp => dataptr(mask, get_box(mask))
-    where(lp) pp = val
-  end subroutine lfab_setval_mask
 
   subroutine fab_setval_bx(fb, val, bx)
     use bl_error_module
