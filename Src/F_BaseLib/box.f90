@@ -288,11 +288,14 @@ contains
     integer, intent(in) :: cv(:)
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r%dim = bx%dim
-    where ( mask(1:bx%dim) ) 
-       r%lo = int_coarsen(bx%lo, cv)
-       r%hi = int_coarsen(bx%hi, cv)
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) = int_coarsen(bx%lo(i), cv(i))
+          r%hi(i) = int_coarsen(bx%hi(i), cv(i))
+       end if
+    end do
   end function box_coarsen_v_m
   !! Returns a coarsened version of the box _bx_, coarsened by the vector
   !! _cv_.
@@ -311,11 +314,14 @@ contains
     integer, intent(in) :: ci
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r%dim = bx%dim
-    where ( mask(1:bx%dim) )
-       r%lo = int_coarsen(bx%lo, ci)
-       r%hi = int_coarsen(bx%hi, ci)
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) = int_coarsen(bx%lo(i), ci)
+          r%hi(i) = int_coarsen(bx%hi(i), ci)
+       end if
+    end do
   end function box_coarsen_i_m
   !! Returns a coarsened version of the box _bx_, coarsened by the integer
   !! _ci_.
@@ -333,11 +339,14 @@ contains
     integer, intent(in) :: rv(:)
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r%dim = bx%dim
-    where ( mask(1:bx%dim) )
-       r%lo =  bx%lo*rv
-       r%hi = (bx%hi+1)*rv-1
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) =  bx%lo(i)*rv(i)
+          r%hi(i) = (bx%hi(i)+1)*rv(i)-1
+       end if
+    end do
   end function box_refine_v_m
   function box_refine_v(bx, rv) result(r)
     type(box), intent(in) :: bx
@@ -352,11 +361,14 @@ contains
     integer, intent(in) :: ri
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r%dim = bx%dim
-    where ( mask(1:bx%dim) )
-       r%lo =  bx%lo*ri
-       r%hi = (bx%hi+1)*ri-1
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) =  bx%lo(i)*ri
+          r%hi(i) = (bx%hi(i)+1)*ri-1
+       end if
+    end do
   end function box_refine_i_m
   function box_refine_i(bx, ri) result(r)
     type(box), intent(in) :: bx
@@ -451,21 +463,24 @@ contains
     integer, intent(in) :: rv(:)
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r = bx
-    where ( mask(1:bx%dim) ) 
-       r%lo = bx%lo - rv
-       r%hi = bx%hi + rv
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) = bx%lo(i) - rv(i)
+          r%hi(i) = bx%hi(i) + rv(i)
+       end if
+    end do
   end function box_grow_v_m
   function box_grow_i_m(bx, iv, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: iv
     logical, intent(in) :: mask(:)
     type(box) :: r
-    integer i
+    integer   :: i
     r = bx
-    do i=1,bx%dim
-       if(mask(i)) then
+    do i = 1, bx%dim
+       if ( mask(i) ) then
           r%lo(i) = bx%lo(i) - iv
           r%hi(i) = bx%hi(i) - iv
        end if
@@ -484,11 +499,14 @@ contains
     integer, intent(in) :: ri
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r = bx
-    where ( mask(1:bx%dim) )
-       r%lo = bx%lo - ri
-       r%hi = bx%hi + ri
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) = bx%lo(i) - ri
+          r%hi(i) = bx%hi(i) + ri
+       end if
+    end do
   end function box_grow_n_m
   function box_grow_n(bx, ri) result(r)
     type(box), intent(in) :: bx
@@ -645,11 +663,14 @@ contains
     integer, intent(in) :: iv(:)
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: i
     r%dim = bx%dim
-    where ( mask(1:bx%dim) )
-       r%lo = bx%lo + iv
-       r%hi = bx%hi + iv
-    end where
+    do i = 1, bx%dim
+       if ( mask(i) ) then
+          r%lo(i) = bx%lo(i) + iv(i)
+          r%hi(i) = bx%hi(i) + iv(i)
+       end if
+    end do
   end function box_shift_v_m
   function box_shift_v(bx, iv) result(r)
     type(box), intent(in) :: bx
@@ -664,11 +685,14 @@ contains
     integer, intent(in) :: i
     logical, intent(in) :: mask(:)
     type(box) :: r
+    integer   :: j
     r%dim = bx%dim
-    where ( mask(1:bx%dim) )
-       r%lo = bx%lo + i
-       r%hi = bx%hi + i
-    end where
+    do j = 1, bx%dim
+       if ( mask(j) ) then
+          r%lo(j) = bx%lo(j) + i
+          r%hi(j) = bx%hi(j) + i
+       end if
+    end do
   end function box_shift_i_m
   function box_shift_i(bx, i) result(r)
     type(box), intent(in) :: bx
@@ -754,15 +778,17 @@ contains
     type(box), intent(in) :: bx1
     type(box), intent(in) :: bx2
     logical, intent(in) :: pmask(:)
-    integer :: dm
+    integer :: dm, i
     integer, dimension(bx1%dim) :: l1, l2, h1, h2, a1, a2
     dm = bx1%dim
     l1 = bx1%lo(1:dm); h1 = bx1%hi(1:dm); a1 = h1-l1+1
     l2 = bx2%lo(1:dm); h2 = bx2%hi(1:dm); a2 = h2-l2+1
-    where ( pmask )
-       l1 = modulo(l1-l2, a2) + l2
-       h1 = l1 + a1 - 1
-    end where
+    do i = 1, dm
+       if ( pmask(i) ) then
+          l1(i) = modulo(l1(i)-l2(i), a2(i)) + l2(i)
+          h1(i) = l1(i) + a1(i) - 1
+       end if
+    end do
     call build(r, l1, h1)
   end function box_mod
 
@@ -1178,7 +1204,7 @@ contains
 
     l = 0
 
-    do i=1,dom%dim
+    do i = 1, dom%dim
        if (nodal(i)) l(i) = 1
     end do
 
