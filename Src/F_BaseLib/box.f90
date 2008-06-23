@@ -1154,7 +1154,7 @@ contains
     logical,   intent(in), optional  :: sync_shift
 
     type(box) :: dom, bx, src
-    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3)
+    integer   :: nbeg(3),nend(3),ldom(3),r(3),ri,rj,rk,l(3),i
     logical   :: lsync_shift
 
     lsync_shift = .false.; if ( present(sync_shift) ) lsync_shift = sync_shift
@@ -1173,7 +1173,11 @@ contains
 
     if ( contains(dom,bx,strict = any(nodal)) ) return
 
-    l = 0; where(nodal) l = 1
+    l = 0
+
+    do i=1,dom%dim
+       if (nodal(i)) l(i) = 1
+    end do
 
     nbeg           = 0
     nend           = 0
