@@ -45,6 +45,7 @@ module regrid_module
        llev = 1; if (present(lev)) llev = lev
 
        call make_boxes(mf,ba_new,dx_crse,buf_wid,llev)
+       call boxarray_maxsize(ba_new,max_grid_size)
 
        if (empty(ba_new)) then 
           new_grid = .false.
