@@ -18,14 +18,14 @@ module regrid_module
 
   contains
 
-    subroutine make_new_grids(mla,mla_new,mf,dx_crse,buf_wid,&
-         rr,lev,new_grid)
+    subroutine make_new_grids(mla,mla_new,mf,dx_crse,buf_wid,rr,lev,max_grid_size,new_grid)
 
        type(ml_layout), intent(in   ) :: mla
        type(ml_layout), intent(inout) :: mla_new
        type(multifab) , intent(in   ) :: mf
        real(dp_t)     , intent(in   ) :: dx_crse
        integer        , intent(in   ) :: buf_wid
+       integer        , intent(in   ) :: max_grid_size
 
        ! ref_ratio now fixed across levels and dimensions -- fix me?
        integer        , intent(in   ) :: rr(:,:)
@@ -44,7 +44,7 @@ module regrid_module
        pmask = mla%pmask
        llev = 1; if (present(lev)) llev = lev
 
-       call make_boxes(mf,ba_new,dx_crse,buf_wid, llev)
+       call make_boxes(mf,ba_new,dx_crse,buf_wid,llev)
 
        if (empty(ba_new)) then 
           new_grid = .false.
@@ -76,7 +76,6 @@ module regrid_module
        call ml_layout_build(mla_new,mba_new,pmask)
 
        call destroy(mba_new)
-!       call destroy(ba_new)
 
     end subroutine make_new_grids
 
