@@ -144,28 +144,24 @@ module multifab_module
      module procedure multifab_setval_c
      module procedure multifab_setval_bx_c
      module procedure multifab_setval_ba
-     module procedure multifab_setval_mask
 
      module procedure imultifab_setval
      module procedure imultifab_setval_bx
      module procedure imultifab_setval_c
      module procedure imultifab_setval_bx_c
      module procedure imultifab_setval_ba
-     module procedure imultifab_setval_mask
 
      module procedure lmultifab_setval
      module procedure lmultifab_setval_bx
      module procedure lmultifab_setval_c
      module procedure lmultifab_setval_bx_c
      module procedure lmultifab_setval_ba
-     module procedure lmultifab_setval_mask
 
      module procedure zmultifab_setval
      module procedure zmultifab_setval_bx
      module procedure zmultifab_setval_c
      module procedure zmultifab_setval_bx_c
      module procedure zmultifab_setval_ba
-     module procedure zmultifab_setval_mask
   end interface
 
   interface get_boxarray
@@ -1229,55 +1225,6 @@ contains
     logical, intent(in), optional :: all
     call zmultifab_setval_bx_c(mf, val, bx, 1, mf%nc, all)
   end subroutine zmultifab_setval_bx
-
-  subroutine multifab_setval_mask(mf, val, mask)
-    type(multifab), intent(inout) :: mf
-    real(dp_t), intent(in) :: val
-    type(lmultifab), intent(in)   :: mask
-    integer :: i
-    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       call setval(mf%fbs(i), val, mask%fbs(i))
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine multifab_setval_mask
-  subroutine imultifab_setval_mask(mf, val, mask)
-    type(imultifab), intent(inout) :: mf
-    integer, intent(in) :: val
-    type(lmultifab), intent(in)   :: mask
-    integer :: i
-    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       call setval(mf%fbs(i), val, mask%fbs(i))
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine imultifab_setval_mask
-  subroutine lmultifab_setval_mask(mf, val, mask)
-    type(lmultifab), intent(inout) :: mf
-    logical, intent(in) :: val
-    type(lmultifab), intent(in)   :: mask
-    integer :: i
-    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       call setval(mf%fbs(i), val, mask%fbs(i))
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine lmultifab_setval_mask
-  subroutine zmultifab_setval_mask(mf, val, mask)
-    type(zmultifab), intent(inout) :: mf
-    complex(dp_t), intent(in) :: val
-    type(lmultifab), intent(in)   :: mask
-    integer :: i
-    !$OMP PARALLEL DO PRIVATE(i) SHARED(val)
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
-       call setval(mf%fbs(i), val, mask%fbs(i))
-    end do
-    !$OMP END PARALLEL DO
-  end subroutine zmultifab_setval_mask
 
   subroutine multifab_setval_ba(mf, val, ba, all)
     type(multifab), intent(inout) :: mf
