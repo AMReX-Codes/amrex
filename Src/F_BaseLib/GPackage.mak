@@ -26,18 +26,13 @@ f90sources += boxarray.f90
 f90sources += box_util.f90
 f90sources += fab.f90  
 f90sources += multifab.f90
-f90sources += multifab_fill_ghost_cells.f90
 f90sources += fabio.f90
 f90sources += plotfile.f90
 f90sources += filler.f90
 f90sources += cluster.f90
-#f90sources += cluster_2d.f90
 f90sources += interp.f90
 f90sources += bc.f90
 f90sources += bndry_reg.f90
-#f90sources += flux_reg.f90
-
-f90sources += fillpatch.f90
 
 f90sources += ml_boxarray.f90
 f90sources += ml_layout.f90
