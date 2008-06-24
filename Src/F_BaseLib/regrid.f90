@@ -36,16 +36,27 @@ module regrid_module
        type(ml_boxarray) :: mba_new
        type(boxarray)    :: ba_new
        integer           :: llev,dim,n,i
+       integer           :: rr_max
 
        logical :: pmask(mf%dim)
-
 
        dim = mf%dim
        pmask = mla%pmask
        llev = 1; if (present(lev)) llev = lev
 
+       rr_max = rr(llev,1)
+       if (mf%dim > 1) then
+         do i = 2,mf%dim
+           rr_max = max(rr_max, rr(llev,i))
+         end do
+       end if
+
        call make_boxes(mf,ba_new,dx_crse,buf_wid,llev)
-       call boxarray_maxsize(ba_new,max_grid_size)
+
+       ! Need to divide max_grid_size by rr_max since we are creating
+       !  the grids at the coarser resolution but want max_grid_size to
+       !  apply at the fine resolution.
+       call boxarray_maxsize(ba_new,max_grid_size/rr_max)
 
        if (empty(ba_new)) then 
           new_grid = .false.
