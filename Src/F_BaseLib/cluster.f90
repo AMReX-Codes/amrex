@@ -72,9 +72,10 @@ contains
     real(dp_t), intent(out), optional :: overall_eff
     integer, intent(in), optional :: blocking_factor
 
-    type(layout) :: la
+    type(layout) :: la, lag, la_buf
     type(list_box) :: lboxes
-    type(lmultifab) :: buf, lbuf
+    type(lmultifab) :: buf, lbuf, bufg
+    type(boxarray) :: bag
     logical, pointer :: mt(:,:,:,:), mb(:,:,:,:)
     integer :: b, dm, num_flag, i, k, bxcnt, lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer, allocatable :: iprocs(:), ibxs(:), bxs(:)
@@ -110,7 +111,9 @@ contains
        return
     end if
 
-    call build(buf, get_layout(tagboxes), nc = 1, ng = buf_wid)
+    la_buf = get_layout(tagboxes)
+
+    call build(buf, la_buf, nc = 1, ng = buf_wid)
     call setval(buf, .false., all = .true.)
     !
     ! Buffer the cells.
@@ -132,21 +135,32 @@ contains
     !
     call pd_mask(buf)
     !
-    ! Make sure that all tagged cells in are replicated in the high indexed boxes.
+    ! Make sure that all tagged cells in are properly replicated in the high indexed boxes.
     !
     call internal_sync(buf, all = .true., filter = filter_lor)
-    !
-    ! Remove all tags from the low index fabs that overlap high index fabs.
-    !
-    call owner_mask(buf)
 
-    bx = get_pd(get_layout(buf))
+    bx = get_pd(la_buf)
 
     if ( parallel_nprocs() > 1 ) then
        !
        ! The cluster algorithm is inherently serial.
        ! We'll set up the problem to do on the IO processor.
        !
+       call boxarray_build_copy(bag, get_boxarray(buf))
+       call boxarray_grow(bag, buf_wid)
+       call build(lag, bag, bx, get_pmask(la_buf), explicit_mapping = get_proc(la_buf))
+       call destroy(bag)
+       call build(bufg, lag, nc = 1, ng = 0)
+
+       do i = 1, bufg%nboxes
+          if ( remote(bufg, i) ) cycle
+          mt => dataptr(buf,  i)
+          mb => dataptr(bufg, i)
+          mb = mt
+       end do
+
+       call destroy(buf)
+
        allocate(iprocs(nboxes(get_layout(buf))))
 
        iprocs = parallel_IOProcessorNode()
@@ -154,12 +168,16 @@ contains
        call build(la, get_boxarray(buf%la), bx, get_pmask(buf%la), explicit_mapping = iprocs)
 
        call build(lbuf, la, nc = 1)
+       !
+       ! This is a parallel copy.
+       !
+       call copy(lbuf, bufg)
 
-       call setval(lbuf, .false., all = .true.)
-
-       call copy(lbuf, buf)
+       call destroy(bufg)
+       call destroy(lag)
 
        if ( parallel_IOProcessor() ) then
+          call owner_mask(lbuf)
           call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf, minwidth, min_eff)
           bxcnt = size(lboxes)
        end if
@@ -205,19 +223,23 @@ contains
        end if
 
     else
+       call owner_mask(buf)
        call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf, minwidth, min_eff)
+       call destroy(buf)
     end if
 
     call build(boxes, lboxes)
 
     call destroy(lboxes)
 
+    if ( .not. boxarray_clean(boxes%bxs) ) then
+       call bl_error('cls_3d_mf: boxes are NOT disjoint')
+    end if
+
     if ( present(overall_eff) ) then
        bboxinte    = volume(boxes)
        overall_eff = real(count(buf,all=.true.),dp_t) / real(bboxinte, dp_t)
     end if
-
-    call destroy(buf)
 
     call destroy(bpt)
 
