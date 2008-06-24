@@ -137,10 +137,10 @@ contains
        ! First copy from lo edges to hi edges.
        !
        do i = 1, fine%nboxes
-          bx = get_ibox(fine,i)
+          bx = get_box(fine,i)
           if (bx%lo(face) == fine_domain%lo(face)) then
              bx = shift(bx, len, face)
-             bx = intersection(bx,box_nodalize(fine_domain,nodal))
+             bx = intersection(bx,grow(fine_domain,1,face,+1))
              call push_back(bxs_lo,bx)
           end if
        end do
@@ -190,11 +190,10 @@ contains
        ! Next copy from hi edges to lo edges.
        !
        do i = 1, fine%nboxes
-          bx = get_ibox(fine,i)
-          ! bx is face-centered but domain is cell-centered (hence the +1)
-          if (bx%hi(face) == fine_domain%hi(face)+1) then
+          bx = get_box(fine,i)
+          if (bx%hi(face) == fine_domain%hi(face)) then
              bx = shift(bx, -len, face)
-             bx = intersection(bx,box_nodalize(fine_domain,nodal))
+             bx = intersection(bx,grow(fine_domain,1,face,-1))
              call push_back(bxs_hi,bx)
           end if
        end do
@@ -216,7 +215,7 @@ contains
              if ( remote(fine_hi,i) ) cycle
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
-             hi(face) = lo(face)
+             lo(face) = hi(face)
              loc = lwb(get_pbox(cfine,i))
              lof = lwb(get_pbox(fine_hi, i))
              do n = 1, lnc
