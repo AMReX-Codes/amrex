@@ -168,10 +168,8 @@ contains
        call build(la, get_boxarray(buf%la), bx, get_pmask(buf%la), explicit_mapping = iprocs)
 
        call build(lbuf, la, nc = 1)
-       !
-       ! This is a parallel copy.
-       !
-       call copy(lbuf, bufg)
+
+       call copy(lbuf, bufg)  ! This is a parallel copy.
 
        call destroy(bufg)
        call destroy(lag)
@@ -183,7 +181,6 @@ contains
        end if
 
        call destroy(lbuf)
-
        call destroy(la)
        !
        ! We now must broadcast the info in "lboxes" back to all CPUs.
@@ -231,7 +228,9 @@ contains
     call build(boxes, lboxes)
 
     call destroy(lboxes)
-
+    !
+    ! Remove this check after it's clear the parallel implementation is OK.
+    !
     if ( .not. boxarray_clean(boxes%bxs) ) then
        call bl_error('cls_3d_mf: boxes are NOT disjoint')
     end if
