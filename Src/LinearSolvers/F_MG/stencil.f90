@@ -2339,7 +2339,7 @@ contains
           end if
           if ( nz > 1 ) then
              k = nz
-             if (bclo .eq. BC_INT) then
+             if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
              else
                 call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
