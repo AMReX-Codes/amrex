@@ -102,10 +102,10 @@ module box_module
      module procedure box_grow_n
      module procedure box_grow_n_f
      module procedure box_grow_n_d_f
+     module procedure box_grow_n_m
      module procedure box_grow_v
      module procedure box_grow_v_f
      module procedure box_grow_v_m
-     module procedure box_grow_i_m
   end interface
 
   !! shifts a box
@@ -428,6 +428,7 @@ contains
        call bl_error("BOX_GROW_V_F: unexpected face: ", face)
     end if
   end function box_grow_v_f
+
   function box_grow_n_d_f(bx, ri, dim, face) result(r)
     use bl_error_module
     type(box), intent(in) :: bx
@@ -472,20 +473,7 @@ contains
        end if
     end do
   end function box_grow_v_m
-  function box_grow_i_m(bx, iv, mask) result(r)
-    type(box), intent(in) :: bx
-    integer, intent(in) :: iv
-    logical, intent(in) :: mask(:)
-    type(box) :: r
-    integer   :: i
-    r = bx
-    do i = 1, bx%dim
-       if ( mask(i) ) then
-          r%lo(i) = bx%lo(i) - iv
-          r%hi(i) = bx%hi(i) - iv
-       end if
-    end do
-  end function box_grow_i_m
+
   function box_grow_v(bx, rv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
@@ -494,6 +482,7 @@ contains
     r%lo(1:r%dim) =  bx%lo(1:bx%dim) - rv
     r%hi(1:r%dim) =  bx%hi(1:bx%dim) + rv
   end function box_grow_v
+
   function box_grow_n_m(bx, ri, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
@@ -508,6 +497,7 @@ contains
        end if
     end do
   end function box_grow_n_m
+
   function box_grow_n(bx, ri) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
