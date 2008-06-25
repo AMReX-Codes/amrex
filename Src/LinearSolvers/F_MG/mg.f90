@@ -418,23 +418,34 @@ contains
   end subroutine mg_tower_destroy
 
   function max_mg_levels(ba, min_size) result(r)
-    type(boxarray), intent(in) :: ba
-    integer, intent(in), optional :: min_size
-    integer :: r
+    type(boxarray), intent(in)           :: ba
+    integer       , intent(in), optional :: min_size
+    integer                              :: r
     integer, parameter :: rrr = 2
-    type(box) :: bx, bx1
-    integer :: i, rr, lmn
+    type(box)          :: bx, bx1
+    type(boxarray)     :: ba1
+    real(kind=dp_t)    :: vol
+    integer            :: i, rr, lmn, dm
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
+    dm = ba%dim
+    call copy(ba1,ba)
     do
+       call boxarray_coarsen(ba1,rrr)
+       vol = boxarray_volume(ba1)
        do i = 1, size(ba%bxs)
           bx = ba%bxs(i)
           bx1 = coarsen(bx, rr)
           if ( any(extent(bx1) < lmn) ) return
-          if ( bx /= refine(bx1, rr) ) then
-             return
-          end if
+          if ( bx /= refine(bx1, rr)  ) return
+
+          ! We introduce the volume test to limit the case where we have a 
+          !  single grid getting too small -- don't want to limit each grid in
+          !  the case where there are many grids, so we need a test over the
+          !  whole boxarray volume, not just the size of each grid.
+          if ( vol <= 2**dm ) return
+
        end do
        rr = rr*rrr
        r  = r + 1
