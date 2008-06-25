@@ -1623,11 +1623,12 @@ contains
   contains
 
     subroutine bc_ii
-      sm  = b0
-      s0  = -(b0+b1)
-      sp  = b1
-      ss  = 0
-      skewed = .false.
+      call bl_error("STENCIL_BNDRY_AAA: should never reach bc_ii")
+!     sm  = b0
+!     s0  = -(b0+b1)
+!     sp  = b1
+!     ss  = 0
+!     skewed = .false.
     end subroutine bc_ii
 
     subroutine bc_id
@@ -2130,13 +2131,26 @@ contains
        bclo = stencil_bc_type(mask( 1, j),1,-1)
        bchi = stencil_bc_type(mask(nx, j),1,+1)
  
-       call stencil_bndry_aaa(order, nx, 1, -1, mask(1,j), &
-            ss(1,j,0), ss(1,j,1), ss(1,j,2), ss(1,j,XBC), &
-            beta(1,j,1), beta(2,j,1), xa(1), xb(1), dh(1), bclo, bchi)
+       i = 1
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+       else
+          call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               beta(i,j,1), beta(i+1,j,1), &
+               xa(1), xb(1), dh(1), bclo, bchi)
+       end if
+
        if ( nx > 1 ) then
-          call stencil_bndry_aaa(order, nx, 1, 1, mask(nx,j), &
-               ss(nx,j,0), ss(nx,j,1), ss(nx,j,2), ss(nx,j,XBC), &
-               beta(nx,j,1), beta(nx+1,j,1), xa(1), xb(1), dh(1), bclo, bchi)
+          i = nx
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          else
+             call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  beta(i,j,1), beta(i+1,j,1), &
+                  xa(1), xb(1), dh(1), bclo, bchi)
+          end if
        end if
     end do
 
@@ -2152,13 +2166,25 @@ contains
        bclo = stencil_bc_type(mask( i, 1),2,-1)
        bchi = stencil_bc_type(mask( i,ny),2,+1)
 
-       call stencil_bndry_aaa(order, ny, 2, -1, mask(i,1), &
-            ss(i,1,0), ss(i,1,3), ss(i,1,4),ss(i,1,YBC), &
-            beta(i,1,2), beta(i,2,2), xa(2), xb(2), dh(2), bclo, bchi)
+       j = 1
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+       else
+          call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               beta(i,j,2), beta(i,j+1,2), &
+               xa(2), xb(2), dh(2), bclo, bchi)
+       end if
        if ( ny > 1 ) then
-          call stencil_bndry_aaa(order, ny, 2, 1, mask(i,ny), &
-               ss(i,ny,0), ss(i,ny,3), ss(i,ny,4), ss(i,ny,YBC), &
-               beta(i,ny,2), beta(i,ny+1,2), xa(2), xb(2), dh(2), bclo, bchi)
+          j = ny
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          else
+             call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  beta(i,j,2), beta(i,j+1,2), &
+                  xa(2), xb(2), dh(2), bclo, bchi)
+          end if
        end if
     end do
 
@@ -2230,13 +2256,24 @@ contains
           bclo = stencil_bc_type(mask( 1, j,k),1,-1)
           bchi = stencil_bc_type(mask(nx, j,k),1,+1)
 
-          call stencil_bndry_aaa(order, nx, 1, -1, mask(1,j,k), &
-               ss(1,j,k,0), ss(1,j,k,1), ss(1,j,k,2), ss(1,j,k,XBC), &
-               beta(1,j,k,1), beta(2,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+          i = 1
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+          else
+             call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                  beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+
           if ( nx > 1 ) then
-             call stencil_bndry_aaa(order, nx, 1, 1, mask(nx,j,k), &
-                  ss(nx,j,k,0), ss(nx,j,k,1), ss(nx,j,k,2), ss(nx,j,k,XBC), &
-                  beta(nx,j,k,1), beta(nx+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+             i = nx
+             if (bchi .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             else
+                call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                     beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+             end if
           end if
        end do
     end do
@@ -2256,13 +2293,23 @@ contains
           bclo = stencil_bc_type(mask(i,1,k) ,2,-1)
           bchi = stencil_bc_type(mask(i,ny,k),2,+1)
 
-          call stencil_bndry_aaa(order, ny, 2, -1, mask(i,1,k), &
-               ss(i,1,k,0), ss(i,1,k,3), ss(i,1,k,4),ss(i,1,k,YBC), &
-               beta(i,1,k,2), beta(i,2,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+          j = 1
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+          else
+             call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
+                  beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+          end if
           if ( ny > 1 ) then
-             call stencil_bndry_aaa(order, ny, 2, 1, mask(i,ny,k), &
-                  ss(i,ny,k,0), ss(i,ny,k,3), ss(i,ny,k,4), ss(i,ny,k,YBC), &
-                  beta(i,ny,k,2), beta(i,ny+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+             j = ny
+             if (bchi .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             else
+                call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
+                     beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+             end if
           end if
        end do
     end do
@@ -2282,13 +2329,23 @@ contains
           bclo = stencil_bc_type(mask(i,j,1) ,3,-1)
           bchi = stencil_bc_type(mask(i,j,nz),3,+1)
 
-          call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,1), &
-               ss(i,j,1,0), ss(i,j,1,5), ss(i,j,1,6),ss(i,j,1,ZBC), &
-               beta(i,j,1,3), beta(i,j,2,3), xa(3), xb(3), dh(3), bclo, bchi)
+          k = 1
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+          else
+             call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
+                  beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+          end if
           if ( nz > 1 ) then
-             call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,nz), &
-                  ss(i,j,nz,0), ss(i,j,nz,5), ss(i,j,nz,6), ss(i,j,nz,ZBC), &
-                  beta(i,j,nz,3), beta(i,j,nz+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+             k = nz
+             if (bclo .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             else
+                call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
+                     beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+             end if
           end if
        end do
     end do
