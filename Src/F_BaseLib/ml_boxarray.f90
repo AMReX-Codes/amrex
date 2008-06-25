@@ -243,23 +243,28 @@ contains
     logical :: r
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
-    type(boxarray) :: ba
-    integer :: i, lnp
+    type(boxarray) :: ba,ba_fine
+    integer :: i, lnp, np_local
     lnp = 0; if ( present(nproper) ) lnp = nproper
     do i = 2, mba%nlevel
-       call boxarray_pn_domain_bx_v(ba, mba%bas(i-1), mba%pd(i), lnp, mba%rr(i-1,:))
-       call boxarray_diff(ba, mba%bas(i))
-       call boxarray_intersection(ba, mba%pd(i))
-       if ( .not. empty(ba) ) then
+       np_local = (lnp+1) / mba%rr(i-1,1)
+       call boxarray_pn_domain_bx_v(ba, mba%bas(i-1), mba%pd(i), np_local, mba%rr(i-1,:))
+       call boxarray_build_copy(ba_fine,mba%bas(i))
+       call boxarray_diff(ba_fine, ba)
+       call boxarray_intersection(ba_fine, mba%pd(i))
+       if ( .not. empty(ba_fine) ) then
           call boxarray_destroy(ba)
+          call boxarray_destroy(ba_fine)
           r = .false.
           return
        end if
        call boxarray_destroy(ba)
+       call boxarray_destroy(ba_fine)
     end do
     r = .true.
   end function ml_boxarray_properly_nested
 
+  ! NOTE: this only works as a "contains" operator, it doesn't take a buffer width
   function ml_boxarray_properly_nested_old(mba) result(r)
     logical :: r
     type(ml_boxarray), intent(in) :: mba
