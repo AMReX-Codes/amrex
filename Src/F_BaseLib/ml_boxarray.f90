@@ -239,7 +239,7 @@ contains
     r = .true.
   end function ml_boxarray_clean
 
-  function ml_boxarray_properly_nested_new(mba, nproper) result(r)
+  function ml_boxarray_properly_nested(mba, nproper) result(r)
     logical :: r
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
@@ -258,9 +258,9 @@ contains
        call boxarray_destroy(ba)
     end do
     r = .true.
-  end function ml_boxarray_properly_nested_new
+  end function ml_boxarray_properly_nested
 
-  function ml_boxarray_properly_nested(mba) result(r)
+  function ml_boxarray_properly_nested_old(mba) result(r)
     logical :: r
     type(ml_boxarray), intent(in) :: mba
     type(boxarray) :: ba
@@ -278,7 +278,7 @@ contains
        call boxarray_destroy(ba)
     end do
     r = .true.
-  end function ml_boxarray_properly_nested
+  end function ml_boxarray_properly_nested_old
 
   subroutine ml_boxarray_print(mba, str, unit, skip)
     use bl_IO_module
