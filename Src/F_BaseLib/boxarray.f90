@@ -105,6 +105,11 @@ module boxarray_module
      module procedure boxarray_print
   end interface
 
+  interface contains
+     module procedure boxarray_box_contains
+     module procedure boxarray_boxarray_contains
+  end interface
+
   interface equal
      module procedure boxarray_equal
   end interface
@@ -1265,5 +1270,52 @@ contains
        len(i) = 0
     end do
   end subroutine boxarray_box_corners
+
+  function boxarray_box_contains(ba, bx) result(r)
+    use bl_error_module
+    logical                    :: r
+    type(boxarray), intent(in) :: ba
+    type(box),      intent(in) :: bx
+
+    type(list_box) :: bl1, bl
+    type(box)      :: bx1
+    integer        :: i
+
+    if ( nboxes(ba) .eq. 0 ) &
+       call bl_error('Empty boxarray in boxarray_box_contains')
+
+    call build(bl1)
+    do i = 1, nboxes(ba)
+       bx1 = intersection(bx, get_box(ba,i))
+       if ( empty(bx1) ) cycle
+       call push_back(bl1, bx1)
+    end do
+    bl = boxlist_boxlist_diff(bx, bl1)
+    r = empty(bl)
+    call destroy(bl)
+    call destroy(bl1)
+
+  end function boxarray_box_contains
+
+  function boxarray_boxarray_contains(ba1, ba2) result(r)
+    logical :: r
+    type(boxarray), intent(in) :: ba1, ba2
+
+    integer :: i
+
+    if ( nboxes(ba1) .eq. 0 ) &
+       call bl_error('Empty boxarray ba1 in boxarray_box_contains')
+
+    if ( nboxes(ba2) .eq. 0 ) &
+       call bl_error('Empty boxarray ba2 in boxarray_box_contains')
+
+    do i = 1, nboxes(ba2)
+       r = boxarray_box_contains(ba1, get_box(ba2,i)) 
+       if ( .not. r ) return
+    end do
+
+    r = .true.
+
+  end function boxarray_boxarray_contains
 
 end module boxarray_module
