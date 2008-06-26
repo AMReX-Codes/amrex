@@ -240,36 +240,39 @@ contains
   end function ml_boxarray_clean
 
   function ml_boxarray_properly_nested(mba, nproper, pmask) result(r)
+    use layout_module
     use bl_error_module
-    logical :: r
+    logical                       :: r
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
     logical, intent(in), optional :: pmask(:)
 
-    type(boxarray)                 :: ba,ba_fine,ba_crse_fine,pda
-    type(box     )                 :: bx, bxs(3**mba%dim)
+    type(boxarray) :: ba, ba_fine, ba_crse_fine, pda
+    type(box     ) :: bx, bxs(3**mba%dim)
+    type(layout  ) :: fla
+    type(list_box) :: pbl, pieces, leftover, extra
 
-    integer :: i, j, k, d, lnp
-    integer :: cnt, shft(3**mba%dim,mba%dim)
-    integer :: np_crse
-    logical ::  lpmask(mba%dim)
-    logical ::   nodal(mba%dim)
-    logical :: touches(mba%dim)
+    type(list_box_node),   pointer :: bln
+    type(box_intersector), pointer :: bi(:)
 
-    lnp = 0; if ( present(nproper) ) lnp = nproper
-    lpmask = .false.; if ( present(pmask) ) lpmask = pmask
+    integer :: i, j, k, lnp, np_crse, cnt, shft(3**mba%dim,mba%dim)
+    logical ::  lpmask(mba%dim), nodal(mba%dim)
+
+    lnp    = 0;       if ( present(nproper) ) lnp    = nproper
+    lpmask = .false.; if ( present(pmask) )   lpmask = pmask
 
     nodal = .false.
-
-    ! First make sure grids are all contained in problem domain
+    !
+    ! First make sure grids are all contained in problem domain.
+    !
     do i = 1, mba%nlevel
-       bx = boxarray_bbox(mba%bas(i))
-       if (.not. box_contains(mba%pd(i),bx)) then
+       if (.not. box_contains(mba%pd(i), boxarray_bbox(mba%bas(i)))) then
           call bl_error("boxarray not contained in problem domain")
        end if
     end do
-
+    !
     ! Check that level 1 grids cover all of the problem domain.
+    !
     call boxarray_build_bx(pda,mba%pd(1))
     call boxarray_diff(pda, mba%bas(1))
     if ( .not. empty(pda) ) then
@@ -277,63 +280,74 @@ contains
        call print(mba%bas(1),'Level 1 boxarray')
        call bl_error('Level 1 grids must cover entire domain')
     end if
- 
+    call destroy(pda)
+    !
     ! We now can assume that the level 1 (lowest level) grids cover the entire domain.
     ! Given this, level 2 grids are automatically properly nested.
     ! So we start the loop at level 3.
-
-    ! This part of the test ignores periodic boundaries
+    !
     do i = 3, mba%nlevel
+       !
+       ! This part of the test ignores periodic boundaries.
+       !
        np_crse = (lnp+1) / mba%rr(i-1,1)
 
        call boxarray_pn_domain_bx_v(ba, mba%bas(i-1), mba%pd(i), np_crse, mba%rr(i-1,:))
-
        call boxarray_build_copy(ba_fine,mba%bas(i))
        call boxarray_diff(ba_fine, ba)
-!      call boxarray_intersection(ba_fine, mba%pd(i))
-       if ( .not. empty(ba_fine) ) then
-          call boxarray_destroy(ba)
-          call boxarray_destroy(ba_fine)
-          r = .false.
-          return
-       end if
-       call boxarray_destroy(ba)
-       call boxarray_destroy(ba_fine)
-
+       r = empty(ba_fine)
+       call destroy(ba)
+       call destroy(ba_fine)
+       if ( .not. r ) return
+       !
        ! Now check for periodic wraparound that might violate proper nesting
-       ! FIXME: this could be optimized by eliminating regions in each bxs array
-       !        that intersect with existing fine boxes (therefore have already been checked)
-       !        But the code to do this, as called by fillpatch, is in layout_module, and we would
-       !        need a version of that functionality that doesn't depend on a layout.
+       !
        if ( any(lpmask) .and. lnp > 0) then
           !
           ! Collect additional boxes that contribute to periodically filling fine ghost cells.
           !
           call boxarray_build_copy(ba_crse_fine,mba%bas(i-1))
           call boxarray_refine(ba_crse_fine,mba%rr(i-1,:))
+          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask)
 
           do j = 1, nboxes(mba%bas(i))
-             bx = mba%bas(i)%bxs(j)
-             touches = .false.
-             do d = 1,mba%dim
-               touches(d) = ( (bx%lo(d) .eq. mba%pd(i)%lo(d)) .or. &
-                              (bx%hi(d) .eq. mba%pd(i)%hi(d)) )
+             bx = get_box(mba%bas(i),j)
+             call box_periodic_shift(mba%pd(i), bx, nodal, lpmask, lnp, shft, cnt, bxs)
+             do k = 1, cnt
+                call push_back(pbl, bxs(k))
              end do
-             if (any(touches)) then
-                call box_periodic_shift(mba%pd(i), bx, nodal, lpmask, lnp, shft, cnt, bxs)
-                do k = 1, cnt
-                   if (.not. boxarray_box_contains(ba_crse_fine,bxs(k))) then
-                      call boxarray_destroy(ba_crse_fine)
-                      r = .false.
-                      return
-                   end if
-                end do ! k = 1,cnt
-             end if ! if any(touches)
-          end do ! j = 1, nboxes
-          call boxarray_destroy(ba_crse_fine)
-       end if ! if any(lpmask)
+             bln => begin(pbl)
+             do while (associated(bln))
+                bx =  value(bln)
+                bi => layout_get_box_intersector(fla, bx)
+                do k = 1, size(bi)
+                   call push_back(pieces, bi(k)%bx)
+                end do
+                deallocate(bi)
+                leftover = boxlist_boxlist_diff(bx, pieces)
+                call splice(extra, leftover)
+                call destroy(pieces)
+                bln => next(bln)
+             end do
+             call destroy(pbl)
+          end do
 
-    end do ! i = 3,nlevel
+          call destroy(fla)
+          !
+          ! Check to see if extra boxes are also covered by coarser region.
+          !
+          if ( size(extra) > 0 ) then
+             call build(ba, extra)
+             call destroy(extra)
+             r = contains(ba_crse_fine, ba)
+             call destroy(ba)
+             call destroy(ba_crse_fine)
+             if ( .not. r ) return
+          else
+             call destroy(ba_crse_fine)
+          end if
+       end if
+    end do
 
     r = .true.
 
