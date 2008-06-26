@@ -241,13 +241,16 @@ contains
 
   function ml_boxarray_properly_nested(mba, nproper, pmask) result(r)
     use layout_module
+    use bl_prof_module
     use bl_error_module
     logical                       :: r
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
     logical, intent(in), optional :: pmask(:)
 
-    type(boxarray) :: ba, ba_fine, ba_crse_fine, pda
+    integer        :: i, j, k, lnp, cnt, shft(3**mba%dim,mba%dim)
+    logical        ::  lpmask(mba%dim), nodal(mba%dim)
+    type(boxarray) :: ba, ba_fine, ba_crse_fine
     type(box     ) :: bx, bxs(3**mba%dim)
     type(layout  ) :: fla
     type(list_box) :: pbl, pieces, leftover, extra
@@ -255,8 +258,9 @@ contains
     type(list_box_node),   pointer :: bln
     type(box_intersector), pointer :: bi(:)
 
-    integer :: i, j, k, lnp, np_crse, cnt, shft(3**mba%dim,mba%dim)
-    logical ::  lpmask(mba%dim), nodal(mba%dim)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_boxarray_properly_nested")
 
     lnp    = 0;       if ( present(nproper) ) lnp    = nproper
     lpmask = .false.; if ( present(pmask) )   lpmask = pmask
@@ -273,41 +277,39 @@ contains
     !
     ! Check that level 1 grids cover all of the problem domain.
     !
-    call boxarray_build_bx(pda,mba%pd(1))
-    call boxarray_diff(pda, mba%bas(1))
-    if ( .not. empty(pda) ) then
-       call print(mba%pd(1),'Problem Domain')
-       call print(mba%bas(1),'Level 1 boxarray')
-       call bl_error('Level 1 grids must cover entire domain')
-    end if
-    call destroy(pda)
+     call boxarray_build_bx(ba,mba%pd(1))
+     call boxarray_diff(ba, mba%bas(1))
+     if ( .not. empty(ba) ) then
+        call print(mba%pd(1),'Problem Domain')
+        call print(mba%bas(1),'Level 1 boxarray')
+        call bl_error('Level 1 grids must cover entire domain')
+     end if
+     call destroy(ba)
     !
     ! We now can assume that the level 1 (lowest level) grids cover the entire domain.
-    ! Given this, level 2 grids are automatically properly nested.
+    ! Given this, the level 2 grids are automatically properly nested.
     ! So we start the loop at level 3.
     !
     do i = 3, mba%nlevel
        !
        ! This part of the test ignores periodic boundaries.
        !
-       np_crse = (lnp+1) / mba%rr(i-1,1)
-
-       call boxarray_pn_domain_bx_v(ba, mba%bas(i-1), mba%pd(i), np_crse, mba%rr(i-1,:))
+       call boxarray_build_copy(ba_crse_fine,mba%bas(i-1))
+       call boxarray_refine(ba_crse_fine,mba%rr(i-1,:))
        call boxarray_build_copy(ba_fine,mba%bas(i))
-       call boxarray_diff(ba_fine, ba)
-       r = empty(ba_fine)
-       call destroy(ba)
+       call boxarray_grow(ba_fine, lnp)
+       call boxarray_intersection(ba_fine, mba%pd(i))
+       r = contains(ba_crse_fine, ba_fine)
        call destroy(ba_fine)
-       if ( .not. r ) return
-       !
-       ! Now check for periodic wraparound that might violate proper nesting
-       !
+       if ( .not. r ) then
+          call destroy(ba_crse_fine)
+          return
+       end if
+
        if ( any(lpmask) .and. lnp > 0) then
           !
           ! Collect additional boxes that contribute to periodically filling fine ghost cells.
           !
-          call boxarray_build_copy(ba_crse_fine,mba%bas(i-1))
-          call boxarray_refine(ba_crse_fine,mba%rr(i-1,:))
           call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask)
 
           do j = 1, nboxes(mba%bas(i))
@@ -341,16 +343,21 @@ contains
              call destroy(extra)
              r = contains(ba_crse_fine, ba)
              call destroy(ba)
-             call destroy(ba_crse_fine)
-             if ( .not. r ) return
-          else
-             call destroy(ba_crse_fine)
+             if ( .not. r ) then
+                call destroy(ba_crse_fine)
+                return
+             end if
           end if
        end if
+
+       call destroy(ba_crse_fine)
+
     end do
 
-    r = .true.
+    call destroy(bpt)
 
+    r = .true.
+    
   end function ml_boxarray_properly_nested
 
   ! NOTE: this only works as a "contains" operator, it doesn't take a buffer width
