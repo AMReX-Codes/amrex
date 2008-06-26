@@ -1305,10 +1305,10 @@ contains
     integer :: i
 
     if ( nboxes(ba1) .eq. 0 ) &
-       call bl_error('Empty boxarray ba1 in boxarray_box_contains')
+       call bl_error('Empty boxarray ba1 in boxarray_boxarray_contains')
 
     if ( nboxes(ba2) .eq. 0 ) &
-       call bl_error('Empty boxarray ba2 in boxarray_box_contains')
+       call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
 
     do i = 1, nboxes(ba2)
        r = boxarray_box_contains(ba1, get_box(ba2,i)) 
