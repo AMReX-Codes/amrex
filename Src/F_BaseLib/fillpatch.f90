@@ -99,7 +99,7 @@ contains
        ! Collect additional boxes that contribute to periodically filling fine ghost cells.
        !
        do i = 1, nboxes(fine)
-          bx = grow(get_ibox(fine,i),ng)
+          bx = get_ibox(fine,i)
           call box_periodic_shift(fdomain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
           if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
