@@ -27,6 +27,18 @@ subroutine t_knapsack
 !  call read_a_mglib_grid_ba(ba, bx, '../../data/mglib_grids/grids.5034')
   call read_a_mglib_grid_ba(ba, bx, '../../data/mglib_grids/grids.1071')
 
+  if (contains(ba,ba)) then
+     print*, 'ba contains ba'
+  else
+     print*, 'ba does NOT contain ba'
+  endif
+
+  if (contains(ba,bx)) then
+     print*, 'ba contains empty bx'
+  else
+     print*, 'ba does NOT contain empty bx'
+  endif
+
   n = nboxes(ba)
 
   allocate(iweights(n))
