@@ -1298,6 +1298,7 @@ contains
   end function boxarray_box_contains
 
   function boxarray_boxarray_contains(ba1, ba2) result(r)
+    use bl_error_module
     logical :: r
     type(boxarray), intent(in) :: ba1, ba2
 
