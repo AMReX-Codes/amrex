@@ -21,7 +21,7 @@ contains
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
 
-    integer         :: i
+    integer         :: i, j
     type(multifab)  :: ghost, tmpfine
     type(box)       :: bx
     type(boxarray)  :: ba
@@ -30,7 +30,7 @@ contains
     real(kind=dp_t) :: dx(3)
     type(fgassoc)   :: fgasc
 
-    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
+    real(kind=dp_t),     pointer :: src(:,:,:,:), dst(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -73,23 +73,20 @@ contains
                explicit_mapping = get_proc(fine%la))
     call destroy(ba)
     call build(tmpfine, tmpla, nc = nc, ng = 0)
-
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
-       bx  =  get_ibox(tmpfine,i)
-       src => dataptr(fine,    i, bx, icomp, nc)
-       dst => dataptr(tmpfine, i, bx, 1    , nc)
-       dst =  src
-    end do
+    call setval(tmpfine, 0.0_dp_t, all = .true. )
 
     call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
 
     do i = 1, nboxes(fine)
        if ( remote(fine, i) ) cycle
-       bx  =  get_ibox(tmpfine,i)
-       dst => dataptr(fine,    i, bx, icomp, nc)
-       src => dataptr(tmpfine, i, bx, 1    , nc)
-       dst =  src
+       call boxarray_box_diff(ba, get_ibox(tmpfine,i), get_ibox(fine,i))
+       do j = 1, nboxes(ba)
+          bx  =  get_box(ba,j)
+          dst => dataptr(fine,    i, bx, icomp, nc)
+          src => dataptr(tmpfine, i, bx, 1    , nc)
+          dst =  src
+       end do
+       call destroy(ba)
     end do
     !
     ! Finish up.
