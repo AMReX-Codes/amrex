@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.34 2005-10-10 21:25:33 lijewski Exp $
+// $Id: BoxArray.H,v 1.35 2008-07-01 18:00:10 lijewski Exp $
 //
 #include <cstddef>
 
@@ -31,6 +31,10 @@ namespace BoxLib
     //@ManDoc: Makes a BoxArray from the intersection of two BoxArrays.
     //
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
+    //
+    //@ManDoc: Find the ghost cells of a given BoxArray.
+    //
+    BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 }
 
 //

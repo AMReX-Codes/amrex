@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.58 2007-05-04 23:01:10 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.59 2008-07-01 18:00:10 lijewski Exp $
 //
 #include <iostream>
 
@@ -582,6 +582,48 @@ BoxLib::intersect (const BoxArray& lhs,
         bl.catenate(tmp);
     }
     return BoxArray(bl);
+}
+
+BoxList
+BoxLib::GetBndryCells (const BoxArray& ba,
+                       int             ngrow)
+{
+    //
+    // First get list of all ghost cells.
+    //
+    BoxList gcells, bcells;
+
+    for (int i = 0; i < ba.size(); ++i)
+	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+    //
+    // Now strip out intersections with original BoxArray.
+    //
+    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    {
+        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
+
+        if (isects.empty())
+            bcells.push_back(*it);
+        else
+        {
+            //
+            // Collect all the intersection pieces.
+            //
+            BoxList pieces;
+            for (int i = 0; i < isects.size(); i++)
+                pieces.push_back(isects[i].second);
+            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            bcells.catenate(leftover);
+        }
+    }
+    //
+    // Now strip out overlaps.
+    //
+    gcells.clear();
+    gcells = BoxLib::removeOverlap(bcells);
+    bcells.clear();
+
+    return gcells;
 }
 
 std::vector< std::pair<int,Box> >
