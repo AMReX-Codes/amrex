@@ -148,6 +148,40 @@ contains
     end do
   end subroutine ml_layout_build
 
+  subroutine ml_layout_restricted_build(mla, mba, nlevs, pmask)
+
+    type(ml_layout)  , intent(inout) :: mla
+    type(ml_boxarray), intent(in   ) :: mba
+    integer          , intent(in   ) :: nlevs
+    logical, optional                :: pmask(:)
+
+    type(boxarray) :: bac
+    integer :: n
+    logical :: lpmask(mba%dim)
+
+    lpmask = .false.; if (present(pmask)) lpmask = pmask
+    allocate(mla%pmask(mba%dim))
+    mla%pmask  = lpmask
+
+    mla%nlevel = nlevs
+    mla%dim    = mba%dim
+    call copy(mla%mba, mba)
+    allocate(mla%la(mla%nlevel))
+    allocate(mla%mask(mla%nlevel-1))
+    call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
+    do n = 2, mla%nlevel
+       call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
+    end do
+    do n = mla%nlevel-1,  1, -1
+       call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
+       call setval(mla%mask(n), val = .TRUE.)
+       call copy(bac, mba%bas(n+1))
+       call boxarray_coarsen(bac, mba%rr(n,:))
+       call setval(mla%mask(n), .false., bac)
+       call destroy(bac)
+    end do
+  end subroutine ml_layout_restricted_build
+
   subroutine ml_layout_build_la(mla, la)
     type(ml_layout), intent(inout) :: mla
     type(layout), intent(inout) :: la(:)
