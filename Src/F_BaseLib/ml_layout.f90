@@ -165,7 +165,20 @@ contains
 
     mla%nlevel = nlevs
     mla%dim    = mba%dim
-    call copy(mla%mba, mba)
+
+!   Have to copy only nlevs of the mba
+!   Replace 
+!   call copy(mla%mba, mba)
+!   by this...
+    call build(mla%mba,nlevs,mla%dim)
+    mla%mba%pd = mba%pd
+    do n = 1, mla%nlevel-1
+      mla%mba%rr(n,:) = mba%rr(n,:)
+    end do
+    do n = 1, mla%nlevel
+      call copy(mla%mba%bas(n),mba%bas(n))
+    end do
+
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
     call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
