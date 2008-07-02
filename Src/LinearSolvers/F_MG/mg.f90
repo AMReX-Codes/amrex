@@ -437,8 +437,14 @@ contains
        do i = 1, size(ba%bxs)
           bx = ba%bxs(i)
           bx1 = coarsen(bx, rr)
-          if ( any(extent(bx1) < lmn) ) return
-          if ( bx /= refine(bx1, rr)  ) return
+          if ( any(extent(bx1) < lmn) ) then
+             call destroy(ba1)
+             return
+          end if
+          if ( bx /= refine(bx1, rr)  ) then
+             call destroy(ba1)
+             return
+          end if
 
           ! We introduce the volume test to limit the case where we have a 
           !  single grid getting too small -- don't want to limit each grid in
@@ -450,6 +456,9 @@ contains
        rr = rr*rrr
        r  = r + 1
     end do
+
+    call destroy(ba1)
+
   end function max_mg_levels
 
   subroutine mg_tower_v_cycle(mgt, uu, rh)
