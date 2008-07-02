@@ -512,7 +512,6 @@ contains
     end if
     call parallel_barrier()
 
-!    do i = 1, size(mfs)
     do i = 1, nl
        write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
        call fabio_multifab_write_d(mfs(i), sd_name, "Cell", nOutFiles = nOutFiles, lUsingNFiles = lUsingNFiles, prec = prec)
