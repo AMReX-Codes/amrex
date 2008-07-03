@@ -239,7 +239,7 @@ contains
     r = .true.
   end function ml_boxarray_clean
 
-  function ml_boxarray_properly_nested(mba, nproper, pmask) result(r)
+  function ml_boxarray_properly_nested(mba, nproper, pmask, min_level, max_level) result(r)
     use layout_module
     use bl_prof_module
     use bl_error_module
@@ -247,8 +247,11 @@ contains
     type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
     logical, intent(in), optional :: pmask(:)
+    integer, intent(in), optional :: min_level
+    integer, intent(in), optional :: max_level
 
     integer        :: i, j, k, lnp, cnt, shft(3**mba%dim,mba%dim)
+    integer        :: lev_min, lev_max
     logical        ::  lpmask(mba%dim), nodal(mba%dim)
     type(boxarray) :: ba, ba_fine, ba_crse_fine
     type(box     ) :: bx, bxs(3**mba%dim)
@@ -262,35 +265,45 @@ contains
 
     call build(bpt, "ml_boxarray_properly_nested")
 
+    if (present(max_level)) then
+      if (max_level .gt. mba%nlevel) &
+        call bl_error('max_level into ml_boxarray_properly_nested is too big')
+    end if
+
     lnp    = 0;       if ( present(nproper) ) lnp    = nproper
     lpmask = .false.; if ( present(pmask) )   lpmask = pmask
+    lev_min =          1; if (present(min_level)) lev_min = min_level
+    lev_max = mba%nlevel; if (present(max_level)) lev_max = max_level
 
     nodal = .false.
     !
     ! First make sure grids are all contained in problem domain.
     !
-    do i = 1, mba%nlevel
+    do i = lev_min, lev_max
        if (.not. box_contains(mba%pd(i), boxarray_bbox(mba%bas(i)))) then
           call bl_error("boxarray not contained in problem domain")
        end if
     end do
+
     !
     ! Check that level 1 grids cover all of the problem domain.
     !
-     call boxarray_build_bx(ba,mba%pd(1))
-     call boxarray_diff(ba, mba%bas(1))
-     if ( .not. empty(ba) ) then
-        call print(mba%pd(1),'Problem Domain')
-        call print(mba%bas(1),'Level 1 boxarray')
-        call bl_error('Level 1 grids must cover entire domain')
-     end if
-     call destroy(ba)
+    if (lev_min .eq. 1) then
+       call boxarray_build_bx(ba,mba%pd(1))
+       call boxarray_diff(ba, mba%bas(1))
+       if ( .not. empty(ba) ) then
+          call print(mba%pd(1),'Problem Domain')
+          call print(mba%bas(1),'Level 1 boxarray')
+          call bl_error('Level 1 grids must cover entire domain')
+       end if
+       call destroy(ba)
+    end if
     !
     ! We now can assume that the level 1 (lowest level) grids cover the entire domain.
     ! Given this, the level 2 grids are automatically properly nested.
     ! So we start the loop at level 3.
     !
-    do i = 3, mba%nlevel
+    do i = 3, lev_max
        !
        ! This part of the test ignores periodic boundaries.
        !
