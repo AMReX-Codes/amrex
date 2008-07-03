@@ -266,6 +266,8 @@ contains
     call build(bpt, "ml_boxarray_properly_nested")
 
     if (present(max_level)) then
+      if (present(min_level) .and. min_level .eq. max_level) &
+        call bl_error('min_level and max_level the same in ml_boxarray_properly_nested')
       if (max_level .gt. mba%nlevel) &
         call bl_error('max_level into ml_boxarray_properly_nested is too big')
     end if
