@@ -302,52 +302,11 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_const_gravity_coefficients(const std::vector<Geometry>& geom,
-                                           Array< Array<Real> >& xa,
-                                           Array< Array<Real> >& xb)
-{
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      mgt_init_coeffs_lev(&lev);
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-	{
-	  pxa[i] = pxb[i] = 0;
-	}
-
-//    NOTE: the sign convention is because the elliptic solver solves
-//           (alpha MINUS del dot beta grad) phi = RHS
-//           Here alpha is zero and we want to solve del dot grad phi = RHS,
-//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-      Real value_zero = 0.e0;
-      Real value_one  = -1.e0;
-
-      int ngrids = m_grids[lev].size();
-      for (int n = 0; n < ngrids; n++) 
-        {
-           const int* lo = m_grids[lev][n].loVect();
-           const int* hi = m_grids[lev][n].hiVect();
-           mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
-           mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
-#if (BL_SPACEDIM >= 2)
-           mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
-#endif
-#if (BL_SPACEDIM == 3)
-           mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
-#endif
-        }
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb);
-    }
-
-  mgt_finalize_stencil();
-}
-
-void
 MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
                                      Array< PArray<MultiFab> >& area,
                                      Array< Array<Real> >& xa,
-                                     Array< Array<Real> >& xb)
+                                     Array< Array<Real> >& xb,
+                                     int is_constant)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -363,32 +322,43 @@ MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
 //           (alpha MINUS del dot beta grad) phi = RHS
 //           Here alpha is zero and we want to solve del dot grad phi = RHS,
 //             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-      Real value_zero = 0.0;
-      Real value_one  = 1.0;
+      Real value_zero =  0.0;
+      Real value_one  = -1.0;
 
       for (MFIter mfi((area[lev][0])); mfi.isValid(); ++mfi)
         {
-          const FArrayBox* areaFab[BL_SPACEDIM]; 
            int n = mfi.index();
            const int* lo = m_grids[lev][n].loVect();
            const int* hi = m_grids[lev][n].hiVect();
- 
+
            mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
  
-           const int* bxlo = area[lev][0][n].box().loVect();
-           const int* bxhi = area[lev][0][n].box().hiVect();
-	   mgt_set_cfbx(&lev, &n, area[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
+           if (is_constant == 1) {
+              mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
+           } else {
+              const int* bxlo = area[lev][0][n].box().loVect();
+              const int* bxhi = area[lev][0][n].box().hiVect();
+   	      mgt_set_cfbx(&lev, &n, area[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
+           }
  
 #if (BL_SPACEDIM >= 2) 
-           const int* bylo = area[lev][1][n].box().loVect(); 
-           const int* byhi = area[lev][1][n].box().hiVect();
-	   mgt_set_cfby(&lev, &n, area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+           if (is_constant == 1) {
+              mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
+           } else {
+              const int* bylo = area[lev][1][n].box().loVect(); 
+              const int* byhi = area[lev][1][n].box().hiVect();
+   	      mgt_set_cfby(&lev, &n, area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+           }
 #endif
  
 #if (BL_SPACEDIM == 3)
-           const int* bzlo = area[lev][2][n].box().loVect();
-           const int* bzhi = area[lev][2][n].box().hiVect();
-	   mgt_set_cfbz(&lev, &n, area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+           if (is_constant == 1) {
+              mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
+           } else {
+              const int* bzlo = area[lev][2][n].box().loVect();
+              const int* bzhi = area[lev][2][n].box().hiVect();
+	      mgt_set_cfbz(&lev, &n, area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+           }
 #endif
         }
 
