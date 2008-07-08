@@ -131,6 +131,10 @@ contains
        end select
     end do
     !
+    ! Set any valid region that can be covered by a tagged periodically-shifted ghost cell.
+    !
+    call map_periodic(buf)
+    !
     ! Remove any tags outside the problem domain.
     !
     call pd_mask(buf)
@@ -308,6 +312,65 @@ contains
     end subroutine buffer_3d
 
   end subroutine cls_3d_mf
+
+  subroutine map_periodic(mask)
+
+    type(lmultifab), intent(inout) :: mask
+
+    integer                        :: i, j, ii, jj, cnt, proc, shft(3**mask%dim,mask%dim)
+    type(box)                      :: pd, bxs(3**mask%dim), bx_from, bx_to
+    logical                        :: pmask(mask%dim)
+    logical, pointer               :: ap(:,:,:,:), bp(:,:,:,:)
+    logical, allocatable           :: pt(:,:,:,:)
+    integer, parameter             :: tag = 2121
+    type(box_intersector), pointer :: bi(:)
+
+    pd    = get_pd(mask%la)
+    pmask = layout_get_pmask(mask%la)
+
+    if ( .not. any(pmask) ) return
+
+    do i = 1, nboxes(mask)
+       call box_periodic_shift(pd, get_ibox(mask,i), mask%nodal, pmask, mask%ng, shft, cnt, bxs)
+
+       do jj = 1, cnt
+          bi => layout_get_box_intersector(mask%la, bxs(jj))
+
+          do ii = 1, size(bi)
+             j = bi(ii)%i
+
+             if ( remote(mask,i) .and. remote(mask,j) ) cycle
+
+             bx_to   = bi(ii)%bx
+             bx_from = shift(bx_to, -shft(jj,:))
+
+             if ( local(mask,i) .and. local(mask,j) ) then
+                ap => dataptr(mask,j,bx_to)
+                bp => dataptr(mask,i,bx_from)
+                ap = ap .or. bp
+             else if ( local(mask,i) ) then
+                !
+                ! We own index i.  Got to send it to processor owning index j.
+                !
+                bp => dataptr(mask,i,bx_from)
+                call parallel_send(bp, get_proc(mask%la,j), tag)
+             else
+                !
+                ! We own index j.  Got to get index i data from processor owning it.
+                !
+                ap => dataptr(mask,j,bx_to)
+                allocate(pt(1:size(ap,1),1:size(ap,2),1:size(ap,3),1))
+                call parallel_recv(pt, get_proc(mask%la,i), tag)
+                ap = ap .or. pt
+                deallocate(pt)
+             end if
+          end do
+
+          deallocate(bi)
+       end do
+    end do
+
+  end subroutine map_periodic
 
   function cluster_tally(tagboxes, bx, tx, ty, tz, ll, hh, minwidth) result(r)
     type(box) :: r
