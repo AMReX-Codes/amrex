@@ -127,7 +127,6 @@ module boxarray_module
   private :: boxlist_simplify
   private :: boxarray_maxsize_l
   private :: boxlist_box_diff
-!  private :: boxlist_boxlist_diff
   private :: boxlist_build_a
   private :: boxlist_nboxes
   private :: boxlist_verify_dim
