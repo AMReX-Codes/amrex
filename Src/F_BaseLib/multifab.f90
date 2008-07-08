@@ -2487,13 +2487,13 @@ contains
     integer, intent(in)           :: len,face
     integer, intent(in), optional :: nc
 
-    type(box)                                :: ibx, jbx, abx
-    real(dp_t), dimension(:,:,:,:), pointer  :: pdst, psrc
-    integer                                  :: i, j, proc, lnc
-    integer, parameter                       :: tag = 1204
-    type(bl_prof_timer), save                :: bpt
+    type(box)                 :: jbx, abx
+    real(dp_t), pointer       :: pdst(:,:,:,:), psrc(:,:,:,:)
+    integer                   :: i, j, lnc
+    integer, parameter        :: tag = 1204
+    type(bl_prof_timer), save :: bpt
 
-    lnc  = 1;        if ( present(nc)  ) lnc  = nc
+    lnc = 1; if ( present(nc)  ) lnc  = nc
 
     if ( mf_in%nc  < (c_in +lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
     if ( mf_out%nc < (c_out+lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
@@ -2501,28 +2501,25 @@ contains
     call build(bpt, "mf_copy_on_shift")
 
     do j = 1, mf_in%nboxes
-       jbx = get_ibox(mf_in,j)
-       jbx = shift(jbx, len, face)
+       jbx = shift(get_ibox(mf_in,j), len, face)
        do i = 1, mf_out%nboxes
           if ( remote(mf_in,j) .and. remote(mf_out,i) ) cycle
-          ibx = get_ibox(mf_out,i)
-          abx = intersection(ibx, jbx)
+          abx = intersection(get_ibox(mf_out,i), jbx)
           if ( empty(abx) ) cycle
           if ( local(mf_out, i) .and. local(mf_in, j) ) then
              pdst => dataptr(mf_out, i, abx, c_out, lnc)
              psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
              call cpy_d(pdst, psrc)
           else if ( local(mf_in, j) ) then ! must send
-             proc = get_proc(mf_out%la, i)
              psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
-             call parallel_send(psrc, proc, tag)
+             call parallel_send(psrc, get_proc(mf_out%la, i), tag)
           else if ( local(mf_out, i) ) then  ! must recv
-             proc = get_proc(mf_in%la,j)
              pdst => dataptr(mf_out, i, abx, c_out, lnc)
-             call parallel_recv(pdst, proc, tag)
+             call parallel_recv(pdst, get_proc(mf_in%la,j), tag)
           end if
        end do
     end do
+
     call destroy(bpt)
 
   end subroutine multifab_copy_on_shift
