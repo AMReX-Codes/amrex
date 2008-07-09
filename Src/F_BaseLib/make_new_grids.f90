@@ -90,6 +90,8 @@ module make_new_grids_module
 
       call lmultifab_build(tagboxes,mf%la,1,0)
 
+      call setval(tagboxes,.false.)
+
       call tag_boxes(mf,tagboxes,llev)
 
       minwidth = 2
@@ -114,10 +116,11 @@ module make_new_grids_module
       real(kind = dp_t) :: min_eff
       
       call lmultifab_build(boxes,la_fine,1,0)
-      call setval(boxes,.true.,all=.true.)
-     
+
+      call setval(boxes,.false.)
+
+      min_eff  = .7     
       minwidth = 2
-      min_eff = .7
 
       call cluster(ba_crse,boxes,minwidth,buff,min_eff)
 
