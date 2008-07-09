@@ -1,4 +1,4 @@
-module regrid_module
+module make_new_grids_module
 
   use BoxLib
   use omp_module
@@ -125,4 +125,4 @@ module regrid_module
 
     end subroutine buffer
 
-end module regrid_module
+end module make_new_grids_module
