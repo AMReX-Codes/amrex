@@ -104,7 +104,7 @@ module make_new_grids_module
 
       call lmultifab_build(boxes,la_fine,1,0)
 
-      call setval(boxes, .false.)
+      call setval(boxes, .true.)
 
       call cluster(ba_crse,boxes,minwidth,buff,min_eff)
 
