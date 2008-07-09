@@ -15,6 +15,9 @@ module make_new_grids_module
 
   implicit none 
 
+  integer        , parameter, private :: minwidth = 2
+  real(kind=dp_t), parameter, private :: min_eff  = .7
+
   contains
 
     subroutine make_new_grids(la_crse,la_fine,mf,dx_crse,buf_wid,ref_ratio,lev_in,max_grid_size,new_grid)
@@ -31,12 +34,8 @@ module make_new_grids_module
 
        type(box)         :: pd_fine
        type(boxarray)    :: ba_new
-       integer           :: llev,dm,n,i
+       integer           :: llev
 
-       logical :: pmask(mf%dim)
-
-       dm = mf%dim
-       pmask = layout_get_pmask(la_crse)
        llev = 1; if (present(lev_in)) llev = lev_in
 
        call make_boxes(mf,ba_new,dx_crse,buf_wid,llev)
@@ -58,11 +57,11 @@ module make_new_grids_module
  
           pd_fine = refine(layout_get_pd(la_crse),ref_ratio)
    
-          call layout_build_ba(la_fine,ba_new,pd_fine,pmask)
+          call layout_build_ba(la_fine,ba_new,pd_fine,layout_get_pmask(la_crse))
    
-          call destroy(ba_new)
-
        endif
+
+       call destroy(ba_new)
 
     end subroutine make_new_grids
 
@@ -76,26 +75,16 @@ module make_new_grids_module
       integer       , intent(in   ) :: buf_wid
       integer, optional, intent(in   ) :: lev
 
-      type(list_box_node), pointer :: bn
+      integer         :: llev
       type(lmultifab) :: tagboxes
 
-      real(kind = dp_t) :: min_eff
-      integer           :: i, j, k, dm
-      integer           :: minwidth
-      integer           :: llev, ng_cell
-
       llev = 1; if (present(lev)) llev = lev
-      dm = mf%dim
-      ng_cell = mf%ng
 
       call lmultifab_build(tagboxes,mf%la,1,0)
 
-      call setval(tagboxes,.false.)
+      call setval(tagboxes, .false.)
 
       call tag_boxes(mf,tagboxes,llev)
-
-      minwidth = 2
-      min_eff = .7
 
       call cluster(ba_new, tagboxes, minwidth, buf_wid, min_eff)
 
@@ -112,19 +101,16 @@ module make_new_grids_module
       integer          , intent(in   ) :: ref_ratio
 
       type(lmultifab) :: boxes
-      integer         :: minwidth, n
-      real(kind = dp_t) :: min_eff
-      
+
       call lmultifab_build(boxes,la_fine,1,0)
 
-      call setval(boxes,.false.)
-
-      min_eff  = .7     
-      minwidth = 2
+      call setval(boxes, .false.)
 
       call cluster(ba_crse,boxes,minwidth,buff,min_eff)
 
       call boxarray_coarsen(ba_crse, ref_ratio)
+
+      call destroy(boxes)
 
     end subroutine buffer
 
