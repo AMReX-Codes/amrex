@@ -109,7 +109,7 @@ module make_new_grids_module
       integer         :: buff_c
 
       ! Coarsen the (n+1) boxes twice so that we define tagboxes on the (n-1) level.
-      boxes = get_boxarray(la_np1)
+      call copy(boxes,get_boxarray(la_np1))
       call boxarray_coarsen(boxes,ref_ratio*ref_ratio)
 
       call lmultifab_build(tagboxes,la_nm1,1,0)
@@ -124,6 +124,8 @@ module make_new_grids_module
 
       ! Now refine so we're back to the right level
       call boxarray_refine(ba_new,ref_ratio)
+
+      call destroy(tagboxes)
 
       call destroy(boxes)
 
