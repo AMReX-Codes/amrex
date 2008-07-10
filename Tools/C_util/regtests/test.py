@@ -1015,11 +1015,11 @@ def test(argv):
             probinFile = getParam(test + ".probinFile")
             shutil.copy(probinFile, outputDir)
 
-	# sometimes the probin file was in a subdirectory under the
-	# build directory.  Keep only the probin file for latter
-	index = string.rfind(probinFile, "/")
-	if (index > 0):
-	   probinFile = probinFile[index+1:]	   
+            # sometimes the probin file was in a subdirectory under the
+            # build directory.  Keep only the probin file for latter
+            index = string.rfind(probinFile, "/")
+            if (index > 0):
+               probinFile = probinFile[index+1:]	   
 
 
         # if we are using the Helmholtz EOS, we need the input table
