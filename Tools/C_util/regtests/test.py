@@ -238,6 +238,7 @@ def getValidTests(sourceTree):
                 removeList.append(test)
                 continue
 
+
         # needs_helmeos
 	if (not keyIsValid("%s.needs_helmeos" % (test)) ):
             print "ERROR: test %s is missing needs_helmeos parameter.\n" % (test)
@@ -323,10 +324,7 @@ def getLastPlotfile(outputDir, test):
        print "WARNING: test did not produce any output"
        compareFile = ""
     else:
-       if (getParam("main.sourceTree") == "Parallel"):
-          compareFile = "%s_plt%5.5d" % (test, plotNum)
-       else:
-          compareFile = "%s_plt%5.5d" % (test, plotNum)
+       compareFile = "%s_plt%5.5d" % (test, plotNum)
 
     return compareFile
 
@@ -769,33 +767,33 @@ def test(argv):
 
     if (sourceTree == "Parallel"):
     
-            os.chdir(testTopDir)
+       os.chdir(testTopDir)
 
+       print "Generating ChangeLog for Parallel/"
     
-            print "Generating ChangeLog for Parallel/"
-    
-            if (not os.path.isfile("Parallel/cvs2cl.pl")):
-                if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-                    print "WARNING: unable to locate cvs2cl.pl script."
-                    print "         no ChangeLog will be generated"
-                else:
-                    shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
-                    have_cvs2cl = 1
-            else:
-               have_cvs2cl = 1
+       if (not os.path.isfile("Parallel/cvs2cl.pl")):
+          if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+             print "WARNING: unable to locate cvs2cl.pl script."
+             print "         no ChangeLog will be generated"
+          else:
+             shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
+             have_cvs2cl = 1
+       else:
+          have_cvs2cl = 1
 
-            os.chdir("Parallel/")
+       os.chdir("Parallel/")
 
-            if (have_cvs2cl and not no_cvs_update):
-                os.system("./cvs2cl.pl -f ChangeLog.Parallel")
-            else:
-                cf = open("ChangeLog.Parallel", 'w')
-                cf.write("unable to generate ChangeLog")
-                cf.close()
+       if (have_cvs2cl and not no_cvs_update):
+          os.system("./cvs2cl.pl -f ChangeLog.Parallel")
+       else:
+          cf = open("ChangeLog.Parallel", 'w')
+          cf.write("unable to generate ChangeLog")
+          cf.close()
 
-            os.chdir(testTopDir)
+       os.chdir(testTopDir)
 
-
+       shutil.copy("Parallel/ChangeLog.Parallel", webDir)
+            
 
     # fParallel
     have_cvs2cl = 0
@@ -825,7 +823,6 @@ def test(argv):
 
     os.chdir(testTopDir)
    
-    shutil.copy("Parallel/ChangeLog.Parallel", webDir)
     shutil.copy("fParallel/ChangeLog.fParallel", webDir)    
     
 
@@ -905,8 +902,8 @@ def test(argv):
 
             executable = "%s%dd.exe" % (suiteName, dim)
 
-            os.system("gmake -j 4 DIM=%d executable=%s  >& %s/%s.make.out" % 
-                      (dim, executable, outputDir, test))
+            os.system("gmake -j 4 DIM=%d executable=%s >& %s/%s.make.out" %
+                          (dim, executable, outputDir, test))
             
         elif (sourceTree == "fParallel"):
             os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
@@ -990,10 +987,7 @@ def test(argv):
 
            # get the file number to restart from
            restartFileNum = getParam(test + ".restartFileNum")
-	   if (getParam("main.sourceTree") == "Parallel"):
-	      restartFile = "%s_plt%5.5d" % (test, restartFileNum)
-	   else:
-	      restartFile = "%s_plt%5.5d" % (test, restartFileNum)
+           restartFile = "%s_plt%5.5d" % (test, restartFileNum)
 
            print "    restarting from %s ... " % (restartFile)
            
