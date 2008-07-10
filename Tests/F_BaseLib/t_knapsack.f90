@@ -4,6 +4,7 @@ subroutine t_knapsack
   use boxarray_module
   use box_util_module
   use knapsack_module
+  use list_box_module
   integer :: un, np, n, idm
   real(kind=dp_t) :: thresh
   integer :: verbose
@@ -12,7 +13,8 @@ subroutine t_knapsack
   real(kind=dp_t), allocatable :: weights(:)
   integer :: i
   character(len=128) fname
-  type(boxarray) :: ba
+  type(boxarray) :: ba,ba2
+  type(list_box) :: bl1, bl2
   type(box) :: bx
 
   if ( command_argument_count() < 1 ) then
@@ -38,6 +40,34 @@ subroutine t_knapsack
   else
      print*, 'ba does NOT contain empty bx'
   endif
+
+  do i = 1, nboxes(ba)
+     call push_back(bl1,get_box(ba,i))
+  end do
+
+  call list_copy_box(bl2, bl1)
+  call boxlist_intersection(bl2,list_front_box(bl1))
+  call print(list_front_box(bl1), "front")
+  call print(bl2, "intersection with front")
+
+  call list_copy_box(bl2, bl1)
+  call boxlist_intersection(bl2,list_back_box(bl1))
+  call print(list_back_box(bl1), "back")
+  call print(bl2, "intersection with back")
+
+  call list_copy_box(bl2, bl1)
+  call boxlist_intersection(bl2,bl2)
+  print*, 'size(bl2) = ', size(bl2)
+  call build(ba2,bl2)
+  if ( contains(ba,ba2) .and. contains(ba2,ba)) then
+     print*, 'ba and ba2 cover same area'
+  else
+     print*, 'ba and ba2 do NOT cover same area'
+  endif
+
+  call destroy(bl1)
+  call destroy(bl2)
+  call destroy(ba2)
 
   n = nboxes(ba)
 
