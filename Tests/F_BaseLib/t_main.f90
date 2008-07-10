@@ -720,28 +720,7 @@ subroutine t_domain
      print *, 'ba is not clean'
   end if
 
-  call boxarray_decompose(bado, ba)
-
-  call boxarray_sort(bado)
-
-  if ( .not. boxarray_clean(bado%bxs) ) then
-     print *, 'bado, decomposed is not clean'
-  end if
-! call print(bado, "BADO")
-
-  print *, 'volume(bado) = ', volume(bado), ' nboxes = ', nboxes(bado)
   print *, 'volume(ba)   = ', volume(ba), ' nboxes = ', nboxes(ba)
-  call boxarray_simplify(bado)
-  print *, 'volume(bado) = ', volume(bado), ' nboxes = ', nboxes(bado)
-  if ( .not. boxarray_clean(bado%bxs) ) then
-     print *, 'bado is not clean'
-  end if
-
-  if ( .false. ) then
-     call boxarray_pn_domain_bx(bado, ba, pd, 2)
-  end if
-
-! call print(bado, "BADO")
 
   call destroy(bado)
   call destroy(mba)
