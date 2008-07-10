@@ -106,7 +106,7 @@ contains
     num_flag = lmultifab_count(tagboxes)
 
     if ( num_flag == 0 ) then
-       call bl_warn("No cells are flagged/No boxes returned")
+!      call bl_warn("No cells are flagged/No boxes returned")
        if ( present(overall_eff) ) overall_eff = 0
        return
     end if
@@ -130,6 +130,7 @@ contains
           call buffer_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
        end select
     end do
+
     !
     ! Set any valid region that can be covered by a tagged periodically-shifted ghost cell.
     !
