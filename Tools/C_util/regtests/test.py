@@ -374,6 +374,14 @@ def test(argv):
 
             suiteName = < descriptive name (i.e. Castro) >
 
+            MPIcommand = < MPI run command, with placeholders for host,
+                           # of proc, and program command.  Should look
+                           something like :
+                           mpiexec -host @host@ -n @nprocs@ @command@ >
+                           
+            MPIhost = < host for MPI job -- depends on MPI implementation >
+
+            
 
             [Sod-x]
             buildDir = < relative path (from sourceDir) for this problem >
@@ -383,7 +391,9 @@ def test(argv):
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
             dim = < dimensionality: 2 or 3 >
-
+            useMPI = <is this a parallel job? 0 for no, 1 for yes) >
+            numprocs = < # of processors to run on (if parallel job) >
+            
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -417,6 +427,20 @@ def test(argv):
             suiteName-web/.  The benchmark directory will be
             suiteName-benchmarks/.
 
+            To run jobs in Parallel, the following need to be set:
+
+               MPIcommand is the full MPI run command, with placeholders
+               for the hosts to run on, number of processors, and executable.
+               For MPICH-2, this would look like:
+
+                 MPIcommand = mpiexec -host @host@ -n @nprocs@ @command@
+
+               MPIhost is the name of the host to run on -- you may or may
+               not need this, depending on the machine you are running on.
+
+               The number of processors is problem dependent and will be
+               set in the problem specific blocks described below.
+
 
           For a test problem (e.g. [Sod-x]),  
 
@@ -434,15 +458,19 @@ def test(argv):
             
             dim is the dimensionality for the problem.
 
-          Each test problem should get its own [testname] block
-          defining the problem.  The name between the [..] will be how
-          the test is referred to on the webpages.
-
             restartTest = 1 means that this is a restart test.  Instead of
             comparing to a stored benchmark, we will run the test and then
             restart from restartFileNum and run until the end.  The last
             file from the original run and the last from the restart will
             be compared.
+
+            useMPI is set to 1 if the job is parallel.  In this case, you
+            also must specify the number of processors, via numprocs.
+
+          Each test problem should get its own [testname] block
+          defining the problem.  The name between the [..] will be how
+          the test is referred to on the webpages.
+
 
     options:
     
