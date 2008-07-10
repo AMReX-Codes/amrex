@@ -123,9 +123,7 @@ module boxarray_module
      module procedure boxarray_not_equal
   end interface
 
-  private :: boxlist_simplify
   private :: boxarray_maxsize_l
-  private :: boxlist_box_diff
   private :: boxlist_build_a
   private :: boxlist_nboxes
   private :: boxlist_verify_dim
@@ -762,75 +760,6 @@ contains
 
   end function boxarray_maxsize_l
 
-  function boxlist_box_diff(bx1, b2) result(r)
-    type(box), intent(in) :: bx1, b2
-    type(list_box) :: r
-    type(box) :: b1, bn
-    integer, dimension(bx1%dim) :: b2lo, b2hi, b1lo, b1hi
-    integer :: i, dm
-
-    dm = bx1%dim
-    b1 = bx1
-    if ( .not. contains(b2,b1) ) then
-       if ( .not. intersects(b1,b2) ) then
-          call push_back(r, b1)
-       else
-          b2lo = lwb(b2); b2hi = upb(b2)
-          do i = 1, dm
-             b1lo = lwb(b1); b1hi = upb(b1)
-             if ( b1lo(i) < b2lo(i) .AND. b2lo(i) <= b1hi(i) ) then
-                bn = b1
-                call set_lwb(bn, i, b1lo(i))
-                call set_upb(bn, i, b2lo(i)-1)
-                call push_back(r, bn)
-                call set_lwb(b1, i, b2lo(i))
-             end if
-             if ( b1lo(i) <= b2hi(i) .AND. b2hi(i) < b1hi(i) ) then
-                bn = b1
-                call set_lwb(bn, i, b2hi(i)+1)
-                call set_upb(bn, i, b1hi(i))
-                call push_back(r, bn)
-                call set_upb(b1, i, b2hi(i))
-             end if
-          end do
-       end if
-    end if
-
-  end function boxlist_box_diff
-
-  ! r = bx - bxl
-  function boxlist_boxlist_diff(bx, bxl) result(r)
-
-    use bl_prof_module
-
-    type(box), intent(in) :: bx
-    type(list_box), intent(in) :: bxl
-    type(list_box) :: r, bl
-    type(list_box_node), pointer :: blp, bp
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "boxlist_boxlist_diff")
-
-    call push_back(r, bx)
-    blp => begin(bxl)
-    do while ( associated(blp) .AND. .NOT. empty(r) )
-       bp => begin(r)
-       do while ( associated(bp) )
-          if ( intersects(value(bp), value(blp)) ) then
-             bl = boxlist_box_diff(value(bp), value(blp))
-             call splice(r, bl)
-             bp => erase(r, bp)
-          else
-             bp => next(bp)
-          end if
-       end do
-       blp => next(blp)
-    end do
-
-    call destroy(bpt)
-
-  end function boxlist_boxlist_diff
-
   subroutine boxarray_simplify(bxa)
     type(boxarray), intent(inout) :: bxa
     type(list_box) :: bxl
@@ -840,91 +769,6 @@ contains
     call boxarray_build_l(bxa, bxl)
     call destroy(bxl)
   end subroutine boxarray_simplify
-
-  subroutine boxlist_simplify(bxl)
-
-    use bl_prof_module
-
-    type(list_box), intent(inout) :: bxl
-    integer :: dm
-    type(bl_prof_timer), save :: bpt
-
-    if ( size(bxl) == 0 ) return
-
-    call build(bpt, "boxlist_simplify")
-
-    dm = box_dim(front(bxl))
-    !
-    ! TODO -- limit number of simp() calls to 1, 2 or 3?
-    !
-    do while ( simp() > 0 )
-    end do
-
-    call destroy(bpt)
-
-  contains
-
-    function simp() result(cnt)
-      use box_module
-      integer :: cnt
-      integer :: joincnt
-      integer, dimension(dm) :: lo, hi, alo, ahi, blo, bhi
-      type(list_box_node), pointer :: ba, bb
-      type(box) :: bx
-      logical match, canjoin
-      integer :: i
-
-      if ( size(bxl) == 0 ) return
-      cnt = 0
-      ba => begin(bxl)
-
-      do while ( associated(ba) )
-         alo = lwb(value(ba)); ahi = upb(value(ba))
-         match = .FALSE.
-         bb => next(ba)
-         do while ( associated(bb) )
-            blo = lwb(value(bb)); bhi = upb(value(bb))
-            canjoin = .TRUE.
-            joincnt = 0
-            do i = 1, dm
-               if ( alo(i) == blo(i) .AND. ahi(i)==bhi(i) ) then
-                  lo(i) = alo(i)
-                  hi(i) = ahi(i)
-               else if ( alo(i)<=blo(i) .AND. blo(i)<=ahi(i)+1 ) then
-                  lo(i) = alo(i)
-                  hi(i) = max(ahi(i),bhi(i))
-                  joincnt = joincnt + 1
-               else if ( blo(i)<=alo(i) .AND. alo(i)<=bhi(i)+1 ) then
-                  lo(i) = blo(i)
-                  hi(i) = max(ahi(i),bhi(i))
-                  joincnt = joincnt + 1
-               else
-                  canjoin = .FALSE.
-                  exit
-               end if
-            end do
-            if ( canjoin .AND. (joincnt <= 1) ) then
-               ! Modify b and remove a from the list.
-               call build(bx, lo, hi)
-               call set(bb, bx)
-               ba => erase(bxl, ba)
-               cnt = cnt + 1
-               match = .TRUE.
-               exit
-            else
-               ! No match found, try next element.
-               bb => next(bb)
-            end if
-         end do
-         ! If a match was found, a was already advanced in the list.
-         if ( .not. match ) then
-            ba => next(ba)
-         end if
-      end do
-
-    end function simp
-
-  end subroutine boxlist_simplify
 
   subroutine boxarray_print(ba, str, unit, legacy, skip)
     use bl_IO_module
@@ -959,42 +803,6 @@ contains
        end if
     end do
   end subroutine boxarray_print
-
-  subroutine boxlist_print(bl, str, unit, legacy, skip)
-    use bl_IO_module
-    type(list_box), intent(in) :: bl
-    character (len=*), intent(in), optional :: str
-    integer, intent(in), optional :: unit
-    logical, intent(in), optional :: legacy
-    integer, intent(in), optional :: skip
-    type(list_box_node), pointer :: bn
-    integer :: un, cnt
-    un = unit_stdout(unit)
-    call unit_skip(un, skip)
-    write(unit=un, fmt = '("BOXLIST[(*")', advance = 'no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(" ",A)') str
-    else
-       write(unit=un, fmt='()')
-    end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i5)') size(bl)
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" *) {")')
-    cnt = 0
-    bn => begin(bl)
-    do while ( associated(bn) )
-       call print(value(bn), unit=unit, advance = 'NO',  &
-            legacy = legacy, skip = unit_get_skip(skip)+ 1)
-       bn => next(bn)
-       cnt = cnt + 1
-       if ( cnt == size(bl) ) then
-          write(unit=un, fmt='(",")')
-       else
-          write(unit=un, fmt='(",")')
-       end if
-    end do
-  end subroutine boxlist_print
 
   function boxarray_clean(boxes) result(r)
     logical :: r
