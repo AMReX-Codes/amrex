@@ -238,7 +238,6 @@ def getValidTests(sourceTree):
                 removeList.append(test)
                 continue
 
-
         # needs_helmeos
 	if (not keyIsValid("%s.needs_helmeos" % (test)) ):
             print "ERROR: test %s is missing needs_helmeos parameter.\n" % (test)
@@ -265,6 +264,22 @@ def getValidTests(sourceTree):
 
               if (not keyIsValid("%s.restartFileNum" % (test)) ):
                  print "ERROR: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test)
+                 removeList.append(test)
+                 continue
+      
+
+        # useMPI
+        if (not keyIsValid("%s.useMPI" % (test)) ):
+            print "WARNING: test %s didn't set useMPI parameter.  Assuming normal run.\n" % (test)
+            globalParams["%s.useMPI" % (test)] = 0
+        else:
+
+           if (getParam("%s.useMPI" % (test)) ):
+              # if we are doing a parallel test, make sure that the 
+              # number of processors has been defined
+
+              if (not keyIsValid("%s.numprocs" % (test)) ):
+                 print "ERROR: test %s is a parallel test, but did not specify the numprocs parameter.\n" % (test)
                  removeList.append(test)
                  continue
       
@@ -623,6 +638,26 @@ def test(argv):
         else:
             abortTests("ERROR: benchmark directory, %s, does not exist" % (benchDir))
 
+    
+
+    #--------------------------------------------------------------------------
+    # get the general MPI parameters (if available)
+    #--------------------------------------------------------------------------
+    if (not keyIsValid("main.MPIcommand")):
+       print "WARNING: no MPIcommand set"
+       MPIcommand = ""
+
+    else:
+       MPIcommand = getParam("main.MPIcommand")
+
+
+    if (not keyIsValid("main.MPIhost")):
+       print "WARNING: no MPIhost set"
+       MPIhost = ""
+
+    else:
+       MPIhost = getParam("main.MPIhost")
+       
 
     #--------------------------------------------------------------------------
     # get the name of the individual tests 
@@ -773,11 +808,11 @@ def test(argv):
     
        if (not os.path.isfile("Parallel/cvs2cl.pl")):
           if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-             print "WARNING: unable to locate cvs2cl.pl script."
-             print "         no ChangeLog will be generated"
+	     print "WARNING: unable to locate cvs2cl.pl script."
+	     print "         no ChangeLog will be generated"
           else:
-             shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
-             have_cvs2cl = 1
+	     shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
+	     have_cvs2cl = 1
        else:
           have_cvs2cl = 1
 
@@ -787,13 +822,13 @@ def test(argv):
           os.system("./cvs2cl.pl -f ChangeLog.Parallel")
        else:
           cf = open("ChangeLog.Parallel", 'w')
-          cf.write("unable to generate ChangeLog")
-          cf.close()
+	  cf.write("unable to generate ChangeLog")
+	  cf.close()
 
        os.chdir(testTopDir)
 
        shutil.copy("Parallel/ChangeLog.Parallel", webDir)
-            
+
 
     # fParallel
     have_cvs2cl = 0
@@ -859,8 +894,7 @@ def test(argv):
         os.chdir(sourceDir + dir)
 
         if (sourceTree == "Parallel"):
-            os.system("gmake DIM=2 executable=%s2d.exe realclean" % (suiteName) )
-            os.system("gmake DIM=3 executable=%s3d.exe realclean" % (suiteName) )
+	   os.system("gmake realclean")
         else:
             os.system("gmake MPI= realclean NDEBUG=t")
             
@@ -898,12 +932,20 @@ def test(argv):
         print "  building..."
 
         if (sourceTree == "Parallel"):
+
             dim = getParam(test + ".dim")
 
-            executable = "%s%dd.exe" % (suiteName, dim)
-
-            os.system("gmake -j 4 DIM=%d executable=%s >& %s/%s.make.out" %
-                          (dim, executable, outputDir, test))
+	    useMPI = getParam(test + ".useMPI")
+	    
+	    if (useMPI):
+	       executable = "%s%dd.MPI.ex" % (suiteName, dim)
+	       os.system("gmake -j 4 DIM=%d USE_MPI=TRUE executable=%s  >& %s/%s.make.out" % 
+			 (dim, executable, outputDir, test))
+            else:
+	       executable = "%s%dd.ex" % (suiteName, dim)
+	       os.system("gmake -j 4 DIM=%d USE_MPI=false executable=%s  >& %s/%s.make.out" % 
+			 (dim, executable, outputDir, test))
+	       
             
         elif (sourceTree == "fParallel"):
             os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
@@ -916,8 +958,6 @@ def test(argv):
         # copy the necessary files over to the run directory
         #----------------------------------------------------------------------        
         print "  copying files to run directory..."
-
-        inputsFile = getParam(test + ".inputFile")
 
         try: shutil.copy(executable, outputDir)
         except IOError:
@@ -932,13 +972,27 @@ def test(argv):
            print "\n"           
            continue
 
-
+        inputsFile = getParam(test + ".inputFile")
         shutil.copy(inputsFile, outputDir)
+
+	# sometimes the input file was in a subdirectory under the
+	# build directory.  Keep only the input file for latter
+	index = string.rfind(inputsFile, "/")
+	if (index > 0):
+	   inputsFile = inputsFile[index+1:]
+
 
         # if we are a "Parallel" build, we need the probin file
         if (sourceTree == "Parallel"):
             probinFile = getParam(test + ".probinFile")
             shutil.copy(probinFile, outputDir)
+
+	# sometimes the probin file was in a subdirectory under the
+	# build directory.  Keep only the probin file for latter
+	index = string.rfind(probinFile, "/")
+	if (index > 0):
+	   probinFile = probinFile[index+1:]	   
+
 
         # if we are using the Helmholtz EOS, we need the input table
         needs_helmeos = getParam(test + ".needs_helmeos")
@@ -962,9 +1016,31 @@ def test(argv):
 
         os.chdir(outputDir)
 
+	useMPI = getParam(test + ".useMPI")
+	
         if (sourceTree == "Parallel"):
-            os.system("./%s %s amr.plot_file=%s_plt >&  %s.run.out" %
-                      (executable, inputsFile, test, test))
+
+	    if (useMPI):
+	       numprocs = useMPI = getParam(test + ".numprocs")
+
+	       # create the MPI executable
+	       testRunCommand = MPIcommand
+	       testRunCommand = testRunCommand.replace("@host@", MPIhost)
+	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (numprocs))
+
+	       command = "./%s %s amr.plot_file=%s_plt >&  %s.run.out < /dev/null" % \
+			 (executable, inputsFile, test, test)
+	       
+	       testRunCommand = testRunCommand.replace("@command@", command)
+
+	       print testRunCommand
+	       
+               os.system(testRunCommand)
+	       
+            else:
+               os.system("./%s %s amr.plot_file=%s_plt >&  %s.run.out" %
+			 (executable, inputsFile, test, test))	       
+
 
         elif (sourceTree == "fParallel"):
 
@@ -987,7 +1063,7 @@ def test(argv):
 
            # get the file number to restart from
            restartFileNum = getParam(test + ".restartFileNum")
-           restartFile = "%s_plt%5.5d" % (test, restartFileNum)
+	   restartFile = "%s_plt%5.5d" % (test, restartFileNum)
 
            print "    restarting from %s ... " % (restartFile)
            
