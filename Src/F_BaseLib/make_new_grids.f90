@@ -92,23 +92,33 @@ module make_new_grids_module
   
     end subroutine make_boxes
 
-    subroutine buffer(lev,la_fine,ba_crse,ref_ratio,buff)
+    subroutine buffer(lev,la_np1,la_n,la_nm1,ba_new,ref_ratio,buff)
 
       integer          , intent(in   ) :: lev
-      type(layout)     , intent(in   ) :: la_fine
-      type(boxarray)   , intent(inout) :: ba_crse
+      type(layout)     , intent(in   ) :: la_np1
+      type(layout)     , intent(in   ) :: la_n
+      type(layout)     , intent(in   ) :: la_nm1
+      type(boxarray)   , intent(inout) :: ba_new
       integer          , intent(in   ) :: buff
       integer          , intent(in   ) :: ref_ratio
 
-      type(lmultifab) :: boxes
+      type(boxarray)  :: boxes
+      type(lmultifab) :: tagboxes
+      integer         :: buff_c
 
-      call lmultifab_build(boxes,la_fine,1,0)
+      ! Coarsen the (n+1) boxes twice so that we define tagboxes on the (n-1) level.
+      boxes = get_boxarray(la_np1)
+      call boxarray_coarsen(boxes,ref_ratio*ref_ratio)
 
-      call setval(boxes, .true.)
+      call lmultifab_build(tagboxes,la_nm1,1,0)
+      call setval(tagboxes, .false., all=.true.)
+      call setval(tagboxes, .true., boxes)
 
-      call cluster(ba_crse,boxes,minwidth,buff,min_eff)
-
-      call boxarray_coarsen(ba_crse, ref_ratio)
+      buff_c = (buff+1) / (ref_ratio*ref_ratio)
+      call cluster(ba_new,tagboxes,minwidth,buff_c,min_eff)
+       
+      ! Now refine so we're back to the right level
+      call boxarray_refine(ba_new,ref_ratio)
 
       call destroy(boxes)
 
