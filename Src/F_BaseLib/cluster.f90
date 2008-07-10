@@ -130,7 +130,6 @@ contains
           call buffer_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
        end select
     end do
-
     !
     ! Set any valid region that can be covered by a tagged periodically-shifted ghost cell.
     !
@@ -234,7 +233,7 @@ contains
 
     call destroy(lboxes)
     !
-    ! Remove this check after it's clear the parallel implementation is OK.
+    ! TODO - remove this check after it's clear the parallel implementation is OK.
     !
     if ( .not. boxarray_clean(boxes%bxs) ) then
        call bl_error('cls_3d_mf: boxes are NOT disjoint')
@@ -325,6 +324,9 @@ contains
     logical, allocatable           :: pt(:,:,:,:)
     integer, parameter             :: tag = 2121
     type(box_intersector), pointer :: bi(:)
+    type(bl_prof_timer),   save    :: bpt
+
+    call build(bpt, "map_periodic")
 
     pd    = get_pd(mask%la)
     pmask = layout_get_pmask(mask%la)
@@ -370,6 +372,8 @@ contains
           deallocate(bi)
        end do
     end do
+
+    call destroy(bpt)
 
   end subroutine map_periodic
 
