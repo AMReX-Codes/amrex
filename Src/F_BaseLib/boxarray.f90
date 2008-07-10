@@ -85,7 +85,6 @@ module boxarray_module
   end interface
 
   interface boxarray_intersection
-     module procedure boxarray_intersection_ba
      module procedure boxarray_intersection_bx
   end interface
 
@@ -260,7 +259,6 @@ contains
     ba%bxs(1) = bx
     ba%dim = bx%dim
     call boxarray_verify_dim(ba)
-    ! call boxarray_sort(ba)  !! already sorted, one box
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_bx
 
@@ -296,15 +294,13 @@ contains
 
   subroutine boxarray_destroy(ba)
     type(boxarray), intent(inout) :: ba
-!    if ( associated(ba%bxs) ) then
+    if ( associated(ba%bxs) ) then
        call mem_stats_dealloc(boxarray_ms, ba%nboxes)
-       if ( associated(ba%bxs) ) then
-          deallocate(ba%bxs) 
-          ba%bxs => Null()
-       end if
-       ba%dim = 0
-       ba%nboxes = 0
-!    end if
+       deallocate(ba%bxs) 
+       ba%bxs => Null()
+    end if
+    ba%dim = 0
+    ba%nboxes = 0
   end subroutine boxarray_destroy
 
   subroutine boxlist_build_a(bl, ba)
@@ -509,20 +505,7 @@ contains
   end subroutine boxarray_refine_i
   !
   ! This is a very naive implementation.
-  ! You should really be using the box_intersector stuff in layout to do this.
   !
-  subroutine boxarray_intersection_ba(bai, ba)
-    type(boxarray), intent(inout) :: bai
-    type(boxarray), intent(in)    :: ba
-    integer :: i, j
-    do i = 1, ba%nboxes
-       do j = 1, bai%nboxes
-          bai%bxs(j) = intersection(bai%bxs(j), ba%bxs(i))
-       end do
-    end do
-    call boxarray_simplify(bai)
-  end subroutine boxarray_intersection_ba
-
   subroutine boxarray_intersection_bx(ba, bx)
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
@@ -1130,122 +1113,6 @@ contains
     call boxarray_destroy(ba)
     ba = ba1
   end subroutine boxarray_to_domain
-
-  subroutine boxarray_pn_domain_ba(bap, ba, pd, nproper, rr)
-    type(boxarray), intent(out) :: bap
-    type(boxarray), intent(in)  :: ba
-    type(boxarray), intent(in)  :: pd
-    integer, intent(in)         :: nproper
-    integer, intent(in), optional :: rr
-    integer :: rrv(pd%dim)
-    if ( present(rr) ) then
-       rrv = rr
-       call boxarray_pn_domain_ba_v(bap, ba, pd, nproper, rrv)
-    else
-       call boxarray_pn_domain_ba_v(bap, ba, pd, nproper)
-    end if
-  end subroutine boxarray_pn_domain_ba
-
-  subroutine boxarray_pn_domain_bx(bap, ba, pd, nproper, rr)
-    type(boxarray), intent(out) :: bap
-    type(boxarray), intent(in)  :: ba
-    type(box), intent(in)  :: pd
-    integer, intent(in)         :: nproper
-    type(boxarray) :: pda
-    integer, intent(in), optional :: rr
-    call build(pda, pd)
-    call boxarray_pn_domain_ba(bap, ba, pda, nproper, rr)
-    call destroy(pda)
-  end subroutine boxarray_pn_domain_bx
-
-  !! This is the one that actually does things.
-  subroutine boxarray_pn_domain_ba_v(bap, ba, pd, nproper, rr)
-    type(boxarray), intent(out) :: bap
-    type(boxarray), intent(in)  :: ba
-    type(boxarray), intent(in)  :: pd
-    integer, intent(in)         :: nproper
-    type(boxarray) :: cdl, dl
-    integer, intent(in), optional :: rr(:)
-    call copy(dl, ba)
-    if ( present(rr) ) then
-       call boxarray_refine(dl, rr)
-    end if
-    call copy(cdl, pd); call boxarray_diff(cdl,  dl)
-    call boxarray_grow(cdl, nproper)
-    call boxarray_intersection(cdl, pd)
-    call copy(bap, pd); call boxarray_diff(bap, cdl)
-    call destroy(cdl)
-    call destroy(dl)
-  end subroutine boxarray_pn_domain_ba_v
-
-  subroutine boxarray_pn_domain_bx_v(bap, ba, pd, nproper, rr)
-    type(boxarray), intent(out) :: bap
-    type(boxarray), intent(in)  :: ba
-    type(box), intent(in)  :: pd
-    integer, intent(in)         :: nproper
-    type(boxarray) :: pda
-    integer, intent(in), optional :: rr(:)
-    call build(pda, pd)
-    call boxarray_pn_domain_ba_v(bap, ba, pda, nproper, rr)
-    call destroy(pda)
-  end subroutine boxarray_pn_domain_bx_v
-
-  function boxlist_decompose_bx_bx(bx1, bx2) result(r)
-    type(list_box) :: r
-    type(box), intent(in) :: bx1, bx2
-    type(box) :: tb(27)
-    integer :: n, i
-    call box_decompose(tb, n, bx1, bx2)
-    do i = 1, n
-       call push_back(r, tb(i))
-    end do
-  end function boxlist_decompose_bx_bx
-
-  function boxlist_decompose_bl_bx(bl, bx) result(r)
-    type(list_box) :: r
-    type(list_box), intent(in) :: bl
-    type(list_box) :: tbl
-    type(box), intent(in) :: bx
-    type(list_box_node), pointer :: bn
-    bn => begin(bl)
-    do while ( associated(bn) )
-       tbl = boxlist_decompose_bx_bx(value(bn), bx)
-       call splice(r, tbl)
-       bn => next(bn)
-    end do
-  end function boxlist_decompose_bl_bx
-
-  function boxlist_decompose_bl_bl(bl1, bl2) result(r)
-    type(list_box) :: r
-    type(list_box), intent(in) :: bl1, bl2
-    type(list_box) :: tbl
-    type(list_box_node), pointer :: bn
-    if ( empty(bl2) ) then
-       call list_copy_box(r, bl1)
-       return
-    end if
-    bn => begin(bl2)
-    r = boxlist_decompose_bl_bx(bl1, value(bn))
-    bn => next(bn)
-    do while ( associated(bn) )
-       tbl = boxlist_decompose_bl_bx(r, value(bn))
-       call destroy(r)
-       r = tbl
-       bn => next(bn)
-    end do
-  end function boxlist_decompose_bl_bl
-
-  subroutine boxarray_decompose(bad, ba)
-    type(boxarray), intent(out) :: bad
-    type(boxarray), intent(in)  :: ba
-    type(list_box):: bl, tbl
-
-    call boxlist_build_a(bl, ba)
-    tbl = boxlist_decompose_bl_bl(bl, bl)
-    call boxarray_build_copy_l(bad, tbl)
-    call destroy(tbl)
-    call destroy(bl)
-  end subroutine boxarray_decompose
 
   subroutine boxarray_box_corners(ba, bx, ng)
     use bl_error_module
