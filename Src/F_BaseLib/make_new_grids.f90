@@ -80,11 +80,13 @@ module make_new_grids_module
 
       llev = 1; if (present(lev)) llev = lev
 
-      call lmultifab_build(tagboxes,mf%la,1,0)
-
+      call lmultifab_build(tagboxes,mf%la,1,0) 
       call setval(tagboxes, .false.)
 
       call tag_boxes(mf,tagboxes,llev)
+
+      if (lmultifab_count(tagboxes) == 0) &
+          call bl_warn('No points tagged at level ',lev)
 
       call cluster(ba_new, tagboxes, minwidth, buf_wid, min_eff)
 
@@ -114,9 +116,12 @@ module make_new_grids_module
       call setval(tagboxes, .false., all=.true.)
       call setval(tagboxes, .true., boxes)
 
+      if (lmultifab_count(tagboxes) == 0) &
+          call bl_warn('No points tagged at level ',lev)
+
       buff_c = (buff+1) / (ref_ratio*ref_ratio)
       call cluster(ba_new,tagboxes,minwidth,buff_c,min_eff)
-       
+
       ! Now refine so we're back to the right level
       call boxarray_refine(ba_new,ref_ratio)
 
