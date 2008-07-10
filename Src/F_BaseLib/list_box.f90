@@ -128,6 +128,11 @@ module list_box_module
      module procedure list_swap_box
   end interface swap
 
+  interface boxlist_intersection
+     module procedure boxlist_intersection_bx
+     module procedure boxlist_intersection_bl
+  end interface
+
   interface print
      module procedure boxlist_print
   end interface
@@ -694,6 +699,54 @@ contains
     call destroy(bpt)
 
   end function boxlist_boxlist_diff
+
+  subroutine boxlist_intersection_bx(bl, bx)
+    type(list_box), intent(inout) :: bl
+    type(box),      intent(in   ) :: bx
+
+    type(box)                    :: tbx
+    type(list_box)               :: tbl
+    type(list_box_node), pointer :: b
+
+    b => begin(bl)
+    do while ( associated(b) )
+       tbx = intersection(bx, value(b))
+       if ( .not. empty(tbx) ) call push_back(tbl, tbx)
+       b => next(b)
+    end do
+
+    call boxlist_simplify(tbl)
+
+    call destroy(bl)
+
+    bl = tbl
+
+  end subroutine boxlist_intersection_bx
+  !
+  ! This is a very naive N^2 implementation.
+  !
+  subroutine boxlist_intersection_bl(bl1, bl2)
+    type(list_box), intent(inout) :: bl1
+    type(list_box), intent(in   ) :: bl2
+
+    type(list_box)               :: cpbl1, tbl
+    type(list_box_node), pointer :: b
+
+    b => begin(bl2)
+    do while ( associated(b) )
+       call list_copy_box(cpbl1, bl1)
+       call boxlist_intersection_bx(cpbl1, value(b))
+       call splice(tbl, cpbl1)
+       b => next(b)
+    end do
+
+    call boxlist_simplify(tbl)
+
+    call destroy(bl1)
+
+    bl1 = tbl
+
+  end subroutine boxlist_intersection_bl
 
   subroutine boxlist_simplify(bxl)
 
