@@ -11,7 +11,6 @@ module make_new_grids_module
   use box_util_module
   use bl_IO_module
   use cluster_module
-  use ml_layout_module
 
   implicit none 
 
