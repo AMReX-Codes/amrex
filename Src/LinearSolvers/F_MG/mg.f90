@@ -450,7 +450,10 @@ contains
           !  single grid getting too small -- don't want to limit each grid in
           !  the case where there are many grids, so we need a test over the
           !  whole boxarray volume, not just the size of each grid.
-          if ( vol <= 2**dm ) return
+          if ( vol <= 2**dm ) then
+             call destroy(ba1)
+             return
+          end if
 
        end do
        rr = rr*rrr
