@@ -10,7 +10,7 @@ module bl_stream_module
 
   type bl_stream
      integer   :: unit = -1
-     character ::  pb  = achar(0)
+     character ::  pb
      logical   :: lpb  = .False.
   end type
 

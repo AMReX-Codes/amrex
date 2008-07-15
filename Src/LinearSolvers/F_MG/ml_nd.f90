@@ -12,10 +12,9 @@ contains
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
 
     use bl_prof_module
-    use stencil_module
     use ml_util_module
-    use ml_restriction_module
-    use ml_prolongation_module
+    use ml_restriction_module, only: ml_restriction, periodic_add_copy
+    use ml_prolongation_module, only: ml_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)

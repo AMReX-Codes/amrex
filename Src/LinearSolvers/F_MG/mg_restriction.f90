@@ -1,7 +1,6 @@
 module mg_restriction_module
 
   use bl_types
-  use stencil_module
   use stencil_nodal_module
 
   implicit none
