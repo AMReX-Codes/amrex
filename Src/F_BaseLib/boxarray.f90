@@ -836,7 +836,7 @@ contains
        return
     end if
     call build(bpt, "ba_add_clean")
-    call build(bl, ba%bxs)
+    call list_build_v_box(bl, ba%bxs)
     call push_back(check, bx)
     lp => begin(bl)
     do while ( associated(lp) )
@@ -856,7 +856,7 @@ contains
     call splice(bl, check)
     call boxlist_simplify(bl)
     call boxarray_build_copy_l(ba, bl)
-    call destroy(bl)
+    call list_destroy_box(bl)
     call destroy(bpt)
 
   end subroutine boxarray_add_clean
@@ -882,10 +882,10 @@ contains
     
     if ( empty(ba) ) call boxarray_build_bx(ba, bxs(1))
 
-    call build(bl, ba%bxs)
+    call list_build_v_box(bl, ba%bxs)
 
     do i = 1, size(bxs)
-       call build(check, bxs(i:i))
+       call list_build_v_box(check, bxs(i:i))
        lp => begin(bl)
        do while ( associated(lp) )
           cp => begin(check)
@@ -907,7 +907,7 @@ contains
     if ( lsimplify ) call boxlist_simplify(bl)
 
     call boxarray_build_copy_l(ba, bl)
-    call destroy(bl)
+    call list_destroy_box(bl)
     call destroy(bpt)
 
   end subroutine boxarray_add_clean_boxes
