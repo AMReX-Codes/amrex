@@ -1250,10 +1250,10 @@ contains
     do i = 1, nboxes(la)
        call push_back(bltmp, box_nodalize(get_box(bxa, i), nodal))
     end do
-    call build(batmp, bltmp, sort = .false.)
-    call destroy(bltmp)
+    call boxarray_build_l(batmp, bltmp, sort = .false.)
+    call list_destroy_box(bltmp)
     call build(latmp, batmp, explicit_mapping = get_proc(la))
-    call destroy(batmp)
+    call boxarray_destroy(batmp)
 
     bxasc%nodal = nodal
 
@@ -1322,7 +1322,7 @@ contains
           end do
           deallocate(bi)
        end do
-       call destroy(bxai)
+       call boxarray_destroy(bxai)
     end do
 
     call destroy(latmp)
@@ -1575,12 +1575,12 @@ contains
        do j = 1, nboxes(fgasc%ba)
           call push_back(bl, get_box(fgasc%ba,j))
        end do
-       call destroy(fgasc%ba)
+       call boxarray_destroy(fgasc%ba)
     end do
 
-    call build(fgasc%ba, bl, sort = .false.)
+    call boxarray_build_l(fgasc%ba, bl, sort = .false.)
 
-    call destroy(bl)
+    call list_destroy_box(bl)
 
     do i = 1, nboxes(fgasc%ba)
        bx = get_box(fgasc%ba,i)
@@ -1591,14 +1591,14 @@ contains
        deallocate(bi)
        leftover = boxlist_boxlist_diff(bx, pieces)
        call splice(bl, leftover)
-       call destroy(pieces)
+       call list_destroy_box(pieces)
     end do
     !
     ! Remove any overlaps on remaining cells.
     !
-    call destroy(fgasc%ba)
-    call build(fgasc%ba, bl, sort = .false.)
-    call destroy(bl)
+    call boxarray_destroy(fgasc%ba)
+    call boxarray_build_l(fgasc%ba, bl, sort = .false.)
+    call list_destroy_box(bl)
     call boxarray_to_domain(fgasc%ba)
     !
     ! Chop things up a bit so no one processor gets too much data.
@@ -2120,10 +2120,10 @@ contains
     do i = 1, nboxes(la_src)
        call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
     end do
-    call build(batmp, bltmp, sort = .false.)
-    call destroy(bltmp)
+    call boxarray_build_l(batmp, bltmp, sort = .false.)
+    call list_destroy_box(bltmp)
     call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
-    call destroy(batmp)
+    call boxarray_destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
@@ -2362,10 +2362,10 @@ contains
     do i = 1, nboxes(la_src)
        call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
     end do
-    call build(batmp, bltmp, sort = .false.)
-    call destroy(bltmp)
+    call boxarray_build_l(batmp, bltmp, sort = .false.)
+    call list_destroy_box(bltmp)
     call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
-    call destroy(batmp)
+    call boxarray_destroy(batmp)
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
