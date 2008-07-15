@@ -260,7 +260,6 @@ contains
              call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
           end do
 
-          call flush(fd)
           call fabio_close(fd)
 
           wakeUpPID = parallel_myproc() + nOutFilesLoc

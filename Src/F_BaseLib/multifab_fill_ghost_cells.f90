@@ -10,7 +10,6 @@ contains
 
     use setbc_module
     use layout_module
-    use bl_prof_module
     use bl_constants_module
     use multifab_physbc_module
 

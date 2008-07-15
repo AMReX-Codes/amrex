@@ -824,7 +824,6 @@ contains
   subroutine boxarray_add_clean(ba, bx)
 
     use bl_prof_module
-    use list_box_module
 
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
@@ -865,7 +864,6 @@ contains
   subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
 
     use bl_prof_module
-    use list_box_module
 
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bxs(:)

@@ -476,7 +476,7 @@ contains
 
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
     use bl_prof_module
-    use itsol_module
+    use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in) :: rh
@@ -542,7 +542,7 @@ contains
   ! computes dd = ss * uu - ff
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
     use bl_prof_module
-    use itsol_module
+    use itsol_module, only: itsol_stencil_apply
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
@@ -610,7 +610,8 @@ contains
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
     use bl_prof_module
-    use mg_restriction_module
+    use mg_restriction_module, only: cc_restriction_1d, nodal_restriction_1d, cc_restriction_2d, &
+         nodal_restriction_2d, cc_restriction_3d, nodal_restriction_3d
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     type(imultifab), intent(in)   :: mm_fine
@@ -694,7 +695,9 @@ contains
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
     use bl_prof_module
-    use mg_smoother_module
+    use mg_smoother_module, only: gs_line_solve_1d, jac_smoother_2d, jac_smoother_3d, &
+         gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, nodal_smoother_2d, nodal_smoother_3d, &
+         gs_rb_smoother_2d,  gs_rb_smoother_3d
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: ff
@@ -865,7 +868,7 @@ contains
 
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
     use bl_prof_module
-    use mg_smoother_module
+    use mg_smoother_module, only: jac_smoother_1d, jac_smoother_2d, jac_smoother_3d
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: ff
