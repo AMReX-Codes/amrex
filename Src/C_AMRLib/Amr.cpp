@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.172 2007-10-04 22:31:27 lijewski Exp $
+// $Id: Amr.cpp,v 1.173 2008-07-16 17:48:57 almgren Exp $
 //
 #include <winstd.H>
 
@@ -288,6 +288,9 @@ Amr::Amr ()
     n_proper         = 1;
     max_grid_size    = (BL_SPACEDIM == 2) ? 128 : 32;
 
+    // This is the default for the format of plotfile and checkpoint names.
+    file_name_digits = 5;
+
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
         isPeriodic[i] = false;
@@ -311,6 +314,8 @@ Amr::Amr ()
     pp.query("mffile_nstreams", mffile_nstreams);
     pp.query("probinit_natonce", probinit_natonce);
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
+
+    pp.query("file_name_digits", file_name_digits);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -727,7 +732,7 @@ Amr::writePlotFile (const std::string& root,
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string pltfile = BoxLib::Concatenate(root,num);
+    const std::string pltfile = BoxLib::Concatenate(root,num,file_name_digits);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << std::endl;
@@ -1260,7 +1265,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0]);
+    const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
