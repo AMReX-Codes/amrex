@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.120 2008-07-09 22:30:44 almgren Exp $
+# Make.defs $Id: Make.defs,v 1.121 2008-07-16 22:48:41 marc Exp $
 #
 
 #
@@ -98,6 +98,8 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring nugigan, $(UNAMEN)), nugigan)
     WHICHLINUX := NUGIGAN
+  else ifeq ($(findstring gigan, $(UNAMEN)), gigan)
+    WHICHLINUX := GIGAN
   endif
   ifeq ($(findstring jvn, $(UNAMEN)), jvn)
     WHICHLINUX := JVN
