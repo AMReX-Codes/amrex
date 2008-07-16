@@ -2067,13 +2067,24 @@ contains
     bclo = stencil_bc_type(mask( 1),1,-1)
     bchi = stencil_bc_type(mask(nx),1,+1)
 
-    call stencil_bndry_aaa(order, nx, 1, -1, mask(1), &
-         ss(1,0), ss(1,1), ss(1,2), ss(1,XBC), &
-         beta(1,1), beta(2,1), xa(1), xb(1), dh(1), bclo, bchi)
+    i = 1
+    if (bclo .eq. BC_INT) then
+       ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
+    else
+       call stencil_bndry_aaa(order, nx, 1, -1, mask(1), &
+            ss(1,0), ss(1,1), ss(1,2), ss(1,XBC), &
+            beta(1,1), beta(2,1), xa(1), xb(1), dh(1), bclo, bchi)
+    end if
+
     if ( nx > 1 ) then
-       call stencil_bndry_aaa(order, nx, 1, 1, mask(nx), &
-            ss(nx,0), ss(nx,1), ss(nx,2), ss(nx,XBC), &
-            beta(nx,1), beta(nx+1,1), xa(1), xb(1), dh(1), bclo, bchi)
+       i = nx
+       if (bchi .eq. BC_INT) then
+          ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
+       else
+          call stencil_bndry_aaa(order, nx, 1, 1, mask(nx), &
+               ss(nx,0), ss(nx,1), ss(nx,2), ss(nx,XBC), &
+               beta(nx,1), beta(nx+1,1), xa(1), xb(1), dh(1), bclo, bchi)
+       end if
     end if
 
     do i = 1, nx
