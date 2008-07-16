@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.58 2008-02-28 17:48:22 lijewski Exp $
+// $Id: Utility.H,v 1.59 2008-07-16 17:40:24 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -54,7 +54,8 @@ namespace BoxLib
     //@ManDoc: Returns rootNNNN where NNNN == num.
     //
     std::string Concatenate (const std::string& root,
-                             int                num);
+                             int                num,
+                             int                mindigits = 5);
 
     /*@ManDoc:
       Creates the specified directories.  `path' may be either a full pathname
