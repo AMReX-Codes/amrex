@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.35 2007-07-05 17:02:00 lijewski Exp $
+// $Id: Amr.H,v 1.36 2008-07-16 17:48:57 almgren Exp $
 //
 
 #include <fstream>
@@ -342,6 +342,7 @@ protected:
     int              last_plotfile;   // Step number of previous plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
+    int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
     StationData      station;
     int              verbose;
