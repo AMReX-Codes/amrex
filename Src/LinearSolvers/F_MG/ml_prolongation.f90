@@ -577,7 +577,7 @@ contains
 !   This is the same interpolation as done in IAMR.
     if (side == 1 .or. side == -1) then
       i  = lo(1)
-      ic = i / ir(1)
+      ic = loc(1)
 
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do jc = lo(2)/ir(2), hi(2)/ir(2)
@@ -625,7 +625,7 @@ contains
     else if (side == 2 .or. side == -2) then
 
       j  = lo(2)
-      jc = j / ir(2)
+      jc = loc(2)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (ic > loc(1) .and. ic < hic(1)) then
@@ -672,7 +672,7 @@ contains
     else if (side == 3 .or. side == -3) then
 
       k  = lo(3)
-      kc = k / ir(3)
+      kc = loc(3)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (jc > loc(2) .and. jc < hic(2)) then
