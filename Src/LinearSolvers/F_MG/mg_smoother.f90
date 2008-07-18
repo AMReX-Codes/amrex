@@ -40,15 +40,16 @@ contains
 
       if ( hi(1) > lo(1) ) then
          if (bc_skewed(mm(i),1,+1)) then
-            print *,'SKEWED AT I ',i
             r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i+2)
          else if (bc_skewed(mm(i),1,-1)) then
-            print *,'SKEWED AT I ',i
             r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i-2)
          end if
       end if
 
     end do
+
+    r_ls(0)           = r_ls(0)           - ss(lo(1),2) * uu(lo(1)-1)
+    r_ls(hi(1)-lo(1)) = r_ls(hi(1)-lo(1)) - ss(hi(1),1) * uu(hi(1)+1)
 
     call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
  
@@ -57,6 +58,92 @@ contains
     end do
 
   end subroutine gs_line_solve_1d
+
+  subroutine gs_rb_smoother_1d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+    use bl_prof_module
+    integer, intent(in) :: ng
+    integer, intent(in) :: lo(:)
+    integer, intent(in) :: n
+    real (kind = dp_t), intent(in) :: omega
+    real (kind = dp_t), intent(in) :: ff(lo(1):)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
+    real (kind = dp_t), intent(in) :: ss(lo(1):,0:)
+    integer            ,intent(in) :: mm(lo(1):)
+    logical, intent(in), optional :: skwd
+    integer :: j, i, hi(size(lo)), ioff
+    integer, parameter ::  XBC = 3
+    real (kind = dp_t) :: dd
+    logical :: lskwd
+    real(dp_t) :: lr(2)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_1d")
+
+    hi = ubound(uu)-ng
+
+    if (present(skwd) ) then
+       lskwd = skwd
+    else 
+       lskwd = .false.
+       if (bc_skewed(mm(lo(1)),1,+1)) lskwd = .true.
+       if (bc_skewed(mm(hi(1)),1,-1)) lskwd = .true.
+    end if
+
+    !! assumption: ss(i,0) vanishes only for 1x1 problems
+    if ( all(lo == hi) ) then
+       i = lo(1)
+       if ( mod(i,2) == n ) then
+          if ( abs(ss(i,0)) .gt. 0.0_dp_t ) then
+             dd = ss(i,0)*uu(i) &
+                + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1) 
+             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          end if
+       end if
+       call destroy(bpt)
+       return
+    end if
+
+    !! Assumption; bc_skewed is never true if hi==lo
+    if ( lskwd ) then
+
+       if (bc_skewed(mm(lo(1)),1,+1)) lr(1) = uu(lo(1)+2)
+       if (bc_skewed(mm(hi(1)),1,-1)) lr(2) = uu(hi(1)-2)
+
+       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+
+             dd = ss(i,0)*uu(i) &
+                  + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1)
+             if ( i == lo(1) .or. i == hi(1)) then
+                if (bc_skewed(mm(i),1,+1)) then
+                   dd = dd + ss(i,XBC)*lr(1)
+                end if
+                if (bc_skewed(mm(i),1,-1)) then
+                   dd = dd + ss(i,XBC)*lr(2)
+                end if
+             end if
+             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          end do
+       !$OMP END PARALLEL DO
+
+    else
+
+       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          if (abs(ss(i,0)) .gt. 0.0_dp_t) then
+            dd = ss(i,0)*uu(i) &
+                 + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1) 
+            uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          end if
+       end do
+       !$OMP END PARALLEL DO
+
+    end if
+
+    call destroy(bpt)
+
+  end subroutine gs_rb_smoother_1d
 
   subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
     use bl_prof_module
