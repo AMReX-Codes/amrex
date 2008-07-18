@@ -138,6 +138,9 @@ contains
 
     call build(bpt, "mgt_build")
 
+    ! Need to set this here because so many things below depend on it.
+    mgt%dim = get_dim(la)
+
     ! Paste in optional arguments
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
@@ -204,7 +207,6 @@ contains
 
     n = mgt%nlevels
     mgt%nboxes = nboxes(la)
-    mgt%dim    = get_dim(la)
 
     allocate(mgt%face_type(mgt%nboxes,mgt%dim,2))
     allocate(mgt%skewed(mgt%nlevels,mgt%nboxes))
@@ -695,7 +697,7 @@ contains
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
     use bl_prof_module
-    use mg_smoother_module, only: gs_line_solve_1d, jac_smoother_2d, jac_smoother_3d, &
+    use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, jac_smoother_3d, &
          gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, nodal_smoother_2d, nodal_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d
     type(mg_tower), intent(inout) :: mgt
@@ -744,9 +746,14 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
-                      if (nn .eq. 0) then
-                        call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                             mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
+                      if (mgt%nboxes .eq. 1) then
+                        if (nn .eq. 0) then
+                          call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                               mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
+                        end if
+                      else
+                        call gs_rb_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                             mp(:,1,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                       end if
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
@@ -1114,10 +1121,8 @@ contains
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
           nrm1 = norm_inf(uu)
-          if ( parallel_IOProcessor() ) then
-!            print *,'DN: NORM AFTER RELAX, CC, UU ',lev, nrm, nrm1
+          if ( parallel_IOProcessor() ) &
              print *,'DN: NORM AFTER RELAX ',lev, nrm
-          end if
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
