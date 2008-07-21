@@ -367,7 +367,7 @@ def test(argv):
             [main]
             sourceDir      = < directory above Parallel/ and fParallel/ >
             testTopDir     = < full path to test output directory >
-            compareToolDir = < full path to the util/Convergence/ directory >
+            compareToolDir = < full path to the fParallel/data_processing/ directory >
             helmeosDir     = < full path to helm_table.dat >
 
             sourceTree = < Parallel or fParallel -- what type is it? >
@@ -758,7 +758,7 @@ def test(argv):
 
     os.chdir(testTopDir)
     
-    if (not no_cvs_update):
+    if (not no_cvs_update and sourceTree == "Parallel"):
 
         # Parallel
         print "cvs update Parallel"
@@ -895,16 +895,11 @@ def test(argv):
     print "building the comparison tools..."
 
     os.chdir(compareToolDir)
-    os.system("gmake -j 4 EBASE=DiffSameGrid2 DIM=2 executable=DiffSameGrid2_2d.exe " +
-              "COMP=Intel FCOMP=Intel >& " +
-              fullTestDir + "/make_difftool_2d.out")
 
-    os.system("gmake -j 4 EBASE=DiffSameGrid2 DIM=3 executable=DiffSameGrid2_3d.exe " +
-              "COMP=Intel FCOMP=Intel >& " +
-              fullTestDir + "/make_difftool_3d.out")
+    os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI=")
+    executable = "fcompare.Linux.Intel.exe"
 
-    shutil.copy("DiffSameGrid2_2d.exe", fullTestDir)
-    shutil.copy("DiffSameGrid2_3d.exe", fullTestDir)
+    shutil.copy(executable, fullTestDir + "/fcompare.exe")
     
     print "\n"
 
@@ -1138,7 +1133,7 @@ def test(argv):
                     print "    benchmark file: ", benchFile
                     
                     dim = getParam(test + ".dim")
-                    command = "../DiffSameGrid2_%dd.exe norm=0 infile1=%s infile2=%s >> %s.compare.out 2>&1" % (dim, benchFile, compareFile, test)
+                    command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test)
 
                     cf = open("%s.compare.out" % (test), 'w')
                     cf.write(command)
