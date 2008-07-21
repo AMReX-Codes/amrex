@@ -758,69 +758,71 @@ def test(argv):
 
     os.chdir(testTopDir)
     
-    if (not no_cvs_update and sourceTree == "Parallel"):
+    if (not no_cvs_update):
 
-        # Parallel
-        print "cvs update Parallel"
-        os.system("cvs update Parallel >& cvs.Parallel.out")
-        print "\n"
+       if (sourceTree == "Parallel"):
+ 
+          # Parallel
+	  print "cvs update Parallel"
+	  os.system("cvs update Parallel >& cvs.Parallel.out")
+	  print "\n"
         
-        # make sure that the cvs update was not aborted -- this can happen, for
-        # instance, if the CVSROOT was not defined
-        try:
-            cf = open("cvs.Parallel.out", 'r')
+	  # make sure that the cvs update was not aborted -- this can happen, for
+	  # instance, if the CVSROOT was not defined
+	  try:
+	     cf = open("cvs.Parallel.out", 'r')
 
-        except IOError:
-            abortTests("ERROR: no CVS output")
+          except IOError:
+	     abortTests("ERROR: no CVS output")
 
-        else:
-            cvsLines = cf.readlines()
+          else:
+             cvsLines = cf.readlines()
 
-            cvsFailed = 0
+             cvsFailed = 0
     
-            for line in cvsLines:
+             for line in cvsLines:
                 if (string.find(line, "update aborted") >= 0):
 		    cvsFailed = 1
 		    break
         
-        cf.close()
+          cf.close()
 
-        if (cvsFailed):
-	    abortTests("ERROR: cvs update was aborted. See cvs.Parallel.out for details")
+          if (cvsFailed):
+	     abortTests("ERROR: cvs update was aborted. See cvs.Parallel.out for details")
         
-        shutil.copy("cvs.Parallel.out",  webDir)
+          shutil.copy("cvs.Parallel.out",  webDir)
 
 
-	# fParallel
-        print "cvs update fParallel"
-        os.system("cvs update fParallel >& cvs.fParallel.out")
-        print "\n"
+       # fParallel
+       print "cvs update fParallel"
+       os.system("cvs update fParallel >& cvs.fParallel.out")
+       print "\n"
         
-        # make sure that the cvs update was not aborted -- this can happen, for
-        # instance, if the CVSROOT was not defined
-        try:
-            cf = open("cvs.fParallel.out", 'r')
+       # make sure that the cvs update was not aborted -- this can happen, for
+       # instance, if the CVSROOT was not defined
+       try:
+          cf = open("cvs.fParallel.out", 'r')
 
-        except IOError:
-            abortTests("ERROR: no CVS output")
+       except IOError:
+          abortTests("ERROR: no CVS output")
 
-        else:
-            cvsLines = cf.readlines()
+       else:
+          cvsLines = cf.readlines()
 
-            cvsFailed = 0
+          cvsFailed = 0
     
-            for line in cvsLines:
-                if (string.find(line, "update aborted") >= 0):
-		    cvsFailed = 1
-		    break
+          for line in cvsLines:
+             if (string.find(line, "update aborted") >= 0):
+		cvsFailed = 1
+		break
         
-        cf.close()
+          cf.close()
 
-        if (cvsFailed):
-	    abortTests("ERROR: cvs update was aborted.  See cvs.fParallel.out for details")
+          if (cvsFailed):
+	     abortTests("ERROR: cvs update was aborted.  See cvs.fParallel.out for details")
 
-        shutil.copy("cvs.fParallel.out", webDir)
-
+          shutil.copy("cvs.fParallel.out", webDir)
+    
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
