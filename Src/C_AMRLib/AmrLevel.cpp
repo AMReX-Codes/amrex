@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.105 2007-10-04 22:31:27 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.106 2008-07-23 21:38:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -802,6 +802,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 
         BL_ASSERT(DComp == m_ncomp);
     }
+
+    m_fph.clear();
     //
     // Call hack to touch up fillPatched data
     //
@@ -1180,22 +1182,14 @@ void
 FillPatchIterator::operator++ ()
 {
     MFIter::operator++();
-
-    for (int i = 0; i < m_fph.size(); i++) ++m_fph[i];
 }
 
 bool
 FillPatchIterator::isValid ()
 {
     BL_ASSERT(m_ncomp > 0);
-    BL_ASSERT(m_fph.size() == m_range.size());
 
     if (!MFIter::isValid()) return false;
-
-    for (int i = 0; i < m_fph.size(); i++)
-    {
-        BL_ASSERT(m_fph[i].isValid() == true);
-    }
 
     return true;
 }
