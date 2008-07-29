@@ -4287,7 +4287,6 @@ contains
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
-          ap => dataptr(a, i)
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
           ap => dataptr(a, i, get_ibox(a, i))
