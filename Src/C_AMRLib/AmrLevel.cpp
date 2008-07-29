@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.106 2008-07-23 21:38:57 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.107 2008-07-29 16:28:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -449,7 +449,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
-    m_fph(PArrayManage),
     m_ncomp(0)
 {}
 
@@ -491,7 +490,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
-    m_fph(PArrayManage),
     m_ncomp(ncomp)
 {
     BL_ASSERT(scomp >= 0);
@@ -759,51 +757,39 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_ncomp = ncomp;
     m_range = desc.sameInterps(scomp,ncomp);
 
-    m_fph.resize(m_range.size());
+    BoxArray nba = m_leveldata.boxArray();
 
-    for (int i = 0; i < m_range.size(); i++)
-    {
-        const int SComp = m_range[i].first;
-        const int NComp = m_range[i].second;
-
-        m_fph.set(i,new FillPatchIteratorHelper(m_amrlevel,
-                                                m_leveldata,
-                                                boxGrow,
-                                                time,
-                                                index,
-                                                SComp,
-                                                NComp,
-                                                desc.interp(SComp)));
-    }
-
-    BoxList bl(m_leveldata.boxArray()[0].ixType());
-
-    for (int i = 0; i < m_leveldata.boxArray().size(); i++)
-        bl.push_back(BoxLib::grow(m_leveldata.boxArray()[i], boxGrow));
-
-    BoxArray nba(bl);
+    nba.grow(boxGrow);
 
     m_fabs.define(nba,m_ncomp,0,Fab_allocate);
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
-    //
-    // Now fill all our FABs.
-    //
-    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
+
+    FillPatchIteratorHelper* fph = 0;
+
+    for (int i = 0, DComp = 0; i < m_range.size(); i++)
     {
-        int DComp = 0;
+        const int SComp = m_range[i].first;
+        const int NComp = m_range[i].second;
 
-        for (int i = 0; i < m_range.size(); i++)
+        fph = new FillPatchIteratorHelper(m_amrlevel,
+                                          m_leveldata,
+                                          boxGrow,
+                                          time,
+                                          index,
+                                          SComp,
+                                          NComp,
+                                          desc.interp(SComp));
+
+        for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
         {
-            m_fph[i].fill(m_fabs[mfi.index()],DComp,mfi.index());
-
-            DComp += m_range[i].second;
+            fph->fill(m_fabs[mfi.index()],DComp,mfi.index());
         }
 
-        BL_ASSERT(DComp == m_ncomp);
-    }
+        DComp += NComp;
 
-    m_fph.clear();
+        delete fph;
+    }
     //
     // Call hack to touch up fillPatched data
     //
