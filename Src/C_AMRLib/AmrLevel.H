@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.57 2006-08-28 18:28:42 lijewski Exp $
+// $Id: AmrLevel.H,v 1.58 2008-07-29 16:28:08 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -435,7 +435,6 @@ class FillPatchIterator
     AmrLevel&                         m_amrlevel;
     MultiFab&                         m_leveldata;
     std::vector< std::pair<int,int> > m_range;
-    PArray<FillPatchIteratorHelper>   m_fph;
     MultiFab                          m_fabs;
     int                               m_ncomp;
 };
