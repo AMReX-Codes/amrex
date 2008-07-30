@@ -185,6 +185,8 @@ contains
     if ( .not. nodal_flag ) then
        if ( .not. present(omega) ) then
           select case ( mgt%dim )
+          case (1)
+             mgt%omega = 0.6_dp_t
           case (2)
              select case (mgt%smoother)
              case ( MG_SMOOTHER_JACOBI )
@@ -732,7 +734,9 @@ contains
 
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )
+
        case ( MG_SMOOTHER_GS_RB )
+
           do nn = 0, 1
              call multifab_fill_boundary(uu, cross = lcross)
              !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
