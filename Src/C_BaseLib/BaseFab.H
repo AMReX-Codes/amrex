@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.61 2007-04-20 02:48:33 lijewski Exp $
+// $Id: BaseFab.H,v 1.62 2008-07-30 00:54:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -800,7 +800,7 @@ protected:
     //
     // Deallocates memory for the `BaseFab<T>'.
     //
-    void undefine ();
+//    void undefine ();
     //
     // The function called by BaseFab copy operations.
     //
@@ -1144,33 +1144,41 @@ BaseFab<T>::define ()
     T* ptr = dptr;
 
     for (int i = 0; i < truesize; i++, ptr++)
+    {
         new (ptr) T;
-
+    }
     BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
 
     if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+    {
         BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
+    }
 }
 
+#if 0
 template <class T>
 void
 BaseFab<T>::undefine ()
 {
-    //
-    // Call T::~T() on the to-be-destroyed memory.
-    //
-    T* ptr = dptr;
-
-    for (int i = 0; i < truesize; i++, ptr++)
+    if (dptr)
     {
-        ptr->~T();
+        //
+        // Call T::~T() on the to-be-destroyed memory.
+        //
+        T* ptr = dptr;
+
+        for (int i = 0; i < truesize; i++, ptr++)
+        {
+            ptr->~T();
+        }
+        BoxLib::The_Arena()->free(dptr);
+
+        dptr = 0;
+
+        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
     }
-    BoxLib::The_Arena()->free(dptr);
-
-    dptr = 0;
-
-    BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
 }
+#endif
 
 template <class T>
 BaseFab<T>::BaseFab ()
@@ -1252,7 +1260,8 @@ BaseFab<T>::resize (const Box& b,
     }
     else if (nvar*numpts > truesize)
     {
-        undefine();
+        //undefine();
+        clear();
 
         define();
     }
@@ -1261,19 +1270,39 @@ BaseFab<T>::resize (const Box& b,
 template <class T>
 BaseFab<T>::~BaseFab ()
 {
-    undefine();
+    //undefine();
+    clear();
 }
 
 template <class T>
 void
 BaseFab<T>::clear ()
 {
-    undefine();
+    if (dptr)
+    {
+        //
+        // Call T::~T() on the to-be-destroyed memory.
+        //
+        T* ptr = dptr;
 
-    dptr   = 0;
-    domain = Box();
-    nvar   = 0;
-    numpts = 0;
+        for (int i = 0; i < truesize; i++, ptr++)
+        {
+            ptr->~T();
+        }
+        BoxLib::The_Arena()->free(dptr);
+
+        dptr = 0;
+
+        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
+    }
+
+//    undefine();
+//
+//    dptr     = 0;
+//    domain   = Box();
+//    nvar     = 0;
+//    numpts   = 0;
+//    truesize = 0;
 }
 
 //
