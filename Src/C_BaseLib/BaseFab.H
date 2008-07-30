@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.62 2008-07-30 00:54:45 lijewski Exp $
+// $Id: BaseFab.H,v 1.63 2008-07-30 01:10:47 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -798,10 +798,6 @@ protected:
     //
     void define ();
     //
-    // Deallocates memory for the `BaseFab<T>'.
-    //
-//    void undefine ();
-    //
     // The function called by BaseFab copy operations.
     //
     void performCopy (const BaseFab<T>& src,
@@ -1155,31 +1151,6 @@ BaseFab<T>::define ()
     }
 }
 
-#if 0
-template <class T>
-void
-BaseFab<T>::undefine ()
-{
-    if (dptr)
-    {
-        //
-        // Call T::~T() on the to-be-destroyed memory.
-        //
-        T* ptr = dptr;
-
-        for (int i = 0; i < truesize; i++, ptr++)
-        {
-            ptr->~T();
-        }
-        BoxLib::The_Arena()->free(dptr);
-
-        dptr = 0;
-
-        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
-    }
-}
-#endif
-
 template <class T>
 BaseFab<T>::BaseFab ()
     :
@@ -1260,7 +1231,6 @@ BaseFab<T>::resize (const Box& b,
     }
     else if (nvar*numpts > truesize)
     {
-        //undefine();
         clear();
 
         define();
@@ -1270,7 +1240,6 @@ BaseFab<T>::resize (const Box& b,
 template <class T>
 BaseFab<T>::~BaseFab ()
 {
-    //undefine();
     clear();
 }
 
@@ -1295,14 +1264,6 @@ BaseFab<T>::clear ()
 
         BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
     }
-
-//    undefine();
-//
-//    dptr     = 0;
-//    domain   = Box();
-//    nvar     = 0;
-//    numpts   = 0;
-//    truesize = 0;
 }
 
 //
