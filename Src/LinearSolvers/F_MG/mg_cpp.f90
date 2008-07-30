@@ -236,7 +236,6 @@ subroutine mgt_finalize(dx,bc)
           nub               = mgts%nub, &
           gamma             = mgts%gamma, &
           cycle             = mgts%cycle, &
-          omega             = mgts%omega, &
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
