@@ -98,6 +98,11 @@ public:
                     const BoxArray& grds,
                     int             grow) const;
 
+    void GetVolume (FArrayBox&       vol,
+                    const BoxArray& grds,
+                    int             idx,
+                    int             grow) const;
+
     /*@ManDoc: Compute d(log(A))/dr at cell centers in given region and
                stuff the results into the passed MultiFab.
     */
