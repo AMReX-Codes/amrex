@@ -1,8 +1,6 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
-//
-// $Id: Geometry.H,v 1.44 2008-07-01 17:59:33 lijewski Exp $
-//
+
 #include <iosfwd>
 #include <list>
 
@@ -113,6 +111,12 @@ public:
     */
     void GetFaceArea (MultiFab&       area,
                       const BoxArray& grds,
+                      int             dir,
+                      int             grow) const;
+
+    void GetFaceArea (FArrayBox&      area,
+                      const BoxArray& grds,
+                      int             idx,
                       int             dir,
                       int             grow) const;
     //
