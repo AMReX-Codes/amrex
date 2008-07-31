@@ -778,7 +778,7 @@ contains
           call multifab_fill_boundary(uu, cross = lcross)
 
           if ( stat /= 0 ) then
-             if ( parallel_IOProcessor() ) call bl_abort("BREAKDOWN in 1d CG solve")
+             if ( parallel_IOProcessor() ) call bl_error("BREAKDOWN in 1d CG solve")
           end if
 
        else
