@@ -699,23 +699,28 @@ contains
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
     use bl_prof_module
+
     use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, jac_smoother_3d, &
          gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, nodal_smoother_2d, nodal_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ff
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
+    use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
+
+    integer        , intent(in   ) :: lev
+    type( mg_tower), intent(inout) :: mgt
+    type( multifab), intent(inout) :: uu
+    type( multifab), intent(in   ) :: ff
+    type( multifab), intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, k, n, nn
+    integer :: i, k, n, nn, stat, npts
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
     logical :: lcross, pmask(mgt%dim)
+    real(kind=dp_t) :: local_eps
 
     pmask = layout_get_pmask(uu%la)
  
@@ -733,6 +738,51 @@ contains
     end if
 
     if ( cell_centered_q(uu) ) then
+
+       if (mgt%dim .eq. 1) then
+
+          call multifab_fill_boundary(uu, cross = lcross)
+
+          !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
+          ! We do these line solves as a preconditioner
+          do i = 1, mgt%nboxes
+             if ( remote(ff, i) ) cycle
+             up => dataptr(uu, i)
+             fp => dataptr(ff, i)
+             sp => dataptr(ss, i)
+             mp => dataptr(mm, i)
+             lo =  lwb(get_box(ss, i))
+             do n = 1, mgt%nc
+                call gs_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                      mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
+             end do
+          end do
+          !$OMP END PARALLEL DO
+
+          call multifab_fill_boundary(uu, cross = lcross)
+
+!         local_eps = 0.001 
+!         call itsol_cg_solve(&
+!              ss, uu, ff, mm, &
+!              local_eps, 1050, mgt%cg_verbose, stat = stat, &
+!              local_eps, 1050, 1, stat = stat, &
+!              singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+
+          local_eps = 0.001 
+          npts = multifab_volume(ff)
+          call itsol_bicgstab_solve(&
+               ss, uu, ff, mm, &
+               local_eps, npts, mgt%cg_verbose, stat = stat, &
+               singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+
+          call multifab_fill_boundary(uu, cross = lcross)
+
+          if ( stat /= 0 ) then
+             if ( parallel_IOProcessor() ) call bl_abort("BREAKDOWN in 1d CG solve")
+          end if
+
+       else
+
        select case ( mgt%smoother )
 
        case ( MG_SMOOTHER_GS_RB )
@@ -749,16 +799,6 @@ contains
                 lo =  lwb(get_box(ss, i))
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
-                   case (1)
-                      if (mgt%nboxes .eq. 1) then
-                        if (nn .eq. 0) then
-                          call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                               mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
-                        end if
-                      else
-                        call gs_rb_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                             mp(:,1,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
-                      end if
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                            mp(:,:,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
@@ -781,9 +821,6 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 select case ( mgt%dim)
-                case (1)
-                   call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                        mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
                 case (2)
                    call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                         mp(:,:,1,1), mgt%ng)
@@ -804,9 +841,6 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 select case ( mgt%dim)
-                case (1)
-                   call gs_line_solve_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                        mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
                 case (2)
                    call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                         mp(:,:,1,1), mgt%ng)
@@ -819,6 +853,9 @@ contains
        case default
           call bl_error("MG_TOWER_SMOOTHER: no such smoother")
        end select
+
+    end if ! if (mgt%dim > 1)
+
     else 
        if (lcross .and. mgt%dim > 1) then
        ! k is the red-black parameter
