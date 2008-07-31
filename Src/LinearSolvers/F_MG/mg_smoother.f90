@@ -9,10 +9,9 @@ module mg_smoother_module
 
 contains
 
-  subroutine gs_line_solve_1d(omega, ss, uu, ff, mm, lo, ng, skwd)
+  subroutine gs_line_solve_1d(ss, uu, ff, mm, lo, ng, skwd)
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     real (kind = dp_t), intent(in)    :: ss(lo(1):,0:)
