@@ -661,6 +661,15 @@ Geometry::GetVolume (MultiFab&       vol,
     }
 }
 
+void
+Geometry::GetVolume (FArrayBox&      vol,
+                     const BoxArray& grds,
+                     int             idx,
+                     int             ngrow) const
+{
+    CoordSys::GetVolume(vol, BoxLib::grow(grds[idx],ngrow));
+}
+
 #if (BL_SPACEDIM <= 2)
 void
 Geometry::GetDLogA (MultiFab&       dloga,
