@@ -87,7 +87,7 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),manda)
-      MPI_HOME=/home/almgren/bin/mpich2-install
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS = $(MPI_HOME)/lib
       INCLUDE_LOCATIONS = $(MPI_HOME)/include
       BL_MPI_LIBS += -lmpich -lmpichf90 -lpthread
