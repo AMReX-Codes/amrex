@@ -1,6 +1,4 @@
-//
-// $Id: Geometry.cpp,v 1.73 2008-07-01 17:59:33 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <map>
@@ -693,6 +691,16 @@ Geometry::GetFaceArea (MultiFab&       area,
         Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
     }
+}
+
+void
+Geometry::GetFaceArea (FArrayBox&      area,
+                       const BoxArray& grds,
+                       int             idx,
+                       int             dir,
+                       int             ngrow) const
+{
+    CoordSys::GetFaceArea(area, BoxLib::grow(grds[idx],ngrow), dir);
 }
 
 void
