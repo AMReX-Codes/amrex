@@ -78,7 +78,7 @@ contains
     type(boxarray) :: bag
     logical, pointer :: mt(:,:,:,:), mb(:,:,:,:)
     integer :: b, dm, num_flag, i, k, bxcnt, lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
-    integer, allocatable :: iprocs(:), ibxs(:), bxs(:)
+    integer, allocatable :: iprocs(:), bxs(:)
     integer(kind=ll_t) :: bboxinte
     type(box) :: bx
     real(dp_t) :: bx_eff
