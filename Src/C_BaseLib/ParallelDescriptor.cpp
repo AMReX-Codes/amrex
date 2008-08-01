@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.108 2008-03-21 22:24:16 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.109 2008-08-01 17:49:14 mzingale Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -7,6 +7,7 @@
 #include <ParmParse.H>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 FabComTag::FabComTag ()
 {

@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.36 2006-09-13 18:03:52 lijewski Exp $
+// $Id: BLThread.cpp,v 1.37 2008-08-01 17:49:14 mzingale Exp $
 //
 
 #include <winstd.H>
@@ -27,6 +27,7 @@
 #include <ctime>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 
 //#if defined(BL_OSF1)
 //extern "C" int usleep (useconds_t);
