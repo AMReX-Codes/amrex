@@ -317,7 +317,7 @@ contains
 
     type(lmultifab), intent(inout) :: mask
 
-    integer                        :: i, j, ii, jj, cnt, proc, shft(3**mask%dim,mask%dim)
+    integer                        :: i, j, ii, jj, cnt, shft(3**mask%dim,mask%dim)
     type(box)                      :: pd, bxs(3**mask%dim), bx_from, bx_to
     logical                        :: pmask(mask%dim)
     logical, pointer               :: ap(:,:,:,:), bp(:,:,:,:)
