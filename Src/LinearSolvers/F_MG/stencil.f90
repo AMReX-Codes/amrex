@@ -2470,21 +2470,31 @@ contains
 
     ss = 0.d0
 
+    ! We only include the beta's here to get the viscous coefficients in here for now.
+    ! The projection has beta == 1.
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,1) =   1.d0
-          ss(i,j,2) = -16.d0
-          ss(i,j,3) = -16.d0
-          ss(i,j,4) =   1.d0
-          ss(i,j,5) =   1.d0
-          ss(i,j,6) = -16.d0
-          ss(i,j,7) = -16.d0
-          ss(i,j,8) =   1.d0
-          ss(i,j,0) =  60.d0
+          ss(i,j,1) =   1.d0 * beta(i  ,j,1)
+          ss(i,j,2) = -16.d0 * beta(i  ,j,1)
+          ss(i,j,3) = -16.d0 * beta(i+1,j,1)
+          ss(i,j,4) =   1.d0 * beta(i+1,j,1)
+          ss(i,j,5) =   1.d0 * beta(i,j  ,2)
+          ss(i,j,6) = -16.d0 * beta(i,j  ,2)
+          ss(i,j,7) = -16.d0 * beta(i,j+1,2)
+          ss(i,j,8) =   1.d0 * beta(i,j+1,2)
+          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
+                       +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) )
        end do
     end do
 
-    ss = ss / (12.d0 * dh(1)**2)
+    ss = ss / (12.d0 * dh(1)**2) * beta(1,1,1)
+
+    ! This adds the "alpha" term.
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+       end do
+    end do
 
   end subroutine s_minion_fill_2d
 
