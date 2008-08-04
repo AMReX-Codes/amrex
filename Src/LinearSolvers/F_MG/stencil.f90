@@ -1516,12 +1516,11 @@ contains
 
   end subroutine stencil_fill_cc
 
-  subroutine stencil_fill_minion(ss, coeffs, dh, pdv, mask, xa, xb, pxa, pxb, pd, bc_face, fnc)
+  subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, bc_face, fnc)
     use bl_prof_module
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
     real(kind=dp_t), intent(in) :: dh(:)
-    type(boxarray), intent(in) :: pdv
     type(box), intent(in) :: pd
     type(imultifab), intent(inout) :: mask
     integer, intent(in) :: bc_face(:,:)
@@ -2489,7 +2488,7 @@ contains
 
     ss = ss / (12.d0 * dh(1)**2)
 
-    ! This adds the "alpha" term.
+    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
        do i = 1, nx
           ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
