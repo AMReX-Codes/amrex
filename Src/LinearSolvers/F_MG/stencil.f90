@@ -2472,16 +2472,15 @@ contains
 
     do j = 1, ny
        do i = 1, nx
-!         ss(i,j,1) =   1.d0
+          ss(i,j,1) =   1.d0
           ss(i,j,2) = -16.d0
           ss(i,j,3) = -16.d0
-!         ss(i,j,4) =   1.d0
-!         ss(i,j,5) =   1.d0
+          ss(i,j,4) =   1.d0
+          ss(i,j,5) =   1.d0
           ss(i,j,6) = -16.d0
           ss(i,j,7) = -16.d0
-!         ss(i,j,8) =   1.d0
-!         ss(i,j,0) =  60.d0
-          ss(i,j,0) =  64.d0
+          ss(i,j,8) =   1.d0
+          ss(i,j,0) =  60.d0
        end do
     end do
 
