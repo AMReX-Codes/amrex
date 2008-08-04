@@ -69,7 +69,7 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):,0:)
     integer            ,intent(in) :: mm(lo(1):)
     logical, intent(in), optional :: skwd
-    integer :: j, i, hi(size(lo)), ioff
+    integer :: i, hi(size(lo)), ioff
     integer, parameter ::  XBC = 3
     real (kind = dp_t) :: dd
     logical :: lskwd
@@ -449,6 +449,42 @@ contains
     call destroy(bpt)
 
   end subroutine gs_rb_smoother_3d
+
+  subroutine minion_smoother_2d(omega, ss, uu, ff, mm, lo, ng)
+    use bl_prof_module
+    integer           , intent(in) :: ng
+    integer           , intent(in) :: lo(:)
+    real (kind = dp_t), intent(in) :: omega
+    real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
+    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
+    integer            ,intent(in) :: mm(lo(1):,lo(2):)
+
+    integer            :: j, i, hi(size(lo))
+    real (kind = dp_t) :: dd
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "minion_smoother_2d")
+
+    hi = ubound(uu)-ng
+
+    do j = lo(2),hi(2)
+       do i = lo(1), hi(1)
+          if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
+            dd =   ss(i,j,0) * uu(i,j) &
+                 + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
+                 + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
+                 + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
+                 + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
+            uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
+          end if
+       end do
+    end do
+
+    call destroy(bpt)
+
+  end subroutine minion_smoother_2d
 
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
     integer, intent(in) :: lo(:)

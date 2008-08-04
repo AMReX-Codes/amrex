@@ -14,10 +14,11 @@ module stencil_module
   integer, parameter :: ST_FILL_TENSOR_ABEC      = 5
   integer, parameter :: ST_FILL_USER_DEFINED     = 100
 
-  integer, parameter :: ST_CROSS = 1
-  integer, parameter :: ST_DENSE = 2
-  integer, parameter :: ST_DIAG  = 3
+  integer, parameter :: ST_CROSS  = 1
+  integer, parameter :: ST_DENSE  = 2
+  integer, parameter :: ST_DIAG   = 3
   integer, parameter :: ST_TENSOR = 4
+  integer, parameter :: ST_MINION = 5
 
   type stencil_extrap_fab
      integer :: dim = 0
@@ -446,6 +447,9 @@ contains
           st%ns = 1 + 2*st%dim
        case (ST_DENSE)
           st%ns = 3**st%dim
+       case (ST_MINION)
+          print *,'SETTING NS = 9'
+          st%ns = 9
        case default
           call bl_error("STENCIL_BUILD: TYPE not known: ", type)
        end select
@@ -584,6 +588,11 @@ contains
           case (3)
              call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
           end select
+       case (ST_MINION)
+          select case( st%dim )
+          case (2)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+          end select
        end select
     end do
     call destroy(bpt)
@@ -647,6 +656,11 @@ contains
              case (3)
                 call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
              end select
+          case (ST_MINION)
+             select case( st%dim )
+             case (2)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+             end select
           end select
        end do
     else
@@ -681,6 +695,11 @@ contains
                    call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
                 case (3)
                    call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
+                end select
+             case (ST_MINION)
+                select case( st%dim )
+                case (2)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
                 end select
              end select
           end do
@@ -1496,6 +1515,67 @@ contains
     call destroy(bpt)
 
   end subroutine stencil_fill_cc
+
+  subroutine stencil_fill_minion(ss, coeffs, dh, pdv, mask, xa, xb, pxa, pxb, pd, bc_face, fnc)
+    use bl_prof_module
+    type(multifab), intent(inout) :: ss
+    type(multifab), intent(in   ) :: coeffs
+    real(kind=dp_t), intent(in) :: dh(:)
+    type(boxarray), intent(in) :: pdv
+    type(box), intent(in) :: pd
+    type(imultifab), intent(inout) :: mask
+    integer, intent(in) :: bc_face(:,:)
+    real(kind=dp_t), intent(in) :: xa(:), xb(:), pxa(:), pxb(:)
+    interface
+       function fnc(i, j, k, n) result(r)
+         integer, intent(in) :: i, j, k, n
+         integer :: r
+       end function fnc
+    end interface
+    optional :: fnc
+    type(box) :: bx
+    real(kind=dp_t) lxa(ss%dim), lxb(ss%dim)
+
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    real(kind=dp_t), pointer :: cp(:,:,:,:)
+    integer, pointer :: mp(:,:,:,:)
+    integer i,id
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_fill_minion")
+
+    ! Store the incoming values.
+
+    do i = 1, ss%nboxes
+       if ( multifab_remote(ss,i) ) cycle
+       bx = get_box(ss,i)
+       call stencil_set_bc(ss, i, mask%fbs(i), bc_face)
+       lxa = xa
+       lxb = xb
+       do id = 1,pd%dim
+          if ( .not. ss%la%lap%pmask(id) ) then
+             if ( bx%lo(id) == pd%lo(id) ) then
+                lxa(id) = pxa(id)
+             end if
+             if ( bx%hi(id) == pd%hi(id) ) then
+                lxb(id) = pxb(id)
+             end if
+          end if
+       end do
+
+       sp => dataptr(ss, i)
+       cp => dataptr(coeffs, i)
+       mp => dataptr(mask, i)
+
+       select case (ss%dim)
+       case (2)
+          call s_minion_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+       end select
+    end do
+    
+    call destroy(bpt)
+
+  end subroutine stencil_fill_minion
 
   elemental function stencil_bc_type(mask, dir, face) result(r)
     integer, intent(in) :: mask, dir, face
@@ -2371,6 +2451,44 @@ contains
 
   end subroutine s_simple_3d_cc
 
+  subroutine s_minion_fill_2d(ss, beta, dh, mask, xa, xb)
+    integer           , intent(inout) :: mask(:,:)
+    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in   )  :: beta(0:,0:,0:)
+    real (kind = dp_t), intent(in   )  :: dh(:)
+    real (kind = dp_t), intent(in   )  :: xa(:), xb(:)
+    integer nx, ny
+    integer i, j
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+
+    ss = 0.d0
+
+    do j = 1, ny
+       do i = 1, nx
+!         ss(i,j,1) =   1.d0
+          ss(i,j,2) = -16.d0
+          ss(i,j,3) = -16.d0
+!         ss(i,j,4) =   1.d0
+!         ss(i,j,5) =   1.d0
+          ss(i,j,6) = -16.d0
+          ss(i,j,7) = -16.d0
+!         ss(i,j,8) =   1.d0
+!         ss(i,j,0) =  60.d0
+          ss(i,j,0) =  64.d0
+       end do
+    end do
+
+    ss = ss / (12.d0 * dh(1)**2)
+
+  end subroutine s_minion_fill_2d
+
   subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, skwd)
     integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in)  :: ss(:,0:)
@@ -2478,15 +2596,31 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
 
-    do j = 1,ny
-       do i = 1,nx
-          dd(i,j) = ss(i,j,0)*uu(i,j) &
-               + ss(i,j,1)*uu(i+1,j  ) + ss(i,j,2)*uu(i-1,j  ) &
-               + ss(i,j,3)*uu(i  ,j+1) + ss(i,j,4)*uu(i  ,j-1)
-       end do
-    end do
+    ! This is the Minion 4th order stencil.
+    if (size(ss,dim=3) .eq. 9) then
 
-    if ( lskwd ) then
+       do j = 1,ny
+          do i = 1,nx
+            dd(i,j) = &
+                   ss(i,j,0) * uu(i,j) &
+                 + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
+                 + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
+                 + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
+                 + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
+          end do
+       end do
+
+    else 
+
+       do j = 1,ny
+          do i = 1,nx
+             dd(i,j) = ss(i,j,0)*uu(i,j) &
+                  + ss(i,j,1)*uu(i+1,j  ) + ss(i,j,2)*uu(i-1,j  ) &
+                  + ss(i,j,3)*uu(i  ,j+1) + ss(i,j,4)*uu(i  ,j-1)
+          end do
+       end do
+
+       if ( lskwd ) then
        ! Corrections for skewed stencils
        if (nx > 1) then
           do j = 1, ny
@@ -2518,7 +2652,9 @@ contains
 
           end do
        end if
+       end if
     end if
+
   end subroutine stencil_apply_2d
 
   subroutine stencil_flux_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
@@ -2974,7 +3110,7 @@ contains
     end do
 
   end subroutine stencil_dense_apply_3d
-  
+
   ! polyInterpCoeff:
   !  
   ! This routine returns the Lagrange interpolating coefficients for a

@@ -11,6 +11,7 @@ module mg_module
   integer, parameter :: MG_SMOOTHER_GS_RB  = 1
   integer, parameter :: MG_SMOOTHER_JACOBI = 2
   integer, parameter :: MG_SMOOTHER_GS_LEX = 3
+  integer, parameter :: MG_SMOOTHER_MINION = 5
 
   integer, parameter :: MG_FCycle = 1
   integer, parameter :: MG_WCycle = 2
@@ -702,7 +703,7 @@ contains
 
     use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, jac_smoother_3d, &
          gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, nodal_smoother_2d, nodal_smoother_3d, &
-         gs_rb_smoother_2d,  gs_rb_smoother_3d
+         gs_rb_smoother_2d,  gs_rb_smoother_3d, minion_smoother_2d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
 
     integer        , intent(in   ) :: lev
@@ -810,6 +811,27 @@ contains
              end do
              !$OMP END PARALLEL DO
           end do
+
+       case ( MG_SMOOTHER_MINION )
+
+          call multifab_fill_boundary(uu, cross = lcross)
+          do i = 1, mgt%nboxes
+             if ( remote(ff, i) ) cycle
+             up => dataptr(uu, i)
+             fp => dataptr(ff, i)
+             sp => dataptr(ss, i)
+             mp => dataptr(mm, i)
+             lo =  lwb(get_box(ss, i))
+             do n = 1, mgt%nc
+                select case ( mgt%dim)
+                case (2)
+                   call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                                           mp(:,:,1,1), lo, mgt%ng)
+                case (3)
+                end select
+             end do
+          end do
+
        case ( MG_SMOOTHER_JACOBI )
           call multifab_fill_boundary(uu, cross = lcross)
           do i = 1, mgt%nboxes
@@ -1101,7 +1123,7 @@ contains
     integer, intent(in), optional :: bottom_level
     integer :: i
     logical :: do_diag
-    real(dp_t) :: nrm, nrm1, nrm2
+    real(dp_t) :: nrm, nrm1
     integer :: lbl
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
