@@ -193,10 +193,10 @@ contains
     call multifab_build(rr, la, 1, ng_for_res, rh%nodal)
     call multifab_build(rt, la, 1, ng_for_res, rh%nodal)
     call multifab_build(pp, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(ph, la, 1, 1,          rh%nodal)
+    call multifab_build(ph, la, 1, uu%ng     , rh%nodal)
     call multifab_build(vv, la, 1, ng_for_res, rh%nodal)
     call multifab_build(tt, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(sh, la, 1, 1,          rh%nodal)
+    call multifab_build(sh, la, 1, uu%ng     , rh%nodal)
     call multifab_build(ss, la, 1, ng_for_res, rh%nodal)
 
     if ( nodal_solve ) then
@@ -431,7 +431,7 @@ contains
     la = aa%la
     call multifab_build(rr, la, 1, ng_for_res, rh%nodal)
     call multifab_build(zz, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(pp, la, 1, 1         , rh%nodal)
+    call multifab_build(pp, la, 1, uu%ng     , rh%nodal)
     call multifab_build(qq, la, 1, ng_for_res, rh%nodal)
 
     if ( nodal_solve ) then

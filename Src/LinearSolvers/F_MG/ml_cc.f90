@@ -75,8 +75,8 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, 1)
-       call build(      uu(n), la, 1, 1)
+       call build(    soln(n), la, 1, full_soln(1)%ng)
+       call build(      uu(n), la, 1, full_soln(1)%ng)
        call build(     res(n), la, 1, 0)
        call build(temp_res(n), la, 1, 0)
        call setval(    soln(n), ZERO,all=.true.)
@@ -644,8 +644,7 @@ contains
 
   end subroutine ml_resid
 
-  subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio, &
-                           do_diagnostics)
+  subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio)
 
     use bl_prof_module
     use ml_util_module
@@ -658,7 +657,6 @@ contains
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
     integer        , intent(in   ) :: ref_ratio(:,:)
-    integer        , intent(in   ) :: do_diagnostics
 
     integer :: nlevs
     type(multifab), allocatable  ::      soln(:)
