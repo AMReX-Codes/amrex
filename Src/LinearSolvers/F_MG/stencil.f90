@@ -2487,7 +2487,7 @@ contains
        end do
     end do
 
-    ss = ss / (12.d0 * dh(1)**2) * beta(1,1,1)
+    ss = ss / (12.d0 * dh(1)**2)
 
     ! This adds the "alpha" term.
     do j = 1, ny
