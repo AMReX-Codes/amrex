@@ -86,8 +86,10 @@ contains
        ! We don't use get_pbox here as we only want to fill ng ghost cells of 
        ! fine & it may have more ghost cells than that.
        !
+       ! Note: we let bl contain empty boxes so that we keep the same number of boxes
+       !       in bl as in fine, but in the interpolation later we cycle if it's empty
        bx = intersection(grow(get_ibox(fine,i),ng),fdomain)
-       if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
+!      if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
        call push_back(bl, bx)
     end do
 
@@ -217,6 +219,7 @@ contains
        end if
 
        fbx = intersection(grow(fine_box,ng),fdomain)
+       if (empty(fbx)) cycle
 
        cslope_lo(1:dm) = lwb(grow(cbx, -1))
        cslope_hi(1:dm) = upb(grow(cbx, -1))
