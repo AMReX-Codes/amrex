@@ -14,7 +14,7 @@ module make_new_grids_module
 
   implicit none 
 
-  integer        , parameter, private :: minwidth = 2
+  integer        , parameter, private :: minwidth = 4
   real(kind=dp_t), parameter, private :: min_eff  = .7
 
   contains
