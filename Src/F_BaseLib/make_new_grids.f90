@@ -130,33 +130,42 @@ module make_new_grids_module
 
     end subroutine buffer
 
-    subroutine enforce_proper_nesting(mba,la_array)
+    subroutine enforce_proper_nesting(mba,la_array,max_grid_size)
 
-     use probin_module, only : nlevs, pmask, ref_ratio, max_grid_size
+      implicit none
 
-     type(ml_boxarray), intent(inout) :: mba
-     type(layout)     , intent(inout) :: la_array(:)
+      type(ml_boxarray), intent(inout) :: mba
+      type(layout)     , intent(inout) :: la_array(:)
+      integer          , intent(in   ) :: max_grid_size
 
-     integer :: nl,i,ii,jj,ng_buffer
-     type(list_box)                 :: bl
-     type(box_intersector), pointer :: bi(:)
-     type(boxarray)                 :: ba_new
-     type(boxarray)                 :: ba_newest
-     type(layout)                   :: la_old_comp
-     type(boxarray)                 :: ba_old_comp
-        
+      integer                        :: nl,i,ii,jj,ng_buffer,nlevs
+      integer                        :: ref_ratio(mba%dim)
+      logical                        :: pmask(mba%dim)
+      type(list_box)                 :: bl
+      type(box_intersector), pointer :: bi(:)
+      type(boxarray)                 :: ba_new
+      type(boxarray)                 :: ba_newest
+      type(boxarray)                 :: ba_crse_fine
+      type(layout)                   :: la_old_comp
+      type(boxarray)                 :: ba_old_comp
+      type(lmultifab)                :: tagboxes
+         
+      nlevs = mba%nlevel
       nl = nlevs - 1
 
-      ng_buffer = 8
+      pmask = layout_get_pmask(la_array(nl))
+      ng_buffer = 4
 
       do while ( (nl .ge. 2) )
 
             if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
+
+                ref_ratio = mba%rr(nl,:)
                
                 ! Buffer returns a boxarray "ba_new" that contains everything at level nl 
                 !  that the level nl+1 level will need for proper nesting
                 call buffer(nl,la_array(nl+1),la_array(nl),la_array(nl-1), &
-                            ba_new,ref_ratio,ng_buffer)
+                            ba_new,ref_ratio(1),ng_buffer)
 
                 ! Merge the new boxarray "ba_new" with the existing box_array 
                 ! mba%bas(nl) so that we get the union of points.
@@ -196,6 +205,21 @@ module make_new_grids_module
                 ! Destroy the old layout and build a new one.
                 call destroy(la_array(nl))
                 call layout_build_ba(la_array(nl),mba%bas(nl),mba%pd(nl),pmask)
+
+                ! Redo the boxes using the cluster algorithm
+                call lmultifab_build(tagboxes,la_array(nl-1),1,0) 
+                call setval(tagboxes, .false.)
+                call copy(ba_crse_fine,mba%bas(nl))
+                call boxarray_coarsen(ba_crse_fine,ref_ratio)
+                call setval(tagboxes, .true., ba_crse_fine)
+                call destroy(ba_crse_fine)
+                call cluster(ba_new, tagboxes, minwidth, 0, min_eff)
+                call boxarray_maxsize(ba_new,max_grid_size/ref_ratio)
+                call boxarray_refine(ba_new,ref_ratio)
+
+                ! Destroy the old layout and build a new one from ba_new.
+                call destroy(la_array(nl))
+                call layout_build_ba(la_array(nl),ba_new,mba%pd(nl),pmask)
   
                 ! Double check we got the proper nesting right
                 if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) &
