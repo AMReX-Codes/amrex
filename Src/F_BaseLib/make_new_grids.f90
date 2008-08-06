@@ -214,6 +214,7 @@ module make_new_grids_module
                 call setval(tagboxes, .true., ba_crse_fine)
                 call destroy(ba_crse_fine)
                 call cluster(ba_new, tagboxes, minwidth, 0, min_eff)
+                call destroy(tagboxes)
                 call boxarray_maxsize(ba_new,max_grid_size/ref_ratio)
                 call boxarray_refine(ba_new,ref_ratio)
 
