@@ -163,10 +163,9 @@ module make_new_grids_module
 
       do while ( (nl .ge. 2) )
 
-            call print(mba%bas(nl+1),"FINE GRIDS")
-            call print(mba%bas(nl  ),"CRSE GRIDS")
+            if (.not. empty(mba%bas(nl+1))) then
 
-            if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
+              if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
 
                 ref_ratio = mba%rr(nl,:)
                
@@ -232,13 +231,11 @@ module make_new_grids_module
   
                 ! Double check we got the proper nesting right
 
-            call print(mba%bas(nl+1),"FINE GRIDS")
-            call print(mba%bas(nl  ),"CRSE GRIDS")
-
                 if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) &
                   call bl_error('Still not properly nested, darn it')
 
-            endif  !if not properly nested
+              endif  !if not properly nested
+            endif  ! if fine level has any boxes
 
             nl = nl - 1
 
