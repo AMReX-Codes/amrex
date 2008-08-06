@@ -162,31 +162,11 @@ module make_new_grids_module
       pmask = get_pmask(la_array(nl))
       ng_buffer = 4
 
-      ! First test on whether any grids at level nl+1 come within one level nl cell of a physical boundary
-      do n = 2,nlevs
-
-         pd = mba%pd(n)
-
-         if (.not. empty(mba%bas(n))) then
-
-            do j = 1,mba%dim
-               if (.not. pmask(j)) then
-                  do i = 1, nboxes(mba,n)
-                     if ( (mba%bas(n)%bxs(i)%lo(j) - pd%lo(j)) .le. 2) mba%bas(n)%bxs(i)%lo(j) = pd%lo(j) 
-                     if ( (pd%hi(j) - mba%bas(n)%bxs(i)%hi(j)) .le. 2) mba%bas(n)%bxs(i)%hi(j) = pd%hi(j) 
-                  end do
-               end if
-            end do
-
-         end if
-
-      end do
-
       do while ( (nl .ge. 2) )
 
             if (.not. empty(mba%bas(nl+1))) then
 
-              ! Now test whether level nl+1 boxes are properly nested inside level nl boxes.
+              ! Test whether level nl+1 boxes are properly nested inside level nl boxes.
               if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
 
                 ref_ratio = mba%rr(nl,:)
@@ -262,6 +242,27 @@ module make_new_grids_module
             nl = nl - 1
 
       enddo ! do while
+
+      ! Now test on whether any grids at level nl+1 come within one level nl cell of a physical boundary,
+      !  and if they do, extend those boxes to the boundary.
+      do n = 2,nlevs
+
+         pd = mba%pd(n)
+
+         if (.not. empty(mba%bas(n))) then
+
+            do j = 1,mba%dim
+               if (.not. pmask(j)) then
+                  do i = 1, nboxes(mba,n)
+                     if ( (mba%bas(n)%bxs(i)%lo(j) - pd%lo(j)) .le. 2) mba%bas(n)%bxs(i)%lo(j) = pd%lo(j) 
+                     if ( (pd%hi(j) - mba%bas(n)%bxs(i)%hi(j)) .le. 2) mba%bas(n)%bxs(i)%hi(j) = pd%hi(j) 
+                  end do
+               end if
+            end do
+
+         end if
+
+      end do
 
     end subroutine enforce_proper_nesting
 
