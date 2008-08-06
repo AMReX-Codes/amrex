@@ -31,7 +31,7 @@ module make_new_grids_module
        integer, optional, intent(in   ) :: lev_in
        logical, optional, intent(  out) :: new_grid
 
-       type(box)         :: pd_fine
+       type(box)         :: pd
        type(boxarray)    :: ba_new
        integer           :: llev
 
@@ -54,9 +54,9 @@ module make_new_grids_module
        
           call boxarray_refine(ba_new,ref_ratio)
  
-          pd_fine = refine(layout_get_pd(la_crse),ref_ratio)
+          pd = refine(layout_get_pd(la_crse),ref_ratio)
    
-          call layout_build_ba(la_fine,ba_new,pd_fine,layout_get_pmask(la_crse))
+          call layout_build_ba(la_fine,ba_new,pd,layout_get_pmask(la_crse))
    
        endif
 
@@ -143,9 +143,10 @@ module make_new_grids_module
       type(layout)     , intent(inout) :: la_array(:)
       integer          , intent(in   ) :: max_grid_size
 
-      integer                        :: nl,i,ii,jj,ng_buffer,nlevs
+      integer                        :: nl,n,i,j,ng_buffer,nlevs
       integer                        :: ref_ratio(mba%dim)
       logical                        :: pmask(mba%dim)
+      type(box)                      :: pd
       type(list_box)                 :: bl
       type(box_intersector), pointer :: bi(:)
       type(boxarray)                 :: ba_new
@@ -158,13 +159,34 @@ module make_new_grids_module
       nlevs = mba%nlevel
       nl = nlevs - 1
 
-      pmask = layout_get_pmask(la_array(nl))
+      pmask = get_pmask(la_array(nl))
       ng_buffer = 4
+
+      ! First test on whether any grids at level nl+1 come within one level nl cell of a physical boundary
+      do n = 2,nlevs
+
+         pd = mba%pd(n)
+
+         if (.not. empty(mba%bas(n))) then
+
+            do j = 1,mba%dim
+               if (.not. pmask(j)) then
+                  do i = 1, nboxes(mba,n)
+                     if ( (mba%bas(n)%bxs(i)%lo(j) - pd%lo(j)) .le. 2) mba%bas(n)%bxs(i)%lo(j) = pd%lo(j) 
+                     if ( (pd%hi(j) - mba%bas(n)%bxs(i)%hi(j)) .le. 2) mba%bas(n)%bxs(i)%hi(j) = pd%hi(j) 
+                  end do
+               end if
+            end do
+
+         end if
+
+      end do
 
       do while ( (nl .ge. 2) )
 
             if (.not. empty(mba%bas(nl+1))) then
 
+              ! Now test whether level nl+1 boxes are properly nested inside level nl boxes.
               if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
 
                 ref_ratio = mba%rr(nl,:)
@@ -186,10 +208,10 @@ module make_new_grids_module
 
                 ! Now load with the new boxes that are the intersection of 
                 !  ba_new with the complement of ba_old (aka mba%bas(nl))
-                do jj = 1, ba_new%nboxes
-                   bi => layout_get_box_intersector(la_old_comp, ba_new%bxs(jj))
-                   do ii = 1, size(bi)
-                      call push_back(bl, bi(ii)%bx)
+                do j = 1, ba_new%nboxes
+                   bi => layout_get_box_intersector(la_old_comp, ba_new%bxs(j))
+                   do i = 1, size(bi)
+                      call push_back(bl, bi(i)%bx)
                    end do
                    deallocate(bi)
                 end do
