@@ -84,10 +84,15 @@ module make_new_grids_module
 
       call tag_boxes(mf,tagboxes,llev)
 
-      if (lmultifab_count(tagboxes) == 0) &
+      if (lmultifab_count(tagboxes) == 0) then
+
           call bl_warn('No points tagged at level ',lev)
 
-      call cluster(ba_new, tagboxes, minwidth, buf_wid, min_eff)
+      else 
+
+         call cluster(ba_new, tagboxes, minwidth, buf_wid, min_eff)
+
+      endif
 
       call destroy(tagboxes)
   
@@ -158,6 +163,9 @@ module make_new_grids_module
 
       do while ( (nl .ge. 2) )
 
+            call print(mba%bas(nl+1),"FINE GRIDS")
+            call print(mba%bas(nl  ),"CRSE GRIDS")
+
             if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) then
 
                 ref_ratio = mba%rr(nl,:)
@@ -223,6 +231,10 @@ module make_new_grids_module
                 call layout_build_ba(la_array(nl),ba_new,mba%pd(nl),pmask)
   
                 ! Double check we got the proper nesting right
+
+            call print(mba%bas(nl+1),"FINE GRIDS")
+            call print(mba%bas(nl  ),"CRSE GRIDS")
+
                 if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) &
                   call bl_error('Still not properly nested, darn it')
 
