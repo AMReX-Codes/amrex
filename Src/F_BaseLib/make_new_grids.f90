@@ -14,38 +14,32 @@ module make_new_grids_module
 
   implicit none 
 
-  integer        , parameter, private :: minwidth = 4
-  real(kind=dp_t), parameter, private :: min_eff  = .7
-
   contains
 
-    subroutine make_new_grids(la_crse,la_fine,mf,dx_crse,buf_wid,ref_ratio,lev_in,max_grid_size,new_grid)
+    subroutine make_new_grids(new_grid_flag,la_crse,la_fine,mf,dx_crse,buf_wid,ref_ratio,lev,max_grid_size)
 
-       type(layout)     , intent(in   ) :: la_crse
-       type(layout)     , intent(inout) :: la_fine
-       type(multifab)   , intent(in   ) :: mf
-       real(dp_t)       , intent(in   ) :: dx_crse
-       integer          , intent(in   ) :: buf_wid
-       integer          , intent(in   ) :: max_grid_size
-       integer          , intent(in   ) :: ref_ratio
-       integer, optional, intent(in   ) :: lev_in
-       logical, optional, intent(  out) :: new_grid
+       logical            , intent(  out) :: new_grid_flag
+       type(layout)       , intent(in   ) :: la_crse
+       type(layout)       , intent(inout) :: la_fine
+       type(multifab)     , intent(in   ) :: mf
+       real(dp_t)         , intent(in   ) :: dx_crse
+       integer            , intent(in   ) :: buf_wid
+       integer            , intent(in   ) :: max_grid_size
+       integer            , intent(in   ) :: ref_ratio
+       integer            , intent(in   ) :: lev
 
        type(box)         :: pd
        type(boxarray)    :: ba_new
-       integer           :: llev
 
-       llev = 1; if (present(lev_in)) llev = lev_in
-
-       call make_boxes(mf,ba_new,dx_crse,buf_wid,llev)
+       call make_boxes(mf,ba_new,dx_crse,buf_wid,lev)
 
        if (empty(ba_new)) then 
 
-          new_grid = .false.
+          new_grid_flag = .false.
 
        else
 
-          new_grid = .true.
+          new_grid_flag = .true.
 
           ! Need to divide max_grid_size by ref_ratio since we are creating
           !  the grids at the coarser resolution but want max_grid_size to
@@ -68,10 +62,10 @@ module make_new_grids_module
 
       use tag_boxes_module
 
-      type(multifab), intent(in   ) :: mf
-      type(boxarray), intent(  out) :: ba_new
-      real(dp_t)    , intent(in   ) :: dx_crse
-      integer       , intent(in   ) :: buf_wid
+      type(multifab)   , intent(in   ) :: mf
+      type(boxarray)   , intent(  out) :: ba_new
+      real(dp_t)       , intent(in   ) :: dx_crse
+      integer          , intent(in   ) :: buf_wid
       integer, optional, intent(in   ) :: lev
 
       integer         :: llev
@@ -90,7 +84,7 @@ module make_new_grids_module
 
       else 
 
-         call cluster(ba_new, tagboxes, minwidth, buf_wid, min_eff)
+         call cluster(ba_new, tagboxes, buf_wid)
 
       endif
 
@@ -124,7 +118,7 @@ module make_new_grids_module
           call bl_warn('No points tagged at level ',lev)
 
       buff_c = (buff+1) / (ref_ratio*ref_ratio)
-      call cluster(ba_new,tagboxes,minwidth,buff_c,min_eff)
+      call cluster(ba_new,tagboxes,buff_c)
 
       ! Now refine so we're back to the right level
       call boxarray_refine(ba_new,ref_ratio)
@@ -144,8 +138,10 @@ module make_new_grids_module
       integer          , intent(in   ) :: max_grid_size
 
       integer                        :: nl,n,i,j,ng_buffer,nlevs
+      integer                        :: counter
       integer                        :: ref_ratio(mba%dim)
       logical                        :: pmask(mba%dim)
+      logical                        :: all_properly_nested
       type(box)                      :: pd
       type(list_box)                 :: bl
       type(box_intersector), pointer :: bi(:)
@@ -157,12 +153,22 @@ module make_new_grids_module
       type(lmultifab)                :: tagboxes
          
       nlevs = mba%nlevel
-      nl = nlevs - 1
 
-      pmask = get_pmask(la_array(nl))
+      pmask = get_pmask(la_array(nlevs))
       ng_buffer = 4
 
-      do while ( (nl .ge. 2) )
+      all_properly_nested = .false.
+      counter = 0
+
+      do while ( .not. all_properly_nested )
+
+        all_properly_nested = .true.
+        counter = counter + 1
+
+        if (counter .gt. 3) call bl_error('Still not properly nested after 3 tries')
+
+        nl = nlevs - 1
+        do while ( (nl .ge. 2) )
 
             if (.not. empty(mba%bas(nl+1))) then
 
@@ -222,10 +228,14 @@ module make_new_grids_module
                 call boxarray_coarsen(ba_crse_fine,ref_ratio)
                 call setval(tagboxes, .true., ba_crse_fine)
                 call destroy(ba_crse_fine)
-                call cluster(ba_new, tagboxes, minwidth, 0, min_eff)
+                call cluster(ba_new, tagboxes, 0)
                 call destroy(tagboxes)
                 call boxarray_maxsize(ba_new,max_grid_size/ref_ratio)
                 call boxarray_refine(ba_new,ref_ratio)
+
+                ! Destroy the old boxarray level and put ba_new there.
+                call destroy(mba%bas(nl))
+                call copy(mba%bas(nl),ba_new)
 
                 ! Destroy the old layout and build a new one from ba_new.
                 call destroy(la_array(nl))
@@ -234,14 +244,16 @@ module make_new_grids_module
                 ! Double check we got the proper nesting right
 
                 if (.not. ml_boxarray_properly_nested(mba, ng_buffer, pmask, nl+1, nl+1)) &
-                  call bl_error('Still not properly nested, darn it')
+                  all_properly_nested = .false.
 
               endif  !if not properly nested
             endif  ! if fine level has any boxes
 
             nl = nl - 1
 
-      enddo ! do while
+         enddo ! do while
+
+      enddo ! .not. properly nested
 
       ! Now test on whether any grids at level nl+1 come within one level nl cell of a physical boundary,
       !  and if they do, extend those boxes to the boundary.
