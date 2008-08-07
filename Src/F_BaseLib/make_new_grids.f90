@@ -154,7 +154,7 @@ module make_new_grids_module
          
       nlevs = mba%nlevel
 
-      pmask = get_pmask(la_array(nlevs))
+      pmask = get_pmask(la_array(1))
       ng_buffer = 4
 
       all_properly_nested = .false.
