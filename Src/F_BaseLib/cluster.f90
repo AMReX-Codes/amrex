@@ -14,12 +14,20 @@ module cluster_module
   integer, private, save :: cut_threshold = 2
   real(dp_t), private, save :: beta = 1.05_dp_t
 
+  integer        , parameter, private :: minwidth_default = 4
+  real(kind=dp_t), parameter, private :: min_eff_default  = .7
+
+  integer        , save :: minwidth = minwidth_default
+  real(kind=dp_t), save :: min_eff = min_eff_default
+
   public :: cluster_set_verbose
   public :: cluster_get_verbose
   public :: cluster_set_cut_threshold
   public :: cluster_get_cut_threshold
   public :: cluster_set_beta
   public :: cluster_get_beta
+  public :: cluster_set_minwidth
+  public :: cluster_set_min_eff
   public :: cluster
 
   interface cluster
@@ -27,6 +35,16 @@ module cluster_module
   end interface
 
 contains
+
+  subroutine cluster_set_minwidth(val)
+    integer, intent(in) :: val
+    minwidth = val
+  end subroutine cluster_set_minwidth
+
+  subroutine cluster_set_min_eff(val)
+    real(dp_t), intent(in) :: val
+    min_eff = val
+  end subroutine cluster_set_min_eff
 
   subroutine cluster_set_verbose(val)
     logical, intent(in) :: val
@@ -61,14 +79,12 @@ contains
     out = out .or. in
   end subroutine filter_lor
 
-  subroutine cls_3d_mf(boxes, tagboxes, minwidth, buf_wid, min_eff, overall_eff, blocking_factor)
+  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff, blocking_factor)
     use bl_error_module
     use bl_prof_module
     type(boxarray), intent(out) :: boxes
     type(lmultifab), intent(in) :: tagboxes
-    integer, intent(in) :: minwidth
     integer, intent(in) :: buf_wid
-    real(dp_t), intent(in) :: min_eff
     real(dp_t), intent(out), optional :: overall_eff
     integer, intent(in), optional :: blocking_factor
 
@@ -180,7 +196,7 @@ contains
 
        if ( parallel_IOProcessor() ) then
           call owner_mask(lbuf)
-          call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf, minwidth, min_eff)
+          call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf)
           bxcnt = size(lboxes)
        end if
 
@@ -225,7 +241,7 @@ contains
 
     else
        call owner_mask(buf)
-       call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf, minwidth, min_eff)
+       call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf)
        call destroy(buf)
     end if
 
@@ -377,10 +393,9 @@ contains
 
   end subroutine map_periodic
 
-  function cluster_tally(tagboxes, bx, tx, ty, tz, ll, hh, minwidth) result(r)
+  function cluster_tally(tagboxes, bx, tx, ty, tz, ll, hh) result(r)
     type(box) :: r
     type(lmultifab), intent(in) :: tagboxes
-    integer, intent(in) :: minwidth
     type(box), intent(in) :: bx
     integer, intent(in) :: ll(:), hh(:)
     integer, intent(out) :: tx(ll(1):), ty(ll(2):), tz(ll(3):)
@@ -420,9 +435,9 @@ contains
        end do
     end do
 
-    call bracket(tx, ll(1), hh(1), llo(1), hho(1), minwidth)
-    call bracket(ty, ll(2), hh(2), llo(2), hho(2), minwidth)
-    call bracket(tz, ll(3), hh(3), llo(3), hho(3), minwidth)
+    call bracket(tx, ll(1), hh(1), llo(1), hho(1))
+    call bracket(ty, ll(2), hh(2), llo(2), hho(2))
+    call bracket(tz, ll(3), hh(3), llo(3), hho(3))
 
     if ( all(llo <= hho) ) then
        r = make_box(llo(1:dm), hho(1:dm))
@@ -430,11 +445,10 @@ contains
 
   contains
 
-    subroutine bracket(sig, ll, hh, llo, hho, minwidth)
+    subroutine bracket(sig, ll, hh, llo, hho)
       integer, intent(in) :: ll, hh
       integer, intent(out) :: llo, hho
       integer, intent(in)    :: sig(ll:hh)
-      integer, intent(in) :: minwidth
 
       llo = ll
       hho = hh
@@ -450,12 +464,10 @@ contains
 
   end function cluster_tally
 
-  recursive subroutine cluster_mf_private_recursive(boxes, bx, bx_eff, tagboxes, minwidth, min_eff)
+  recursive subroutine cluster_mf_private_recursive(boxes, bx, bx_eff, tagboxes)
     type(list_box), intent(out) :: boxes
     type(box), intent(in) :: bx
     type(lmultifab), intent(in) ::  tagboxes
-    integer, intent(in) ::  minwidth
-    real(dp_t), intent(in) ::   min_eff
     real(dp_t), intent(out) ::  bx_eff ! Only meaningfull for the case of 1 box returned
     type(box) :: bbx
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
@@ -477,7 +489,7 @@ contains
 
     allocate(sx(ll(1):hh(1)), sy(ll(2):hh(2)), sz(ll(3):hh(3)))
 
-    bbx = cluster_tally(tagboxes, bx, sx, sy, sz, ll, hh, minwidth)
+    bbx = cluster_tally(tagboxes, bx, sx, sy, sz, ll, hh)
 
     if ( verbose ) call print(bbx, '  bbx')
 
@@ -496,15 +508,15 @@ contains
        call push_back(boxes, bbx)
     else
        lo = 1; lo(1:dm) = lwb(bbx); hi = 1; hi(1:dm) = upb(bbx)
-       call find_split(bbx, b1, b2, minwidth, &
+       call find_split(bbx, b1, b2, &
             sx(lo(1):hi(1)), sy(lo(2):hi(2)), sz(lo(3):hi(3)), lo, hi)
        if ( verbose ) then
           call print(bbx, 'bbx;find_split')
           call print(b1, 'b1')
           call print(b2, 'b2')
        end if
-       call cluster_mf_private_recursive(c1, b1, b1_eff, tagboxes, minwidth, min_eff)
-       call cluster_mf_private_recursive(c2, b2, b2_eff, tagboxes, minwidth, min_eff)
+       call cluster_mf_private_recursive(c1, b1, b1_eff, tagboxes)
+       call cluster_mf_private_recursive(c2, b2, b2_eff, tagboxes)
        if ( verbose ) then
           print *, 'size(c1) = ', size(c1), 'size(c2) = ', size(c2)
        end if
@@ -554,19 +566,18 @@ contains
 
   end subroutine cluster_mf_private_recursive
 
-  subroutine find_split(bx, b1, b2, minwidth, sx, sy, sz, ll, hh)
+  subroutine find_split(bx, b1, b2, sx, sy, sz, ll, hh)
     type(box), intent(in) ::  bx
     type(box), intent(out) :: b1, b2
-    integer, intent(in) :: minwidth
     integer, intent(in) :: ll(:), hh(:)
     integer, intent(in) :: sx(ll(1):), sy(ll(2):), sz(ll(3):)
     integer, allocatable :: lx(:), ly(:), lz(:)
     integer :: i, j, k
     integer :: hi(3), ip(3)
 
-    if ( holes(bx, b1, b2, sx, ll(1), hh(1), minwidth, 1) ) return
-    if ( holes(bx, b1, b2, sy, ll(2), hh(2), minwidth, 2) ) return
-    if ( holes(bx, b1, b2, sz, ll(3), hh(3), minwidth, 3) ) return
+    if ( holes(bx, b1, b2, sx, ll(1), hh(1), 1) ) return
+    if ( holes(bx, b1, b2, sy, ll(2), hh(2), 2) ) return
+    if ( holes(bx, b1, b2, sz, ll(3), hh(3), 3) ) return
 
     allocate(lx(ll(1):hh(1)),ly(ll(2):hh(2)),lz(ll(3):hh(3)))
 
@@ -587,9 +598,9 @@ contains
     end do
 
     ! Find the inflection points in each direction
-    call inflection(lx, ll(1), hh(1), minwidth, hi(1), ip(1))
-    call inflection(ly, ll(2), hh(2), minwidth, hi(2), ip(2))
-    call inflection(lz, ll(3), hh(3), minwidth, hi(3), ip(3))
+    call inflection(lx, ll(1), hh(1), hi(1), ip(1))
+    call inflection(ly, ll(2), hh(2), hi(2), ip(2))
+    call inflection(lz, ll(3), hh(3), hi(3), ip(3))
 
     if ( any(ip /= -1) ) then
        if ( maxval(hi) >= CUT_THRESHOLD ) then
@@ -627,9 +638,8 @@ contains
 
   contains
 
-    function holes(bx, b1, b2, sig, ll, hh, minwidth, dim) result(r)
+    function holes(bx, b1, b2, sig, ll, hh, dim) result(r)
       logical :: r
-      integer, intent(in) :: minwidth
       integer, intent(in) :: ll, hh, dim
       integer, intent(in)    :: sig(ll:hh)
       integer :: i
@@ -653,8 +663,7 @@ contains
 
     end function holes
 
-    subroutine inflection(lp, ll, hh, minwidth, hiv, infp)
-      integer, intent(in) :: minwidth
+    subroutine inflection(lp, ll, hh, hiv, infp)
       integer, intent(in) :: ll, hh
       integer, intent(in) :: lp(ll:hh)
       integer, intent(out) :: hiv, infp
