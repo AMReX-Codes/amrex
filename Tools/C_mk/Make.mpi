@@ -87,10 +87,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),manda)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS = $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS = $(MPI_HOME)/include
-      BL_MPI_LIBS += -lmpich -lmpichf90 -lpthread
+      MPI_HOME=/usr/local
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOSTNAME), pleiades.ucsc.edu)
