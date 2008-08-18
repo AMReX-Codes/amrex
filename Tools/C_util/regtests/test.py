@@ -1223,7 +1223,7 @@ def test(argv):
  
         doVis = getParam(test + ".doVis")
 
-        if (doVis):
+        if (doVis and not make_benchmarks):
            visVar = getParam(test + ".visVar")
 
            if (dim == 2):
