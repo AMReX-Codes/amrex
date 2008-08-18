@@ -1510,7 +1510,14 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
         hf.write(line)
 
     hf.write("</PRE>\n")
-        
+
+    # show any visualizations
+    doVis = getParam("%s.doVis" % (testName) )
+    if (doVis):
+       pngFile = getRecentFileName(webDir, testName, ".png")
+       hf.write("<P>&nbsp;\n")
+       hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
+    
 
     # close
     hf.write("</BODY>\n")
