@@ -284,6 +284,22 @@ def getValidTests(sourceTree):
                  continue
       
 
+        # doVis
+        if (not keyIsValid("%s.doVis" % (test)) ):
+            globalParams["%s.doVis" % (test)] = 0
+        else:
+
+           if (getParam("%s.doVis" % (test)) ):
+
+              # we are doing visualization -- find out what variable
+              # to plot
+
+              if (not keyIsValid("%s.visVar" % (test)) ):
+                 print "ERROR: test %s requested visualization but did not specify the visVar parameter.\n" % (test)
+                 removeList.append(test)
+                 continue
+      
+
 
     # remove the invalid tests
     for test in removeList:
@@ -342,6 +358,30 @@ def getLastPlotfile(outputDir, test):
        compareFile = "%s_plt%5.5d" % (test, plotNum)
 
     return compareFile
+
+
+
+#==============================================================================
+# getRecentFileName
+#==============================================================================
+def getRecentFileName(dir,base,extension):
+    """ for fParallel builds, given the base and extension, find the most recent
+        corresponding file """
+        
+    # finding all files that are of type base.*.exe and store the
+    # name of only the most recently created one
+    ctime = -1
+    executableFile = ""
+    for file in os.listdir(dir):
+       if (os.path.isfile(file) and
+           file.startswith(base) and file.endswith(extension)):
+
+          fileInfo = os.stat(file)
+          fileCreationTime = fileInfo.st_ctime
+          if (fileCreationTime > ctime):
+             executableFile = file
+
+    return executableFile
 
 
 
@@ -892,16 +932,23 @@ def test(argv):
     
 
     #--------------------------------------------------------------------------
-    # build the comparison tool
+    # build the comparison and visualization tools
     #--------------------------------------------------------------------------
     print "building the comparison tools..."
 
     os.chdir(compareToolDir)
 
-    os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI=")
-    executable = "fcompare.Linux.Intel.exe"
+    os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI=  >& fcompare.make.out")
+    compareExecutable = getRecentFileName(compareToolDir,"fcompare",".exe")
 
-    shutil.copy(executable, fullTestDir + "/fcompare.exe")
+    shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
+
+    print "building the visualization tools..."
+    os.system("gmake -j 4 programs=fsnapshot2d NDEBUG=t MPI=  >& fsnapshot2d.make.out")
+    vis2dExecutable = getRecentFileName(compareToolDir,"fsnapshot2d",".exe")
+    
+    os.system("gmake -j 4 programs=fsnapshot3d NDEBUG=t MPI=  >& fsnapshot3d.make.out")
+    vis3dExecutable = getRecentFileName(compareToolDir,"fsnapshot3d",".exe")
     
     print "\n"
 
@@ -927,6 +974,7 @@ def test(argv):
 
     os.chdir(testTopDir)
     
+
 
     #--------------------------------------------------------------------------
     # main loop over tests
@@ -976,7 +1024,7 @@ def test(argv):
             os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
 
             # we need a better way to get the executable name here
-            executable = "main.Linux.Intel.exe"   
+            executable = getRecentFileName(sourceDir + buildDir,"main",".exe")
             
             
         #----------------------------------------------------------------------
@@ -1167,8 +1215,33 @@ def test(argv):
                 cf = open("%s.status" % (test), 'w')
                 cf.write("benchmarks failed")
                 cf.close()
+
                 
-            
+        #----------------------------------------------------------------------
+        # do any requested visualization (2- and 3-d only)
+        #----------------------------------------------------------------------        
+ 
+        doVis = getParam(test + ".doVis")
+
+        if (doVis):
+           visVar = getParam(test + ".visVar")
+
+           if (dim == 2):
+              os.system('%s/%s -cname "%s" -p "%s"' %
+                        (compareToolDir, vis2dExecutable, visVar, compareFile) )
+           elif (dim == 3):
+              os.system('%s/%s -n 1 -cname "%s" -p "%s"' %
+                        (compareToolDir, vis3dExecutable, visVar, compareFile) )
+           else:
+              print "Visualization not supported for dim = %d" % (dim)
+
+
+           # convert the .ppm files into .png files
+           ppmFile = getRecentFileName(outputDir, "", ".ppm")
+
+           os.system("convert %s `basename %s .ppm`.png" % (ppmFile, ppmFile) )
+        
+                       
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
@@ -1186,6 +1259,10 @@ def test(argv):
             for file in auxFiles:
                 shutil.copy(file, "%s/%s.%s" % (webDir, test, file) )
 
+            if (doVis):
+               pngFile = getRecentFileName(outputDir, "", ".png")
+               shutil.copy(pngFile, webDir)
+               
         else:
             shutil.copy("%s.status" % (test), webDir)
             
@@ -1357,6 +1434,15 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
     hf.write("<BODY>\n")
 
     hf.write("<CENTER><H1><A HREF=\"index.html\">%s</A> %s</H1></CENTER>\n" % (testDir, testName) )
+
+    useMPI = getParam("%s.useMPI" % (testName))
+    if (useMPI):
+
+       numprocs = getParam("%s.numprocs" % (testName))
+
+       hf.write("<P><b>Parallel Run</b><br>numprocs = %d\n" % (numprocs) )
+       hf.write("<P>&nbsp;\n")
+       
 
     # is this a restart test?
     restart = getParam("%s.restartTest" % (testName) )
