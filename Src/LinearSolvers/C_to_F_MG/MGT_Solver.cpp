@@ -302,8 +302,7 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const std::vector<Geometry>& geom,
-                                     Array< PArray<MultiFab> >& area,
+MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& area,
                                      Array< Array<Real> >& xa,
                                      Array< Array<Real> >& xb,
                                      int is_constant)

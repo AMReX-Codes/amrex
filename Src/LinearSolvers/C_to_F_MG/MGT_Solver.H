@@ -24,8 +24,7 @@ public:
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                             const BndryData& bd);
 
-  void set_gravity_coefficients(const std::vector<Geometry>& geom, 
-                                Array< PArray<MultiFab> >& area,
+  void set_gravity_coefficients(Array< PArray<MultiFab> >& area,
                                 Array< Array<Real> >& xa,
                                 Array< Array<Real> >& xb,
                                 int is_constant);
