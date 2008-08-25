@@ -17,6 +17,7 @@
 #define mgt_finalize_nodal_stencil_lev  MGT_FINALIZE_NODAL_STENCIL_LEV
 #define mgt_dealloc               MGT_DEALLOC
 #define mgt_nodal_dealloc         MGT_NODAL_DEALLOC
+#define mgt_applyop               MGT_APPLYOP
 #define mgt_solve                 MGT_SOLVE
 #define mgt_compute_flux          MGT_COMPUTE_FLUX
 #define mgt_compute_residual      MGT_COMPUTE_RESIDUAL
@@ -107,6 +108,7 @@
 #define mgt_dealloc               mgt_dealloc_
 #define mgt_nodal_dealloc         mgt_nodal_dealloc_
 #define mgt_solve                 mgt_solve_
+#define mgt_applyop               mgt_applyop_
 #define mgt_compute_flux          mgt_compute_flux_
 #define mgt_compute_residual      mgt_compute_residual_
 #define mgt_nodal_solve           mgt_nodal_solve_
@@ -191,6 +193,7 @@
 #define mgt_dealloc               mgt_dealloc__
 #define mgt_nodal_dealloc         mgt_nodal_dealloc__
 #define mgt_solve                 mgt_solve__
+#define mgt_applyop               mgt_applyop__
 #define mgt_compute_flux          mgt_compute_flux__
 #define mgt_compute_residual      mgt_compute_residual__
 #define mgt_divu                  mgt_divu__
@@ -520,6 +523,8 @@ extern "C"
   void mgt_nodal_dealloc();
   
   void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi);
+
+  void mgt_applyop();
   
   void mgt_compute_flux(const int& n);
   
