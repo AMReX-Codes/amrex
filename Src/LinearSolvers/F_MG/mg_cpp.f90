@@ -955,6 +955,23 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
 
 end subroutine mgt_solve
 
+subroutine mgt_applyop()
+  use cpp_mg_module
+  use ml_cc_module
+  use fabio_module
+  implicit none
+
+  call mgt_verify("MGT_APPLYOP")
+  if ( .not. mgts%final ) then
+     call bl_error("MGT_APPLYOP: MGT not finalized")
+  end if
+
+  call ml_cc_applyop(mgts%mla, mgts%mgt, &
+                     mgts%res, mgts%uu, &
+                     mgts%rr)
+
+end subroutine mgt_applyop
+
 subroutine mgt_compute_residual()
   use cpp_mg_module
   use ml_cc_module
