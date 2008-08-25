@@ -302,7 +302,7 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 }
 
 void
-MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& area,
+MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
                                      Array< Array<Real> >& xa,
                                      Array< Array<Real> >& xb,
                                      int is_constant)
@@ -324,7 +324,7 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& area,
       Real value_zero =  0.0;
       Real value_one  = -1.0;
 
-      for (MFIter mfi((area[lev][0])); mfi.isValid(); ++mfi)
+      for (MFIter mfi((coeffs[lev][0])); mfi.isValid(); ++mfi)
         {
            int n = mfi.index();
            const int* lo = m_grids[lev][n].loVect();
@@ -335,18 +335,18 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& area,
            if (is_constant == 1) {
               mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
            } else {
-              const int* bxlo = area[lev][0][n].box().loVect();
-              const int* bxhi = area[lev][0][n].box().hiVect();
-   	      mgt_set_cfbx(&lev, &n, area[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
+              const int* bxlo = coeffs[lev][0][n].box().loVect();
+              const int* bxhi = coeffs[lev][0][n].box().hiVect();
+   	      mgt_set_cfbx(&lev, &n, coeffs[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
            }
  
 #if (BL_SPACEDIM >= 2) 
            if (is_constant == 1) {
               mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
            } else {
-              const int* bylo = area[lev][1][n].box().loVect(); 
-              const int* byhi = area[lev][1][n].box().hiVect();
-   	      mgt_set_cfby(&lev, &n, area[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+              const int* bylo = coeffs[lev][1][n].box().loVect(); 
+              const int* byhi = coeffs[lev][1][n].box().hiVect();
+   	      mgt_set_cfby(&lev, &n, coeffs[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
            }
 #endif
  
@@ -354,9 +354,9 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& area,
            if (is_constant == 1) {
               mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
            } else {
-              const int* bzlo = area[lev][2][n].box().loVect();
-              const int* bzhi = area[lev][2][n].box().hiVect();
-	      mgt_set_cfbz(&lev, &n, area[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+              const int* bzlo = coeffs[lev][2][n].box().loVect();
+              const int* bzhi = coeffs[lev][2][n].box().hiVect();
+	      mgt_set_cfbz(&lev, &n, coeffs[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
            }
 #endif
         }
