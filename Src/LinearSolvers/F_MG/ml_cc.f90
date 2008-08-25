@@ -644,7 +644,7 @@ contains
 
   end subroutine ml_resid
 
-  subroutine ml_cc_applyop(mla, mgt, res, full_soln, fine_mask, ref_ratio)
+  subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
     use ml_util_module
@@ -655,7 +655,6 @@ contains
     type(mg_tower) , intent(inout) :: mgt(:)
     type( multifab), intent(inout) :: res(:)
     type( multifab), intent(inout) :: full_soln(:)
-    type(lmultifab), intent(in   ) :: fine_mask(:)
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
@@ -672,8 +671,6 @@ contains
     integer :: i, n, dm
     integer :: mglev, mglev_crse
     logical :: lcross
-
-    real(dp_t) :: Anorm, bnorm
 
     type(bl_prof_timer), save :: bpt
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
@@ -727,15 +724,9 @@ contains
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
     end do
-    bnorm = ml_norm_inf(rh,fine_mask)
 
     lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
          (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
-
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
-    do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n)),Anorm)
-    end do
 
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
