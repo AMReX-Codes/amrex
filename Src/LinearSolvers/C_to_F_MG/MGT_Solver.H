@@ -37,6 +37,8 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi);
 
+  void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
+
   void compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd);
 
   void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
