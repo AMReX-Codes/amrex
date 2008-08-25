@@ -1154,6 +1154,7 @@ def test(argv):
         # do the comparison
         #----------------------------------------------------------------------
         compareFile = getLastPlotfile(outputDir, test)
+        dim = getParam(test + ".dim")
 
         if (not make_benchmarks):
 
@@ -1181,8 +1182,7 @@ def test(argv):
                 if (not compareFile == ""):
 
                     print "    benchmark file: ", benchFile
-                    
-                    dim = getParam(test + ".dim")
+                   
                     command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test)
 
                     cf = open("%s.compare.out" % (test), 'w')
