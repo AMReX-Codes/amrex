@@ -61,28 +61,28 @@ module tag_boxes_module
 
       select case(llev)
          case (1)
-            ! tag all boxes with a density >= 1.1
+            ! tag all boxes with a density >= 1.01
+            do j = lo(2),lo(2)+ny-1
+               do i = lo(1),lo(1)+nx-1
+                  if (mf(i,j) .gt. 1.01d0) then
+                     tagbox(i,j) = .true.
+                  end if
+               end do
+            enddo
+         case (2)
+            ! for level 2 tag all boxes with a density >= 1.1
             do j = lo(2),lo(2)+ny-1
                do i = lo(1),lo(1)+nx-1
                   if (mf(i,j) .gt. 1.1d0) then
                      tagbox(i,j) = .true.
                   end if
                end do
-            enddo
-         case (2)
-            ! for level 2 tag all boxes with a density >= 1.5
+            end do
+         case default
+            ! for level 3 or greater tag all boxes with a density >= 1.5
             do j = lo(2),lo(2)+ny-1
                do i = lo(1),lo(1)+nx-1
                   if (mf(i,j) .gt. 1.5d0) then
-                     tagbox(i,j) = .true.
-                  end if
-               end do
-            end do
-         case default
-            ! for level 3 or greater tag all boxes with a density >= 2.5
-            do j = lo(2),lo(2)+ny-1
-               do i = lo(1),lo(1)+nx-1
-                  if (mf(i,j) .gt. 2.5d0) then
                      tagbox(i,j) = .true.
                   end if
                end do
@@ -117,6 +117,5 @@ module tag_boxes_module
       end do
 
     end subroutine tag_boxes_3d
-
 
 end module tag_boxes_module
