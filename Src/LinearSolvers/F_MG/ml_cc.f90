@@ -762,6 +762,8 @@ contains
           lo =  lwb(get_box(res(n), i))
           hi =  upb(get_box(res(n), i))
           select case (dm)
+          case (1)
+             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
           case (2)
              call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
           case (3)
@@ -786,6 +788,22 @@ contains
     call destroy(bpt)
 
   end subroutine ml_cc_applyop
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Multiply residual by -1 in 1d
+  subroutine scale_residual_1d(lo,hi,ng,res)
+
+  integer        , intent(in   ) :: lo(:),hi(:),ng
+  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:)
+
+! Local
+  integer :: i
+
+  do i=lo(1),hi(1)
+     res(i) = -res(i)
+  enddo
+  
+  end subroutine scale_residual_1d
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Multiply residual by -1 in 2d
