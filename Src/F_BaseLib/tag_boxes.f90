@@ -19,15 +19,15 @@ contains
 
   subroutine tag_boxes(mf,tagboxes,lev)
 
-    use probin_module, only : ng_cell
-
     type( multifab), intent(in   ) :: mf
     type(lmultifab), intent(inout) :: tagboxes
     integer        , intent(in   ) :: lev
 
     real(kind = dp_t), pointer :: sp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
-    integer           :: i, lo(mf%dim)
+    integer           :: i, lo(mf%dim), ng
+
+    ng = mf%ng
 
     do i = 1, mf%nboxes
        if ( multifab_remote(mf, i) ) cycle
@@ -37,9 +37,9 @@ contains
 
        select case (mf%dim)
        case (2)
-          call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,ng_cell,lev)
+          call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,ng,lev)
        case  (3)
-          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,ng_cell,lev)
+          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,ng,lev)
        end select
     end do
 
