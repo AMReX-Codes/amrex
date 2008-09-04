@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.35 2007-08-28 19:37:45 lijewski Exp $
+// $Id: main.cpp,v 1.36 2008-09-04 17:00:04 marc Exp $
 //
 
 #include <fstream>
@@ -398,7 +398,7 @@ main (int argc, char* argv[])
           const int* chi = cc_coef[mfi].hiVect();
           const Box& bx = mfi.validbox();
   
-          FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),bx.loVect(),bx.hiVect(),dx);
+          FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),bx.loVect(),bx.hiVect(),dx,geom.ProbLo(),geom.ProbHi());
         }
 
         VisMF::Write(cc_coef,"COEF");
