@@ -1,0 +1,6 @@
+geometry.coord_sys   =  0        # 0=cartesian, 1=r-z
+geometry.prob_lo     =  0. 0.   
+geometry.prob_hi     =  1. 1.   
+geometry.is_periodic =  0 0      # for each direction, 1=periodic
+dump_MF=1                        # dump RHS and soln to a "plotfile" named soln_pf
+boxes=grids/gr.2_19boxes         # work on this set of boxes
