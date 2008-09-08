@@ -187,8 +187,9 @@ contains
     !
     if (ng .eq. 0) then
        call build(gcrse, crse%la, nc = nc, ng = 1)
-       call fill_boundary(crse, icomp_crse, nc)
-       call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
+       call copy(gcrse, crse)
+       call fill_boundary(gcrse, icomp_crse, nc)
+       call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
        pcrse => gcrse
     else
        pcrse => crse
