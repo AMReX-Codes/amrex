@@ -18,7 +18,7 @@ contains
     use multifab_physbc_module
 
     type(multifab), intent(inout)           :: fine
-    type(multifab), intent(inout)           :: crse
+    type(multifab), intent(inout),target    :: crse
     integer       , intent(in   )           :: ng
     integer       , intent(in   )           :: ir(:)
     type(bc_level), intent(in   )           :: bc_crse, bc_fine
@@ -47,6 +47,9 @@ contains
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
 
+    type(multifab), target  :: gcrse
+    type(multifab), pointer :: pcrse
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "fillpatch")
@@ -64,10 +67,9 @@ contains
     have_periodic_gcells = .false.
     no_final_physbc      = .false.
 
+    if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
+    if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
-    if ( present(lim_slope_input) ) lim_slope = lim_slope_input
-    if ( present(lin_limit_input) ) lin_limit = lin_limit_input
-
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
@@ -89,7 +91,6 @@ contains
        ! Note: we let bl contain empty boxes so that we keep the same number of boxes
        !       in bl as in fine, but in the interpolation later we cycle if it's empty
        bx = intersection(grow(get_ibox(fine,i),ng),fdomain)
-!      if ( empty(bx) ) call bl_error('fillpatch: cannot fill box outside of domain')
        call push_back(bl, bx)
     end do
 
@@ -182,23 +183,35 @@ contains
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
+    ! If ng==0, got to build and use a version of crse that has a grow cell.
     !
-    do i = 1, nboxes(crse)
-       call push_back(bl, get_pbox(crse,i))
+    if (ng .eq. 0) then
+       call build(gcrse, crse%la, nc = nc, ng = 1)
+       call fill_boundary(crse, icomp_crse, nc)
+       call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
+       pcrse => gcrse
+    else
+       pcrse => crse
+    end if
+
+    do i = 1, nboxes(pcrse)
+       call push_back(bl, get_pbox(pcrse,i))
     end do
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, explicit_mapping = get_proc(crse%la))
+    call build(tmpla, tmpba, explicit_mapping = get_proc(pcrse%la))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
-    do i = 1, nboxes(crse)
-       if ( remote(crse, i) ) cycle
-       src => dataptr(crse,    i, icomp_crse, nc)
+    do i = 1, nboxes(pcrse)
+       if ( remote(pcrse, i) ) cycle
+       src => dataptr(pcrse,   i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
        dst = src
     end do
+
+    if (ng .eq. 0) call destroy(gcrse)
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
