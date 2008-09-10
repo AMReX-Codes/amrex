@@ -209,7 +209,8 @@ contains
        if ( remote(pcrse, i) ) cycle
        src => dataptr(pcrse,   i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
-       dst = src
+       ! dst = src failed using Intel compiler 9.1.043
+       call cpy_d(dst,src)
     end do
 
     if (ng .eq. 0) call destroy(gcrse)
