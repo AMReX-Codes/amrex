@@ -370,8 +370,8 @@ module multifab_module
   private :: reshape_i_4_1, reshape_i_1_4
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
-  private :: cpy_d, cpy_i, cpy_l, cpy_z
 
+  public  :: cpy_d, cpy_i, cpy_l, cpy_z
 
 contains
 
