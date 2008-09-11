@@ -92,16 +92,16 @@ module mg_module
 contains
 
   subroutine mg_tower_build(mgt, la, pd, domain_bc, &
-       nu1, nu2, nuf, nub, gamma, cycle, &
-       smoother, omega, &
-       dh, &
-       ns, &
-       nc, ng, &
-       max_nlevel, min_width, &
-       max_iter, eps, abs_eps, &
-       bottom_solver, bottom_max_iter, bottom_solver_eps, &
-       st_type, &
-       verbose, cg_verbose, nodal)
+                            nu1, nu2, nuf, nub, gamma, cycle, &
+                            smoother, omega, &
+                            dh, &
+                            ns, &
+                            nc, ng, &
+                            max_nlevel, min_width, &
+                            max_iter, eps, abs_eps, &
+                            bottom_solver, bottom_max_iter, bottom_solver_eps, &
+                            st_type, &
+                            verbose, cg_verbose, nodal)
 
     use bl_IO_module
     use bl_prof_module
@@ -277,7 +277,7 @@ contains
        allocate(mgt%st(mgt%nlevels))
        do i = mgt%nlevels, 1, -1
           call stencil_build(mgt%st(i), la1, mgt%dh(:,i), &
-               type = st_type, nc = ns, nodal = nodal)
+                             type = st_type, nc = ns, nodal = nodal)
        end do
     end if
 
@@ -297,14 +297,14 @@ contains
     end do
     do id = 1,mgt%dim
        do i = 1,mgt%nboxes
-         if (mgt%face_type(i,id,1) == BC_INT .or. &
-             mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
-         if (mgt%face_type(i,id,2) == BC_INT .or. &
-             mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
+          if (mgt%face_type(i,id,1) == BC_INT .or. &
+               mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
+          if (mgt%face_type(i,id,2) == BC_INT .or. &
+               mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
        end do
     end do
 
-!   if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
+    !   if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
     if ( mgt%cycle == MG_WCycle ) mgt%gamma = 2
 
@@ -313,14 +313,16 @@ contains
 
     call destroy(bpt)
 
-!   if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
-!     call mg_tower_print(mgt)
-!   end if
+    !   if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
+    !     call mg_tower_print(mgt)
+    !   end if
 
   end subroutine mg_tower_build
 
   subroutine mg_tower_print(mgt, str, unit, skip)
+
     use bl_IO_module
+
     type(mg_tower), intent(in) :: mgt
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
@@ -339,28 +341,28 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'nub               = ', mgt%nub
     call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'ng                = ', mgt%ng
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'nc                = ', mgt%nc
-!   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'ng                = ', mgt%ng
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'nc                = ', mgt%nc
+    !   call unit_skip(un, skip)
     write(unit=un, fmt=*) 'min_width         = ', mgt%min_width
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'max_nlevel        = ', mgt%max_nlevel
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'max_iter          = ', mgt%max_iter
     call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'eps               = ', mgt%eps
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'abs_eps           = ', mgt%abs_eps
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'omega             = ', mgt%omega
-!   call unit_skip(un, skip)
-!   write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
-!   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'eps               = ', mgt%eps
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'abs_eps           = ', mgt%abs_eps
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'omega             = ', mgt%omega
+    !   call unit_skip(un, skip)
+    !   write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
+    !   call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
@@ -373,26 +375,28 @@ contains
        do i = mgt%nlevels,1,-1
           write(unit=un,fmt= '(" Level",i2)') i
           do ii = 1,nboxes(mgt%cc(i)%la)
-            bb = get_box(mgt%cc(i)%la,ii)
-            if (mgt%dim == 2) then
-              write(unit=un,fmt= '("  [",i4,"]: (",i4,",",i4,") (",i4,",",i4,")",i4,i4 )') &
+             bb = get_box(mgt%cc(i)%la,ii)
+             if (mgt%dim == 2) then
+                write(unit=un,fmt= '("  [",i4,"]: (",i4,",",i4,") (",i4,",",i4,")",i4,i4 )') &
                      ii,bb%lo(1),bb%lo(2),bb%hi(1),bb%hi(2), &
                      bb%hi(1)-bb%lo(1)+1,bb%hi(2)-bb%lo(2)+1
-            else if (mgt%dim == 3) then
-              print *,'[',ii,']: ',bb%lo(1),bb%lo(2),bb%lo(3),bb%hi(1),bb%hi(2),bb%hi(3)
-            end if
+             else if (mgt%dim == 3) then
+                print *,'[',ii,']: ',bb%lo(1),bb%lo(2),bb%lo(3),bb%hi(1),bb%hi(2),bb%hi(3)
+             end if
           end do
        end do
     else
-      write(unit=un, fmt=*) 'F90MG: numlevels =  ',mgt%nlevels
-      call unit_skip(un, skip)
+       write(unit=un, fmt=*) 'F90MG: numlevels =  ',mgt%nlevels
+       call unit_skip(un, skip)
     end if
 
   end subroutine mg_tower_print
 
   subroutine mg_tower_destroy(mgt)
+
     type(mg_tower), intent(inout) :: mgt
     integer :: i
+
     do i = 1, mgt%nlevels
        call destroy(mgt%cc(i))
        call destroy(mgt%ff(i))
@@ -420,9 +424,11 @@ contains
     if ( built_q(mgt%uu1)           ) call destroy(mgt%uu1)
     if ( built_q(mgt%ss1)           ) call destroy(mgt%ss1)
     if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
+
   end subroutine mg_tower_destroy
 
   function max_mg_levels(ba, min_size) result(r)
+
     type(boxarray), intent(in)           :: ba
     integer       , intent(in), optional :: min_size
     integer                              :: r
@@ -431,6 +437,7 @@ contains
     type(boxarray)     :: ba1
     real(kind=dp_t)    :: vol
     integer            :: i, rr, lmn, dm
+
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
@@ -470,18 +477,21 @@ contains
   end function max_mg_levels
 
   subroutine mg_tower_v_cycle(mgt, uu, rh)
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in)    :: rh
 
     call mg_tower_cycle(mgt, MG_VCYCLE, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                       uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
+                        uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
 
   end subroutine mg_tower_v_cycle
 
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
+
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in) :: rh
@@ -501,40 +511,45 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
-       call itsol_bicgstab_solve(&
-            ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, stat = stat, &
-            singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+       call itsol_bicgstab_solve(ss, uu, rh, mm, &
+                                 mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                 mgt%cg_verbose, stat = stat, &
+                                 singular_in = mgt%bottom_singular, &
+                                 uniform_dh = mgt%uniform_dh)
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (2)
-       call itsol_cg_solve(&
-            ss, uu, rh, mm, &
-            mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, stat = stat, &
-            singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+       call itsol_cg_solve(ss, uu, rh, mm, &
+                           mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                           stat = stat, singular_in = mgt%bottom_singular, &
+                           uniform_dh = mgt%uniform_dh)
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
-          call copy(mgt%rh1, rh)
-          if ( parallel_IOProcessor() ) then
-             if (nodal_q(rh)) then
-                call setval(mgt%uu1, zero)
-                call sparse_nodal_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
-                     mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat)
-             else
-                call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
-                     mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat)
-             end if
+       call copy(mgt%rh1, rh)
+       if ( parallel_IOProcessor() ) then
+          if (nodal_q(rh)) then
+             call setval(mgt%uu1, zero)
+             call sparse_nodal_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                     mgt%verbose, stat)
+          else
+             call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+                               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, &
+                               stat)
           end if
-          call copy(uu, mgt%uu1)
-          call parallel_bcast(stat, 1)
+       end if
+       call copy(uu, mgt%uu1)
+       call parallel_bcast(stat, 1)
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
     if ( stat /= 0 ) then
-       if ( parallel_IOProcessor() ) call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
+       if ( parallel_IOProcessor() ) then
+          call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
+       end if
        do i = 1, 20
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
@@ -546,8 +561,10 @@ contains
 
   ! computes dd = ss * uu - ff
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
+
     use bl_prof_module
     use itsol_module, only: itsol_stencil_apply
+
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
@@ -560,8 +577,10 @@ contains
   end subroutine mg_defect
 
   subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type, uniform_dh)
+
     use bl_prof_module
     use mg_defect_module
+
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
@@ -598,13 +617,13 @@ contains
           select case(mgt%dim)
           case (1)
              call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
-                               mp(:,1,1,1), mgt%ng, nodal_ng)
+                                  mp(:,1,1,1), mgt%ng, nodal_ng)
           case (2)
              call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                               mp(:,:,1,1), mgt%ng, nodal_ng, face_type(i,:,:))
+                                  mp(:,:,1,1), mgt%ng, nodal_ng, face_type(i,:,:))
           case (3)
              call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                               mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:), uniform_dh)
+                                  mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:), uniform_dh)
           end select
        end do
     end do
@@ -614,9 +633,11 @@ contains
   end subroutine grid_res
 
   subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
+
     use bl_prof_module
-    use mg_restriction_module, only: cc_restriction_1d, nodal_restriction_1d, cc_restriction_2d, &
-         nodal_restriction_2d, cc_restriction_3d, nodal_restriction_3d
+    use mg_restriction_module, only: cc_restriction_1d, nodal_restriction_1d, &
+         cc_restriction_2d, nodal_restriction_2d, cc_restriction_3d, nodal_restriction_3d
+
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     type(imultifab), intent(in)   :: mm_fine
@@ -647,7 +668,7 @@ contains
        call multifab_fill_boundary(fine)
        call setval(crse, 0.0_dp_t, all=.true.)
        mg_restriction_mode = 1
-    end if 
+    end if
 
     do i = 1, mgt%nboxes
        if ( multifab_remote(crse, i) ) cycle
@@ -668,27 +689,30 @@ contains
           select case ( mgt%dim)
           case (1)
              if ( .not. nodal_flag ) then
-               call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
+                call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
              else
-               call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
-                    mp_fine(:,1,1,1), lom_fine, &
-                    mp_crse(:,1,1,1), lom_crse, lo, hi, ir, .false., mg_restriction_mode)
-             end if  
+                call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
+                                          mp_fine(:,1,1,1), lom_fine, &
+                                          mp_crse(:,1,1,1), lom_crse, lo, hi, ir, .false., &
+                                          mg_restriction_mode)
+             end if
           case (2)
              if ( .not. nodal_flag ) then
-               call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
+                call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
              else
-               call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
-                    mp_fine(:,:,1,1), lom_fine, &
-                    mp_crse(:,:,1,1), lom_crse, lo, hi, ir, .false., mg_restriction_mode)
+                call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
+                                          mp_fine(:,:,1,1), lom_fine, &
+                                          mp_crse(:,:,1,1), lom_crse, lo, hi, ir, .false., &
+                                          mg_restriction_mode)
              end if
           case (3)
              if ( .not. nodal_flag ) then
-               call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
              else
-               call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
-                    mp_fine(:,:,:,1), lom_fine, &
-                    mp_crse(:,:,:,1), lom_crse, lo, hi, ir, .false., mg_restriction_mode)
+                call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
+                                          mp_fine(:,:,:,1), lom_fine, &
+                                          mp_crse(:,:,:,1), lom_crse, lo, hi, ir, .false., &
+                                          mg_restriction_mode)
              end if
           end select
        end do
@@ -699,11 +723,12 @@ contains
   end subroutine mg_tower_restriction
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
-    use bl_prof_module
 
-    use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, jac_smoother_3d, &
-         gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, nodal_smoother_2d, nodal_smoother_3d, &
-         gs_rb_smoother_2d,  gs_rb_smoother_3d, minion_smoother_2d
+    use bl_prof_module
+    use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
+         jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, &
+         nodal_smoother_2d, nodal_smoother_3d, gs_rb_smoother_2d,  gs_rb_smoother_3d, &
+         minion_smoother_2d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
 
     integer        , intent(in   ) :: lev
@@ -724,18 +749,18 @@ contains
     real(kind=dp_t) :: local_eps
 
     pmask = layout_get_pmask(uu%la)
- 
+
     call build(bpt, "mgt_smoother")
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
     if (mgt%skewed_not_set(lev)) then 
-      do i = 1, mgt%nboxes
-        if ( remote(mm,i) ) cycle
-        mp => dataptr(mm, i)
-        mgt%skewed(lev,i) = skewed_q(mp)
-      end do
-      mgt%skewed_not_set(lev) = .false.
+       do i = 1, mgt%nboxes
+          if ( remote(mm,i) ) cycle
+          mp => dataptr(mm, i)
+          mgt%skewed(lev,i) = skewed_q(mp)
+       end do
+       mgt%skewed_not_set(lev) = .false.
     end if
 
     if ( cell_centered_q(uu) ) then
@@ -762,19 +787,19 @@ contains
 
           call multifab_fill_boundary(uu, cross = lcross)
 
-!         local_eps = 0.001 
-!         call itsol_cg_solve(&
-!              ss, uu, ff, mm, &
-!              local_eps, 1050, mgt%cg_verbose, stat = stat, &
-!              local_eps, 1050, 1, stat = stat, &
-!              singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+          !         local_eps = 0.001 
+          !         call itsol_cg_solve(&
+          !              ss, uu, ff, mm, &
+          !              local_eps, 1050, mgt%cg_verbose, stat = stat, &
+          !              local_eps, 1050, 1, stat = stat, &
+          !              singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
 
           local_eps = 0.001 
           npts = multifab_volume(ff)
-          call itsol_bicgstab_solve(&
-               ss, uu, ff, mm, &
-               local_eps, npts, mgt%cg_verbose, stat = stat, &
-               singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+          call itsol_bicgstab_solve(ss, uu, ff, mm, &
+                                    local_eps, npts, mgt%cg_verbose, stat = stat, &
+                                    singular_in = mgt%bottom_singular, &
+                                    uniform_dh = mgt%uniform_dh)
 
           call multifab_fill_boundary(uu, cross = lcross)
 
@@ -784,13 +809,39 @@ contains
 
        else
 
-       select case ( mgt%smoother )
+          select case ( mgt%smoother )
 
-       case ( MG_SMOOTHER_GS_RB )
+          case ( MG_SMOOTHER_GS_RB )
 
-          do nn = 0, 1
+             do nn = 0, 1
+                call multifab_fill_boundary(uu, cross = lcross)
+                !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
+                do i = 1, mgt%nboxes
+                   if ( remote(ff, i) ) cycle
+                   up => dataptr(uu, i)
+                   fp => dataptr(ff, i)
+                   sp => dataptr(ss, i)
+                   mp => dataptr(mm, i)
+                   lo =  lwb(get_box(ss, i))
+                   do n = 1, mgt%nc
+                      select case ( mgt%dim)
+                      case (2)
+                         call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
+                                                fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, nn, &
+                                                mgt%skewed(lev,i))
+                      case (3)
+                         call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                                                fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, nn, &
+                                                mgt%skewed(lev,i))
+                      end select
+                   end do
+                end do
+                !$OMP END PARALLEL DO
+             end do
+
+          case ( MG_SMOOTHER_MINION )
+
              call multifab_fill_boundary(uu, cross = lcross)
-             !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
              do i = 1, mgt%nboxes
                 if ( remote(ff, i) ) cycle
                 up => dataptr(uu, i)
@@ -801,132 +852,109 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (2)
-                      call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                           mp(:,:,1,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
+                      call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
+                                              fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng)
                    case (3)
-                      call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                           mp(:,:,:,1), lo, mgt%ng, nn, mgt%skewed(lev,i))
                    end select
                 end do
              end do
-             !$OMP END PARALLEL DO
-          end do
 
-       case ( MG_SMOOTHER_MINION )
-
-          call multifab_fill_boundary(uu, cross = lcross)
-          do i = 1, mgt%nboxes
-             if ( remote(ff, i) ) cycle
-             up => dataptr(uu, i)
-             fp => dataptr(ff, i)
-             sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (2)
-                   call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                                           mp(:,:,1,1), lo, mgt%ng)
-                case (3)
-                end select
+          case ( MG_SMOOTHER_JACOBI )
+             call multifab_fill_boundary(uu, cross = lcross)
+             do i = 1, mgt%nboxes
+                if ( remote(ff, i) ) cycle
+                up => dataptr(uu, i)
+                fp => dataptr(ff, i)
+                sp => dataptr(ss, i)
+                mp => dataptr(mm, i)
+                lo =  lwb(get_box(ss, i))
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                                           mp(:,:,1,1), mgt%ng)
+                   case (3)
+                      call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                                           mp(:,:,:,1), mgt%ng)
+                   end select
+                end do
              end do
-          end do
-
-       case ( MG_SMOOTHER_JACOBI )
-          call multifab_fill_boundary(uu, cross = lcross)
-          do i = 1, mgt%nboxes
-             if ( remote(ff, i) ) cycle
-             up => dataptr(uu, i)
-             fp => dataptr(ff, i)
-             sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (2)
-                   call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                        mp(:,:,1,1), mgt%ng)
-                case (3)
-                   call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                        mp(:,:,:,1), mgt%ng)
-                end select
+          case ( MG_SMOOTHER_GS_LEX )
+             call multifab_fill_boundary(uu, cross = lcross)
+             do i = 1, mgt%nboxes
+                if ( remote(ff, i) ) cycle
+                up => dataptr(uu, i)
+                fp => dataptr(ff, i)
+                sp => dataptr(ss, i)
+                mp => dataptr(mm, i)
+                lo =  lwb(get_box(ss, i))
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
+                                              fp(:,:,1,n), mp(:,:,1,1), mgt%ng)
+                   case (3)
+                      call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                                              fp(:,:,:,n), mp(:,:,:,1), mgt%ng)
+                   end select
+                end do
              end do
-          end do
-       case ( MG_SMOOTHER_GS_LEX )
-          call multifab_fill_boundary(uu, cross = lcross)
-          do i = 1, mgt%nboxes
-             if ( remote(ff, i) ) cycle
-             up => dataptr(uu, i)
-             fp => dataptr(ff, i)
-             sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (2)
-                   call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                        mp(:,:,1,1), mgt%ng)
-                case (3)
-                   call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                        mp(:,:,:,1), mgt%ng)
-                end select
-             end do
-          end do
-       case default
-          call bl_error("MG_TOWER_SMOOTHER: no such smoother")
-       end select
+          case default
+             call bl_error("MG_TOWER_SMOOTHER: no such smoother")
+          end select
 
-    end if ! if (mgt%dim > 1)
+       end if ! if (mgt%dim > 1)
 
     else 
        if (lcross .and. mgt%dim > 1) then
-       ! k is the red-black parameter
-       do k = 0, 1
-        call multifab_fill_boundary(uu, cross = lcross)
-        do i = 1, mgt%nboxes
-          if ( remote(ff, i) ) cycle
-          up => dataptr(uu, i)
-          fp => dataptr(ff, i)
-          sp => dataptr(ss, i)
-          mp => dataptr(mm, i)
-          lo =  lwb(get_box(ss, i))
-          do n = 1, mgt%nc
-             select case ( mgt%dim)
-             case (2)
-                call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                     mp(:,:,1,1), lo, mgt%ng, pmask, k)
-             case (3)
-                call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
-             end select
+          ! k is the red-black parameter
+          do k = 0, 1
+             call multifab_fill_boundary(uu, cross = lcross)
+             do i = 1, mgt%nboxes
+                if ( remote(ff, i) ) cycle
+                up => dataptr(uu, i)
+                fp => dataptr(ff, i)
+                sp => dataptr(ss, i)
+                mp => dataptr(mm, i)
+                lo =  lwb(get_box(ss, i))
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
+                                             fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, pmask, k)
+                   case (3)
+                      call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                                             fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, &
+                                             mgt%uniform_dh, pmask, k)
+                   end select
+                end do
+             end do
           end do
-        end do
-       end do
        else
-        call multifab_fill_boundary(uu, cross = lcross)
-        ! This value of k isn't used
-        k = 0
-        do i = 1, mgt%nboxes
-          if ( remote(ff, i) ) cycle
-          up => dataptr(uu, i)
-          fp => dataptr(ff, i)
-          sp => dataptr(ss, i)
-          mp => dataptr(mm, i)
-          lo =  lwb(get_box(ss, i))
-          do n = 1, mgt%nc
-             select case ( mgt%dim)
-             case (1)
-                call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                     mp(:,1,1,1), lo, mgt%ng)
-             case (2)
-                call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                     mp(:,:,1,1), lo, mgt%ng, pmask, k)
-             case (3)
-                call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                     mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
-             end select
+          call multifab_fill_boundary(uu, cross = lcross)
+          ! This value of k isn't used
+          k = 0
+          do i = 1, mgt%nboxes
+             if ( remote(ff, i) ) cycle
+             up => dataptr(uu, i)
+             fp => dataptr(ff, i)
+             sp => dataptr(ss, i)
+             mp => dataptr(mm, i)
+             lo =  lwb(get_box(ss, i))
+             do n = 1, mgt%nc
+                select case ( mgt%dim)
+                case (1)
+                   call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                          mp(:,1,1,1), lo, mgt%ng)
+                case (2)
+                   call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                                          mp(:,:,1,1), lo, mgt%ng, pmask, k)
+                case (3)
+                   call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                                          mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
+                end select
+             end do
           end do
-        end do
        end if
 
        call multifab_internal_sync(uu)
@@ -937,8 +965,10 @@ contains
   end subroutine mg_tower_smoother
 
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
+
     use bl_prof_module
     use mg_smoother_module, only: jac_smoother_1d, jac_smoother_2d, jac_smoother_3d
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: ff
@@ -958,12 +988,12 @@ contains
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
     if (mgt%skewed_not_set(lev)) then 
-      do i = 1, mgt%nboxes
-        if ( remote(mm,i) ) cycle
-        mp => dataptr(mm, i)
-        mgt%skewed(lev,i) = skewed_q(mp)
-      end do
-      mgt%skewed_not_set(lev) = .false.
+       do i = 1, mgt%nboxes
+          if ( remote(mm,i) ) cycle
+          mp => dataptr(mm, i)
+          mgt%skewed(lev,i) = skewed_q(mp)
+       end do
+       mgt%skewed_not_set(lev) = .false.
     end if
 
     if ( .not. cell_centered_q(uu) ) then
@@ -971,27 +1001,27 @@ contains
     end if
 
     do iter = 1, mgt%nu1
-      call multifab_fill_boundary(uu, cross = lcross)
-      do i = 1, mgt%nboxes
-         if ( remote(ff, i) ) cycle
-         up => dataptr(uu, i)
-         fp => dataptr(ff, i)
-         sp => dataptr(ss, i)
-         mp => dataptr(mm, i)
-         do n = 1, mgt%nc
-            select case ( mgt%dim)
-            case (1)
-               call jac_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                    mp(:,1,1,1), mgt%ng)
-            case (2)
-               call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
-                    mp(:,:,1,1), mgt%ng)
-            case (3)
-               call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                    mp(:,:,:,1), mgt%ng)
-            end select
-         end do
-      end do
+       call multifab_fill_boundary(uu, cross = lcross)
+       do i = 1, mgt%nboxes
+          if ( remote(ff, i) ) cycle
+          up => dataptr(uu, i)
+          fp => dataptr(ff, i)
+          sp => dataptr(ss, i)
+          mp => dataptr(mm, i)
+          do n = 1, mgt%nc
+             select case ( mgt%dim)
+             case (1)
+                call jac_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                     mp(:,1,1,1), mgt%ng)
+             case (2)
+                call jac_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
+                                     mp(:,:,1,1), mgt%ng)
+             case (3)
+                call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                                     mp(:,:,:,1), mgt%ng)
+             end select
+          end do
+       end do
     end do
 
     call destroy(bpt)
@@ -999,8 +1029,10 @@ contains
   end subroutine mg_jacobi_smoother
 
   subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
+
     use bl_prof_module
     use mg_prolongation_module
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
     integer, intent(in) :: lev
@@ -1018,39 +1050,39 @@ contains
     nodal_flag = nodal_q(uu)
 
     if ( .not.nodal_flag ) then
-      do i = 1, mgt%nboxes
-         if ( remote(mgt%ff(lev), i) ) cycle
-         fp => dataptr(uu,  i, get_box(uu,i))
-         cp => dataptr(uu1, i, get_box(uu1,i))
-         do n = 1, mgt%nc
-            select case ( mgt%dim)
-            case (1)
-               call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
-            case (2)
-               call pc_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
-            case (3)
-               call pc_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
-            end select
-         end do
-      end do
+       do i = 1, mgt%nboxes
+          if ( remote(mgt%ff(lev), i) ) cycle
+          fp => dataptr(uu,  i, get_box(uu,i))
+          cp => dataptr(uu1, i, get_box(uu1,i))
+          do n = 1, mgt%nc
+             select case ( mgt%dim)
+             case (1)
+                call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
+             case (2)
+                call pc_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
+             case (3)
+                call pc_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
+             end select
+          end do
+       end do
     else
-      do i = 1, mgt%nboxes
-         if ( remote(mgt%ff(lev), i) ) cycle
-         nbox  = box_grow_n_f(get_box(uu,i),1,1)
-         nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
-         fp => dataptr(uu,  i, nbox )
-         cp => dataptr(uu1, i, nbox1)
-         do n = 1, mgt%nc
-            select case ( mgt%dim)
-            case (1)
-               call nodal_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
-            case (2)
-               call nodal_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
-            case (3)
-               call nodal_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
-            end select
-         end do
-      end do
+       do i = 1, mgt%nboxes
+          if ( remote(mgt%ff(lev), i) ) cycle
+          nbox  = box_grow_n_f(get_box(uu,i),1,1)
+          nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
+          fp => dataptr(uu,  i, nbox )
+          cp => dataptr(uu1, i, nbox1)
+          do n = 1, mgt%nc
+             select case ( mgt%dim)
+             case (1)
+                call nodal_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
+             case (2)
+                call nodal_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
+             case (3)
+                call nodal_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
+             end select
+          end do
+       end do
     endif
 
     call destroy(bpt)
@@ -1058,7 +1090,9 @@ contains
   end subroutine mg_tower_prolongation
 
   function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
+
     use itsol_module
+
     logical :: r
     type(mg_tower), intent(inout) :: mgt
     integer, intent(in) :: lev
@@ -1069,6 +1103,7 @@ contains
   end function mg_tower_converged
 
   recursive subroutine mg_tower_v_cycle_c(mgt, lev, c, ss, uu, rh, mm, nu1, nu2)
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
     type(multifab), intent(inout) :: uu
@@ -1095,7 +1130,7 @@ contains
                                  mgt%mm(lev),mgt%mm(lev-1))
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        call mg_tower_v_cycle_c(mgt, lev-1, c, mgt%ss(lev-1), mgt%uu(lev-1), &
-                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2)
+                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2)
        ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
@@ -1109,8 +1144,11 @@ contains
 
   end subroutine mg_tower_v_cycle_c
 
-  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, bottom_level)
+  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
+                                      bottom_level)
+
     use bl_prof_module
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
     type(multifab), intent(inout) :: uu
@@ -1185,23 +1223,23 @@ contains
           nrm = norm_inf(mgt%cc(lev))
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) &
-             print *,'DN: NORM AFTER RELAX ',lev, nrm
+               print *,'DN: NORM AFTER RELAX ',lev, nrm
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
-            mgt%mm(lev),mgt%mm(lev-1))
+                                 mgt%mm(lev),mgt%mm(lev-1))
        ! HACK 
        if (nodal_flag) then 
-         if (rh%dim .eq. 3) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
-         else if (rh%dim .eq. 2) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
-         end if
+          if (rh%dim .eq. 3) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
+          else if (rh%dim .eq. 2) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
+          end if
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
+                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
@@ -1238,7 +1276,7 @@ contains
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
-!         print *,'OT: NORM RH, UU ',lev, nrm, nrm1
+          !         print *,'OT: NORM RH, UU ',lev, nrm, nrm1
           print *,'OT: NORM RH ',lev, nrm1
        end if
     end if
@@ -1248,6 +1286,7 @@ contains
   end subroutine mg_tower_cycle
 
   subroutine mini_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
     type(multifab), intent(inout) :: uu
@@ -1277,11 +1316,11 @@ contains
 
        ! HACK 
        if (nodal_q(mgt%dd(lev-1))) then
-         if (ss%dim .eq. 3) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
-         else if (ss%dim .eq. 2) then
-           call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
-         end if
+          if (ss%dim .eq. 3) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
+          else if (ss%dim .eq. 2) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
+          end if
        end if
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
@@ -1302,8 +1341,10 @@ contains
   end subroutine mini_cycle
 
   subroutine mg_tower_solve(mgt, uu, rh, qq, num_iter, defect_history, defect_dirname, stat)
+
     use fabio_module
     use bl_prof_module
+
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, rh
     integer, intent(out), optional :: stat
@@ -1327,7 +1368,7 @@ contains
           call bl_error("MG_TOWER_SOLVE: defect_history but no defect_dirname")
        end if
     end if
-       
+
     if ( present(stat) ) stat = 0
     if ( mgt%cycle == MG_FCycle ) then
        gamma = 2
@@ -1355,7 +1396,7 @@ contains
        write(unit = defbase, fmt='("def",I3.3)') 0
        call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
     end if
-       
+
     if ( mgt%verbose > 0 ) then
        nrm(3) = norm_inf(mgt%dd(mgt%nlevels))
        nrm(1) = norm_inf(uu)
@@ -1375,8 +1416,7 @@ contains
     end if
     do it = 1, mgt%max_iter
        call mg_tower_cycle(mgt, cyc, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                           uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, &
-                           gamma)
+                           uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, gamma)
        ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(mgt%ss(mgt%nlevels), &
                       mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
