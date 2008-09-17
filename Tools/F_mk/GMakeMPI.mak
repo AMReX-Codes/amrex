@@ -94,6 +94,14 @@ ifeq ($(HOST),manda)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
+ifeq ($(HOST),atragon)
+  F90 = ifort
+  CXX = icc
+  MPIHOME=/usr/local/mpich2
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lmpichf90 -lpthread
+endif
 ifeq ($(HOST),mothra)
   F90 = ifort
   CXX = icc
