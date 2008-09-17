@@ -102,6 +102,22 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST),atragon)
+      MPI_HOME=/usr/local/mpich2
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),gojira)
+      MPI_HOME=/usr/local/mpich2
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOSTNAME), pleiades.ucsc.edu)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
