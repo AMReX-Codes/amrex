@@ -1,6 +1,6 @@
 
 //
-// $Id: DatasetClient.cpp,v 1.20 2004-07-27 22:51:25 vince Exp $
+// $Id: DatasetClient.cpp,v 1.21 2008-09-25 22:50:21 vince Exp $
 //
 
 #include <climits>
@@ -15,7 +15,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <fcntl.h>
-#include <strstream.h>
+#include <strstream>
 #include <unistd.h>
 
 #include "Box.H"
@@ -116,9 +116,9 @@ SendRealArray (int        sockfd,
     //
     // Send the box.
     //
-    ostrstream bufferstream(buffer, sizeof(buffer));
+    std::ostrstream bufferstream(buffer, sizeof(buffer));
 
-    bufferstream << dataBox << ends;
+    bufferstream << dataBox << std::ends;
 
     if (send(sockfd, buffer, strlen(buffer), 0) < 0)
     {
@@ -187,9 +187,9 @@ SendRealArray (int        sockfd,
     //
     // Send the pointer.
     //
-    ostrstream ptrbufferstream(ptrbuffer, sizeof(ptrbuffer));
+    std::ostrstream ptrbufferstream(ptrbuffer, sizeof(ptrbuffer));
 
-    ptrbufferstream << data[0] << ends;
+    ptrbufferstream << data[0] << std::ends;
 
     if (send(sockfd, ptrbuffer, strlen(ptrbuffer), 0) < 0)
     {
