@@ -745,7 +745,8 @@ contains
         do k = kstart,hi(3)
              do j = jstart,hi(2)
                 do i = istart,hi(1)
-                   uu(i,j,k) = uu_temp(i,j,k)
+                   if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+                      uu(i,j,k) = uu_temp(i,j,k)
                 end do
              end do
         end do
