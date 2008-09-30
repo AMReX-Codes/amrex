@@ -5,7 +5,6 @@
 #include <FabArray.H>
 
 
-
 FabArrayBase::FabArrayBase ()
 {}
 
@@ -92,20 +91,6 @@ MFIter::fabbox () const
 {
     return fabArray.fabbox(currentIndex);
 }
-
-FillBoxId::FillBoxId ()
-    :
-    m_fillBoxId(-1),
-    m_fabIndex(-1)
-{}
-
-FillBoxId::FillBoxId (int        newid,
-		      const Box& fillbox)
-    :
-    m_fillBox(fillbox),
-    m_fillBoxId(newid),
-    m_fabIndex(-1)
-{}
 
 //
 // Used to cache some CommData stuff in CollectData().
@@ -241,7 +226,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 
             if (TheCopyCache.size() >= copy_cache_max_size)
                 //
-                // Get rid of first entry which is the one with the smallest key.
+                // Get rid of entry with the smallest key.
                 //
                 TheCopyCache.erase(TheCopyCache.begin());
         }
@@ -263,3 +248,200 @@ CPC::FlushCache ()
         std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << std::endl;
     TheCopyCache.clear();
 }
+
+FabArrayBase::SI::SI ()
+    :
+    m_ngrow(-1),
+    m_reused(false)
+{}
+
+FabArrayBase::SI::SI (const BoxArray&            ba,
+                      const DistributionMapping& dm,
+                      int                        ngrow)
+    :
+    m_ba(ba),
+    m_dm(dm),
+    m_ngrow(ngrow),
+    m_reused(false)
+{
+    BL_ASSERT(ngrow >= 0);
+}
+
+FabArrayBase::SI::SI (const FabArrayBase::SI& rhs)
+    :
+    m_cache(rhs.m_cache),
+    m_commdata(rhs.m_commdata),
+    m_sirec(rhs.m_sirec),
+    m_ba(rhs.m_ba),
+    m_dm(rhs.m_dm),
+    m_ngrow(rhs.m_ngrow),
+    m_reused(rhs.m_reused)
+{}
+
+FabArrayBase::SI::~SI () {}
+
+bool
+FabArrayBase::SI::operator== (const FabArrayBase::SI& rhs) const
+{
+    return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+}
+
+bool
+FabArrayBase::SI::operator!= (const FabArrayBase::SI& rhs) const
+{
+    return !operator==(rhs);
+}
+
+typedef std::multimap<int,FabArrayBase::SI> SIMMap;
+
+typedef SIMMap::iterator SIMMapIter;
+
+static SIMMap SICache;
+
+void
+FabArrayBase::FlushSICache ()
+{
+    if (ParallelDescriptor::IOProcessor() && SICache.size())
+        std::cout << "FabArrayBase::SICacheSize() = " << SICache.size() << std::endl;
+    SICache.clear();
+}
+
+int
+FabArrayBase::SICacheSize ()
+{
+    return SICache.size();
+}
+
+FabArrayBase::SI&
+FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
+                            const FabArrayBase&     mf)
+{
+    BL_ASSERT(si.m_ngrow >= 0);
+    BL_ASSERT(mf.nGrow() == si.m_ngrow);
+    BL_ASSERT(mf.boxArray() == si.m_ba);
+
+    const int key = mf.nGrow() + mf.size();
+
+    SIMMapIter it = SICache.insert(std::make_pair(key,si));
+
+    const BoxArray&            ba     = mf.boxArray();
+    const DistributionMapping& DMap   = mf.DistributionMap();
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    std::vector<SIRec>&        sirec  = it->second.m_sirec;
+    Array<int>&                cache  = it->second.m_cache;
+
+    cache.resize(ParallelDescriptor::NProcs(),0);
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const int i = mfi.index();
+
+        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.fabbox());
+
+        for (int ii = 0; ii < isects.size(); ii++)
+        {
+            const Box& bx  = isects[ii].second;
+            const int  iii = isects[ii].first;
+
+            if (i != iii)
+            {
+                sirec.push_back(SIRec(i,iii,bx));
+
+                if (DMap[iii] != MyProc)
+                    //
+                    // If we intersect them then they'll intersect us.
+                    //
+                    cache[DMap[iii]] += 1;
+            }
+        }
+
+        BL_ASSERT(cache[DMap[i]] == 0);
+    }
+
+    return it->second;
+}
+
+FabArrayBase::SI&
+FabArrayBase::TheFBsirec (int                 scomp,
+                          int                 ncomp,
+                          const FabArrayBase& mf)
+{
+    BL_ASSERT(ncomp >  0);
+    BL_ASSERT(scomp >= 0);
+
+    static bool first             = true;
+    static bool use_fb_cache      = true;
+    static int  fb_cache_max_size = 25;
+
+    if (first)
+    {
+        first = false;
+        ParmParse pp("fabarray");
+        pp.query("use_fb_cache", use_fb_cache);
+        pp.query("fb_cache_max_size", fb_cache_max_size);
+    }
+
+    const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow());
+
+    const int key = mf.nGrow() + mf.size();
+
+    if (use_fb_cache)
+    {
+        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
+    
+        for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
+        {
+            if (it->second == si)
+            {
+                it->second.m_reused = true;
+                //
+                // Adjust the ncomp & scomp in CommData.
+                //
+                Array<CommData>& cd = it->second.m_commdata.theCommData();
+
+                for (int i = 0; i < cd.size(); i++)
+                {
+                    cd[i].nComp(ncomp);
+                    cd[i].srcComp(scomp);
+                }
+
+                return it->second;
+            }
+        }
+
+        if (SICache.size() >= fb_cache_max_size)
+        {
+            //
+            // Don't let the size of the cache get too big.
+            //
+            for (SIMMapIter it = SICache.begin(); it != SICache.end(); )
+            {
+                if (!it->second.m_reused)
+                {
+                    SICache.erase(it++);
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    if (SICache.size() < fb_cache_max_size) break;
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+
+            if (SICache.size() >= fb_cache_max_size)
+                //
+                // Get rid of entry with the smallest key.
+                //
+                SICache.erase(SICache.begin());
+        }
+    }
+    else
+    {
+        SICache.clear();
+    }
+
+    return BuildFBsirec(si,mf);
+}
+
