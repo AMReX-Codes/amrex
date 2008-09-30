@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.192 2007-09-22 15:05:12 lijewski Exp $
+// $Id: FabArray.H,v 1.193 2008-09-30 17:17:04 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -26,6 +26,62 @@
 
 #include <Profiler.H>
 
+//
+// Helper class
+//
+
+class FillBoxId
+{
+  public:
+
+    FillBoxId ()
+        :
+        m_fillBoxId(-1),
+        m_fabIndex(-1)
+        {}
+    FillBoxId (int newid, const Box& fillbox)
+        :
+        m_fillBox(fillbox),
+        m_fillBoxId(newid),
+        m_fabIndex(-1)
+        {}
+
+    int Id () const              { return m_fillBoxId;    }
+    int FabIndex () const        { return m_fabIndex;     }
+    void FabIndex (int fabindex) { m_fabIndex = fabindex; }
+    const Box& box () const      { return m_fillBox;      }
+
+private:
+
+    Box m_fillBox;
+    int m_fillBoxId;
+    int m_fabIndex;
+};
+
+//
+// Used to cache some CommData stuff in CollectData().
+//
+
+class CommDataCache
+{
+public:
+
+    CommDataCache ();
+
+    void operator= (const Array<CommData>& rhs);
+
+    bool isValid () const { return m_valid; }
+
+    Array<CommData>& theCommData () { return m_commdata; }
+
+    const Array<CommData>& theCommData () const { return m_commdata; }
+
+private:
+
+    Array<CommData> m_commdata;
+    bool            m_valid;
+};
+
 class FabArrayBase
 {
 public:
@@ -36,35 +92,113 @@ public:
 
     virtual ~FabArrayBase();
     //
-    //@ManDoc: Returns the grow factor that defines the region of definition.
+    // Returns the grow factor that defines the region of definition.
     //
     int nGrow () const;
     //
-    //@ManDoc: Returns number of variables associated with each point (nvar).
+    // Returns number of variables associated with each point (nvar).
     //
     int nComp () const;
-    /*@ManDoc: Returns a constant reference to the BoxArray that defines the
-               valid region associated with this FabArray.
-    */
+    //
+    // Returns a constant reference to the BoxArray that defines the
+    // valid region associated with this FabArray.
+    //
     const BoxArray& boxArray () const;
-
-    /*@ManDoc: Returns a constant reference to the Kth Box in the BoxArray.
-               That is, the valid region of the Kth grid.
-    */
+    //
+    // Returns a constant reference to the Kth Box in the BoxArray.
+    // That is, the valid region of the Kth grid.
+    //
     virtual const Box& box (int K) const;
-
-    /*@ManDoc: Returns the Kth FABs Box in the FabArray.
-               That is, the region the Kth fab is actually defined on.
-    */
+    //
+    // Returns the Kth FABs Box in the FabArray.
+    // That is, the region the Kth fab is actually defined on.
+    //
     virtual Box fabbox (int K) const;
     //
-    //@ManDoc: Returns the number of FABs in the FabArray..
+    // Returns the number of FABs in the FabArray..
     //
     int size () const;
     //
-    //@ManDoc: Returns constant reference to associated DistributionMapping.
+    // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const;
+    //
+    // Flush the cache of self-intersection info used by FillBoundary.
+    //
+    static void FlushSICache ();
+    //
+    // The size of the cache of self-intersection info.
+    //
+    static int SICacheSize ();
+    //
+    // Holds single grid intersection record.
+    //
+    struct SIRec
+    {
+        SIRec ()
+            :
+            m_i(-1),
+            m_j(-1)
+            {}
+
+        SIRec (int        i,
+               int        j,
+               const Box& bx)
+            :
+            m_i(i),
+            m_j(j),
+            m_bx(bx)
+            {
+                BL_ASSERT(i >= 0);
+                BL_ASSERT(j >= 0);
+            }
+
+        SIRec (const SIRec& rhs)
+            :
+            m_i(rhs.m_i),
+            m_j(rhs.m_j),
+            m_bx(rhs.m_bx),
+            m_fbid(rhs.m_fbid) {}
+
+        int       m_i;
+        int       m_j;
+        Box       m_bx;
+        FillBoxId m_fbid;
+    };
+    //
+    // Used in caching self-intersection info for FillBoundary().
+    //
+    struct SI
+    {
+        SI ();
+
+        SI (const BoxArray&            ba,
+            const DistributionMapping& dm,
+            int                        ngrow);
+
+        SI (const SI& rhs);
+
+        ~SI ();
+
+        bool operator== (const SI& rhs) const;
+        bool operator!= (const SI& rhs) const;
+
+        Array<int>          m_cache;    // Snds cached for CollectData().
+        CommDataCache       m_commdata; // Yet another cache for CollectData().
+        std::vector<SIRec>  m_sirec;
+        BoxArray            m_ba;
+        DistributionMapping m_dm;
+        int                 m_ngrow;
+        bool                m_reused;
+    };
+    //
+    // Builds self-intersection records.
+    //
+    static SI& BuildFBsirec (const SI& si, const FabArrayBase& mf);
+    //
+    // Returns cached self-intersection records or builds them.
+    //
+    static SI& TheFBsirec (int scomp, int ncomp, const FabArrayBase& mf);
 
 protected:
     //
@@ -120,19 +254,18 @@ protected:
 template <class FAB> class FabArray;
 template <class FAB> class FabArrayCopyDescriptor;
 
-//
-//@Man:
-//@Memo: A Collection of Fortran Array-like Objects
-/*@Doc:
+/*
+  A Collection of Fortran Array-like Objects
 
-  The FabArray<T,FAB> class implements a collection (stored as an array) of
+
+  The FabArray<FAB> class implements a collection (stored as an array) of
   Fortran array-like objects.  The parameterized type FAB is intended to be
   any class derived from BaseFab<T>.  For example, FAB may be a BaseFab of
   integers, so we could write:
 
-    FabArray< int,BaseFab<int> > int\_fabs;
+    FabArray<BaseFab<int> > int_fabs;
 
-  Then int\_fabs is a FabArray that can hold a collection of BaseFab<int>
+  Then int_fabs is a FabArray that can hold a collection of BaseFab<int>
   objects.
 
   FabArray is not just a general container class for Fortran arrays.  It is
@@ -175,10 +308,11 @@ template <class FAB> class FabArrayCopyDescriptor;
   This class does NOT provide a copy constructor or assignment operator.
 */
 
-/*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
-           will actually be allocated on construction of a FabArray.
-           Possible values are: Fab\_noallocate and Fab\_allocate.
-*/
+//
+// An enumumeration that controls whether or not the memory for a FAB
+// will actually be allocated on construction of a FabArray.
+// Possible values are: Fab\_noallocate and Fab\_allocate.
+//
 
 enum FabAlloc { Fab_noallocate = 0, Fab_allocate };
 
@@ -371,11 +505,20 @@ public:
                int        dest_comp,
                int        num_comp) const;
 
-    /*@ManDoc: Perform shifts on the FabArray.
-    */
     void shift (const IntVect& v);
 
     bool defined (int i) const;
+    //
+    // Copy on intersection within a FabArray.  Data is copied from
+    // valid regions to intersecting regions of definition.  The
+    // purpose is to fill in the boundary regions of each FAB in
+    // the FabArray.
+    //
+    void FillBoundary ();
+    //
+    // Same as FillBoundary(), but only copies ncomp components starting at scomp.
+    //
+    void FillBoundary (int scomp, int ncomp);
 
 protected:
 
@@ -391,53 +534,6 @@ private:
     // This is used locally in all define functions.
     //
     void AllocFabs ();
-};
-
-//
-// FillBoxID Helper class
-//
-
-class FillBoxId
-{
-  public:
-
-    FillBoxId ();
-    FillBoxId (int newid, const Box& fillbox);
-
-    int Id () const;
-    int FabIndex () const;
-    void FabIndex (int fabindex);
-    const Box& box () const;
-
-private:
-
-    Box m_fillBox;
-    int m_fillBoxId;
-    int m_fabIndex;
-};
-
-//
-// Used to cache some CommData stuff in CollectData().
-//
-
-class CommDataCache
-{
-public:
-
-    CommDataCache ();
-
-    void operator= (const Array<CommData>& rhs);
-
-    bool isValid () const { return m_valid; }
-
-    Array<CommData>& theCommData () { return m_commdata; }
-
-    const Array<CommData>& theCommData () const { return m_commdata; }
-
-private:
-
-    Array<CommData> m_commdata;
-    bool            m_valid;
 };
 
 class FabArrayId
@@ -666,34 +762,6 @@ int
 MFIter::index () const
 {
     return currentIndex;
-}
-
-inline
-int
-FillBoxId::Id () const
-{
-    return m_fillBoxId;
-}
-
-inline
-int
-FillBoxId::FabIndex () const
-{
-    return m_fabIndex;
-}
-
-inline
-void
-FillBoxId::FabIndex (int fabindex)
-{
-    m_fabIndex = fabindex;
-}
-
-inline
-const Box&
-FillBoxId::box () const
-{
-    return m_fillBox;
 }
 
 template <class FAB>
@@ -2071,6 +2139,51 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
              << "]->boxArray() = "
              << fabArrays[fa]->boxArray()
              << '\n';
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary ()
+{
+    FillBoundary(0, nComp());
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary (int scomp,
+                             int ncomp)
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary()");
+
+    if ( n_grow <= 0 ) return;
+
+    FabArrayCopyDescriptor<FAB> mfcd;
+    FabArrayBase::SI&           si   = FabArrayBase::TheFBsirec(scomp,ncomp,*this);
+    const FabArrayId            mfid = mfcd.RegisterFabArray(this);
+    //
+    // Add boxes we need to collect.
+    //
+    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
+    {
+        si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
+                                           si.m_sirec[i].m_bx,
+                                           0,
+                                           si.m_sirec[i].m_j,
+                                           scomp,
+                                           scomp,
+                                           ncomp);
+    }
+
+    mfcd.CollectData(&si.m_cache,&si.m_commdata);
+
+    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
+    {
+        BL_ASSERT(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
+        //
+        // Directly fill the FAB.
+        //
+        mfcd.FillFab(mfid,si.m_sirec[i].m_fbid,(*this)[si.m_sirec[i].m_i]);
     }
 }
 

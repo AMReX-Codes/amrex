@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.49 2008-04-25 19:30:49 almgren Exp $
+// $Id: MultiFab.H,v 1.50 2008-09-30 17:17:05 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -332,26 +332,6 @@ public:
 		 int             num_comp,
 		 int             nghost);
 
-    /*@ManDoc: Copy on intersection within MultiFab.  Data is copied from
-               valid regions to intersecting regions of definition.  The
-               purpose is to fill in the boundary regions of each FAB in
-               the MultiFab.
-    */
-    void FillBoundary (bool local = false);
-
-    /*@ManDoc: Same as FillBoundary(), but only copies
-               num\_comp components starting at src\_comp.
-    */
-    void FillBoundary (int src_comp, int num_comp, bool local = false);
-    //
-    //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
-    //
-    static void FlushSICache ();
-    //
-    //@ManDoc: The size of the cache of self-intersection info.
-    //
-    static int SICacheSize ();
-
     /*@ManDoc: Add 'src' to `dst' including `nghost' ghost cells.
                The two MultiFabs MUST have the same underlying BoxArray.
     */
@@ -416,6 +396,12 @@ public:
     const FArrayBox& operator[] (int K) const;
 
     FArrayBox& operator[] (int K);
+
+    void FillBoundary (bool local = false);
+    //
+    // Same as FillBoundary(), but only copies ncomp components starting at scomp.
+    //
+    void FillBoundary (int scomp, int ncomp, bool local = false);
 
 protected:
 
