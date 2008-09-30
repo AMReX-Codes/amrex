@@ -1,5 +1,5 @@
 //
-// $Id: AuxBoundaryData.cpp,v 1.2 2007-05-01 02:59:57 lijewski Exp $
+// $Id: AuxBoundaryData.cpp,v 1.3 2008-09-30 20:48:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -113,21 +113,24 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     BoxArray nba(gcells);
 
-    std::vector<long> wgts(nba.size());
-
-    for (unsigned int i = 0; i < wgts.size(); i++)
+    if (gcells.size() > 0)
     {
-        wgts[i] = nba[i].numPts();
-    }
-    DistributionMapping dm;
-    //
-    // This call doesn't invoke the MinimizeCommCosts() stuff.
-    // There's very little to gain with this type of covering.
-    // This also guarantees that this DM won't be put into the cache.
-    //
-    dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
+        std::vector<long> wgts(nba.size());
 
-    m_fabs.define(nba, n_comp, 0, dm, Fab_allocate);
+        for (unsigned int i = 0; i < wgts.size(); i++)
+        {
+            wgts[i] = nba[i].numPts();
+        }
+        DistributionMapping dm;
+        //
+        // This call doesn't invoke the MinimizeCommCosts() stuff.
+        // There's very little to gain with this type of covering.
+        // This also guarantees that this DM won't be put into the cache.
+        //
+        dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
+
+        m_fabs.define(nba, n_comp, 0, dm, Fab_allocate);
+    }
 
     m_initialized = true;
 }
@@ -140,7 +143,10 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    mf.copy(m_fabs,src_comp,dst_comp,num_comp);
+    if (m_fabs.size() > 0 && mf.size() > 0)
+    {
+        mf.copy(m_fabs,src_comp,dst_comp,num_comp);
+    }
 }
 
 void
@@ -151,5 +157,8 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    m_fabs.copy(mf,src_comp,dst_comp,num_comp);
+    if (m_fabs.size() > 0 && mf.size() > 0)
+    {
+        m_fabs.copy(mf,src_comp,dst_comp,num_comp);
+    }
 }
