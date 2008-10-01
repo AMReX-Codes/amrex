@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.36 2008-07-16 17:48:57 almgren Exp $
+// $Id: Amr.H,v 1.37 2008-10-01 18:20:07 almgren Exp $
 //
 
 #include <fstream>
@@ -312,6 +312,8 @@ protected:
 
     void setRecordRunInfo (const std::string&);
 
+    void setRecordRunInfoTerse (const std::string&);
+
     void setRecordDataInfo (int i, const std::string&);
     //
     // The data ...
@@ -348,8 +350,10 @@ protected:
     int              verbose;
     int              record_grid_info;
     int              record_run_info;
+    int              record_run_info_terse;
     std::ofstream    gridlog;
     std::ofstream    runlog;
+    std::ofstream    runlog_terse;
     PArray<std::ofstream> datalog;
     int              sub_cycle;
     std::string      restart_file;
