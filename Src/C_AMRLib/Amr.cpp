@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.173 2008-07-16 17:48:57 almgren Exp $
+// $Id: Amr.cpp,v 1.174 2008-10-01 18:20:07 almgren Exp $
 //
 #include <winstd.H>
 
@@ -280,6 +280,7 @@ Amr::Amr ()
     //
     max_level        = -1;
     record_run_info  = false;
+    record_run_info_terse  = false;
     record_grid_info = false;
     grid_eff         = 0.7;
     last_checkpoint  = 0;
@@ -327,6 +328,12 @@ Amr::Amr ()
         std::string log_file_name;
         pp.get("run_log",log_file_name);
         setRecordRunInfo(log_file_name);
+    }
+    if (pp.contains("run_log_terse"))
+    {
+        std::string log_file_name;
+        pp.get("run_log_terse",log_file_name);
+        setRecordRunInfoTerse(log_file_name);
     }
     if (pp.contains("grid_log"))
     {
@@ -660,6 +667,20 @@ Amr::setRecordRunInfo (const std::string& filename)
     }
     ParallelDescriptor::Barrier();
 }
+
+void
+Amr::setRecordRunInfoTerse (const std::string& filename)
+{
+    record_run_info_terse = true;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        runlog_terse.open(filename.c_str(),std::ios::out|std::ios::app);
+        if (!runlog_terse.good())
+            BoxLib::FileOpenFailed(filename);
+    }
+    ParallelDescriptor::Barrier();
+}
+
 void
 Amr::setRecordDataInfo (int i, const std::string& filename)
 {
@@ -1563,6 +1584,8 @@ Amr::coarseTimeStep (Real stop_time)
                << dt_level[0]
                << '\n';
     }
+    if (record_run_info_terse && ParallelDescriptor::IOProcessor())
+        runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
 
     int check_test = 0;
     if (check_per > 0.0)
