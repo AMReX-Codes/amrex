@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.174 2008-10-01 18:20:07 almgren Exp $
+// $Id: Amr.cpp,v 1.175 2008-10-02 19:10:33 almgren Exp $
 //
 #include <winstd.H>
 
@@ -2323,6 +2323,10 @@ Amr::bldFineLevels (Real strt_time)
     //
     bool grids_the_same;
 
+    const int MaxCnt = 4;
+
+    int count = 0;
+
     do
     {
         for (int i = 0; i <= finest_level; i++)
@@ -2335,6 +2339,8 @@ Amr::bldFineLevels (Real strt_time)
         for (int i = 0; i <= finest_level && grids_the_same; i++)
             if (!(grids[i] == amr_level[i].boxArray()))
                 grids_the_same = false;
+
+        count++;
     }
-    while (!grids_the_same);
+    while (!grids_the_same && count < MaxCnt);
 }
