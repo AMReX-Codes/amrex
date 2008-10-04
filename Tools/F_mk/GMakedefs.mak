@@ -216,7 +216,8 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      ifeq ($(findstring franklin, $(HOST)), franklin)
+      ifeq ($(findstring nid, $(HOST)), nid)
+#       franklin
         F90FLAGS += -O2 -fno-second-underscore
         FFLAGS   += -O2 -fno-second-underscore
         CFLAGS   += -O2 -fno-second-underscore
