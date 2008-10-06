@@ -216,9 +216,9 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -O2 -ipa -fno-second-underscore
-      FFLAGS   += -O2 -ipa -fno-second-underscore
-      CFLAGS   += -O2 -ipa -fno-second-underscore
+      F90FLAGS += -Ofast -fno-second-underscore
+      FFLAGS   += -Ofast -fno-second-underscore
+      CFLAGS   += -Ofast -fno-second-underscore
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
