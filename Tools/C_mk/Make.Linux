@@ -22,7 +22,7 @@ else
 ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXDEBF += -g
-  CXXOPTF += -O --no_exceptions
+  CXXOPTF += -fast --no_exceptions
   ifeq ($(USE_MPI),TRUE)
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
   else
@@ -72,8 +72,8 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF  += -O
-  fOPTF  += -O
+  FOPTF  += -fast
+  fOPTF  += -fast
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
   FDEBF += -g
   fDEBF += -g
@@ -156,7 +156,7 @@ ifeq ($(WHICHLINUX), ATLAS)
   endif
   ifeq ($(COMP),PGI)
     CXX = pgCC
-    CXXOPTF = -O --no_exceptions
+    CXXOPTF = -fast --no_exceptions
     CXXDEBF = -g
     FC = pgif90
     fC = pgif90
