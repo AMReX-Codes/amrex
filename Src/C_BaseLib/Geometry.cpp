@@ -1,13 +1,13 @@
 
 #include <winstd.H>
 
-#include <map>
 #include <iostream>
 
 #include <BoxArray.H>
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <MultiFab.H>
+#include <FArrayBox.H>
 //
 // The definition of static data members.
 //
@@ -16,72 +16,8 @@ int Geometry::spherical_origin_fix = 0;
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
-//
-// Src/dest box pairs to copy for periodic.
-//
-struct PIRec
-{
-    PIRec ()
-        :
-        mfid(-1),
-        srcId(-1) {}
 
-    PIRec (int        _mfid,
-           int        _srcId,
-           const Box& _srcBox,
-           const Box& _dstBox)
-        :
-        mfid(_mfid),
-        srcId(_srcId),
-        srcBox(_srcBox),
-        dstBox(_dstBox) {}
-
-    int       mfid;
-    int       srcId;
-    Box       srcBox;
-    Box       dstBox;
-    FillBoxId fbid;
-};
-//
-// A handy typedef.
-//
-typedef std::vector<PIRec> PIRMMap;
-//
-// Used in caching PIRMMaps && CommData.
-//
-struct FPB
-{
-    FPB ();
-
-    FPB (const BoxArray&            ba,
-         const DistributionMapping& dm,
-         const Box&                 domain,
-         int                        ngrow,
-         bool                       do_corners);
-
-    FPB (const FPB& rhs);
-
-    ~FPB ();
-
-    bool operator== (const FPB& rhs) const;
-    bool operator!= (const FPB& rhs) const;
-
-    Array<int>          m_cache;    // Snds cached for CollectData().
-    CommDataCache       m_commdata; // Yet another cache for CollectData().
-    PIRMMap             m_pirm;
-    BoxArray            m_ba;
-    DistributionMapping m_dm;
-    Box                 m_domain;
-    int                 m_ngrow;
-    bool                m_do_corners;
-    bool                m_reused;
-};
-
-typedef std::multimap<int,FPB> FPBMMap;
-
-typedef FPBMMap::iterator FPBMMapIter;
-
-static FPBMMap m_FPBCache;
+Geometry::FPBMMap Geometry::m_FPBCache;
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -107,8 +43,8 @@ operator>> (std::istream& is,
 }
 
 std::ostream&
-operator<< (std::ostream& os,
-            const PIRec&  pir)
+operator<< (std::ostream&          os,
+            const Geometry::PIRec& pir)
 {
     os << "mfi: "
        << pir.mfid
@@ -123,26 +59,26 @@ operator<< (std::ostream& os,
 }
 
 std::ostream&
-operator<< (std::ostream&  os,
-	    const PIRMMap& pirm)
+operator<< (std::ostream&            os,
+	    const Geometry::PIRMMap& pirm)
 {
     for (int i = 0; i < pirm.size(); i++)
         os << pirm[i] << '\n';
     return os;
 }
 
-FPB::FPB ()
+Geometry::FPB::FPB ()
     :
     m_ngrow(-1),
     m_do_corners(false),
     m_reused(false)
 {}
 
-FPB::FPB (const BoxArray&            ba,
-          const DistributionMapping& dm,
-          const Box&                 domain,
-          int                        ngrow,
-          bool                       do_corners)
+Geometry::FPB::FPB (const BoxArray&            ba,
+                    const DistributionMapping& dm,
+                    const Box&                 domain,
+                    int                        ngrow,
+                    bool                       do_corners)
     :
     m_ba(ba),
     m_dm(dm),
@@ -155,7 +91,7 @@ FPB::FPB (const BoxArray&            ba,
     BL_ASSERT(domain.ok());
 }
 
-FPB::FPB (const FPB& rhs)
+Geometry::FPB::FPB (const FPB& rhs)
     :
     m_cache(rhs.m_cache),
     m_commdata(rhs.m_commdata),
@@ -168,10 +104,10 @@ FPB::FPB (const FPB& rhs)
     m_reused(rhs.m_reused)
 {}
 
-FPB::~FPB () {}
+Geometry::FPB::~FPB () {}
 
 bool
-FPB::operator== (const FPB& rhs) const
+Geometry::FPB::operator== (const FPB& rhs) const
 {
     return
         m_ngrow      == rhs.m_ngrow      &&
@@ -182,7 +118,7 @@ FPB::operator== (const FPB& rhs) const
 }
 
 bool
-FPB::operator!= (const FPB& rhs) const
+Geometry::FPB::operator!= (const FPB& rhs) const
 {
     return !operator==(rhs);
 }
@@ -281,90 +217,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     FillPeriodicBoundary(mf,0,mf.nComp(),do_corners,local);
 }
 
-FPB&
-Geometry::getFPB (MultiFab&  mf,
-                  const FPB& fpb,
-                  int        scomp,
-                  int        ncomp) const
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::getFPB(mf)");
-
-    BL_ASSERT(isAnyPeriodic());
-
-    static bool first              = true;
-    static bool use_fpb_cache      = true;
-    static int  fpb_cache_max_size = 10;
-
-    if (first)
-    {
-        first = false;
-        ParmParse pp("geometry");
-        pp.query("use_fpb_cache", use_fpb_cache);
-        pp.query("fpb_cache_max_size", fpb_cache_max_size);
-    }
-
-    const int key = mf.nGrow() + mf.size();
-
-    if (use_fpb_cache)
-    {
-        std::pair<FPBMMapIter,FPBMMapIter> er_it = m_FPBCache.equal_range(key);
-    
-        for (FPBMMapIter it = er_it.first; it != er_it.second; ++it)
-        {
-            if (it->second == fpb)
-            {
-                it->second.m_reused = true;
-                //
-                // Adjust the ncomp & scomp in CommData.
-                //
-                Array<CommData>& cd = it->second.m_commdata.theCommData();
-
-                for (int i = 0; i < cd.size(); i++)
-                {
-                    cd[i].nComp(ncomp);
-                    cd[i].srcComp(scomp);
-                }
-
-                return it->second;
-            }
-        }
-
-        if (m_FPBCache.size() >= fpb_cache_max_size)
-        {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); )
-            {
-                if (!it->second.m_reused)
-                {
-                    m_FPBCache.erase(it++);
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    if (m_FPBCache.size() < fpb_cache_max_size) break;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (m_FPBCache.size() >= fpb_cache_max_size)
-                //
-                // Get rid of first entry which is the one with the smallest key.
-                //
-                m_FPBCache.erase(m_FPBCache.begin());
-        }
-    }
-    else
-    {
-        m_FPBCache.clear();
-    }
-
-    return buildFPB(mf,fpb);
-}
-
 int
 Geometry::PIRMCacheSize ()
 {
@@ -377,72 +229,6 @@ Geometry::FlushPIRMCache ()
     if (ParallelDescriptor::IOProcessor() && m_FPBCache.size())
         std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << std::endl;
     m_FPBCache.clear();
-}
-
-FPB&
-Geometry::buildFPB (MultiFab&  mf,
-                    const FPB& fpb) const
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::buildFPB()");
-
-    BL_ASSERT(isAnyPeriodic());
-
-    const int key = mf.nGrow() + mf.size();
-
-    FPBMMapIter it = m_FPBCache.insert(std::make_pair(key,fpb));
-
-    PIRMMap& pirm = it->second.m_pirm;
-
-    Array<IntVect> pshifts(27);
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const Box& dest = mf[mfi].box();
-
-        BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
-
-        Box TheDomain = Domain();
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (dest.ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
-
-        if (!TheDomain.contains(dest))
-        {
-            const BoxArray& grids = mf.boxArray();
-
-            for (int j = 0; j < grids.size(); j++)
-            {
-                Box src = grids[j] & TheDomain;
-
-                if (fpb.m_do_corners)
-                {
-                    for (int i = 0; i < BL_SPACEDIM; i++)
-                    {
-                        if (!isPeriodic(i))
-                        {
-                            if (src.smallEnd(i) == Domain().smallEnd(i))
-                                src.growLo(i,mf.nGrow());
-                            if (src.bigEnd(i) == Domain().bigEnd(i))
-                                src.growHi(i,mf.nGrow());
-                        }
-                    }
-                }
-
-                periodicShift(dest, src, pshifts);
-
-                for (int i = 0; i < pshifts.size(); i++)
-                {
-                    Box shftbox = src + pshifts[i];
-                    Box dbx     = dest & shftbox;
-                    Box sbx     = dbx - pshifts[i];
-
-                    pirm.push_back(PIRec(mfi.index(),j,sbx,dbx));
-                }
-            }
-        }
-    }
-
-    return it->second;
 }
 
 void
@@ -510,38 +296,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     }
     else
     {
-        MultiFabCopyDescriptor mfcd;
-
-        FPB TheFPB(mf.boxArray(),mf.DistributionMap(),Domain(),mf.nGrow(),corners);
-
-        const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
-        FPB&             fpb  = getFPB(mf,TheFPB,scomp,ncomp);
-        PIRMMap&         pirm = fpb.m_pirm;
-        //
-        // Add boxes we need to collect.
-        //
-        for (int i = 0; i < pirm.size(); i++)
-        {
-            pirm[i].fbid = mfcd.AddBox(mfid,
-                                       pirm[i].srcBox,
-                                       0,
-                                       pirm[i].srcId,
-                                       scomp,
-                                       scomp,
-                                       ncomp,
-                                       !corners);
-        }
-
-        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
-
-        for (int i = 0; i < pirm.size(); i++)
-        {
-            BL_ASSERT(pirm[i].fbid.box() == pirm[i].srcBox);
-            BL_ASSERT(pirm[i].srcBox.sameSize(pirm[i].dstBox));
-            BL_ASSERT(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
-
-            mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
-        }
+        BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
     }
 }
 
