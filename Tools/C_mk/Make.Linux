@@ -9,7 +9,7 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-  CXXOPTF += -O2 -ipa -fno-exceptions -Wno-deprecated
+  CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
   override XTRALIBS += -lpathfortran  -lmv
 else
@@ -43,8 +43,8 @@ ifeq ($(FCOMP),PathScale)
   F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  FOPTF += -O2 -ipa -fno-unsafe-math-optimizations
-  fOPTF += -O2 -ipa -fno-unsafe-math-optimizations
+  FOPTF += -Ofast
+  fOPTF += -Ofast
   fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
