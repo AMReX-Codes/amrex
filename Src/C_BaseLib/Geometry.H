@@ -392,7 +392,7 @@ namespace BoxLib
                           FabArray<FAB>&  mf,
                           int             scomp,
                           int             ncomp,
-                          bool            corners)
+                          bool            corners=false)
     {
         if (!geom.isAnyPeriodic()) return;
 
