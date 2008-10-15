@@ -1,6 +1,4 @@
-//
-// $Id: AuxBoundaryData.cpp,v 1.3 2008-09-30 20:48:29 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <AuxBoundaryData.H>
@@ -88,6 +86,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     gcells.clear();
     gcells = BoxLib::removeOverlap(bcells);
     bcells.clear();
+    gcells.simplify();
 
     if (geom.isAnyPeriodic())
     {
