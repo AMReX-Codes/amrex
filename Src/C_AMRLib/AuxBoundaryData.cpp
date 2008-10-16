@@ -87,6 +87,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     gcells = BoxLib::removeOverlap(bcells);
     bcells.clear();
     gcells.simplify();
+    gcells.maxSize(64);  // Don't let'm get too big.
 
     if (geom.isAnyPeriodic())
     {
