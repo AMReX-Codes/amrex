@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.60 2008-10-15 22:45:30 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.61 2008-10-16 16:03:01 lijewski Exp $
 //
 #include <iostream>
 
@@ -603,7 +603,9 @@ BoxLib::GetBndryCells (const BoxArray& ba,
         std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
 
         if (isects.empty())
+        {
             bcells.push_back(*it);
+        }
         else
         {
             //
@@ -623,6 +625,7 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     gcells = BoxLib::removeOverlap(bcells);
     bcells.clear();
     gcells.simplify();
+    gcells.maxSize(64); // Don't let'm get too big.
 
     return gcells;
 }
