@@ -1272,14 +1272,6 @@ contains
 
     call timer_stop(mgt%tm(lev))
 
-    if (do_diag) then
-       nrm = norm_inf(uu)
-       nrm1 = norm_inf(rh)
-       if ( parallel_IOProcessor() ) then
-          print *,'OT: NORM RH                   ',lev, nrm1
-       end if
-    end if
-
     call destroy(bpt)
 
   end subroutine mg_tower_cycle
