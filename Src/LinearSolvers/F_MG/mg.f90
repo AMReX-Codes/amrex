@@ -1178,7 +1178,7 @@ contains
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
-          print *,'IN: NORM RH ',lev,nrm1
+          print *,'IN: NORM RH                   ',lev,nrm1
        end if
     end if
 
@@ -1189,7 +1189,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
-             print *,'DN: NORM BEFORE BOTTOM ',lev, nrm
+             print *,'DN: NORM BEFORE BOTTOM        ',lev, nrm
           end if
        end if
        call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
@@ -1199,7 +1199,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
-             print *,'DN: NORM AFTER BOTTOM ',lev, nrm
+             print *,'DN: NORM AFTER BOTTOM         ',lev, nrm
           end if
        end if
     else 
@@ -1208,7 +1208,7 @@ contains
           nrm = norm_inf(rh)
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) then
-             print *,'DN: NORM BEFORE RELAX ',lev, nrm
+             print *,'DN: NORM BEFORE RELAX         ',lev, nrm
           end if
        end if
 
@@ -1223,7 +1223,7 @@ contains
           nrm = norm_inf(mgt%cc(lev))
           nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) &
-               print *,'DN: NORM AFTER RELAX ',lev, nrm
+               print *,'DN: NORM AFTER  RELAX         ',lev, nrm
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
@@ -1249,7 +1249,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
-             print *,'UP: NORM AFTER INTERP ',lev, nrm
+             print *,'UP: NORM AFTER INTERP         ',lev, nrm
           end if
        end if
 
@@ -1262,7 +1262,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
-             print *,'UP: NORM AFTER RELAX ',lev, nrm
+             print *,'UP: NORM AFTER RELAX          ',lev, nrm
           end if
        end if
 
@@ -1276,8 +1276,7 @@ contains
        nrm = norm_inf(uu)
        nrm1 = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
-          !         print *,'OT: NORM RH, UU ',lev, nrm, nrm1
-          print *,'OT: NORM RH ',lev, nrm1
+          print *,'OT: NORM RH                   ',lev, nrm1
        end if
     end if
 
