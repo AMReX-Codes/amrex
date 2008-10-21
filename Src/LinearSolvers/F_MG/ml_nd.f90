@@ -451,9 +451,6 @@ contains
       mglev_fine = mgt(n  )%nlevels
       dm = temp_res%dim
 
-      !    Zero out the flux registers which will hold the fine contributions
-      call bndry_reg_setval(brs_flx, ZERO, all = .true.)
-
       !    Compute the fine contributions at faces, edges and corners.
 
       !    First compute a residual which only takes contributions from the
@@ -465,6 +462,9 @@ contains
         call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       end if
+
+      !    Zero out the flux registers which will hold the fine contributions
+      call bndry_reg_setval(brs_flx, ZERO, all = .true.)
 
       do i = 1,dm
          call ml_fine_contrib(brs_flx%bmf(i,0), &
