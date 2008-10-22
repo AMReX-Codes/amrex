@@ -632,7 +632,7 @@ contains
     m1%la = m2%la
     m1%nboxes = m2%nboxes
     m1%nc = m2%nc
-    m1%ng = m2%nc
+    m1%ng = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
@@ -657,7 +657,7 @@ contains
     m1%la = m2%la
     m1%nboxes = m2%nboxes
     m1%nc = m2%nc
-    m1%ng = m2%nc
+    m1%ng = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
@@ -682,7 +682,7 @@ contains
     m1%la = m2%la
     m1%nboxes = m2%nboxes
     m1%nc = m2%nc
-    m1%ng = m2%nc
+    m1%ng = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
@@ -707,7 +707,7 @@ contains
     m1%la = m2%la
     m1%nboxes = m2%nboxes
     m1%nc = m2%nc
-    m1%ng = m2%nc
+    m1%ng = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
