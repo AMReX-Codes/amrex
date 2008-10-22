@@ -1043,7 +1043,7 @@ contains
 
       nx = size(mm,dim=1) - 1
       ny = size(mm,dim=2) - 1
-      nz = size(mm,dim=2) - 1
+      nz = size(mm,dim=3) - 1
 
       do k = 0,nz
       do j = 0,ny
