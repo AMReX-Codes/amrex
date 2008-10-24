@@ -192,6 +192,12 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
+        if (m_Cache[i].linkCount() == 1)
+            //
+            // Ignore orphaned DistributionMaps.
+            //
+            continue;
+
         if (m_Cache[i]->m_pmap.size() == N + 1)
         {
             m_ref = m_Cache[i];
