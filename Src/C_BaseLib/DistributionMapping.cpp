@@ -19,7 +19,7 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 1;
-static int    sfc_threshold              = 10;
+static int    sfc_threshold              = 8;
 static double max_efficiency             = 0.95;
 static bool   do_not_minimize_comm_costs = true;
 //
@@ -132,9 +132,7 @@ DistributionMapping::Initialize ()
     }
 }
 
-void
-DistributionMapping::Finalize ()
-{}
+void DistributionMapping::Finalize () {}
 
 //
 // Our cache of processor maps.
@@ -192,12 +190,6 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].linkCount() == 1)
-            //
-            // Ignore orphaned DistributionMaps.
-            //
-            continue;
-
         if (m_Cache[i]->m_pmap.size() == N + 1)
         {
             m_ref = m_Cache[i];
@@ -344,9 +336,7 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
         }
 
         if (doit)
-        {
             m_Cache.push_back(dm.m_ref);
-        }
     }
 }
 
