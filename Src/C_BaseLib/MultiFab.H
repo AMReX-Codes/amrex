@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.50 2008-09-30 17:17:05 lijewski Exp $
+// $Id: MultiFab.H,v 1.51 2008-10-28 21:51:50 sepp Exp $
 //
 #include <winstd.H>
 
@@ -356,6 +356,16 @@ public:
                The two MultiFabs MUST have the same underlying BoxArray.
     */
     static void Subtract (MultiFab&       dst,
+			  const MultiFab& src,
+			  int             srccomp,
+			  int             dstcomp,
+			  int             numcomp,
+			  int             nghost);
+
+    /*@ManDoc: Multiply 'dst' by `src' including `nghost' ghost cells.
+               The two MultiFabs MUST have the same underlying BoxArray.
+    */
+    static void Multiply (MultiFab&       dst,
 			  const MultiFab& src,
 			  int             srccomp,
 			  int             dstcomp,
