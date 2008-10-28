@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.88 2008-09-30 17:17:05 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.89 2008-10-28 21:51:50 sepp Exp $
 //
 #include <winstd.H>
 
@@ -79,6 +79,27 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
             dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
+
+void
+MultiFab::Multiply (MultiFab&       dst,
+		    const MultiFab& src,
+		    int             srccomp,
+		    int             dstcomp,
+		    int             numcomp,
+		    int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+    {
+        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+
+        if (bx.ok())
+            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 }
 
