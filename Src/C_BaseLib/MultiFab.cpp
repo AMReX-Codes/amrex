@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.89 2008-10-28 21:51:50 sepp Exp $
+// $Id: MultiFab.cpp,v 1.90 2008-10-29 16:50:44 sepp Exp $
 //
 #include <winstd.H>
 
@@ -100,6 +100,27 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
             dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
+
+void
+MultiFab::Divide (MultiFab&       dst,
+		  const MultiFab& src,
+		  int             srccomp,
+		  int             dstcomp,
+		  int             numcomp,
+		  int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+    {
+        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+
+        if (bx.ok())
+            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 }
 
