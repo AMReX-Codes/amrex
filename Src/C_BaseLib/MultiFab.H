@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.51 2008-10-28 21:51:50 sepp Exp $
+// $Id: MultiFab.H,v 1.52 2008-10-29 16:50:44 sepp Exp $
 //
 #include <winstd.H>
 
@@ -371,6 +371,16 @@ public:
 			  int             dstcomp,
 			  int             numcomp,
 			  int             nghost);
+
+    /*@ManDoc: Divide 'dst' by `src' including `nghost' ghost cells.
+               The two MultiFabs MUST have the same underlying BoxArray.
+    */
+    static void Divide (MultiFab&       dst,
+			const MultiFab& src,
+			int             srccomp,
+			int             dstcomp,
+			int             numcomp,
+			int             nghost);
 
     void define (const BoxArray& bxs,
                  int             nvar,
