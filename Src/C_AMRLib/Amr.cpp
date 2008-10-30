@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.175 2008-10-02 19:10:33 almgren Exp $
+// $Id: Amr.cpp,v 1.176 2008-10-30 20:03:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -47,6 +47,7 @@ namespace
 {
   bool plot_files_output              = true;
   bool checkpoint_files_output        = true;
+  bool refine_grid_layout             = false;
   int  plot_nfiles                    = 64;
   int  checkpoint_nfiles              = 64;
   int  mffile_nstreams                = 1;
@@ -311,6 +312,8 @@ Amr::Amr ()
 
     pp.query("plot_nfiles", plot_nfiles);
     pp.query("checkpoint_nfiles", checkpoint_nfiles);
+
+    pp.query("refine_grid_layout", refine_grid_layout);
 
     pp.query("mffile_nstreams", mffile_nstreams);
     pp.query("probinit_natonce", probinit_natonce);
@@ -2269,6 +2272,23 @@ Amr::grid_places (int              lbase,
         // Don't forget to get rid of space used for collate()ing.
         //
         delete [] pts;
+    }
+
+    if (ParallelDescriptor::NProcs() > 1 && refine_grid_layout)
+    {
+        //
+        // Chop up grids if fewer grids at level than CPUs.
+        // The idea here is to make more grids on a given level
+        // to spread the work around.
+        //
+        for (int i = lbase; i < new_grids.size(); i++)
+        {
+            if (new_grids[i].size() < ParallelDescriptor::NProcs() &&
+                blocking_factor[i] <= max_grid_size/2)
+            {
+                new_grids[i].maxSize(max_grid_size/2);
+            }
+        }
     }
 
     if (verbose)
