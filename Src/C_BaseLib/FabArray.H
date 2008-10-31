@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.193 2008-09-30 17:17:04 lijewski Exp $
+// $Id: FabArray.H,v 1.194 2008-10-31 20:40:02 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -199,6 +199,27 @@ public:
     // Returns cached self-intersection records or builds them.
     //
     static SI& TheFBsirec (int scomp, int ncomp, const FabArrayBase& mf);
+    //
+    // Use MPI_Alltoallv() instead of MPI_IRecv()/MPI_Send().
+    //
+    // Turn on via ParmParse using "fabarray.do_alltoallv=1" in inputs file.
+    //
+    // Default is false.
+    //
+    static bool do_alltoallv;
+    //
+    // Do not use the CollectData() cache.
+    //
+    // Turn on via ParmParse using "fabarray.do_not_use_cache=1" in inputs file.
+    //
+    // Default is false.
+    //
+    static bool do_not_use_cache;
+    //
+    // Initialize from ParmParse with "fabarray" prefix.
+    //
+    static void Initialize ();
+    static void Finalize ();
 
 protected:
     //
@@ -1126,17 +1147,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-    static bool do_alltoallv     = false;
-    static bool isdef_alltoallv  = false;
-
-    if (!isdef_alltoallv)
-    {
-        isdef_alltoallv = true;
-        ParmParse pp("fabarray");
-        pp.query("do_alltoallv",do_alltoallv);
-    }
-
-    if (do_alltoallv)
+    if (FabArrayBase::do_alltoallv)
     {
         size_t Nsend = 0, Nrecv = 0;
 
@@ -1704,18 +1715,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 #if BL_USE_MPI
 
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
-
-    static bool do_alltoallv     = false;
-    static bool isdef_alltoallv  = false;
-    static bool do_not_use_cache = false;
-
-    if (!isdef_alltoallv)
-    {
-        isdef_alltoallv = true;
-        ParmParse pp("fabarray");
-        pp.query("do_alltoallv",do_alltoallv);
-        pp.query("do_not_use_cache",do_not_use_cache);
-    }
     //
     // Make sure we can treat CommData as a stream of integers.
     //
@@ -1739,7 +1738,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     }
     BL_ASSERT(Rcvs[MyProc] == 0);
 
-    if (snd_cache == 0 || snd_cache->size() == 0 || do_not_use_cache)
+    if (snd_cache == 0 || snd_cache->size() == 0 || FabArrayBase::do_not_use_cache)
     {
         BL_MPI_REQUIRE( MPI_Alltoall(Rcvs.dataPtr(),
                                      1,
@@ -1750,7 +1749,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                      ParallelDescriptor::Communicator()) );
         BL_ASSERT(Snds[MyProc] == 0);
 
-        if (snd_cache && !do_not_use_cache)
+        if (snd_cache && !FabArrayBase::do_not_use_cache)
             *snd_cache = Snds;
     }
     else
@@ -1760,7 +1759,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     Array<CommData> cd_others_need;
 
-    if (cd_cache == 0 || !cd_cache->isValid() || do_not_use_cache)
+    if (cd_cache == 0 || !cd_cache->isValid() || FabArrayBase::do_not_use_cache)
     {
         int send_sz = 0;
         int recv_sz = 0;
@@ -1815,7 +1814,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                       ParallelDescriptor::Mpi_typemap<int>::type(),
                                       ParallelDescriptor::Communicator()) );
 
-        if (cd_cache && !do_not_use_cache)
+        if (cd_cache && !FabArrayBase::do_not_use_cache)
             *cd_cache = cd_others_need;
     }
     else
@@ -1823,7 +1822,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         cd_others_need = cd_cache->theCommData();
     }
 
-    if (do_alltoallv)
+    if (FabArrayBase::do_alltoallv)
     {
         Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
         Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), strt(NProcs,0);
