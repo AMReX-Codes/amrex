@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.34 2008-04-10 21:14:48 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.35 2008-10-31 20:40:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -14,6 +14,7 @@
 #include <BLVERSION.H>
 #include <DistributionMapping.H>
 #include <FArrayBox.H>
+#include <FabArray.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <Profiler.H>
@@ -222,8 +223,7 @@ BoxLib::Initialize (int& argc, char**& argv)
 
     ParallelDescriptor::StartParallel(&argc, &argv);
 
-    if (ParallelDescriptor::IOProcessor() &&
-        ParallelDescriptor::NProcs() > 1)
+    if (ParallelDescriptor::IOProcessor() && ParallelDescriptor::NProcs() > 1)
     {
         std::cout << "MPI initialized with "
                   << ParallelDescriptor::NProcs()
@@ -255,6 +255,8 @@ BoxLib::Initialize (int& argc, char**& argv)
 
     FArrayBox::Initialize();
 
+    FabArrayBase::Initialize();
+
     DistributionMapping::Initialize();
 
     std::cout << std::setprecision(10);
@@ -266,6 +268,7 @@ BoxLib::Finalize ()
     bl_prf->stop();
     delete bl_prf;
     DistributionMapping::Finalize();
+    FabArrayBase::Finalize();
     FArrayBox::Finalize();
     WorkQueue::Finalize();
     Profiler::Finalize();
