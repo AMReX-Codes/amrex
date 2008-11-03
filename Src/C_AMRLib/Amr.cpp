@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.176 2008-10-30 20:03:31 lijewski Exp $
+// $Id: Amr.cpp,v 1.177 2008-11-03 20:22:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -47,7 +47,7 @@ namespace
 {
   bool plot_files_output              = true;
   bool checkpoint_files_output        = true;
-  bool refine_grid_layout             = false;
+  bool refine_grid_layout             = true;
   int  plot_nfiles                    = 64;
   int  checkpoint_nfiles              = 64;
   int  mffile_nstreams                = 1;
