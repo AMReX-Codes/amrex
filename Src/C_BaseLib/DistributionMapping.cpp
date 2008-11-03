@@ -19,8 +19,8 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 1;
-static int    sfc_threshold              = 8;
-static double max_efficiency             = 0.95;
+static int    sfc_threshold              = 6;
+static double max_efficiency             = 0.9;
 static bool   do_not_minimize_comm_costs = true;
 //
 // Everyone uses the same Strategy -- defaults to SFC.
@@ -527,6 +527,8 @@ knapsack (const std::vector<long>& wgts, int nprocs)
 
     double efficiency = sum_weight/(nprocs*max_weight);
 
+    int npasses = 0;
+
 top:
 
     std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
@@ -538,6 +540,8 @@ top:
     std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
 
     if (efficiency > max_efficiency) goto bottom;
+
+    npasses++;
 
     for ( ; it_wb != wbl_top.end(); ++it_wb )
     {
@@ -611,7 +615,7 @@ top:
     {
         const Real stoptime = ParallelDescriptor::second() - strttime;
 
-        std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
+        std::cout << "KNAPSACK efficiency: " << efficiency << ", passes: " << npasses << '\n';
         std::cout << "KNAPSACK time: " << stoptime << '\n';
     }
 
