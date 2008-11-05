@@ -525,9 +525,9 @@ knapsack (const std::vector<long>& wgts, int nprocs)
         max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
 
-    double efficiency = sum_weight/(nprocs*max_weight);
-
-    int npasses = 0;
+    int    npasses            = 0;
+    double efficiency         = sum_weight/(nprocs*max_weight);
+    double initial_efficiency = efficiency;
 
 top:
 
@@ -613,10 +613,13 @@ top:
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        const Real stoptime = ParallelDescriptor::second() - strttime;
+        const Real stoptime    = ParallelDescriptor::second() - strttime;
+        const Real improvement =  (efficiency - initial_efficiency) / initial_efficiency * 100;
 
-        std::cout << "KNAPSACK efficiency: " << efficiency << ", passes: " << npasses << '\n';
-        std::cout << "KNAPSACK time: " << stoptime << '\n';
+        std::cout << "KNAPSACK efficiency: " << efficiency
+                  << ", passes: " << npasses
+                  << ", improvement: " << improvement
+                  << "%, time: " << stoptime << '\n';
     }
 
     for (int i  = 0; i < nprocs; i++) delete vbbs[i];
