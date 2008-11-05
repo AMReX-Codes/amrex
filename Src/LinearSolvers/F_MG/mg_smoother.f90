@@ -128,11 +128,12 @@ contains
 
     else
 
-       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
-       do i = lo(1) + ioff, hi(1), 2
+!      ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
+!      do i = lo(1) + ioff, hi(1), 2
+       do i = lo(1), hi(1)
           if (abs(ss(i,0)) .gt. 0.0_dp_t) then
             dd = ss(i,0)*uu(i) &
-                 + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1) 
+               + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1) 
             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
           end if
        end do
