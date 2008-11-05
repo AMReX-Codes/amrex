@@ -765,7 +765,7 @@ contains
 
     if ( cell_centered_q(uu) ) then
 
-       if (mgt%dim .eq. 1) then
+       if (mgt%dim .eq. 1 .and. mgt%nboxes .eq. 1) then
 
           call multifab_fill_boundary(uu, cross = lcross)
 
@@ -825,6 +825,10 @@ contains
                    lo =  lwb(get_box(ss, i))
                    do n = 1, mgt%nc
                       select case ( mgt%dim)
+                      case (1)
+                         call gs_rb_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), &
+                                                fp(:,1,1,n), mp(:,1,1,1), lo, mgt%ng, nn, &
+                                                mgt%skewed(lev,i))
                       case (2)
                          call gs_rb_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
                                                 fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, nn, &
