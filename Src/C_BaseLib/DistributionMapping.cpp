@@ -21,6 +21,7 @@ static int    swap_n_test_count          = 1;
 static int    verbose                    = 1;
 static int    sfc_threshold              = 6;
 static double max_efficiency             = 0.9;
+static bool   do_full_knapsack           = false;
 static bool   do_not_minimize_comm_costs = true;
 //
 // Everyone uses the same Strategy -- defaults to SFC.
@@ -539,7 +540,7 @@ top:
     //
     std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
 
-    if (efficiency > max_efficiency) goto bottom;
+    if (efficiency > max_efficiency || !do_full_knapsack) goto bottom;
 
     npasses++;
 
