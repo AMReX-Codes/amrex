@@ -164,7 +164,7 @@ contains
 
     fine_converged = .false.
 
-    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps) ) then
+    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -173,7 +173,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -400,14 +400,15 @@ contains
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
           end do
+
           if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor() ) then
 !                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
 !                       iter,n,tres
-                   write(unit=*, fmt='("F90mg: Iteration   ",i3," error/error0 = ",g15.8)') &
-                        iter,tres/tres0
+                   write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," error/error0 = ",g15.8)') &
+                        iter,n,tres/tres0
                 end if
              end do
 !            tres = ml_norm_inf(res,fine_mask)
@@ -423,7 +424,7 @@ contains
              tres = norm_inf(res(nlevs))
              if ( parallel_IOProcessor() ) then
 !               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
-                write(unit=*, fmt='("F90mg: Iteration   ",i3," error/error0 = ",g15.8)') iter,tres/tres0
+                write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  error/error0 = ",g15.8)') iter,tres/tres0
              end if
           end if
 
@@ -509,11 +510,12 @@ contains
            ni_res <= epsilon(Anorm)*Anorm
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps, verbose) result(r)
 
       use ml_util_module
 
       logical :: r
+      integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
       real(dp_t), intent(in) :: Anorm, eps, bnorm
@@ -522,6 +524,15 @@ contains
       ni_sol = ml_norm_inf(sol, mask)
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
            ni_res <= epsilon(Anorm)*Anorm
+      if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
+         if (ni_res <= eps*Anorm*ni_sol) then
+            print *,'Converged res < eps*Anorm*sol'
+         else if (ni_res <= eps*bnorm) then
+            print *,'Converged res < eps*bnorm '
+         else 
+            print *,'Converged res < epsilon(Anorm)*Anorm'
+         end if
+      end if
     end function ml_converged
 
   end subroutine ml_cc
