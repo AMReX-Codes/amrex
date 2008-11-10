@@ -10,7 +10,7 @@ module ml_cc_module
 contains
 
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
-                   do_diagnostics, eps, need_grad_phi_in)
+                   do_diagnostics, eps, need_grad_phi_in, final_resnorm)
 
     use bl_prof_module
     use ml_util_module, only: ml_norm_inf
@@ -27,6 +27,7 @@ contains
     real(dp_t)     , intent(in   ) :: eps
 
     logical        , intent(in   ), optional :: need_grad_phi_in
+    real(dp_t)     , intent(  out), optional :: final_resnorm
 
     integer :: nlevs
     type(multifab), allocatable  ::      soln(:)
@@ -44,7 +45,7 @@ contains
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
-    real(dp_t) :: Anorm, bnorm
+    real(dp_t) :: Anorm, bnorm, ni_res
     real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
@@ -164,7 +165,7 @@ contains
 
     fine_converged = .false.
 
-    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, ni_res, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -173,7 +174,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, ni_res, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -495,6 +496,8 @@ contains
 
     call destroy(bpt)
 
+    final_resnorm = ni_res
+
   contains
 
     function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
@@ -510,7 +513,7 @@ contains
            ni_res <= epsilon(Anorm)*Anorm
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps, verbose) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps, ni_res, verbose) result(r)
 
       use ml_util_module
 
@@ -518,8 +521,10 @@ contains
       integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
+      real(dp_t), intent(in   ) :: Anorm, eps, bnorm
+      real(dp_t), intent(  out) :: ni_res
+      real(dp_t) :: ni_sol
+
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &

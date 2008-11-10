@@ -918,13 +918,14 @@ subroutine mgt_dealloc()
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(tol,abs_tol,need_grad_phi)
+subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
   use cpp_mg_module
   use ml_cc_module
   use fabio_module
   implicit none
-  real(kind=dp_t), intent(in) :: tol, abs_tol
-  integer        , intent(in), optional :: need_grad_phi
+  real(kind=dp_t), intent(in   ) :: tol, abs_tol
+  integer        , intent(in   ), optional :: needgradphi
+  real(kind=dp_t), intent(  out), optional :: final_resnorm
 
   integer :: do_diagnostics
 
@@ -934,23 +935,27 @@ subroutine mgt_solve(tol,abs_tol,need_grad_phi)
   end if
 
   do_diagnostics = 0
-  if (present(need_grad_phi)) then
-    if (need_grad_phi .eq. 1) then
+  if (present(needgradphi)) then
+    if (needgradphi .eq. 1) then
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol, .true.)
+           do_diagnostics, tol, &
+           need_grad_phi_in = .true.,&
+           final_resnorm = final_resnorm)
     else
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol)
+           do_diagnostics, tol, &
+           final_resnorm = final_resnorm )
     end if
   else
     call ml_cc(mgts%mla, mgts%mgt, &
          mgts%rh, mgts%uu, &
          mgts%mla%mask, mgts%rr, &
-         do_diagnostics, tol)
+         do_diagnostics, tol,&
+         final_resnorm = final_resnorm )
   end if
 
 end subroutine mgt_solve
