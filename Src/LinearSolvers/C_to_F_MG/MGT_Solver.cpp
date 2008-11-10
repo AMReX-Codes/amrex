@@ -454,14 +454,14 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
 }
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd)
+                  const BndryData& bd, Real& final_resnorm)
 {
-  solve(uu,rh,tol,abs_tol,bd,0);
+  solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
 }
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, int need_grad_phi)
+                  const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -498,7 +498,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 
-  mgt_solve(tol,abs_tol,&need_grad_phi);
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
