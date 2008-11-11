@@ -496,7 +496,8 @@ contains
 
     call destroy(bpt)
 
-    final_resnorm = ni_res
+    if ( present(final_resnorm) ) &
+       final_resnorm = ni_res
 
   contains
 
