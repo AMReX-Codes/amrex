@@ -227,7 +227,7 @@ void
 Geometry::FlushPIRMCache ()
 {
     if (ParallelDescriptor::IOProcessor() && m_FPBCache.size())
-        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << std::endl;
+        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << '\n';
     m_FPBCache.clear();
 }
 

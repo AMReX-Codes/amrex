@@ -1338,10 +1338,8 @@ DistributionMapping::CacheStats (std::ostream& os)
 {
     if (verbose && ParallelDescriptor::IOProcessor() && m_Cache.size())
     {
-        os << "The DistributionMapping cache contains "
-           << DistributionMapping::m_Cache.size()
-           << " Processor Map(s):\n";
-
+        os << "DistributionMapping::m_Cache.size() = " << DistributionMapping::m_Cache.size() << '\n';
+#if 0
         for (unsigned int i = 0; i < m_Cache.size(); i++)
         {
             os << "\tMap #"
@@ -1352,6 +1350,7 @@ DistributionMapping::CacheStats (std::ostream& os)
                << m_Cache[i].linkCount()
                << '\n';
         }
+#endif
     }
 }
 
