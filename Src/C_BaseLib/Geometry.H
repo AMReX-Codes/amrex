@@ -227,6 +227,8 @@ public:
 
     static FPBMMap m_FPBCache;
 
+    static int fpb_cache_max_size;
+
 protected:
     //
     // Helper functions.
@@ -329,8 +331,6 @@ namespace BoxLib
             int                  scomp,
             int                  ncomp)
     {
-        static int fpb_cache_max_size = 25;
-
         const int key = mf.nGrow() + mf.size();
 
         std::pair<Geometry::FPBMMapIter,Geometry::FPBMMapIter> er_it = Geometry::m_FPBCache.equal_range(key);
@@ -355,7 +355,7 @@ namespace BoxLib
             }
         }
 
-        if (Geometry::m_FPBCache.size() >= fpb_cache_max_size)
+        if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size && Geometry::fpb_cache_max_size != -1)
         {
             //
             // Don't let the size of the cache get too big.
@@ -368,7 +368,7 @@ namespace BoxLib
                     //
                     // Only delete enough entries to stay under limit.
                     //
-                    if (Geometry::m_FPBCache.size() < fpb_cache_max_size) break;
+                    if (Geometry::m_FPBCache.size() < Geometry::fpb_cache_max_size) break;
                 }
                 else
                 {
@@ -376,7 +376,7 @@ namespace BoxLib
                 }
             }
 
-            if (Geometry::m_FPBCache.size() >= fpb_cache_max_size)
+            if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size)
                 //
                 // Get rid of first entry which is the one with the smallest key.
                 //

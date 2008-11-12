@@ -191,7 +191,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
     static bool first               = true;
     static bool use_copy_cache      = true;
-    static int  copy_cache_max_size = 25;
+    static int  copy_cache_max_size = 25;   // -1 ==> no maximum size
 
     if (first)
     {
@@ -219,7 +219,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
             }
         }
 
-        if (TheCopyCache.size() >= copy_cache_max_size)
+        if (TheCopyCache.size() >= copy_cache_max_size && copy_cache_max_size != -1)
         {
             //
             // Don't let the size of the cache get too big.
@@ -261,7 +261,7 @@ void
 CPC::FlushCache ()
 {
     if (ParallelDescriptor::IOProcessor() && TheCopyCache.size())
-        std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << std::endl;
+        std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << '\n';
     TheCopyCache.clear();
 }
 
@@ -318,7 +318,7 @@ void
 FabArrayBase::FlushSICache ()
 {
     if (ParallelDescriptor::IOProcessor() && SICache.size())
-        std::cout << "FabArrayBase::SICacheSize() = " << SICache.size() << std::endl;
+        std::cout << "FabArrayBase::SICacheSize() = " << SICache.size() << '\n';
     SICache.clear();
 }
 
@@ -387,7 +387,7 @@ FabArrayBase::TheFBsirec (int                 scomp,
 
     static bool first             = true;
     static bool use_fb_cache      = true;
-    static int  fb_cache_max_size = 25;
+    static int  fb_cache_max_size = 25;   // -1 ==> no maximum size
 
     if (first)
     {
@@ -425,7 +425,7 @@ FabArrayBase::TheFBsirec (int                 scomp,
             }
         }
 
-        if (SICache.size() >= fb_cache_max_size)
+        if (SICache.size() >= fb_cache_max_size && fb_cache_max_size != -1)
         {
             //
             // Don't let the size of the cache get too big.
