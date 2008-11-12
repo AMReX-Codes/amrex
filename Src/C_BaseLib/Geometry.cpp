@@ -19,6 +19,8 @@ bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
 
+int Geometry::fpb_cache_max_size = 25; // -1 ==> no maximum size
+
 std::ostream&
 operator<< (std::ostream&   os,
             const Geometry& g)
@@ -401,6 +403,8 @@ Geometry::Setup (const RealBox* rb, int coord)
     pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
     for (int n = 0; n < BL_SPACEDIM; n++)  
       is_periodic[n] = is_per[n];
+
+    pp.query("fpb_cache_max_size", Geometry::fpb_cache_max_size);
 }
 
 void
