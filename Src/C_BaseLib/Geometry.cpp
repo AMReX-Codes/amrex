@@ -19,7 +19,7 @@ bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
 
-int Geometry::fpb_cache_max_size = 25; // -1 ==> no maximum size
+int Geometry::fpb_cache_max_size = -1; // -1 ==> no maximum size
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -228,8 +228,16 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
+    int reused = 0;
+
+    for (FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); ++it)
+        if (it->second.m_reused)
+            reused++;
+
     if (ParallelDescriptor::IOProcessor() && m_FPBCache.size())
-        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << '\n';
+    {
+        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << ", # reused = " << reused << '\n';
+    }
     m_FPBCache.clear();
 }
 
