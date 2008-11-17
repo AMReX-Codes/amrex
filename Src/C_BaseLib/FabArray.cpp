@@ -191,7 +191,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
     static bool first               = true;
     static bool use_copy_cache      = true;
-    static int  copy_cache_max_size = 25;   // -1 ==> no maximum size
+    static int  copy_cache_max_size = 100;   // -1 ==> no maximum size
 
     if (first)
     {
