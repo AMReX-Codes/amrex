@@ -101,6 +101,8 @@ DistributionMapping::Initialize ()
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
+    pp.query("do_full_knapsack", do_full_knapsack);
+
     pp.query("swap_n_test_count", swap_n_test_count);
 
     if (swap_n_test_count <= 0)
