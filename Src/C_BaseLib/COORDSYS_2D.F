@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.12 2008-12-02 01:49:30 almgren Exp $
+c $Id: COORDSYS_2D.F,v 1.13 2008-12-02 01:51:28 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -206,7 +206,7 @@ c ::
        REAL_T     area(DIMV(area))
        
        integer    i, j
-       REAL_T     ri, ro, a, pi, po
+       REAL_T     rc, ri, ro, a, pi, po
        REAL_T     RZFACTOR
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
@@ -227,28 +227,29 @@ c
                 end do
              end do
           end if
-       elseif(coord .eq. 1) then
+
+       else if (coord .eq. 1) then
 c
 c         ::::: R-Z
 c
           if (dir .eq. 0) then
              do i = ARG_L1(area), ARG_H1(area)
                 ri = offset(1) + dx(1)*i
-                a = RZFACTOR*ri*dx(2)
+                a = abs(RZFACTOR*ri*dx(2))
                 do j = ARG_L2(area), ARG_H2(area)
-                   area(i,j) = abs(a)
+                   area(i,j) = a
                 end do
              end do
           else
              do i = ARG_L1(area), ARG_H1(area)
-                ri = offset(1) + dx(1)*i
-                ro = ri + dx(1)
-                a = dx(1)*(half*RZFACTOR)*(ri + ro)
+                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                a = abs(dx(1)*RZFACTOR*rc)
                 do j = ARG_L2(area), ARG_H2(area)
-                   area(i,j) = abs(a)
+                   area(i,j) = a
                 end do
              end do
           end if
+
        elseif(coord .eq. 2) then
               if (dir .eq. 0) then
                  do i = ARG_L1(area), ARG_H1(area)
