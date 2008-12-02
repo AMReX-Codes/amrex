@@ -35,33 +35,30 @@ c ::
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
-c         ::::: cartesian
           v = dx(1)
              do i = ARG_L1(vol), ARG_H1(vol)
                 vol(i) = v
              enddo
-       else
-	 if(coord .eq. 1) then
-c  ::: 1D cylindrical
-           do i = ARG_L1(vol), ARG_H1(vol)
-              ri = offset(1) + dx(1)*i
-              ro = ri + dx(1)
-              v = half*(RZFACTOR)*(ro**2 - ri**2)
-              vol(i) = abs(v)
-           enddo
-	 else
-	    if(coord .eq. 2) then
-c         ::::: 1D spherical
-               do i = ARG_L1(vol), ARG_H1(vol)
-                  ri = offset(1) + dx(1)*i
-                  ro = ri + dx(1)
-                  v = (two3rd*RZFACTOR)*(ro**3 - ri**3)
-                  vol(i) = abs(v)
-               enddo
-	     else
-	        call bl_abort('bogus value of coord... bndrylib::SETVOL')
-	     endif
-	 endif
+
+       else if (coord .eq. 1) then
+
+          do i = ARG_L1(vol), ARG_H1(vol)
+             ri = offset(1) + dx(1)*i
+             ro = ri + dx(1)
+             v = half*(RZFACTOR)*(ro**2 - ri**2)
+             vol(i) = abs(v)
+          enddo
+
+       else if (coord .eq. 2) then
+
+          do i = ARG_L1(vol), ARG_H1(vol)
+             ri = offset(1) + dx(1)*i
+             ro = ri + dx(1)
+             v = (two3rd*RZFACTOR)*(ro**3 - ri**3)
+             vol(i) = abs(v)
+          enddo
+       else 
+          call bl_abort('bogus value of coord... bndrylib::SETVOL')
        endif
        
        return
@@ -69,6 +66,7 @@ c         ::::: 1D spherical
 	
 	subroutine FORT_SETVOLPT(vol, volloi1, volhii1, 
      $		ro, roloi1, rohii1, ri, riloi1, rihii1, dx, coord)
+
 	integer volloi1, volhii1
 	integer roloi1, rohii1, riloi1, rihii1
 	integer coord
@@ -86,27 +84,25 @@ c  note that dx is usually unity.  dx not unity is used by the nfluid
 c  slic reconstruction
 c
 
-	if(coord .eq. 0) then
+	if (coord .eq. 0) then
 	   do i = roloi1, rohii1
 	      vol(i) = (ro(i)-ri(i))
 	   enddo
 
-	else
-	   if(coord .eq. 1) then
-	      do i = roloi1, rohii1
-	         vol(i) = half*RZFACTOR*(ro(i)**2 - ri(i)**2)
-	 	 vol(i) = abs(vol(i))
-	      enddo
-	   else
-	      if (coord .eq. 2) then
-	         do i = roloi1, rohii1
-	            vol(i) = two3rd*RZFACTOR*(ro(i)**3-ri(i)**3)
-	 	 vol(i) = abs(vol(i))
-	         enddo
-	      else
-	         call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
-	      endif
-	   endif
+	else if (coord .eq. 1) then
+           do i = roloi1, rohii1
+              vol(i) = half*RZFACTOR*(ro(i)**2 - ri(i)**2)
+              vol(i) = abs(vol(i))
+           enddo
+
+        else if (coord .eq. 2) then
+           do i = roloi1, rohii1
+	      vol(i) = two3rd*RZFACTOR*(ro(i)**3-ri(i)**3)
+	      vol(i) = abs(vol(i))
+           enddo
+
+        else
+           call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
 	endif
 
 	return
@@ -133,41 +129,30 @@ c ::
        integer dir
        
        integer    i
-       REAL_T     ri, ro, dlga
+       REAL_T     rc
        
        if (coord .eq. 0) then
 
-c         ::::: cartesian
-             do i = ARG_L1(dloga), ARG_H1(dloga)
-                dloga(i) = zero
-             enddo
+          do i = ARG_L1(dloga), ARG_H1(dloga)
+             dloga(i) = zero
+          enddo
 
-       else 
-c  :::  1D cylindrical
-	  if(coord .eq. 1) then
-            do i = ARG_L1(dloga), ARG_H1(dloga)
-               ri = offset(1) + dx(1)*i
-	       ri = abs(ri)
-               ro = ri + dx(1)
-	       ro = abs(ro)
-               dlga = two/(ro+ri)                                        
-               dloga(i) = dlga
-            enddo
-	  else
-	     if( coord .eq. 2 ) then
-c         ::::: 1d spherical
-                do i = ARG_L1(dloga), ARG_H1(dloga)
-                   ri = offset(1) + dx(1)*i
-	           ri = abs(ri)
-                   ro = ri + dx(1)
-	           ro = abs(ro)
-                   dlga = four/(ro+ri)                                        
-                   dloga(i) = dlga
-                enddo
-             else
-                call bl_abort('setdloga: illegal coordinate system')
-             endif
-	  endif
+       else if (coord .eq. 1) then
+
+          do i = ARG_L1(dloga), ARG_H1(dloga)
+             rc = offset(1) + dx(1)*(dble(i) + 0.5d0)
+             dloga(i) = 1.d0 / rc
+          enddo
+
+       else if (coord .eq. 2) then
+
+          do i = ARG_L1(dloga), ARG_H1(dloga)
+             rc = offset(1) + dx(1)*(dfloat(i) + 0.5d0)
+             dloga(i) = 2.d0/rc
+          enddo
+
+       else
+          call bl_abort('SETDLOGA: illegal coordinate system')
        endif
        return
        end
@@ -197,30 +182,26 @@ c ::
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
-c         ::::: cartesian
-            do i = ARG_L1(area), ARG_H1(area)
-               area(i) = one
-            enddo
-       else
-c         ::::: 1d spherical
+         do i = ARG_L1(area), ARG_H1(area)
+            area(i) = one
+         enddo
 
-	  if(coord .eq. 1) then
-            do i = ARG_L1(area), ARG_H1(area)
-               ri = offset(1) + dx(1)*i
-	       a = RZFACTOR*ri
-	       area(i) = abs(a)
-            enddo
-	  else
-	      if( coord .eq. 2) then
-                do i = ARG_L1(area), ARG_H1(area)
-                   ri = offset(1) + dx(1)*i
-	           a = two*RZFACTOR*ri*ri
-	           area(i) = abs(a)
-                enddo
-	      else
-	        call bl_abort('bogus value for coord... SETAREA')
-	      endif
-	  endif
+       else if (coord .eq. 1) then
+          do i = ARG_L1(area), ARG_H1(area)
+             ri = offset(1) + dx(1)*i
+             a = RZFACTOR*ri
+             area(i) = abs(a)
+          enddo
+
+       else if( coord .eq. 2) then
+          do i = ARG_L1(area), ARG_H1(area)
+             ri = offset(1) + dx(1)*i
+             a = two*RZFACTOR*ri*ri
+             area(i) = abs(a)
+          enddo
+
+       else
+          call bl_abort('bogus value for coord... SETAREA')
        endif
        
        return
