@@ -188,14 +188,14 @@ c ::
 
        else if (coord .eq. 1) then
           do i = ARG_L1(area), ARG_H1(area)
-             ri = offset(1) + dx(1)*i
+             ri = offset(1) + dx(1)*dble(i)
              a = RZFACTOR*ri
              area(i) = abs(a)
           enddo
 
        else if( coord .eq. 2) then
           do i = ARG_L1(area), ARG_H1(area)
-             ri = offset(1) + dx(1)*i
+             ri = offset(1) + dx(1)*dble(i)
              a = two*RZFACTOR*ri*ri
              area(i) = abs(a)
           enddo
