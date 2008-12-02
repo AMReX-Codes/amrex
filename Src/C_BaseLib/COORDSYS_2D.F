@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.11 2008-02-08 18:15:11 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.12 2008-12-02 01:49:30 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -130,12 +130,10 @@ c ::
        integer dir
        
        integer    i, j
-       REAL_T     ri, ro, dlga, po, pi
+       REAL_T     rc, dlga, po, pi
        
        if (coord .eq. 0) then
-c
-c         ::::: cartesian
-c
+
           do j = ARG_L2(dloga), ARG_H2(dloga)
              do i = ARG_L1(dloga), ARG_H1(dloga)
                 dloga(i,j) = zero
@@ -143,23 +141,17 @@ c
           end do
 
        else if( coord .eq. 1 ) then
-c
-c         ::::: R-Z
-c
-          if( dir .eq. 0 ) then
+
+          if (dir .eq. 0) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                ri = offset(1) + dx(1)*i
-                ro = ri + dx(1)
-                dlga = two/(ro+ri)                                        
+                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                dlga = 1.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = dlga
                 end do
              end do
-          else if( dir .eq. 1 ) then
+          else if (dir .eq. 1) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                ri = offset(1) + dx(1)*i
-                ro = ri + dx(1)
-                dlga = two/(ro+ri)                                        
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = zero
                 end do
@@ -167,25 +159,20 @@ c
           else
              call bl_abort('setdloga: illegal direction')
           end if
+
        else if( coord .eq. 2) then
-          if(dir .eq. 0) then
+          if (dir .eq. 0) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                ri = offset(1) + dx(1)*i
-                ri = ri
-                ro = ri + dx(1)
-                ro = ro
-                dlga = four/(ro+ri)
+                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                dlga = 2.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = dlga
                 enddo
              enddo
-          elseif(dir .eq. 1) then
+          else if (dir .eq. 1) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                ri = offset(1) + dx(1)*i
-                ri = ri
-                ro = ri + dx(1)
-                ro = ro
-                dlga = two/(ro+ri)
+                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                dlga = 1.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    pi = offset(2) + dx(2)*j
                    po = pi + dx(2)
