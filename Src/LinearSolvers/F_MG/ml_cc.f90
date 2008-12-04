@@ -10,7 +10,7 @@ module ml_cc_module
 contains
 
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
-                   do_diagnostics, eps, need_grad_phi_in, final_resnorm)
+                   do_diagnostics, eps, abs_eps_in, need_grad_phi_in, final_resnorm)
 
     use bl_prof_module
     use ml_util_module, only: ml_norm_inf
@@ -26,6 +26,7 @@ contains
     integer        , intent(in   ) :: do_diagnostics
     real(dp_t)     , intent(in   ) :: eps
 
+    real(dp_t)     , intent(in   ), optional :: abs_eps_in
     logical        , intent(in   ), optional :: need_grad_phi_in
     real(dp_t)     , intent(  out), optional :: final_resnorm
 
@@ -45,12 +46,18 @@ contains
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
-    real(dp_t) :: Anorm, bnorm, ni_res
+    real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_cc")
+
+    if ( present(abs_eps_in) ) then
+       abs_eps = abs_eps_in 
+    else
+       abs_eps = 0.d0
+    end if
 
     if ( present(need_grad_phi_in) ) then
        need_grad_phi = need_grad_phi_in 
@@ -165,7 +172,7 @@ contains
 
     fine_converged = .false.
 
-    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, ni_res, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -174,7 +181,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, ni_res, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -376,7 +383,7 @@ contains
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
 
-       if ( ml_fine_converged(res, soln, bnorm, Anorm, eps) ) then
+       if ( ml_fine_converged(res, soln, bnorm, Anorm, eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -501,20 +508,21 @@ contains
 
   contains
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
+    function ml_fine_converged(res, sol, bnorm, Anorm, eps, abs_eps) result(r)
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
+      real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
       real(dp_t) :: ni_res, ni_sol
       integer    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= abs_eps .or. &
            ni_res <= epsilon(Anorm)*Anorm
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps, ni_res, verbose) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps, ni_res, verbose) result(r)
 
       use ml_util_module
 
@@ -522,17 +530,20 @@ contains
       integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in   ) :: Anorm, eps, bnorm
+      real(dp_t), intent(in   ) :: Anorm, eps, abs_eps, bnorm
       real(dp_t), intent(  out) :: ni_res
       real(dp_t) :: ni_sol
 
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= abs_eps .or. &
            ni_res <= epsilon(Anorm)*Anorm
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if (ni_res <= eps*Anorm*ni_sol) then
             print *,'Converged res < eps*Anorm*sol'
+         else if (ni_res <= abs_eps) then
+            print *,'Converged res < abs_eps '
          else if (ni_res <= eps*bnorm) then
             print *,'Converged res < eps*bnorm '
          else 
