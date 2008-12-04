@@ -50,7 +50,8 @@ contains
 
 ! ****************************************************************************
 
-      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps,.true.)
+      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
+                 need_grad_phi_in=.true.)
 
 ! ****************************************************************************
 
