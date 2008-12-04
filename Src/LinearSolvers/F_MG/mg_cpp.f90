@@ -941,6 +941,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
            do_diagnostics, tol, &
+           abs_eps_in = abs_tol, &
            need_grad_phi_in = .true.,&
            final_resnorm = final_resnorm)
     else
@@ -948,6 +949,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
            do_diagnostics, tol, &
+           abs_eps_in = abs_tol, &
            final_resnorm = final_resnorm )
     end if
   else
@@ -955,6 +957,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
          mgts%rh, mgts%uu, &
          mgts%mla%mask, mgts%rr, &
          do_diagnostics, tol,&
+         abs_eps_in = abs_tol, &
          final_resnorm = final_resnorm )
   end if
 
