@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.37 2007-10-28 19:34:25 almgren Exp $
+// $Id: Interpolater.cpp,v 1.38 2008-12-08 21:41:59 almgren Exp $
 //
 #include <winstd.H>
 #include <climits>
@@ -152,7 +152,9 @@ CellBilinear::interp (const FArrayBox& crse,
                       const Geometry&  /* fine_geom */,
                       Array<BCRec>&    /*bcr*/)
 {
+#if (BL_SPACEDIM == 3)
     BoxLib::Error("interp: not implemented");
+#endif
     //
     // Set up to call FORTRAN.
     //
