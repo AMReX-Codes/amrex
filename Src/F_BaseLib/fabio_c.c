@@ -1,7 +1,8 @@
 /* 
-   $Id: fabio_c.c,v 1.10 2008-06-11 17:03:38 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.11 2008-12-19 22:48:51 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,6 +38,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_D fabio_read_skip_d_
 #define FABIO_READ_SKIP_S fabio_read_skip_s_
 #define FABIO_CLOSE       fabio_close_
+#define FAB_CONTAINS_NAN  fab_contains_nan_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define FABIO_OPEN_STR    fabio_open_str__
 #define FABIO_MKDIR_STR   fabio_mkdir_str__
@@ -47,6 +49,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_D fabio_read_skip_d__
 #define FABIO_READ_SKIP_S fabio_read_skip_s__
 #define FABIO_CLOSE       fabio_close__
+#define FAB_CONTAINS_NAN  fab_contains_nan__
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FABIO_OPEN_STR    fabio_open_str
 #define FABIO_MKDIR_STR   fabio_mkdir_str
@@ -57,6 +60,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_D fabio_read_skip_d
 #define FABIO_READ_SKIP_S fabio_read_skip_s
 #define FABIO_CLOSE       fabio_close
+#define FAB_CONTAINS_NAN  fab_contains_nan
 #endif
 
 static
@@ -653,3 +657,14 @@ FABIO_MKDIR_STR(const int* idirname, int* statp)
     }
 }
 
+void
+FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
+{
+    *result = 0;
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    const double* dp = dptr;
+    for (int i = 0; i < *countp && *result == 0; i++)
+        if (isnan(*dp++))
+            *result = 1;
+#endif
+}
