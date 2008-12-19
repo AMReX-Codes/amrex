@@ -221,6 +221,38 @@ module fab_module
 
 contains
   !
+  ! Does a real(dp_t) fab contain a NaN?
+  !
+  function contains_nan(fb) result(r)
+
+    logical               :: r
+    type(fab), intent(in) :: fb
+
+    integer :: sz, rc
+
+    real(kind=dp_t), pointer :: pp(:,:,:,:)
+
+    interface
+       subroutine fab_contains_nan(dptr, count, res)
+         use bl_types
+         integer,    intent(in)  :: count
+         real(dp_t), intent(in)  :: dptr(count)
+         integer,    intent(out) :: res
+       end subroutine fab_contains_nan
+    end interface
+
+    r = .false.
+
+    pp => fab_dataptr(fb)
+
+    sz = fab_volume(fb,all=.true.)
+
+    call fab_contains_nan(pp(:,:,:,:), sz, rc)
+
+    if (rc == 1) r = .true.
+
+  end function contains_nan
+  !
   ! Toggle whether or not setval() is called immediately after a fab is built.
   !
   subroutine setval_fabs_on_init(yes_or_no)
