@@ -910,6 +910,7 @@ subroutine mgt_dealloc()
 
   do i = mgts%nlevel, 1, -1
      call destroy(mgts%rh(i))
+     call destroy(mgts%res(i))
      call destroy(mgts%uu(i))
   end do
   call destroy(mgts%mla)
