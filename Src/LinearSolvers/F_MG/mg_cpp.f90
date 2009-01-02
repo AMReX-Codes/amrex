@@ -118,6 +118,7 @@ subroutine mgt_alloc(dm, nlevel, nodal)
   allocate(mgts%uu(nlevel))
   allocate(mgts%gp(nlevel,dm))
   allocate(mgts%mgt(nlevel))
+  allocate(mgts%bc(dm,2))
 
   call build(mgts%mla, nlevel, dm)
 
@@ -184,7 +185,6 @@ subroutine mgt_finalize(dx,bc)
   nc = 1
   nlev = mgts%nlevel
 
-  allocate(mgts%bc(dm,2))
   mgts%bc = transpose(bc)
 
   do i = 1, nlev-1
@@ -913,6 +913,16 @@ subroutine mgt_dealloc()
      call destroy(mgts%res(i))
      call destroy(mgts%uu(i))
   end do
+
+  deallocate(mgts%rr)
+  deallocate(mgts%rh)
+  deallocate(mgts%res)
+  deallocate(mgts%pd)
+  deallocate(mgts%uu)
+  deallocate(mgts%gp)
+  deallocate(mgts%mgt)
+  deallocate(mgts%bc)
+
   call destroy(mgts%mla)
   mgts%dim = 0
   mgts%final = .false.
