@@ -154,10 +154,9 @@ ifeq ($(HOST),greenstreet)
 endif
 
 ifeq ($(HOST),nan)
-  MPIHOME=/usr/mpich-intel90/
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_libraries += -lmpich
+  MPIHOME=/usr/local/mpich2/
+  F90 = mpif90
+  CXX = mpicxx
 endif
 
 ifeq ($(HOST),lookfar)
