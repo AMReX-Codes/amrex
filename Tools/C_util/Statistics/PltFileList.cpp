@@ -57,7 +57,7 @@ main (int   argc,
     //
     std::string iFile;
     std::string outfile;
-    std::string hdrFile = ("rdm_0_plt00");
+    std::string hdrFile = "rdm_";//("rdm_0_plt00");
     std::string File;
 
     bool verbose = false;
@@ -77,24 +77,26 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
-    Array<MultiFab*> mean;
-    Array<MultiFab*> variance;
+    MultiFab mean;
+    MultiFab variance;
 
     int finestLevel;
-    int nmax = 10;
+    int nmax = 100;
     Real nmaxinv = 1.0/double(nmax);
     Real nmaxinvm1 = 1.0/double(nmax-1);
     std::cout << nmaxinv << std::endl;
+    int nComp;
+
     for (int i = 0; i < nmax; i++)
     {
 
       char idx[4];
-      sprintf(idx,"%i",i*10);
+      sprintf(idx,"%i",i);
           
       std::string idxs(idx);
-      //File = hdrFile + idxs+ iFile;
-      File = hdrFile + idxs;
-      if (i == 0) File +=idxs;
+      File = hdrFile + idxs + iFile;
+      //File = hdrFile + idxs;
+      //if (i == 0) File +=idxs;
       std::cout << File << std::endl;
       
       DataServices dataServices(File, fileType);
@@ -106,66 +108,49 @@ main (int   argc,
         DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
       AmrData& amrData = dataServices.AmrDataRef();
-      int nComp = amrData.NComp();
+      
+      nComp = amrData.NComp();
+      Array<string> names = amrData.PlotVarNames();
+      Array<int> destcomp(names.size());
+
+      for (int j=0; j<names.size();j++) 
+	destcomp[j] = j;
 
       if (i == 0) {
 
 	finestLevel = amrData.FinestLevel();
+	Box tmpbox(amrData.ProbDomain()[finestLevel]);
+	BoxArray ba(tmpbox);
+	mean.define(ba,nComp,0,Fab_allocate);
+	variance.define(ba,nComp,0,Fab_allocate);
+	mean.setVal(0);
+	variance.setVal(0);
 
-	mean.resize(finestLevel+1);
-	variance.resize(finestLevel+1);
-
-	for (int iLevel=0; iLevel<=finestLevel; ++iLevel) {
-	  const BoxArray& crseBA = amrData.boxArray(iLevel);
-	  mean[iLevel] = new MultiFab(crseBA,nComp,0);
-	  variance[iLevel] = new MultiFab(crseBA,nComp,0);
-	  mean[iLevel]->setVal(0.0);
-	  variance[iLevel]->setVal(0.0);
-	}
       }
-	
-      ComputeAmrDataList(amrData, mean, variance, 0, 1);
-      
+    	
+      MultiFab tmpmean(mean.boxArray(),nComp,0);
+      MultiFab tmpvar(mean.boxArray(),nComp,0);
+      amrData.FillVar(tmpmean,finestLevel,names,destcomp);
+      amrData.FillVar(tmpvar,finestLevel,names,destcomp);
+
+      MultiFab::Add(mean,tmpmean,0,0,nComp,0);
+
+      tmpvar[0].mult(tmpvar[0]);
+      MultiFab::Add(variance,tmpvar,0,0,nComp,0);
     }
 
-    File = hdrFile + "00";
-    DataServices dataServices(File, fileType);
-    AmrData& amrData = dataServices.AmrDataRef();
-    int nComp = amrData.NComp();
 
-    for (int iLevel=0; iLevel<=finestLevel; ++iLevel) {
+    mean.mult(nmaxinv);
+    MultiFab tmpmean(mean.boxArray(),nComp,0);
+    tmpmean.copy(mean);
+    tmpmean[0].mult(tmpmean[0]);
+    tmpmean.mult(double(nmax));
+    variance.minus(tmpmean,0,nComp,0);
+    variance.mult(nmaxinvm1);
 
-      const BoxArray& crseBA = amrData.boxArray(iLevel);
-      MultiFab tmp(crseBA,nComp,0);
-      
-      mean[iLevel]->mult(nmaxinv,0);
+    VisMF::Write(mean,"mean");
+    VisMF::Write(variance,"variance");
 
-      for (MFIter mfi(*mean[iLevel]);mfi.isValid();++mfi) {
-	FArrayBox& fab = (*mean[iLevel])[mfi];
-	const Box& fabbox = mfi.validbox();
-
-	FArrayBox musquare(fabbox,nComp);
-	
-	musquare.copy(fab,0,0,nComp);
-	musquare.mult(fab,0,0,nComp);
-	musquare.mult(double(nmax));
-	(*variance[iLevel])[mfi].minus(musquare,0,0,nComp);
-	(*variance[iLevel])[mfi].mult(nmaxinvm1);
-      }
-      
-    }
-
-    // output solns to plot files
-    File = outfile + "_mean";
-    WritePlotFile(mean,amrData,File,verbose);
-
-    File = outfile + "_var";
-    WritePlotFile(variance,amrData,File,verbose);
-    
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    //DataServices::Dispatch(DataServices::ExitRequest, NULL);
     BoxLib::Finalize();
 }
 
