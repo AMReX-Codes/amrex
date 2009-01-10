@@ -82,44 +82,13 @@ main (int   argc,
 
     AmrData& amrData = dataServices.AmrDataRef();
     int nComp = amrData.NComp();
-    ComputeAmrDataMeanVar(amrData, mean, variance, 0, 1, verbose);
-    for (int i=0;i<1;i++) {
+    ComputeAmrDataMeanVar(amrData, mean, variance, 0, nComp, verbose);
+    for (int i=0;i<nComp;i++) {
 	std::cout << " comp= " << i 
 	          << " mean = " << mean[i] 
 	          << " variance = " << variance[i] << std::endl;
     }
 
-    // Write norms to screen
-//     if (ParallelDescriptor::IOProcessor())
-//     {
-// 	const Array<std::string>& names = amrData.PlotVarNames();
-// 	// int maxl = 0;
-// // 	for (int i=0; i<names.length(); ++i)
-// // 	    maxl = Max(maxl,names[i].length());
-// // 	char sbuf[128];
-// 	// sprintf(sbuf,"%d",maxl);
-// 	aString formatStr =
-// 	    aString("\t%") + sbuf + aString("s |  %10e   %10e   %10e\n");
-// 	aString sformatStr =
-// 	    aString("\t%") + sbuf + aString("s |  %10s   %10s   %10s\n");
-	
-// 	std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
-// 	printf(sformatStr.c_str(),"Derived","L-inf","L1","L2");
-// 	std::cout << '\t'
-// 	     << "--------------+------------------------------------------" << '\n';
-	
-// 	for (int i=0; i<names.length(); ++i)
-// 	{
-// 	    printf(formatStr.c_str(),names[i].c_str(),norm0[i],norm1[i],norm2[i]);
-// 	}
-// 	std::cout << '\n';
-	
-//     }
-    
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    //DataServices::Dispatch(DataServices::ExitRequest, NULL);
     BoxLib::Finalize();
 }
 

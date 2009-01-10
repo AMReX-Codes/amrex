@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.1 2008-05-24 14:57:42 gpau Exp $
+# $Id: GNUmakefile,v 1.2 2009-01-10 00:05:56 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -9,12 +9,14 @@ TOP = $(PBOXLIB_HOME)
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
-DEBUG	      = FALSE
+#DEBUG	      = FALSE
 PROFILE       = FALSE
 DIM	      = 2
+DIM           = 3
 COMP          = g++
 FCOMP         = Intel
 USE_MPI       = FALSE
+USE_MPI       = TRUE
 #
 # The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
 #
@@ -29,8 +31,9 @@ endif
 #
 # Base name of the executable.
 #
+EBASE = PltFileXAve
 #EBASE = PltFileStat
-EBASE = PltFileList
+#EBASE = PltFileList
 CEXE_sources += $(EBASE).cpp
 
 include $(TOP)/mk/Make.defs ./Make.package
