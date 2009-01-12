@@ -698,7 +698,6 @@ contains
     type(layout) :: la, lac
     integer :: i, n, dm
     integer :: mglev, mglev_crse
-    logical :: lcross
 
     type(bl_prof_timer), save :: bpt
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
@@ -752,9 +751,6 @@ contains
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
     end do
-
-    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
-         (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
