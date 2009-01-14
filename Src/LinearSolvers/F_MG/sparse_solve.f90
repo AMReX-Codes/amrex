@@ -33,7 +33,40 @@ module sparse_solve_module
   real(kind=dp_t), private, parameter :: zero = 0.0_dp_t
   real(kind=dp_t), private, parameter :: TWO = 2.0_dp_t
 
+  private :: ilut_build
+
 contains
+
+  subroutine ilut_build(amat, sil)
+    type(sparse_matrix), intent(in) :: amat
+    type(sparse_matrix), intent(out) :: sil
+    integer :: ierr
+    integer, allocatable :: iw(:)
+    real(kind=dp_t), allocatable ::  wk(:)
+    real(kind=dp_t) :: tol
+    integer :: nwk
+    integer :: lfil, nrow
+    external ilut
+
+    nrow = amat%nrow
+
+    lfil = 4
+    tol = 1.e-5_dp_t
+
+    ! FIXME: this is a guess as to the maximum size of these arrays.
+    allocate(wk(nrow+1))
+    allocate(iw(2*nrow))
+
+    call sparse_matrix_build(sil, (2*lfil+1)*nrow, nrow)
+
+    nwk = size(sil%aa)
+    call ilut (nrow, amat%aa, amat%ja, amat%ia, lfil, tol, sil%aa, sil%ja, sil%ia, nwk, wk, iw, ierr)
+    if ( ierr /= 0 ) then
+       write(*,*) 'ILUT: IERR = ', ierr
+       call bl_error("ILUT: failed")
+    end if
+
+  end subroutine ilut_build
 
   subroutine sparse_matrix_build(sm, numa, nrow)
     type(sparse_matrix), intent(out) :: sm
@@ -1515,37 +1548,6 @@ contains
 
     end subroutine create_ja_3d
 
-  subroutine ilut_build(amat, sil)
-    type(sparse_matrix), intent(in) :: amat
-    type(sparse_matrix), intent(out) :: sil
-    integer :: ierr
-    integer, allocatable :: iw(:)
-    real(kind=dp_t), allocatable ::  wk(:)
-    real(kind=dp_t) :: tol
-    integer :: nwk
-    integer :: lfil, nrow
-    external ilut
-
-    nrow = amat%nrow
-
-    lfil = 4
-    tol = 1.e-5_dp_t
-
-    ! FIXME: this is a guess as to the maximum size of these arrays.
-    allocate(wk(nrow+1))
-    allocate(iw(2*nrow))
-
-    call sparse_matrix_build(sil, (2*lfil+1)*nrow, nrow)
-
-    nwk = size(sil%aa)
-    call ilut (nrow, amat%aa, amat%ja, amat%ia, lfil, tol, sil%aa, sil%ja, sil%ia, nwk, wk, iw, ierr)
-    if ( ierr /= 0 ) then
-       write(*,*) 'ILUT: IERR = ', ierr
-       call bl_error("ILUT: failed")
-    end if
-
-  end subroutine ilut_build
-
   end subroutine sparse_build
 
   subroutine sparse_nodal_build(spo, ss, mm, la, face_type, verbose)
@@ -2514,37 +2516,6 @@ contains
 
 
   end subroutine create_nodal_ja_3d
-
-  subroutine ilut_build(amat, sil)
-    type(sparse_matrix), intent(in) :: amat
-    type(sparse_matrix), intent(out) :: sil
-    integer :: ierr
-    integer, allocatable :: iw(:)
-    real(kind=dp_t), allocatable ::  wk(:)
-    real(kind=dp_t) :: tol
-    integer :: nwk
-    integer :: lfil, nrow
-    external ilut
-
-    nrow = amat%nrow
-
-    lfil = 4
-    tol = 1.e-5_dp_t
-
-    ! FIXME: this is a guess as to the maximum size of these arrays.
-    allocate(wk(nrow+1))
-    allocate(iw(2*nrow))
-
-    call sparse_matrix_build(sil, (2*lfil+1)*nrow, nrow)
-
-    nwk = size(sil%aa)
-    call ilut (nrow, amat%aa, amat%ja, amat%ia, lfil, tol, sil%aa, sil%ja, sil%ia, nwk, wk, iw, ierr)
-    if ( ierr /= 0 ) then
-       write(*,*) 'ILUT: IERR = ', ierr
-       call bl_error("ILUT: failed")
-    end if
-
-  end subroutine ilut_build
 
   subroutine copy_nodal_ind_on_intersect(ind)
 
