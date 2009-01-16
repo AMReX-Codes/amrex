@@ -34,6 +34,39 @@ endif
 #
 # Host changes ....
 #
+ifeq ($(HOST),intrepid)
+    #
+    # intrepid.alcf.anl.gov
+    #
+    CC  := mpixlc
+    FC  := mpixlf77
+    F90 := mpixlf90
+
+    FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
+    F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
+    CFLAGS   := -I$(mdir)
+
+    ifdef NDEBUG
+      FFLAGS   += -O2
+      F90FLAGS += -O2
+      CFLAGS   += -O2
+    else
+      FFLAGS   += -g -C
+      F90FLAGS += -g -C
+      CFLAGS   += -g -qcheck=bounds
+    endif
+
+    F_C_LINK := LOWERCASE
+
+    # if using the bg* compilers instead of the mpi* wrappers above, you may
+    # need these
+    #
+    #    MPIHOME=/bgsys/drivers/ppcfloor
+    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
+    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
+    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
+    #    mpi_libraries += -lpthread -lrt -lSPI.cna
+endif
 ifeq ($(findstring nid, $(HOST)), nid)
     #
     # franklin.nersc.gov
