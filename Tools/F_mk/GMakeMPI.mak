@@ -40,7 +40,7 @@ ifeq ($(HOST),intrepid)
     #
     CC  := mpixlc
     FC  := mpixlf77
-    F90 := mpixlf90
+    F90 := mpixlf95
 
     FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
     F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
