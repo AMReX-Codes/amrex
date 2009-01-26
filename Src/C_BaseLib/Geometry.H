@@ -131,6 +131,10 @@ public:
     //
     static bool isAnyPeriodic ();
     //
+    // Is domain periodic in all directions?
+    //
+    static bool isAllPeriodic ();
+    //
     // What's period in specified direction?
     //
     int period (int dir) const;

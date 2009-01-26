@@ -168,6 +168,18 @@ Geometry::isAnyPeriodic ()
         ;
 }
 
+bool
+Geometry::isAllPeriodic ()
+{
+#if BL_SPACEDIM==1
+    return isPeriodic(0);
+#elif BL_SPACEDIM==2
+    return (isPeriodic(0) && isPeriodic(1));
+#elif BL_SPACEDIM==3
+    return (isPeriodic(0) && isPeriodic(1) && isPeriodic(2));
+#endif
+}
+
 int
 Geometry::period (int dir) const
 {
