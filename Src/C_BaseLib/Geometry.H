@@ -78,6 +78,10 @@ public:
     //
     static const Real* ProbLength ();
     //
+    // Returns the overall size of the domain by multiplying the ProbLength's together
+    //
+    static Real ProbSize ();
+    //
     // Returns length of problem domain in specified dimension.
     //
     static Real ProbLength (int dir);

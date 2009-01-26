@@ -223,6 +223,18 @@ Geometry::ProbLength (int dir)
     return prob_domain.length(dir);
 }
 
+Real
+Geometry::ProbSize ()
+{
+#if (BL_SPACEDIM == 1) 
+    return prob_domain.length(0);
+#elif (BL_SPACEDIM == 2) 
+    return prob_domain.length(0)*prob_domain.length(1);
+#elif (BL_SPACEDIM == 3) 
+    return prob_domain.length(0)*prob_domain.length(1)*prob_domain.length(2);
+#endif
+}
+
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool do_corners,
