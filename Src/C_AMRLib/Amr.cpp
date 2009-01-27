@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.177 2008-11-03 20:22:52 lijewski Exp $
+// $Id: Amr.cpp,v 1.178 2009-01-27 18:21:43 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1189,71 +1189,133 @@ Amr::restart (const std::string& filename)
     is >> cumtime;
     int mx_lev;
     is >> mx_lev;
-    if (max_level < mx_lev)
-        BoxLib::Error("Amr::restart(): different max_level");
-
     is >> finest_level;
 
-    for (i = 0; i <= mx_lev; i++) is >> geom[i];
-    for (i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
-    for (i = 0; i <= mx_lev; i++) is >> dt_level[i];
+    if (max_level >= mx_lev) {
 
-    if (new_checkpoint_format)
-    {
-        for (i = 0; i <= mx_lev; i++) is >> dt_min[i];
+       for (i = 0; i <= mx_lev; i++) is >> geom[i];
+       for (i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
+       for (i = 0; i <= mx_lev; i++) is >> dt_level[i];
+
+       if (new_checkpoint_format)
+       {
+           for (i = 0; i <= mx_lev; i++) is >> dt_min[i];
+       }
+       else
+       {
+           for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
+       }
+
+       for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
+       for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
+       for (i = 0; i <= mx_lev; i++) is >> level_count[i];
+
+       for (i = 0; i <= mx_lev; i++) {
+       }
+       //
+       // Set bndry conditions.
+       //
+       if (max_level > mx_lev)
+       {
+           for (i = mx_lev+1; i <= max_level; i++)
+           {
+               const int rat  = MaxRefRatio(i-1);
+               const int mult = sub_cycle ? rat : 1;
+   
+               dt_level[i]    = dt_level[i-1]/Real(rat);
+               n_cycle[i]     = mult;
+               level_steps[i] = mult*level_steps[i-1];
+               level_count[i] = 0;
+           }
+           if (!sub_cycle)
+           {
+               for (i = 0; i <= max_level; i++)
+                   dt_level[i] = dt_level[max_level];
+           }
+       }
+
+       if (regrid_on_restart)
+           level_count[0] = regrid_int[0];
+
+       checkInput();
+       //
+       // Read levels.
+       //
+       int lev;
+       for (lev = 0; lev <= finest_level; lev++)
+       {
+           amr_level.set(lev,(*levelbld)());
+           amr_level[lev].restart(*this, is);
+       }
+       //
+       // Build any additional data structures.
+       //
+       for (lev = 0; lev <= finest_level; lev++)
+           amr_level[lev].post_restart();
+
+    } else {
+
+       BoxLib::Warning("Amr::restart(): max_level is lower than before");
+
+       int new_finest_level = std::min(max_level,finest_level);
+ 
+       // These are just used to hold the extra stuff we have to read in.
+       Geometry   geom_dummy;
+       Real       real_dummy;
+       int         int_dummy;
+       IntVect intvect_dummy;
+
+       for (i = 0          ; i <= max_level; i++) is >> geom[i];
+       for (i = max_level+1; i <= mx_lev   ; i++) is >> geom_dummy;
+
+       for (i = 0        ; i <  max_level; i++) is >> ref_ratio[i];
+       for (i = max_level; i <  mx_lev   ; i++) is >> intvect_dummy;
+
+       for (i = 0          ; i <= max_level; i++) is >> dt_level[i];
+       for (i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
+
+       if (new_checkpoint_format)
+       {
+           for (i = 0          ; i <= max_level; i++) is >> dt_min[i];
+           for (i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
+       }
+       else
+       {
+           for (i = 0; i <= max_level; i++) dt_min[i] = dt_level[i];
+       }
+
+       for (i = 0          ; i <= max_level; i++) is >> n_cycle[i];
+       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+
+       for (i = 0          ; i <= max_level; i++) is >> level_steps[i];
+       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+
+       for (i = 0          ; i <= max_level; i++) is >> level_count[i];
+       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+
+       if (regrid_on_restart)
+           level_count[0] = regrid_int[0];
+
+       checkInput();
+
+       //
+       // Read levels.
+       //
+       int lev;
+       for (lev = 0; lev <= new_finest_level; lev++)
+       {
+           amr_level.set(lev,(*levelbld)());
+           amr_level[lev].restart(*this, is);
+       }
+       //
+       // Build any additional data structures.
+       //
+       for (lev = 0; lev <= new_finest_level; lev++)
+           amr_level[lev].post_restart();
+
+       finest_level = new_finest_level;
     }
-    else
-    {
-        for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
-    }
-
-    for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
-    for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
-    for (i = 0; i <= mx_lev; i++) is >> level_count[i];
-
-    for (i = 0; i <= mx_lev; i++) {
-    }
-    //
-    // Set bndry conditions.
-    //
-    if (max_level > mx_lev)
-    {
-        for (i = mx_lev+1; i <= max_level; i++)
-        {
-            const int rat  = MaxRefRatio(i-1);
-            const int mult = sub_cycle ? rat : 1;
-
-            dt_level[i]    = dt_level[i-1]/Real(rat);
-            n_cycle[i]     = mult;
-            level_steps[i] = mult*level_steps[i-1];
-            level_count[i] = 0;
-        }
-        if (!sub_cycle)
-        {
-            for (i = 0; i <= max_level; i++)
-                dt_level[i] = dt_level[max_level];
-        }
-    }
-
-    if (regrid_on_restart)
-        level_count[0] = regrid_int[0];
-
-    checkInput();
-    //
-    // Read levels.
-    //
-    int lev;
-    for (lev = 0; lev <= finest_level; lev++)
-    {
-        amr_level.set(lev,(*levelbld)());
-        amr_level[lev].restart(*this, is);
-    }
-    //
-    // Build any additional data structures.
-    //
-    for (lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_restart();
-
+   
     station.init();
     station.findGrid(amr_level,geom);
 
@@ -1263,8 +1325,7 @@ Amr::restart (const std::string& filename)
     Real dRestartTime  = dRestartTime1 - dRestartTime0;
 
     ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
+if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "Restart time = " << dRestartTime << " seconds." << std::endl;
 
