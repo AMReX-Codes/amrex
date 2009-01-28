@@ -346,7 +346,7 @@ def getLastPlotfile(outputDir, test):
         
     # start by finding the last plotfile
     for file in os.listdir(outputDir):
-       if (file.startswith("%s_plt" % (test))):
+       if (os.path.isdir(file) and file.startswith("%s_plt" % (test))):
            key = "_plt"
            index = string.rfind(file, key)
            plotNum = max(int(file[index+len(key):]), plotNum)
@@ -1224,14 +1224,17 @@ def test(argv):
         doVis = getParam(test + ".doVis")
 
         if (doVis and not make_benchmarks):
+
            visVar = getParam(test + ".visVar")
 
            if (dim == 2):
-              os.system('%s/%s -cname "%s" -p "%s"' %
-                        (compareToolDir, vis2dExecutable, visVar, compareFile) )
+              os.system('%s/%s --palette %s/Palette -cname "%s" -p "%s"' %
+                        (compareToolDir, vis2dExecutable, compareToolDir, 
+			 visVar, compareFile) )
            elif (dim == 3):
-              os.system('%s/%s -n 1 -cname "%s" -p "%s"' %
-                        (compareToolDir, vis3dExecutable, visVar, compareFile) )
+              os.system('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s"' %
+                        (compareToolDir, vis3dExecutable, compareToolDir, 
+			 visVar, compareFile) )
            else:
               print "Visualization not supported for dim = %d" % (dim)
 
