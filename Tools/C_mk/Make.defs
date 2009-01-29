@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.124 2008-12-17 21:00:35 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.125 2009-01-29 17:47:15 lijewski Exp $
 #
 
 #
@@ -179,10 +179,6 @@ endif
 
 ifndef USE_MPI
   USE_MPI  = FALSE
-endif
-
-ifndef STRICTLY
-  STRICTLY    = FALSE
 endif
 
 #
@@ -634,18 +630,6 @@ ifeq ($(USE_THREADS),TRUE)
     ThreadsSuffix := .TS
 else
     ThreadsSuffix :=
-endif
-
-ifeq ($(STRICTLY),TRUE)
-    ifeq ($(COMP),KCC)
-        CXXFLAGS += --strict
-        CPPFLAGS += -D__KAI_STRICT
-        CXXFLAGS += --display_error_number
-        CXXFLAGS +=  --diag_suppress 450
-    endif
-    ifeq ($(COMP),g++)
-        CXXFLAGS += $(FULLWARN)
-    endif
 endif
 
 ifeq ($(PRECISION),FLOAT)
