@@ -9,7 +9,13 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-  CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+
+  ifeq ($(BL_NOFAST),TRUE)
+    CXXOPTF += -O -fno-exceptions -Wno-deprecated
+  else
+    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+  endif
+
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
   override XTRALIBS += -lpathfortran  -lmv
 else
@@ -22,7 +28,13 @@ else
 ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXDEBF += -g
-  CXXOPTF += -fast --no_exceptions
+
+  ifeq ($(BL_NOFAST),TRUE)
+    CXXOPTF += -O --no_exceptions
+  else
+    CXXOPTF += -fast --no_exceptions
+  endif
+
   ifeq ($(USE_MPI),TRUE)
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
   else
@@ -43,8 +55,15 @@ ifeq ($(FCOMP),PathScale)
   F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  FOPTF += -Ofast
-  fOPTF += -Ofast
+
+  ifeq ($(BL_NOFAST),TRUE)
+    FOPTF += -O
+    fOPTF += -O
+  else
+    FOPTF += -Ofast
+    fOPTF += -Ofast
+  endif
+
   fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
@@ -72,8 +91,15 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
-  FOPTF  += -fast
-  fOPTF  += -fast
+
+  ifeq ($(BL_NOFAST),TRUE)
+    FOPTF  += -O
+    fOPTF  += -O
+  else
+    FOPTF  += -fast
+    fOPTF  += -fast
+  endif
+
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
   FDEBF += -g
   fDEBF += -g
