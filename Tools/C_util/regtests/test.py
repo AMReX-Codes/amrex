@@ -938,6 +938,8 @@ def test(argv):
 
     os.chdir(compareToolDir)
 
+    os.system("gmake realclean")
+
     os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI=  >& fcompare.make.out")
     compareExecutable = getRecentFileName(compareToolDir,"fcompare",".exe")
 
