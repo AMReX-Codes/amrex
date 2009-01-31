@@ -1,5 +1,8 @@
 #!/bin/sh -f
 
+# NOTE: the calling function (e.g. MAESTRO/write_job_info.f90) needs
+# to allocate its strings to be the same size as those here.
+
 # script to some information about the build environment
 MAX_STRING_LENGTH=128
 rm -f build_info.f90
@@ -17,6 +20,7 @@ subroutine build_info(build_date, build_dir, build_machine)
 
 ! the size of the strings is set to be the same as the size used in the
 ! cut in the shell script, so we don't go out of bounds
+
   character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine
 
   build_date    = &
