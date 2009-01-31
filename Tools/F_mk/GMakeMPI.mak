@@ -186,7 +186,7 @@ ifeq ($(HOST),greenstreet)
   mpi_libraries += -lmpich
 endif
 
-ifeq ($(HOST),nan)
+ifeq ($(findstring nan, $(UNAMEN)), nan)
   MPIHOME=/usr/local/mpich2/
   F90 = mpif90
   CXX = mpicxx
