@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.125 2009-01-29 17:47:15 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.126 2009-02-02 20:50:44 vince Exp $
 #
 
 #
@@ -292,7 +292,7 @@ ifeq ($(COMP),Intel)
    CXXOPTF += -O3
 #  CXXOPTF += -parallel
    CXXDEBF += -g
-   CXXOPTF += -ip -mp
+   CXXOPTF += -ip
 #  CXXOPTF += -ipo
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -354,6 +354,12 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 10
        ICC_MINOR_VERSION := 1
        _icpc := icpc
+   else
+   ifeq ($(findstring Version 11.0, $(__icc_version)), Version 11.0)
+       ICC_VERSION := 11.0
+       ICC_MAJOR_VERSION := 11
+       ICC_MINOR_VERSION := 0
+       _icpc := icpc
    endif
    endif
    endif
@@ -362,6 +368,10 @@ ifeq ($(COMP),Intel)
    endif
    endif
    endif
+   endif
+   endif
+   ifneq ($(ICC_MAJOR_VERSION),11)
+     CXXOPTF += -mp
    endif
    ifeq ($(ICC_MAJOR_VERSION),9)
      CXXDEBF += -O0 # -traceback 
@@ -461,6 +471,12 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 10.1
        IFC_MAJOR_VERSION := 10
        IFC_MINOR_VERSION := 1
+   else
+   ifeq ($(findstring Version 11.0, $(__ifc_version)), Version 11.0)
+       IFC_VERSION := 11.0
+       IFC_MAJOR_VERSION := 11
+       IFC_MINOR_VERSION := 0
+   endif
    endif
    endif
    endif
@@ -481,15 +497,21 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -O3
 #  FOPTF += -parallel
 #  fOPTF += -parallel
-   FOPTF += -ip -mp
-   fOPTF += -ip -mp
+   FOPTF += -ip
+   fOPTF += -ip
 #  FOPTF += -ipo
 #  fOPTF += -ipo
+   ifneq ($(IFC_MAJOR_VERSION), 11)
+     FOPTF += -mp
+     fOPTF += -mp
+   endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
      ifneq ($(IFC_MAJOR_VERSION), 10)
+     ifneq ($(IFC_MAJOR_VERSION), 11)
        FDEBF += -CB
        fDEBF += -CB
+     endif
      endif
    else
      FDEBF += -check all -traceback -debug extended
