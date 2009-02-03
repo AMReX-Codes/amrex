@@ -1,7 +1,7 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 //
-// $Id: Array.H,v 1.31 2004-03-08 23:06:36 car Exp $
+// $Id: Array.H,v 1.32 2009-02-03 17:08:10 lijewski Exp $
 //
 #include <cstddef>
 #include <vector>
@@ -47,6 +47,10 @@ template <class T> class Array;
 
    This class does NOT provide an assignment operator for assigning an integer
    to an Array<T>.
+
+   If you want a Array<bool> you'll need to std::vector<bool> instead.  This is
+   because std::vector<bool> is a specialization of std::vector<T> with slightly
+   different semantics.
 */
 
 template <class T>
