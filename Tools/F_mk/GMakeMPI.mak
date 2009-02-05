@@ -34,9 +34,11 @@ endif
 #
 # Host changes ....
 #
-ifeq ($(HOST),intrepid)
+ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #
-    # intrepid.alcf.anl.gov
+    # intrepid.alcf.anl.gov -- we only seem to be able to get the name
+    #                          intrepid from hostname -f.  $HOST or
+    #                          uname -n don't indicate intrepid
     #
     CC  := mpixlc
     FC  := mpixlf77

@@ -1,5 +1,6 @@
 ARCH := $(shell uname)
 UNAMEN := $(shell uname -n)
+HOSTNAMEF := $(shell hostname -f)
 
 ifeq ($(ARCH),UNICOS/mp)
   ARCH := CRAYX1
