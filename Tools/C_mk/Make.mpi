@@ -64,9 +64,6 @@ ifeq ($(MACHINE), Linux)
     ifeq ($(WHICHLINUX), GIGAN)
          BL_MPI_LIBS += -lpthread
     endif
-    ifeq ($(HOST), lijewski)
-         BL_MPI_LIBS += -lpthread
-    endif
     ifeq ($(WHICHLINUX), NUGIGAN)
       MPI_HOME=/usr/local/mpi
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -88,9 +85,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST), lijewski)
-      MPI_HOME=/home/lijewski/mpich2
+      MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),manda)
