@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.109 2008-08-01 17:49:14 mzingale Exp $
+// $Id: ParallelDescriptor.cpp,v 1.110 2009-02-06 19:17:04 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -52,6 +52,10 @@ namespace ParallelDescriptor
 	void DoAllReduceReal (Real& r, MPI_Op op);
 	void DoAllReduceLong (long& r, MPI_Op op);
 	void DoAllReduceInt  (int&  r, MPI_Op op);
+
+	void DoAllReduceReal (Real* r, MPI_Op op, int cnt);
+	void DoAllReduceLong (long* r, MPI_Op op, int cnt);
+	void DoAllReduceInt  (int*  r, MPI_Op op, int cnt);
 
 	void DoReduceReal (Real& r, MPI_Op op, int cpu);
 	void DoReduceLong (long& r, MPI_Op op, int cpu);
@@ -390,6 +394,22 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 }
 
 void
+ParallelDescriptor::util::DoAllReduceReal (Real*  r,
+                                           MPI_Op op,
+                                           int    cnt)
+{
+    Real recv;
+
+    BL_MPI_REQUIRE( MPI_Allreduce(r,
+                                  &recv,
+                                  cnt,
+                                  Mpi_typemap<Real>::type(),
+                                  op,
+                                  Communicator()) );
+    r = recv;
+}
+
+void
 ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
@@ -452,6 +472,24 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 }
 
 void
+ParallelDescriptor::ReduceRealMax (Real* r, int cnt)
+{
+    util::DoAllReduceReal(r,MPI_MAX,cnt);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real* r, int cnt)
+{
+    util::DoAllReduceReal(r,MPI_MIN,cnt);
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real* r, int cnt)
+{
+    util::DoAllReduceReal(r,MPI_SUM,cnt);
+}
+
+void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
     util::DoReduceReal(r,MPI_MAX,cpu);
@@ -482,7 +520,6 @@ ParallelDescriptor::ReduceRealMin (Real* r, int cnt, int cpu)
     util::DoReduceReal(r,MPI_MIN,cnt,cpu);
 }
 
-
 void
 ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
 {
@@ -498,6 +535,22 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
                                   &recv,
                                   1,
+                                  MPI_LONG,
+                                  op,
+                                  Communicator()) );
+    r = recv;
+}
+
+void
+ParallelDescriptor::util::DoAllReduceLong (long*  r,
+                                           MPI_Op op,
+                                           int    cnt)
+{
+    long recv;
+
+    BL_MPI_REQUIRE( MPI_Allreduce(r,
+                                  &recv,
+                                  cnt,
                                   MPI_LONG,
                                   op,
                                   Communicator()) );
@@ -573,6 +626,30 @@ ParallelDescriptor::ReduceLongMin (long& r)
 }
 
 void
+ParallelDescriptor::ReduceLongAnd (long* r, int cnt)
+{
+    util::DoAllReduceLong(r,MPI_LAND,cnt);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long* r, int cnt)
+{
+    util::DoAllReduceLong(r,MPI_SUM,cnt);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long* r, int cnt)
+{
+    util::DoAllReduceLong(r,MPI_MAX,cnt);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long* r, int cnt)
+{
+    util::DoAllReduceLong(r,MPI_MIN,cnt);
+}
+
+void
 ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cpu);
@@ -629,6 +706,22 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
                                   &recv,
                                   1,
+                                  MPI_INT,
+                                  op,
+                                  Communicator()));
+    r = recv;
+}
+
+void
+ParallelDescriptor::util::DoAllReduceInt (int*   r,
+                                          MPI_Op op,
+                                          int    cnt)
+{
+    int recv;
+
+    BL_MPI_REQUIRE( MPI_Allreduce(r,
+                                  &recv,
+                                  cnt,
                                   MPI_INT,
                                   op,
                                   Communicator()));
@@ -695,6 +788,24 @@ void
 ParallelDescriptor::ReduceIntMin (int& r)
 {
     util::DoAllReduceInt(r,MPI_MIN);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int* r, int cnt)
+{
+    util::DoAllReduceInt(r,MPI_SUM,cnt);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int* r, int cnt)
+{
+    util::DoAllReduceInt(r,MPI_MAX,cnt);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int* r, int cnt)
+{
+    util::DoAllReduceInt(r,MPI_MIN,cnt);
 }
 
 void
@@ -1043,6 +1154,10 @@ void ParallelDescriptor::ReduceRealMax (Real&,int) {}
 void ParallelDescriptor::ReduceRealMin (Real&,int) {}
 void ParallelDescriptor::ReduceRealSum (Real&,int) {}
 
+void ParallelDescriptor::ReduceRealMax (Real*,int) {}
+void ParallelDescriptor::ReduceRealMin (Real*,int) {}
+void ParallelDescriptor::ReduceRealSum (Real*,int) {}
+
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
@@ -1057,6 +1172,11 @@ void ParallelDescriptor::ReduceLongSum (long&,int) {}
 void ParallelDescriptor::ReduceLongMax (long&,int) {}
 void ParallelDescriptor::ReduceLongMin (long&,int) {}
 
+void ParallelDescriptor::ReduceLongAnd (long*,int) {}
+void ParallelDescriptor::ReduceLongSum (long*,int) {}
+void ParallelDescriptor::ReduceLongMax (long*,int) {}
+void ParallelDescriptor::ReduceLongMin (long*,int) {}
+
 void ParallelDescriptor::ReduceLongAnd (long*,int,int) {}
 void ParallelDescriptor::ReduceLongSum (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMax (long*,int,int) {}
@@ -1069,6 +1189,10 @@ void ParallelDescriptor::ReduceIntMin (int&) {}
 void ParallelDescriptor::ReduceIntSum (int&,int) {}
 void ParallelDescriptor::ReduceIntMax (int&,int) {}
 void ParallelDescriptor::ReduceIntMin (int&,int) {}
+
+void ParallelDescriptor::ReduceIntSum (int*,int) {}
+void ParallelDescriptor::ReduceIntMax (int*,int) {}
+void ParallelDescriptor::ReduceIntMin (int*,int) {}
 
 void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
