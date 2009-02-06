@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.126 2009-02-02 20:50:44 vince Exp $
+# Make.defs $Id: Make.defs,v 1.127 2009-02-06 20:58:08 mzingale Exp $
 #
 
 #
@@ -14,6 +14,8 @@
 #
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
+HOSTNAMEF := $(shell hostname -f)
+
 ifeq ($(findstring CRAY, $(UNAMEM)), CRAY)
 ifeq ($(findstring Y-MP, $(UNAMEM)), Y-MP)
     MACHINE := CRAY
@@ -138,6 +140,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
+  endif
+  ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
+    WHICHLINUX := INTREPID
   endif
 endif
 
