@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.110 2009-02-06 19:17:04 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.111 2009-02-06 20:46:19 almgren Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -398,15 +398,18 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
-    Real recv;
+    BL_ASSERT(cnt > 0);
+
+    Array<Real> recv(cnt);
 
     BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  &recv,
+                                  recv.dataPtr(),
                                   cnt,
                                   Mpi_typemap<Real>::type(),
                                   op,
                                   Communicator()) );
-    r = recv;
+    for (int i = 0; i < cnt; i++)
+        r[i] = recv[i];
 }
 
 void
@@ -546,15 +549,18 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
-    long recv;
+    BL_ASSERT(cnt > 0);
+
+    Array<Real> recv(cnt);
 
     BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  &recv,
+                                  recv.dataPtr(),
                                   cnt,
                                   MPI_LONG,
                                   op,
                                   Communicator()) );
-    r = recv;
+    for (int i = 0; i < cnt; i++)
+        r[i] = recv[i];
 }
 
 void
@@ -717,15 +723,18 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
-    int recv;
+    BL_ASSERT(cnt > 0);
+
+    Array<Real> recv(cnt);
 
     BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  &recv,
+                                  recv.dataPtr(),
                                   cnt,
                                   MPI_INT,
                                   op,
                                   Communicator()));
-    r = recv;
+    for (int i = 0; i < cnt; i++)
+        r[i] = recv[i];
 }
 
 void
