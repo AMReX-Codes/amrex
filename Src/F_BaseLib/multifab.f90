@@ -10,7 +10,7 @@ module multifab_module
   !
   ! Controls whether routines use alltoall() or send()/recv().
   !
-  logical, parameter, private :: Do_AllToAllV = .false.
+  logical, private :: Do_AllToAllV = .false.
 
   type multifab
      integer :: dim = 0
@@ -374,6 +374,11 @@ module multifab_module
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
 
 contains
+
+  subroutine multifab_set_alltoallv(val)
+    logical val
+    Do_AllToAllV = val
+  end subroutine multifab_set_alltoallv
 
   function multifab_ncomp(mf) result(r)
     integer :: r
