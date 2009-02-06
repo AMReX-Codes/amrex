@@ -52,7 +52,6 @@ def isFloat(string):
     else: return 1
 
 
-
 #==============================================================================
 # setParamDefaults
 #==============================================================================
@@ -60,7 +59,6 @@ def setParamDefaults(defaults):
     global globalParams
     
     globalParams = defaults.copy()
-
 
 
 #==============================================================================
@@ -104,13 +102,11 @@ def LoadParams(file):
                 globalParams[sec + "." + opt] = value.strip()
 
 
-
 #==============================================================================
 # getParam
 #==============================================================================
 def getParam(key):
-    """ return the value of the runtime parameter corresponding to the
-        input key """
+    """ return the value of the runtime parameter corresponding to key """
     
     if globalParams == {}:
         print "WARNING: runtime parameters not yet initialized"
@@ -121,7 +117,6 @@ def getParam(key):
     else:
         raise ValueError()
         
-
 
 #==============================================================================
 # keyIsValid
@@ -136,9 +131,9 @@ def keyIsValid(key):
 
     except ValueError:
         isValid = 0
+        print "   WARNING: %s not set" % (key)
 
     return isValid
-
 
 
 #==============================================================================
@@ -149,7 +144,6 @@ def getSections():
     sections = globalSections
     sections.sort()
     return sections
-
 
 
 #==============================================================================
@@ -166,7 +160,6 @@ def PrintAllParams():
     
             
 
-
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   S U I T E   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -179,7 +172,6 @@ def abortTests(message):
     sys.exit(2)
 
     
-
 #==============================================================================
 # findBuildDirs
 #==============================================================================
@@ -196,7 +188,6 @@ def findBuildDirs(tests):
     return buildDirs
 
 
-
 #==============================================================================
 # getValidTests
 #==============================================================================
@@ -205,11 +196,8 @@ def getValidTests(sourceTree):
         required parameters.  The returned list contains only those that
         have valid data """
 
-
     tests = getSections()
     newTests = tests[:]
-
-    print newTests
 
     # [main] is reserved for test suite parameters
     newTests.remove("main")
@@ -218,50 +206,32 @@ def getValidTests(sourceTree):
     
     for test in newTests:
 
-        # buildDir
-	if (not keyIsValid("%s.buildDir" % (test)) ):
-            print "ERROR: test %s is missing buildDir parameter.\n" % (test)
+        print " "
+        print "checking parameters for test %s" % (test)
+        
+        # check for the manditory parameters
+        if (not (keyIsValid("%s.buildDir" % (test))      and
+                 keyIsValid("%s.inputFile" % (test))     and
+                 (sourceTree == "fParallel" or 
+                  keyIsValid("%s.probinFile" % (test)) ) and
+                 keyIsValid("%s.needs_helmeos" % (test)) and
+                 keyIsValid("%s.dim" % (test)) ) ):
+            print "ERROR: manditory runtime parameters for test %s not set\n" % (test)
             removeList.append(test)
             continue
 
-        # inputFile
-	if (not keyIsValid("%s.inputFile" % (test)) ):
-            print "ERROR: test %s is missing inputFile parameter.\n" % (test)
-            removeList.append(test)
-            continue
 
-        if (sourceTree == "Parallel"):
-            
-            # probinFile
-	    if (not keyIsValid("%s.probinFile" % (test)) ):
-                print "ERROR: test %s is missing probinFile parameter.\n" % (test)
-                removeList.append(test)
-                continue
-
-        # needs_helmeos
-	if (not keyIsValid("%s.needs_helmeos" % (test)) ):
-            print "ERROR: test %s is missing needs_helmeos parameter.\n" % (test)
-            removeList.append(test)
-            continue        
-
-
-        # dim
-        if (not keyIsValid("%s.dim" % (test)) ):
-            print "ERROR: test %s is missing dim parameter.\n" % (test)
-            removeList.append(test)
-            continue        
-
+        # check for optional parameters
 
         # restartTest
         if (not keyIsValid("%s.restartTest" % (test)) ):
-            print "WARNING: test %s didn't set restartTest parameter.  Assuming normal run.\n" % (test)
+            print "   Assuming normal (not restart) run.\n" 
             globalParams["%s.restartTest" % (test)] = 0
         else:
 
            if (getParam("%s.restartTest" % (test)) ):
-              # if we are doing a restart test, make sure that the file
-              # number to restart from has been defined
 
+              # make sure that the file number to restart from is defined
               if (not keyIsValid("%s.restartFileNum" % (test)) ):
                  print "ERROR: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test)
                  removeList.append(test)
@@ -270,14 +240,13 @@ def getValidTests(sourceTree):
 
         # useMPI
         if (not keyIsValid("%s.useMPI" % (test)) ):
-            print "WARNING: test %s didn't set useMPI parameter.  Assuming normal run.\n" % (test)
+            print "   Assuming normal (not MPI) run.\n"
             globalParams["%s.useMPI" % (test)] = 0
         else:
 
            if (getParam("%s.useMPI" % (test)) ):
-              # if we are doing a parallel test, make sure that the 
-              # number of processors has been defined
 
+              # make sure that the number of processors is defined
               if (not keyIsValid("%s.numprocs" % (test)) ):
                  print "ERROR: test %s is a parallel test, but did not specify the numprocs parameter.\n" % (test)
                  removeList.append(test)
@@ -286,27 +255,24 @@ def getValidTests(sourceTree):
 
         # doVis
         if (not keyIsValid("%s.doVis" % (test)) ):
+            print "   Assuming no visualization.\n"
             globalParams["%s.doVis" % (test)] = 0
         else:
 
            if (getParam("%s.doVis" % (test)) ):
 
-              # we are doing visualization -- find out what variable
-              # to plot
-
+              # find out what variable to plot
               if (not keyIsValid("%s.visVar" % (test)) ):
                  print "ERROR: test %s requested visualization but did not specify the visVar parameter.\n" % (test)
                  removeList.append(test)
                  continue
       
 
-
     # remove the invalid tests
     for test in removeList:
        newTests.remove(test)
        
     return newTests
-
 
 
 #==============================================================================
@@ -358,7 +324,6 @@ def getLastPlotfile(outputDir, test):
        compareFile = "%s_plt%5.5d" % (test, plotNum)
 
     return compareFile
-
 
 
 #==============================================================================
@@ -762,12 +727,10 @@ def test(argv):
             abortTests("ERROR: benchmark directory, %s, does not exist" % (benchDir))
 
     
-
     #--------------------------------------------------------------------------
     # get the general MPI parameters (if available)
     #--------------------------------------------------------------------------
     if (not keyIsValid("main.MPIcommand")):
-       print "WARNING: no MPIcommand set"
        MPIcommand = ""
 
     else:
@@ -775,12 +738,10 @@ def test(argv):
 
 
     if (not keyIsValid("main.MPIhost")):
-       print "WARNING: no MPIhost set"
        MPIhost = ""
 
     else:
        MPIhost = getParam("main.MPIhost")
-
 
 
     #--------------------------------------------------------------------------
@@ -795,7 +756,6 @@ def test(argv):
        FCOMP = getParam("main.FCOMP")
 
        
-
     #--------------------------------------------------------------------------
     # get the name of the individual tests 
     #--------------------------------------------------------------------------
@@ -808,7 +768,6 @@ def test(argv):
         else:
             abortTests("ERROR: %s is not a valid test" % (single_test))
         
-
     print tests
     
     
@@ -826,9 +785,8 @@ def test(argv):
 
     testDir = today + "/"
 
-    # the test output will be stored in a directory of the format
-    # suiteName-tests/2007-XX-XX/ -- make sure that the suiteName-tests
-    # directory exists
+    # test output stored in a directory suiteName-tests/2007-XX-XX/
+    # make sure that the suiteName-tests directory exists
     if (not os.path.isdir(testTopDir + suiteName + "-tests/")):
         os.mkdir(testTopDir + suiteName + "-tests/")
         
@@ -935,7 +893,6 @@ def test(argv):
 
     os.chdir(testTopDir)
     
-
 
     #--------------------------------------------------------------------------
     # main loop over tests
@@ -1110,7 +1067,6 @@ def test(argv):
                       (executable, inputsFile, test, restartFileNum, test))
            
             
-
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
@@ -1262,10 +1218,43 @@ def test(argv):
 
 
 
-
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R E P O R T   W R I T I N G   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+cssContents = \
+r"""
+h3.passed {text-decoration: none; display: inline; 
+           color: black; background-color: lime; padding: 2px}
+h3.failed {text-decoration: none; display: inline; 
+           color: black; background-color: red; padding: 2px}
+h3.benchmade {text-decoration: none; display: inline; 
+              color: black; background-color: orange; padding: 2px}
+"""
+
+HTMLHeader = \
+r"""
+<HTML>
+<HEAD>
+<TITLE>@TESTDIR@ / @TESTNAME@</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
+<LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
+</HEAD>
+<BODY>
+"""
+
+MainHeader = \
+r"""
+<HTML>
+<HEAD>
+<TITLE>@TITLE@</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
+<LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
+</HEAD>
+<BODY>
+<CENTER><H1>@TITLE@</H1></CENTER>
+"""
+
 
 #==============================================================================
 # create_css
@@ -1275,17 +1264,8 @@ def create_css():
     
     cssFile = "tests.css"
     cf = open(cssFile, 'w')
-
-    cf.write("h3.passed {text-decoration: none; display: inline; color: black; background-color: lime; padding: 2px}\n")
-
-    cf.write("h3.failed {text-decoration: none; display: inline; color: black; background-color: red; padding: 2px}\n")    
-
-    cf.write("h3.somefailed {text-decoration: none; display: inline; color: black; background-color: yellow; padding: 2px}\n")    
-
-    cf.write("h3.benchmade {text-decoration: none; display: inline; color: black; background-color: orange; padding: 2px}\n")    
-
+    cf.write(cssContents)
     cf.close()
-
 
 
 #==============================================================================
@@ -1383,18 +1363,13 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     
     htmlFile = "%s.html" % (testName)
     hf = open(htmlFile, 'w')
-        
-    hf.write("<HTML>\n")
-    hf.write("<HEAD>\n")
 
-    hf.write("<TITLE>%s %s</TITLE>\n" % (testDir, testName) )
-    hf.write("<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">\n")
-    hf.write("<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"tests.css\">\n")
+    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    hf.write("</HEAD>\n")
-    hf.write("<BODY>\n")
+    newHead = newHead.replace("@TESTDIR@", testDir)
+    newHead = newHead.replace("@TESTNAME@", testName)
 
-    hf.write("<CENTER><H1><A HREF=\"index.html\">%s</A> %s</H1></CENTER>\n" % (testDir, testName) )
+    hf.write(newHead)
 
     useMPI = getParam("%s.useMPI" % (testName))
     if (useMPI):
@@ -1491,7 +1466,6 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     os.chdir(currentDir)
 	
 
-
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
@@ -1508,6 +1482,7 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
     # keep track of the number of tests that passed and the number that failed
     numFailed = 0
     numPassed = 0
+
     
     #--------------------------------------------------------------------------
     # generate the HTML page for this run of the test suite
@@ -1522,18 +1497,13 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
     htmlFile = "index.html"
     
     hf = open(htmlFile, 'w')
-        
-    hf.write("<HTML>\n")
-    hf.write("<HEAD>\n")
 
-    hf.write("<TITLE>%s %s</TITLE>\n" % (suiteName, testDir) )
-    hf.write("<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">\n")
-    hf.write("<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"tests.css\">\n")
+    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="../">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    hf.write("</HEAD>\n")
-    hf.write("<BODY>\n")
+    newHead = newHead.replace("@TESTDIR@", suiteName)
+    newHead = newHead.replace("@TESTNAME@", testDir)
 
-    hf.write("<CENTER><H1><A HREF=\"../\">%s</A> %s</H1></CENTER>\n" % (suiteName, testDir) )
+    hf.write(newHead)
 
     if (not note == ""):
        hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
@@ -1642,6 +1612,7 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
 
     hf.close()
 
+
     #--------------------------------------------------------------------------
     # write out a status file for all the tests
     #--------------------------------------------------------------------------
@@ -1669,7 +1640,6 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
     os.chdir(currentDir)
 
 	
-
 #==============================================================================
 # reportAllRuns
 #==============================================================================
@@ -1683,6 +1653,7 @@ def reportAllRuns(suiteName, webTopDir):
     validDirs = []
     allTests = []
     
+
     #--------------------------------------------------------------------------
     # start by finding the list of valid test directories
     #--------------------------------------------------------------------------
@@ -1731,18 +1702,9 @@ def reportAllRuns(suiteName, webTopDir):
     title = "%s regression tests" % (suiteName)
     
     hf = open(htmlFile, 'w')
-        
-    hf.write("<HTML>\n")
-    hf.write("<HEAD>\n")
 
-    hf.write("<TITLE>%s</TITLE>\n" % (title) )
-    hf.write("<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">\n")
-    hf.write("<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"tests.css\">\n")
-
-    hf.write("</HEAD>\n")
-    hf.write("<BODY>\n")
-
-    hf.write("<CENTER><H1>%s</H1></CENTER>\n" % (title) )
+    header = MainHeader.replace("@TITLE@", title)
+    hf.write(header)
 
     hf.write("<P><TABLE BORDER=0 CELLPADDING=5>\n")
 
