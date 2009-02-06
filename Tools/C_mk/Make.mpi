@@ -1,17 +1,15 @@
+#
+# These appear to be needed for all MPICH implementations.
+#
+CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
+CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
+
 ifeq ($(MACHINE), OSF1)
-  #MPI_HOME:=/usr/local/mpi
   MPI_HOME:=/usr/opt/mpi
-  #BL_MPI_LIBS += -lmpich
   BL_MPI_LIBS += -lmpi -lpmpi
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
 endif
-#ifeq ($(MACHINE), OSF1)
-#  MPI_HOME:=/usr/local/mpi
-#  BL_MPI_LIBS += -lmpich
-#  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-#  INCLUDE_LOCATIONS += $(MPI_HOME)/include
-#endif
 
 ifeq ($(MACHINE), AIX)
   MPI_HOME:=/usr/lpp/ppe.poe
@@ -62,6 +60,12 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/pkg/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/include
+    endif
+    ifeq ($(WHICHLINUX), GIGAN)
+         BL_MPI_LIBS += -lpthread
+    endif
+    ifeq ($(HOST), lijewski)
+         BL_MPI_LIBS += -lpthread
     endif
     ifeq ($(WHICHLINUX), NUGIGAN)
       MPI_HOME=/usr/local/mpi
