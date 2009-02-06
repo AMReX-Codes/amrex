@@ -39,10 +39,10 @@ globalSections = []
 # some utility functions to automagically determine what the data types are
 #==============================================================================
 def isInt(string):
-        """ is the given string an interger? """
-        try: int(string)
-        except ValueError: return 0
-        else: return 1
+    """ is the given string an interger? """
+    try: int(string)
+    except ValueError: return 0
+    else: return 1
 
 
 def isFloat(string):
@@ -384,10 +384,112 @@ def getRecentFileName(dir,base,extension):
     return executableFile
 
 
+#==============================================================================
+# getTestCompDir
+#==============================================================================
+def getTestCompDir(dirKey):
+   """ given a key, dirKey, from the inputs file, check (1) if the key is 
+       valid, and (2) if it points to a vaid directory.  If so, return the
+       directory name """
+
+   if (not keyIsValid(dirKey)):
+       abortTests("ERROR: %s is not defined" % (dirKey))
+
+   else:
+       dirName = getParam(dirKey)
+
+       # make sure we end in a "/"
+       if (not (string.rfind(dirName, "/") == len(dirName)-1)):
+           dirName = dirName + "/"
+           
+       if (not os.path.isdir(dirName)):
+           abortTests("ERROR: %s is not a valid directory" % (dirName))
+
+       return dirName
+
 
 #==============================================================================
+# doCVSUpdate
+#==============================================================================
+def doCVSUpdate(topDir, root, outDir):
+   """ do a CVS update of the repository named root.  topDir is the full path
+       to the directory containing root.  outDir is the full path to the 
+       directory where we will store the CVS output """
+
+   os.chdir(topDir)
+ 
+   print "cvs update %s" % (root)
+   os.system("cvs update %s >& cvs.%s.out" % (root, root))
+   print "\n"
+        
+   # make sure that the cvs update was not aborted -- this can happen, for
+   # instance, if the CVSROOT was not defined
+   try:
+       cf = open("cvs.%s.out" % (root), 'r')
+
+   except IOError:
+       abortTests("ERROR: no CVS output")
+
+   else:
+       cvsLines = cf.readlines()
+
+       cvsFailed = 0
+    
+       for line in cvsLines:
+           if (string.find(line, "update aborted") >= 0):
+               cvsFailed = 1
+               break
+        
+       cf.close()
+
+   if (cvsFailed):
+       abortTests("ERROR: cvs update was aborted. See cvs.%s.out for details" % (root) )
+        
+   shutil.copy("cvs.%s.out" % (root),  outDir)
+
+
+#==============================================================================
+# makeChangeLog
+#==============================================================================
+def makeChangeLog(topDir, root, outDir):
+   """ generate a ChangeLog for the CVS repository named root.  topDir is 
+       the full path to the directory containing root.  outDir is the full 
+       path to the directory where we will store the CVS output """
+
+   os.chdir(topDir)
+
+   have_cvs2cl = 0 
+
+   print "Generating ChangeLog for Parallel/"
+    
+   if (not os.path.isfile("%s/cvs2cl.pl" % (root) )):
+       if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+           print "WARNING: unable to locate cvs2cl.pl script."
+           print "         no ChangeLog will be generated"
+       else:
+           shutil.copy("fParallel/scripts/cvs2cl.pl", "%s/" % (root) )
+           have_cvs2cl = 1
+   else:
+       have_cvs2cl = 1
+
+   os.chdir("%s/" % (root) )
+
+   if (have_cvs2cl):
+       os.system("./cvs2cl.pl -f ChangeLog.%s" % (root) )
+   else:
+       cf = open("ChangeLog.%s" % (root), 'w')
+       cf.write("unable to generate ChangeLog")
+       cf.close()
+
+   os.chdir(topDir)
+
+   shutil.copy("%s/ChangeLog.%s" % (root, root), outDir)
+
+
+
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
-#==============================================================================        
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 def test(argv):
 
     usage = """
@@ -617,64 +719,17 @@ def test(argv):
     #--------------------------------------------------------------------------
 
     # get the source directory
-    if (not keyIsValid("main.sourceDir")):
-        abortTests("ERROR: sourceDir is not defined")
-
-    else:
-        sourceDir = getParam("main.sourceDir")
-
-        # make sure we end in a "/"
-        if (not (string.rfind(sourceDir, "/") == len(sourceDir)-1)):
-           sourceDir = sourceDir + "/"
-           
-        if (not os.path.isdir(sourceDir)):
-            abortTests("ERROR: sourceDir is not a valid directory")
-
+    sourceDir = getTestCompDir("main.sourceDir")
         
     # get the top-level testing directory
-    if (not keyIsValid("main.testTopDir")):
-        abortTests("ERROR: testTopDir is not defined")
-
-    else:
-        testTopDir = getParam("main.testTopDir")
-
-        # make sure we end in a "/"
-        if (not (string.rfind(testTopDir, "/") == len(testTopDir)-1)):
-           testTopDir = testTopDir + "/"
-           
-        if (not os.path.isdir(testTopDir)):
-            abortTests("ERROR: testTopDir is not a valid directory")
-    
+    testTopDir = getTestCompDir("main.testTopDir")
 
     # get the directory that contains the comparison tools
-    if (not keyIsValid("main.compareToolDir")):
-        abortTests("ERROR: compareToolDir is not defined")
-
-    else:
-        compareToolDir = getParam("main.compareToolDir")
-
-        # make sure we end in a "/"
-        if (not (string.rfind(compareToolDir, "/") == len(compareToolDir)-1)):
-           compareToolDir = compareToolDir + "/"
-           
-        if (not os.path.isdir(compareToolDir)):
-            abortTests("ERROR: compareToolDir is not a valid directory")
-    
+    compareToolDir = getTestCompDir("main.compareToolDir")
 
     # get the directory that contains the Helmholtz EOS
-    if (not keyIsValid("main.helmeosDir")):
-        abortTests("ERROR: helmeosDir is not defined")
+    helmeosDir = getTestCompDir("main.helmeosDir")
 
-    else:
-        helmeosDir = getParam("main.helmeosDir")
-
-        # make sure we end in a "/"
-        if (not (string.rfind(helmeosDir, "/") == len(helmeosDir)-1)):
-           helmeosDir = helmeosDir + "/"
-           
-        if (not os.path.isdir(helmeosDir)):
-            abortTests("ERROR: helmeosDir is not a valid directory")
-    
 
     # get the name of the test suite
     if (not keyIsValid("main.suiteName")):
@@ -725,6 +780,20 @@ def test(argv):
 
     else:
        MPIhost = getParam("main.MPIhost")
+
+
+
+    #--------------------------------------------------------------------------
+    # get the Fortran compiler for fParallel tests and utilities (if available)
+    #--------------------------------------------------------------------------
+    if (not keyIsValid("main.FCOMP")):
+
+       print "WARNING: FCOMP not set; assuming Intel"
+       FCOMP = "Intel"
+
+    else:
+       FCOMP = getParam("main.FCOMP")
+
        
 
     #--------------------------------------------------------------------------
@@ -778,16 +847,16 @@ def test(argv):
     # make the web directory -- this is where all the output and HTML will be
     # put, so it is easy to move the entire test website to a different disk
     webTopDir = "%s/%s-web/" % (testTopDir, suiteName)
-    webDir = "%s/%s-web/%s/"  % (testTopDir, suiteName, testDir)
+    fullWebDir = "%s/%s-web/%s/"  % (testTopDir, suiteName, testDir)
         
 
     if (not (os.path.isdir(webTopDir)) ):
         os.mkdir(webTopDir)
 
-    os.mkdir(webDir)
+    os.mkdir(fullWebDir)
 
     # copy the test file into the web output directory
-    shutil.copy(testFilePath, webDir)
+    shutil.copy(testFilePath, fullWebDir)
 
 
     #--------------------------------------------------------------------------
@@ -800,135 +869,25 @@ def test(argv):
     
     if (not no_cvs_update):
 
+       # Parallel
        if (sourceTree == "Parallel"):
- 
-          # Parallel
-	  print "cvs update Parallel"
-	  os.system("cvs update Parallel >& cvs.Parallel.out")
-	  print "\n"
-        
-	  # make sure that the cvs update was not aborted -- this can happen, for
-	  # instance, if the CVSROOT was not defined
-	  try:
-	     cf = open("cvs.Parallel.out", 'r')
-
-          except IOError:
-	     abortTests("ERROR: no CVS output")
-
-          else:
-             cvsLines = cf.readlines()
-
-             cvsFailed = 0
-    
-             for line in cvsLines:
-                if (string.find(line, "update aborted") >= 0):
-		    cvsFailed = 1
-		    break
-        
-          cf.close()
-
-          if (cvsFailed):
-	     abortTests("ERROR: cvs update was aborted. See cvs.Parallel.out for details")
-        
-          shutil.copy("cvs.Parallel.out",  webDir)
-
+          doCVSUpdate(testTopDir, "Parallel", fullWebDir)
 
        # fParallel
-       print "cvs update fParallel"
-       os.system("cvs update fParallel >& cvs.fParallel.out")
-       print "\n"
-        
-       # make sure that the cvs update was not aborted -- this can happen, for
-       # instance, if the CVSROOT was not defined
-       try:
-          cf = open("cvs.fParallel.out", 'r')
-
-       except IOError:
-          abortTests("ERROR: no CVS output")
-
-       else:
-          cvsLines = cf.readlines()
-
-          cvsFailed = 0
-    
-          for line in cvsLines:
-             if (string.find(line, "update aborted") >= 0):
-		cvsFailed = 1
-		break
-        
-          cf.close()
-
-          if (cvsFailed):
-	     abortTests("ERROR: cvs update was aborted.  See cvs.fParallel.out for details")
-
-          shutil.copy("cvs.fParallel.out", webDir)
+       doCVSUpdate(testTopDir, "fParallel", fullWebDir)
     
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
     #--------------------------------------------------------------------------
-    # Parallel
-    have_cvs2cl = 0
+    if (not no_cvs_update):
 
-    if (sourceTree == "Parallel"):
-    
-       os.chdir(testTopDir)
+       # Parallel
+       if (sourceTree == "Parallel"):
+          makeChangeLog(testTopDir, "Parallel", fullWebDir)
 
-       print "Generating ChangeLog for Parallel/"
-    
-       if (not os.path.isfile("Parallel/cvs2cl.pl")):
-          if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-	     print "WARNING: unable to locate cvs2cl.pl script."
-	     print "         no ChangeLog will be generated"
-          else:
-	     shutil.copy("fParallel/scripts/cvs2cl.pl", "Parallel/")
-	     have_cvs2cl = 1
-       else:
-          have_cvs2cl = 1
-
-       os.chdir("Parallel/")
-
-       if (have_cvs2cl and not no_cvs_update):
-          os.system("./cvs2cl.pl -f ChangeLog.Parallel")
-       else:
-          cf = open("ChangeLog.Parallel", 'w')
-	  cf.write("unable to generate ChangeLog")
-	  cf.close()
-
-       os.chdir(testTopDir)
-
-       shutil.copy("Parallel/ChangeLog.Parallel", webDir)
-
-
-    # fParallel
-    have_cvs2cl = 0
-
-    os.chdir(testTopDir)
-
-    print "Generating ChangeLog for fParallel/"
-    
-    if (not os.path.isfile("fParallel/cvs2cl.pl")):
-        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-            print "WARNING: unable to locate cvs2cl.pl script."
-            print "         no ChangeLog will be generated"
-        else:
-            shutil.copy("fParallel/scripts/cvs2cl.pl", "fParallel/")
-            have_cvs2cl = 1
-    else:
-        have_cvs2cl = 1
-
-    os.chdir("fParallel/")
-
-    if (have_cvs2cl and not no_cvs_update):
-        os.system("./cvs2cl.pl -f ChangeLog.fParallel")
-    else:
-        cf = open("ChangeLog.fParallel", 'w')
-        cf.write("unable to generate ChangeLog")
-        cf.close()
-
-    os.chdir(testTopDir)
-   
-    shutil.copy("fParallel/ChangeLog.fParallel", webDir)    
+       # fParallel
+       makeChangeLog(testTopDir, "fParallel", fullWebDir)
     
 
     #--------------------------------------------------------------------------
@@ -938,18 +897,18 @@ def test(argv):
 
     os.chdir(compareToolDir)
 
-    os.system("gmake realclean")
+    os.system("gmake COMP=%s realclean" % (FCOMP))
 
-    os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI=  >& fcompare.make.out")
+    os.system("gmake -j 4 programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % (FCOMP))
     compareExecutable = getRecentFileName(compareToolDir,"fcompare",".exe")
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
     print "building the visualization tools..."
-    os.system("gmake -j 4 programs=fsnapshot2d NDEBUG=t MPI=  >& fsnapshot2d.make.out")
+    os.system("gmake -j 4 programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  >& fsnapshot2d.make.out" % (FCOMP))
     vis2dExecutable = getRecentFileName(compareToolDir,"fsnapshot2d",".exe")
     
-    os.system("gmake -j 4 programs=fsnapshot3d NDEBUG=t MPI=  >& fsnapshot3d.make.out")
+    os.system("gmake -j 4 programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  >& fsnapshot3d.make.out" % (FCOMP))
     vis3dExecutable = getRecentFileName(compareToolDir,"fsnapshot3d",".exe")
     
     print "\n"
@@ -970,7 +929,7 @@ def test(argv):
         if (sourceTree == "Parallel"):
 	   os.system("gmake realclean")
         else:
-            os.system("gmake MPI= realclean NDEBUG=t")
+            os.system("gmake MPI= COMP=%s realclean NDEBUG=t" % (FCOMP))
             
     print "\n"
 
@@ -993,14 +952,14 @@ def test(argv):
 
         #----------------------------------------------------------------------
         # make the run directory
-        #----------------------------------------------------------------------        
+        #----------------------------------------------------------------------
         outputDir = fullTestDir + test + '/'
         os.mkdir(outputDir)
     
 
         #----------------------------------------------------------------------
         # compile the code
-        #----------------------------------------------------------------------        
+        #----------------------------------------------------------------------
         buildDir = getParam(test + ".buildDir")
         os.chdir(sourceDir + buildDir)
         
@@ -1023,7 +982,7 @@ def test(argv):
 	       
             
         elif (sourceTree == "fParallel"):
-            os.system("gmake -j 4 MPI= NDEBUG=t >& %s/%s.make.out" % (outputDir, test))
+            os.system("gmake -j 4 MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % (FCOMP, outputDir, test))
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(sourceDir + buildDir,"main",".exe")
@@ -1031,14 +990,14 @@ def test(argv):
             
         #----------------------------------------------------------------------
         # copy the necessary files over to the run directory
-        #----------------------------------------------------------------------        
+        #----------------------------------------------------------------------
         print "  copying files to run directory..."
 
         try: shutil.copy(executable, outputDir)
         except IOError:
            print '  ERROR: compilation failed'
 
-           statusFile = webDir + "%s.status" % (test)
+           statusFile = fullWebDir + "%s.status" % (test)
            sf = open(statusFile, 'w')
 
            sf.write("FAILED\n")
@@ -1084,7 +1043,7 @@ def test(argv):
 
         #----------------------------------------------------------------------
         # run the test
-        #----------------------------------------------------------------------        
+        #---------------------------------------------------------------------- 
         print "  running the test..."
 
         restart = getParam(test + ".restartTest")
@@ -1221,8 +1180,7 @@ def test(argv):
                 
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only)
-        #----------------------------------------------------------------------        
- 
+        #---------------------------------------------------------------------- 
         doVis = getParam(test + ".doVis")
 
         if (doVis and not make_benchmarks):
@@ -1250,35 +1208,33 @@ def test(argv):
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
-        
         if (not make_benchmarks):
-            shutil.copy("%s.run.out"     % (test), webDir)
-            shutil.copy("%s.make.out"    % (test), webDir)
-            shutil.copy("%s.compare.out" % (test), webDir)
+            shutil.copy("%s.run.out"     % (test), fullWebDir)
+            shutil.copy("%s.make.out"    % (test), fullWebDir)
+            shutil.copy("%s.compare.out" % (test), fullWebDir)
 
-            shutil.copy(inputsFile, "%s/%s.%s" % (webDir, test, inputsFile) )
+            shutil.copy(inputsFile, "%s/%s.%s" % (fullWebDir, test, inputsFile) )
 
             if (sourceTree == "Parallel"):
-                shutil.copy(probinFile, "%s/%s.%s" % (webDir, test, probinFile) )
+                shutil.copy(probinFile, "%s/%s.%s" % (fullWebDir, test, probinFile) )
 
             for file in auxFiles:
-                shutil.copy(file, "%s/%s.%s" % (webDir, test, file) )
+                shutil.copy(file, "%s/%s.%s" % (fullWebDir, test, file) )
 
             if (doVis):
                pngFile = getRecentFileName(outputDir, "", ".png")
-               shutil.copy(pngFile, webDir)
+               shutil.copy(pngFile, fullWebDir)
                
         else:
-            shutil.copy("%s.status" % (test), webDir)
+            shutil.copy("%s.status" % (test), fullWebDir)
             
 
         #----------------------------------------------------------------------
         # write the report for this test
         #----------------------------------------------------------------------
-        
         if (not make_benchmarks):
             print "  creating problem test report ..."
-            reportSingleTest(sourceTree, test, testDir, webDir)
+            reportSingleTest(sourceTree, test, testDir, fullWebDir)
 
 
         print "\n"
@@ -1288,12 +1244,12 @@ def test(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     print "creating new test report..."
-    reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, webDir)
+    reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, fullWebDir)
 
 
     # make sure that all of the files in the web directory are world readable
-    for file in os.listdir(webDir):    
-       currentFile = webDir + file
+    for file in os.listdir(fullWebDir):    
+       currentFile = fullWebDir + file
 
        if (os.path.isfile(currentFile)):
           os.chmod(currentFile, 0644)
@@ -1335,14 +1291,14 @@ def create_css():
 #==============================================================================
 # reportSingleTest
 #==============================================================================
-def reportSingleTest(sourceTree, testName, testDir, webDir):
+def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     """ generate a single problem's test result page """
     
     # get the current directory
     currentDir = os.getcwd()
     
     # switch to the web directory and open the report file
-    os.chdir(webDir)
+    os.chdir(fullWebDir)
 
     #--------------------------------------------------------------------------
     # parse the compilation report and determine if we compiled
@@ -1519,7 +1475,7 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
     # show any visualizations
     doVis = getParam("%s.doVis" % (testName) )
     if (doVis):
-       pngFile = getRecentFileName(webDir, testName, ".png")
+       pngFile = getRecentFileName(fullWebDir, testName, ".png")
        hf.write("<P>&nbsp;\n")
        hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
     
@@ -1539,14 +1495,14 @@ def reportSingleTest(sourceTree, testName, testDir, webDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, webDir):
+def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
     currentDir = os.getcwd()
     
     # switch to the web directory and open the report file
-    os.chdir(webDir)
+    os.chdir(fullWebDir)
 
 
     # keep track of the number of tests that passed and the number that failed
