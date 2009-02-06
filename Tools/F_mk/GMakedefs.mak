@@ -116,6 +116,27 @@ ifeq ($(COMP),gfortran)
   endif
 endif
 
+ifeq ($(COMP),xlf)
+  FC := xlf95
+  F90 := xlf95
+  CC := xlc
+
+  F90FLAGS += -I $(mdir) -qmoddir=$(mdir)
+  FFLAGS   += -I $(mdir) -qmoddir=$(mdir)
+  CFLAGS += 
+
+  F_C_LINK := LOWERCASE
+  ifdef NDEBUG
+    F90FLAGS += -O 
+    FFLAGS += -O 
+    CFLAGS += -O
+  else
+    F90FLAGS += -g 
+    FFLAGS += -g 
+    CFLAGS += -g
+  endif
+endif
+
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
     F_C_LINK := LOWERCASE
