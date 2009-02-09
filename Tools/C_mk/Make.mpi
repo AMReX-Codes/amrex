@@ -4,6 +4,13 @@
 CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
 CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
 
+#
+# Use mpicc on Lawrencium
+#
+ifeq ($(findstring .scs, $(UNAMEN)), .scs)
+  CXX = mpicc
+endif
+
 ifeq ($(MACHINE), OSF1)
   MPI_HOME:=/usr/opt/mpi
   BL_MPI_LIBS += -lmpi -lpmpi
