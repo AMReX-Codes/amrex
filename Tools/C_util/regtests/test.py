@@ -1081,7 +1081,7 @@ def test(argv):
             if (not restart):
                benchFile = benchDir + compareFile
             else:
-               benchFile = outputDir + origLastFile
+               benchFile = origLastFile
 
             # see if it exists
             # note, with BoxLib, the plotfiles are actually directories
