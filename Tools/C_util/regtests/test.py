@@ -425,7 +425,7 @@ def makeChangeLog(topDir, root, outDir):
 
    have_cvs2cl = 0 
 
-   print "Generating ChangeLog for Parallel/"
+   print "Generating ChangeLog for %s/" % (root)
     
    if (not os.path.isfile("%s/cvs2cl.pl" % (root) )):
        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
@@ -1019,8 +1019,8 @@ def test(argv):
 	       testRunCommand = testRunCommand.replace("@host@", MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (numprocs))
 
-	       command = "./%s %s amr.plot_file=%s_plt >&  %s.run.out < /dev/null" % \
-			 (executable, inputsFile, test, test)
+	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
+			 (executable, inputsFile, test, test, test)
 	       
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1029,19 +1029,19 @@ def test(argv):
                os.system(testRunCommand)
 	       
             else:
-               os.system("./%s %s amr.plot_file=%s_plt >&  %s.run.out" %
-			 (executable, inputsFile, test, test))	       
+               os.system("./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" %
+			 (executable, inputsFile, test, test, test))	       
 
 
         elif (sourceTree == "fParallel"):
 
             # keep around the checkpoint files only for the restart runs
             if (restart):
-                os.system("./%s %s --plot_base_name %s_plt >& %s.run.out" %
-                          (executable, inputsFile, test, test))
+                os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" %
+                          (executable, inputsFile, test, test, test))
             else:
-                os.system("./%s %s --plot_base_name %s_plt --chk_int 0 >& %s.run.out" %
-                          (executable, inputsFile, test, test))
+                os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" %
+                          (executable, inputsFile, test, test, test))
 
 
         # if it is a restart test, then rename the final output file and
@@ -1054,17 +1054,17 @@ def test(argv):
 
            # get the file number to restart from
            restartFileNum = getParam(test + ".restartFileNum")
-	   restartFile = "%s_plt%5.5d" % (test, restartFileNum)
+	   restartFile = "%s_chk%5.5d" % (test, restartFileNum)
 
            print "    restarting from %s ... " % (restartFile)
            
            if (sourceTree == "Parallel"):
-              os.system("./%s %s amr.plot_file=%s_plt amr.restart=%s >>  %s.run.out 2>&1" %
-                      (executable, inputsFile, test, restartFile, test))
+              os.system("./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" %
+                      (executable, inputsFile, test, test, restartFile, test))
 
            elif (sourceTree == "fParallel"):
-              os.system("./%s %s --plot_base_name %s_plt --restart %d >> %s.run.out 2>&1" %
-                      (executable, inputsFile, test, restartFileNum, test))
+              os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" %
+                      (executable, inputsFile, test, test, restartFileNum, test))
            
             
         #----------------------------------------------------------------------
@@ -1184,6 +1184,19 @@ def test(argv):
         else:
             shutil.copy("%s.status" % (test), fullWebDir)
             
+
+        #----------------------------------------------------------------------
+        # archive the output
+        #----------------------------------------------------------------------
+        for file in os.listdir(outputDir):
+            if (os.path.isdir(file) and 
+                (file.startswith("%s_plt" % (test)) or 
+                 file.startswith("%s_chk" % (test)) ) ):
+                err = os.system("tar czf %s.tgz %s >& %s.tar.out" % (file, file, file))
+                if (err == 0):
+                    shutil.rmtree(file)
+                    os.remove("%s.tar.out" % (file))
+                    
 
         #----------------------------------------------------------------------
         # write the report for this test
