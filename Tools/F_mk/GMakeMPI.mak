@@ -32,6 +32,13 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 #
+# Try and catch the Lawrencium cluster ...
+#
+ifeq ($(findstring .scs, $(HOSTNAMEF)), .scs)
+    FC  = mpif90
+    F90 = mpif90
+endif
+#
 # Host changes ....
 #
 ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
