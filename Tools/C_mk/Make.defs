@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.127 2009-02-06 20:58:08 mzingale Exp $
+# Make.defs $Id: Make.defs,v 1.128 2009-02-09 21:09:08 gpau Exp $
 #
 
 #
@@ -144,6 +144,12 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
   endif
+endif
+#
+# Some Lawrencium crap ...
+#
+ifeq ($(findstring .scs, $(UNAMEN)), .scs)
+  XTRALIBS += -lgcc -lstdc++
 endif
 
 ifeq ($(MACHINE), HP-UX)
