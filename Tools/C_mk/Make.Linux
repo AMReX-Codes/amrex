@@ -40,6 +40,12 @@ ifeq ($(COMP),PGI)
   else
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
   endif
+else
+ifeq ($(COMP),xlC)
+  CXX     := xlC
+  CXXOPTF += -O2 -qsuppress=1500-029 -qmaxmem=-1
+  CXXDEBF += -g
+endif
 endif
 endif
 endif
@@ -124,10 +130,33 @@ ifeq ($(FCOMP),f77)
   #override XTRALIBS +=  -lf2c
 # LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
   override XTRALIBS += -lg2c
-  FDEBF +=   -ffortran-bounds-check 
+  FDEBF += -ffortran-bounds-check 
   FDEBF += -Wimplicit
   fDEBF += -Wimplicit
-  fDEBF +=   -ffortran-bounds-check
+  fDEBF += -ffortran-bounds-check
+else
+ifeq ($(FCOMP),xlf)
+  FC  := xlf
+  fC  := xlf
+  f90 := xlf95
+
+  F90FLAGS += -qsuffix=f=f90 -qfree=f90 -qmoddir=$(fmoddir) -I$(fmoddir)
+
+  ifeq ($(PRECISION),FLOAT)
+    FOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
+    FDEBF += -g
+    fOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
+    fDEBF += -g
+  else
+    FOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
+    FDEBF += -qdpc -g
+    fOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
+    fDEBF += -qdpc -g
+  endif
+
+  override FORTLINK := LOWERCASE
+  NEEDS_FLUSH_F := TRUE
+endif
 endif
 endif
 endif
