@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.111 2009-02-06 20:46:19 almgren Exp $
+// $Id: ParallelDescriptor.cpp,v 1.112 2009-02-11 23:06:50 marc Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -551,7 +551,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 {
     BL_ASSERT(cnt > 0);
 
-    Array<Real> recv(cnt);
+    Array<long> recv(cnt);
 
     BL_MPI_REQUIRE( MPI_Allreduce(r,
                                   recv.dataPtr(),
@@ -725,7 +725,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 {
     BL_ASSERT(cnt > 0);
 
-    Array<Real> recv(cnt);
+    Array<int> recv(cnt);
 
     BL_MPI_REQUIRE( MPI_Allreduce(r,
                                   recv.dataPtr(),
