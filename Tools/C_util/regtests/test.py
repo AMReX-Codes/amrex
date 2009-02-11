@@ -238,6 +238,12 @@ def getValidTests(sourceTree):
                  continue
       
 
+        # compileTest
+        if (not keyIsValid("%s.compileTest" % (test)) ):
+            print "   Assuming normal (not compilation test) run.\n" 
+            globalParams["%s.compileTest" % (test)] = 0
+
+
         # useMPI
         if (not keyIsValid("%s.useMPI" % (test)) ):
             print "   Assuming normal (not MPI) run.\n"
@@ -497,10 +503,10 @@ def test(argv):
             needs_helmeos = < need Helmholtz eos? 0 for no, 1 for yes >
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
-            dim = < dimensionality: 2 or 3 >
+            dim = < dimensionality: 1, 2, or 3 >
             useMPI = <is this a parallel job? 0 for no, 1 for yes) >
             numprocs = < # of processors to run on (if parallel job) >
-            
+            compileTest = < 0 for normal run, 1 if we just test compilation >            
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -573,6 +579,9 @@ def test(argv):
 
             useMPI is set to 1 if the job is parallel.  In this case, you
             also must specify the number of processors, via numprocs.
+
+            compileTest is set to 0 for a normal test.  Setting to 1 will
+            just test compilation, and not any subsequent output.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -906,6 +915,11 @@ def test(argv):
             print "           skipping\n"
             continue
      
+        if (getParam(test + ".compileTest") and make_benchmarks):
+            print "  WARNING: test %s is a compile test -- no benchmarks are stored." % (test)
+            print "           skipping\n"
+            continue            
+
 
         #----------------------------------------------------------------------
         # make the run directory
@@ -943,6 +957,20 @@ def test(argv):
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(sourceDir + buildDir,"main",".exe")
+
+        
+        compileTest = getParam(test + ".compileTest")
+
+        if (compileTest):
+            
+            # compilation tests are done now -- just make the report and 
+            shutil.copy("%s/%s.make.out"    % (outputDir, test), fullWebDir)
+
+            print "  creating problem test report ..."
+            reportSingleTest(sourceTree, test, testDir, fullWebDir)
+
+            # skip to the next test in the loop
+            continue
             
             
         #----------------------------------------------------------------------
@@ -1207,7 +1235,7 @@ def test(argv):
 
 
         print "\n"
-        
+    
         
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
@@ -1324,28 +1352,31 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     #--------------------------------------------------------------------------
     # parse the compare report and determine if we passed
     #--------------------------------------------------------------------------
-    compareFile = "%s.compare.out" % (testName)
+    compileTest = getParam(testName + ".compileTest")
+
+    if (not compileTest):
+        compareFile = "%s.compare.out" % (testName)
     
-    try:
-        cf = open(compareFile, 'r')
+        try:
+            cf = open(compareFile, 'r')
 
-    except IOError:
-        print "WARNING: no comparison file found"
-        compareSuccessful = 0
-        diffLines = ['']
+        except IOError:
+            print "WARNING: no comparison file found"
+            compareSuccessful = 0
+            diffLines = ['']
 
-    else:
-        diffLines = cf.readlines()
+        else:
+            diffLines = cf.readlines()
 
         # successful comparison is indicated by PLOTFILES AGREE
-        compareSuccessful = 0
+            compareSuccessful = 0
     
-        for line in diffLines:
-            if (string.find(line, "PLOTFILES AGREE") >= 0):
-                compareSuccessful = 1
-                break
+            for line in diffLines:
+                if (string.find(line, "PLOTFILES AGREE") >= 0):
+                    compareSuccessful = 1
+                    break
     
-        cf.close()
+            cf.close()
 
 
     #--------------------------------------------------------------------------
@@ -1355,7 +1386,9 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     statusFile = "%s.status" % (testName)
     sf = open(statusFile, 'w')
 
-    if (compileSuccessful and compareSuccessful):
+    if (compileSuccessful and 
+        (not compileTest or
+         (compileTest and compileSuccessful))):
         sf.write("PASSED\n")
         print "    %s PASSED" % (testName)
     else:
@@ -1384,52 +1417,55 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
 
     hf.write(newHead)
 
-    useMPI = getParam("%s.useMPI" % (testName))
-    if (useMPI):
 
-       numprocs = getParam("%s.numprocs" % (testName))
+    if (not compileTest):
 
-       hf.write("<P><b>Parallel Run</b><br>numprocs = %d\n" % (numprocs) )
-       hf.write("<P>&nbsp;\n")
+        useMPI = getParam("%s.useMPI" % (testName))
+        if (useMPI):
+
+            numprocs = getParam("%s.numprocs" % (testName))
+
+            hf.write("<P><b>Parallel Run</b><br>numprocs = %d\n" % (numprocs) )
+            hf.write("<P>&nbsp;\n")
        
 
-    # is this a restart test?
-    restart = getParam("%s.restartTest" % (testName) )
-    if (restart):
+        # is this a restart test?
+        restart = getParam("%s.restartTest" % (testName) )
+        if (restart):
 
-       restartFileNum = getParam("%s.restartTest" % (testName) )
+            restartFileNum = getParam("%s.restartTest" % (testName) )
        
-       hf.write("<P><b>Restart Test</b><br>Job was run as normal and then restarted from checkpoint # %d, and the two final outputs were compared\n" % (restartFileNum) )
+            hf.write("<P><b>Restart Test</b><br>Job was run as normal and then restarted from checkpoint # %d, and the two final outputs were compared\n" % (restartFileNum) )
 
-    hf.write("<P>&nbsp;\n")       
+        hf.write("<P>&nbsp;\n")       
 
-    # write out the information about the test
-    buildDir = getParam("%s.buildDir" % (testName) )
-    hf.write("<P><b>build directory:</b> %s\n" % (buildDir) )
+        # write out the information about the test
+        buildDir = getParam("%s.buildDir" % (testName) )
+        hf.write("<P><b>build directory:</b> %s\n" % (buildDir) )
 
-    inputFile = getParam("%s.inputFile" % (testName) )
-    hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-             (testName, inputFile, inputFile) )
+        inputFile = getParam("%s.inputFile" % (testName) )
+        hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
+                 (testName, inputFile, inputFile) )
 
-    if (sourceTree == "Parallel"):
-        probinFile = getParam("%s.probinFile" % (testName) )
-        hf.write("<P><b>probin file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                 (testName, probinFile, probinFile) )    
+        if (sourceTree == "Parallel"):
+            probinFile = getParam("%s.probinFile" % (testName) )
+            hf.write("<P><b>probin file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
+                     (testName, probinFile, probinFile) )    
 
 
-    auxFiles = getAuxFiles(testName)
+        auxFiles = getAuxFiles(testName)
 
-    i = 1
-    for file in auxFiles:
-        hf.write("<P><b>aux%dFile:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                 (i, testName, file, file) )
-        i = i + 1
+        i = 1
+        for file in auxFiles:
+            hf.write("<P><b>aux%dFile:</b> <A HREF=\"%s.%s\">%s</A>\n" %
+                     (i, testName, file, file) )
+            i = i + 1
         
 
-    dim = getParam("%s.dim" % (testName) )
-    hf.write("<P><b>dimensionality:</b> %s\n" % (dim) )
+        dim = getParam("%s.dim" % (testName) )
+        hf.write("<P><b>dimensionality:</b> %s\n" % (dim) )
 
-    hf.write("<P>&nbsp;\n")
+        hf.write("<P>&nbsp;\n")
 
     
     # write out the compilation report
@@ -1443,29 +1479,31 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     hf.write("<P>&nbsp;\n")
 
     
-    # write out the comparison report
-    if (compareSuccessful):
-        hf.write("<P><H3 CLASS=\"passed\">Comparison Successful</H3></P>\n")
-    else:
-        hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
+    if (not compileTest):
 
-    hf.write("<A HREF=\"%s.run.out\">execution output</A>\n" % (testName) )
+        # write out the comparison report
+        if (compareSuccessful):
+            hf.write("<P><H3 CLASS=\"passed\">Comparison Successful</H3></P>\n")
+        else:
+            hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
+
+        hf.write("<A HREF=\"%s.run.out\">execution output</A>\n" % (testName) )
 
 
-    hf.write("<P>&nbsp;\n")
-    hf.write("<PRE>\n")
+        hf.write("<P>&nbsp;\n")
+        hf.write("<PRE>\n")
     
-    for line in diffLines:
-        hf.write(line)
+        for line in diffLines:
+            hf.write(line)
 
-    hf.write("</PRE>\n")
+        hf.write("</PRE>\n")
 
-    # show any visualizations
-    doVis = getParam("%s.doVis" % (testName) )
-    if (doVis):
-       pngFile = getRecentFileName(fullWebDir, testName, ".png")
-       hf.write("<P>&nbsp;\n")
-       hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
+        # show any visualizations
+        doVis = getParam("%s.doVis" % (testName) )
+        if (doVis):
+            pngFile = getRecentFileName(fullWebDir, testName, ".png")
+            hf.write("<P>&nbsp;\n")
+            hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
     
 
     # close
