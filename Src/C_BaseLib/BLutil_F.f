@@ -1,5 +1,5 @@
 C
-C $Id: BLutil_F.f,v 1.4 2002-06-19 20:49:44 car Exp $
+C $Id: BLutil_F.f,v 1.5 2009-02-11 01:44:06 lijewski Exp $
 C
 C=======================================================================
 C
@@ -20,7 +20,7 @@ C-----------------------------------------------------------------------
       PARAMETER (EOS=-1)
 C
       IF ( n .LE. len(str) ) THEN
-          STOP "blstr2int: str to large for iarr"
+          call bl_abort("blstr2int: str to large for iarr")
       END IF
 C     Make sure that IARR is empty
       DO J = 1, N
@@ -48,7 +48,9 @@ C
           str(i:i) = ' '
       END DO
       DO i = 1, n
-          IF ( i .GT. LEN(str) ) STOP "blint2str: iarr to large for str"
+          IF ( i .GT. LEN(str) ) then
+             call bl_abort("blint2str: iarr to large for str")
+          end if
           IF ( iarr(i) .EQ. EOS ) GO TO 100
           str(i:i) = char(iarr(i))
       END DO
