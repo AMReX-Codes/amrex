@@ -1387,8 +1387,8 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
     sf = open(statusFile, 'w')
 
     if (compileSuccessful and 
-        (not compileTest or
-         (compileTest and compileSuccessful))):
+        (compileTest or
+         (not compileTest and compareSuccessful))):
         sf.write("PASSED\n")
         print "    %s PASSED" % (testName)
     else:
