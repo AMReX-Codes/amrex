@@ -176,6 +176,17 @@ ifeq ($(WHICHLINUX), FRANKLIN)
   endif
 endif
 
+ifeq ($(HOSTNAME), pleiades.ucsc.edu)
+  ifeq ($(COMP),Intel)
+    CXX = icc
+    CXXOPTF += -O
+    CXXDEBF += -g
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpiCC
+    endif
+  endif
+endif 
+
 ifeq ($(WHICHLINUX), JVN)
   ifeq ($(COMP),Intel)
     CXX = icc
