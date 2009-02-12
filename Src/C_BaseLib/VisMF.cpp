@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.109 2008-06-03 23:45:09 lijewski Exp $
+// $Id: VisMF.cpp,v 1.110 2009-02-12 20:51:51 vince Exp $
 //
 
 #include <winstd.H>
@@ -592,6 +592,9 @@ VisMF::WriteHeader (const std::string& mf_name,
         // Add in the number of bytes written out in the Header.
         //
         bytes += VisMF::FileOffset(MFHdrFile);
+#ifdef BL_USECLOSE
+        MFHdrFile.close();
+#endif
     }
     return bytes;
 }
@@ -672,6 +675,9 @@ VisMF::Write (const MultiFab&    mf,
           hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
         }
         FabFile.flush();
+#ifdef BL_USECLOSE
+        FabFile.close();
+#endif
       }
       ParallelDescriptor::Barrier();
     }  // end for(iSet...)
@@ -696,6 +702,9 @@ VisMF::Write (const MultiFab&    mf,
           hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
         }
         FabFile.flush();
+#ifdef BL_USECLOSE
+        FabFile.close();
+#endif
 	const int iBuff(0);
 	int wakeUpPID(MyProc + nOutFiles);
 	int tag(MyProc % nOutFiles);
@@ -813,6 +822,11 @@ VisMF::VisMF (const std::string& mf_name)
 #endif
 
     ifs >> m_hdr;
+#if defined(BL_USEOLDREADS)
+#ifdef BL_USECLOSE
+    ifs.close();
+#endif
+#endif
 
     m_pa.resize(m_hdr.m_ncomp);
 
@@ -867,6 +881,9 @@ VisMF::readFAB (int                  idx,
         fab->readFrom(ifs, ncomp);
     }
 
+#ifdef BL_USECLOSE
+    ifs.close();
+#endif
     return fab;
 }
 
@@ -905,6 +922,11 @@ VisMF::Read (MultiFab&          mf,
 #endif
 
         ifs >> hdr;
+#if defined(BL_USEOLDREADS)
+#ifdef BL_USECLOSE
+	ifs.close();
+#endif
+#endif
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
