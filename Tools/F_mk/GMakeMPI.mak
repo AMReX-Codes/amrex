@@ -47,18 +47,24 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #                          intrepid from hostname -f.  $HOST or
     #                          uname -n don't indicate intrepid
     #
-    CC  := mpixlc
-    FC  := mpixlf77
-    F90 := mpixlf95
+    ifdef SMP
+      CC  := mpixlc_r -qsmp
+      FC  := mpixlf95_r -qfixed=72 -qsmp
+      F90 := mpixlf95_r -qsmp
+    else
+      CC  := mpixlc
+      FC  := mpixlf95 -qfixed=72
+      F90 := mpixlf95
+    endif
 
     FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
     F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
     CFLAGS   := -I$(mdir)
 
     ifdef NDEBUG
-      FFLAGS   += -O2
-      F90FLAGS += -O2
-      CFLAGS   += -O2
+      FFLAGS   += -O2 -qarch=450d -qtune=450
+      F90FLAGS += -O2 -qarch=450d -qtune=450
+      CFLAGS   += -O2 -qarch=450d -qtune=450
     else
       FFLAGS   += -g -C
       F90FLAGS += -g -C
@@ -76,6 +82,7 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
     #    mpi_libraries += -lpthread -lrt -lSPI.cna
 endif
+
 ifeq ($(findstring nid, $(HOST)), nid)
     #
     # franklin.nersc.gov
