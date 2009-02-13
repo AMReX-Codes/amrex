@@ -124,7 +124,6 @@ contains
              end if
              uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
           end do
-       !$OMP END PARALLEL DO
 
     else
 
@@ -137,7 +136,6 @@ contains
             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
           end if
        end do
-       !$OMP END PARALLEL DO
 
     end if
 
@@ -625,7 +623,6 @@ contains
 
       else
 
-      !$OMP PARALLEL DO PRIVATE(j,i,dd)
 !       USE THIS FOR GAUSS-SEIDEL ITERATION
         ipar = 1-red_black
         do j = jstart,hi(2)
@@ -639,7 +636,6 @@ contains
              end if
           end do
         end do
-        !$OMP END PARALLEL DO
 
       end if
 
