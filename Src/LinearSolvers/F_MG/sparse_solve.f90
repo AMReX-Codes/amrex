@@ -536,12 +536,10 @@ contains
       type(multifab), intent(in) :: ss
 
       r = -Huge(r)
-      !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r)
       do i = 1, ss%nboxes
          sp => dataptr(ss, i)
          r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
       end do
-      !$OMP END PARALLEL DO
     end function my_stencil_norm
 
     function get_max_neighbors_1d(rh) result(r)
@@ -1959,12 +1957,10 @@ contains
       type(multifab), intent(in) :: ss
 
       r = -Huge(r)
-      !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r)
       do i = 1, ss%nboxes
          sp => dataptr(ss, i)
          r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
       end do
-      !$OMP END PARALLEL DO
     end function my_stencil_norm
 
     subroutine create_nodal_aa_1d(sp, mp, aa, ia, ind, inode, iedge)

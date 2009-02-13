@@ -4480,7 +4480,6 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_plus_plus_c")
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
@@ -4493,7 +4492,6 @@ contains
        end if
        ap = ap + bp
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_plus_plus_c
 
   subroutine multifab_plus_plus(a, b, ng)
