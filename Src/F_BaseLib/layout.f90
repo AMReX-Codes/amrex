@@ -20,6 +20,8 @@ module layout_module
 
   integer, private :: verbose = 0
 
+  integer, private :: sfc_threshold = 4
+
   integer, private :: def_mapping = LA_KNAPSACK
 
   type comm_dsc
@@ -305,6 +307,15 @@ module layout_module
   type(mem_stats), private, save :: flx_ms
 
 contains
+
+  subroutine layout_set_sfc_threshold(v)
+    integer, intent(in) :: v
+    sfc_threshold = v
+  end subroutine layout_set_sfc_threshold
+  function layout_get_sfc_threshold() result(r)
+    integer :: r
+    r = sfc_threshold
+  end function layout_get_sfc_threshold
 
   subroutine layout_set_verbosity(v)
     integer, intent(in) :: v
@@ -908,10 +919,18 @@ contains
     do i = 1, size(ibxs,1)
        ibxs(i) = volume(bxs(i))
     end do
-    !
-    ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
-    !
-    call knapsack_i(tprc, ibxs, bxs, parallel_nprocs())
+
+    if ( (size(bxs)/parallel_nprocs()) > sfc_threshold ) then
+       !
+       ! Use Morton space-filling-curve distribution if we have "enough" grids.
+       !
+       call sfc_i(tprc, ibxs, bxs, parallel_nprocs())
+    else
+       !
+       ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
+       !
+       call knapsack_i(tprc, ibxs, bxs, parallel_nprocs())
+    end if
 
     luc => least_used_cpus()
 
