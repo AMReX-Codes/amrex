@@ -2,10 +2,8 @@
 module sfc_module
   use box_module
   !
-  ! This is more than a bit of a hack.
-  ! We're going to store a few values here
-  ! while inside the sfc_i() routine, so that they're
-  ! accessible via sfc_greater_i().
+  ! This is more than a bit of a hack.  We're going to store a few values here
+  ! while inside the sfc_i() routine, so that they're accessible via sfc_greater_i().
   !
   integer            :: dm, mpower
   type(box), pointer :: pbxs(:)
@@ -19,13 +17,23 @@ module knapsack_module
 
   logical, private :: do_mcc = .true.
 
-  integer, private :: knapsack_verbose = 0
+  logical, private :: knapsack_verbose = .true.
 
   real(kind=dp_t), private :: knapsack_threshold = 0.9_dp_t
 
   private :: greater_d, mcc
 
 contains
+
+  subroutine knapsack_set_verbose(yesorno)
+    logical, intent(in) :: yesorno
+    knapsack_verbose = yesorno
+  end subroutine knapsack_set_verbose
+
+  subroutine knapsack_set_mcc(yesorno)
+    logical, intent(in) :: yesorno
+    do_mcc = yesorno
+  end subroutine knapsack_set_mcc
 
   function greater_d(a,b) result(r)
     logical :: r
@@ -48,7 +56,7 @@ contains
     integer,   intent(in   ) :: ibxs(:)
     type(box), intent(in   ) :: bxs(:)
     integer,   intent(in   ) :: np
-    integer,   intent(in   ) :: verbose
+    logical,   intent(in   ) :: verbose
 
     integer                     :: i, j, k, val
     integer,        parameter   :: swap_and_test_count = 1
@@ -120,7 +128,7 @@ contains
        call swap_and_test()
     end do
 
-    if ( verbose > 1 .and. parallel_ioprocessor() ) then
+    if ( verbose .and. parallel_ioprocessor() ) then
        print*, 'MCC: initial off-CPU connection count: ', icc
        print*, 'MCC:   final off-CPU connection count: ', sum(percpu)
     end if
@@ -251,9 +259,10 @@ contains
     type(box),       intent(in ), dimension(:) :: bxs
     integer,         intent(in )               :: np
     real(kind=dp_t), intent(in ), optional     :: threshold
-    integer,         intent(in ), optional     :: verbose
+    logical,         intent(in ), optional     :: verbose
 
-    integer         :: i, j, k, lverb, isizes(size(ibxs))
+    logical         :: lverb
+    integer         :: i, j, k, isizes(size(ibxs))
     real(kind=dp_t) :: w1o, wjo, w1n, wjn, dif, efficiency, lthresh, t1, t2
     real(kind=dp_t) :: total_weight, xmean, stddev, sizes(size(ibxs))
 
@@ -284,12 +293,6 @@ contains
     sizes = ibxs
     total_weight = sum(sizes)
     call sort(sizes, isizes, greater_d)
-    if ( lverb > 1 ) then
-       print *, 'total weight  = ' , total_weight
-       print *, 'sizes         = ' , sizes
-       print *, 'sizes(isizes) =  ', sizes(isizes)
-       print *, 'isizes        = ' , isizes
-    end if
     !
     ! Place the box in the least loaded processor.
     ! Before we start, the procs array satisfies a heap property.
@@ -303,13 +306,6 @@ contains
     outer: do
        efficiency = total_weight/np/weight(1)
        if ( efficiency > lthresh ) exit outer
-       if ( lverb > 1) then
-          do i = 1, size(procs)
-             print *, 'dp=', dataptr(procs(i))
-             print *, 'ss=', sizes(dataptr(procs(i)))
-          end do
-          print *, 'weights = ', weights(np)
-       end if
        !
        ! For each box in the most loaded processor.
        !
@@ -359,19 +355,19 @@ contains
 
     call cpu_time(t2)
 
-    if ( lverb > 1 .and. parallel_ioprocessor() ) then
-       xmean  = sum(ibxs)/size(ibxs)
-       stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
-       print *, 'np               = ', np
-       print *, 'n                = ', size(ibxs)
-       print *, 'max box weight   = ', maxval(ibxs)
-       print *, 'min box weight   = ', minval(ibxs)
-       print *, 'mean bx weight   = ', xmean
-       print *, 'stdd bx weight   = ', stddev
-       print *, 'max weight       = ', weight(1)
-       print *, 'max weight       = ', weight(np)
-       print *, 'total weight     = ', sum(weights(np))
-    end if
+     if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+        xmean  = sum(ibxs)/size(ibxs)
+        stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
+        print *, 'np               = ', np
+        print *, 'n                = ', size(ibxs)
+        print *, 'max box weight   = ', maxval(ibxs)
+        print *, 'min box weight   = ', minval(ibxs)
+        print *, 'mean bx weight   = ', xmean
+        print *, 'stdd bx weight   = ', stddev
+        print *, 'max weight       = ', weight(1)
+        print *, 'max weight       = ', weight(np)
+        print *, 'total weight     = ', sum(weights(np))
+     end if
 
     efficiency = sum(weights(np))/(np*weight(1))
 
@@ -383,9 +379,9 @@ contains
 
     call cpu_time(t2)
 
-    if ( lverb > 0 .and. np > 1 .and. parallel_ioprocessor() ) then
-       print *, 'knapsack effi = ', efficiency
-       print *, 'knapsack time = ', t2-t1
+    if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'KNAPSACK effi = ', efficiency
+       print *, 'KNAPSACK time = ', t2-t1
     end if
 
     call destroy(bpt)
@@ -492,7 +488,7 @@ contains
     logical,   intent(in ), optional :: verbose
 
     logical         :: lverb
-    integer         :: i
+    integer         ::  i
     real(kind=dp_t) :: t1, t2, efficiency
 
     integer, allocatable :: iorder(:), whichcpu(:)
@@ -507,7 +503,7 @@ contains
 
     call cpu_time(t1)
 
-    lverb = .false. ; if ( present(verbose) ) lverb = verbose
+    lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
     !
     ! Set dm, mpower & pbxs in sfc_module so they're accessible to sfc_greater_i().
     !
@@ -533,7 +529,7 @@ contains
     !
     ! "whichcpu(i)" now contains the CPU on which to place the iorder(i)'th box.
     !
-    if (minval(whichcpu) < 0) call bl_error('sfc_i(): improper CPU number')
+    if ( minval(whichcpu) < 0 ) call bl_error('sfc_i(): improper CPU number')
 
     do i = 1, size(ibxs)
        prc(iorder(i)) = whichcpu(i)
@@ -542,8 +538,8 @@ contains
     call cpu_time(t2)
 
     if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
-       print *, 'sfc effi = ', efficiency
-       print *, 'sfc time = ', t2-t1
+       print *, 'SFC effi = ', efficiency
+       print *, 'SFC time = ', t2-t1
     end if
 
     call destroy(bpt)
@@ -563,7 +559,7 @@ contains
         end do
 
         r = 0
-        do while (ishft(1,r) <= maxijk)
+        do while ( ishft(1,r) <= maxijk )
            r = r + 1
         end do
 
@@ -591,7 +587,7 @@ contains
            cnt = 0
            vol = 0_dp_t
 
-           do while ((k <= sz) .and. ((i == np) .or. (vol < volpercpu)))
+           do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
               whichcpu(k) = i
               vol = vol + ibxs(iorder(k))
               k   = k   + 1
@@ -600,7 +596,7 @@ contains
 
            totalvol = totalvol + vol
 
-           if ((totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz)) then
+           if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
               k        = k - 1
               vol      = vol - ibxs(iorder(k))
               totalvol = totalvol - ibxs(iorder(k))
@@ -634,10 +630,10 @@ contains
        NNN = ishft(1,m)
 
        do d = 1, dm
-          if (lwb(pbxs(ilhs),d)/NNN < lwb(pbxs(irhs),d)/NNN) then
+          if ( lwb(pbxs(ilhs),d)/NNN < lwb(pbxs(irhs),d)/NNN ) then
              r = .true.
              return
-          else if (lwb(pbxs(ilhs),d)/NNN > lwb(pbxs(irhs),d)/NNN) then
+          else if ( lwb(pbxs(ilhs),d)/NNN > lwb(pbxs(irhs),d)/NNN ) then
              r = .false.
              return
           end if
