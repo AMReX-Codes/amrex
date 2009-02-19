@@ -139,7 +139,6 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-      DEFINES += -DBL_USECLOSE
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DOMPI_SKIP_MPICXX
