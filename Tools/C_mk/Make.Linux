@@ -179,10 +179,10 @@ endif
 ifeq ($(HOSTNAME), pleiades.ucsc.edu)
   ifeq ($(COMP),Intel)
     CXX = icc
-    CXXOPTF += -O
-    CXXDEBF += -g
     ifeq ($(USE_MPI),TRUE)
       CXX = mpiCC
+    else
+      LIBRARIES+=-lstdc++
     endif
   endif
 endif 
