@@ -911,12 +911,14 @@ def test(argv):
         print "working on " + test + " test"
 
         if (getParam(test + ".restartTest") and make_benchmarks):
-            print "  WARNING: test %s is a restart test -- no benchmarks are stored." % (test)
+            print "  WARNING: test %s is a restart test -- " % (test)
+            print "           no benchmarks are stored." 
             print "           skipping\n"
             continue
      
         if (getParam(test + ".compileTest") and make_benchmarks):
-            print "  WARNING: test %s is a compile test -- no benchmarks are stored." % (test)
+            print "  WARNING: test %s is a compile test -- " % (test)
+            print "           no benchmarks are stored."
             print "           skipping\n"
             continue            
 
@@ -1628,6 +1630,10 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
 
             if (getParam(test + ".restartTest")):
                 continue
+
+            if (getParam(test + ".compileTest")):
+                continue
+
                 
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test)
