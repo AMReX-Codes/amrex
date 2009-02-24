@@ -218,8 +218,13 @@ ifeq ($(ARCH),Linux)
     F90 = pathf95
     CC  = pathcc
 
-    FFLAGS   += -module $(mdir) -I$(mdir) 
-    F90FLAGS += -module $(mdir) -I$(mdir)
+    ifeq ($(findstring jaguar, $(HOST)), jaguar)
+       FFLAGS +=
+       F90FLAGS +=
+    else     
+       FFLAGS   += -module $(mdir) -I$(mdir) 
+       F90FLAGS += -module $(mdir) -I$(mdir)
+    endif
 
     ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     endif
