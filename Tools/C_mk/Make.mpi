@@ -8,7 +8,11 @@ CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
 # Use mpicc on Lawrencium
 #
 ifeq ($(findstring .scs, $(UNAMEN)), .scs)
-  CXX = mpicc
+  ifeq ($(USE_MPI),TRUE)
+    CXX = mpicxx
+    LIBRARIES += -lmpi_f77
+  endif
+  F90FLAGS += -module $(fmoddir)
 endif
 
 ifeq ($(MACHINE), OSF1)
