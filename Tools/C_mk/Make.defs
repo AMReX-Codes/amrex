@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.128 2009-02-09 21:09:08 gpau Exp $
+# Make.defs $Id: Make.defs,v 1.129 2009-02-27 00:44:10 marc Exp $
 #
 
 #
@@ -14,7 +14,6 @@
 #
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
-HOSTNAMEF := $(shell hostname -f)
 
 ifeq ($(findstring CRAY, $(UNAMEM)), CRAY)
 ifeq ($(findstring Y-MP, $(UNAMEM)), Y-MP)
@@ -58,6 +57,12 @@ ifeq ($(findstring asama, $(UNAMEN)), asama)
 endif
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     MACHINE := CYGWIN_NT
+endif
+
+ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
+    HOSTNAMEF := $(shell hostname)
+else
+    HOSTNAMEF := $(shell hostname -f)
 endif
 
 ifndef MACHINE
