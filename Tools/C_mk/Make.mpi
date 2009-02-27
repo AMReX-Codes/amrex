@@ -11,6 +11,7 @@ ifeq ($(findstring .scs, $(UNAMEN)), .scs)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
     LIBRARIES += -lmpi_f77
+    INCLUDE_LOCATIONS += $(MPIDIR)/include
   endif
   F90FLAGS += -module $(fmoddir)
 endif
