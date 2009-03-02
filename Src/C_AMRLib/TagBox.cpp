@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.71 2007-10-04 22:31:27 lijewski Exp $
+// $Id: TagBox.cpp,v 1.72 2009-03-02 21:17:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -505,19 +505,6 @@ TagBoxArray::numTags () const
    return ntag;
 }
 
-//
-// Used by collate().
-//
-
-struct IntVectComp
-{
-    bool operator () (const IntVect& lhs,
-                      const IntVect& rhs) const
-    {
-        return lhs.lexLT(rhs);
-    }
-};
-
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
@@ -585,7 +572,7 @@ TagBoxArray::collate (long& numtags) const
         //
         // Remove duplicate IntVects.
         //
-        std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVectComp());
+        std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVect::Compare());
         IntVect* end = std::unique(TheCollateSpace,TheCollateSpace+numtags);
         ptrdiff_t duplicates = (TheCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
