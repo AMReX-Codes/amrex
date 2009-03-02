@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.194 2008-10-31 20:40:02 lijewski Exp $
+// $Id: FabArray.H,v 1.195 2009-03-02 22:38:56 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -58,29 +58,7 @@ private:
     int m_fabIndex;
 };
 
-//
-// Used to cache some CommData stuff in CollectData().
-//
 
-class CommDataCache
-{
-public:
-
-    CommDataCache ();
-
-    void operator= (const Array<CommData>& rhs);
-
-    bool isValid () const { return m_valid; }
-
-    Array<CommData>& theCommData () { return m_commdata; }
-
-    const Array<CommData>& theCommData () const { return m_commdata; }
-
-private:
-
-    Array<CommData> m_commdata;
-    bool            m_valid;
-};
 
 class FabArrayBase
 {
@@ -130,6 +108,24 @@ public:
     // The size of the cache of self-intersection info.
     //
     static int SICacheSize ();
+    //
+    // Used to cache some CommData stuff in CollectData().
+    //
+    struct CommDataCache
+    {
+        CommDataCache ();
+
+        void operator= (const Array<CommData>& rhs);
+
+        bool isValid () const { return m_valid; }
+
+        Array<CommData>& theCommData () { return m_commdata; }
+
+        const Array<CommData>& theCommData () const { return m_commdata; }
+
+        Array<CommData> m_commdata;
+        bool            m_valid;
+    };
     //
     // Holds single grid intersection record.
     //
@@ -190,6 +186,54 @@ public:
         DistributionMapping m_dm;
         int                 m_ngrow;
         bool                m_reused;
+    };
+    //
+    // Used in copy()
+    //
+    struct CopyComTag
+    {
+        CopyComTag ();
+        CopyComTag (const CopyComTag& cct);
+
+        Box box;
+        int fabIndex;
+        int srcIndex;
+    };
+
+    struct CPC
+    {
+        CPC ();
+
+        CPC (const BoxArray&            dstba,
+             const BoxArray&            srcba,
+             const DistributionMapping& dstdm,
+             const DistributionMapping& srcdm);
+
+        CPC (const CPC& rhs);
+
+        ~CPC ();
+
+        bool operator== (const CPC& rhs) const;
+        bool operator!= (const CPC& rhs) const;
+
+        static CPC& TheCPC (const CPC& cpc, bool& got_from_cache);
+
+        static void FlushCache ();
+
+        BoxArray            m_dstba;
+        BoxArray            m_srcba;
+        DistributionMapping m_dstdm;
+        DistributionMapping m_srcdm;
+        //
+        // The cache of local and send/recv info per FabArray::copy().
+        //
+        std::vector<CopyComTag>          m_LocalTags;
+        Array< std::vector<CopyComTag> > m_SndTags;
+        Array< std::vector<CopyComTag> > m_RcvTags;
+        //
+        // Has this CPC ever been reused in the cache?
+        //
+        bool m_reused;
     };
     //
     // Builds self-intersection records.
@@ -676,8 +720,8 @@ class FabArrayCopyDescriptor
                       int        numcomp,
                       bool       bUseValidBox = true);
 
-    void CollectData (Array<int>*    snd_cache = 0,
-                      CommDataCache* cd_cache  = 0);
+    void CollectData (Array<int>*                  snd_cache = 0,
+                      FabArrayBase::CommDataCache* cd_cache  = 0);
 
     void FillFab (FabArrayId       fabarrayid,
                   const FillBoxId& fillboxid,
@@ -1003,55 +1047,6 @@ FabArray<FAB>::setBndry (value_type val,
         }
     }
 }
-
-//
-// Used by FabArray::copy().
-//
-struct CopyComTag
-{
-    CopyComTag ();
-    CopyComTag (const CopyComTag& cct);
-
-    Box box;
-    int fabIndex;
-    int srcIndex;
-};
-
-struct CPC
-{
-    CPC ();
-
-    CPC (const BoxArray&            dstba,
-         const BoxArray&            srcba,
-         const DistributionMapping& dstdm,
-         const DistributionMapping& srcdm);
-
-    CPC (const CPC& rhs);
-
-    ~CPC ();
-
-    bool operator== (const CPC& rhs) const;
-    bool operator!= (const CPC& rhs) const;
-
-    static CPC& TheCPC (const CPC& cpc, bool& got_from_cache);
-
-    static void FlushCache ();
-
-    BoxArray            m_dstba;
-    BoxArray            m_srcba;
-    DistributionMapping m_dstdm;
-    DistributionMapping m_srcdm;
-    //
-    // The cache of local and send/recv info per FabArray::copy().
-    //
-    std::vector<CopyComTag>          m_LocalTags;
-    Array< std::vector<CopyComTag> > m_SndTags;
-    Array< std::vector<CopyComTag> > m_RcvTags;
-    //
-    // Has this CPC ever been reused in the cache?
-    //
-    bool m_reused;
-};
 
 template <class FAB>
 void
@@ -1701,8 +1696,8 @@ FabArrayCopyDescriptor<FAB>::clear ()
 
 template <class FAB>
 void
-FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
-                                          CommDataCache* cd_cache)
+FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache,
+                                          FabArrayBase::CommDataCache* cd_cache)
 {
     typedef typename FAB::value_type value_type;
 

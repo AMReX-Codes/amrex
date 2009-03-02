@@ -10,8 +10,6 @@
 #include <ParallelDescriptor.H>
 #include <RealBox.H>
 
-struct FPB;
-
 //
 // Rectangular problem domain geometry.
 //
@@ -199,7 +197,7 @@ public:
     //
     typedef std::vector<PIRec> PIRMMap;
     //
-    // Used in caching PIRMMaps && CommData.
+    // Used in caching PIRMMaps && FabArrayBase::CommData.
     //
     struct FPB
     {
@@ -218,15 +216,15 @@ public:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const;
 
-        Array<int>          m_cache;    // Snds cached for CollectData().
-        CommDataCache       m_commdata; // Yet another cache for CollectData().
-        PIRMMap             m_pirm;
-        BoxArray            m_ba;
-        DistributionMapping m_dm;
-        Box                 m_domain;
-        int                 m_ngrow;
-        bool                m_do_corners;
-        bool                m_reused;
+        Array<int>                  m_cache;    // Snds cached for CollectData().
+        FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
+        PIRMMap                     m_pirm;
+        BoxArray                    m_ba;
+        DistributionMapping         m_dm;
+        Box                         m_domain;
+        int                         m_ngrow;
+        bool                        m_do_corners;
+        bool                        m_reused;
     };
 
     typedef std::multimap<int,Geometry::FPB> FPBMMap;

@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.178 2009-01-27 18:21:43 almgren Exp $
+// $Id: Amr.cpp,v 1.179 2009-03-02 22:38:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1767,7 +1767,7 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        CPC::FlushCache();
+        FabArrayBase::CPC::FlushCache();
         FabSet::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();

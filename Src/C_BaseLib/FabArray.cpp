@@ -112,13 +112,13 @@ MFIter::fabbox () const
 // Used to cache some CommData stuff in CollectData().
 //
 
-CommDataCache::CommDataCache ()
+FabArrayBase::CommDataCache::CommDataCache ()
     :
     m_valid(false)
 {}
 
 void
-CommDataCache::operator= (const Array<CommData>& rhs)
+FabArrayBase::CommDataCache::operator= (const Array<CommData>& rhs)
 {
     m_commdata = rhs;
     m_valid    = true;
@@ -128,24 +128,24 @@ CommDataCache::operator= (const Array<CommData>& rhs)
 // Stuff used for copy() caching.
 //
 
-CopyComTag::CopyComTag () {}
+FabArrayBase::CopyComTag::CopyComTag () {}
 
-CopyComTag::CopyComTag (const CopyComTag& cct)
+FabArrayBase::CopyComTag::CopyComTag (const FabArrayBase::CopyComTag& cct)
     :
     box(cct.box),
     fabIndex(cct.fabIndex),
     srcIndex(cct.srcIndex)
 {}
 
-CPC::CPC ()
+FabArrayBase::CPC::CPC ()
     :
     m_reused(false)
 {}
 
-CPC::CPC (const BoxArray&            dstba,
-          const BoxArray&            srcba,
-          const DistributionMapping& dstdm,
-          const DistributionMapping& srcdm)
+FabArrayBase::CPC::CPC (const BoxArray&            dstba,
+                        const BoxArray&            srcba,
+                        const DistributionMapping& dstdm,
+                        const DistributionMapping& srcdm)
     :
     m_dstba(dstba),
     m_srcba(srcba),
@@ -154,7 +154,7 @@ CPC::CPC (const BoxArray&            dstba,
     m_reused(false)
 {}
 
-CPC::CPC (const CPC& rhs)
+FabArrayBase::CPC::CPC (const CPC& rhs)
     :
     m_dstba(rhs.m_dstba),
     m_srcba(rhs.m_srcba),
@@ -163,10 +163,10 @@ CPC::CPC (const CPC& rhs)
     m_reused(rhs.m_reused)
 {}
 
-CPC::~CPC () {}
+FabArrayBase::CPC::~CPC () {}
 
 bool
-CPC::operator== (const CPC& rhs) const
+FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
     return m_dstba == rhs.m_dstba &&
            m_srcba == rhs.m_srcba &&
@@ -175,19 +175,19 @@ CPC::operator== (const CPC& rhs) const
 }
 
 bool
-CPC::operator!= (const CPC& rhs) const
+FabArrayBase::CPC::operator!= (const CPC& rhs) const
 {
     return !operator==(rhs);
 }
 
-typedef std::multimap<int,CPC> CPCCache;
+typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 
 typedef CPCCache::iterator CPCCacheIter;
 
 static CPCCache TheCopyCache;
 
-CPC&
-CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
+FabArrayBase::CPC&
+FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
     static bool first               = true;
     static bool use_copy_cache      = true;
@@ -258,7 +258,7 @@ CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 }
 
 void
-CPC::FlushCache ()
+FabArrayBase::CPC::FlushCache ()
 {
     int reused = 0;
 
