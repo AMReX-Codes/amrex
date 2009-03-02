@@ -1061,21 +1061,24 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
 }
 
-struct SFCToken
+namespace
 {
-    class Compare
+    struct SFCToken
     {
-    public:
-        bool operator () (const SFCToken& lhs,
-                          const SFCToken& rhs) const;
+        class Compare
+        {
+        public:
+            bool operator () (const SFCToken& lhs,
+                              const SFCToken& rhs) const;
+        };
+
+        int     m_box;
+        IntVect m_idx;
+        Real    m_vol;
+
+        static int MaxPower;
     };
-
-    int     m_box;
-    IntVect m_idx;
-    Real    m_vol;
-
-    static int MaxPower;
-};
+}
 
 int SFCToken::MaxPower = 64;
 
