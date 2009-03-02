@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.85 2007-10-04 22:31:27 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.86 2009-03-02 21:17:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -133,65 +133,68 @@ FluxRegister::copyTo (FArrayBox& flx,
 // Structure used by Reflux()s.
 //
 
-struct RF
+namespace
 {
-    RF ()
-        :
-        m_fabidx(-1),
-        m_fridx(-1),
-        m_shifted(false) {}
-
-    RF (int         fabidx,
-        int         fridx,
-        Orientation face,
-        FillBoxId   fbid)
-        :
-        m_fabidx(fabidx),
-        m_fridx(fridx),
-        m_face(face),
-        m_fbid(fbid),
-        m_shifted(false) {}
-
-    RF (const IntVect& iv,
-        int            fabidx,
-        int            fridx,
-        Orientation    face,
-        FillBoxId      fbid)
-        :
-        m_iv(iv),
-        m_fabidx(fabidx),
-        m_fridx(fridx),
-        m_face(face),
-        m_fbid(fbid),
-        m_shifted(true) {}
-
-    RF (const RF& rhs)
-        :
-        m_iv(rhs.m_iv),
-        m_fabidx(rhs.m_fabidx),
-        m_fridx(rhs.m_fridx),
-        m_face(rhs.m_face),
-        m_fbid(rhs.m_fbid),
-        m_shifted(rhs.m_shifted) {}
-
-    RF& operator= (const RF& rhs)
+    struct RF
     {
-        m_iv      = rhs.m_iv;
-        m_fabidx  = rhs.m_fabidx;
-        m_fridx   = rhs.m_fridx;
-        m_face    = rhs.m_face;
-        m_fbid    = rhs.m_fbid;
-        m_shifted = rhs.m_shifted;
-        return *this;
-    }
+        RF ()
+            :
+            m_fabidx(-1),
+            m_fridx(-1),
+            m_shifted(false) {}
 
-    IntVect     m_iv;
-    int         m_fabidx;
-    int         m_fridx;
-    Orientation m_face;
-    FillBoxId   m_fbid;
-    bool        m_shifted;
-};
+        RF (int         fabidx,
+            int         fridx,
+            Orientation face,
+            FillBoxId   fbid)
+            :
+            m_fabidx(fabidx),
+            m_fridx(fridx),
+            m_face(face),
+            m_fbid(fbid),
+            m_shifted(false) {}
+
+        RF (const IntVect& iv,
+            int            fabidx,
+            int            fridx,
+            Orientation    face,
+            FillBoxId      fbid)
+            :
+            m_iv(iv),
+            m_fabidx(fabidx),
+            m_fridx(fridx),
+            m_face(face),
+            m_fbid(fbid),
+            m_shifted(true) {}
+
+        RF (const RF& rhs)
+            :
+            m_iv(rhs.m_iv),
+            m_fabidx(rhs.m_fabidx),
+            m_fridx(rhs.m_fridx),
+            m_face(rhs.m_face),
+            m_fbid(rhs.m_fbid),
+            m_shifted(rhs.m_shifted) {}
+
+        RF& operator= (const RF& rhs)
+            {
+                m_iv      = rhs.m_iv;
+                m_fabidx  = rhs.m_fabidx;
+                m_fridx   = rhs.m_fridx;
+                m_face    = rhs.m_face;
+                m_fbid    = rhs.m_fbid;
+                m_shifted = rhs.m_shifted;
+                return *this;
+            }
+
+        IntVect     m_iv;
+        int         m_fabidx;
+        int         m_fridx;
+        Orientation m_face;
+        FillBoxId   m_fbid;
+        bool        m_shifted;
+    };
+}
 
 void
 FluxRegister::Reflux (MultiFab&       S,
