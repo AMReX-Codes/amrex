@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.53 2008-11-17 23:46:25 lijewski Exp $
+// $Id: FabSet.cpp,v 1.54 2009-03-02 21:18:37 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -190,41 +190,44 @@ FabSet::copyFrom (const FArrayBox& src,
 //
 // Used in caching CollectData() stuff for copyFrom() and plusFrom().
 //
-struct FSRec
+namespace
 {
-    FSRec ();
+    struct FSRec
+    {
+        FSRec ();
 
-    FSRec (const BoxArray&            src,
-           const BoxArray&            dst,
-           const DistributionMapping& srcdm,
-           const DistributionMapping& dstdm,
-           int                        ngrow);
+        FSRec (const BoxArray&            src,
+               const BoxArray&            dst,
+               const DistributionMapping& srcdm,
+               const DistributionMapping& dstdm,
+               int                        ngrow);
 
-    FSRec (const FSRec& rhs);
+        FSRec (const FSRec& rhs);
 
-    ~FSRec ();
+        ~FSRec ();
 
-    bool operator== (const FSRec& rhs) const;
-    bool operator!= (const FSRec& rhs) const;
+        bool operator== (const FSRec& rhs) const;
+        bool operator!= (const FSRec& rhs) const;
 
-    std::vector<Box>    m_box;
-    std::vector<int>    m_mfidx;
-    std::vector<int>    m_fsidx;
-    Array<int>          m_snds;
-    CommDataCache       m_commdata;
-    BoxArray            m_src;
-    BoxArray            m_dst;
-    DistributionMapping m_srcdm;
-    DistributionMapping m_dstdm;
-    int                 m_ngrow;
-    bool                m_reused;
-};
+        std::vector<Box>    m_box;
+        std::vector<int>    m_mfidx;
+        std::vector<int>    m_fsidx;
+        Array<int>          m_snds;
+        CommDataCache       m_commdata;
+        BoxArray            m_src;
+        BoxArray            m_dst;
+        DistributionMapping m_srcdm;
+        DistributionMapping m_dstdm;
+        int                 m_ngrow;
+        bool                m_reused;
+    };
 
-FSRec::FSRec ()
-    :
-    m_ngrow(-1),
-    m_reused(false)
-{}
+    FSRec::FSRec ()
+        :
+        m_ngrow(-1),
+        m_reused(false)
+    {}
+}
 
 FSRec::FSRec (const BoxArray&            src,
               const BoxArray&            dst,
