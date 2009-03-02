@@ -491,14 +491,17 @@ BoxLib::boxDiff (const Box& b1in,
    return b_list;
 }
 
-struct BoxCmp
+namespace
 {
-    bool operator () (const Box& lhs,
-                      const Box& rhs) const
+    struct BoxCmp
     {
-        return lhs.smallEnd().lexLT(rhs.smallEnd());
-    }
-};
+        bool operator () (const Box& lhs,
+                          const Box& rhs) const
+            {
+                return lhs.smallEnd().lexLT(rhs.smallEnd());
+            }
+    };
+}
 
 int
 BoxList::simplify ()
