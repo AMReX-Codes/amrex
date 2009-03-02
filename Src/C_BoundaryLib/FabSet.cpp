@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.54 2009-03-02 21:18:37 lijewski Exp $
+// $Id: FabSet.cpp,v 1.55 2009-03-02 22:38:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -209,17 +209,17 @@ namespace
         bool operator== (const FSRec& rhs) const;
         bool operator!= (const FSRec& rhs) const;
 
-        std::vector<Box>    m_box;
-        std::vector<int>    m_mfidx;
-        std::vector<int>    m_fsidx;
-        Array<int>          m_snds;
-        CommDataCache       m_commdata;
-        BoxArray            m_src;
-        BoxArray            m_dst;
-        DistributionMapping m_srcdm;
-        DistributionMapping m_dstdm;
-        int                 m_ngrow;
-        bool                m_reused;
+        std::vector<Box>            m_box;
+        std::vector<int>            m_mfidx;
+        std::vector<int>            m_fsidx;
+        Array<int>                  m_snds;
+        FabArrayBase::CommDataCache m_commdata;
+        BoxArray                    m_src;
+        BoxArray                    m_dst;
+        DistributionMapping         m_srcdm;
+        DistributionMapping         m_dstdm;
+        int                         m_ngrow;
+        bool                        m_reused;
     };
 
     FSRec::FSRec ()
