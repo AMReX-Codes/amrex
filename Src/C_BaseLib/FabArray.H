@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.195 2009-03-02 22:38:56 lijewski Exp $
+// $Id: FabArray.H,v 1.196 2009-03-02 23:23:13 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -115,16 +115,16 @@ public:
     {
         CommDataCache ();
 
-        void operator= (const Array<CommData>& rhs);
+        void operator= (const Array<ParallelDescriptor::CommData>& rhs);
 
         bool isValid () const { return m_valid; }
 
-        Array<CommData>& theCommData () { return m_commdata; }
+        Array<ParallelDescriptor::CommData>& theCommData () { return m_commdata; }
 
-        const Array<CommData>& theCommData () const { return m_commdata; }
+        const Array<ParallelDescriptor::CommData>& theCommData () const { return m_commdata; }
 
-        Array<CommData> m_commdata;
-        bool            m_valid;
+        Array<ParallelDescriptor::CommData> m_commdata;
+        bool                                m_valid;
     };
     //
     // Holds single grid intersection record.
@@ -234,6 +234,27 @@ public:
         // Has this CPC ever been reused in the cache?
         //
         bool m_reused;
+    };
+    //
+    // Used for collecting information used in communicating FABs.
+    //
+    struct FabComTag
+    {
+        int fromProc;
+        int toProc;
+        int fabIndex;
+        int fineIndex;
+        int srcComp;
+        int destComp;
+        int nComp;
+        int face;
+        int fabArrayId;
+        int fillBoxId;
+        int procThatNeedsData;
+        int procThatHasData;
+        Box box;
+
+        FabComTag ();
     };
     //
     // Builds self-intersection records.
@@ -758,11 +779,11 @@ class FabArrayCopyDescriptor
                      bool       bUseValidBox,
                      BoxDomain& unfilledBoxDomain);
 
-    std::vector<FabArray<FAB>*> fabArrays;
-    std::vector<FCDMap>           fabCopyDescList;
-    std::vector<FabComTag>        fabComTagList;
-    int                           nextFillBoxId;
-    bool                          dataAvailable;
+    std::vector<FabArray<FAB>*>          fabArrays;
+    std::vector<FCDMap>                  fabCopyDescList;
+    std::vector<FabArrayBase::FabComTag> fabComTagList;
+    int                                  nextFillBoxId;
+    bool                                 dataAvailable;
 
   private:
     //
@@ -1544,7 +1565,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
             //
             // Data is remote.
             //
-            FabComTag fabComTag;
+            FabArrayBase::FabComTag fabComTag;
 
             dataAvailable               = false;
             fcd->fillType               = FillRemotely;
@@ -1713,7 +1734,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
     //
     // Make sure we can treat CommData as a stream of integers.
     //
-    BL_ASSERT(sizeof(CommData) == CommData::DIM*sizeof(int));
+    BL_ASSERT(sizeof(ParallelDescriptor::CommData) == ParallelDescriptor::CommData::DIM*sizeof(int));
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -1752,7 +1773,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
         Snds = *snd_cache;
     }
 
-    Array<CommData> cd_others_need;
+    Array<ParallelDescriptor::CommData> cd_others_need;
 
     if (cd_cache == 0 || !cd_cache->isValid() || FabArrayBase::do_not_use_cache)
     {
@@ -1770,20 +1791,20 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
         cd_others_need.resize(recv_sz+1);     // +1 so there's always at least one element.
 
-        Array<CommData> cd_i_need(send_sz+1); // ditto
+        Array<ParallelDescriptor::CommData> cd_i_need(send_sz+1); // ditto
 
         Array<int> index = sdispls;
 
         for (unsigned int i = 0; i < fabComTagList.size(); i++)
         {
-            CommData data(0,
-                          fabComTagList[i].fabIndex,
-                          MyProc,
-                          0,
-                          fabComTagList[i].nComp,
-                          fabComTagList[i].srcComp,
-                          fabComTagList[i].fabArrayId,
-                          fabComTagList[i].box);
+            ParallelDescriptor::CommData data(0,
+                                              fabComTagList[i].fabIndex,
+                                              MyProc,
+                                              0,
+                                              fabComTagList[i].nComp,
+                                              fabComTagList[i].srcComp,
+                                              fabComTagList[i].fabArrayId,
+                                              fabComTagList[i].box);
 
             cd_i_need[index[fabComTagList[i].procThatHasData]++] = data;
         }
@@ -1793,11 +1814,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
         Array<int> scnts = Rcvs;
         Array<int> rcnts = Snds;
 
-        for (int i = 0; i < NProcs; i++) scnts[i] *= CommData::DIM;
-        for (int i = 0; i < NProcs; i++) rcnts[i] *= CommData::DIM;
+        for (int i = 0; i < NProcs; i++) scnts[i] *= ParallelDescriptor::CommData::DIM;
+        for (int i = 0; i < NProcs; i++) rcnts[i] *= ParallelDescriptor::CommData::DIM;
 
-        for (int i = 1; i < NProcs; i++) sdispls[i] *= CommData::DIM;
-        for (int i = 1; i < NProcs; i++) rdispls[i] *= CommData::DIM;
+        for (int i = 1; i < NProcs; i++) sdispls[i] *= ParallelDescriptor::CommData::DIM;
+        for (int i = 1; i < NProcs; i++) rdispls[i] *= ParallelDescriptor::CommData::DIM;
 
         BL_MPI_REQUIRE( MPI_Alltoallv(cd_i_need.dataPtr(),
                                       scnts.dataPtr(),
@@ -1859,7 +1880,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
             for (int j = 0; j < Snds[i]; j++)
             {
-                const CommData& cd = cd_others_need[strt[i]+j];
+                const ParallelDescriptor::CommData& cd = cd_others_need[strt[i]+j];
                 fab.resize(cd.box(), cd.nComp());
                 const int N = fab.box().numPts()*fab.nComp();
                 fab.copy((*fabArrays[cd.fabarrayid()])[cd.fabindex()],
@@ -1899,7 +1920,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                 {
                     if (fabComTagList[j].procThatHasData == i)
                     {
-                        const FabComTag& tag = fabComTagList[j];
+                        const FabArrayBase::FabComTag& tag = fabComTagList[j];
 
                         match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
@@ -1976,7 +1997,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
                 for (int j = 0; j < Snds[i]; j++)
                 {
-                    const CommData& cd = cd_others_need[strt+j];
+                    const ParallelDescriptor::CommData& cd = cd_others_need[strt+j];
 
                     BL_ASSERT(cd.id() == 0);
                     BL_ASSERT(cd.fromproc() == i);
@@ -2027,7 +2048,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                 {
                     if (fabComTagList[j].procThatHasData == indx[k])
                     {
-                        const FabComTag& tag = fabComTagList[j];
+                        const FabArrayBase::FabComTag& tag = fabComTagList[j];
 
                         match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 

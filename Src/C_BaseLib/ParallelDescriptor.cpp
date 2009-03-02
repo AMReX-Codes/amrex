@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.113 2009-02-12 20:51:51 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.114 2009-03-02 23:23:13 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -9,24 +9,6 @@
 #include <fstream>
 #include <cstdlib>
 
-FabComTag::FabComTag ()
-{
-    fromProc          = 0;
-    toProc            = 0;
-    fabIndex          = 0;
-    fineIndex         = 0;
-    srcComp           = 0;
-    destComp          = 0;
-    nComp             = 0;
-    face              = 0;
-    fabArrayId        = 0;
-    fillBoxId         = 0;
-    procThatNeedsData = 0;
-    procThatHasData   = 0;
-}
-//
-// Definition of non-inline members of CommData.
-//
 namespace ParallelDescriptor
 {
     //
@@ -67,20 +49,23 @@ namespace ParallelDescriptor
     }
 }
 
-CommData::CommData ()
+//
+// Definition of non-inline members of CommData.
+//
+ParallelDescriptor::CommData::CommData ()
 {
     for (int i = 0; i < length(); i++)
         m_data[i] = 0;
 }
 
-CommData::CommData (int        face,
-                    int        fabindex,
-                    int        fromproc,
-                    int        id,
-                    int        ncomp,
-                    int        srccomp,
-                    int        fabarrayid,
-                    const Box& box)
+ParallelDescriptor::CommData::CommData (int        face,
+                                        int        fabindex,
+                                        int        fromproc,
+                                        int        id,
+                                        int        ncomp,
+                                        int        srccomp,
+                                        int        fabarrayid,
+                                        const Box& box)
 {
     m_data[0] = face;
     m_data[1] = fabindex;
@@ -106,14 +91,14 @@ CommData::CommData (int        face,
         m_data[7+2*BL_SPACEDIM+i] = typ[i];
 }
 
-CommData::CommData (const CommData& rhs)
+ParallelDescriptor::CommData::CommData (const CommData& rhs)
 {
     for (int i = 0; i < length(); i++)
         m_data[i] = rhs.m_data[i];
 }
 
-CommData&
-CommData::operator= (const CommData& rhs)
+ParallelDescriptor::CommData&
+ParallelDescriptor::CommData::operator= (const CommData& rhs)
 {
     if (!(this == &rhs))
     {
@@ -124,7 +109,7 @@ CommData::operator= (const CommData& rhs)
 }
 
 bool
-CommData::operator== (const CommData& rhs) const
+ParallelDescriptor::CommData::operator== (const CommData& rhs) const
 {
     for (int i = 0; i < length(); i++)
         if (!(m_data[i] == rhs.m_data[i]))
@@ -134,8 +119,8 @@ CommData::operator== (const CommData& rhs) const
 }
 
 std::ostream&
-operator<< (std::ostream&   os,
-            const CommData& cd)
+operator<< (std::ostream&                       os,
+            const ParallelDescriptor::CommData& cd)
 {
     os << cd.face()       << ' '
        << cd.fabindex()   << ' '
@@ -150,8 +135,8 @@ operator<< (std::ostream&   os,
 }
 
 std::ostream&
-operator<< (std::ostream&          os,
-            const Array<CommData>& cd)
+operator<< (std::ostream&                              os,
+            const Array<ParallelDescriptor::CommData>& cd)
 {
     for (int i = 0; i < cd.size(); i++)
         os << cd[i] << '\n';

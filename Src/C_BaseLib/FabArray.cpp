@@ -72,6 +72,22 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     }
 }
 
+FabArrayBase::FabComTag::FabComTag ()
+{
+    fromProc          = 0;
+    toProc            = 0;
+    fabIndex          = 0;
+    fineIndex         = 0;
+    srcComp           = 0;
+    destComp          = 0;
+    nComp             = 0;
+    face              = 0;
+    fabArrayId        = 0;
+    fillBoxId         = 0;
+    procThatNeedsData = 0;
+    procThatHasData   = 0;
+}
+
 void
 MFIter::operator++ ()
 {
@@ -118,7 +134,7 @@ FabArrayBase::CommDataCache::CommDataCache ()
 {}
 
 void
-FabArrayBase::CommDataCache::operator= (const Array<CommData>& rhs)
+FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData>& rhs)
 {
     m_commdata = rhs;
     m_valid    = true;
@@ -429,7 +445,7 @@ FabArrayBase::TheFBsirec (int                 scomp,
                 //
                 // Adjust the ncomp & scomp in CommData.
                 //
-                Array<CommData>& cd = it->second.m_commdata.theCommData();
+                Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
 
                 for (int i = 0; i < cd.size(); i++)
                 {
