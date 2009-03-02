@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.86 2009-03-02 21:17:29 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.87 2009-03-02 23:23:13 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -701,11 +701,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 // Helper function and data for CrseInit()/CrseInitFinish().
 //
 
-static Array<int>              CIMsgs;
-static std::vector<FabComTag>  CITags;
-static std::vector<FArrayBox*> CIFabs;
-static BArena                  CIArena;
-static Mutex                   CIMutex;
+static Array<int>                           CIMsgs;
+static std::vector<FabArrayBase::FabComTag> CITags;
+static std::vector<FArrayBox*>              CIFabs;
+static BArena                               CIArena;
+static Mutex                                CIMutex;
 
 static
 void
@@ -742,7 +742,7 @@ DoIt (Orientation        face,
     }
     else
     {
-        FabComTag tag;
+        FabArrayBase::FabComTag tag;
 
         tag.toProc   = dMap[k];
         tag.fabIndex = k;
@@ -838,25 +838,25 @@ FluxRegister::CrseInitFinish (FrOp op)
     for (int i = 0; i < NProcs; i++)
         NumRcvs += Rcvs[i];
     if (NumRcvs == 0) NumRcvs = 1;
-    Array<CommData> recvdata(NumRcvs);
+    Array<ParallelDescriptor::CommData> recvdata(NumRcvs);
 
     int NumSnds = 0;
     for (int i = 0; i < NProcs; i++)
         NumSnds += CIMsgs[i];
     if (NumSnds == 0) NumSnds = 1;
-    Array<CommData> senddata(NumSnds);
+    Array<ParallelDescriptor::CommData> senddata(NumSnds);
     //
     // Make sure we can treat CommData as a stream of integers.
     //
-    BL_ASSERT(sizeof(CommData) == CommData::DIM*sizeof(int));
+    BL_ASSERT(sizeof(ParallelDescriptor::CommData) == ParallelDescriptor::CommData::DIM*sizeof(int));
     {
         Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
         Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
 
         for (int i = 0; i < NProcs; i++)
         {
-            recvcnts[i] = Rcvs[i]   * CommData::DIM;
-            sendcnts[i] = CIMsgs[i] * CommData::DIM;
+            recvcnts[i] = Rcvs[i]   * ParallelDescriptor::CommData::DIM;
+            sendcnts[i] = CIMsgs[i] * ParallelDescriptor::CommData::DIM;
 
             if (i < NProcs-1)
             {
@@ -870,14 +870,14 @@ FluxRegister::CrseInitFinish (FrOp op)
 
         for (int j = 0; j < CITags.size(); j++)
         {
-            CommData data(CITags[j].face,
-                          CITags[j].fabIndex,
-                          MyProc,
-                          0,
-                          CITags[j].nComp,
-                          CITags[j].destComp,   // Store as srcComp()
-                          0,                    // Not used.
-                          CITags[j].box);
+            ParallelDescriptor::CommData data(CITags[j].face,
+                                              CITags[j].fabIndex,
+                                              MyProc,
+                                              0,
+                                              CITags[j].nComp,
+                                              CITags[j].destComp,   // Store as srcComp()
+                                              0,                    // Not used.
+                                              CITags[j].box);
 
             senddata[offset[CITags[j].toProc]++] = data;
         }
@@ -963,7 +963,7 @@ FluxRegister::CrseInitFinish (FrOp op)
 
         for (int j = 0; j < Rcvs[i]; j++)
         {
-            const CommData& cd = recvdata[roffset+j];
+            const ParallelDescriptor::CommData& cd = recvdata[roffset+j];
             fab.resize(cd.box(),cd.nComp());
             const int N = fab.box().numPts() * fab.nComp();
             memcpy(fab.dataPtr(), dptr, N * sizeof(Real));

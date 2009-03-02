@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.82 2009-02-06 19:17:04 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.83 2009-03-02 23:23:13 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -9,131 +9,107 @@
 #include <ccse-mpi.H>
 
 #include <string>
-//
-// Used for collecting information used in communicating FABs.
-//
-struct FabComTag
-{
-    int fromProc;
-    int toProc;
-    int fabIndex;
-    int fineIndex;
-    int srcComp;
-    int destComp;
-    int nComp;
-    int face;
-    int fabArrayId;
-    int fillBoxId;
-    int procThatNeedsData;
-    int procThatHasData;
-    Box box;
 
-    FabComTag ();
-};
-
-//
-// Data structure used by a few routines when MPI is enabled.
-//
-// Used to communicate up to seven integers and a box.
-//
-// We'll store all the info in a single array of integers.
-//
-struct CommData
+namespace ParallelDescriptor
 {
     //
-    // We encapsulate seven `int's and a `Box' as an `int[3*BL_SPACEDIM+7]'.
+    // Data structure used by a few routines when MPI is enabled.
     //
-    enum { DIM = 3*BL_SPACEDIM+7 };
-
-    int m_data[DIM];
-
-    CommData ();
-    CommData (int        face,
-              int        fabindex,
-              int        fromproc,
-              int        id,
-              int        ncomp,
-              int        srccomp,
-              int        fabarrayid,
-              const Box& box);
-
-    CommData (const CommData& rhs);
-
-    CommData& operator= (const CommData& rhs);
+    // Used to communicate up to seven integers and a box.
     //
-    // Compare two CommData's.
+    // We'll store all the info in a single array of integers.
     //
-    bool operator== (const CommData& rhs) const;
-
-    bool operator!= (const CommData& rhs) const { return !operator==(rhs); }
-    //
-    // The number of integers.
-    //
-    int length () const { return DIM; }
-    //
-    // Pointer to the data.
-    //
-    int* dataPtr() { return &m_data[0]; }
-    //
-    // The face.
-    //
-    int face () const { return m_data[0]; }
-    //
-    // The fabindex.
-    //
-    int fabindex () const { return m_data[1]; }
-    //
-    // The processor sending this data.
-    //
-    int fromproc () const { return m_data[2]; }
-    //
-    // The ID of this message.
-    //
-    // Meant to be used as the MPI tag in a send/receive of additional
-    // data associated with this data.
-    //
-    int id () const { return m_data[3]; }
-    //
-    // The number of components.
-    //
-    int nComp () const { return m_data[4]; }
-
-    void nComp (int ncomp) { m_data[4] = ncomp; }
-    //
-    // The src component.
-    //
-    int srcComp () const { return m_data[5]; }
-
-    void srcComp (int scomp) { m_data[5] = scomp; }
-    //
-    // The ID of the fab array.
-    //
-    int fabarrayid () const { return m_data[6]; }
-    //
-    // The contained box.
-    //
-    Box box () const
+    struct CommData
     {
-        return Box(IntVect(&m_data[7]),
-                   IntVect(&m_data[7+BL_SPACEDIM]),
-                   IntVect(&m_data[7+2*BL_SPACEDIM]));
-    }
-};
+        //
+        // We encapsulate seven `int's and a `Box' as an `int[3*BL_SPACEDIM+7]'.
+        //
+        enum { DIM = 3*BL_SPACEDIM+7 };
 
+        int m_data[DIM];
+
+        CommData ();
+        CommData (int        face,
+                  int        fabindex,
+                  int        fromproc,
+                  int        id,
+                  int        ncomp,
+                  int        srccomp,
+                  int        fabarrayid,
+                  const Box& box);
+
+        CommData (const CommData& rhs);
+
+        CommData& operator= (const CommData& rhs);
+        //
+        // Compare two CommData's.
+        //
+        bool operator== (const CommData& rhs) const;
+
+        bool operator!= (const CommData& rhs) const { return !operator==(rhs); }
+        //
+        // The number of integers.
+        //
+        int length () const { return DIM; }
+        //
+        // Pointer to the data.
+        //
+        int* dataPtr() { return &m_data[0]; }
+        //
+        // The face.
+        //
+        int face () const { return m_data[0]; }
+        //
+        // The fabindex.
+        //
+        int fabindex () const { return m_data[1]; }
+        //
+        // The processor sending this data.
+        //
+        int fromproc () const { return m_data[2]; }
+        //
+        // The ID of this message.
+        //
+        // Meant to be used as the MPI tag in a send/receive of additional
+        // data associated with this data.
+        //
+        int id () const { return m_data[3]; }
+        //
+        // The number of components.
+        //
+        int nComp () const { return m_data[4]; }
+
+        void nComp (int ncomp) { m_data[4] = ncomp; }
+        //
+        // The src component.
+        //
+        int srcComp () const { return m_data[5]; }
+
+        void srcComp (int scomp) { m_data[5] = scomp; }
+        //
+        // The ID of the fab array.
+        //
+        int fabarrayid () const { return m_data[6]; }
+        //
+        // The contained box.
+        //
+        Box box () const
+            {
+                return Box(IntVect(&m_data[7]),
+                           IntVect(&m_data[7+BL_SPACEDIM]),
+                           IntVect(&m_data[7+2*BL_SPACEDIM]));
+            }
+    };
+}
 //
 // Yes you can output CommData.
 //
-std::ostream& operator<< (std::ostream& os, const CommData& cd);
+std::ostream& operator<< (std::ostream& os, const ParallelDescriptor::CommData& cd);
 
-std::ostream& operator<< (std::ostream& os, const Array<CommData>& cd);
-
+std::ostream& operator<< (std::ostream& os, const Array<ParallelDescriptor::CommData>& cd);
 //
-//@Man:
-//@Memo: Parallel functions.
-/*@Doc:
-
-  This class contains functions used for implementing parallelism.
-*/
+// Functions used for implementing parallelism.
+//
 
 namespace ParallelDescriptor
 {

@@ -349,7 +349,7 @@ namespace BoxLib
                 //
                 // Adjust the ncomp & scomp in CommData.
                 //
-                Array<CommData>& cd = it->second.m_commdata.theCommData();
+                Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
 
                 for (int i = 0; i < cd.size(); i++)
                 {
