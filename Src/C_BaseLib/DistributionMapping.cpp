@@ -19,7 +19,7 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 1;
-static int    sfc_threshold              = 6;
+static int    sfc_threshold              = 5;
 static double max_efficiency             = 0.9;
 static bool   do_full_knapsack           = false;
 static bool   do_not_minimize_comm_costs = true;
@@ -620,9 +620,9 @@ top:
         const Real improvement =  (efficiency - initial_efficiency) / initial_efficiency * 100;
 
         std::cout << "KNAPSACK efficiency: " << efficiency
-                  << ", passes: " << npasses
-                  << ", improvement: " << improvement
-                  << "%, time: " << stoptime << '\n';
+                  << ", passes: "            << npasses
+                  << ", improvement: "       << improvement
+                  << "%, time: "             << stoptime << '\n';
     }
 
     for (int i  = 0; i < nprocs; i++) delete vbbs[i];
@@ -831,23 +831,6 @@ CalculateNeighbors (const BoxArray& ba)
                 nbrs[i].push_back(isects[j].first);
     }
 
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "The neighbors list:\n";
-
-        for (int i = 0; i < nbrs.size(); i++)
-        {
-            std::cout << i << "\t:";
-
-            for (std::vector<int>::const_iterator it = nbrs[i].begin(); it != nbrs[i].end(); ++it)
-            {
-                std::cout << *it << ' ';
-            }
-
-            std::cout << "\n";
-        }
-    }
-
     return nbrs;
 }
 
@@ -881,27 +864,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     {
         samesize[wgts[i]].push_back(i);
     }
-
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Boxes sorted via numPts():\n";
-
-        for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
-             it != samesize.end();
-             ++it)
-        {
-            std::cout << it->first << "\t:";
-
-            for (std::vector<int>::const_iterator lit = it->second.begin();
-                 lit != it->second.end();
-                 ++lit)
-            {
-                std::cout << *lit << ' ';
-            }
-
-            std::cout << '\n';
-        }
-    }
     //
     // Build a data structure to maintain the latency count on a per-CPU basis.
     //
@@ -929,16 +891,15 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            const Real stoptime = ParallelDescriptor::second() - strttime;
-            long final_conn_count = 0;
-            for (int i = 0; i < percpu.size(); i++) final_conn_count += percpu[i];
-            std::cout << "MinimizeCommCosts() time: " << stoptime << '\n';
-            std::cout << "Initial off-CPU connection count: " << initial_conn_count << '\n';
-            std::cout << "Final   off-CPU connection count: " << final_conn_count   << '\n';
-        }
+            long       final_conn_count = 0;
+            const Real stoptime         = ParallelDescriptor::second() - strttime;
 
-        if (verbose > 1)
-            Output_CPU_Comm_Counts(ba, nbrs, procmap);
+            for (int i = 0; i < percpu.size(); i++) final_conn_count += percpu[i];
+
+            std::cout << "MinimizeCommCosts() time: "           << stoptime
+                      << "\nInitial off-CPU connection count: " << initial_conn_count
+                      << "\nFinal   off-CPU connection count: " << final_conn_count << '\n';
+        }
     }
 }
 
@@ -1049,13 +1010,6 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         }
 
         KnapSackDoIt(wgts, nprocs, true);
-
-        if (verbose > 1)
-        {
-            std::vector< std::vector<int> > nbrs = CalculateNeighbors(boxes);
-
-            Output_CPU_Comm_Counts(boxes, nbrs, m_ref->m_pmap);
-        }
 
 	MinimizeCommCosts(m_ref->m_pmap,boxes,wgts,nprocs);
     }
@@ -1268,15 +1222,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
-            std::cout << "SFC time: " << stoptime << '\n';
-        }
-
-        if (verbose > 1)
-        {
-            std::vector< std::vector<int> > nbrs = CalculateNeighbors(boxes);
-
-            Output_CPU_Comm_Counts(boxes, nbrs, m_ref->m_pmap);
+            std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt))
+                      << "\nSFC time: "     << stoptime << '\n';
         }
     }
 }
@@ -1344,18 +1291,6 @@ DistributionMapping::CacheStats (std::ostream& os)
     if (verbose && ParallelDescriptor::IOProcessor() && m_Cache.size())
     {
         os << "DistributionMapping::m_Cache.size() = " << DistributionMapping::m_Cache.size() << '\n';
-#if 0
-        for (unsigned int i = 0; i < m_Cache.size(); i++)
-        {
-            os << "\tMap #"
-               << i
-               << ", size:  "
-               << m_Cache[i]->m_pmap.size()
-               << ", references: "
-               << m_Cache[i].linkCount()
-               << '\n';
-        }
-#endif
     }
 }
 
