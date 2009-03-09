@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.129 2009-02-27 00:44:10 marc Exp $
+# Make.defs $Id: Make.defs,v 1.130 2009-03-09 16:05:03 lijewski Exp $
 #
 
 #
@@ -133,6 +133,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     WHICHLINUX := ATLAS
+  endif
+  ifeq ($(findstring yana, $(UNAMEN)), yana)
+    WHICHLINUX := YANA
   endif
   ifeq ($(findstring della, $(UNAMEN)), della)
     WHICHLINUX := DELLA
