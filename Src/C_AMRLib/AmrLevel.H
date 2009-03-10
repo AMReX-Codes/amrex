@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.58 2008-07-29 16:28:08 lijewski Exp $
+// $Id: AmrLevel.H,v 1.59 2009-03-10 20:09:21 almgren Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -266,17 +266,17 @@ public:
                with it.  If ngrow>0 the MultiFab is built on the appropriately
                grown BoxArray.
     */
-    MultiFab* derive (const std::string& name,
-                      Real               time,
-                      int                ngrow);
+    virtual MultiFab* derive (const std::string& name,
+                              Real               time,
+                              int                ngrow);
 
     /*@ManDoc: This version of derive() fills the dcomp'th component of mf
                with the derived quantity.
     */
-    void derive (const std::string& name,
-                 Real               time,
-                 MultiFab&          mf,
-                 int                dcomp);
+    virtual void derive (const std::string& name,
+                         Real               time,
+                         MultiFab&          mf,
+                         int                dcomp);
     //
     //@ManDoc: State data object.
     //
