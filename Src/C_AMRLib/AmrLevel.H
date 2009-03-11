@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.59 2009-03-10 20:09:21 almgren Exp $
+// $Id: AmrLevel.H,v 1.60 2009-03-11 16:44:17 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -208,10 +208,6 @@ public:
     //
     int numGrids () const;
     //
-    //@ManDoc: Physical locations of grids at this level.
-    //
-    const Array<RealBox>& gridLocations () const;
-    //
     //@ManDoc: Returns the indices defining physical domain.
     //
     const Box& Domain () const;
@@ -367,7 +363,6 @@ protected:
     int level;                        // AMR level (0 is coarsest).
     Geometry geom;                    // Geom at this level.
     BoxArray grids;                   // Cell-centered locations of grids.
-    Array<RealBox> grid_loc;          // Physical locations of each grid.
     Amr* parent;                      // Pointer to parent AMR structure.
     IntVect crse_ratio;               // Refinement ratio to coarser level.
     IntVect fine_ratio;               // Refinement ratio to finer level.
