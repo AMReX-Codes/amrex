@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.19 2007-07-05 20:48:00 lijewski Exp $
+// $Id: StationData.cpp,v 1.20 2009-03-11 16:44:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -275,30 +275,39 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
     for (int level = levels.size()-1; level >= 0; level--)
     {
-      if(levels.defined(level)) {  // for capfinestlevel
-        const Array<RealBox>& boxes = levels[level].gridLocations();
-
-        MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
-
-        BL_ASSERT(mf.boxArray().size() == boxes.size());
-
-        for (int i = 0; i < m_stn.size(); i++)
+        if (levels.defined(level))
         {
-            if (m_stn[i].level < 0)
-            {
-                for (int j = 0; j < boxes.size(); j++)
-                {
-                    if (boxes[j].contains(&m_stn[i].pos[0]))
-                    {
-                        m_stn[i].grd   = j;
-                        m_stn[i].own   = (mf.DistributionMap()[j] == MyProc);
-                        m_stn[i].level = level;
+            Array<RealBox> boxes(levels[level].boxArray().size());
 
-                        break;
+            for (int i = 0; i < boxes.size(); i++)
+            {
+                boxes[i] = RealBox(levels[level].boxArray()[i],
+                                   levels[level].Geom().CellSize(),
+                                   levels[level].Geom().ProbLo());
+            }
+
+
+            MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
+
+            BL_ASSERT(mf.boxArray().size() == boxes.size());
+
+            for (int i = 0; i < m_stn.size(); i++)
+            {
+                if (m_stn[i].level < 0)
+                {
+                    for (int j = 0; j < boxes.size(); j++)
+                    {
+                        if (boxes[j].contains(&m_stn[i].pos[0]))
+                        {
+                            m_stn[i].grd   = j;
+                            m_stn[i].own   = (mf.DistributionMap()[j] == MyProc);
+                            m_stn[i].level = level;
+
+                            break;
+                        }
                     }
                 }
             }
         }
-      }
     }
 }

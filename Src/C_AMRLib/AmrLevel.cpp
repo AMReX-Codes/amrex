@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.107 2008-07-29 16:28:08 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.108 2009-03-11 16:44:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -38,12 +38,6 @@ int
 AmrLevel::numGrids () const
 {
     return grids.size();
-}
-
-const Array<RealBox>&
-AmrLevel::gridLocations () const
-{
-    return grid_loc;
 }
 
 const Box&
@@ -229,18 +223,7 @@ AmrLevel::restart (Amr&          papa,
 }
 
 void
-AmrLevel::finishConstructor ()
-{
-    //
-    // Set physical locations of grids.
-    //
-    grid_loc.resize(grids.size());
-
-    for (int i = 0; i < grid_loc.size(); i++)
-    {
-        grid_loc[i] = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-    }
-}
+AmrLevel::finishConstructor () {}
 
 void
 AmrLevel::setTimeLevel (Real time,
@@ -1305,6 +1288,7 @@ AmrLevel::derive (const std::string& name,
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
+            RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
             Real*       ddat    = (*mf)[grid_no].dataPtr();
             const int*  dlo     = (*mf)[grid_no].loVect();
             const int*  dhi     = (*mf)[grid_no].hiVect();
@@ -1317,7 +1301,7 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const Real* xlo     = grid_loc[grid_no].lo();
+            const Real* xlo     = gridloc.lo();
             Real        dt      = parent->dtLevel(level);
 
             rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
