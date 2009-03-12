@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.110 2009-02-12 20:51:51 vince Exp $
+// $Id: VisMF.cpp,v 1.111 2009-03-12 01:11:37 vince Exp $
 //
 
 #include <winstd.H>
@@ -560,6 +560,18 @@ VisMF::Header::Header (const MultiFab& mf,
         }
     }
 #endif /*BL_USE_MPI*/
+
+#ifdef BL_FIXHEADERDENORMS
+    if (ParallelDescriptor::IOProcessor()) {
+      for(int i(0); i < m_min.size(); ++i) {
+        for(int  j(0); j < m_min[i].size(); ++j) {
+	  if(std::abs(m_min[i][j]) < 1.0e-300) {
+	    m_min[i][j] = 0.0;
+	  }
+	}
+      }
+    }
+#endif
 }
 
 long
