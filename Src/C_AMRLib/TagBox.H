@@ -1,7 +1,7 @@
 #ifndef _TagBox_H_
 #define _TagBox_H_
 //
-// $Id: TagBox.H,v 1.20 2007-05-02 16:45:27 lijewski Exp $
+// $Id: TagBox.H,v 1.21 2009-03-13 18:01:25 almgren Exp $
 //
 #include <IntVect.H>
 #include <Box.H>
@@ -83,10 +83,15 @@ public:
     */
     Array<int> tags () const;
 
-    /*@ManDoc: Set values as specified by the array.
+    /*@ManDoc: Set values as specified by the array -- this only tags.
                It's an error if ar.length() != domain.numPts().
     */
     void tags (const Array<int>& ar);
+
+    /*@ManDoc: Set values as specified by the array -- this tags and untags.
+               It's an error if ar.length() != domain.numPts().
+    */
+    void tags_and_untags (const Array<int>& ar);
 
 private:
     //

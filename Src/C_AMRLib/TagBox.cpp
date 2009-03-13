@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.72 2009-03-02 21:17:55 lijewski Exp $
+// $Id: TagBox.cpp,v 1.73 2009-03-13 18:01:25 almgren Exp $
 //
 #include <winstd.H>
 
@@ -375,6 +375,21 @@ TagBox::tags (const Array<int>& ar)
     {
         if (*iptr)
             *cptr = *iptr;
+    }
+}
+
+void
+TagBox::tags_and_untags (const Array<int>& ar)
+{
+    BL_ASSERT(ar.size() == domain.numPts());
+
+    TagType*   cptr = dataPtr();
+    const int* iptr = ar.dataPtr();
+
+    // This clears as well as sets tags.
+    for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
+    {
+        *cptr = *iptr;
     }
 }
 
