@@ -254,6 +254,47 @@ ifeq ($(WHICHLINUX), YANA)
   endif
 endif
 
+ifeq ($(WHICHLINUX), HYPERION)
+  ifeq ($(COMP),Intel)
+    CXX = icpc
+    CXXOPTF = -O3 -ip -mp -fno-exceptions
+    CXXDEBF = -g
+    ifeq ($(USE_MPI),TRUE)
+# MAS: 4.17.2008
+# works for chaos3, but doesn't seem to work for chaos4, so hard
+# code everything contained in this mpiicpc script -- to see what's
+# contained in mpiicpc script, type "mpiicpc -show"
+#      CXX = mpiicpc
+      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
+	    -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
+            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
+	    -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
+	    -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
+	    -L/usr/local/tools/mvapich-intel/lib
+      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
+            -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_UNISTD_H=1 \
+            -DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1 \
+            -I/usr/local/tools/mvapich-intel/include \
+            -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
+            -L/usr/local/tools/mvapich-intel/lib -lmpich -i-dynamic
+    endif
+  endif
+  ifeq ($(FCOMP),Intel)
+    FOPTF = -O3 -ip -mp
+    fOPTF = -O3 -ip -mp
+  endif
+  ifeq ($(COMP),PGI)
+    CXX = pgCC
+    CXXOPTF = -fast --no_exceptions
+    CXXDEBF = -g
+    FC = pgf90
+    fC = pgf90
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpipgCC
+    endif
+  endif
+endif
+
 ifeq ($(WHICHLINUX), HOMER)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
