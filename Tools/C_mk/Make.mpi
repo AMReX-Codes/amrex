@@ -58,6 +58,17 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
     endif
+    ifeq ($(WHICHLINUX), HYPERION)
+      ifeq ($(FCOMP), Intel)
+	MPI_HOME=/usr/local/tools/mvapich-intel
+      endif
+      ifeq ($(FCOMP), PGI)
+	MPI_HOME=/usr/local/tools/mvapich-pgi
+      endif
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
+      BL_MPI_LIBS += -lmpichfarg
+    endif
 # mas: duplicate atlas stuff for yana
     ifeq ($(WHICHLINUX), YANA)
       ifeq ($(FCOMP), Intel)
