@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.179 2009-03-02 22:38:57 lijewski Exp $
+// $Id: Amr.cpp,v 1.180 2009-03-20 22:20:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -312,6 +312,11 @@ Amr::Amr ()
 
     pp.query("plot_nfiles", plot_nfiles);
     pp.query("checkpoint_nfiles", checkpoint_nfiles);
+    //
+    // -1 ==> use ParallelDescriptor::NProcs().
+    //
+    if (plot_nfiles       == -1) plot_nfiles       = ParallelDescriptor::NProcs();
+    if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
 
     pp.query("refine_grid_layout", refine_grid_layout);
 
