@@ -17,7 +17,7 @@ module knapsack_module
 
   logical, private :: do_mcc = .true.
 
-  logical, private :: knapsack_verbose = .true.
+  logical, private :: knapsack_verbose = .false.
 
   real(kind=dp_t), private :: knapsack_threshold = 0.9_dp_t
 
