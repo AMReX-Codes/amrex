@@ -2823,6 +2823,7 @@ contains
   end subroutine init_box_hash_bin
 
   function layout_get_box_intersector(la, bx) result(bi)
+    use bl_error_module
     type(box_intersector), pointer :: bi(:)
     type(layout), intent(inout) :: la
     type(box), intent(in) :: bx
@@ -2854,6 +2855,7 @@ contains
                    bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
+                   if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
                    tbi(cnt)%i = bins(i,j,k)%iv(n)
                    tbi(cnt)%bx = bx1
                 end do
@@ -2868,6 +2870,7 @@ contains
                 bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
+                if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
                 tbi(cnt)%i = bins(i,j,k)%iv(n)
                 tbi(cnt)%bx = bx1
              end do
@@ -2881,6 +2884,7 @@ contains
              bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
              if ( empty(bx1) ) cycle
              cnt = cnt + 1
+             if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
              tbi(cnt)%i = bins(i,j,k)%iv(n)
              tbi(cnt)%bx = bx1
           end do
