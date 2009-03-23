@@ -192,6 +192,10 @@ module make_new_grids_module
                    call push_back(bl,  mba%bas(nl)%bxs(i))
                 end do
 
+                ! split up ba_new so the number of intersections per
+                ! box isn't to big. i.e., there is more than one box in ba_new
+                call boxarray_maxsize(ba_new,max_grid_size)
+
                 ! Now load with the new boxes that are the intersection of 
                 !  ba_new with the complement of ba_old (aka mba%bas(nl))
                 do j = 1, ba_new%nboxes
