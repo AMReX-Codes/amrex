@@ -2833,11 +2833,13 @@ contains
     type(box) :: bx1
     integer :: i, j, k, n
     type(boxarray) :: ba
-    integer, parameter :: MAX_BI = 100
+    integer, parameter :: ChunkSize = 50
     integer :: cnt
-    type(box_intersector) :: tbi(MAX_BI)
+    type(box_intersector), pointer :: tbi(:)  => Null()
 
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
+
+    allocate(bi(ChunkSize))
 
     dm = la%lap%dim
     ba = get_boxarray(la)
@@ -2855,9 +2857,16 @@ contains
                    bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
-                   if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
-                   tbi(cnt)%i = bins(i,j,k)%iv(n)
-                   tbi(cnt)%bx = bx1
+
+                   if (cnt > size(bi)) then
+                      allocate(tbi(size(bi) + ChunkSize))
+                      tbi(1:cnt-1) = bi(1:cnt-1)
+                      deallocate(bi)
+                      bi => tbi
+                   end if
+
+                   bi(cnt)%i  = bins(i,j,k)%iv(n)
+                   bi(cnt)%bx = bx1
                 end do
              end do
           end do
@@ -2870,9 +2879,16 @@ contains
                 bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
-                if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
-                tbi(cnt)%i = bins(i,j,k)%iv(n)
-                tbi(cnt)%bx = bx1
+
+                if (cnt > size(bi)) then
+                   allocate(tbi(size(bi) + ChunkSize))
+                   tbi(1:cnt-1) = bi(1:cnt-1)
+                   deallocate(bi)
+                   bi => tbi
+                end if
+
+                bi(cnt)%i  = bins(i,j,k)%iv(n)
+                bi(cnt)%bx = bx1
              end do
           end do
        end do
@@ -2884,14 +2900,25 @@ contains
              bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
              if ( empty(bx1) ) cycle
              cnt = cnt + 1
-             if (cnt .gt. MAX_BI) call bl_error("layout_get_box_intersector: MAX_BI too small")
-             tbi(cnt)%i = bins(i,j,k)%iv(n)
-             tbi(cnt)%bx = bx1
+
+             if (cnt > size(bi)) then
+                allocate(tbi(size(bi) + ChunkSize))
+                tbi(1:cnt-1) = bi(1:cnt-1)
+                deallocate(bi)
+                bi => tbi
+             end if
+
+             bi(cnt)%i  = bins(i,j,k)%iv(n)
+             bi(cnt)%bx = bx1
           end do
        end do
     end select
-    allocate(bi(cnt))
-    bi(1:cnt) = tbi(1:cnt)
+
+    allocate(tbi(cnt))
+    tbi(1:cnt) = bi(1:cnt)
+    deallocate(bi)
+    bi => tbi
+
   end function layout_get_box_intersector
 
   end module layout_module
