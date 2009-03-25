@@ -38,7 +38,7 @@ contains
     real(kind=dp_t),intent(in   ) :: efactor
 
     type(box)      :: fbox, cbox, isect
-    integer        :: lor(res%dim), los(res%dim), i, j, shft
+    integer        :: lor(res%dim), los(res%dim), i, j, k, shft
     integer        :: lo (res%dim), hi (res%dim), loc(res%dim), proc
     logical        :: pmask(res%dim)
     type(multifab) :: tflux
@@ -47,17 +47,33 @@ contains
     type(layout)   :: la
     type(vector_i) :: procmap, indxmap, shftmap
 
+    type(box_intersector), pointer   :: bi(:)
+
     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_interf_c")
 
-    !call print(get_boxarray(res),  'boxarray(res)')
-    !call print(get_boxarray(crse), 'boxarray(crse)')
-    !call print(get_boxarray(flux), 'boxarray(flux)')
-
     pmask = layout_get_pmask(res%la)
+    !
+    ! Build layout used in intersection test for below loop.
+    !
+    call copy(ba, get_boxarray(flux))
+
+    do i = 1, flux%nboxes
+       fbox = get_ibox(flux,i)
+       if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
+          if ( face .eq. -1 ) then
+             fbox = shift(fbox,  extent(crse_domain,dim), dim)
+          else
+             fbox = shift(fbox, -extent(crse_domain,dim), dim)
+          end if
+       end if
+       call set_box(ba, i, fbox)
+    end do
+    call build(la, ba)
+    call destroy(ba)
 
     do j = 1, crse%nboxes
        if ( remote(crse,j) ) cycle
@@ -69,25 +85,12 @@ contains
        sp   => dataptr(ss, j)
        rp   => dataptr(res, j, cr)
        cp   => dataptr(crse, j, cr)
+       bi   => layout_get_box_intersector(la, cbox)
 
-       do i = 1, flux%nboxes
-
-          fbox = get_ibox(flux,i)
-
-          if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
-             if ( face .eq. -1 ) then
-                fbox = shift(fbox,  extent(crse_domain,dim), dim)
-             else
-                fbox = shift(fbox, -extent(crse_domain,dim), dim)
-             end if
-          end if
-
-          isect = intersection(cbox,fbox)
-
-          if ( empty(isect) ) cycle
-
-          lo = lwb(isect)
-          hi = upb(isect)
+       do k = 1, size(bi)
+          isect = bi(k)%bx
+          lo    = lwb(isect)
+          hi    = upb(isect)
 
           select case (res%dim)
           case (1)
@@ -99,6 +102,8 @@ contains
           end select
        end do
     end do
+
+    deallocate(bi)
     !
     ! Build a multifab based on the intersections of flux with crse in such a way that each 
     ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
@@ -111,32 +116,24 @@ contains
        cbox = get_ibox(crse,   j)
        proc = get_proc(crse%la,j)
 
-       do i = 1, flux%nboxes
-          shft = 0
-          fbox = get_ibox(flux,i)
+       bi   => layout_get_box_intersector(la, cbox)
+
+       do k = 1, size(bi)
+          i     = bi(k)%i
+          isect = bi(k)%bx
+          fbox  = get_ibox(flux,i)
 
           if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
-             shft = 1
-             if ( face .eq. -1 ) then
-                fbox = shift(fbox,  extent(crse_domain,dim), dim)
-             else
-                fbox = shift(fbox, -extent(crse_domain,dim), dim)
-             end if
-          end if
-
-          isect = intersection(cbox,fbox)
-
-          if ( empty(isect) ) cycle
-          !
-          ! We need to remember the original flux box & whether or not it needs to be shifted.
-          !
-          if ( shft .eq. 1 ) then
+             !
+             ! We need to remember the original flux box & whether or not it needs to be shifted.
+             !
              if ( face .eq. -1 ) then
                 isect = shift(isect, -extent(crse_domain,dim), dim)
              else
                 isect = shift(isect,  extent(crse_domain,dim), dim)
              end if
           end if
+
           call push_back(bl, isect)
           call push_back(procmap, proc)
           call push_back(indxmap, j)
@@ -144,9 +141,9 @@ contains
        end do
     end do
 
-    !print*, 'procmap: ', dataptr(procmap, 1, size(procmap))
-    !print*, 'indxmap: ', dataptr(indxmap, 1, size(indxmap))
-    !print*, 'shftmap: ', dataptr(shftmap, 1, size(shftmap))
+    deallocate(bi)
+
+    call destroy(la)
 
     if ( empty(procmap) ) then
        !
