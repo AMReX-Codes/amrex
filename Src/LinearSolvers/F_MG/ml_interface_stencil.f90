@@ -69,8 +69,8 @@ contains
           else
              fbox = shift(fbox, -extent(crse_domain,dim), dim)
           end if
+          call set_box(ba, i, fbox)
        end if
-       call set_box(ba, i, fbox)
     end do
     call build(la, ba)
     call destroy(ba)
@@ -101,9 +101,9 @@ contains
              call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, sp(:,:,:,:), los, lo, hi, face, dim, efactor)
           end select
        end do
-    end do
 
-    deallocate(bi)
+      deallocate(bi)
+    end do
     !
     ! Build a multifab based on the intersections of flux with crse in such a way that each 
     ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
@@ -113,20 +113,20 @@ contains
     call build(shftmap)
 
     do j = 1, crse%nboxes
-       cbox = get_ibox(crse,   j)
-       proc = get_proc(crse%la,j)
-
+       cbox =  get_ibox(crse,   j)
+       proc =  get_proc(crse%la,j)
        bi   => layout_get_box_intersector(la, cbox)
 
        do k = 1, size(bi)
-          i     = bi(k)%i
+          shft  = 0
           isect = bi(k)%bx
-          fbox  = get_ibox(flux,i)
+          fbox  = get_ibox(flux,bi(k)%i)
 
           if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
              !
              ! We need to remember the original flux box & whether or not it needs to be shifted.
              !
+             shft = 1
              if ( face .eq. -1 ) then
                 isect = shift(isect, -extent(crse_domain,dim), dim)
              else
@@ -139,9 +139,9 @@ contains
           call push_back(indxmap, j)
           call push_back(shftmap, shft)
        end do
-    end do
 
-    deallocate(bi)
+       deallocate(bi)
+    end do
 
     call destroy(la)
 
