@@ -623,17 +623,21 @@ contains
     logical             :: r
     integer, intent(in) :: ilhs,irhs
 
-    integer m,d,NNN
+    integer m,d,NNN,llwb,rlwb
 
     do m = mpower,0,-1
 
        NNN = ishft(1,m)
 
        do d = 1, dm
-          if ( lwb(pbxs(ilhs),d)/NNN < lwb(pbxs(irhs),d)/NNN ) then
+
+          llwb = lwb(pbxs(ilhs),d)/NNN
+          rlwb = lwb(pbxs(irhs),d)/NNN
+
+          if ( llwb < rlwb ) then
              r = .true.
              return
-          else if ( lwb(pbxs(ilhs),d)/NNN > lwb(pbxs(irhs),d)/NNN ) then
+          else if ( llwb > rlwb ) then
              r = .false.
              return
           end if
