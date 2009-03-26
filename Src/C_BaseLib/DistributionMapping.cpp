@@ -19,7 +19,7 @@
 
 static int    swap_n_test_count          = 1;
 static int    verbose                    = 1;
-static int    sfc_threshold              = 5;
+static int    sfc_threshold              = 4;
 static double max_efficiency             = 0.9;
 static bool   do_full_knapsack           = false;
 static bool   do_not_minimize_comm_costs = true;
@@ -1046,11 +1046,14 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
 
         for (int j = BL_SPACEDIM-1; j >= 0; --j)
         {
-            if (lhs.m_idx[j]/N < rhs.m_idx[j]/N)
+            int il = lhs.m_idx[j]/N;
+            int ir = rhs.m_idx[j]/N;
+
+            if (il < ir)
             {
                 return true;
             }
-            else if (lhs.m_idx[j]/N > rhs.m_idx[j]/N)
+            else if (il > ir)
             {
                 return false;
             }
