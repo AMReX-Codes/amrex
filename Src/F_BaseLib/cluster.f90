@@ -124,6 +124,7 @@ contains
     if ( num_flag == 0 ) then
 !      call bl_warn("No cells are flagged/No boxes returned")
        if ( present(overall_eff) ) overall_eff = 0
+       call destroy(bpt)
        return
     end if
 
@@ -347,7 +348,10 @@ contains
     pd    = get_pd(mask%la)
     pmask = layout_get_pmask(mask%la)
 
-    if ( .not. any(pmask) ) return
+    if ( .not. any(pmask) ) then
+       call destroy(bpt)
+       return
+    end if
 
     do i = 1, nboxes(mask)
        call box_periodic_shift(pd, get_ibox(mask,i), mask%nodal, pmask, mask%ng, shft, cnt, bxs)
