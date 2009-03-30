@@ -72,7 +72,7 @@ contains
           call set_box(ba, i, fbox)
        end if
     end do
-    call build(la, ba)
+    call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
 
     do j = 1, crse%nboxes
