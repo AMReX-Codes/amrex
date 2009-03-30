@@ -20,7 +20,7 @@ module layout_module
 
   integer, private :: verbose = 0
 
-  integer, private :: sfc_threshold = 0
+  integer, private :: sfc_threshold = 5
 
   integer, private :: def_mapping = LA_KNAPSACK
 
