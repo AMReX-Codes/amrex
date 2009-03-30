@@ -131,6 +131,7 @@ contains
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), +i)
        end do
+       call multifab_fill_boundary(full_soln(n))
     end do
 
     !   Make sure all periodic and internal boundaries are filled as well
@@ -303,6 +304,7 @@ contains
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
                                 ref_ratio(n-1,:), +i)
           end do
+          call multifab_fill_boundary(uu(n))
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
@@ -373,6 +375,7 @@ contains
              call ml_interp_bcs(soln(n), brs_bcs(n)%bmf(i,1), pd, &
                                 ref_ratio(n-1,:), +i)
           end do
+          call multifab_fill_boundary(soln(n))
        end do
 
        !    Optimization so don't have to do multilevel convergence test 
@@ -482,6 +485,7 @@ contains
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
           end do
+          call multifab_fill_boundary(full_soln(n))
        end do
 
     end if
@@ -641,6 +645,7 @@ contains
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
        end do
+       call multifab_fill_boundary(full_soln(n))
     end do
 
     !   Make sure all periodic and internal boundaries are filled as well
@@ -763,6 +768,7 @@ contains
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), +i)
        end do
+       call multifab_fill_boundary(full_soln(n))
     end do
 
     !   Make sure all periodic and internal boundaries are filled as well
