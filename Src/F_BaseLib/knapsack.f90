@@ -15,7 +15,7 @@ module knapsack_module
 
   implicit none
 
-  logical, private :: do_mcc = .true.
+  logical, private :: do_mcc = .false.
 
   logical, private :: knapsack_verbose = .false.
 
