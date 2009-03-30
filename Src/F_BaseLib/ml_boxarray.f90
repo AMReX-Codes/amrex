@@ -265,10 +265,10 @@ contains
 
     call build(bpt, "ml_boxarray_properly_nested")
 
-    if (present(min_fine_level)) then
-      if (.not. present(max_fine_level)) &
+    if ( present(min_fine_level) ) then
+      if ( .not. present(max_fine_level) ) &
         call bl_error('must specify both min_fine_level and max_fine_level or neither')
-      if (max_fine_level .gt. mba%nlevel) &
+      if ( max_fine_level .gt. mba%nlevel ) &
         call bl_error('max_fine_level into ml_boxarray_properly_nested is too big')
     end if
 
@@ -286,7 +286,6 @@ contains
           call bl_error("boxarray not contained in problem domain")
        end if
     end do
-
     !
     ! Check that level 1 grids cover all of the problem domain.
     !
@@ -305,7 +304,6 @@ contains
     ! Given this, the level 2 grids are automatically properly nested.
     ! So we start the loop at level 3.
     !
-
     do i = lev_min, lev_max
        !
        ! This part of the test ignores periodic boundaries.
@@ -326,7 +324,7 @@ contains
           !
           ! Collect additional boxes that contribute to periodically filling fine ghost cells.
           !
-          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask)
+          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
 
           do j = 1, nboxes(mba%bas(i))
              bx = get_box(mba%bas(i),j)
