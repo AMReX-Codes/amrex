@@ -148,7 +148,7 @@ contains
        !
        call copy(ba, get_boxarray(mask%la))
        call boxarray_nodalize(ba, mask%nodal)
-       call build(la, ba)
+       call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call destroy(ba)
        !
        !   Note :          mm_fine is  in fine space
