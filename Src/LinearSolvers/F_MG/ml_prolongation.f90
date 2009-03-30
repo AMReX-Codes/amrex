@@ -371,7 +371,8 @@ contains
        end do
     end do
 
-    call multifab_fill_boundary(fine)
+!   We have moved this call to the routine which calls ml_interp_bcs.
+!   call multifab_fill_boundary(fine)
 
     call destroy(bpt)
 
