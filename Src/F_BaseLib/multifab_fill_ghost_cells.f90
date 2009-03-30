@@ -6,7 +6,8 @@ module multifab_fill_ghost_module
 
 contains
 
-  subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc)
+  subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
+                                       fill_crse_input)
 
     use setbc_module
     use layout_module
@@ -19,6 +20,7 @@ contains
     integer       , intent(in   ) :: ir(:)
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
+    logical       , intent(in   ), optional :: fill_crse_input
 
     integer         :: i, j
     type(multifab)  :: ghost, tmpfine
@@ -28,6 +30,7 @@ contains
     type(layout)    :: la, tmpla
     real(kind=dp_t) :: dx(3)
     type(fgassoc)   :: fgasc
+    logical         :: fill_crse
 
     real(kind=dp_t),     pointer :: src(:,:,:,:), dst(:,:,:,:)
 
@@ -36,6 +39,10 @@ contains
     if (ng == 0) return
 
     call build(bpt, "mf_fill_ghost_cells")
+
+    fill_crse = .true.
+
+    if ( present(fill_crse_input) ) fill_crse = fill_crse_input
 
     if ( nghost(fine) <  ng          ) &
          call bl_error('fillpatch: fine does NOT have enough ghost cells')
@@ -56,7 +63,7 @@ contains
     call build(ghost, la, nc, ng = 1)
 
     call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
-                   no_final_physbc_input = .true.)
+                   no_final_physbc_input=.true., fill_crse_input=fill_crse)
     !
     ! Copy fillpatch()d ghost cells to fine.
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.

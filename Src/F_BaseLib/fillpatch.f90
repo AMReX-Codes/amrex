@@ -8,7 +8,8 @@ module fillpatch_module
 contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
-                       bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input)
+                       bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
+                       fill_crse_input)
 
     use bc_module
     use setbc_module
@@ -26,6 +27,7 @@ contains
     logical       , intent(in   ), optional :: no_final_physbc_input
     logical       , intent(in   ), optional :: lim_slope_input
     logical       , intent(in   ), optional :: lin_limit_input
+    logical       , intent(in   ), optional :: fill_crse_input
 
 
     integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
@@ -38,7 +40,7 @@ contains
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(fine%dim), have_periodic_gcells
-    logical         :: no_final_physbc
+    logical         :: no_final_physbc, fill_crse
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -66,15 +68,17 @@ contains
     lin_limit            = .false.
     have_periodic_gcells = .false.
     no_final_physbc      = .false.
+    fill_crse            = .true.
 
     if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
     if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
+    if ( present(fill_crse_input)       ) fill_crse       = fill_crse_input
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
     !
-    call fill_boundary(crse, icomp_crse, nc, ng)
+    if (fill_crse) call fill_boundary(crse, icomp_crse, nc, ng)
 
     call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
     !
