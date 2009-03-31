@@ -185,7 +185,8 @@ module make_new_grids_module
                 ! Merge the new boxarray "ba_new" with the existing box_array 
                 ! mba%bas(nl) so that we get the union of points.
                 call boxarray_complementIn(ba_old_comp,mba%pd(nl),mba%bas(nl))
-                call build(la_old_comp,ba_old_comp,mba%pd(nl),mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+                call build(la_old_comp,ba_old_comp,mba%pd(nl),mapping = LA_LOCAL)
+                ! LA_LOCAL ==> bypass processor distribution calculation.
 
                 ! Start to load bl with the boxes we had before in ba_old (aka mba%bas(nl)).
                 do i = 1, mba%bas(nl)%nboxes
