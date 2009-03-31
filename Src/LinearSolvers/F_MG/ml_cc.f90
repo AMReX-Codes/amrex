@@ -327,11 +327,11 @@ contains
                mgt(n)%gamma)
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                         mgt(n)%mm(mglev))
-          call multifab_copy(res(n), temp_res(n), ng=res(n)%ng)
 
           if (do_diagnostics == 1 ) then
+             call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
+                            mgt(n)%mm(mglev))
+             call multifab_copy(res(n), temp_res(n), ng=res(n)%ng)
              tres = norm_inf(res(n))
              if ( parallel_ioprocessor() ) then
                 print *,'UP : RES AFTER  GSRB AT LEVEL ',n, tres
