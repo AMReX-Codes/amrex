@@ -322,9 +322,11 @@ contains
 
        if ( any(lpmask) .and. lnp > 0) then
           !
-          ! Collect additional boxes that contribute to periodically filling fine ghost cells.
+          ! Collect additional boxes that contribute to periodically 
+          ! filling fine ghost cells.
           !
-          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask, mapping = LA_LOCAL)
+          ! LA_LOCAL ==> bypass processor distribution calculation.
 
           do j = 1, nboxes(mba%bas(i))
              bx = get_box(mba%bas(i),j)
