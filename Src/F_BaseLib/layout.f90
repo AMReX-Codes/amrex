@@ -2734,7 +2734,7 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp, ncp, pcp
+    type(copyassoc), pointer       :: cp, ncp, pcp, cpmnm
     integer                        :: i, mnm
     !
     ! Do we have one stored?
@@ -2751,7 +2751,10 @@ contains
 
     if ( the_copyassoc_cnt .ge. the_copyassoc_max ) then
        !
-       ! Remove least reused copyassoc from list before adding new one.
+       ! Remove least reused copyassoc from the list before adding new one.
+       ! We first calculate the smallest reused value in the list.  Next
+       ! we save a pointer to the last copyassoc in the list with that minimum
+       ! value.  Then we remove it from the list.
        !
        mnm = Huge(0)
        cp => the_copyassoc_head
@@ -2760,11 +2763,17 @@ contains
           cp => cp%next
        end do
 
+       cp => the_copyassoc_head
+       do while ( associated(cp) )
+          if ( cp%reused .eq. mnm ) cpmnm => cp
+          cp => cp%next
+       end do
+
        cp  => the_copyassoc_head
        pcp => Null()
        do while ( associated(cp) )
           ncp => cp%next
-          if ( cp%reused .eq. mnm ) then
+          if ( associated(cp, cpmnm) ) then
              if ( associated(cp, the_copyassoc_head) ) then
                 the_copyassoc_head => cp%next
              else
