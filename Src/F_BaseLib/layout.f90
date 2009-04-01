@@ -105,8 +105,10 @@ module layout_module
      type(local_conn)          :: l_con
      type(remote_conn)         :: r_con
      type(copyassoc),  pointer :: next      => Null()
-     type(layout_rep), pointer :: lap_dst   => Null()
-     type(layout_rep), pointer :: lap_src   => Null()
+     type(boxarray)            :: ba_src
+     type(boxarray)            :: ba_dst
+     integer, pointer          :: prc_src(:) => Null()
+     integer, pointer          :: prc_dst(:) => Null()
   end type copyassoc
   !
   ! Note that a fluxassoc contains two copyassocs.
@@ -162,6 +164,9 @@ module layout_module
   ! Global list of copyassoc's used by multifab copy routines.
   !
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
+
+  integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
+  integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -316,6 +321,17 @@ contains
     integer :: r
     r = sfc_threshold
   end function layout_get_sfc_threshold
+
+  subroutine layout_set_copyassoc_max(v)
+    use bl_error_module
+    integer, intent(in) :: v
+    call bl_assert(the_copyassoc_max .gt. 0, "the_copyassoc_max must be positive")
+    the_copyassoc_max = v
+  end subroutine layout_set_copyassoc_max
+  function layout_get_copyassoc_max() result(r)
+    integer :: r
+    r = the_copyassoc_max
+  end function layout_get_copyassoc_max
 
   subroutine layout_set_verbosity(v)
     integer, intent(in) :: v
@@ -496,6 +512,24 @@ contains
 
   end subroutine layout_rep_build
 
+  subroutine layout_flush_copyassoc_cache ()
+    type(copyassoc), pointer :: cp, ncp
+
+    if ( verbose > 0 .and. parallel_IOProcessor() ) then
+       print*, '*** flushing copy assoc cache of size: ', the_copyassoc_cnt
+    end if
+
+    cp => the_copyassoc_head
+    do while ( associated(cp) )
+       ncp => cp%next
+       call copyassoc_destroy(cp)
+       deallocate(cp)
+       cp => ncp
+    end do
+    the_copyassoc_cnt  =  0
+    the_copyassoc_head => Null()
+  end subroutine layout_flush_copyassoc_cache
+
   recursive subroutine layout_rep_destroy(lap, la_type)
     type(layout_rep), pointer :: lap
     integer, intent(in) :: la_type
@@ -506,7 +540,6 @@ contains
     type(aveassoc),  pointer :: avxa, oavxa
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
-    type(copyassoc), pointer :: cpa, ncpa, pcpa
     type(fluxassoc), pointer :: fla, nfla, pfla
     integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
@@ -594,30 +627,6 @@ contains
        end do
        deallocate(lap%bins)
     end if
-    !
-    ! Remove all copyassoc's associated with this layout_rep.
-    !
-    cpa  => the_copyassoc_head
-    pcpa => Null()
-    do while ( associated(cpa) )
-       ncpa => cpa%next
-       if ( associated(lap, cpa%lap_src) .or. associated(lap, cpa%lap_dst) ) then
-          if ( associated(cpa, the_copyassoc_head) ) then
-             the_copyassoc_head => cpa%next
-          else
-             pcpa%next => ncpa
-          end if
-          call copyassoc_destroy(cpa)
-          deallocate(cpa)
-       else
-          if ( .not. associated(pcpa) ) then
-             pcpa => the_copyassoc_head
-          else
-             pcpa => pcpa%next
-          end if
-       end if
-       cpa => ncpa
-    end do
     !
     ! Remove all fluxassoc's associated with this layout_rep.
     !
@@ -1002,7 +1011,7 @@ contains
     logical,        intent(in) :: nodal(:)
     logical,        intent(in) :: cross
     logical                    :: r
-    r = bxa%grwth == ng .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
+    r = (bxa%grwth == ng) .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
   end function boxassoc_check
 
   function aveassoc_check(ava, nsub, nodal) result(r)
@@ -1010,14 +1019,14 @@ contains
     integer,        intent(in) :: nsub
     logical,        intent(in) :: nodal(:)
     logical                    :: r
-    r = ava%nsub == nsub .and. all(ava%nodal .eqv. nodal)
+    r = (ava%nsub == nsub) .and. all(ava%nodal .eqv. nodal)
   end function aveassoc_check
 
   function fgassoc_check(fgxa, ng) result(r)
     type(fgassoc), intent(in) :: fgxa
     integer,       intent(in) :: ng
     logical                   :: r
-    r = fgxa%grwth == ng
+    r = (fgxa%grwth == ng)
   end function fgassoc_check
 
   function syncassoc_check(snxa, ng, nodal, lall) result(r)
@@ -1026,7 +1035,7 @@ contains
     logical,         intent(in) :: nodal(:)
     logical,         intent(in) :: lall
     logical                     :: r
-    r = snxa%grwth == ng .and. all(snxa%nodal .eqv. nodal) .and. (snxa%lall .eqv. lall)
+    r = (snxa%grwth == ng) .and. all(snxa%nodal .eqv. nodal) .and. (snxa%lall .eqv. lall)
   end function syncassoc_check
 
   function layout_boxassoc(la, ng, nodal, cross) result(r)
@@ -1236,7 +1245,7 @@ contains
     integer                         :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
     integer                         :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
     integer                         :: svol_max, rvol_max, ioproc
-    integer, parameter              :: chunksize = 20
+    integer, parameter              :: ChunkSize = 50
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
@@ -1260,9 +1269,9 @@ contains
     allocate(parr(0:np-1,2))
     allocate(pvol(0:np-1,2))
     allocate(ppvol(0:np-1,2))
-    allocate(bxasc%l_con%cpy(chunksize))
-    allocate(bxasc%r_con%snd(chunksize))
-    allocate(bxasc%r_con%rcv(chunksize))
+    allocate(bxasc%l_con%cpy(ChunkSize))
+    allocate(bxasc%r_con%snd(ChunkSize))
+    allocate(bxasc%r_con%rcv(ChunkSize))
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
@@ -1290,7 +1299,7 @@ contains
              abx = bi(jj)%bx
              if ( local(la,i) .and. local(la, j) ) then
                 if ( li_r > size(bxasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(bxasc%l_con%cpy) + chunksize))
+                   allocate(n_cpy(size(bxasc%l_con%cpy) + ChunkSize))
                    n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
                    deallocate(bxasc%l_con%cpy)
                    bxasc%l_con%cpy => n_cpy
@@ -1303,7 +1312,7 @@ contains
                 li_r                      = li_r + 1
              else if ( local(la, j) ) then
                 if ( i_s > size(bxasc%r_con%snd) ) then
-                   allocate(n_snd(size(bxasc%r_con%snd) + chunksize))
+                   allocate(n_snd(size(bxasc%r_con%snd) + ChunkSize))
                    n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
                    deallocate(bxasc%r_con%snd)
                    bxasc%r_con%snd => n_snd
@@ -1320,7 +1329,7 @@ contains
                 i_s                      = i_s + 1
              else if ( local(la, i) ) then
                 if ( i_r > size(bxasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(bxasc%r_con%rcv) + chunksize))
+                   allocate(n_rcv(size(bxasc%r_con%rcv) + ChunkSize))
                    n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
                    deallocate(bxasc%r_con%rcv)
                    bxasc%r_con%rcv => n_rcv
@@ -1647,7 +1656,7 @@ contains
     type(box)                      :: jbx, abx
     integer                        :: i, j, k, ii, jj, cnt
     integer                        :: shft(2*3**(la%lap%dim),la%lap%dim)
-    integer, parameter             :: chunksize = 5
+    integer, parameter             :: ChunkSize = 50
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2, bltmp
@@ -1672,7 +1681,7 @@ contains
     allocate(filled(bxa%nboxes))
     do i = 1, bxa%nboxes
        filled(i)%ncpy = 0
-       allocate(filled(i)%cpy(chunksize))
+       allocate(filled(i)%cpy(ChunkSize))
     end do
 
     do j = 1, bxa%nboxes
@@ -1701,7 +1710,7 @@ contains
              do while ( .not. empty(lb2) )
                 filled(i)%ncpy = filled(i)%ncpy + 1
                 if ( filled(i)%ncpy > size(filled(i)%cpy) ) then
-                   allocate(n_cpy(size(filled(i)%cpy) + chunksize))
+                   allocate(n_cpy(size(filled(i)%cpy) + ChunkSize))
                    n_cpy(1:filled(i)%ncpy-1) = filled(i)%cpy(1:filled(i)%ncpy-1)
                    deallocate(filled(i)%cpy)
                    filled(i)%cpy => n_cpy
@@ -1740,7 +1749,7 @@ contains
     integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
     integer                        :: svol_max, rvol_max, ioproc
-    integer, parameter             :: chunksize = 20
+    integer, parameter             :: ChunkSize = 50
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
@@ -1762,9 +1771,9 @@ contains
     allocate(parr(0:np-1,2))
     allocate(pvol(0:np-1,2))
     allocate(ppvol(0:np-1,2))
-    allocate(snasc%l_con%cpy(chunksize))
-    allocate(snasc%r_con%snd(chunksize))
-    allocate(snasc%r_con%rcv(chunksize))
+    allocate(snasc%l_con%cpy(ChunkSize))
+    allocate(snasc%r_con%snd(ChunkSize))
+    allocate(snasc%r_con%rcv(ChunkSize))
 
     snasc%lall  = lall
     snasc%nodal = nodal
@@ -1782,7 +1791,7 @@ contains
              dbx = filled(jj)%cpy(ii)%dbx
              if ( local(la, i) .and. local(la, j) ) then
                 if ( li_r > size(snasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(snasc%l_con%cpy) + chunksize))
+                   allocate(n_cpy(size(snasc%l_con%cpy) + ChunkSize))
                    n_cpy(1:li_r-1) = snasc%l_con%cpy(1:li_r-1)
                    deallocate(snasc%l_con%cpy)
                    snasc%l_con%cpy => n_cpy
@@ -1795,7 +1804,7 @@ contains
                 li_r                      = li_r + 1
              else if ( local(la, j) ) then ! must send
                 if ( i_s > size(snasc%r_con%snd) ) then
-                   allocate(n_snd(size(snasc%r_con%snd) + chunksize))
+                   allocate(n_snd(size(snasc%r_con%snd) + ChunkSize))
                    n_snd(1:i_s-1) = snasc%r_con%snd(1:i_s-1)
                    deallocate(snasc%r_con%snd)
                    snasc%r_con%snd => n_snd
@@ -1812,7 +1821,7 @@ contains
                 i_s                      = i_s + 1
              else if ( local(la, i) ) then  ! must recv
                 if ( i_r > size(snasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(snasc%r_con%rcv) + chunksize))
+                   allocate(n_rcv(size(snasc%r_con%rcv) + ChunkSize))
                    n_rcv(1:i_r-1) = snasc%r_con%rcv(1:i_r-1)
                    deallocate(snasc%r_con%rcv)
                    snasc%r_con%rcv => n_rcv
@@ -2108,7 +2117,7 @@ contains
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     integer                        :: svol_max, rvol_max, ioproc
-    integer, parameter             :: chunksize = 20
+    integer, parameter             :: ChunkSize = 50
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
 
@@ -2116,20 +2125,24 @@ contains
 
     call build(bpt, "copyassoc_build")
 
-    bxa_src       =  get_boxarray(la_src)
-    bxa_dst       =  get_boxarray(la_dst)
-    cpasc%dim     =  bxa_src%dim
-    cpasc%lap_dst => la_dst%lap
-    cpasc%lap_src => la_src%lap
+    call boxarray_build_copy(cpasc%ba_src, get_boxarray(la_src))
+    call boxarray_build_copy(cpasc%ba_dst, get_boxarray(la_dst))
 
+    cpasc%dim = cpasc%ba_src%dim
+
+    allocate(cpasc%prc_src(la_src%lap%nboxes))
+    allocate(cpasc%prc_dst(la_dst%lap%nboxes))
     allocate(cpasc%nd_dst(la_dst%lap%dim))
     allocate(cpasc%nd_src(la_src%lap%dim))
     allocate(parr(0:parallel_nprocs()-1,2))
     allocate(pvol(0:parallel_nprocs()-1,2))
     allocate(ppvol(0:parallel_nprocs()-1,2))
-    allocate(cpasc%l_con%cpy(chunksize))
-    allocate(cpasc%r_con%snd(chunksize))
-    allocate(cpasc%r_con%rcv(chunksize))
+    allocate(cpasc%l_con%cpy(ChunkSize))
+    allocate(cpasc%r_con%snd(ChunkSize))
+    allocate(cpasc%r_con%rcv(ChunkSize))
+
+    cpasc%prc_src = la_src%lap%prc
+    cpasc%prc_dst = la_dst%lap%prc
 
     cpasc%nd_dst = nd_dst
     cpasc%nd_src = nd_src
@@ -2137,7 +2150,7 @@ contains
     ! Build a temporary layout to be used in intersection tests below.
     !
     do i = 1, nboxes(la_src)
-       call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
+       call push_back(bltmp, box_nodalize(get_box(cpasc%ba_src,i), nd_src))
     end do
     call boxarray_build_l(batmp, bltmp, sort = .false.)
     call list_destroy_box(bltmp)
@@ -2148,15 +2161,15 @@ contains
     !
     ! Consider all copies I <- J.
     !
-    do i = 1, bxa_dst%nboxes
-       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,i), nd_dst))
+    do i = 1, cpasc%ba_dst%nboxes
+       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst))
        do jj = 1, size(bi)
           j = bi(jj)%i
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
           bx = bi(jj)%bx
           if ( local(la_dst, i) .and. local(la_src, j) ) then
              if ( li_r > size(cpasc%l_con%cpy) ) then
-                allocate(n_cpy(size(cpasc%l_con%cpy) + chunksize))
+                allocate(n_cpy(size(cpasc%l_con%cpy) + ChunkSize))
                 n_cpy(1:li_r-1) = cpasc%l_con%cpy(1:li_r-1)
                 deallocate(cpasc%l_con%cpy)
                 cpasc%l_con%cpy => n_cpy
@@ -2169,7 +2182,7 @@ contains
              li_r                      = li_r + 1
           else if ( local(la_src, j) ) then
              if ( i_s > size(cpasc%r_con%snd) ) then
-                allocate(n_snd(size(cpasc%r_con%snd) + chunksize))
+                allocate(n_snd(size(cpasc%r_con%snd) + ChunkSize))
                 n_snd(1:i_s-1) = cpasc%r_con%snd(1:i_s-1)
                 deallocate(cpasc%r_con%snd)
                 cpasc%r_con%snd => n_snd
@@ -2186,7 +2199,7 @@ contains
              i_s                        = i_s + 1
           else if ( local(la_dst, i) ) then
              if ( i_r > size(cpasc%r_con%rcv) ) then
-                allocate(n_rcv(size(cpasc%r_con%rcv) + chunksize))
+                allocate(n_rcv(size(cpasc%r_con%rcv) + ChunkSize))
                 n_rcv(1:i_r-1) = cpasc%r_con%rcv(1:i_r-1)
                 deallocate(cpasc%r_con%rcv)
                 cpasc%r_con%rcv => n_rcv
@@ -2334,7 +2347,7 @@ contains
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
     integer                        :: svol_max, rvol_max, ioproc
-    integer, parameter             :: chunksize = 20
+    integer, parameter             :: ChunkSize = 50
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
@@ -2358,8 +2371,6 @@ contains
     flasc%mask%dim    =  dm
 
     allocate(flasc%nd_dst(dm), flasc%nd_src(dm))
-    allocate(flasc%flux%nd_dst(0), flasc%flux%nd_src(0)) ! So copyassoc_destroy() works.
-    allocate(flasc%mask%nd_dst(0), flasc%mask%nd_src(0)) ! So copyassoc_destroy() works.
 
     flasc%nd_dst = nd_dst
     flasc%nd_src = nd_src
@@ -2368,13 +2379,12 @@ contains
     allocate(pvol(0:np-1,2))
     allocate(mpvol(0:np-1,2))
     allocate(ppvol(0:np-1,2))
-    allocate(flasc%flux%l_con%cpy(chunksize))
-    allocate(flasc%flux%r_con%snd(chunksize))
-    allocate(flasc%flux%r_con%rcv(chunksize))
-    allocate(flasc%mask%l_con%cpy(        0)) ! So copyassoc_destroy() works.
-    allocate(flasc%mask%r_con%snd(chunksize))
-    allocate(flasc%mask%r_con%rcv(chunksize))
-    allocate(flasc%fbxs(chunksize))
+    allocate(flasc%flux%l_con%cpy(ChunkSize))
+    allocate(flasc%flux%r_con%snd(ChunkSize))
+    allocate(flasc%flux%r_con%rcv(ChunkSize))
+    allocate(flasc%mask%r_con%snd(ChunkSize))
+    allocate(flasc%mask%r_con%rcv(ChunkSize))
+    allocate(flasc%fbxs(ChunkSize))
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
@@ -2401,7 +2411,7 @@ contains
 
              if ( local(la_dst,j) .and. local(la_src,i) ) then
                 if ( li_r > size(flasc%flux%l_con%cpy) ) then
-                   allocate(n_cpy(size(flasc%flux%l_con%cpy) + chunksize))
+                   allocate(n_cpy(size(flasc%flux%l_con%cpy) + ChunkSize))
                    n_cpy(1:li_r-1) = flasc%flux%l_con%cpy(1:li_r-1)
                    deallocate(flasc%flux%l_con%cpy)
                    flasc%flux%l_con%cpy => n_cpy
@@ -2414,11 +2424,11 @@ contains
                 li_r                           = li_r + 1
              else if ( local(la_src,i) ) then
                 if ( i_s > size(flasc%flux%r_con%snd) ) then
-                   allocate(n_snd(size(flasc%flux%r_con%snd) + chunksize))
+                   allocate(n_snd(size(flasc%flux%r_con%snd) + ChunkSize))
                    n_snd(1:i_s-1) = flasc%flux%r_con%snd(1:i_s-1)
                    deallocate(flasc%flux%r_con%snd)
                    flasc%flux%r_con%snd => n_snd
-                   allocate(n_snd(size(flasc%mask%r_con%snd) + chunksize))
+                   allocate(n_snd(size(flasc%mask%r_con%snd) + ChunkSize))
                    n_snd(1:i_s-1) = flasc%mask%r_con%snd(1:i_s-1)
                    deallocate(flasc%mask%r_con%snd)
                    flasc%mask%r_con%snd => n_snd
@@ -2444,15 +2454,15 @@ contains
                 i_s                           = i_s + 1
              else
                 if ( i_r > size(flasc%flux%r_con%rcv) ) then
-                   allocate(n_rcv(size(flasc%flux%r_con%rcv) + chunksize))
+                   allocate(n_rcv(size(flasc%flux%r_con%rcv) + ChunkSize))
                    n_rcv(1:i_r-1) = flasc%flux%r_con%rcv(1:i_r-1)
                    deallocate(flasc%flux%r_con%rcv)
                    flasc%flux%r_con%rcv => n_rcv
-                   allocate(n_rcv(size(flasc%mask%r_con%rcv) + chunksize))
+                   allocate(n_rcv(size(flasc%mask%r_con%rcv) + ChunkSize))
                    n_rcv(1:i_r-1) = flasc%mask%r_con%rcv(1:i_r-1)
                    deallocate(flasc%mask%r_con%rcv)
                    flasc%mask%r_con%rcv => n_rcv
-                   allocate(pfbxs(size(flasc%fbxs) + chunksize))
+                   allocate(pfbxs(size(flasc%fbxs) + ChunkSize))
                    pfbxs(1:i_r-1) = flasc%fbxs(1:i_r-1)
                    deallocate(flasc%fbxs)
                    flasc%fbxs => pfbxs
@@ -2645,6 +2655,8 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+    call destroy(cpasc%ba_src)
+    call destroy(cpasc%ba_dst)
     deallocate(cpasc%nd_dst)
     deallocate(cpasc%nd_src)
     deallocate(cpasc%l_con%cpy)
@@ -2652,6 +2664,8 @@ contains
     deallocate(cpasc%r_con%rcv)
     deallocate(cpasc%r_con%str)
     deallocate(cpasc%r_con%rtr)
+    deallocate(cpasc%prc_src)
+    deallocate(cpasc%prc_dst)
     cpasc%dim = 0
   end subroutine copyassoc_destroy
 
@@ -2660,8 +2674,17 @@ contains
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
-    call copyassoc_destroy(flasc%flux)
-    call copyassoc_destroy(flasc%mask)
+
+    deallocate(flasc%flux%l_con%cpy)
+    deallocate(flasc%flux%r_con%snd)
+    deallocate(flasc%flux%r_con%rcv)
+    deallocate(flasc%mask%r_con%snd)
+    deallocate(flasc%mask%r_con%rcv)
+    deallocate(flasc%flux%r_con%rtr)
+    deallocate(flasc%flux%r_con%str)
+    deallocate(flasc%mask%r_con%rtr)
+    deallocate(flasc%mask%r_con%str)
+
     deallocate(flasc%fbxs)
     deallocate(flasc%nd_dst)
     deallocate(flasc%nd_src)
@@ -2673,10 +2696,13 @@ contains
     type(layout),    intent(in) :: la_src, la_dst
     logical,         intent(in) :: nd_dst(:), nd_src(:)
     logical                     :: r
-    r =         associated(cpasc%lap_dst, la_dst%lap)
-    r = r .and. associated(cpasc%lap_src, la_src%lap)
-    r = r .and. all(cpasc%nd_dst .eqv. nd_dst)
-    r = r .and. all(cpasc%nd_src .eqv. nd_src)
+    r = all(cpasc%nd_dst .eqv. nd_dst) .and. all(cpasc%nd_src .eqv. nd_src)
+    if (.not. r) return
+    r = boxarray_same_q(cpasc%ba_src, get_boxarray(la_src))
+    if (.not. r) return
+    r = boxarray_same_q(cpasc%ba_dst, get_boxarray(la_dst))
+    if (.not. r) return
+    r =  all(cpasc%prc_src == la_src%lap%prc) .and. all(cpasc%prc_dst == la_dst%lap%prc)
   end function copyassoc_check
 
   function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
@@ -2687,13 +2713,13 @@ contains
     integer,         intent(in) :: side
     type(box),       intent(in) :: crse_domain
     integer,         intent(in) :: ir(:)
-    r =         associated(flasc%lap_dst, la_dst%lap)
-    r = r .and. associated(flasc%lap_src, la_src%lap)
-    r = r .and. all(flasc%nd_dst .eqv. nd_dst)
-    r = r .and. all(flasc%nd_src .eqv. nd_src)
-    r = r .and. (flasc%side .eq. side)
-    r = r .and. equal(flasc%crse_domain, crse_domain)
-    r = r .and. all(flasc%ir(1:flasc%dim) .eq. ir(1:flasc%dim))
+    r = associated(flasc%lap_dst, la_dst%lap) .and. associated(flasc%lap_src, la_src%lap)
+    if (.not. r) return
+    r = all(flasc%nd_dst .eqv. nd_dst) .and. all(flasc%nd_src .eqv. nd_src)
+    if (.not. r) return
+    r = (flasc%side .eq. side) .and. equal(flasc%crse_domain, crse_domain)
+    if (.not. r) return
+    r = all(flasc%ir(1:flasc%dim) .eq. ir(1:flasc%dim))
   end function fluxassoc_check
 
   function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
@@ -2701,7 +2727,8 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp
+    type(copyassoc), pointer       :: cp, ncp
+    integer                        :: i
     !
     ! Do we have one stored?
     !
@@ -2718,9 +2745,28 @@ contains
     !
     allocate(cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
+    the_copyassoc_cnt = the_copyassoc_cnt + 1
     cp%next => the_copyassoc_head
     the_copyassoc_head => cp
     r = cp
+
+    if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
+       !
+       ! Remove least recently inserted copyassoc (last one in the list).
+       !
+       i  =  1
+       cp => the_copyassoc_head
+       do while ( associated(cp) )
+          if ( i .eq. the_copyassoc_max ) then
+             call copyassoc_destroy(cp%next)
+             deallocate(cp%next)
+             cp%next => Null()
+             the_copyassoc_cnt = the_copyassoc_cnt - 1
+          end if
+          cp => cp%next
+          i  =  i + 1
+       end do
+    end if
   end function layout_copyassoc
 
   function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
