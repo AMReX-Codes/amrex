@@ -167,7 +167,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 50 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -1640,7 +1640,7 @@ contains
     !
     select case ( la%lap%dim ) 
     case (3)
-       call boxarray_maxsize(fgasc%ba, 32)
+       call boxarray_maxsize(fgasc%ba, 64)
     case (2)
        call boxarray_maxsize(fgasc%ba, 128)
     end select
@@ -2734,8 +2734,8 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp, ncp
-    integer                        :: i
+    type(copyassoc), pointer       :: cp, ncp, pcp
+    integer                        :: i, mnm
     !
     ! Do we have one stored?
     !
@@ -2748,6 +2748,42 @@ contains
        end if
        cp => cp%next
     end do
+
+    if ( the_copyassoc_cnt .ge. the_copyassoc_max ) then
+       !
+       ! Remove least reused copyassoc from list before adding new one.
+       !
+       mnm = Huge(0)
+       cp => the_copyassoc_head
+       do while ( associated(cp) )
+          mnm = min(mnm,cp%reused)
+          cp => cp%next
+       end do
+
+       cp  => the_copyassoc_head
+       pcp => Null()
+       do while ( associated(cp) )
+          ncp => cp%next
+          if ( cp%reused .eq. mnm ) then
+             if ( associated(cp, the_copyassoc_head) ) then
+                the_copyassoc_head => cp%next
+             else
+                pcp%next => ncp
+             end if
+             call copyassoc_destroy(cp)
+             deallocate(cp)
+             the_copyassoc_cnt = the_copyassoc_cnt - 1
+             exit
+          else
+             if ( .not. associated(pcp) ) then
+                pcp => the_copyassoc_head
+             else
+                pcp => pcp%next
+             end if
+          end if
+          cp => ncp
+       end do
+    end if
     !
     ! Gotta build one.
     !
@@ -2758,23 +2794,6 @@ contains
     the_copyassoc_head => cp
     r = cp
 
-    if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
-       !
-       ! Remove least recently inserted copyassoc (last one in the list).
-       !
-       i  =  1
-       cp => the_copyassoc_head
-       do while ( associated(cp) )
-          if ( i .eq. the_copyassoc_max ) then
-             call copyassoc_destroy(cp%next)
-             deallocate(cp%next)
-             cp%next => Null()
-             the_copyassoc_cnt = the_copyassoc_cnt - 1
-          end if
-          cp => cp%next
-          i  =  i + 1
-       end do
-    end if
   end function layout_copyassoc
 
   function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
