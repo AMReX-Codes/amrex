@@ -109,6 +109,7 @@ module layout_module
      type(boxarray)            :: ba_dst
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
+     integer                   :: reused     = 0
   end type copyassoc
   !
   ! Note that a fluxassoc contains two copyassocs.
@@ -514,17 +515,23 @@ contains
 
   subroutine layout_flush_copyassoc_cache ()
     type(copyassoc), pointer :: cp, ncp
+    integer                  :: i
 
     if ( verbose > 0 .and. parallel_IOProcessor() ) then
        print*, '*** flushing copy assoc cache of size: ', the_copyassoc_cnt
     end if
 
+    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
+       if ( verbose > 0 .and. parallel_IOProcessor() ) then
+          print*, i, ' reused: ', cp%reused
+       end if
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
        cp => ncp
+       i  =  i + 1
     end do
     the_copyassoc_cnt  =  0
     the_copyassoc_head => Null()
@@ -2735,6 +2742,7 @@ contains
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
+          cp%reused = cp%reused + 1
           r = cp
           return
        end if
