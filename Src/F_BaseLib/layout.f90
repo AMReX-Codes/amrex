@@ -525,7 +525,7 @@ contains
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( verbose > 0 .and. parallel_IOProcessor() ) then
-          print*, i, ' reused: ', cp%reused
+          print*, i, ' reused: ', cp%reused, ', size: ', nboxes(cp%ba_src)+nboxes(cp%ba_dst)
        end if
        ncp => cp%next
        call copyassoc_destroy(cp)
@@ -1438,7 +1438,7 @@ contains
        end if
     end do
 
-    if ( verbose > 0 ) then
+    if ( verbose > 1 ) then
        ioproc = parallel_IOProcessorNode()
        call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = ioproc)
        call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = ioproc)
@@ -1640,7 +1640,7 @@ contains
     !
     select case ( la%lap%dim ) 
     case (3)
-       call boxarray_maxsize(fgasc%ba, 64)
+       call boxarray_maxsize(fgasc%ba, 32)
     case (2)
        call boxarray_maxsize(fgasc%ba, 128)
     end select
@@ -1931,7 +1931,7 @@ contains
        end if
     end do
 
-    if ( verbose > 0 ) then
+    if ( verbose > 1 ) then
        ioproc = parallel_IOProcessorNode()
        call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
        call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
@@ -2306,7 +2306,7 @@ contains
        end if
     end do
 
-    if ( verbose > 0 ) then
+    if ( verbose > 1 ) then
        ioproc = parallel_IOProcessorNode()
        call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
        call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
@@ -2631,7 +2631,7 @@ contains
        end if
     end do
 
-    if ( verbose > 0 ) then
+    if ( verbose > 1 ) then
        ioproc = parallel_IOProcessorNode()
        call parallel_reduce(lcnt_r_max,              lcnt_r, MPI_MAX, proc = ioproc)
        call parallel_reduce(cnt_s_max,                cnt_s, MPI_MAX, proc = ioproc)
@@ -2748,51 +2748,6 @@ contains
        end if
        cp => cp%next
     end do
-
-    if ( the_copyassoc_cnt .ge. the_copyassoc_max ) then
-       !
-       ! Remove least reused copyassoc from the list before adding new one.
-       ! We first calculate the smallest reused value in the list.  Next
-       ! we save a pointer to the last copyassoc in the list with that minimum
-       ! value.  Then we remove it from the list.
-       !
-       mnm = Huge(0)
-       cp => the_copyassoc_head
-       do while ( associated(cp) )
-          mnm = min(mnm,cp%reused)
-          cp => cp%next
-       end do
-
-       cp => the_copyassoc_head
-       do while ( associated(cp) )
-          if ( cp%reused .eq. mnm ) cpmnm => cp
-          cp => cp%next
-       end do
-
-       cp  => the_copyassoc_head
-       pcp => Null()
-       do while ( associated(cp) )
-          ncp => cp%next
-          if ( associated(cp, cpmnm) ) then
-             if ( associated(cp, the_copyassoc_head) ) then
-                the_copyassoc_head => cp%next
-             else
-                pcp%next => ncp
-             end if
-             call copyassoc_destroy(cp)
-             deallocate(cp)
-             the_copyassoc_cnt = the_copyassoc_cnt - 1
-             exit
-          else
-             if ( .not. associated(pcp) ) then
-                pcp => the_copyassoc_head
-             else
-                pcp => pcp%next
-             end if
-          end if
-          cp => ncp
-       end do
-    end if
     !
     ! Gotta build one.
     !
@@ -2803,6 +2758,23 @@ contains
     the_copyassoc_head => cp
     r = cp
 
+    if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
+       !
+       ! Remove least recently inserted copyassoc (last one in the list).
+       !
+       i  =  1
+       cp => the_copyassoc_head
+       do while ( associated(cp) )
+          if ( i .eq. the_copyassoc_max ) then
+             call copyassoc_destroy(cp%next)
+             deallocate(cp%next)
+             cp%next => Null()
+             the_copyassoc_cnt = the_copyassoc_cnt - 1
+          end if
+          cp => cp%next
+          i  =  i + 1
+       end do
+    end if
   end function layout_copyassoc
 
   function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
