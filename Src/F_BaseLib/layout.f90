@@ -2751,14 +2751,17 @@ contains
     !
     ! Do we have one stored?
     !
+    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
+          if ( verbose > 0 .and. parallel_IOProcessor() ) print*, ' reused # ', i
           cp%reused = cp%reused + 1
           r = cp
           return
        end if
        cp => cp%next
+       i  =  i + 1
     end do
     !
     ! Gotta build one.
