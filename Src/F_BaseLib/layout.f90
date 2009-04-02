@@ -99,17 +99,19 @@ module layout_module
   end type syncassoc
 
   type copyassoc
-     integer                   :: dim       = 0       ! spatial dimension 1, 2, or 3
-     logical, pointer          :: nd_dst(:) => Null() ! dst nodal flag
-     logical, pointer          :: nd_src(:) => Null() ! src nodal flag
+     integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
+     integer                   :: reused     = 0
+     integer                   :: hash
+     logical, pointer          :: nd_dst(:)  => Null() ! dst nodal flag
+     logical, pointer          :: nd_src(:)  => Null() ! src nodal flag
      type(local_conn)          :: l_con
      type(remote_conn)         :: r_con
-     type(copyassoc),  pointer :: next      => Null()
+     type(copyassoc),  pointer :: next       => Null()
      type(boxarray)            :: ba_src
      type(boxarray)            :: ba_dst
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
-     integer                   :: reused     = 0
+
   end type copyassoc
   !
   ! Note that a fluxassoc contains two copyassocs.
@@ -517,16 +519,12 @@ contains
     type(copyassoc), pointer :: cp, ncp
     integer                  :: i
 
-    if ( verbose > 0 .and. parallel_IOProcessor() ) then
-       print*, '*** flushing copy assoc cache of size: ', the_copyassoc_cnt
-    end if
+    if ( verbose > 0 .and. parallel_IOProcessor() ) print*, '*** flushing copyassoc cache of size: ', the_copyassoc_cnt
 
     i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
-       if ( verbose > 0 .and. parallel_IOProcessor() ) then
-          print*, i, ' reused: ', cp%reused, ', size: ', nboxes(cp%ba_src)+nboxes(cp%ba_dst)
-       end if
+       if ( verbose > 0 .and. parallel_IOProcessor() ) print*, i, ' reused: ', cp%reused
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
@@ -2135,7 +2133,8 @@ contains
     call boxarray_build_copy(cpasc%ba_src, get_boxarray(la_src))
     call boxarray_build_copy(cpasc%ba_dst, get_boxarray(la_dst))
 
-    cpasc%dim = cpasc%ba_src%dim
+    cpasc%dim  = cpasc%ba_src%dim
+    cpasc%hash = layout_boxarray_hash(cpasc%ba_src) + layout_boxarray_hash(cpasc%ba_dst)
 
     allocate(cpasc%prc_src(la_src%lap%nboxes))
     allocate(cpasc%prc_dst(la_dst%lap%nboxes))
@@ -2698,12 +2697,25 @@ contains
     flasc%dim = 0
   end subroutine fluxassoc_destroy
 
+  function layout_boxarray_hash(ba) result(r)
+    type(boxarray), intent(in) :: ba
+    integer                    :: r, i
+    r = 0
+    do i = 1, nboxes(ba)
+       r = r + lwb(ba%bxs(i),1) + upb(ba%bxs(i),1)
+    end do
+  end function layout_boxarray_hash
+
   function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
     type(copyassoc), intent(in) :: cpasc
     type(layout),    intent(in) :: la_src, la_dst
     logical,         intent(in) :: nd_dst(:), nd_src(:)
     logical                     :: r
+    integer                     :: hash
     r = all(cpasc%nd_dst .eqv. nd_dst) .and. all(cpasc%nd_src .eqv. nd_src)
+    if (.not. r) return
+    hash = layout_boxarray_hash(get_boxarray(la_src)) + layout_boxarray_hash(get_boxarray(la_dst))
+    r = (hash .eq. cpasc%hash)
     if (.not. r) return
     r = boxarray_same_q(cpasc%ba_src, get_boxarray(la_src))
     if (.not. r) return
