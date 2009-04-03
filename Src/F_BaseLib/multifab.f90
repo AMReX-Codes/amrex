@@ -1634,13 +1634,11 @@ contains
     end if
   end subroutine cpy_z
 
-  subroutine reshape_d_4_1(dst,ic,src,sh)
+  subroutine reshape_d_4_1(dst,ic,src)
     real(dp_t),intent(in)    :: src(:,:,:,:)
     real(dp_t),intent(inout) :: dst(:)
     integer,intent(in)       :: ic
-    integer,intent(in)       :: sh(:)
     integer                  :: i,j,k,n,c
-    if ( size(sh) /= 1 ) call bl_error("reshape_d_4_1: how did this happen?")
     c = ic
     do n = 1, size(src,4)
        do k = 1, size(src,3)
@@ -1699,13 +1697,11 @@ contains
     end if
   end subroutine reshape_d_1_4
 
-  subroutine reshape_i_4_1(dst,ic,src,sh)
+  subroutine reshape_i_4_1(dst,ic,src)
     integer,intent(in)    :: src(:,:,:,:)
     integer,intent(inout) :: dst(:)
     integer,intent(in)    :: ic
-    integer,intent(in)    :: sh(:)
     integer               :: i,j,k,n,c
-    if ( size(sh) /= 1 ) call bl_error("reshape_i_4_1: how did this happen?")
     c = ic
     do n = 1, size(src,4)
        do k = 1, size(src,3)
@@ -1763,13 +1759,11 @@ contains
     end if
   end subroutine reshape_i_1_4
 
-  subroutine reshape_l_4_1(dst,ic,src,sh)
+  subroutine reshape_l_4_1(dst,ic,src)
     logical,intent(in)    :: src(:,:,:,:)
     logical,intent(inout) :: dst(:)
     integer,intent(in)    :: ic
-    integer,intent(in)    :: sh(:)
     integer               :: i,j,k,n,c
-    if ( size(sh) /= 1 ) call bl_error("reshape_l_4_1: how did this happen?")
     c = ic
     do n = 1, size(src,4)
        do k = 1, size(src,3)
@@ -1827,13 +1821,11 @@ contains
     end if
   end subroutine reshape_l_1_4
 
-  subroutine reshape_z_4_1(dst,ic,src,sh)
+  subroutine reshape_z_4_1(dst,ic,src)
     complex(dp_t),intent(in)    :: src(:,:,:,:)
     complex(dp_t),intent(inout) :: dst(:)
     integer,intent(in)          :: ic
-    integer,intent(in)          :: sh(:)
     integer                     :: i,j,k,n,c
-    if ( size(sh) /= 1 ) call bl_error("reshape_z_4_1: how did this happen?")
     c = ic
     do n = 1, size(src,4)
        do k = 1, size(src,3)
@@ -1926,7 +1918,7 @@ contains
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2000,7 +1992,7 @@ contains
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2074,7 +2066,7 @@ contains
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2148,7 +2140,7 @@ contains
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p, nc*bxasc%r_con%snd(i)%s1)
+       call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
     allocate(rst(bxasc%r_con%nrp))
@@ -2318,7 +2310,7 @@ contains
 
     do i = 1, snasc%r_con%nsnd
        p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p, nc*snasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2806,7 +2798,7 @@ contains
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2891,7 +2883,7 @@ contains
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -2976,7 +2968,7 @@ contains
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
     if ( Do_AllToAllV ) then
@@ -3061,7 +3053,7 @@ contains
 
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
-       call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p, nc*cpasc%r_con%snd(i)%s1)
+       call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
     allocate(rst(cpasc%r_con%nrp))
