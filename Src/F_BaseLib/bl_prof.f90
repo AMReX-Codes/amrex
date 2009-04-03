@@ -347,7 +347,7 @@ contains
        write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
+          write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
        end do
     end if
 
@@ -381,7 +381,7 @@ contains
              write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
              do j = 1, size(ism)
                 ii = ism(j)
-                write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') &
+                write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') &
                      trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
              end do
              write(unit = un, fmt = '()')
