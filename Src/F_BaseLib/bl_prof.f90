@@ -347,14 +347,14 @@ contains
        write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
        do i = 1, size(ism)
           ii = ism(i)
-          write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
+          write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
        end do
     end if
 
     if ( parallel_ioprocessor() ) then
        write(unit = un, fmt = '()')
        write(unit = un, fmt = &
-            '("REGION",TR20,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
+            '("REGION",TR40,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
     end if
 
     call p_activation(the_call_tree, un, 0, local = .false.)
@@ -381,12 +381,12 @@ contains
              write(unit = un, fmt = '("REGION",TR20,"COUNT", TR8,"TOTAL", TR22, "SELF",TR23,"MAX",TR10,"MIN")')
              do j = 1, size(ism)
                 ii = ism(j)
-                write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') &
+                write(unit = un, fmt = '(A20,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') &
                      trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
              end do
              write(unit = un, fmt = '()')
              write(unit = un, fmt = &
-                  '("REGION",TR20,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
+                  '("REGION",TR40,"COUNT",TR8,"TOTAL", TR8, "CHILD", TR9, "SELF", TR10, "AVG",TR10,"MAX",TR10,"MIN")')
              call p_activation(the_call_tree, un, 0, local = .true.)
              close(unit = un)
           end if
@@ -501,7 +501,7 @@ contains
     integer, intent(in) :: un, skip
     logical, intent(in) :: local
     integer :: i, ii
-    character(len=20) :: nm
+    character(len=40) :: nm
     real(dp_t) :: cum_chidren, self, avg, cum
     real(dp_t), allocatable :: ctm(:)
     integer, allocatable :: itm(:)
