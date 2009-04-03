@@ -453,7 +453,7 @@ contains
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: flxpt
     integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
-    integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
+    integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1), vol(1)
     integer,    allocatable :: rcnt(:), rdsp(:), scnt(:), sdsp(:)
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     integer,    allocatable :: g_snd_i(:), g_rcv_i(:)
@@ -508,7 +508,8 @@ contains
 
     do i = 1, fa%flux%r_con%nsnd
        fp => dataptr(flux, fa%flux%r_con%snd(i)%ns, fa%flux%r_con%snd(i)%sbx)
-       g_snd_d(1 + fa%flux%r_con%snd(i)%pv:fa%flux%r_con%snd(i)%av) = reshape(fp, fa%flux%r_con%snd(i)%s1)
+       vol(1) = volume(fa%flux%r_con%snd(i)%sbx)
+       g_snd_d(1 + fa%flux%r_con%snd(i)%pv:fa%flux%r_con%snd(i)%av) = reshape(fp, vol)
     end do
 
     allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
@@ -534,7 +535,8 @@ contains
 
     do i = 1, fa%mask%r_con%nsnd
        mp => dataptr(mm_fine, fa%mask%r_con%snd(i)%ns, fa%mask%r_con%snd(i)%sbx)
-       g_snd_i(1 + fa%mask%r_con%snd(i)%pv:fa%mask%r_con%snd(i)%av) = reshape(mp, fa%mask%r_con%snd(i)%s1)
+       vol(1) = volume(fa%mask%r_con%snd(i)%sbx)
+       g_snd_i(1 + fa%mask%r_con%snd(i)%pv:fa%mask%r_con%snd(i)%av) = reshape(mp, vol)
     end do
 
     rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0

@@ -32,7 +32,6 @@ module layout_module
      integer   :: pv = 0                 ! number of points in buf prior to this
      integer   :: av = 0                 ! number of points in buf including this one
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
-     integer   :: s1(1) = 0              ! shape for data from rcvbuf
      integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
 
@@ -111,7 +110,6 @@ module layout_module
      type(boxarray)            :: ba_dst
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
-
   end type copyassoc
   !
   ! Note that a fluxassoc contains two copyassocs.
@@ -1330,7 +1328,6 @@ contains
                 bxasc%r_con%snd(i_s)%sbx = abx
                 bxasc%r_con%snd(i_s)%dbx = shift(abx,-shft(ii,:))
                 bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                bxasc%r_con%snd(i_s)%s1  = volume(abx)
                 i_s                      = i_s + 1
              else if ( local(la, i) ) then
                 if ( i_r > size(bxasc%r_con%rcv) ) then
@@ -1822,7 +1819,6 @@ contains
                 snasc%r_con%snd(i_s)%sbx = sbx
                 snasc%r_con%snd(i_s)%dbx = dbx
                 snasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                snasc%r_con%snd(i_s)%s1  = volume(dbx)
                 i_s                      = i_s + 1
              else if ( local(la, i) ) then  ! must recv
                 if ( i_r > size(snasc%r_con%rcv) ) then
@@ -2012,96 +2008,6 @@ contains
     deallocate(snasc%r_con%rtr)
   end subroutine syncassoc_destroy
 
-  subroutine boxassoc_print(bxasc, str, unit, skip)
-    use bl_IO_module
-    type(boxassoc), intent(in) :: bxasc
-    character (len=*), intent(in), optional :: str
-    integer, intent(in), optional :: unit
-    integer, intent(in), optional :: skip
-    integer :: un
-    integer :: i, ii
-    un = unit_stdout(unit)
-    call unit_skip(un, skip)
-    write(unit=un,fmt='("BOXASSOC")', advance='no')
-    if ( present(str) ) then
-       write(unit=un, fmt='(": ", A)') str
-    else
-       write(unit=un, fmt='()')
-    end if
-    call unit_skip(un, skip)
-    write(unit=un,fmt='(" NODAL = ", 3L2)') bxasc%nodal
-    do ii = 0, parallel_nprocs()-1
-       if ( ii == parallel_myproc() ) then
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" PROCESSOR ", i4)') ii
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" L_CON")')
-          do i = 1, bxasc%l_con%ncpy
-             call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"): ")', advance = 'no') &
-                  i, &
-                  bxasc%l_con%cpy(i)%nd, &
-                  bxasc%l_con%cpy(i)%ns
-             call print(bxasc%l_con%cpy(i)%dbx, unit=un, advance = 'no')
-             write(unit=un, fmt='(" <-- ")', advance = 'no')
-             call print(bxasc%l_con%cpy(i)%sbx, unit=un)
-          end do
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" R_CON")')
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" S BUF: Volume: ", i10)') bxasc%r_con%svol
-          do i = 1, bxasc%r_con%nsp
-             call unit_skip(un, skip)
-             write(unit=un, fmt='(" ", i4,":",i4,":",i4,":",i4)') i, &
-                  bxasc%r_con%str(i)%pr, &
-                  bxasc%r_con%str(i)%pv, &
-                  bxasc%r_con%str(i)%sz
-          end do
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" R BUF: Volume: ", i10)') bxasc%r_con%rvol
-          do i = 1, bxasc%r_con%nrp
-             call unit_skip(un, skip)
-             write(unit=un, fmt='(i4,":",i4,":",i4,":",i4)') i, &
-                  bxasc%r_con%rtr(i)%pr, &
-                  bxasc%r_con%rtr(i)%pv, &
-                  bxasc%r_con%rtr(i)%sz
-          end do
-          write(unit=un, fmt='(" SND")')
-          do i = 1, bxasc%r_con%nsnd
-             call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
-                  advance = 'no') &
-                  i, &
-                  bxasc%r_con%snd(i)%nd, &
-                  bxasc%r_con%snd(i)%ns, &
-                  bxasc%r_con%snd(i)%pr, &
-                  bxasc%r_con%snd(i)%pv, &
-                  bxasc%r_con%snd(i)%av, &
-                  bxasc%r_con%snd(i)%s1, &
-                  bxasc%r_con%snd(i)%sh
-             call print(bxasc%r_con%snd(i)%sbx, unit=un)
-          end do
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" RCV")')
-          do i = 1, bxasc%r_con%nrcv
-             call unit_skip(un, skip)
-             write(unit=un, fmt='(" ",i5,":(",i4,"<-",i4,"):",i4,":",i4,":",i4,":",i4,":",4(1x,i4),": ")', &
-                  advance = 'no') &
-                  i, &
-                  bxasc%r_con%rcv(i)%nd, &
-                  bxasc%r_con%rcv(i)%ns, &
-                  bxasc%r_con%rcv(i)%pr, &
-                  bxasc%r_con%rcv(i)%pv, &
-                  bxasc%r_con%rcv(i)%av, &
-                  bxasc%r_con%rcv(i)%s1, &
-                  bxasc%r_con%rcv(i)%sh
-             call print(bxasc%r_con%rcv(i)%dbx, unit=un)
-          end do
-       end if
-       call parallel_barrier()
-    end do
-  end subroutine boxassoc_print
-
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
@@ -2201,7 +2107,6 @@ contains
              cpasc%r_con%snd(i_s)%sbx   = bx
              cpasc%r_con%snd(i_s)%dbx   = bx
              cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
-             cpasc%r_con%snd(i_s)%s1    = volume(bx)
              i_s                        = i_s + 1
           else if ( local(la_dst, i) ) then
              if ( i_r > size(cpasc%r_con%rcv) ) then
@@ -2447,7 +2352,6 @@ contains
                 flasc%flux%r_con%snd(i_s)%sbx = isect
                 flasc%flux%r_con%snd(i_s)%dbx = isect
                 flasc%flux%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
-                flasc%flux%r_con%snd(i_s)%s1  = volume(isect)
                 isect%lo(1:dm)                = isect%lo(1:dm) * ir(1:dm)
                 isect%hi(1:dm)                = isect%hi(1:dm) * ir(1:dm)
                 mpvol(la_dst%lap%prc(j), 2)   = mpvol(la_dst%lap%prc(j), 2) + volume(isect)
@@ -2456,7 +2360,6 @@ contains
                 flasc%mask%r_con%snd(i_s)%sbx = isect
                 flasc%mask%r_con%snd(i_s)%dbx = isect
                 flasc%mask%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
-                flasc%mask%r_con%snd(i_s)%s1  = volume(isect)
                 i_s                           = i_s + 1
              else
                 if ( i_r > size(flasc%flux%r_con%rcv) ) then
@@ -2746,8 +2649,8 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp, ncp, pcp, cpmnm
-    integer                        :: i, mnm
+    type(copyassoc), pointer       :: cp
+    integer                        :: i
     !
     ! Do we have one stored?
     !
@@ -2755,7 +2658,9 @@ contains
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
-          if ( verbose > 0 .and. parallel_IOProcessor() ) print*, ' reused # ', i
+          if ( verbose > 0 .and. parallel_IOProcessor() ) then
+             print*, ' reused # ', i, ', cnt: ', cp%reused
+          end if
           cp%reused = cp%reused + 1
           r = cp
           return
