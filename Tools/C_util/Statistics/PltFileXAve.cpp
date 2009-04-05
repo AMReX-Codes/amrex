@@ -189,6 +189,8 @@ main (int   argc,
     if (iFile.empty())
       BoxLib::Abort("You must specify `infile'");
 
+    int nstart = 1;
+    pp.query("nstart",nstart);
     int nmax;
     pp.query("nfile", nmax);
 
@@ -211,8 +213,8 @@ main (int   argc,
     dtold = 0.;
     sumold = 0.;
     Real phi = 0.3;
-
-    for (int i = 1; i < nmax; i++)
+    
+    for (int i = nstart; i < nmax; i++)
     {
       char buf[64];
       sprintf(buf,"%04d",i*10);
@@ -245,7 +247,7 @@ main (int   argc,
       destcomp[1] = 1;
 	
 
-      if (i == 1) {
+      if (i == nstart) {
 	//finestLevel = amrData.FinestLevel();
 	finestLevel = 0;
 	BoxArray ba = amrData.boxArray(finestLevel);
@@ -271,11 +273,11 @@ main (int   argc,
 
       amrData.FillVar(tmpmean,finestLevel,names,destcomp);
 
-      if (ParallelDescriptor::IOProcessor())
-	std::cout << "done" << std::endl;
+      //if (ParallelDescriptor::IOProcessor())
+      //	std::cout << "done" << std::endl;
 
-      for (int n = 0; n < nComp; n++)
-	amrData.FlushGrids(destcomp[n]);
+      //for (int n = 0; n < nComp; n++)
+      //	amrData.FlushGrids(destcomp[n]);
 
       Real dt = dtnew - dtold;
       dtold = dtnew;
