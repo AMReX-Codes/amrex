@@ -152,9 +152,9 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),gojira)
-      MPI_HOME=/usr/local/mpich2
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lpthread
     endif
