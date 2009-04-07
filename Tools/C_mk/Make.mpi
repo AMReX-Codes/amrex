@@ -1,3 +1,7 @@
+ifndef HOST
+  HOST := $(shell uname -n)
+endif
+
 #
 # These appear to be needed for all MPICH implementations.
 #
