@@ -444,7 +444,7 @@ contains
     integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
     integer   :: lomf(res%dim), lomc(res%dim)
     integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM), loflux(res%dim), hiflux(res%dim)
-    integer   :: i, j, ii, np
+    integer   :: i, j, ii, np, av
 
     real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
     integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
@@ -509,7 +509,8 @@ contains
     do i = 1, fa%flux%r_con%nsnd
        fp => dataptr(flux, fa%flux%r_con%snd(i)%ns, fa%flux%r_con%snd(i)%sbx)
        vol(1) = volume(fa%flux%r_con%snd(i)%sbx)
-       g_snd_d(1 + fa%flux%r_con%snd(i)%pv:fa%flux%r_con%snd(i)%av) = reshape(fp, vol)
+       av = fa%flux%r_con%snd(i)%pv + vol(1)
+       g_snd_d(1 + fa%flux%r_con%snd(i)%pv:av) = reshape(fp, vol)
     end do
 
     allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
@@ -536,7 +537,8 @@ contains
     do i = 1, fa%mask%r_con%nsnd
        mp => dataptr(mm_fine, fa%mask%r_con%snd(i)%ns, fa%mask%r_con%snd(i)%sbx)
        vol(1) = volume(fa%mask%r_con%snd(i)%sbx)
-       g_snd_i(1 + fa%mask%r_con%snd(i)%pv:fa%mask%r_con%snd(i)%av) = reshape(mp, vol)
+       av = fa%mask%r_con%snd(i)%pv + vol(1)
+       g_snd_i(1 + fa%mask%r_con%snd(i)%pv:av) = reshape(mp, vol)
     end do
 
     rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
@@ -577,12 +579,14 @@ contains
        lod = 1;                     hid = 1
        lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
        allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
-       flxpt = reshape(g_rcv_d(1 + fa%flux%r_con%rcv(i)%pv:fa%flux%r_con%rcv(i)%av), fsh)
+       av = fa%flux%r_con%rcv(i)%pv + volume(isect)
+       flxpt = reshape(g_rcv_d(1 + fa%flux%r_con%rcv(i)%pv:av), fsh)
 
        mbox = fa%mask%r_con%rcv(i)%sbx
        lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
        allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
-       mmfpt = reshape(g_rcv_i(1 + fa%mask%r_con%rcv(i)%pv:fa%mask%r_con%rcv(i)%av), msh)
+       av = fa%mask%r_con%rcv(i)%pv + volume(mbox)
+       mmfpt = reshape(g_rcv_i(1 + fa%mask%r_con%rcv(i)%pv:av), msh)
 
        select case (res%dim)
        case (1)

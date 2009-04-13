@@ -30,7 +30,6 @@ module layout_module
      type(box) :: dbx                    ! dst sub-box
      type(box) :: sbx                    ! src sub-box
      integer   :: pv = 0                 ! number of points in buf prior to this
-     integer   :: av = 0                 ! number of points in buf including this one
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
      integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
@@ -1391,7 +1390,6 @@ contains
        i = bxasc%r_con%rcv(i_r)%pr
        bxasc%r_con%rcv(i_r)%pv = ppvol(i,1)
        pv = volume(bxasc%r_con%rcv(i_r)%dbx)
-       bxasc%r_con%rcv(i_r)%av = bxasc%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
     !
@@ -1401,7 +1399,6 @@ contains
        i = bxasc%r_con%snd(i_s)%pr
        bxasc%r_con%snd(i_s)%pv = ppvol(i,2)
        pv = volume(bxasc%r_con%snd(i_s)%dbx)
-       bxasc%r_con%snd(i_s)%av = bxasc%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
@@ -1883,7 +1880,6 @@ contains
        i = snasc%r_con%rcv(i_r)%pr
        snasc%r_con%rcv(i_r)%pv = ppvol(i,1)
        pv = volume(snasc%r_con%rcv(i_r)%dbx)
-       snasc%r_con%rcv(i_r)%av = snasc%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
     !
@@ -1893,7 +1889,6 @@ contains
        i = snasc%r_con%snd(i_s)%pr
        snasc%r_con%snd(i_s)%pv = ppvol(i,2)
        pv = volume(snasc%r_con%snd(i_s)%dbx)
-       snasc%r_con%snd(i_s)%av = snasc%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
@@ -2168,7 +2163,6 @@ contains
        i = cpasc%r_con%rcv(i_r)%pr
        cpasc%r_con%rcv(i_r)%pv = ppvol(i,1)
        pv = volume(cpasc%r_con%rcv(i_r)%dbx)
-       cpasc%r_con%rcv(i_r)%av = cpasc%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
     !
@@ -2178,7 +2172,6 @@ contains
        i = cpasc%r_con%snd(i_s)%pr
        cpasc%r_con%snd(i_s)%pv = ppvol(i,2)
        pv = volume(cpasc%r_con%snd(i_s)%dbx)
-       cpasc%r_con%snd(i_s)%av = cpasc%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
@@ -2452,7 +2445,6 @@ contains
        i = flasc%flux%r_con%rcv(i_r)%pr
        flasc%flux%r_con%rcv(i_r)%pv = ppvol(i,1)
        pv = volume(flasc%flux%r_con%rcv(i_r)%dbx)
-       flasc%flux%r_con%rcv(i_r)%av = flasc%flux%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
 
@@ -2460,7 +2452,6 @@ contains
        i = flasc%flux%r_con%snd(i_s)%pr
        flasc%flux%r_con%snd(i_s)%pv = ppvol(i,2)
        pv = volume(flasc%flux%r_con%snd(i_s)%dbx)
-       flasc%flux%r_con%snd(i_s)%av = flasc%flux%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
 
@@ -2497,7 +2488,6 @@ contains
        i = flasc%mask%r_con%rcv(i_r)%pr
        flasc%mask%r_con%rcv(i_r)%pv = ppvol(i,1)
        pv = volume(flasc%mask%r_con%rcv(i_r)%dbx)
-       flasc%mask%r_con%rcv(i_r)%av = flasc%mask%r_con%rcv(i_r)%pv + pv
        ppvol(i,1) = ppvol(i,1) + pv
     end do
 
@@ -2505,7 +2495,6 @@ contains
        i = flasc%mask%r_con%snd(i_s)%pr
        flasc%mask%r_con%snd(i_s)%pv = ppvol(i,2)
        pv = volume(flasc%mask%r_con%snd(i_s)%dbx)
-       flasc%mask%r_con%snd(i_s)%av = flasc%mask%r_con%snd(i_s)%pv + pv
        ppvol(i,2) = ppvol(i,2) + pv
     end do
 
