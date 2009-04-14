@@ -335,7 +335,23 @@ contains
     end if
     call parallel_bcast(ok)
 
-    if ( .not. ok) call bl_error("*** bl_prof_glean: proc trees are NOT identical !!!")
+    if ( .not. ok) then
+       !
+       ! Attempt to print out something to help track down why trees are not the same.
+       !
+       call sort(sm(:,2), ism, greater_d)
+       do j = 0, parallel_nprocs()-1
+          if (j == parallel_myproc()) then
+             print*, 'glean on CPU# ', j, 'size(ism):', size(ism)
+             do i = 1, size(ism)
+                ii = ism(i)
+                print*, trim(timers(ii)%name)
+             end do
+          end if
+          call parallel_barrier()
+       end do
+       call bl_error("*** bl_prof_glean: proc trees are NOT identical !!!")
+    end if
 
     call s_activation(the_call_tree, sm, local = .false.)
 
