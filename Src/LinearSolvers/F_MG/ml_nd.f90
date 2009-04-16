@@ -9,7 +9,7 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps,bottom_mgt)
 
     use bl_prof_module
     use ml_util_module
@@ -25,6 +25,8 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics 
     real(dp_t)     , intent(in   ) :: eps
+
+    type(mg_tower) , intent(inout), optional :: bottom_mgt
 
     integer :: nlevs
     type(multifab), allocatable  ::      soln(:)
@@ -174,9 +176,15 @@ contains
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
                   mgt(n)%gamma)
           else 
-             call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
-                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  mgt(n)%gamma)
+             if (present(bottom_mgt)) then
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     mgt(n)%gamma,bottom_mgt=bottom_mgt)
+             else
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, mgt(n)%ss(mglev), &
+                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     mgt(n)%gamma)
+             end if
           end if
 
           ! Add: soln += uu
