@@ -488,7 +488,7 @@ contains
 
   end subroutine mg_tower_v_cycle
 
-  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, bottom_mgt)
 
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
@@ -503,7 +503,17 @@ contains
     integer i
     type(bl_prof_timer), save :: bpt
 
+    type( mg_tower), intent(inout), optional :: bottom_mgt
+
+    type( multifab) :: bottom_uu
+    type( multifab) :: bottom_rh
+    integer         :: mglev
+
     call build(bpt, "mgt_bottom_solve")
+
+    if (mgt%bottom_solver == 4 .and. .not. present(bottom_mgt)) then
+       call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_mgt if bottom_solver == 4")
+    end if
 
     stat = 0
     select case ( mgt%bottom_solver )
@@ -544,6 +554,24 @@ contains
        end if
        call copy(uu, mgt%uu1)
        call parallel_bcast(stat, 1)
+    case (4)
+
+       mglev = bottom_mgt%nlevels
+
+       call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng)
+       call setval(bottom_uu,0.d0,all=.true.)
+
+       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,rh%ng)
+       call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
+
+       call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle, mglev, &
+                           bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
+                           bottom_mgt%mm(mglev), bottom_mgt%nu1, bottom_mgt%nu2, &
+                           bottom_mgt%gamma)
+
+       call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
+       call multifab_fill_boundary(uu)
+
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
@@ -571,6 +599,7 @@ contains
     type(imultifab), intent(in)   :: mm
     logical, intent(in), optional :: uniform_dh
     type(bl_prof_timer), save     :: bpt
+
     call build(bpt, "mg_defect")
     call itsol_stencil_apply(ss, dd, uu, mm, uniform_dh)
     call saxpy(dd, ff, -1.0_dp_t, dd)
@@ -1187,7 +1216,7 @@ contains
   end subroutine mg_tower_v_cycle_c
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level)
+                                      bottom_level, bottom_mgt)
 
     use bl_prof_module
 
@@ -1203,10 +1232,12 @@ contains
     integer, intent(in), optional :: bottom_level
     integer :: i
     logical :: do_diag
-    real(dp_t) :: nrm, nrm1
+    real(dp_t) :: nrm
     integer :: lbl
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
+
+    type(mg_tower), intent(inout), optional :: bottom_mgt
 
     call build(bpt, "mgt_cycle")
 
@@ -1217,10 +1248,9 @@ contains
     nodal_flag = nodal_q(ss)
 
     if (do_diag) then
-       nrm = norm_inf(uu)
-       nrm1 = norm_inf(rh)
+       nrm = norm_inf(rh)
        if ( parallel_IOProcessor() ) then
-          print *,'IN: NORM RH                   ',lev,nrm1
+          print *,'IN: NORM RH                   ',lev,nrm
        end if
     end if
 
@@ -1234,7 +1264,13 @@ contains
              print *,'DN: NORM BEFORE BOTTOM        ',lev, nrm
           end if
        end if
-       call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+
+       if (present(bottom_mgt)) then
+          call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+       else
+          call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+       end if
+
        if ( cyc == MG_FCycle ) gamma = 1
        if (do_diag) then
           ! compute mgt%cc(lev) = ss * uu - rh
@@ -1244,11 +1280,11 @@ contains
              print *,'DN: NORM AFTER BOTTOM         ',lev, nrm
           end if
        end if
+
     else 
 
        if (do_diag) then
           nrm = norm_inf(rh)
-          nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) then
              print *,'DN: NORM BEFORE RELAX         ',lev, nrm
           end if
@@ -1263,7 +1299,6 @@ contains
 
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
-          nrm1 = norm_inf(uu)
           if ( parallel_IOProcessor() ) &
                print *,'DN: NORM AFTER  RELAX         ',lev, nrm
        end if
@@ -1280,8 +1315,14 @@ contains
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
-          call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
+          if (present(bottom_mgt)) then
+             call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+                                 mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, &
+                                 bottom_mgt=bottom_mgt)
+          else
+             call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+                                 mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
+          end if
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
