@@ -3338,6 +3338,9 @@ contains
     type(multifab), intent(out) :: mask
     integer :: i, d
     type(box) :: full_box, shrunk_box, inner_box
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "build_nodal_dot_mask")
 
     call build(mask, mf%la, 1, 0, mf%nodal)
     do i = 1, mf%nboxes
@@ -3382,6 +3385,9 @@ contains
        inner_box = grow(full_box,-1)
        call setval(mask%fbs(i),1.0_dp_t,inner_box)
     end do
+
+    call destroy(bpt)
+
   end subroutine build_nodal_dot_mask
 
   function multifab_dot_cc(mf, comp, mf1, comp1, all, mask) result(r)
