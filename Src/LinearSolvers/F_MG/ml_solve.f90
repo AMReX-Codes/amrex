@@ -80,7 +80,7 @@ contains
 
    end subroutine ml_cc_solve
 
-   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in)
+   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in,bottom_mgt)
 
        use ml_nd_module
 
@@ -92,6 +92,8 @@ contains
        integer        , intent(in   )           :: ref_ratio(:,:)
        integer        , intent(in   )           :: do_diagnostics 
        real(dp_t)     , intent(in   ), optional :: eps_in
+
+       type(mg_tower ), intent(inout), optional :: bottom_mgt
 
        type(lmultifab) :: fine_mask(mla%nlevel)
        integer         :: nlevs, n, dm, lo(rh(mla%nlevel)%dim), hi(rh(mla%nlevel)%dim)
@@ -118,7 +120,12 @@ contains
           endif
        end do
 
-       call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+       if (present(bottom_mgt)) then
+          call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps, &
+                     bottom_mgt=bottom_mgt)
+       else
+          call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+       end if
      
        do n = 1,nlevs
           call lmultifab_destroy(fine_mask(n))
