@@ -558,10 +558,10 @@ contains
 
        mglev = bottom_mgt%nlevels
 
-       call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng)
+       call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
        call setval(bottom_uu,0.d0,all=.true.)
 
-       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,rh%ng)
+       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,rh%ng,rh%nodal)
        call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
 
        call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle, mglev, &
