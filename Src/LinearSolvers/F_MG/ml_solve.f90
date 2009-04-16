@@ -14,7 +14,7 @@ module ml_solve_module
 
 contains
 
-   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics)
+   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,bottom_mgt)
 
       use ml_util_module
       use ml_cc_module
@@ -26,6 +26,8 @@ contains
       type(bndry_reg), intent(inout) :: fine_flx(2:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       integer        , intent(in   ) :: do_diagnostics
+
+      type(mg_tower ), intent(inout), optional :: bottom_mgt
 
       type(boxarray)  :: bac
       type(lmultifab) :: fine_mask(mla%nlevel)
@@ -50,8 +52,13 @@ contains
 
 ! ****************************************************************************
 
-      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
-                 need_grad_phi_in=.true.)
+      if (present(bottom_mgt)) then
+         call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
+                    need_grad_phi_in=.true.,bottom_mgt=bottom_mgt)
+      else
+         call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
+                    need_grad_phi_in=.true.)
+      end if
 
 ! ****************************************************************************
 

@@ -10,7 +10,8 @@ module ml_cc_module
 contains
 
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
-                   do_diagnostics, eps, abs_eps_in, need_grad_phi_in, final_resnorm)
+                   do_diagnostics, eps, abs_eps_in, need_grad_phi_in, final_resnorm, &
+                   bottom_mgt)
 
     use bl_prof_module
     use ml_util_module, only: ml_norm_inf
@@ -25,6 +26,8 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics
     real(dp_t)     , intent(in   ) :: eps
+
+    type(mg_tower) , intent(inout), optional :: bottom_mgt
 
     real(dp_t)     , intent(in   ), optional :: abs_eps_in
     logical        , intent(in   ), optional :: need_grad_phi_in
@@ -215,10 +218,17 @@ contains
                                 mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
                                 mgt(n)%gamma)
              else 
-                call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, &
-                                    mgt(n)%ss(mglev), uu(n), res(n), &
-                                    mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                                    mgt(n)%gamma)
+                if (present(bottom_mgt)) then
+                   call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, &
+                                       mgt(n)%ss(mglev), uu(n), res(n), &
+                                       mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                                       mgt(n)%gamma, bottom_mgt=bottom_mgt)
+                else 
+                   call mg_tower_cycle(mgt(n), mgt(n)%cycle, mglev, &
+                                       mgt(n)%ss(mglev), uu(n), res(n), &
+                                       mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                                       mgt(n)%gamma)
+                end if
              end if
           end if
 
