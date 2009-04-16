@@ -572,6 +572,9 @@ contains
        call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
        call multifab_fill_boundary(uu)
 
+       call destroy(bottom_uu)
+       call destroy(bottom_rh)
+
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
