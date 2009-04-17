@@ -157,7 +157,7 @@ contains
   end subroutine itsol_defect
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, &
-       stat, singular_in, uniform_dh)
+       stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
     integer, intent(in) :: max_iter
     type(imultifab), intent(in) :: mm
@@ -167,6 +167,7 @@ contains
     integer, intent(out), optional :: stat
     logical, intent(in), optional :: singular_in
     logical, intent(in), optional :: uniform_dh
+    type(multifab), intent(in), optional :: nodal_mask
     real(kind=dp_t) :: eps
     type(layout) :: la
     integer, intent(in) :: verbose
@@ -217,8 +218,13 @@ contains
 
     if (singular .and. nodal_solve) then
       call setval(ss,ONE)
-      rho = dot(rr, ss)
-      volume = dot(ss,ss)
+      if (present(nodal_mask)) then
+            rho = dot(rr, ss, nodal_mask)
+         volume = dot(ss, ss, nodal_mask)
+      else
+            rho = dot(rr, ss)
+         volume = dot(ss,ss)
+      end if
 !     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
       rho = rho / volume
       call saxpy(rr,-rho,ss)
@@ -226,7 +232,11 @@ contains
     end if
 
     call copy(rt, rr)
-    rho = dot(rt, rr)
+    if (present(nodal_mask)) then
+       rho = dot(rt, rr, nodal_mask)
+    else 
+       rho = dot(rt, rr)
+    end if
     rho_orig = rho
 
     tres0 = norm_inf(rr)
@@ -260,7 +270,11 @@ contains
     end if
 
     do i = 1, max_iter
-       rho = dot(rt, rr)
+       if (present(nodal_mask)) then
+          rho = dot(rt, rr, nodal_mask)
+       else 
+          rho = dot(rt, rr)
+       end if
        if ( i == 1 ) then
           call copy(pp, rr)
        else
@@ -286,7 +300,11 @@ contains
        end if
        call itsol_precon(aa, ph, pp, mm, 0)
        call itsol_stencil_apply(aa, vv, ph, mm, uniform_dh); cnt = cnt + 1
-       den = dot(rt, vv)
+       if (present(nodal_mask)) then
+          den = dot(rt, vv, nodal_mask)
+       else
+          den = dot(rt, vv)
+       end if 
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
@@ -307,7 +325,11 @@ contains
        call itsol_precon(aa, sh, ss, mm,0)
        call itsol_stencil_apply(aa, tt, sh, mm, uniform_dh); cnt = cnt + 1
 
-       den = dot(tt,tt)
+       if (present(nodal_mask)) then
+          den = dot(tt, tt, nodal_mask)
+       else
+          den = dot(tt, tt)
+       end if
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
@@ -316,7 +338,11 @@ contains
           endif
           call bl_error("BiCGStab: failure 3")
        end if
-       omega = dot(tt,ss)/den
+       if (present(nodal_mask)) then
+          omega = dot(tt,ss,nodal_mask)/den
+       else
+          omega = dot(tt,ss)/den
+       end if
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
@@ -327,7 +353,11 @@ contains
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, sh, rr, mm, 0)
-          rho_hg = dot(rr, sh)
+          if (present(nodal_mask)) then
+             rho_hg = dot(rr, sh, nodal_mask)
+          else
+             rho_hg = dot(rr, sh)
+          end if
           if ( (abs(rho_hg) < rho_orig*eps) .or. &
               itsol_converged(rr, uu, Anorm, bnorm, eps) ) exit
        else
@@ -394,12 +424,13 @@ contains
   end subroutine itsol_BiCGStab_solve
 
   subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, &
-       stat, singular_in, uniform_dh)
+                            stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
     integer, intent(in   )           :: max_iter, verbose
     integer, intent(  out), optional :: stat
     logical, intent(in   ), optional :: singular_in
     logical, intent(in   ), optional :: uniform_dh
+    type(multifab), intent(in), optional :: nodal_mask
 
     type( multifab), intent(in) :: aa
     type( multifab), intent(inout) :: uu
@@ -448,8 +479,13 @@ contains
 
     if (singular .and. nodal_solve) then
       call setval(zz,ONE)
-      rho = dot(rr, zz)
-      volume = dot(zz,zz)
+      if (present(nodal_mask)) then
+            rho = dot(rr, zz, nodal_mask)
+         volume = dot(zz,zz)
+      else
+            rho = dot(rr, zz)
+         volume = dot(zz,zz)
+      end if
 !     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
       rho = rho / volume
       call saxpy(rr,-rho,zz)
@@ -482,13 +518,21 @@ contains
     do i = 1, max_iter
 
        call itsol_precon(aa, zz, rr, mm, 0)
-       rho = dot(rr, zz)
+       if (present(nodal_mask)) then
+          rho = dot(rr, zz, nodal_mask)
+       else
+          rho = dot(rr, zz)
+       end if
        if ( i == 1 ) then
           call copy(pp, zz)
           rho_orig = rho
 
           call itsol_precon(aa, zz, rr, mm)
-          rho_hg_orig = dot(rr, zz)
+          if (present(nodal_mask)) then
+             rho_hg_orig = dot(rr, zz, nodal_mask)
+          else
+             rho_hg_orig = dot(rr, zz)
+          end if
 
        else
           if ( rho_1 == ZERO ) then
@@ -503,7 +547,11 @@ contains
           call saxpy(pp, zz, beta, pp)
        end if
        call itsol_stencil_apply(aa, qq, pp, mm, uniform_dh); cnt = cnt + 1
-       den = dot(pp, qq)
+       if (present(nodal_mask)) then
+          den = dot(pp, qq, nodal_mask)
+       else
+          den = dot(pp, qq)
+       end if
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("CG_solve: breakdown in solver, going with what I have")
@@ -523,7 +571,11 @@ contains
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa, zz, rr, mm)
-          rho_hg = dot(rr, zz)
+          if (present(nodal_mask)) then
+             rho_hg = dot(rr, zz, nodal_mask)
+          else
+             rho_hg = dot(rr, zz)
+          end if
           if ( (abs(rho_hg) < abs(rho_hg_orig)*eps) ) then
             exit
           end if
