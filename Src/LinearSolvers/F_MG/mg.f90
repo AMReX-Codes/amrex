@@ -74,11 +74,15 @@ module mg_module
 
      type(timer), pointer :: tm(:) => Null()
 
+     ! Only relevant if bottom_solver == 3
      type(sparse) sparse_object
      type(multifab) :: rh1
      type(multifab) :: uu1
      type(multifab) :: ss1
      type(imultifab) :: mm1
+
+     ! Only relevant if bottom_solver == 1 or 2 AND nodal
+     type(multifab) :: nodal_mask
 
      integer ::    verbose = 0
      integer :: cg_verbose = 0
@@ -255,6 +259,11 @@ contains
        call build(mgt%uu1, la1, mgt%nc, 0, nodal)
        call build(mgt%ss1, la1, ns,     0, nodal)
        call build(mgt%mm1, la1, 1,      0, nodal)
+    else if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
+       la2 = mgt%cc(1)%la
+       call layout_build_derived(la1, la2)
+       call build(mgt%nodal_mask, la1, 1, 0, nodal)
+       call build_nodal_dot_mask(mgt%nodal_mask,mgt%uu(1))
     end if
 
     mgt%uniform_dh = .true.
@@ -426,6 +435,8 @@ contains
     if ( built_q(mgt%ss1)           ) call destroy(mgt%ss1)
     if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
 
+    if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
+
   end subroutine mg_tower_destroy
 
   function max_mg_levels(ba, min_size) result(r)
@@ -522,19 +533,35 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
-       call itsol_bicgstab_solve(ss, uu, rh, mm, &
-                                 mgt%bottom_solver_eps, mgt%bottom_max_iter, &
-                                 mgt%cg_verbose, stat = stat, &
-                                 singular_in = mgt%bottom_singular, &
-                                 uniform_dh = mgt%uniform_dh)
+       if (nodal_q(rh)) then
+          call itsol_bicgstab_solve(ss, uu, rh, mm, &
+                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    mgt%cg_verbose, stat = stat, &
+                                    singular_in = mgt%bottom_singular, &
+                                    uniform_dh = mgt%uniform_dh,&
+                                    nodal_mask = mgt%nodal_mask)
+       else
+          call itsol_bicgstab_solve(ss, uu, rh, mm, &
+                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    mgt%cg_verbose, stat = stat, &
+                                    singular_in = mgt%bottom_singular, &
+                                    uniform_dh = mgt%uniform_dh)
+       end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (2)
-       call itsol_cg_solve(ss, uu, rh, mm, &
-                           mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
-                           stat = stat, singular_in = mgt%bottom_singular, &
-                           uniform_dh = mgt%uniform_dh)
+       if (nodal_q(rh)) then
+          call itsol_cg_solve(ss, uu, rh, mm, &
+                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              stat = stat, singular_in = mgt%bottom_singular, &
+                              uniform_dh = mgt%uniform_dh, nodal_mask=mgt%nodal_mask)
+       else
+          call itsol_cg_solve(ss, uu, rh, mm, &
+                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              stat = stat, singular_in = mgt%bottom_singular, &
+                              uniform_dh = mgt%uniform_dh)
+       end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
