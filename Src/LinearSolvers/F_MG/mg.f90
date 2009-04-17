@@ -263,7 +263,7 @@ contains
        la2 = mgt%cc(1)%la
        call layout_build_derived(la1, la2)
        call build(mgt%nodal_mask, la1, 1, 0, nodal)
-       call build_nodal_dot_mask(mgt%nodal_mask,mgt%uu(1))
+       call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
     end if
 
     mgt%uniform_dh = .true.
