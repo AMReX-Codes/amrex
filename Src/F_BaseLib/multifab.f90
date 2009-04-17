@@ -360,12 +360,14 @@ module multifab_module
      module procedure lmultifab_count
   end interface
 
+  interface build_nodal_dot_mask
+     module procedure mf_build_nodal_dot_mask
+  end interface
+
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
   type(mem_stats), private, save :: zmultifab_ms
-
-  private :: build_nodal_dot_mask
 
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
@@ -3333,7 +3335,7 @@ contains
     call zmultifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, nocomm)
   end subroutine zmultifab_copy
 
-  subroutine build_nodal_dot_mask(mask, mf)
+  subroutine mf_build_nodal_dot_mask(mask, mf)
     type(multifab), intent(in)  :: mf
     type(multifab), intent(out) :: mask
     integer :: i, d
@@ -3388,27 +3390,25 @@ contains
 
     call destroy(bpt)
 
-  end subroutine build_nodal_dot_mask
+  end subroutine mf_build_nodal_dot_mask
 
-  function multifab_dot_cc(mf, comp, mf1, comp1, all, mask) result(r)
+  function multifab_dot_cc(mf, comp, mf1, comp1, mask) result(r)
     real(dp_t) :: r
-    logical, intent(in), optional :: all
-    type(multifab), intent(in) :: mf
-    type(multifab), intent(in)  :: mf1
-    type(multifab) :: tmask
+    type(multifab) , intent(in) :: mf
+    type(multifab) , intent(in) :: mf1
+    integer        , intent(in) :: comp, comp1
     type(lmultifab), optional, intent(in) :: mask
-    integer, intent(in) :: comp, comp1
+
+    type(multifab) :: tmask
     real(dp_t), pointer :: mp(:,:,:,:)
     real(dp_t), pointer :: mp1(:,:,:,:)
     real(dp_t), pointer :: ma(:,:,:,:)
     logical, pointer :: lmp(:,:,:,:)
     real(dp_t) :: r1
-    logical :: lall
     integer :: n, i, j, k
 
     r1 = 0_dp_t
     if ( present(mask) ) then
-       if ( present(all) ) call bl_error('DONT SAY ALL IN MASKED FUNCTION DOT')
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
@@ -3438,18 +3438,12 @@ contains
           call bl_error("MULTIFAB_DOT_CC, failes when not nodal or cell-centered, can be fixed")
        end if
     else
-       lall = .FALSE.; if ( present(all) ) lall = all
        if ( cell_centered_q(mf) ) then
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
           do n = 1, mf%nboxes
              if ( remote(mf,n) ) cycle
-             if ( lall ) then
-                mp => dataptr(mf, n, get_pbox(mf, n), comp)
-                mp1 => dataptr(mf1, n, get_pbox(mf1, n), comp1)
-             else
-                mp => dataptr(mf, n, get_ibox(mf, n), comp)
-                mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
-             end if
+             mp  => dataptr(mf , n, get_box(mf ,n), comp)
+             mp1 => dataptr(mf1, n, get_box(mf1,n), comp1)
 !            r1 = r1 + sum(mp*mp1)
              do k = 1, ubound(mp,3); do j = 1, ubound(mp,2); do i = 1, ubound(mp,1)
                 r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
@@ -3457,16 +3451,13 @@ contains
           end do
           !$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
-          if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
           call build_nodal_dot_mask(tmask, mf)
           !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
-          do n = 1, mf%nboxes
+          do n = 1, mf%nboxes 
              if ( remote(mf,n) ) cycle
-
              mp => dataptr(mf, n, get_ibox(mf, n), comp)
              mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
              ma => dataptr(tmask, n, get_ibox(tmask, n))
-
              r1 = r1 + sum(ma*mp*mp1)
           end do
           !$OMP END PARALLEL DO
@@ -3478,100 +3469,106 @@ contains
     call parallel_reduce(r,r1,MPI_SUM)
   end function multifab_dot_cc
 
-  function multifab_dot_c(mf, mf1, comp, all) result(r)
+  function multifab_dot_c(mf, mf1, comp, nodal_mask) result(r)
     real(dp_t) :: r
-    logical, intent(in), optional :: all
     type(multifab), intent(in) :: mf
-    type(multifab), intent(in)  :: mf1
+    type(multifab), intent(in) :: mf1
+    integer       , intent(in) :: comp
+    type(multifab), intent(in), optional :: nodal_mask
+
     type(multifab) :: mask
-    integer, intent(in) :: comp
     real(dp_t), pointer :: mp(:,:,:,:)
     real(dp_t), pointer :: mp1(:,:,:,:)
     real(dp_t), pointer :: ma(:,:,:,:)
     real(dp_t) :: r1
     integer :: i
-    logical :: lall
-    lall = .FALSE.; if ( present(all) ) lall = all
+
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp)
-             mp1 => dataptr(mf1, i, get_pbox(mf1, i), comp)
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp)
-          end if
+          mp  => dataptr(mf , i, get_box(mf, i), comp)
+          mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
        !$OMP END PARALLEL DO
     else if (nodal_q(mf) ) then
-       if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
-       call build_nodal_dot_mask(mask, mf)
-       !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
-          mp => dataptr(mf, i, get_ibox(mf, i), comp)
-          mp1 => dataptr(mf1, i, get_ibox(mf1, i), comp)
-          ma => dataptr(mask, i, get_ibox(mask, i))
-
-          r1 = r1 + sum(ma*mp*mp1)
-       end do
-       !$OMP END PARALLEL DO
-       call destroy(mask)
+       if (present(nodal_mask)) then
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          do i = 1, mf%nboxes
+             if ( remote(mf,i) ) cycle
+             mp  => dataptr(mf        , i, get_ibox(mf, i), comp)
+             mp1 => dataptr(mf1       , i, get_ibox(mf1, i), comp)
+             ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
+             r1 = r1 + sum(ma*mp*mp1)
+          end do
+          !$OMP END PARALLEL DO
+       else
+          call build_nodal_dot_mask(mask, mf)
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          do i = 1, mf%nboxes
+             if ( remote(mf,i) ) cycle
+             mp  => dataptr(mf  , i, get_ibox(mf  , i), comp)
+             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i), comp)
+             ma  => dataptr(mask, i, get_ibox(mask, i))
+             r1 = r1 + sum(ma*mp*mp1)
+          end do
+          !$OMP END PARALLEL DO
+          call destroy(mask)
+       end if
     else
        call bl_error("MULTIFAB_DOT_C fails when not nodal or cell centered, can be fixed")
     end if
     call parallel_reduce(r,r1,MPI_SUM)
   end function multifab_dot_c
 
-  function multifab_dot(mf, mf1, all) result(r)
+  function multifab_dot(mf, mf1, nodal_mask) result(r)
     real(dp_t) :: r
-    logical, intent(in), optional :: all
     type(multifab), intent(in) :: mf
-    type(multifab), intent(in)  :: mf1
+    type(multifab), intent(in) :: mf1
+    type(multifab), intent(in), optional :: nodal_mask
+
     type(multifab) :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     real(dp_t), pointer :: mp1(:,:,:,:)
     real(dp_t), pointer :: ma(:,:,:,:)
     real(dp_t) :: r1
     integer :: i
-    logical :: lall
 
-    lall = .FALSE.; if ( present(all) ) lall = all
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
-             mp1 => dataptr(mf1, i, get_pbox(mf1, i))
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i))
-             mp1 => dataptr(mf1, i, get_ibox(mf1, i))
-          end if
+          mp  => dataptr(mf , i, get_box(mf , i))
+          mp1 => dataptr(mf1, i, get_box(mf1, i))
           r1 = r1 + sum(mp*mp1)
        end do
        !$OMP END PARALLEL DO
     else if ( nodal_q(mf) ) then
-       if ( lall ) call bl_error('DONT SAY ALL IN NODAL FUNCTION DOT')
-       call build_nodal_dot_mask(mask, mf)
-       !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
-          mp => dataptr(mf, i, get_ibox(mf, i))
-          mp1 => dataptr(mf1, i, get_ibox(mf1, i))
-          ma => dataptr(mask, i, get_ibox(mask, i))
-
-          r1 = r1 + sum(ma*mp*mp1)
-       end do
-       !$OMP END PARALLEL DO
-       call destroy(mask)
+       if (present(nodal_mask)) then
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          do i = 1, mf%nboxes
+             if ( remote(mf,i) ) cycle
+             mp  => dataptr(mf        , i, get_ibox(mf  , i))
+             mp1 => dataptr(mf1       , i, get_ibox(mf1 , i))
+             ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
+             r1 = r1 + sum(ma*mp*mp1)
+          end do
+       else
+          call build_nodal_dot_mask(mask, mf)
+          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          do i = 1, mf%nboxes
+             if ( remote(mf,i) ) cycle
+             mp  => dataptr(mf  , i, get_ibox(mf  , i))
+             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i))
+             ma  => dataptr(mask, i, get_ibox(mask, i))
+             r1 = r1 + sum(ma*mp*mp1)
+          end do
+          !$OMP END PARALLEL DO
+          call destroy(mask)
+       end if
     else
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
