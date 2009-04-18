@@ -137,9 +137,11 @@ contains
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
-    integer :: n, i, id
+    integer :: n, i, id, dm
     type(layout) :: la1, la2
+    type(boxarray) :: ba
     logical :: nodal_flag
+    real(kind=dp_t) :: vol
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_build")
@@ -319,7 +321,13 @@ contains
     if ( mgt%cycle == MG_WCycle ) mgt%gamma = 2
 
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
-    if ( mgt%nlevels == 1 ) mgt%bottom_solver_eps = mgt%eps
+    if ( mgt%nlevels == 1 ) then
+       ba = get_boxarray(mgt%cc(1)%la)
+       vol = boxarray_volume(ba)
+       dm  = ba%dim
+       if (vol > 4**dm) &
+         mgt%bottom_solver_eps = mgt%eps
+    end if
 
     call destroy(bpt)
 
