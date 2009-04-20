@@ -993,7 +993,7 @@ contains
        call unit_skip(unit, skip)
        write(unit=un, fmt='(" DIM     = ",i2)') la%lap%dim
        call unit_skip(unit, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') la%lap%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i3)') la%lap%nboxes
        call unit_skip(unit, skip)
        write(unit=un, fmt='(" PD      = ",i2)', advance = 'no')
        call print(la%lap%pd, unit = unit)
