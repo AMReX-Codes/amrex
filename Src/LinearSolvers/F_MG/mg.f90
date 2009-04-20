@@ -596,7 +596,13 @@ contains
        call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
        call setval(bottom_uu,0.d0,all=.true.)
 
-       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,rh%ng,rh%nodal)
+       if (nodal_q(rh)) then
+          call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
+          call setval(bottom_rh,ZERO,all=.true.)
+       else
+          call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
+       end if
+
        call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
 
        call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle, mglev, &
@@ -1284,13 +1290,6 @@ contains
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     nodal_flag = nodal_q(ss)
-
-    if (do_diag) then
-       nrm = norm_inf(rh)
-       if ( parallel_IOProcessor() ) then
-          print *,'IN: NORM RH                   ',lev,nrm
-       end if
-    end if
 
     call timer_start(mgt%tm(lev))
     if ( lev == lbl ) then
