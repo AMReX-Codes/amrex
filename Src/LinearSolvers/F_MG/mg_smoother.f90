@@ -654,11 +654,11 @@ contains
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     logical, intent(in) :: pmask(:)
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
+    real (kind = dp_t), intent(in   ) :: omega
+    real (kind = dp_t), intent(in   ) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
-    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
+    real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    integer            ,intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
 
