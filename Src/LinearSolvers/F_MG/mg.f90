@@ -264,7 +264,6 @@ contains
     else if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
        la2 = mgt%cc(1)%la
        call layout_build_derived(la1, la2)
-       call build(mgt%nodal_mask, la1, 1, 0, nodal)
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
     end if
 
