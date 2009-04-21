@@ -2572,6 +2572,8 @@ contains
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
+    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
 
     deallocate(flasc%flux%l_con%cpy)
     deallocate(flasc%flux%r_con%snd)
