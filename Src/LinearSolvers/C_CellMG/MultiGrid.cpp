@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.43 2009-04-21 19:21:16 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.44 2009-04-21 19:40:00 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -426,8 +426,10 @@ MultiGrid::relax (MultiFab&      solL,
         {
             Lp.smooth(solL, rhsL, level, bc_mode);
         }
-        if (verbose > 1) 
+        if (verbose > 1) {
+           Lp.residual(*res[level], rhsL, solL, level, bc_mode);
            std::cout << "    UP:Norm after  smooth " << norm_inf(*res[level]) << std::endl;
+        }
     }
     else
     {
