@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.47 2007-10-23 17:42:21 almgren Exp $
+// $Id: CGSolver.cpp,v 1.48 2009-04-21 19:21:16 almgren Exp $
 //
 #include <winstd.H>
 
@@ -58,7 +58,7 @@ CGSolver::initialize ()
         }
     }
 
-    if (ParallelDescriptor::IOProcessor() && def_verbose)
+    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2) )
     {
         std::cout << "CGSolver settings ...\n";
 	std::cout << "   def_maxiter            = " << def_maxiter            << '\n';

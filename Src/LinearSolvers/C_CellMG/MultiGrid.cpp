@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.42 2007-10-22 20:27:04 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.43 2009-04-21 19:21:16 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -91,7 +91,7 @@ MultiGrid::initialize ()
         }
     }
 
-    if (ParallelDescriptor::IOProcessor() && def_verbose)
+    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2) )
     {
         std::cout << "MultiGrid settings...\n";
         std::cout << "   def_nu_0 =         " << def_nu_0         << '\n';
@@ -133,7 +133,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     smooth_on_cg_unstable = def_smooth_on_cg_unstable;
     cg_solver    = def_cg_solver;
     numlevels    = numLevels();
-    if ( ParallelDescriptor::IOProcessor() && verbose )
+    if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
     {
 	BoxArray tmp = Lp.boxArray();
 	std::cout << "MultiGrid: numlevels = " << numlevels 
@@ -144,11 +144,13 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 	    std::cout << tmp.d_numPts() << " ";
         }
 	std::cout << "]" << std::endl;
-    }
-    if ( ParallelDescriptor::IOProcessor() && verbose > 2 )
-    {
+
 	std::cout << "MultiGrid: " << numlevels
 	     << " multigrid levels created for this solve" << '\n';
+    }
+
+    if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
+    {
 	std::cout << "Grids: " << '\n';
 	BoxArray tmp = Lp.boxArray();
 	for (int i = 0; i < numlevels; ++i)
@@ -271,7 +273,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
   int        returnVal = 0;
   const Real error0    = errorEstimate(level, bc_mode);
   Real       error     = error0;
-  if (ParallelDescriptor::IOProcessor() && verbose)
+  if (ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
       Spacer(std::cout, level);
       std::cout << "MultiGrid: Initial error (error0) =   " << error0 << '\n';
@@ -305,7 +307,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
       norm_cor = norm_inf(*cor[level]);
       error = errorEstimate(level, bc_mode);
 	
-      if (ParallelDescriptor::IOProcessor() && verbose > 1 )
+      if (ParallelDescriptor::IOProcessor() && verbose > 0 )
       {
           const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
           Spacer(std::cout, level);
@@ -316,7 +318,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
       }
   }
 
-  if ( ParallelDescriptor::IOProcessor() && verbose )
+  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
       const Real rel_error = (error0 != 0) ? error/error0 : 0;
       Spacer(std::cout, level);
@@ -392,11 +394,19 @@ MultiGrid::relax (MultiFab&      solL,
     //
     if (level < numlevels - 1 )
     {
+        if (verbose > 1)  {
+           std::cout << "  AT LEVEL " << level << std::endl;
+           std::cout << "    DN:Norm before smooth " << norm_inf(rhsL) << std::endl;;
+        }
         for (int i = preSmooth() ; i > 0 ; i--)
         {
             Lp.smooth(solL, rhsL, level, bc_mode);
         }
         Lp.residual(*res[level], rhsL, solL, level, bc_mode);
+
+        if (verbose > 1) 
+           std::cout << "    DN:Norm after  smooth " << norm_inf(*res[level]) << std::endl;
+
         prepareForLevel(level+1);
         average(*rhs[level+1], *res[level]);
         cor[level+1]->setVal(0.0);
@@ -405,14 +415,32 @@ MultiGrid::relax (MultiFab&      solL,
             relax(*cor[level+1],*rhs[level+1],level+1,eps_rel,eps_abs,bc_mode);
         }
         interpolate(solL, *cor[level+1]);
+
+        if (verbose > 1) {
+           std::cout << "  AT LEVEL " << level << std::endl;
+           Lp.residual(*res[level], rhsL, solL, level, bc_mode);
+           std::cout << "    UP:Norm before smooth " << norm_inf(*res[level]) << std::endl;;
+        }
+
         for (int i = postSmooth(); i > 0 ; i--)
         {
             Lp.smooth(solL, rhsL, level, bc_mode);
         }
+        if (verbose > 1) 
+           std::cout << "    UP:Norm after  smooth " << norm_inf(*res[level]) << std::endl;
     }
     else
     {
+        if (verbose > 1) {
+           std::cout << "  AT LEVEL " << level << std::endl;
+           std::cout << "    DN:Norm before bottom " << norm_inf(rhsL) << std::endl;
+        }
         coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, usecg);
+
+        if (verbose > 1) {
+           Lp.residual(*res[level], rhsL, solL, level, bc_mode);
+           std::cout << "    UP:Norm after  bottom " << norm_inf(*res[level]) << std::endl;
+        }
     }
 }
 
@@ -431,7 +459,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     if (local_usecg == 0)
     {
         Real error0;
-        if (verbose)
+        if (verbose > 0)
         {
             error0 = errorEstimate(level, bc_mode);
             if (ParallelDescriptor::IOProcessor())
@@ -472,7 +500,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // issue and pound on it with the smoother.
 	      // if ret == 8, then you have failure to converge
                 //
-                if (ParallelDescriptor::IOProcessor() && def_verbose)
+                if (ParallelDescriptor::IOProcessor() && (verbose > 0) )
                 {
                     std::cout << "MultiGrid::coarsestSmooth(): CGSolver returns nonzero. Smoothing...." << std::endl;
                 }
@@ -487,7 +515,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // setting solL to 0 should be ok.
                 //
                 solL.setVal(0);
-                if (ParallelDescriptor::IOProcessor() && def_verbose)
+                if (ParallelDescriptor::IOProcessor() && (verbose > 0) )
                 {
                     std::cout << "MultiGrid::coarsestSmooth(): setting coarse corr to zero" << std::endl;
                 }
