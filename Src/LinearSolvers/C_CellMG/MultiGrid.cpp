@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.44 2009-04-21 19:40:00 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.45 2009-04-24 19:21:35 gpau Exp $
 // 
 #include <winstd.H>
 
@@ -395,8 +395,11 @@ MultiGrid::relax (MultiFab&      solL,
     if (level < numlevels - 1 )
     {
         if (verbose > 1)  {
-           std::cout << "  AT LEVEL " << level << std::endl;
-           std::cout << "    DN:Norm before smooth " << norm_inf(rhsL) << std::endl;;
+           Real rnorm = norm_inf(rhsL);
+           if (ParallelDescriptor::IOProcessor()) {
+              std::cout << "  AT LEVEL " << level << std::endl;
+              std::cout << "    DN:Norm before smooth " << rnorm << std::endl;;
+           }
         }
         for (int i = preSmooth() ; i > 0 ; i--)
         {
@@ -404,8 +407,11 @@ MultiGrid::relax (MultiFab&      solL,
         }
         Lp.residual(*res[level], rhsL, solL, level, bc_mode);
 
-        if (verbose > 1) 
-           std::cout << "    DN:Norm after  smooth " << norm_inf(*res[level]) << std::endl;
+        if (verbose > 1) {
+           Real rnorm = norm_inf(*res[level]);
+           if (ParallelDescriptor::IOProcessor())
+              std::cout << "    DN:Norm after  smooth " << rnorm << std::endl;
+        }
 
         prepareForLevel(level+1);
         average(*rhs[level+1], *res[level]);
@@ -417,9 +423,12 @@ MultiGrid::relax (MultiFab&      solL,
         interpolate(solL, *cor[level+1]);
 
         if (verbose > 1) {
-           std::cout << "  AT LEVEL " << level << std::endl;
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
-           std::cout << "    UP:Norm before smooth " << norm_inf(*res[level]) << std::endl;;
+           Real rnorm = norm_inf(*res[level]);
+           if (ParallelDescriptor::IOProcessor()) {
+              std::cout << "  AT LEVEL " << level << std::endl;
+              std::cout << "    UP:Norm before  smooth " << rnorm << std::endl;
+           }
         }
 
         for (int i = postSmooth(); i > 0 ; i--)
@@ -428,20 +437,27 @@ MultiGrid::relax (MultiFab&      solL,
         }
         if (verbose > 1) {
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
-           std::cout << "    UP:Norm after  smooth " << norm_inf(*res[level]) << std::endl;
+           Real rnorm = norm_inf(*res[level]);
+           if (ParallelDescriptor::IOProcessor()) 
+             std::cout << "    UP:Norm after  smooth " << rnorm << std::endl;
         }
     }
     else
     {
         if (verbose > 1) {
-           std::cout << "  AT LEVEL " << level << std::endl;
-           std::cout << "    DN:Norm before bottom " << norm_inf(rhsL) << std::endl;
+           Real rnorm = norm_inf(rhsL);
+           if (ParallelDescriptor::IOProcessor()) {
+              std::cout << "  AT LEVEL " << level << std::endl;
+              std::cout << "    DN:Norm before bottom " << rnorm << std::endl;
+           }
         }
         coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, usecg);
 
         if (verbose > 1) {
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
-           std::cout << "    UP:Norm after  bottom " << norm_inf(*res[level]) << std::endl;
+           Real rnorm = norm_inf(*res[level]);
+           if (ParallelDescriptor::IOProcessor()) 
+              std::cout << "    UP:Norm after  bottom " << rnorm << std::endl;
         }
     }
 }
