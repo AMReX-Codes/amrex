@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.45 2009-04-24 19:21:35 gpau Exp $
+// $Id: MultiGrid.cpp,v 1.46 2009-04-30 22:04:28 almgren Exp $
 // 
 #include <winstd.H>
 
@@ -395,7 +395,7 @@ MultiGrid::relax (MultiFab&      solL,
     if (level < numlevels - 1 )
     {
         if (verbose > 1)  {
-           Real rnorm = norm_inf(rhsL);
+           Real rnorm = errorEstimate(level, bc_mode);
            if (ParallelDescriptor::IOProcessor()) {
               std::cout << "  AT LEVEL " << level << std::endl;
               std::cout << "    DN:Norm before smooth " << rnorm << std::endl;;
