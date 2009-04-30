@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.51 2007-09-23 18:39:18 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.52 2009-04-30 17:34:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -144,18 +144,6 @@ FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
 {}
-
-FArrayBox::FArrayBox (const FArrayBox& fab)
-    :
-    BaseFab<Real>(fab)
-{}
-
-FArrayBox&
-FArrayBox::operator= (const FArrayBox& fab)
-{
-    BaseFab<Real>::operator=(fab);
-    return *this;
-}
 
 FArrayBox&
 FArrayBox::operator= (const Real& v)
