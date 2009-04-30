@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.30 2007-09-22 15:05:31 lijewski Exp $
+// $Id: FArrayBox.H,v 1.31 2009-04-30 17:34:34 lijewski Exp $
 //
 
 #include <Pointers.H>
@@ -221,9 +221,8 @@ public:
     explicit FArrayBox (const Box& b,
                         int        ncomp=1);
     //
-    FArrayBox (const FArrayBox&);
+    // Set the fab to a the value r.
     //
-    FArrayBox& operator= (const FArrayBox&);
     FArrayBox& operator= (const Real& r);
     //
     //@ManDoc:  The destructor.
@@ -391,6 +390,11 @@ protected:
     //
     static bool do_initval;
     static Real initval;
+    //
+    // These are not allowed.
+    //
+    FArrayBox (const FArrayBox&);
+    FArrayBox& operator= (const FArrayBox&);
 };
 
 #endif /*BL_FARRAYBOX_H*/
