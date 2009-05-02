@@ -191,9 +191,10 @@ main (int   argc,
 
     int nstart = 1;
     pp.query("nstart",nstart);
-    int nmax;
+    int nmax = 100;
     pp.query("nfile", nmax);
-
+    int nfac = 10;
+    pp.query("nfac", nfac);
     //pp.query("outfile", outfile);
     //if (outfile.empty())
     //    BoxLib::Abort("You must specify `outfile'");
@@ -217,7 +218,7 @@ main (int   argc,
     for (int i = nstart; i < nmax; i++)
     {
       char buf[64];
-      sprintf(buf,"%04d",i*10);
+      sprintf(buf,"%05d",i*nfac);
           
       std::string idxs(buf);
       File = iFile + idxs;
@@ -273,11 +274,8 @@ main (int   argc,
 
       amrData.FillVar(tmpmean,finestLevel,names,destcomp);
 
-      //if (ParallelDescriptor::IOProcessor())
-      //	std::cout << "done" << std::endl;
-
-      //for (int n = 0; n < nComp; n++)
-      //	amrData.FlushGrids(destcomp[n]);
+      for (int n = 0; n < nComp; n++)
+	amrData.FlushGrids(destcomp[n]);
 
       Real dt = dtnew - dtold;
       dtold = dtnew;
@@ -329,15 +327,14 @@ main (int   argc,
 	      xold[iz] = xnew[iz];
 	    }
 #endif
-	  std::cout << dtnew << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
+	  //std::cout << dtnew << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
+	  std::cout << dtnew << " " << FL << std::endl;
 	}
 
 
       //sumnew = SumThisComp(amrData, 0);
       //Real dF = phi*(sumnew - sumold)/dt;
       //sumold = sumnew;
-      
-      //      std::cout << dtnew << " " << dF << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
 
     }    
 
