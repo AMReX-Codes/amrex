@@ -91,6 +91,26 @@ contains
     r = pf%names(n)
   end function plotfile_var_name
 
+  function plotfile_var_index(pf, r) result(idx)
+    use bl_error_module
+    character(len=*), intent(in) :: r
+    type(plotfile), intent(in) :: pf
+    integer :: idx
+    integer :: n
+    
+    idx = -1
+    do n = 1, pf%nvars
+       if (pf%names(n) == r) then
+          idx = n
+          exit
+       endif
+    enddo
+
+    if (idx == -1) then
+       call bl_error("ERROR: plotfile does not contain variable, ", r)
+    endif
+  end function plotfile_var_index
+
   function plotfile_refrat_n(pf, n) result(r)
     use bl_error_module
     type(plotfile), intent(in) :: pf
