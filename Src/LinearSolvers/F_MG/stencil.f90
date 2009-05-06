@@ -1550,19 +1550,22 @@ contains
          integer :: r
        end function fnc
     end interface
-    optional :: fnc
-    type(box) :: bx
-    real(kind=dp_t) lxa(ss%dim), lxb(ss%dim)
 
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-    integer, pointer :: mp(:,:,:,:)
-    integer i,id
+    optional        :: fnc
+    type(box)       :: bx
+    real(kind=dp_t) :: lxa(ss%dim), lxb(ss%dim)
+
+    real(kind=dp_t), pointer  :: sp(:,:,:,:)
+    real(kind=dp_t), pointer  :: cp(:,:,:,:)
+    integer, pointer          :: mp(:,:,:,:)
+    integer                   :: i,id,ns
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_fill_minion")
 
     ! Store the incoming values.
+
+    ns = multifab_ncomp(ss)
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
@@ -1587,7 +1590,11 @@ contains
 
        select case (ss%dim)
        case (2)
-          call s_minion_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+          if (ns .eq. 9) then
+             call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+          else if (ns .eq. 25) then
+             call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+          end if
        end select
     end do
     
@@ -2469,7 +2476,7 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine s_minion_fill_2d(ss, beta, dh, mask, xa, xb)
+  subroutine s_minion_cross_fill_2d(ss, beta, dh, mask, xa, xb)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(in   )  :: beta(0:,0:,0:)
@@ -2514,7 +2521,57 @@ contains
        end do
     end do
 
-  end subroutine s_minion_fill_2d
+  end subroutine s_minion_cross_fill_2d
+
+  subroutine s_minion_full_fill_2d(ss, beta, dh, mask, xa, xb)
+    integer           , intent(inout) :: mask(:,:)
+    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in   )  :: beta(0:,0:,0:)
+    real (kind = dp_t), intent(in   )  :: dh(:)
+    real (kind = dp_t), intent(in   )  :: xa(:), xb(:)
+    integer nx, ny
+    integer i, j, n
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+
+    ss = 0.d0
+
+    ! We only include the beta's here to get the viscous coefficients in here for now.
+    ! The projection has beta == 1.
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,1) =   1.d0 * beta(i  ,j,1)
+          ss(i,j,2) = -16.d0 * beta(i  ,j,1)
+          ss(i,j,3) = -16.d0 * beta(i+1,j,1)
+          ss(i,j,4) =   1.d0 * beta(i+1,j,1)
+          ss(i,j,5) =   1.d0 * beta(i,j  ,2)
+          ss(i,j,6) = -16.d0 * beta(i,j  ,2)
+          ss(i,j,7) = -16.d0 * beta(i,j+1,2)
+          ss(i,j,8) =   1.d0 * beta(i,j+1,2)
+
+          ss(i,j,0) = 0.d0
+          do n = 1,24
+             ss(i,j,0) = ss(i,j,0) - ss(i,j,n)
+          end do
+       end do
+    end do
+
+    ss = ss / (12.d0 * dh(1)**2)
+
+    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+       end do
+    end do
+
+  end subroutine s_minion_full_fill_2d
 
   subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, skwd)
     integer, intent(in) :: ng_d, ng_u
