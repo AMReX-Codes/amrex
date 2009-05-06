@@ -2635,7 +2635,6 @@ contains
     end do
 
     ! Then use the betay coefficients
-    if (0 .eq. 1) then
     do j = 1, ny
        do i = 1, nx
 
@@ -2740,7 +2739,6 @@ contains
 
        end do
     end do
-    end if
 
     ! Divide by 12*12*48*48
     do j = 1, ny
@@ -2886,7 +2884,7 @@ contains
 
        do j = 1,ny
           do i = 1,nx
-            dd(i,j) =   ss(i,j, 0) * uu(i,j) &
+            dd(i,j) = ss(i,j, 0) * uu(i,j) &
                     + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
                     + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
                     + ss(i,j, 5) * uu(i+2,j-2)                            & ! AT J-2
