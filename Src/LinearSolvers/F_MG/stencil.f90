@@ -2742,7 +2742,7 @@ contains
        end do
     end do
   
-    fac = 1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2)
+    fac = -1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2)
 
     ss = fac * ss
 
