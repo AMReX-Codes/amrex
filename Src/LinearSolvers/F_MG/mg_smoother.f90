@@ -451,7 +451,7 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine minion_smoother_2d(omega, ss, uu, ff, mm, lo, ng)
+  subroutine minion_smoother_2d(omega, ss, uu, ff, mm, lo, ng, is_cross)
     use bl_prof_module
     integer           , intent(in) :: ng
     integer           , intent(in) :: lo(:)
@@ -460,6 +460,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
+    logical            ,intent(in) :: is_cross
 
     integer            :: j, i, hi(size(lo))
     real (kind = dp_t) :: dd
@@ -470,18 +471,49 @@ contains
 
     hi = ubound(uu)-ng
 
-    do j = lo(2),hi(2)
-       do i = lo(1), hi(1)
-          if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
-            dd =   ss(i,j,0) * uu(i,j) &
-                 + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
-                 + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
-                 + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
-                 + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
-            uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
-          end if
+    if (is_cross) then
+
+       do j = lo(2),hi(2)
+          do i = lo(1), hi(1)
+             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
+               dd =   ss(i,j,0) * uu(i,j) &
+                    + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
+                    + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
+                    + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
+                    + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
+               uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
+             end if
+          end do
        end do
-    end do
+
+    else
+
+       do j = lo(2),hi(2)
+          do i = lo(1), hi(1)
+             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
+               dd =   ss(i,j, 0) * uu(i,j) &
+                    + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
+                    + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
+                    + ss(i,j, 5) * uu(i+2,j-2)                            & ! AT J-2
+                    + ss(i,j, 6) * uu(i-2,j-1) + ss(i,j, 7) * uu(i-1,j-1) & ! AT J-1
+                    + ss(i,j, 8) * uu(i  ,j-1) + ss(i,j, 9) * uu(i+1,j-1) & ! AT J-1
+                    + ss(i,j,10) * uu(i+2,j-1)                            & ! AT J-1
+                    + ss(i,j,11) * uu(i-2,j  ) + ss(i,j,12) * uu(i-1,j  ) & ! AT J
+                    + ss(i,j,13) * uu(i+1,j  ) + ss(i,j,14) * uu(i+2,j  ) & ! AT J
+                    + ss(i,j,15) * uu(i-2,j+1) + ss(i,j,16) * uu(i-1,j+1) & ! AT J+1
+                    + ss(i,j,17) * uu(i  ,j+1) + ss(i,j,18) * uu(i+1,j+1) & ! AT J+1
+                    + ss(i,j,19) * uu(i+2,j+1)                            & ! AT J+1
+                    + ss(i,j,20) * uu(i-2,j+2) + ss(i,j,21) * uu(i-1,j+2) & ! AT J+2
+                    + ss(i,j,22) * uu(i  ,j+2) + ss(i,j,23) * uu(i+1,j+2) & ! AT J+2
+                    + ss(i,j,24) * uu(i+2,j+2)                              ! AT J+2
+
+               uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
+
+             end if
+          end do
+       end do
+
+    end if
 
     call destroy(bpt)
 
