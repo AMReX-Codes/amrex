@@ -2546,8 +2546,6 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
 
     ss = 0.d0
-  
-    fac = 12.d0**2 * 48.d0**2
 
     ! First use the betax coefficients
     do j = 1, ny
@@ -2743,15 +2741,10 @@ contains
 
        end do
     end do
+  
+    fac = 1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2)
 
-    ! Divide by 12*12*48*48
-    do j = 1, ny
-       do i = 1, nx
-          ss(i,j,:) = -ss(i,j,:) / fac
-       end do
-    end do
-
-    ss = ss / dh(1)**2
+    ss = fac * ss
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
