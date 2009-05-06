@@ -2558,33 +2558,37 @@ contains
           ss(i,j, 8) = -2550.d0 * beta(i,j+2,1)  - 2550.d0 * beta(i+1,j+2,1) &
                       +17340.d0 * beta(i,j+1,1) + 17340.d0 * beta(i+1,j+1,1) &
                       -17340.d0 * beta(i,j-1,1) - 17340.d0 * beta(i+1,j-1,1) &
-                      + 2550.d0 * beta(i,j-2,1)  - 2550.d0 * beta(i+1,j-2,1)
+                      + 2550.d0 * beta(i,j-2,1)  + 2550.d0 * beta(i+1,j-2,1)
+
           ss(i,j,17) = -2550.d0 * beta(i,j-2,1)  - 2550.d0 * beta(i+1,j-2,1) &
                       +17340.d0 * beta(i,j-1,1) + 17340.d0 * beta(i+1,j-1,1) &
                       -17340.d0 * beta(i,j+1,1) - 17340.d0 * beta(i+1,j+1,1) &
-                      + 2550.d0 * beta(i,j+2,1)  - 2550.d0 * beta(i+1,j+2,1)
+                      + 2550.d0 * beta(i,j+2,1)  + 2550.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 7) =  170.d0 * beta(i+1,j+2,1) +  2550.d0 * beta(i  ,j+2,1) &
-                      -1156.d0 * beta(i+1,j+1,1) - 17340.d0 * beta(i  ,j+1,1) &
-                      +1156.d0 * beta(i+1,j-1,1) + 17340.d0 * beta(i  ,j-1,1) &
-                      - 170.d0 * beta(i+1,j-2,1) -  2550.d0 * beta(i  ,j-2,1) 
-          ss(i,j,16) =  170.d0 * beta(i+1,j-2,1) +  2550.d0 * beta(i  ,j-2,1) &
-                      -1156.d0 * beta(i+1,j-1,1) - 17340.d0 * beta(i  ,j-1,1) &
-                      +1156.d0 * beta(i+1,j+1,1) + 17340.d0 * beta(i  ,j+1,1) &
-                      - 170.d0 * beta(i+1,j+2,1) -  2550.d0 * beta(i  ,j-2,1) 
-          ss(i,j, 9) =  170.d0 * beta(i  ,j+2,1) +  2550.d0 * beta(i+1,j+2,1) &
-                      -1156.d0 * beta(i  ,j+1,1) - 17340.d0 * beta(i+1,j+1,1) &
-                      +1156.d0 * beta(i  ,j-1,1) + 17340.d0 * beta(i+1,j-1,1) &
-                      - 170.d0 * beta(i  ,j-2,1) -  2550.d0 * beta(i+1,j-2,1) 
-          ss(i,j,18) =  170.d0 * beta(i  ,j-2,1) +  2550.d0 * beta(i+1,j-2,1) &
-                      -1156.d0 * beta(i  ,j-1,1) - 17340.d0 * beta(i+1,j-1,1) &
-                      +1156.d0 * beta(i  ,j+1,1) + 17340.d0 * beta(i+1,j+1,1) &
-                      - 170.d0 * beta(i  ,j+2,1) -  2550.d0 * beta(i+1,j+2,1) 
+          ss(i,j, 7) =  170.d0 * beta(i+1,j+2,1) +  2550.d0 * beta(i,j+2,1) &
+                      -1156.d0 * beta(i+1,j+1,1) - 17340.d0 * beta(i,j+1,1) &
+                      +1156.d0 * beta(i+1,j-1,1) + 17340.d0 * beta(i,j-1,1) &
+                      - 170.d0 * beta(i+1,j-2,1) -  2550.d0 * beta(i,j-2,1) 
 
-          ss(i,j, 6) = -170.d0 * beta(i  ,j+2,1) +  1156.d0 * beta(i  ,j+1,1) &
-                       +170.d0 * beta(i  ,j-2,1) -  1156.d0 * beta(i  ,j-1,1)
-          ss(i,j,15) = -170.d0 * beta(i  ,j-2,1) +  1156.d0 * beta(i  ,j-1,1) &
-                       +170.d0 * beta(i  ,j+2,1) -  1156.d0 * beta(i  ,j+1,1)
+          ss(i,j,16) =  170.d0 * beta(i+1,j-2,1) +  2550.d0 * beta(i,j-2,1) &
+                      -1156.d0 * beta(i+1,j-1,1) - 17340.d0 * beta(i,j-1,1) &
+                      +1156.d0 * beta(i+1,j+1,1) + 17340.d0 * beta(i,j+1,1) &
+                      - 170.d0 * beta(i+1,j+2,1) -  2550.d0 * beta(i,j+2,1) 
+
+          ss(i,j, 9) =  170.d0 * beta(i,j+2,1) +  2550.d0 * beta(i+1,j+2,1) &
+                      -1156.d0 * beta(i,j+1,1) - 17340.d0 * beta(i+1,j+1,1) &
+                      +1156.d0 * beta(i,j-1,1) + 17340.d0 * beta(i+1,j-1,1) &
+                      - 170.d0 * beta(i,j-2,1) -  2550.d0 * beta(i+1,j-2,1) 
+
+          ss(i,j,18) =  170.d0 * beta(i,j-2,1) +  2550.d0 * beta(i+1,j-2,1) &
+                      -1156.d0 * beta(i,j-1,1) - 17340.d0 * beta(i+1,j-1,1) &
+                      +1156.d0 * beta(i,j+1,1) + 17340.d0 * beta(i+1,j+1,1) &
+                      - 170.d0 * beta(i,j+2,1) -  2550.d0 * beta(i+1,j+2,1) 
+
+          ss(i,j, 6) = -170.d0 * beta(i,j+2,1) +  1156.d0 * beta(i,j+1,1) &
+                       +170.d0 * beta(i,j-2,1) -  1156.d0 * beta(i,j-1,1)
+          ss(i,j,15) = -170.d0 * beta(i,j-2,1) +  1156.d0 * beta(i,j-1,1) &
+                       +170.d0 * beta(i,j+2,1) -  1156.d0 * beta(i,j+1,1)
           ss(i,j,10) = -170.d0 * beta(i+1,j+2,1) +  1156.d0 * beta(i+1,j+1,1) &
                        +170.d0 * beta(i+1,j-2,1) -  1156.d0 * beta(i+1,j-1,1)
           ss(i,j,19) = -170.d0 * beta(i+1,j-2,1) +  1156.d0 * beta(i+1,j-1,1) &
@@ -2593,35 +2597,35 @@ contains
           ss(i,j, 3) =   375.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1) &
                       - 2550.d0 * beta(i,j+1,1) - 2550.d0 * beta(i+1,j+1,1) &
                       + 2550.d0 * beta(i,j-1,1) + 2550.d0 * beta(i+1,j-1,1) &
-                      -  375.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1)
+                      -  375.d0 * beta(i,j-2,1) -  375.d0 * beta(i+1,j-2,1)
           ss(i,j,22) =  375.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1) &
                       -2550.d0 * beta(i,j-1,1) - 2550.d0 * beta(i+1,j-1,1) &
                       +2550.d0 * beta(i,j+1,1) + 2550.d0 * beta(i+1,j+1,1) &
-                      - 375.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1)
+                      - 375.d0 * beta(i,j+2,1) -  375.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 2) = - 25.d0 * beta(i+1,j+2,1) -  375.d0 * beta(i  ,j+2,1) &
-                       +170.d0 * beta(i+1,j+1,1) + 2550.d0 * beta(i  ,j+1,1) &
-                       -170.d0 * beta(i+1,j-1,1) - 2550.d0 * beta(i  ,j-1,1) &
-                       + 25.d0 * beta(i+1,j-2,1) +  375.d0 * beta(i  ,j-2,1)
-          ss(i,j,21) = - 25.d0 * beta(i+1,j-2,1) -  375.d0 * beta(i  ,j-2,1) &
-                       +170.d0 * beta(i+1,j-1,1) + 2550.d0 * beta(i  ,j-1,1) &
-                       -170.d0 * beta(i+1,j+1,1) - 2550.d0 * beta(i  ,j+1,1) &
-                       + 25.d0 * beta(i+1,j+2,1) +  375.d0 * beta(i  ,j+2,1)
-          ss(i,j, 4) = - 25.d0 * beta(i  ,j+2,1) -  375.d0 * beta(i+1,j+2,1) &
-                       +170.d0 * beta(i  ,j+1,1) + 2550.d0 * beta(i+1,j+1,1) &
-                       -170.d0 * beta(i  ,j-1,1) - 2550.d0 * beta(i+1,j-1,1) &
-                       + 25.d0 * beta(i  ,j-2,1) +  375.d0 * beta(i+1,j-2,1)
-          ss(i,j,23) = - 25.d0 * beta(i  ,j-2,1) -  375.d0 * beta(i+1,j-2,1) &
-                       +170.d0 * beta(i  ,j-1,1) + 2550.d0 * beta(i+1,j-1,1) &
-                       -170.d0 * beta(i  ,j+1,1) - 2550.d0 * beta(i+1,j+1,1) &
-                       + 25.d0 * beta(i  ,j+2,1) +  375.d0 * beta(i+1,j+2,1)
+          ss(i,j, 2) = - 25.d0 * beta(i+1,j+2,1) -  375.d0 * beta(i,j+2,1) &
+                       +170.d0 * beta(i+1,j+1,1) + 2550.d0 * beta(i,j+1,1) &
+                       -170.d0 * beta(i+1,j-1,1) - 2550.d0 * beta(i,j-1,1) &
+                       + 25.d0 * beta(i+1,j-2,1) +  375.d0 * beta(i,j-2,1)
+          ss(i,j,21) = - 25.d0 * beta(i+1,j-2,1) -  375.d0 * beta(i,j-2,1) &
+                       +170.d0 * beta(i+1,j-1,1) + 2550.d0 * beta(i,j-1,1) &
+                       -170.d0 * beta(i+1,j+1,1) - 2550.d0 * beta(i,j+1,1) &
+                       + 25.d0 * beta(i+1,j+2,1) +  375.d0 * beta(i,j+2,1)
+          ss(i,j, 4) = - 25.d0 * beta(i,j+2,1) -  375.d0 * beta(i+1,j+2,1) &
+                       +170.d0 * beta(i,j+1,1) + 2550.d0 * beta(i+1,j+1,1) &
+                       -170.d0 * beta(i,j-1,1) - 2550.d0 * beta(i+1,j-1,1) &
+                       + 25.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1)
+          ss(i,j,23) = - 25.d0 * beta(i,j-2,1) -  375.d0 * beta(i+1,j-2,1) &
+                       +170.d0 * beta(i,j-1,1) + 2550.d0 * beta(i+1,j-1,1) &
+                       -170.d0 * beta(i,j+1,1) - 2550.d0 * beta(i+1,j+1,1) &
+                       + 25.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 1) =   25.d0 * beta(i  ,j+2,1) -  170.d0 * beta(i  ,j+1,1) &
-                        -25.d0 * beta(i  ,j-2,1) +  170.d0 * beta(i  ,j-1,1)
+          ss(i,j, 1) =   25.d0 * beta(i,j+2,1) -  170.d0 * beta(i,j+1,1) &
+                        -25.d0 * beta(i,j-2,1) +  170.d0 * beta(i,j-1,1)
           ss(i,j, 5) =   25.d0 * beta(i+1,j+2,1) -  170.d0 * beta(i+1,j+1,1) &
                         -25.d0 * beta(i+1,j-2,1) +  170.d0 * beta(i+1,j-1,1)
-          ss(i,j,20) =   25.d0 * beta(i  ,j-2,1) -  170.d0 * beta(i  ,j-1,1) &
-                        -25.d0 * beta(i  ,j+2,1) +  170.d0 * beta(i  ,j+1,1)
+          ss(i,j,20) =   25.d0 * beta(i,j-2,1) -  170.d0 * beta(i,j-1,1) &
+                        -25.d0 * beta(i,j+2,1) +  170.d0 * beta(i,j+1,1)
           ss(i,j,24) =   25.d0 * beta(i+1,j-2,1) -  170.d0 * beta(i+1,j-1,1) &
                         -25.d0 * beta(i+1,j+2,1) +  170.d0 * beta(i+1,j+1,1)
 
@@ -2631,6 +2635,7 @@ contains
     end do
 
     ! Then use the betay coefficients
+    if (0 .eq. 1) then
     do j = 1, ny
        do i = 1, nx
 
@@ -2644,13 +2649,13 @@ contains
                        -2550.d0 * beta(i+2,j,2)  - 2550.d0 * beta(i+2,j+1,2) &
                       +17340.d0 * beta(i+1,j,2) + 17340.d0 * beta(i+1,j+1,2) &
                       -17340.d0 * beta(i-1,j,2) - 17340.d0 * beta(i-1,j+1,2) &
-                      + 2550.d0 * beta(i-2,j,2)  - 2550.d0 * beta(i-2,j+1,2)
+                      + 2550.d0 * beta(i-2,j,2)  + 2550.d0 * beta(i-2,j+1,2)
 
           ss(i,j,13) = ss(i,j,13) & 
                        -2550.d0 * beta(i-2,j,2)  - 2550.d0 * beta(i-2,j+1,2) &
                       +17340.d0 * beta(i-1,j,2) + 17340.d0 * beta(i-1,j+1,2) &
                       -17340.d0 * beta(i+1,j,2) - 17340.d0 * beta(i+1,j+1,2) &
-                      + 2550.d0 * beta(i+2,j,2)  - 2550.d0 * beta(i+2,j+1,2)
+                      + 2550.d0 * beta(i+2,j,2)  + 2550.d0 * beta(i+2,j+1,2)
 
           ss(i,j, 7) = ss(i,j, 7) &
                       + 170.d0 * beta(i+2,j+1,2) +  2550.d0 * beta(i+2,j  ,2) &
@@ -2690,12 +2695,12 @@ contains
                       +  375.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2) &
                       - 2550.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
                       + 2550.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
-                      -  375.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2)
+                      -  375.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2)
           ss(i,j,14) = ss(i,j,14) &
                      +  375.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2) &
                       -2550.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
                       +2550.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
-                      - 375.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2)
+                      - 375.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2)
 
           ss(i,j, 6) = ss(i,j, 6) &
                        - 25.d0 * beta(i+2,j+1,2) -  375.d0 * beta(i+2,j,2) &
@@ -2735,6 +2740,7 @@ contains
 
        end do
     end do
+    end if
 
     ! Divide by 12*12*48*48
     do j = 1, ny
