@@ -18,7 +18,8 @@ module stencil_module
   integer, parameter :: ST_DENSE  = 2
   integer, parameter :: ST_DIAG   = 3
   integer, parameter :: ST_TENSOR = 4
-  integer, parameter :: ST_MINION = 5
+  integer, parameter :: ST_MINION_CROSS = 5
+  integer, parameter :: ST_MINION_FULL  = 6
 
   type stencil_extrap_fab
      integer :: dim = 0
@@ -447,9 +448,12 @@ contains
           st%ns = 1 + 2*st%dim
        case (ST_DENSE)
           st%ns = 3**st%dim
-       case (ST_MINION)
+       case (ST_MINION_CROSS)
           print *,'SETTING NS = 9'
           st%ns = 9
+       case (ST_MINION_FULL)
+          print *,'SETTING NS = 25'
+          st%ns = 25
        case default
           call bl_error("STENCIL_BUILD: TYPE not known: ", type)
        end select
@@ -588,7 +592,12 @@ contains
           case (3)
              call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
           end select
-       case (ST_MINION)
+       case (ST_MINION_CROSS)
+          select case( st%dim )
+          case (2)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+          end select
+       case (ST_MINION_FULL)
           select case( st%dim )
           case (2)
              call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
@@ -656,7 +665,12 @@ contains
              case (3)
                 call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
              end select
-          case (ST_MINION)
+          case (ST_MINION_CROSS)
+             select case( st%dim )
+             case (2)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+             end select
+          case (ST_MINION_FULL)
              select case( st%dim )
              case (2)
                 call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
@@ -696,7 +710,12 @@ contains
                 case (3)
                    call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
                 end select
-             case (ST_MINION)
+             case (ST_MINION_CROSS)
+                select case( st%dim )
+                case (2)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                end select
+             case (ST_MINION_FULL)
                 select case( st%dim )
                 case (2)
                    call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
@@ -2604,7 +2623,7 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
 
-    ! This is the Minion 4th order stencil.
+    ! This is the Minion 4th order cross stencil.
     if (size(ss,dim=3) .eq. 9) then
 
        do j = 1,ny
@@ -2615,6 +2634,29 @@ contains
                  + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
                  + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
                  + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
+          end do
+       end do
+
+    ! This is the Minion 4th order full stencil.
+    else if (size(ss,dim=3) .eq. 25) then
+
+       do j = 1,ny
+          do i = 1,nx
+            dd(i,j) =   ss(i,j, 0) * uu(i,j) &
+                    + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
+                    + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
+                    + ss(i,j, 5) * uu(i+2,j-2)                            & ! AT J-2
+                    + ss(i,j, 6) * uu(i-2,j-1) + ss(i,j, 7) * uu(i-1,j-1) & ! AT J-1
+                    + ss(i,j, 8) * uu(i  ,j-1) + ss(i,j, 9) * uu(i+1,j-1) & ! AT J-1
+                    + ss(i,j,10) * uu(i+2,j-1)                            & ! AT J-1
+                    + ss(i,j,11) * uu(i-2,j  ) + ss(i,j,12) * uu(i-1,j  ) & ! AT J
+                    + ss(i,j,13) * uu(i+1,j  ) + ss(i,j,14) * uu(i+2,j  ) & ! AT J
+                    + ss(i,j,15) * uu(i-2,j+1) + ss(i,j,16) * uu(i-1,j+1) & ! AT J+1
+                    + ss(i,j,17) * uu(i  ,j+1) + ss(i,j,18) * uu(i+1,j+1) & ! AT J+1
+                    + ss(i,j,19) * uu(i+2,j+1)                            & ! AT J+1
+                    + ss(i,j,20) * uu(i-2,j+2) + ss(i,j,21) * uu(i-1,j+2) & ! AT J+2
+                    + ss(i,j,22) * uu(i  ,j+2) + ss(i,j,23) * uu(i+1,j+2) & ! AT J+2
+                    + ss(i,j,24) * uu(i+2,j+2)                              ! AT J+2
           end do
        end do
 
