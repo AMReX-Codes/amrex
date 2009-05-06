@@ -1558,14 +1558,15 @@ contains
     real(kind=dp_t), pointer  :: sp(:,:,:,:)
     real(kind=dp_t), pointer  :: cp(:,:,:,:)
     integer, pointer          :: mp(:,:,:,:)
-    integer                   :: i,id,ns
+    integer                   :: i,id,ns,ng_c
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_fill_minion")
 
     ! Store the incoming values.
 
-    ns = multifab_ncomp(ss)
+    ns   = multifab_ncomp(ss)
+    ng_c = coeffs%ng
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
@@ -1591,9 +1592,9 @@ contains
        select case (ss%dim)
        case (2)
           if (ns .eq. 9) then
-             call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+             call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
           else if (ns .eq. 25) then
-             call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb)
+             call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
           end if
        end select
     end do
@@ -2476,12 +2477,13 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine s_minion_cross_fill_2d(ss, beta, dh, mask, xa, xb)
+  subroutine s_minion_cross_fill_2d(ss, beta, ng_b, dh, mask, xa, xb)
+    integer           , intent(in   ) :: ng_b
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   )  :: beta(0:,0:,0:)
-    real (kind = dp_t), intent(in   )  :: dh(:)
-    real (kind = dp_t), intent(in   )  :: xa(:), xb(:)
+    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer nx, ny
     integer i, j
 
@@ -2523,12 +2525,14 @@ contains
 
   end subroutine s_minion_cross_fill_2d
 
-  subroutine s_minion_full_fill_2d(ss, beta, dh, mask, xa, xb)
+  subroutine s_minion_full_fill_2d(ss, beta, ng_b, dh, mask, xa, xb)
+
+    integer           , intent(in   ) :: ng_b
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   )  :: beta(0:,0:,0:)
-    real (kind = dp_t), intent(in   )  :: dh(:)
-    real (kind = dp_t), intent(in   )  :: xa(:), xb(:)
+    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
     integer            :: i, j, n, nx, ny
     real (kind = dp_t) :: fac
@@ -2743,11 +2747,11 @@ contains
     ! Divide by 12*12*48*48
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,:) = ss(i,j,:) / fac
+          ss(i,j,:) = -ss(i,j,:) / fac
        end do
     end do
 
-    ss = ss / (12.d0 * dh(1)**2)
+    ss = ss / dh(1)**2
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
