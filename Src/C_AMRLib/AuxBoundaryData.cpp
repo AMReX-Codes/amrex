@@ -6,6 +6,7 @@
 AuxBoundaryData::AuxBoundaryData ()
     :
     m_ngrow(0),
+    m_empty(false),
     m_initialized(false)
 {}
 
@@ -15,6 +16,7 @@ AuxBoundaryData::AuxBoundaryData (const BoxArray& ba,
                                   const Geometry& geom)
     :
     m_ngrow(n_grow),
+    m_empty(false),
     m_initialized(false)
 {
     initialize(ba,n_grow,n_comp,geom);
@@ -26,6 +28,8 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
                        int                    dst_comp,
                        int                    num_comp)
 {
+    if (m_empty || src.m_empty) return;
+
     BL_ASSERT(m_initialized);
     BL_ASSERT(src_comp + num_comp <= src.m_fabs.nComp());
     BL_ASSERT(dst_comp + num_comp <= m_fabs.nComp());
@@ -131,6 +135,10 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
         m_fabs.define(nba, n_comp, 0, dm, Fab_allocate);
     }
+    else
+    {
+        m_empty = true;
+    }
 
     m_initialized = true;
 }
@@ -143,7 +151,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    if (m_fabs.size() > 0 && mf.size() > 0)
+    if (!m_empty && mf.size() > 0)
     {
         mf.copy(m_fabs,src_comp,dst_comp,num_comp);
     }
@@ -157,7 +165,7 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
 {
     BL_ASSERT(m_initialized);
 
-    if (m_fabs.size() > 0 && mf.size() > 0)
+    if (!m_empty && mf.size() > 0)
     {
         m_fabs.copy(mf,src_comp,dst_comp,num_comp);
     }
