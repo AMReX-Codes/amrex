@@ -53,10 +53,13 @@ public:
 
     int nComp () const;
 
+    bool isEmpty () const;
+
 protected:
 
     MultiFab m_fabs;
     int      m_ngrow;
+    bool     m_empty;
     bool     m_initialized;
 
 private:
@@ -67,17 +70,25 @@ private:
 };
 
 inline
+bool
+AuxBoundaryData::isEmpty () const
+{
+    return m_empty;
+}
+
+inline
 void
 AuxBoundaryData::setVal (Real r)
 {
     BL_ASSERT(m_initialized);
-    m_fabs.setVal(r);
+    if (!m_empty) m_fabs.setVal(r);
 }
 
 inline
 const DistributionMapping&
 AuxBoundaryData::DistributionMap () const
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs.DistributionMap();
 }
@@ -86,6 +97,7 @@ inline
 int
 AuxBoundaryData::nComp () const
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs.nComp();
 }
@@ -94,6 +106,7 @@ inline
 size_t
 AuxBoundaryData::size () const
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs.size();
 }
@@ -110,6 +123,7 @@ inline
 const BoxArray&
 AuxBoundaryData::equivBoxArray () const
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs.boxArray();
 }
@@ -118,6 +132,7 @@ inline
 FArrayBox&
 AuxBoundaryData::operator[] (const MFIter& mfi)
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs[mfi];
 }
@@ -126,6 +141,7 @@ inline
 const FArrayBox&
 AuxBoundaryData::operator[] (const MFIter& mfi) const
 {
+    BL_ASSERT(!m_empty);
     BL_ASSERT(m_initialized);
     return m_fabs[mfi];
 }
