@@ -519,6 +519,55 @@ contains
 
   end subroutine minion_smoother_2d
 
+  subroutine minion_smoother_3d(omega, ss, uu, ff, mm, lo, ng, is_cross)
+    use bl_prof_module
+    integer           , intent(in) :: ng
+    integer           , intent(in) :: lo(:)
+    real (kind = dp_t), intent(in) :: omega
+    real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):, lo(3):)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
+    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
+    logical            ,intent(in) :: is_cross
+
+    integer            :: i, j, k, hi(size(lo))
+    real (kind = dp_t) :: dd
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "minion_smoother_3d")
+
+    hi = ubound(uu)-ng
+
+    if (is_cross) then
+
+       do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1), hi(1)
+             if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+               dd =   ss(i,j,k,0) * uu(i,j,k) &
+                    + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
+                    + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
+                    + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
+                    + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
+                    + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
+                    + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
+               uu(i,j,k) = uu(i,j,k) + (omega/ss(i,j,k,0)) * (ff(i,j,k) - dd)
+             end if
+          end do
+       end do
+       end do
+
+    else
+
+       call bl_error('3d minion full smoother not yet implemented')
+
+    end if
+
+    call destroy(bpt)
+
+  end subroutine minion_smoother_3d
+
   subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng
