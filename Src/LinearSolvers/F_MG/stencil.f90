@@ -596,11 +596,15 @@ contains
           select case( st%dim )
           case (2)
              call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+          case (3)
+             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
        case (ST_MINION_FULL)
           select case( st%dim )
           case (2)
              call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+          case (3)
+             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
        end select
     end do
@@ -1595,6 +1599,12 @@ contains
              call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
           else if (ns .eq. 25) then
              call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
+          end if
+       case (3)
+          if (ns .eq. 13) then
+             call s_minion_cross_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), lxa, lxb)
+!         else if (ns .eq. 125) then
+!            call s_minion_full_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), lxa, lxb)
           end if
        end select
     end do
@@ -2755,6 +2765,66 @@ contains
 
   end subroutine s_minion_full_fill_2d
 
+  subroutine s_minion_cross_fill_3d(ss, beta, ng_b, dh, mask, xa, xb)
+    integer           , intent(in   ) :: ng_b
+    integer           , intent(inout) :: mask(:,:,:)
+    real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+    integer nx, ny, nz
+    integer i, j, k
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+    nz = size(ss,dim=3)
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+
+    ss = 0.d0
+
+    ! We only include the beta's here to get the viscous coefficients in here for now.
+    ! The projection has beta == 1.
+    do k = 1, nz
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,k, 1) =   1.d0 * beta(i  ,j,k,1)
+          ss(i,j,k, 2) = -16.d0 * beta(i  ,j,k,1)
+          ss(i,j,k, 3) = -16.d0 * beta(i+1,j,k,1)
+          ss(i,j,k, 4) =   1.d0 * beta(i+1,j,k,1)
+          ss(i,j,k, 5) =   1.d0 * beta(i,j  ,k,2)
+          ss(i,j,k, 6) = -16.d0 * beta(i,j  ,k,2)
+          ss(i,j,k, 7) = -16.d0 * beta(i,j+1,k,2)
+          ss(i,j,k, 8) =   1.d0 * beta(i,j+1,k,2)
+          ss(i,j,k, 9) =   1.d0 * beta(i,j,k  ,3)
+          ss(i,j,k,10) = -16.d0 * beta(i,j,k  ,3)
+          ss(i,j,k,11) = -16.d0 * beta(i,j,k+1,3)
+          ss(i,j,k,12) =   1.d0 * beta(i,j,k+1,3)
+          ss(i,j,k,0) = -(ss(i,j,k,1) + ss(i,j,k, 2) + ss(i,j,k, 3) + ss(i,j,k, 4) &
+                         +ss(i,j,k,5) + ss(i,j,k, 6) + ss(i,j,k, 7) + ss(i,j,k, 8) &
+                         +ss(i,j,k,9) + ss(i,j,k,10) + ss(i,j,k,11) + ss(i,j,k,12) )
+       end do
+    end do
+    end do
+
+    ss = ss / (12.d0 * dh(1)**2)
+
+    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
+    do k = 1, nz
+    do j = 1, ny
+       do i = 1, nx
+          ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
+       end do
+    end do
+    end do
+
+  end subroutine s_minion_cross_fill_3d
+
   subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, skwd)
     integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in)  :: ss(:,0:)
@@ -3075,7 +3145,26 @@ contains
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
-    do k = 1,nz
+    ! This is the Minion 4th order cross stencil.
+    if (size(ss,dim=4) .eq. 13) then
+ 
+       do k = 1,nz
+       do j = 1,ny
+          do i = 1,nx
+            dd(i,j,k) = ss(i,j,k,0) * uu(i,j,k) &
+                + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
+                + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
+                + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
+                + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
+                + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
+                + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
+          end do
+       end do
+       end do
+
+    else 
+
+       do k = 1,nz
        do j = 1,ny
           do i = 1,nx
              dd(i,j,k) = &
@@ -3088,7 +3177,9 @@ contains
                   ss(i,j,k,6)*uu(i  ,j  ,k-1)
           end do
        end do
-    end do
+       end do
+
+    end if
 
     if ( lskwd ) then
        !
