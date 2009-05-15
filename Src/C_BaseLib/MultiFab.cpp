@@ -1,5 +1,4 @@
-//
-// $Id: MultiFab.cpp,v 1.90 2008-10-29 16:50:44 sepp Exp $
+// $Id: MultiFab.cpp,v 1.91 2009-05-15 16:51:34 gpau Exp $
 //
 #include <winstd.H>
 
@@ -182,8 +181,12 @@ MultiFab::negate (const Box& region,
     negate(region,0,n_comp,nghost);
 }
 
+//
+// This is called in BoxLib::Initialize().
+//
+
 void
-MultiFab::startup ()
+MultiFab::Initialize ()
 {
     static bool first = true;
 
@@ -198,7 +201,6 @@ MultiFab::startup ()
 
 MultiFab::MultiFab ()
 {
-    startup();
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -208,8 +210,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {
-    startup();
-
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
 
@@ -457,7 +457,9 @@ MultiFab::norm0 (int comp) const
 Real
 MultiFab::norm2 (int comp) const
 {
-    Real nm2 = 0.0;
+
+    Real nm2 = 0.e0;
+
     Real nm_grid;
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {

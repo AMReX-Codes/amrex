@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.52 2008-10-29 16:50:44 sepp Exp $
+// $Id: MultiFab.H,v 1.53 2009-05-15 16:51:34 gpau Exp $
 //
 #include <winstd.H>
 
@@ -423,12 +423,12 @@ public:
     //
     void FillBoundary (int scomp, int ncomp, bool local = false);
 
+    static void Initialize ();
+
 protected:
 
     static bool check_for_nan;
     static bool check_for_inf;
-
-    void startup ();
 
 private:
     //
