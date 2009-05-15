@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.35 2008-10-31 20:40:03 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.36 2009-05-15 16:51:34 gpau Exp $
 //
 #include <winstd.H>
 
@@ -20,6 +20,7 @@
 #include <Profiler.H>
 #include <Utility.H>
 #include <WorkQueue.H>
+#include <MultiFab.H>
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -258,6 +259,8 @@ BoxLib::Initialize (int& argc, char**& argv)
     FabArrayBase::Initialize();
 
     DistributionMapping::Initialize();
+
+    MultiFab::Initialize();
 
     std::cout << std::setprecision(10);
 }
