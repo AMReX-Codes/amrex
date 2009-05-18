@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.73 2009-03-13 18:01:25 almgren Exp $
+// $Id: TagBox.cpp,v 1.74 2009-05-18 16:51:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -52,8 +52,8 @@ TagBox::coarsen (const IntVect& ratio)
     const int* lo  = b1.loVect();
     IntVect b1_length = b1.size();
 
-    int longlen, dir;
-    longlen = b1.longside(dir);
+    int longlen;
+    longlen = b1.longside();
 
     TagType* fdat = dataPtr();
     TagType* cdat = crse->dataPtr();
@@ -69,119 +69,43 @@ TagBox::coarsen (const IntVect& ratio)
 
 #define IXPROJ(i,r) (((i)+(r)*std::abs(i))/(r) - std::abs(i))
 #define IOFF(j,k,lo,len) D_TERM(0, +(j-lo[1])*len[0], +(k-lo[2])*len[0]*len[1])
-#define JOFF(i,k,lo,len) D_TERM(i-lo[0], +0, +(k-lo[2])*len[0]*len[1])
-#define KOFF(i,j,lo,len) D_TERM(i-lo[0], +(j-lo[1])*len[0], +0)
-   //
-   // hack
-   //
-   dir = 0;
    
    int ratiox = 1, ratioy = 1, ratioz = 1;
    D_TERM(ratiox = ratio[0];,
           ratioy = ratio[1];,
           ratioz = ratio[2];)
 
-   int dummy_ratio = 1;
-
-   if (dir == 0)
+   for (int k = klo; k <= khi; k++)
    {
-      for (int k = klo; k <= khi; k++)
-      {
-          int kc = IXPROJ(k,ratioz);
-          for (int j = jlo; j <= jhi; j++)
-          {
-              int jc = IXPROJ(j,ratioy);
-              TagType* c = cdat + IOFF(jc,kc,clo,clen);
-              const TagType* f = fdat + IOFF(j,k,flo,flen);
-              //
-              // Copy fine grid row of values into tmp array.
-              //
-              for (int i = ilo; i <= ihi; i++)
-                  t[i-lo[0]] = f[i-ilo];
-
-              for (int off = 0; off < ratiox; off++)
-              {
-                  for (int ic = 0; ic < clen[0]; ic++)
-                  {
-                      int i = ic*ratiox + off;
-                      c[ic] = std::max(c[ic],t[i]);
-                  }
-              }
-          }
-      }
-   }
-   else if (dir == 1)
-   {
-      for (int k = klo; k <= khi; k++)
-      {
-          int kc = IXPROJ(k,dummy_ratio);
-          for (int i = ilo; i <= ihi; i++)
-          {
-              int ic = IXPROJ(i,dummy_ratio);
-              TagType* c = cdat + JOFF(ic,kc,clo,clen);
-              const TagType* f = fdat + JOFF(i,k,flo,flen);
-              //
-              // Copy fine grid row of values into tmp array.
-              //
-              int strd = flen[0];
-              for (int j = jlo; j <= jhi; j++)
-                  t[j-lo[1]] = f[(j-jlo)*strd];
-
-              for (int off = 0; off < dummy_ratio; off++)
-              {
-                  int jc = 0;
-                  strd = clen[0];
-                  for (int jcnt = 0; jcnt < clen[1]; jcnt++)
-                  {
-                      int j = jcnt*dummy_ratio + off;
-                      c[jc] = std::max(c[jc],t[j]);
-                      jc += strd;
-                  }
-              }
-          }
-      }
-   }
-   else
-   {
+       int kc = IXPROJ(k,ratioz);
        for (int j = jlo; j <= jhi; j++)
        {
-           int jc = IXPROJ(j,dummy_ratio);
+           int jc = IXPROJ(j,ratioy);
+           TagType* c = cdat + IOFF(jc,kc,clo,clen);
+           const TagType* f = fdat + IOFF(j,k,flo,flen);
+           //
+           // Copy fine grid row of values into tmp array.
+           //
            for (int i = ilo; i <= ihi; i++)
-           {
-               int ic = IXPROJ(i,dummy_ratio);
-               TagType* c = cdat + KOFF(ic,jc,clo,clen);
-               const TagType* f = fdat + KOFF(i,j,flo,flen);
-               //
-               // Copy fine grid row of values into tmp array.
-               //
-               int strd = flen[0]*flen[1];
-               for (int k = klo; k <= khi; k++)
-                   t[k-lo[2]] = f[(k-klo)*strd];
+               t[i-lo[0]] = f[i-ilo];
 
-               for (int off = 0; off < dummy_ratio; off++)
+           for (int off = 0; off < ratiox; off++)
+           {
+               for (int ic = 0; ic < clen[0]; ic++)
                {
-                   int kc = 0;
-                   strd = clen[0]*clen[1];
-                   for (int kcnt = 0; kcnt < clen[2]; kcnt++)
-                   {
-                       int k = kcnt*dummy_ratio + off;
-                       c[kc] = std::max(c[kc],t[k]);
-                       kc += strd;
-                   }
+                   int i = ic*ratiox + off;
+                   c[ic] = std::max(c[ic],t[i]);
                }
            }
-      }
+       }
    }
 
    delete [] t;
 
    return crse;
 
-#undef ABS
 #undef IXPROJ
 #undef IOFF
-#undef JOFF
-#undef KOFF
 }
 
 void 
