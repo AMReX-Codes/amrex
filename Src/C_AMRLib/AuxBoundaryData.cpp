@@ -1,6 +1,8 @@
 
 #include <winstd.H>
 
+#include <iostream>
+
 #include <AuxBoundaryData.H>
 
 AuxBoundaryData::AuxBoundaryData ()
@@ -54,6 +56,10 @@ AuxBoundaryData::initialize (const BoxArray& ba,
                              const Geometry& geom)
 {
     BL_ASSERT(!m_initialized);
+
+    const bool verbose = true;
+
+    const Real strt_time = ParallelDescriptor::second();
 
     m_ngrow = n_grow;
     //
@@ -138,6 +144,17 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     else
     {
         m_empty = true;
+    }
+
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor()) 
+            std::cout << "AuxBoundaryData::initialize() time = " << run_time << '\n';
     }
 
     m_initialized = true;
