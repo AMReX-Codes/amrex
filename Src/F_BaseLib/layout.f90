@@ -2014,7 +2014,7 @@ contains
     integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     integer                        :: sh(MAX_SPACEDIM+1), jj
     type(box)                      :: bx
-    type(boxarray)                 :: bxa_src, bxa_dst, batmp
+    type(boxarray)                 :: batmp
     type(list_box)                 :: bltmp
     type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
