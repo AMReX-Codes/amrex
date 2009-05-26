@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.108 2009-03-11 16:44:17 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.109 2009-05-26 20:20:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -731,6 +731,10 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Initialize()");
 
+    const bool verbose = false;
+
+    const Real strt = ParallelDescriptor::second();
+
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
@@ -782,6 +786,16 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
+    if (verbose)
+    {
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        Real      end    = ParallelDescriptor::second() - strt;
+
+        ParallelDescriptor::ReduceRealMax(end,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "FillPatchIterator::Initialize() time = " << end << std::endl;
+    }
 }
 
 static
