@@ -5,6 +5,8 @@
 #include <FabArray.H>
 #include <ParmParse.H>
 
+bool FabArrayBase::verbose = false;
+
 bool FabArrayBase::do_alltoallv = false;
 
 bool FabArrayBase::do_not_use_cache = false;
@@ -13,6 +15,7 @@ void
 FabArrayBase::Initialize ()
 {
     ParmParse pp("fabarray");
+    pp.query("verbose", FabArrayBase::verbose);
     pp.query("do_alltoallv", FabArrayBase::do_alltoallv);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 }

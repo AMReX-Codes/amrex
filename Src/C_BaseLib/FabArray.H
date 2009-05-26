@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.196 2009-03-02 23:23:13 lijewski Exp $
+// $Id: FabArray.H,v 1.197 2009-05-26 20:40:00 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -280,6 +280,10 @@ public:
     // Default is false.
     //
     static bool do_not_use_cache;
+    //
+    // Print out some stuff; default is false.
+    //
+    static bool verbose;
     //
     // Initialize from ParmParse with "fabarray" prefix.
     //
@@ -1163,6 +1167,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
+    const Real strt = ParallelDescriptor::second();
+
     if (FabArrayBase::do_alltoallv)
     {
         size_t Nsend = 0, Nrecv = 0;
@@ -1327,6 +1333,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
             }
         }
+    }
+
+    if (verbose)
+    {
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        Real      end    = ParallelDescriptor::second() - strt;
+
+        ParallelDescriptor::ReduceRealMax(end,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "FabArray::copy() time = " << end << std::endl;
     }
 
 #endif /*BL_USE_MPI*/
