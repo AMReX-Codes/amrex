@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.87 2009-03-02 23:23:13 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.88 2009-05-27 21:08:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -217,89 +217,106 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     std::vector<RF> RFs;
-    Array<IntVect>  pshifts(27);
+    BoxArray        ba(grids.size());
+
+    for (int i = 0; i < grids.size(); i++)
+    {
+        ba.set(i, BoxLib::grow(grids[i],1));
+    }
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersect with this grid.
         //
-        for (int k = 0; k < grids.size(); k++)
+        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
+
+        for (int i = 0; i < isects.size(); i++)
         {
-            Box bx = BoxLib::grow(grids[k],1);
+            int k = isects[i].first;
 
-            if (bx.intersects(mfi.validbox()))
+            for (OrientationIter fi; fi; ++fi)
             {
-                for (OrientationIter fi; fi; ++fi)
+                //
+                // low (high) face of fine grid => high (low)
+                // face of the exterior coarse grid cell updated.
+                //
+                Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+
+                if (ovlp.ok())
                 {
-                    //
-                    // low(high) face of fine grid => high (low)
-                    // face of the exterior coarse grid cell updated.
-                    //
-                    Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+                    FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                 bndry[fi()].box(k),
+                                                 0,
+                                                 k,
+                                                 src_comp,
+                                                 0,
+                                                 num_comp);
 
-                    if (ovlp.ok())
-                    {
-                        FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                     bndry[fi()].box(k),
-                                                     0,
-                                                     k,
-                                                     src_comp,
-                                                     0,
-                                                     num_comp);
-
-                        RFs.push_back(RF(mfi.index(),k,fi(),fbid));
-                    }
+                    RFs.push_back(RF(mfi.index(),k,fi(),fbid));
                 }
             }
-            //
-            // Add periodic possibilities.
-            //
-            if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
+        }
+    }
+    //
+    // Add periodic possibilities.
+    //
+    if (geom.isAnyPeriodic())
+    {
+        Array<IntVect>  pshifts(27);
+
+        for (MFIter mfi(S); mfi.isValid(); ++mfi)
+        {
+            for (int k = 0; k < grids.size(); k++)
             {
-                geom.periodicShift(bx,mfi.validbox(),pshifts);
+                const Box& bx = ba[k];
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                if (!geom.Domain().contains(bx))
                 {
-                    const IntVect& iv = pshifts[iiv];
-                    S[mfi].shift(iv);
-                    //
-                    // This is a funny situation.  I don't want to permanently
-                    // change vol, but I need to do a shift on it.  I'll shift
-                    // it back later, so the overall change is nil.  But to do
-                    // this, I have to cheat and do a cast.  This is pretty 
-                    // disgusting.
-                    //
-                    FArrayBox* cheatvol = const_cast<FArrayBox*>(&volume[mfi]);
-                    BL_ASSERT(cheatvol != 0);
-                    cheatvol->shift(iv);
-                    Box sftbox = mfi.validbox();
-                    sftbox.shift(iv);
-                    BL_ASSERT(bx.intersects(sftbox));
+                    geom.periodicShift(bx,mfi.validbox(),pshifts);
 
-                    for (OrientationIter fi; fi; ++fi)
+                    for (int iiv = 0; iiv < pshifts.size(); iiv++)
                     {
+                        const IntVect& iv = pshifts[iiv];
+                        S[mfi].shift(iv);
                         //
-                        // low(high)  face of fine grid => high (low)
-                        // face of the exterior coarse grid cell updated.
+                        // This is a funny situation.  I don't want to permanently
+                        // change vol, but I need to do a shift on it.  I'll shift
+                        // it back later, so the overall change is nil.  But to do
+                        // this, I have to cheat and do a cast.  This is pretty 
+                        // disgusting.
                         //
-                        Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
+                        FArrayBox* cheatvol = const_cast<FArrayBox*>(&volume[mfi]);
+                        BL_ASSERT(cheatvol != 0);
+                        cheatvol->shift(iv);
+                        Box sftbox = mfi.validbox();
+                        sftbox.shift(iv);
+                        BL_ASSERT(bx.intersects(sftbox));
 
-                        if (ovlp.ok())
+                        for (OrientationIter fi; fi; ++fi)
                         {
-                            FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                         bndry[fi()].box(k),
-                                                         0,
-                                                         k,
-                                                         src_comp,
-                                                         0,
-                                                         num_comp);
+                            //
+                            // low (high)  face of fine grid => high (low)
+                            // face of the exterior coarse grid cell updated.
+                            //
+                            Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
 
-                            RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                            if (ovlp.ok())
+                            {
+                                FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                             bndry[fi()].box(k),
+                                                             0,
+                                                             k,
+                                                             src_comp,
+                                                             0,
+                                                             num_comp);
+
+                                RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                            }
                         }
+                        S[mfi].shift(-iv);
+                        cheatvol->shift(-iv);
                     }
-                    S[mfi].shift(-iv);
-                    cheatvol->shift(-iv);
                 }
             }
         }
@@ -409,74 +426,95 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     std::vector<RF> RFs;
-    Array<IntVect>  pshifts(27);
+    BoxArray        ba(grids.size());
+
+    for (int i = 0; i < grids.size(); i++)
+    {
+        ba.set(i, BoxLib::grow(grids[i],1));
+    }
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
-        // Find flux register that intersects with this grid.
+        // Find flux register that intersect with this grid.
         //
-        for (int k = 0; k < grids.size(); k++)
+        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
+
+        for (int i = 0; i < isects.size(); i++)
         {
-            Box bx = BoxLib::grow(grids[k],1);
+            int k = isects[i].first;
 
-            if (bx.intersects(mfi.validbox()))
+            for (OrientationIter fi; fi; ++fi)
             {
-                for (OrientationIter fi; fi; ++fi)
+                //
+                // low (high) face of fine grid => high (low)
+                // face of the exterior coarse grid cell updated.
+                //
+                Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+
+                if (ovlp.ok())
                 {
-                    Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+                    FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                 bndry[fi()].box(k),
+                                                 0,
+                                                 k,
+                                                 src_comp,
+                                                 0,
+                                                 num_comp);
 
-                    if (ovlp.ok())
-                    {
-                        FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                     bndry[fi()].box(k),
-                                                     0,
-                                                     k,
-                                                     src_comp,
-                                                     0,
-                                                     num_comp);
-
-                        RFs.push_back(RF(mfi.index(),k,fi(),fbid));
-                    }
+                    RFs.push_back(RF(mfi.index(),k,fi(),fbid));
                 }
             }
-            //
-            // Add periodic possibilities.
-            //
-            if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
+        }
+    }
+    //
+    // Add periodic possibilities.
+    //
+    if (geom.isAnyPeriodic())
+    {
+        Array<IntVect>  pshifts(27);
+
+        for (MFIter mfi(S); mfi.isValid(); ++mfi)
+        {
+            for (int k = 0; k < grids.size(); k++)
             {
-                geom.periodicShift(bx,mfi.validbox(),pshifts);
+                const Box& bx = ba[k];
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                if (!geom.Domain().contains(bx))
                 {
-                    const IntVect& iv = pshifts[iiv];
-                    S[mfi].shift(iv);
-                    Box sftbox = mfi.validbox();
-                    sftbox.shift(iv);
-                    BL_ASSERT(bx.intersects(sftbox));
+                    geom.periodicShift(bx,mfi.validbox(),pshifts);
 
-                    for (OrientationIter fi; fi; ++fi)
+                    for (int iiv = 0; iiv < pshifts.size(); iiv++)
                     {
-                        //
-                        // low(high) face of fine grid => high (low)
-                        // face of the exterior coarse grid cell updated.
-                        //
-                        Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
+                        const IntVect& iv = pshifts[iiv];
+                        S[mfi].shift(iv);
+                        Box sftbox = mfi.validbox();
+                        sftbox.shift(iv);
+                        BL_ASSERT(bx.intersects(sftbox));
 
-                        if (ovlp.ok())
+                        for (OrientationIter fi; fi; ++fi)
                         {
-                            FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                         bndry[fi()].box(k),
-                                                         0,
-                                                         k,
-                                                         src_comp,
-                                                         0,
-                                                         num_comp);
+                            //
+                            // low (high) face of fine grid => high (low)
+                            // face of the exterior coarse grid cell updated.
+                            //
+                            Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
 
-                            RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                            if (ovlp.ok())
+                            {
+                                FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                             bndry[fi()].box(k),
+                                                             0,
+                                                             k,
+                                                             src_comp,
+                                                             0,
+                                                             num_comp);
+
+                                RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                            }
                         }
+                        S[mfi].shift(-iv);
                     }
-                    S[mfi].shift(-iv);
                 }
             }
         }
@@ -570,75 +608,80 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     std::vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        for (int k = 0; k < mflx.boxArray().size(); k++)
+        isects = mflx.boxArray().intersections(mfi_lo.fabbox());
+
+        for (int i = 0; i < isects.size(); i++)
         {
-            Box lobox = mfi_lo.fabbox() & mflx.boxArray()[k];
+            int k     = isects[i].first;
+            Box lobox = isects[i].second;
 
-            if (lobox.ok())
-            {
-                fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
-                                                     lobox,
-                                                     0,
-                                                     k,
-                                                     srccomp,
-                                                     0,
-                                                     numcomp));
+            fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
+                                                 lobox,
+                                                 0,
+                                                 k,
+                                                 srccomp,
+                                                 0,
+                                                 numcomp));
 
-                BL_ASSERT(fillBoxId_mflx.back().box() == lobox);
-                //
-                // Here we'll save the index into the FabSet.
-                //
-                fillBoxId_mflx.back().FabIndex(mfi_lo.index());
+            BL_ASSERT(fillBoxId_mflx.back().box() == lobox);
+            //
+            // Here we'll save the index into the FabSet.
+            //
+            fillBoxId_mflx.back().FabIndex(mfi_lo.index());
 
-                fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
-                                                     lobox,
-                                                     0,
-                                                     k,
-                                                     0,
-                                                     0,
-                                                     1));
+            fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
+                                                 lobox,
+                                                 0,
+                                                 k,
+                                                 0,
+                                                 0,
+                                                 1));
 
-                BL_ASSERT(fillBoxId_area.back().box() == lobox);
-                //
-                // Here we'll save the direction.
-                //
-                fillBoxId_area.back().FabIndex(Orientation::low);
-            }
+            BL_ASSERT(fillBoxId_area.back().box() == lobox);
+            //
+            // Here we'll save the direction.
+            //
+            fillBoxId_area.back().FabIndex(Orientation::low);
+        }
 
-            Box hibox = bndry[face_hi].fabbox(mfi_lo.index()) & mflx.boxArray()[k];
+        isects = mflx.boxArray().intersections(bndry[face_hi].fabbox(mfi_lo.index()));
 
-            if (hibox.ok())
-            {
-                fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
-                                                     hibox,
-                                                     0,
-                                                     k,
-                                                     srccomp,
-                                                     0,
-                                                     numcomp));
+        for (int i = 0; i < isects.size(); i++)
+        {
+            int k     = isects[i].first;
+            Box hibox = isects[i].second;
 
-                BL_ASSERT(fillBoxId_mflx.back().box() == hibox);
-                //
-                // Here we'll save the index into the FabSet.
-                //
-                fillBoxId_mflx.back().FabIndex(mfi_lo.index());
+            fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
+                                                 hibox,
+                                                 0,
+                                                 k,
+                                                 srccomp,
+                                                 0,
+                                                 numcomp));
 
-                fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
-                                                     hibox,
-                                                     0,
-                                                     k,
-                                                     0,
-                                                     0,
-                                                     1));
+            BL_ASSERT(fillBoxId_mflx.back().box() == hibox);
+            //
+            // Here we'll save the index into the FabSet.
+            //
+            fillBoxId_mflx.back().FabIndex(mfi_lo.index());
 
-                BL_ASSERT(fillBoxId_area.back().box() == hibox);
-                //
-                // Here we'll save the direction.
-                //
-                fillBoxId_area.back().FabIndex(Orientation::high);
-            }
+            fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
+                                                 hibox,
+                                                 0,
+                                                 k,
+                                                 0,
+                                                 0,
+                                                 1));
+
+            BL_ASSERT(fillBoxId_area.back().box() == hibox);
+            //
+            // Here we'll save the direction.
+            //
+            fillBoxId_area.back().FabIndex(Orientation::high);
         }
     }
 
