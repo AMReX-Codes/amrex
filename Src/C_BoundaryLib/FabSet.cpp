@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.56 2009-03-02 23:23:13 lijewski Exp $
+// $Id: FabSet.cpp,v 1.57 2009-05-27 21:36:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -554,6 +554,8 @@ FabSet::linComb (Real            a,
                  int             ncomp,
                  int             ngrow)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::linComb()");
+
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
 
@@ -568,40 +570,47 @@ FabSet::linComb (Real            a,
 
     std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
+    BoxArray ba_isects(bxa.size());  // Temp BoxArray for intersections() usage below.
+
+    for (int i = 0; i < bxa.size(); i++)
+    {
+        ba_isects.set(i, BoxLib::grow(bxa[i],ngrow));
+    }
+
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        for (int grd = 0; grd < bxa.size(); grd++)
+        std::vector< std::pair<int,Box> > isects = ba_isects.intersections(get(fsi).box());
+
+        for (int j = 0; j < isects.size(); j++)
         {
-            Box ovlp = get(fsi).box() & BoxLib::grow(bxa[grd],ngrow);
+            int grd  = isects[j].first;
+            Box ovlp = isects[j].second;
 
-            if (ovlp.ok())
-            {
-                fbids_mfa.push_back(mfcd.AddBox(mfid_mfa,
-                                                ovlp,
-                                                0,
-                                                grd,
-                                                a_comp,
-                                                0,
-                                                ncomp,
-                                                false));
+            fbids_mfa.push_back(mfcd.AddBox(mfid_mfa,
+                                            ovlp,
+                                            0,
+                                            grd,
+                                            a_comp,
+                                            0,
+                                            ncomp,
+                                            false));
 
-                BL_ASSERT(fbids_mfa.back().box() == ovlp);
-                //
-                // Also save the index of the FAB in the FabSet.
-                //
-                fbids_mfa.back().FabIndex(fsi.index());
+            BL_ASSERT(fbids_mfa.back().box() == ovlp);
+            //
+            // Also save the index of the FAB in the FabSet.
+            //
+            fbids_mfa.back().FabIndex(fsi.index());
 
-                fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
-                                                ovlp,
-                                                0,
-                                                grd,
-                                                b_comp,
-                                                0,
-                                                ncomp,
-                                                false));
+            fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
+                                            ovlp,
+                                            0,
+                                            grd,
+                                            b_comp,
+                                            0,
+                                            ncomp,
+                                            false));
 
-                BL_ASSERT(fbids_mfb.back().box() == ovlp);
-            }
+            BL_ASSERT(fbids_mfb.back().box() == ovlp);
         }
     }
 
