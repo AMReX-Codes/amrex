@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.89 2009-05-29 23:15:57 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.90 2009-05-29 23:38:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -857,7 +857,7 @@ FluxRegister::CrseInitFinish (FrOp op)
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    const bool verbose = true;
+    const bool verbose = false;
 
     if (verbose)
     {
