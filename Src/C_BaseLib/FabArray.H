@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.199 2009-05-29 21:54:15 lijewski Exp $
+// $Id: FabArray.H,v 1.200 2009-05-29 21:57:03 ajnonaka Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1726,7 +1726,7 @@ FabArrayCopyDescriptor<FAB>::clear ()
             {
                 FAB* fab = (*fmi).second->localFabSource;
 
-                bytes += fab->box().numPts()*fab->nComp()*sizeof(FAB::value_type);
+                bytes += fab->box().numPts()*fab->nComp()*sizeof(typename FAB::value_type);
             }
 
             delete (*fmi).second;
