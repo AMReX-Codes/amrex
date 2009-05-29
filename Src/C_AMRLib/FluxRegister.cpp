@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.88 2009-05-27 21:08:21 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.89 2009-05-29 23:15:57 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -856,6 +856,23 @@ FluxRegister::CrseInitFinish (FrOp op)
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
+
+    const bool verbose = true;
+
+    if (verbose)
+    {
+        long count = 0;
+
+        for (int i = 0; i < CIFabs.size(); i++)
+            count += CIFabs[i]->box().numPts()*CIFabs[i]->nComp()*sizeof(Real);
+
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceLongMax(count,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "FluxRegister::CrseInitFinish(): HWM = " << count << std::endl;
+    }
 
     BL_ASSERT(CITags.size() == CIFabs.size());
 
