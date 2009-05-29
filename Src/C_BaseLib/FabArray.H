@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.197 2009-05-26 20:40:00 lijewski Exp $
+// $Id: FabArray.H,v 1.198 2009-05-29 21:13:35 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1747,6 +1747,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
 #if BL_USE_MPI
 
+    long hwm_start = BoxLib::total_bytes_allocated_in_fabs_hwm;
+
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
     //
     // Make sure we can treat CommData as a stream of integers.
@@ -2095,6 +2097,18 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
             }
         }
+    }
+
+    long hwm_diff = BoxLib::total_bytes_allocated_in_fabs_hwm - hwm_start;
+
+    if (FabArrayBase::verbose)
+    {
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceLongMax(hwm_diff,IOProc);
+
+        if (ParallelDescriptor::IOProcessor() && hwm_diff > 0)
+            std::cout << "FabArray::CollectData(): hwm_diff = " << hwm_diff << std::endl;
     }
 
 #endif /*BL_USE_MPI*/
