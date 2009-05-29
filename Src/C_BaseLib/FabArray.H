@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.198 2009-05-29 21:13:35 lijewski Exp $
+// $Id: FabArray.H,v 1.199 2009-05-29 21:54:15 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1714,22 +1714,41 @@ template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::clear ()
 {
-   for (unsigned int i = 0; i < fabCopyDescList.size(); ++i)
-   {
-       FCDMapIter fmi = fabCopyDescList[i].begin();
+    long bytes = 0;
 
-       for ( ; fmi != fabCopyDescList[i].end(); ++fmi)
-       { 
-           delete (*fmi).second;
-       }
-   }
+    for (unsigned int i = 0; i < fabCopyDescList.size(); ++i)
+    {
+        FCDMapIter fmi = fabCopyDescList[i].begin();
 
-   fabArrays.clear();
-   fabCopyDescList.clear();
-   fabComTagList.clear();
+        for ( ; fmi != fabCopyDescList[i].end(); ++fmi)
+        {
+            if ((*fmi).second->cacheDataAllocated)
+            {
+                FAB* fab = (*fmi).second->localFabSource;
 
-   nextFillBoxId = 0;
-   dataAvailable = false;
+                bytes += fab->box().numPts()*fab->nComp()*sizeof(FAB::value_type);
+            }
+
+            delete (*fmi).second;
+        }
+    }
+
+    fabArrays.clear();
+    fabCopyDescList.clear();
+    fabComTagList.clear();
+
+    nextFillBoxId = 0;
+    dataAvailable = false;
+
+    if (FabArrayBase::verbose)
+    {
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::ReduceLongMax(bytes,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Bytes in FabArrayCopyDescriptor = " << bytes << std::endl;
+    }
 }
 
 template <class FAB>
@@ -1746,8 +1765,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
     if (NProcs == 1) return;
 
 #if BL_USE_MPI
-
-    long hwm_start = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
     //
@@ -2097,18 +2114,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
             }
         }
-    }
-
-    long hwm_diff = BoxLib::total_bytes_allocated_in_fabs_hwm - hwm_start;
-
-    if (FabArrayBase::verbose)
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::ReduceLongMax(hwm_diff,IOProc);
-
-        if (ParallelDescriptor::IOProcessor() && hwm_diff > 0)
-            std::cout << "FabArray::CollectData(): hwm_diff = " << hwm_diff << std::endl;
     }
 
 #endif /*BL_USE_MPI*/
