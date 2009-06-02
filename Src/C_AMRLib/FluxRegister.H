@@ -1,7 +1,7 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 //
-// $Id: FluxRegister.H,v 1.13 2002-11-14 07:08:32 marc Exp $
+// $Id: FluxRegister.H,v 1.14 2009-06-02 02:51:02 lijewski Exp $
 //
 #include <BndryRegister.H>
 
@@ -104,6 +104,16 @@ public:
     //
     void CrseInit (const MultiFab& mflx,
                    const MultiFab& area,
+                   int             dir,
+                   int             srccomp,
+                   int             destcomp,
+                   int             numcomp,
+                   Real            mult = -1.0,
+                   FrOp            op = FluxRegister::COPY);
+    //
+    //@ManDoc: Initialize flux correction with coarse data.
+    //
+    void CrseInit (const MultiFab& mflx,
                    int             dir,
                    int             srccomp,
                    int             destcomp,
