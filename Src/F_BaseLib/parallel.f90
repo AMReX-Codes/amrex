@@ -201,6 +201,7 @@ contains
     call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
+    call parallel_barrier()
   end subroutine parallel_initialize
   subroutine parallel_finalize()
     integer ierr
