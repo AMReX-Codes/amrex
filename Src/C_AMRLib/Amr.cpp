@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.180 2009-03-20 22:20:59 lijewski Exp $
+// $Id: Amr.cpp,v 1.181 2009-06-16 23:04:38 almgren Exp $
 //
 #include <winstd.H>
 
@@ -827,6 +827,7 @@ Amr::writePlotFile (const std::string& root,
                   << "Total wall clock seconds since start(restart) = "
                   << wctime << std::endl;
     }
+    ParallelDescriptor::Barrier();
 }
 
 void
@@ -1447,6 +1448,7 @@ Amr::checkPoint ()
         std::cout << "checkPoint() time = "
                   << dCheckPointTime
                   << " secs." << std::endl;
+    ParallelDescriptor::Barrier();
 }
 
 void
