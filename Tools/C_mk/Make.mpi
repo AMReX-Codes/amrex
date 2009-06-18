@@ -70,17 +70,7 @@ ifeq ($(MACHINE), Linux)
       FOPTF   += -qarch=450d -qtune=450
       FDEBF   += -qarch=450d -qtune=450
 
-      #F_C_LINK := LOWERCASE
-      #
-      # if using the bg* compilers instead of the mpi* wrappers above, you may need these
-      #
-      #MPIHOME = /bgsys/drivers/ppcfloor
-      #mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
-      #mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
-      #BL_MPI_LIBS += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna
- 
       BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlomp_ser -lpthread -lrt
-
     endif
 
     ifeq ($(WHICHLINUX), COYOTE)
