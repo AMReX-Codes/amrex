@@ -51,6 +51,38 @@ endif
 
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
+
+    ifeq ($(WHICHLINUX), INTREPID)
+      ifdef SMP
+        CXX := mpixlcxx -qsmp
+        CC  := mpixlc_r -qsmp
+        FC  := mpixlf95_r -qfixed=72 -qsmp
+        F90 := mpixlf95_r -qsmp
+      else
+        CXX := mpixlcxx
+        CC  := mpixlc
+        FC  := mpixlf95 -qfixed=72
+        F90 := mpixlf95
+      endif
+
+      CXXDEBF += -qarch=450d -qtune=450
+      CXXOPTF += -qarch=450d -qtune=450
+      FOPTF   += -qarch=450d -qtune=450
+      FDEBF   += -qarch=450d -qtune=450
+
+      #F_C_LINK := LOWERCASE
+      #
+      # if using the bg* compilers instead of the mpi* wrappers above, you may need these
+      #
+      #MPIHOME = /bgsys/drivers/ppcfloor
+      #mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
+      #mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
+      #BL_MPI_LIBS += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna
+ 
+      BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlomp_ser -lpthread -lrt
+
+    endif
+
     ifeq ($(WHICHLINUX), COYOTE)
       MPI_HOME:=/opt/OpenMPI/openmpi-1.2.4-intel/ib
       BL_MPI_LIBS += -lmpi  -lmpi_f77
@@ -219,10 +251,12 @@ ifeq ($(MACHINE), Linux)
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
     endif
-    ifneq ($(WHICHLINUX), JACQUARD)
-      ifneq ($(WHICHLINUX), COLUMBIA)
-        ifneq ($(HOST),davinci)
-          BL_MPI_LIBS += -lmpich
+    ifneq ($(WHICHLINUX), INTREPID)
+      ifneq ($(WHICHLINUX), JACQUARD)
+        ifneq ($(WHICHLINUX), COLUMBIA)
+          ifneq ($(HOST),davinci)
+            BL_MPI_LIBS += -lmpich
+          endif
         endif
       endif
     endif

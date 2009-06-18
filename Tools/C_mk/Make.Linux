@@ -44,7 +44,7 @@ else
 ifeq ($(COMP),xlC)
   CXX     := xlC
   CXXOPTF += -O2 -qsuppress=1500-029 -qmaxmem=-1
-  CXXDEBF += -g
+  CXXDEBF += -g -qcheck=bounds
 endif
 endif
 endif
@@ -146,12 +146,12 @@ ifeq ($(FCOMP),xlf)
     FOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
     FDEBF += -g
     fOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
-    fDEBF += -g
+    fDEBF += -g -C
   else
     FOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
     FDEBF += -qdpc -g
     fOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
-    fDEBF += -qdpc -g
+    fDEBF += -qdpc -g -C
   endif
 
   override FORTLINK := LOWERCASE
