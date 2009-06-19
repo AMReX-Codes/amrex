@@ -55,7 +55,7 @@ ifeq ($(MACHINE), Linux)
     ifeq ($(WHICHLINUX), INTREPID)
 
       ifeq ($(USE_SMP), TRUE)
-        CXX := mpixlcxx -qsmp
+        CXX := mpixlcxx_r -qsmp
         CC  := mpixlc_r -qsmp
         FC  := mpixlf95_r -qfixed=72 -qsmp
         F90 := mpixlf95_r -qsmp
@@ -71,7 +71,11 @@ ifeq ($(MACHINE), Linux)
       FOPTF   += -qarch=450d -qtune=450
       FDEBF   += -qarch=450d -qtune=450
 
-      BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlomp_ser -lpthread -lrt
+      ifeq ($(USE_SMP), TRUE)
+        BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlf90 -lxlfmath
+      else
+        BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlomp_ser -lpthread -lrt
+      endif
     endif
 
     ifeq ($(WHICHLINUX), COYOTE)
