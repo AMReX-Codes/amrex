@@ -53,7 +53,8 @@ ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
 
     ifeq ($(WHICHLINUX), INTREPID)
-      ifdef SMP
+
+      ifeq ($(USE_SMP), TRUE)
         CXX := mpixlcxx -qsmp
         CC  := mpixlc_r -qsmp
         FC  := mpixlf95_r -qfixed=72 -qsmp
