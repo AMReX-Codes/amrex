@@ -796,30 +796,6 @@ contains
     REAL(kind=dp_t), intent(in) :: cvcz(cvcz_lo:)
     logical        , intent(in) :: lim_slope, lin_limit
 
-    REAL(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) ::     lc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) :: xslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3))
-    REAL(kind=dp_t) ::     uc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) ::     lc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) :: yslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3))
-    REAL(kind=dp_t) ::     uc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) ::     lc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) :: zslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3))
-    REAL(kind=dp_t) ::         alpha(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) ::          cmax(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
-    REAL(kind=dp_t) ::          cmin(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),size(fine,4))
     REAL(kind=dp_t) :: voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
     REAL(kind=dp_t) :: voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
     REAL(kind=dp_t) :: voffz(fvcz_lo:fvcz_lo+size(fine,3)-1)
@@ -833,6 +809,44 @@ contains
     logical :: xok(3)
     integer :: nxc(3)
     integer :: ioff, joff, koff
+
+    REAL(kind=dp_t), allocatable ::     uc_xslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::     lc_xslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable :: xslope_factor(:,:,:)
+    REAL(kind=dp_t), allocatable ::     uc_yslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::     lc_yslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable :: yslope_factor(:,:,:)
+    REAL(kind=dp_t), allocatable ::     uc_zslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::     lc_zslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable :: zslope_factor(:,:,:)
+    REAL(kind=dp_t), allocatable ::         alpha(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::          cmax(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::          cmin(:,:,:,:)
+
+    allocate(     uc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(     lc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate( xslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3)))
+    allocate(     uc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(     lc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate( yslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3)))
+    allocate(     uc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(     lc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate( zslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3)))
+    allocate(         alpha(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(          cmax(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(          cmin(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
     xok = (nxc >=  2)
@@ -1180,6 +1194,11 @@ contains
        end do
 
     end if
+
+    deallocate(uc_xslope,lc_xslope,xslope_factor)
+    deallocate(uc_yslope,lc_yslope,yslope_factor)
+    deallocate(uc_zslope,lc_zslope,zslope_factor)
+    deallocate(alpha,cmax,cmin)
 
   contains
 
