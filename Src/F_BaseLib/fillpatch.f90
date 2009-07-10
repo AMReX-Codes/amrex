@@ -318,7 +318,8 @@ contains
           dst => dataptr(fine,     i, fbx, icomp_fine, nc)
        end if
 
-       dst = fp
+       ! dst = fp failed using Intel 9.1.043
+       call cpy_d(dst,fp)
 
        deallocate(cvcx, fvcx, fp)
        if ( dm > 1 ) deallocate(cvcy, fvcy)
