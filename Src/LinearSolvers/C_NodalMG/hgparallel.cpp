@@ -21,7 +21,7 @@
 
 bool HG_is_debugging       = false;
 MPI_Comm HG::mpi_comm      = MPI_COMM_WORLD;
-int HG::max_live_tasks     = 100;
+int HG::max_live_tasks     = 50;
 int HG::multigrid_maxiter  = 100;
 int HG::cgsolve_maxiter    = 250;
 int HG::pverbose           = 0;
