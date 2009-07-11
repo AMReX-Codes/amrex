@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.57 2009-05-27 21:36:59 lijewski Exp $
+// $Id: FabSet.cpp,v 1.58 2009-07-11 00:49:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -313,8 +313,8 @@ TheFSRec (const MultiFab& src,
     BL_ASSERT(ncomp >  0);
 
     static bool first               = true;
-    static bool use_copy_cache      = true;
-    static int  copy_cache_max_size = 100;   // -1 ==> no maximum size
+    static bool use_copy_cache      = false;
+    static int  copy_cache_max_size = 10;   // -1 ==> no maximum size
 
     if (first)
     {
