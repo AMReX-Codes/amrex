@@ -19,7 +19,7 @@ bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
 
-int Geometry::fpb_cache_max_size = -1; // -1 ==> no maximum size
+int Geometry::fpb_cache_max_size = 10; // -1 ==> no maximum size
 
 std::ostream&
 operator<< (std::ostream&   os,
