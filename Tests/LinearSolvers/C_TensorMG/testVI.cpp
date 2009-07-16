@@ -98,6 +98,17 @@ main (int   argc,
     
     // Create the boundary object
     MCViscBndry vbd(bs,geom);
+
+    BCRec phys_bc;
+    Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
+    pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
+    pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        phys_bc.setLo(i,lo_bc[i]);
+        phys_bc.setHi(i,hi_bc[i]);
+    }
+
     
     // Create the BCRec's interpreted by ViscBndry objects
 #if BL_SPACEDIM==2
@@ -112,6 +123,8 @@ main (int   argc,
 			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #elif BL_SPACEDIM==3
     Array<BCRec> pbcarray(12);
+
+#if 1
     pbcarray[0] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[1] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[2] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
@@ -133,6 +146,11 @@ main (int   argc,
 			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     pbcarray[11] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
 			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+#else
+    for (int i = 0; i < 12; i++)
+        pbcarray[i] = phys_bc;
+#endif
+#endif
     
     Nghost = 1; // need space for bc info
     MultiFab fine(bs,Ncomp,Nghost,Fab_allocate);
