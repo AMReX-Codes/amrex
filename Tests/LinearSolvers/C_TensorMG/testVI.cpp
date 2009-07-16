@@ -163,12 +163,22 @@ main (int   argc,
 
     // Create "background coarse data"
     Box crse_bx = Box(domain).coarsen(ratio).grow(1);
+    BoxArray cba(crse_bx);
+    cba.maxSize(32);
     Real h_crse[BL_SPACEDIM];
     for (n=0; n<BL_SPACEDIM; n++) h_crse[n] = H[n]*ratio;
-    FArrayBox crse_fab(crse_bx,Ncomp);
-    FORT_FILLCRSE(crse_fab.dataPtr(),
-		  ARLIM(crse_fab.loVect()),ARLIM(crse_fab.hiVect()),
-		  h_crse,&Ncomp);
+
+    MultiFab crse_mf(cba, Ncomp, 0);
+//    FArrayBox crse_fab(crse_bx,Ncomp);
+
+    for (MFIter mfi(crse_mf); mfi.isValid(); ++mfi)
+    {
+        FORT_FILLCRSE(crse_mf[mfi].dataPtr(),
+                      ARLIM(crse_mf[mfi].loVect()),ARLIM(crse_mf[mfi].hiVect()),
+                      h_crse,&Ncomp);
+    }
+
+
     
     // Create coarse boundary register, fill w/data from coarse FAB
     int bndry_InRad=0;
@@ -180,7 +190,7 @@ main (int   argc,
     {
 	Orientation f = face();
 	FabSet& bnd_fs(cbr[f]);
-	bnd_fs.copyFrom(crse_fab);
+	bnd_fs.copyFrom(crse_mf, 0, 0, 0, Ncomp);
     }
   
     // Interpolate crse data to fine boundary, where applicable
