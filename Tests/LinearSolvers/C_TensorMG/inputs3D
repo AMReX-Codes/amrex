@@ -7,5 +7,5 @@ mg.v = 2
 mg.usecg = 0
 mg.maxiter = 500
 #boxes = grids/gr.3_2x3x4
-ns.lo_bc          = 4 4 1
-ns.hi_bc          = 4 4 2
+lo_bc = 4 4 1
+hi_bc = 4 4 2
