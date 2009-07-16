@@ -51,19 +51,34 @@ main (int   argc,
     BoxArray bs;
     
 #if BL_SPACEDIM == 2
-    Box container(IntVect(0,0),IntVect(11,11));
+    Box domain(IntVect(0,0),IntVect(11,11));
     std::string boxfile("gr.2_small_a") ;
 #elif BL_SPACEDIM == 3
-    Box container(IntVect(0,0,0),IntVect(11,11,11));
-    std::string boxfile("grids/gr.3_small_a") ;
+    Box domain(IntVect(0,0,0),IntVect(11,11,11));
+    std::string boxfile("grids/gr.3_2x3x4") ;
 #endif
     pp.query("boxes", boxfile);
 
     std::ifstream ifs(boxfile.c_str(), std::ios::in);
 
+    if (!ifs)
+    {
+        std::string msg = "problem opening grids file: ";
+        msg += boxfile.c_str();
+        BoxLib::Abort(msg.c_str());
+    }
+
+    ifs >> domain;
+
+    if (ParallelDescriptor::IOProcessor())
+	std::cout << "domain: " << domain << std::endl;
+
     bs.readFrom(ifs);
 
-    Geometry geom(container);
+    if (ParallelDescriptor::IOProcessor())
+	std::cout << "grids:\n" << bs << std::endl;
+
+    Geometry geom(domain);
     const Real* H = geom.CellSize();
     int ratio=2; pp.query("ratio", ratio);
 
@@ -97,17 +112,9 @@ main (int   argc,
 			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #elif BL_SPACEDIM==3
     Array<BCRec> pbcarray(12);
-#define TEST_EXT 0
-#if TEST_EXT
     pbcarray[0] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[1] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[2] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
-#else
-    pbcarray[0] = BCRec(INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR);
-    pbcarray[1] = BCRec(INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR);
-    pbcarray[2] = BCRec(INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR,INT_DIR);
-#endif
-    // the other bc's don't really matter.  Just init with anything
     pbcarray[3] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
 			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     pbcarray[4] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
@@ -126,7 +133,6 @@ main (int   argc,
 			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     pbcarray[11] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
 			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-#endif
     
     Nghost = 1; // need space for bc info
     MultiFab fine(bs,Ncomp,Nghost,Fab_allocate);
@@ -138,7 +144,7 @@ main (int   argc,
     }
 
     // Create "background coarse data"
-    Box crse_bx = Box(container).coarsen(ratio).grow(1);
+    Box crse_bx = Box(domain).coarsen(ratio).grow(1);
     Real h_crse[BL_SPACEDIM];
     for (n=0; n<BL_SPACEDIM; n++) h_crse[n] = H[n]*ratio;
     FArrayBox crse_fab(crse_bx,Ncomp);
