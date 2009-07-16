@@ -55,20 +55,20 @@
 extern "C"
 {
     void FORT_FILLCRSE (
-	REAL* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-	const REAL* h, const int* nc
+	Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+	const Real* h, const int* nc
 	);
     void FORT_FILLFINE (
-	REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const REAL* h, const int* nc
+	Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	const Real* h, const int* nc
 	);
     void FORT_FILLRHS (
-	REAL* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const REAL* h, const int* nc
+	Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	const Real* h, const int* nc
 	);
     void FORT_MAKEMU(
-		     REAL*mu, ARLIM_P(mulo),ARLIM_P(muhi),
-		     const REAL* h, int&idir );
+		     Real*mu, ARLIM_P(mulo),ARLIM_P(muhi),
+		     const Real* h, int&idir );
 };
 
 #endif

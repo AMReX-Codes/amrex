@@ -12,19 +12,19 @@ MCViscBndry::setBndryConds (const BCRec& bc,
     BL_ASSERT(comp<3*(3+1)); // u and v, plus derivs of same
 #endif
 
-    const REAL* dx = geom.CellSize();
-    const BOX& domain = geom.Domain();
+    const Real* dx = geom.CellSize();
+    const Box& domain = geom.Domain();
 
     for (OrientationIter fi; fi; ++fi)
     {
-	Array<REAL> &bloc = bcloc[fi()];
+	Array<Real> &bloc = bcloc[fi()];
 	Array< Array<BoundCond> >& bctag = bcond[fi()];
 	
 	int dir = fi().coordDir();
-	REAL delta = dx[dir]*ratio;
+	Real delta = dx[dir]*ratio;
 	int p_bc = (fi().isLow() ? bc.lo(dir): bc.hi(dir));
 	
-	for (int i = 0; i < boxes().length(); i++)
+	for (int i = 0; i < boxes().size(); i++)
 	{
 	    if (domain[fi()] == boxes()[i][fi()] && !geom.isPeriodic(dir))
 	    {
@@ -60,7 +60,7 @@ MCViscBndry::setBndryConds (const BCRec& bc,
 void
 MCViscBndry::setHomogValues()
 {
-    for (int grd = 0; grd < boxes().length(); grd++)
+    for (int grd = 0; grd < boxes().size(); grd++)
         for (OrientationIter fi; fi; ++fi)
 	    bndry[fi()][grd].setVal(0.);
 }

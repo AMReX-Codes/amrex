@@ -1,20 +1,15 @@
-#include <iostream.h>
-#include <fstream.h>
-#include <math.h>
-#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cmath>
+#include <cstdio>
+#include <string>
 
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
-
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
 #include <Utility.H>
-#include <Tracer.H>
 #include <Box.H>
 #include <BoxArray.H>
 #include <Geometry.H>
@@ -24,7 +19,6 @@
 #ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
 #endif
-#include <TV_TempWrite.H>
 #endif
 
 #include <TestMCViscBndry.H>
@@ -34,63 +28,41 @@
 #include <MCCGSolver.H>
 #include <ParallelDescriptor.H>
 
-#include <new>
-using std::setprecision;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-
 #include <main_F.H>
-#include <WritePlotFile.H>
-
-BoxList
-readBoxList(aString file,
-	    BOX&    domain );
 
 int
 main (int   argc,
       char* argv[])
 {
-    //
-    // Make sure to catch new failures.
-    //
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
+    BoxLib::Initialize(argc,argv);
 
-    ParallelDescriptor::StartParallel(&argc,&argv);
+    std::cout << std::setprecision(10);
 
-    cout << setprecision(10);
-
-    if(argc < 2) {
-      cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
+    if (argc < 2)
+    {
+      std::cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
       exit(-1);
     }
 
-    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-    //
-    // Initialize random seed after we're running in parallel.
-    //
-    Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
-    
-#ifndef WIN32
-    int sleeptime = 0; pp.query("sleep", sleeptime);
-    sleep(sleeptime);
-#endif
-    
-    TRACER("mcmg");
+    ParmParse pp;
     
     int n;
+
+    BoxArray bs;
     
 #if BL_SPACEDIM == 2
     Box container(IntVect(0,0),IntVect(11,11));
-    aString boxfile("gr.2_small_a") ;
+    std::string boxfile("gr.2_small_a") ;
 #elif BL_SPACEDIM == 3
     Box container(IntVect(0,0,0),IntVect(11,11,11));
-    aString boxfile("grids/gr.3_small_a") ;
+    std::string boxfile("grids/gr.3_small_a") ;
 #endif
     pp.query("boxes", boxfile);
-    BoxArray bs(readBoxList(boxfile,container));
+
+    std::ifstream ifs(boxfile.c_str(), std::ios::in);
+
+    bs.readFrom(ifs);
+
     Geometry geom(container);
     const Real* H = geom.CellSize();
     int ratio=2; pp.query("ratio", ratio);
@@ -98,14 +70,14 @@ main (int   argc,
     // allocate/init soln and rhs
     int Ncomp=BL_SPACEDIM;
     int Nghost=0;
-    int Ngrids=bs.length();
+    int Ngrids=bs.size();
     MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
     MultiFab out(bs, Ncomp, Nghost, Fab_allocate); 
     MultiFab rhs(bs, Ncomp, Nghost, Fab_allocate); rhs.setVal(0.0);
-    for(MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
+    for(MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
-	FORT_FILLRHS(rhsmfi().dataPtr(),
-		     ARLIM(rhsmfi().loVect()),ARLIM(rhsmfi().hiVect()),
+	FORT_FILLRHS(rhs[rhsmfi].dataPtr(),
+		     ARLIM(rhs[rhsmfi].loVect()),ARLIM(rhs[rhsmfi].hiVect()),
 		     H,&Ncomp);
     }
     
@@ -158,18 +130,18 @@ main (int   argc,
     
     Nghost = 1; // need space for bc info
     MultiFab fine(bs,Ncomp,Nghost,Fab_allocate);
-    for(MultiFabIterator finemfi(fine); finemfi.isValid(); ++finemfi)
+    for(MFIter finemfi(fine); finemfi.isValid(); ++finemfi)
     {
-	FORT_FILLFINE(finemfi().dataPtr(),
-		      ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
+	FORT_FILLFINE(fine[finemfi].dataPtr(),
+		      ARLIM(fine[finemfi].loVect()),ARLIM(fine[finemfi].hiVect()),
 		      H,&Ncomp);
     }
 
     // Create "background coarse data"
-    BOX crse_bx = Box(container).coarsen(ratio).grow(1);
-    REAL h_crse[BL_SPACEDIM];
+    Box crse_bx = Box(container).coarsen(ratio).grow(1);
+    Real h_crse[BL_SPACEDIM];
     for (n=0; n<BL_SPACEDIM; n++) h_crse[n] = H[n]*ratio;
-    FARRAYBOX crse_fab(crse_bx,Ncomp);
+    FArrayBox crse_fab(crse_bx,Ncomp);
     FORT_FILLCRSE(crse_fab.dataPtr(),
 		  ARLIM(crse_fab.loVect()),ARLIM(crse_fab.hiVect()),
 		  h_crse,&Ncomp);
@@ -198,8 +170,8 @@ main (int   argc,
     
     DivVis lp(vbd,H);
     
-    REAL a = 0.0;
-    REAL b[BL_SPACEDIM];
+    Real a = 0.0;
+    Real b[BL_SPACEDIM];
     b[0] = 1.0;
     b[1] = 1.0;
 #if BL_SPACEDIM>2
@@ -216,10 +188,10 @@ main (int   argc,
 	bcoefs[n].define(bsC.surroundingNodes(n), 1,
 			 Nghost, Fab_allocate);
 #if 1
-	for(MultiFabIterator bmfi(bcoefs[n]); bmfi.isValid(); ++bmfi)
+	for(MFIter bmfi(bcoefs[n]); bmfi.isValid(); ++bmfi)
 	{
-	    FORT_MAKEMU(bmfi().dataPtr(),
-			ARLIM(bmfi().loVect()),ARLIM(bmfi().hiVect()),H,n);
+	    FORT_MAKEMU(bcoefs[n][bmfi].dataPtr(),
+			ARLIM(bcoefs[n][bmfi].loVect()),ARLIM(bcoefs[n][bmfi].hiVect()),H,n);
 	}
 #else
 	bcoefs[n].setVal(b[n]);
@@ -240,27 +212,27 @@ main (int   argc,
     // testing apply
     lp.apply(out,tsoln);
     Box subbox = out[0].box();
-    REAL n1 = out[0].norm(subbox,1,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
+    Real n1 = out[0].norm(subbox,1,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
     ParallelDescriptor::ReduceRealSum(n1);
     if (ParallelDescriptor::IOProcessor())
     {
-	cout << "n1 output is "<<n1<<endl;
+	cout << "n1 output is "<<n1<<std::endl;
     }
     out.minus(rhs,0,BL_SPACEDIM,0);
     // special to single grid prob
-    REAL n2 = out[0].norm(subbox,1,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
+    Real n2 = out[0].norm(subbox,1,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
     ParallelDescriptor::ReduceRealSum(n2);
     if (ParallelDescriptor::IOProcessor())
     {
-	cout << "n2 difference is "<<n2<<endl;
+	cout << "n2 difference is "<<n2<<std::endl;
     }
 #if 0
     subbox.grow(-1);
-    REAL n3 = out[0].norm(subbox,0,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
+    Real n3 = out[0].norm(subbox,0,0,BL_SPACEDIM)*pow(H[0],BL_SPACEDIM);
     ParallelDescriptor::ReduceRealMax(n3);
     if (ParallelDescriptor::IOProcessor())
     {
-	cout << "n3 difference is "<<n3<<endl;
+	cout << "n3 difference is "<<n3<<std::endl;
     }
 #endif
     
@@ -294,21 +266,21 @@ main (int   argc,
 		tsoln);
     
     // Write fluxes
-    writeMF(&xflux,"xflux.mfab");
-    writeMF(&yflux,"yflux.mfab");
+    //writeMF(&xflux,"xflux.mfab");
+    //writeMF(&yflux,"yflux.mfab");
 #if BL_SPACEDIM>2
-    writeMF(&zflux,"zflux.mfab");
+    //writeMF(&zflux,"zflux.mfab");
 #endif
     
 #endif
 #endif
     
-    REAL tolerance = 1.0e-10; pp.query("tol", tolerance);
-    REAL tolerance_abs = 1.0e-10; pp.query("tol_abs", tolerance_abs);
+    Real tolerance = 1.0e-10; pp.query("tol", tolerance);
+    Real tolerance_abs = 1.0e-10; pp.query("tol_abs", tolerance_abs);
 
 #if 0
-    cout << "Bndry Data object:" << endl;
-    cout << lp.bndryData() << endl;
+    cout << "Bndry Data object:" << std::endl;
+    cout << lp.bndryData() << std::endl;
 #endif
     
 #if 0
@@ -321,12 +293,11 @@ main (int   argc,
 #endif
 
 #if 0
-    cout << "MCLinOp object:" << endl;
-    cout << lp << endl;
+    cout << "MCLinOp object:" << std::endl;
+    cout << lp << std::endl;
 #endif
     
-    // Write solution
-    writePlotFile("pltfile",soln,geom,refRatio,bgVal);
+    VisMF::Write(soln,"soln");
     
 #if 0
     // apply operator to soln to see if really satisfies eqn
@@ -334,13 +305,12 @@ main (int   argc,
     lp.apply(out,tsoln);
     soln.copy(out);
     // Output "apply" results on soln
-    writePlotFile("plt_apply",soln,geom,refRatio,bgVal);
+    VisMF::Write(soln,"apply");
 
     // Compute truncation
-    for(MultiFabIterator smfi(soln); smfi.isValid(); ++smfi)
+    for (MFIter smfi(soln); smfi.isValid(); ++smfi)
     {
-	DependentMultiFabIterator fmfi(smfi,fine);
-	smfi() -= fmfi();
+	soln[smfi] -= fine[smfi];
     }
     for( int icomp=0; icomp < BL_SPACEDIM ; icomp++ )
     {
@@ -350,48 +320,18 @@ main (int   argc,
 	ParallelDescriptor::ReduceRealMax(solnMax);
 	if (ParallelDescriptor::IOProcessor())
 	{
-	    cout << icomp << "  "<<solnMin << " " << solnMax <<endl;
+	    cout << icomp << "  "<<solnMin << " " << solnMax <<std::endl;
 	}
     }
     // Output truncation
-    writePlotFile("plt_trunc",soln,geom,refRatio,bgVal);
+    VisMF::Write(soln,"trunc");
 #endif
 
     int dumpLp=0; pp.query("dumpLp",dumpLp);
     bool write_lp = (dumpLp == 1 ? true : false);
     if (write_lp)
-	cout << lp << endl;
+	std::cout << lp << std::endl;
 
     // Output trunc
     ParallelDescriptor::EndParallel();
 }
-
-BoxList
-readBoxList(const aString file, BOX& domain )
-{
-    BoxList retval;
-    ifstream boxspec(file.c_str());
-    if( !boxspec )
-    {
-	BoxLib::Error("readBoxList: unable to open " + *file.c_str());
-    }
-    boxspec >> domain;
-    
-    int numbox;
-    boxspec >> numbox;
-
-    for(int i=0; i<numbox; i++)
-    {
-	BOX tmpbox;
-	boxspec >> tmpbox;
-	if( ! domain.contains(tmpbox))
-	{
-	    cerr << "readBoxList: bogus box " << tmpbox << endl;
-	    exit(1);
-        }
-	retval.append(tmpbox);
-    }
-    boxspec.close();
-    return retval;
-}
-
