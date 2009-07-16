@@ -8,10 +8,3 @@ FEXE_sources += main_$(DIM)D.F
 FEXE_headers += main_F.H
 
 INCLUDE_LOCATIONS +=  .
-
-#
-# utility stuff
-#
-CEXE_sources += WritePlotFile.cpp
-CEXE_headers += WritePlotfile.H
-
