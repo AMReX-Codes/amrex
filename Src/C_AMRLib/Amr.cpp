@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.181 2009-06-16 23:04:38 almgren Exp $
+// $Id: Amr.cpp,v 1.182 2009-07-21 21:19:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2150,18 +2150,18 @@ Amr::grid_places (int              lbase,
         if (levf < new_finest)
         {
             BoxArray ba_proj(new_grids[levf+1]);
-            BoxList blst(amr_level[levc].boxArray());
+
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.grow(n_proper);
             ba_proj.coarsen(ref_ratio[levc]);
 
-            Box jbx = ba_proj.minimalBox();
-            Box lbx = ba_proj.minimalBox();
+            BoxArray levcBA = amr_level[levc].boxArray();
 
-            while (!lbx.contains(jbx))
+            while (!levcBA.contains(ba_proj))
             {
-                blst.accrete(1);
-                lbx.grow(1);
+                BoxArray tmp = levcBA;
+                tmp.grow(1);
+                levcBA = tmp;
                 ngrow++;
             }
         }
