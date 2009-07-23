@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.182 2009-07-21 21:19:21 lijewski Exp $
+// $Id: Amr.cpp,v 1.183 2009-07-23 22:26:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2347,9 +2347,9 @@ Amr::grid_places (int              lbase,
         //
         // Chop up grids if fewer grids at level than CPUs.
         // The idea here is to make more grids on a given level
-        // to spread the work around.
+        // to spread the work around.  Don't do the finest grid though.
         //
-        for (int i = lbase; i < new_grids.size(); i++)
+        for (int i = lbase; i < new_finest; i++)
         {
             if (new_grids[i].size() < ParallelDescriptor::NProcs() &&
                 blocking_factor[i] <= max_grid_size/2)
