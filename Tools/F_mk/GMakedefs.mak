@@ -108,11 +108,13 @@ ifeq ($(COMP),gfortran)
     FFLAGS += -O -fno-range-check
     CFLAGS += -O
   else
-    F90FLAGS += -g -fno-range-check 
+    F90FLAGS += -g -fno-range-check -O
     F90FLAGS += -fbounds-check 
-    FFLAGS += -g -fno-range-check 
+    # F90FLAGS += -Wuninitialized -Wsurprising -fimplicit-none
+    FFLAGS += -g -fno-range-check -O
     FFLAGS += -fbounds-check 
-    CFLAGS += -g
+    # FFLAGS += -Wuninitialized -Wsurprising -fimplicit-none
+    CFLAGS += -g -O
   endif
 endif
 
@@ -294,8 +296,10 @@ ifeq ($(ARCH),Linux)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0
         FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all -warn all -u
-        FFLAGS   += -check all -warn all -u
+        F90FLAGS += -check all -warn all -u 
+	# F90FLAGS += -ftrapuv
+        FFLAGS   += -check all -warn all -u 
+	# FFLAGS += -ftrapuv
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
