@@ -1,7 +1,7 @@
 #ifndef _FABSET_H_
 #define _FABSET_H_
 //
-// $Id: FabSet.H,v 1.19 2001-08-01 21:50:50 lijewski Exp $
+// $Id: FabSet.H,v 1.20 2009-07-24 19:14:09 lijewski Exp $
 //
 #include <MultiFab.H>
 
@@ -213,10 +213,6 @@ public:
     //@ManDoc: True if there is a FAB at specified index.
     //
     bool defined (int i) const { return fabparray.defined(i); }
-    //
-    //@ManDoc: Flush cached stuff between regriddings.
-    //
-    static void FlushCache ();
 
 protected:
     //
