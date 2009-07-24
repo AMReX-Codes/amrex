@@ -209,7 +209,7 @@ FabArrayBase::CPC&
 FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
     static bool first               = true;
-    static bool use_copy_cache      = false;
+    static bool use_copy_cache      = true;
     static int  copy_cache_max_size = 10;   // -1 ==> no maximum size
 
     if (first)
