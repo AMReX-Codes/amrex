@@ -712,7 +712,7 @@ contains
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm
-    integer :: mglev, mglev_crse
+    integer :: mglev
 
     type(bl_prof_timer), save :: bpt
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
