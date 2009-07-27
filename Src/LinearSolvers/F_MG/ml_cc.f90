@@ -782,7 +782,6 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       if (n.eq.1) call print(mgt(n)%ss(mglev),'SS')
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                       mgt(n)%mm(mglev))
     end do
