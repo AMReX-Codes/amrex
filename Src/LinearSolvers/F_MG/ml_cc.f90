@@ -760,13 +760,6 @@ contains
 
     dm = rh(1)%dim
 
-    do n = nlevs,2,-1
-       mglev      = mgt(n  )%nlevels
-       mglev_crse = mgt(n-1)%nlevels
-       call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
-    end do
-
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
@@ -786,11 +779,16 @@ contains
        call multifab_fill_boundary(full_soln(n))
     end do
 
+
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
+       if (n.eq.1) call print(mgt(n)%ss(mglev),'SS')
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                       mgt(n)%mm(mglev))
     end do
+
+    call print(res(1),'RES')
+    stop
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
