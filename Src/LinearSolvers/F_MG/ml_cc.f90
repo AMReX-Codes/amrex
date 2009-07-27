@@ -787,9 +787,6 @@ contains
                       mgt(n)%mm(mglev))
     end do
 
-    call print(res(1),'RES')
-    stop
-
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
        ng = res(n)%ng
