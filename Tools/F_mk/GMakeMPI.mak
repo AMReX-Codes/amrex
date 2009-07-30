@@ -83,6 +83,46 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #    mpi_libraries += -lpthread -lrt -lSPI.cna
 endif
 
+ifeq ($(findstring surveyor, $(HOSTNAME)), surveyor)
+    #
+    # surveyor.alcf.anl.gov
+    #
+    ifdef SMP
+      CC  := mpixlc_r -qsmp
+      FC  := mpixlf95_r -qfixed=72 -qsmp
+      F90 := mpixlf95_r -qsmp
+    else
+      CC  := mpixlc
+      FC  := mpixlf95 -qfixed=72
+      F90 := mpixlf95
+    endif
+
+    FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
+    F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
+    CFLAGS   := -I$(mdir) -Wp,-DBL_AIX
+
+    ifdef NDEBUG
+      FFLAGS   += -O2 -qarch=450d -qtune=450
+      F90FLAGS += -O2 -qarch=450d -qtune=450
+      CFLAGS   += -O2 -qarch=450d -qtune=450
+    else
+      FFLAGS   += -g -C
+      F90FLAGS += -g -C
+      CFLAGS   += -g -qcheck=bounds
+    endif
+
+    F_C_LINK := LOWERCASE
+
+    # if using the bg* compilers instead of the mpi* wrappers above, you may
+    # need these
+    #
+    #    MPIHOME=/bgsys/drivers/ppcfloor
+    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
+    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
+    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
+    #    mpi_libraries += -lpthread -lrt -lSPI.cna
+endif
+
 ifeq ($(findstring nid, $(HOST)), nid)
     #
     # franklin.nersc.gov
