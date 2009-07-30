@@ -15,6 +15,9 @@ CFLAGS   :=
 VPATH_LOCATIONS :=
 INCLUDE_LOCATIONS :=
 
+ifdef USE_HPCTOOLKIT
+  hpc_suffix    := .hpc
+endif
 ifdef MPI
   mpi_suffix 	:= .mpi
 endif
@@ -28,7 +31,7 @@ ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
 
-suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)
+suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)
 
 sources     =
 fsources    =
@@ -223,6 +226,11 @@ ifeq ($(ARCH),Linux)
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
 
+    ifdef USE_HPCTOOLKIT
+      HPCLINK = hpclink
+      HPCLINK_FLAGS_PATHSCALE = -g
+    endif
+
     ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     endif
 
@@ -235,9 +243,9 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -Ofast -fno-second-underscore
-      FFLAGS   += -Ofast -fno-second-underscore
-      CFLAGS   += -Ofast -fno-second-underscore
+      F90FLAGS += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      FFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      CFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
