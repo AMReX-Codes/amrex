@@ -56,6 +56,17 @@ real_re = re.compile('real', re.IGNORECASE)
 #   ...
 dpt_re = re.compile('real[\s]*\([\s]*(kind\s*=\s*)*dp_t[\s]*\)', re.IGNORECASE)
 
+
+# look for a floating point constant
+const_fp_re = re.compile('(\d+[.]\d*|\d*[.]\d+)', re.IGNORECASE)
+
+# Look for constants declared as
+# 1.0e0_dp_t
+# 1.0d0_dp_t
+# 1.0d0
+# i.e. that have to be double precision somehow
+const_dp_re = re.compile('\d*[.]\d*([ed][+-]?\d+_dp_t|d[+-]?\d+|_dp_t)', re.IGNORECASE)
+
 # recursively find all of the files with a given extension
 for ext in extensions:
 
@@ -90,9 +101,24 @@ for ext in extensions:
                     print file[index+len(root)+1:] + ':'
                     badFile = 1
 
-                print line,
+                print lineNum, ": ", line,
+
+
+            # if we find a floating point constant, make sure that it is 
+            # double precision
+            if (not const_fp_re.search(line) == None and
+                const_dp_re.search(line) == None):
+                if (badFile == 0):
+                    index = file.find(root)
+                    print file[index+len(root)+1:] + ':'
+                    badFile = 1
+
+                print lineNum, ": ", line,
+
+
 
             line = fin.readline()            
+            lineNum += 1
 
         if (badFile == 1):
             print " "
