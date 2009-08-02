@@ -389,8 +389,8 @@ def doCVSUpdate(topDir, root, outDir):
 
    os.chdir(topDir)
  
-   print "cvs update %s" % (root)
-   os.system("cvs update %s >& cvs.%s.out" % (root, root))
+   print "cvs update -d %s" % (root)
+   os.system("cvs update -d %s >& cvs.%s.out" % (root, root))
    print "\n"
         
    # make sure that the cvs update was not aborted -- this can happen, for
@@ -1205,6 +1205,13 @@ def test(argv):
                 shutil.copy(probinFile, "%s/%s.%s" % (fullWebDir, test, probinFile) )
 
             for file in auxFiles:
+
+                # sometimes the auxFile was in a subdirectory under the
+                # build directory.  
+                index = string.rfind(file, "/")
+                if (index > 0):
+                    file = file[index+1:]	   
+
                 shutil.copy(file, "%s/%s.%s" % (fullWebDir, test, file) )
 
             if (doVis):
