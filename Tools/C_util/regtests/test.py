@@ -389,8 +389,8 @@ def doCVSUpdate(topDir, root, outDir):
 
    os.chdir(topDir)
  
-   print "cvs update -d %s" % (root)
-   os.system("cvs update -d %s >& cvs.%s.out" % (root, root))
+   print "cvs update %s" % (root)
+   os.system("cvs update %s >& cvs.%s.out" % (root, root))
    print "\n"
         
    # make sure that the cvs update was not aborted -- this can happen, for
