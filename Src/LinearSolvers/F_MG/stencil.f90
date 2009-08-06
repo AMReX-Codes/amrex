@@ -916,13 +916,12 @@ contains
     end do
   end subroutine stencil_set_bc_st
 
-  subroutine stencil_print(st, str, unit, legacy, skip)
+  subroutine stencil_print(st, str, unit, skip)
     use bl_IO_module
     type(stencil), intent(in) :: st
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
-    logical, intent(in), optional :: legacy
     integer :: un
     un = unit_stdout(unit)
     if ( parallel_IOProcessor() ) then
@@ -2540,11 +2539,11 @@ contains
     integer           , intent(in   ) :: ng_b
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
-    integer            :: i, j, n, nx, ny
+    integer            :: i, j, nx, ny, nn
     real (kind = dp_t) :: fac
 
     nx = size(ss,dim=1)
@@ -2673,16 +2672,19 @@ contains
                       -1156.d0 * beta(i+1,j+1,2) - 17340.d0 * beta(i+1,j  ,2) &
                       +1156.d0 * beta(i-1,j+1,2) + 17340.d0 * beta(i-1,j  ,2) &
                       - 170.d0 * beta(i-2,j+1,2) -  2550.d0 * beta(i-2,j  ,2) 
+
           ss(i,j,16) = ss(i,j,16) &  
-                      + 170.d0 * beta(i+2,j-1,2) +  2550.d0 * beta(i+2,j  ,2) &
-                      -1156.d0 * beta(i+1,j-1,2) - 17340.d0 * beta(i+1,j  ,2) &
-                      +1156.d0 * beta(i-1,j-1,2) + 17340.d0 * beta(i-1,j  ,2) &
-                      - 170.d0 * beta(i-2,j-1,2) -  2550.d0 * beta(i-2,j  ,2) 
+                      + 170.d0 * beta(i+2,j  ,2) +  2550.d0 * beta(i+2,j+1,2) &
+                      -1156.d0 * beta(i+1,j  ,2) - 17340.d0 * beta(i+1,j+1,2) &
+                      +1156.d0 * beta(i-1,j  ,2) + 17340.d0 * beta(i-1,j+1,2) &
+                      - 170.d0 * beta(i-2,j  ,2) -  2550.d0 * beta(i-2,j+1,2) 
+
           ss(i,j, 9) = ss(i,j, 9) &  
-                     +  170.d0 * beta(i-2,j  ,2) +  2550.d0 * beta(i-2,j-1,2) &
-                      -1156.d0 * beta(i-1,j  ,2) - 17340.d0 * beta(i-1,j-1,2) &
-                      +1156.d0 * beta(i+1,j  ,2) + 17340.d0 * beta(i+1,j-1,2) &
-                      - 170.d0 * beta(i+2,j  ,2) -  2550.d0 * beta(i+2,j-1,2) 
+                     +  170.d0 * beta(i-2,j+1,2) +  2550.d0 * beta(i-2,j  ,2) &
+                      -1156.d0 * beta(i-1,j+1,2) - 17340.d0 * beta(i-1,j  ,2) &
+                      +1156.d0 * beta(i+1,j+1,2) + 17340.d0 * beta(i+1,j  ,2) &
+                      - 170.d0 * beta(i+2,j+1,2) -  2550.d0 * beta(i+2,j  ,2) 
+
           ss(i,j,18) = ss(i,j,18) &  
                      +  170.d0 * beta(i-2,j  ,2) +  2550.d0 * beta(i-2,j+1,2) &
                       -1156.d0 * beta(i-1,j  ,2) - 17340.d0 * beta(i-1,j+1,2) &
@@ -2692,12 +2694,15 @@ contains
           ss(i,j, 2) = ss(i,j, 2) &
                        -170.d0 * beta(i+2,j,2) +  1156.d0 * beta(i+1,j,2) &
                        +170.d0 * beta(i-2,j,2) -  1156.d0 * beta(i-1,j,2)
+
           ss(i,j,21) = ss(i,j,21) &
-                       -170.d0 * beta(i-2,j,2) +  1156.d0 * beta(i-1,j,2) &
-                       +170.d0 * beta(i+2,j,2) -  1156.d0 * beta(i+1,j,2)
-          ss(i,j, 4) = ss(i,j, 4) &
                        -170.d0 * beta(i+2,j+1,2) +  1156.d0 * beta(i+1,j+1,2) &
                        +170.d0 * beta(i-2,j+1,2) -  1156.d0 * beta(i-1,j+1,2)
+
+          ss(i,j, 4) = ss(i,j, 4) &
+                       -170.d0 * beta(i-2,j,2) +  1156.d0 * beta(i-1,j,2) &
+                       +170.d0 * beta(i+2,j,2) -  1156.d0 * beta(i+1,j,2)
+
           ss(i,j,23) = ss(i,j,23) &
                        -170.d0 * beta(i-2,j+1,2) +  1156.d0 * beta(i-1,j+1,2) &
                        +170.d0 * beta(i+2,j+1,2) -  1156.d0 * beta(i+1,j+1,2)
@@ -2707,6 +2712,7 @@ contains
                       - 2550.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
                       + 2550.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
                       -  375.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2)
+
           ss(i,j,14) = ss(i,j,14) &
                      +  375.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2) &
                       -2550.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
@@ -2718,16 +2724,19 @@ contains
                        +170.d0 * beta(i+1,j+1,2) + 2550.d0 * beta(i+1,j,2) &
                        -170.d0 * beta(i-1,j+1,2) - 2550.d0 * beta(i-1,j,2) &
                        + 25.d0 * beta(i-2,j+1,2) +  375.d0 * beta(i-2,j,2)
+
           ss(i,j,15) = ss(i,j,15) &
-                       - 25.d0 * beta(i-2,j+1,2) -  375.d0 * beta(i-2,j,2) &
-                       +170.d0 * beta(i-1,j+1,2) + 2550.d0 * beta(i-1,j,2) &
-                       -170.d0 * beta(i+1,j+1,2) - 2550.d0 * beta(i+1,j,2) &
-                       + 25.d0 * beta(i+2,j+1,2) +  375.d0 * beta(i+2,j,2)
-          ss(i,j,10) = ss(i,j,10) &
                        - 25.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2) &
                        +170.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
                        -170.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
                        + 25.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2)
+
+          ss(i,j,10) = ss(i,j,10) &
+                       - 25.d0 * beta(i-2,j+1,2) -  375.d0 * beta(i-2,j,2) &
+                       +170.d0 * beta(i-1,j+1,2) + 2550.d0 * beta(i-1,j,2) &
+                       -170.d0 * beta(i+1,j+1,2) - 2550.d0 * beta(i+1,j,2) &
+                       + 25.d0 * beta(i+2,j+1,2) +  375.d0 * beta(i+2,j,2)
+
           ss(i,j,19) = ss(i,j,19) &
                        - 25.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2) &
                        +170.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
@@ -2915,9 +2924,9 @@ contains
 
   subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, skwd)
     integer, intent(in) :: ng_d, ng_u
-    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
-    real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:)
-    real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:)
+    real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
+    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:)
+    real (kind = dp_t), intent(inout) :: uu(1-ng_u:,1-ng_u:)
     logical, intent(in), optional :: skwd
     integer           , intent(in)  :: mm(:,:)
     integer nx,ny
