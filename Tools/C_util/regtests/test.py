@@ -894,7 +894,7 @@ def test(argv):
         os.chdir(sourceDir + dir)
 
         if (sourceTree == "Parallel"):
-	   os.system("gmake realclean")
+            os.system("gmake realclean")
         else:
             os.system("gmake MPI= COMP=%s realclean NDEBUG=t" % (FCOMP))
             
@@ -982,19 +982,16 @@ def test(argv):
 
         try: shutil.copy(executable, outputDir)
         except IOError:
-           print '  ERROR: compilation failed'
-
-           statusFile = fullWebDir + "%s.status" % (test)
-           sf = open(statusFile, 'w')
-
-           sf.write("FAILED\n")
-           sf.close()
-           
-           print "\n"           
+           errorMsg = "ERROR: compilation failed"
+           reportTestFailure(errorMsg, test, testDir, fullWebDir)
            continue
 
         inputsFile = getParam(test + ".inputFile")
-        shutil.copy(inputsFile, outputDir)
+        try: shutil.copy(inputsFile, outputDir)
+        except IOError:
+            errorMsg = "ERROR: unable to copy input file: %s" % inputsFile
+            reportTestFailure(errorMsg, test, testDir, fullWebDir)
+            continue
 
 	# sometimes the input file was in a subdirectory under the
 	# build directory.  Keep only the input file for latter
@@ -1006,7 +1003,11 @@ def test(argv):
         # if we are a "Parallel" build, we need the probin file
         if (sourceTree == "Parallel"):
             probinFile = getParam(test + ".probinFile")
-            shutil.copy(probinFile, outputDir)
+            try: shutil.copy(probinFile, outputDir)
+            except IOError:
+                errorMsg = "ERROR: unable to copy probin file: %s" % probinFile
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                continue
 
             # sometimes the probin file was in a subdirectory under the
             # build directory.  Keep only the probin file for latter
@@ -1019,18 +1020,33 @@ def test(argv):
         needs_helmeos = getParam(test + ".needs_helmeos")
         if (needs_helmeos):
             helmeosFile = helmeosDir + "helm_table.dat"
-            shutil.copy(helmeosFile, outputDir)
+            try: shutil.copy(helmeosFile, outputDir)
+            except IOError:
+                errorMsg = "ERROR: unable to copy helmeos file: %s" % helmeosFile
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                continue
 
         # copy any other auxillary files that are needed at runtime
         auxFiles = getAuxFiles(test)
 
+        # python doesn't allow labelled continue statements, so we
+        # use skip_to_next_test to decide if we need to skip to 
+        # the next test
+        skip_to_next_test = 0
         for file in auxFiles:
-            shutil.copy(file, outputDir)
+            try: shutil.copy(file, outputDir)
+            except IOError:
+                errorMsg = "ERROR: unable to copy aux file: %s" % file
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                skip_to_next_test = 1
+                break
             
+        if (skip_to_next_test):
+            continue
 
         #----------------------------------------------------------------------
         # run the test
-        #---------------------------------------------------------------------- 
+        #----------------------------------------------------------------------
         print "  running the test..."
 
         restart = getParam(test + ".restartTest")
@@ -1527,6 +1543,70 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
 	
 
 #==============================================================================
+# reportTestAbort
+#==============================================================================
+def reportTestFailure(message, testName, testDir, fullWebDir):
+    """ generate a simple report for an error encountered while performing 
+        the test """
+    
+    print "    aborting test"
+    print message
+
+    # get the current directory
+    currentDir = os.getcwd()
+    
+    # switch to the web directory and open the report file
+    os.chdir(fullWebDir)
+
+    #--------------------------------------------------------------------------
+    # write out the status file for this problem -- FAILED
+    #--------------------------------------------------------------------------
+    statusFile = "%s.status" % (testName)
+    sf = open(statusFile, 'w')
+    sf.write("FAILED\n")
+    print "    %s FAILED" % (testName)
+
+    sf.close()
+
+
+    #--------------------------------------------------------------------------
+    # generate the HTML page for this test
+    #--------------------------------------------------------------------------
+
+    # check to see if the CSS file is present, if not, write it
+    if (not os.path.isfile("tests.css")):
+        create_css()
+
+    
+    htmlFile = "%s.html" % (testName)
+    hf = open(htmlFile, 'w')
+
+    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
+
+    newHead = newHead.replace("@TESTDIR@", testDir)
+    newHead = newHead.replace("@TESTNAME@", testName)
+
+    hf.write(newHead)
+
+    # write out the information about the test
+    buildDir = getParam("%s.buildDir" % (testName) )
+    hf.write("<P><b>build directory:</b> %s\n" % (buildDir) )
+
+    hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
+    hf.write("<P>%s</P>\n" % (message) )
+
+    # close
+    hf.write("</BODY>\n")
+    hf.write("</HTML>\n")    
+
+    hf.close()
+    
+    
+    # switch back to the original directory
+    os.chdir(currentDir)
+	
+
+#==============================================================================
 # reportThisTestRun
 #==============================================================================
 def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests, testDir, testFile, fullWebDir):
@@ -1578,13 +1658,18 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
 
     hf.write("<p>&nbsp;\n")
     hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
-    hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("cvs.Parallel.out", "cvs.Parallel.out") )
+
+    sourceTree = getParam("main.sourceTree")
+
+    if (sourceTree == "Parallel"):
+        hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("cvs.Parallel.out", "cvs.Parallel.out") )
+
     hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
              ("cvs.fParallel.out", "cvs.fParallel.out") )        
     hf.write("<p>&nbsp;\n")
 
-    sourceTree = getParam("main.sourceTree")
+
     if (sourceTree == "Parallel"):
             hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.Parallel", "ChangeLog.Parallel") )
