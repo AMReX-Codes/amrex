@@ -568,6 +568,10 @@ contains
 
   end subroutine ml_cc
 
+!
+! ******************************************************************************************
+!
+
   subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
 
       use ml_util_module
@@ -603,6 +607,10 @@ contains
       end do
 
   end subroutine crse_fine_residual_cc
+
+!
+! ******************************************************************************************
+!
 
   subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
 
@@ -687,6 +695,10 @@ contains
 
   end subroutine ml_resid
 
+!
+! ******************************************************************************************
+!
+
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
@@ -707,12 +719,13 @@ contains
     type(multifab), allocatable  ::        rh(:) ! this will be set to zero
     type(multifab), allocatable  ::  temp_res(:)
 
+    type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm
-    integer :: mglev
+    integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
     integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
@@ -724,6 +737,8 @@ contains
 
     allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
+
+    allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
 
     do n = 2,nlevs-1
@@ -755,6 +770,7 @@ contains
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
        call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
 
     end do
 
@@ -785,6 +801,21 @@ contains
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                       mgt(n)%mm(mglev))
     end do
+
+    ! Make sure to correct the coarse cells immediately next to fine grids
+    !   using the averaged fine grid fluxes
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
+                                  ref_ratio(n-1,:))
+
+       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+    enddo
+
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
@@ -817,13 +848,17 @@ contains
        call destroy(temp_res(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
+       call bndry_reg_destroy(brs_flx(n))
     end do
 
     call destroy(bpt)
 
   end subroutine ml_cc_applyop
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! ******************************************************************************************
+!
+
 ! Multiply residual by -1 in 1d
   subroutine scale_residual_1d(lo,hi,ng,res)
 
@@ -839,7 +874,10 @@ contains
   
   end subroutine scale_residual_1d
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! ******************************************************************************************
+!
+
 ! Multiply residual by -1 in 2d
   subroutine scale_residual_2d(lo,hi,ng,res)
 
@@ -857,7 +895,10 @@ contains
   
   end subroutine scale_residual_2d
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! ******************************************************************************************
+!
+
 ! Multiply residual by -1 in 3d
   subroutine scale_residual_3d(lo,hi,ng,res)
 
