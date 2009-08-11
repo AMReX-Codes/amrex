@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.74 2009-05-18 16:51:25 lijewski Exp $
+// $Id: TagBox.cpp,v 1.75 2009-08-11 20:28:28 almgren Exp $
 //
 #include <winstd.H>
 
@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
+#include <climits>
 
 #include <TagBox.H>
 #include <Geometry.H>
