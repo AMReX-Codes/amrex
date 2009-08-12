@@ -784,6 +784,9 @@ contains
     end if
 
     do i = 1, st%ss%nboxes; if ( multifab_remote(st%ss,i) ) cycle
+
+       bx = get_box(st%ss,i)
+
        sp => dataptr(st%ss, i)
        select case ( fill )
        case ( ST_FILL_LAPLACE_2 )
@@ -834,7 +837,6 @@ contains
              call bl_error("STENCIL_FILL_ST: coeffs present, but coeffs%nc /= 1 + dim", coeffs%nc)
           end if
 
-          bx = get_box(st%ss, i)
           cpa => dataptr(coeffs, i, bx, 1)
           cpb => dataptr(coeffs, i, 2, st%dim)
           select case (st%dim)
@@ -855,7 +857,6 @@ contains
           cp => dataptr(coeffs, i)
           mp => dataptr(st%mm, i)
           lorder = 2; if ( present(iparm) ) lorder = iparm(1)
-          bx = get_box(st%ss,i)
           lxa = st%xa
           lxb = st%xb
           do id = 1, pd%dim
@@ -871,13 +872,13 @@ contains
           select case (st%dim)
           case (1)
              call s_simple_1d_cc(sp(:,1,1,:), cp(:,1,1,:), st%dh, &
-                  mp(:,1,1,1), lxa, lxb, lorder)
+                                 mp(:,1,1,1), bx%lo, bx%hi, lxa, lxb, lorder)
           case (2)
              call s_simple_2d_cc(sp(:,:,1,:), cp(:,:,1,:), st%dh, &
-                  mp(:,:,1,1), lxa, lxb, lorder)
+                                 mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, lorder)
           case (3)
              call s_simple_3d_cc(sp(:,:,:,:), cp(:,:,:,:), st%dh, &
-                  mp(:,:,:,1), lxa, lxb, lorder)
+                                 mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, lorder)
           end select
        case ( ST_FILL_USER_DEFINED )
           if ( .not. present(coeffs) ) then
@@ -1523,16 +1524,16 @@ contains
 
        select case (ss%dim)
        case (1)
-          call s_simple_1d_cc(sp(:,1,1,:), cp(:,1,1,:), dh, mp(:,1,1,1), lxa, lxb, order)
+          call s_simple_1d_cc(sp(:,1,1,:), cp(:,1,1,:), dh, &
+                              mp(:,1,1,1), bx%lo, bx%hi, lxa, lxb, order)
        case (2)
-          call s_simple_2d_cc(sp(:,:,1,:), cp(:,:,1,:), dh, mp(:,:,1,1), lxa, lxb, order)
+          call s_simple_2d_cc(sp(:,:,1,:), cp(:,:,1,:), dh, &
+                              mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
        case (3)
-          call s_simple_3d_cc(sp(:,:,:,:), cp(:,:,:,:), dh, mp(:,:,:,1), lxa, lxb, order)
+          call s_simple_3d_cc(sp(:,:,:,:), cp(:,:,:,:), dh, &
+                              mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
        end select
     end do
-
-    !    call print(ss,unit=22)
-    !    call mask_pretty_print(mask,unit=22)
     
     call destroy(bpt)
 
@@ -2145,28 +2146,26 @@ contains
     ss(:,:,:,0)  = ss(:,:,:,0) + alpha
   end subroutine s_mehrstellen_3d
 
-  subroutine s_simple_1d_cc(ss, beta, dh, mask, xa, xb, order)
-    integer, intent(inout) :: mask(:)
-    real (kind = dp_t), intent(out) :: ss(:,0:)
-    real (kind = dp_t), intent(in)  :: beta(0:,0:)
-    real (kind = dp_t), intent(in) :: dh(:)
-    real (kind = dp_t), intent(in) :: xa(:), xb(:)
-    integer, intent(in) :: order
-    integer nx
-    integer i
-    real (kind = dp_t) f1(1)
+  subroutine s_simple_1d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
 
+    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1):)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,0:      )
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(1)-1:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(1)
+    integer            :: i,bclo,bchi,nx
     integer, parameter :: XBC = 3
-    integer :: bclo, bchi
 
-    nx = size(ss,dim=1)
-
+    nx = hi(1)-lo(1)+1 
     f1 = ONE/dh**2
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
 
-    do i = 1, nx
+    do i = lo(1),hi(1)
        ss(i,0) =   ZERO
        ss(i,1) = -beta(i+1,1)*f1(1)
        ss(i,2) = -beta(i  ,1)*f1(1)
@@ -2175,56 +2174,54 @@ contains
 
     ! x derivatives
 
-    do i = 2, nx-1
+    do i = lo(1)+1, hi(1)-1
        ss(i,0) = ss(i,0) + (beta(i+1,1)+beta(i,1))*f1(1)
     end do
 
-    bclo = stencil_bc_type(mask( 1),1,-1)
-    bchi = stencil_bc_type(mask(nx),1,+1)
+    bclo = stencil_bc_type(mask(lo(1)),1,-1)
+    bchi = stencil_bc_type(mask(hi(1)),1,+1)
 
-    i = 1
+    i = lo(1)
     if (bclo .eq. BC_INT) then
        ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
     else
-       call stencil_bndry_aaa(order, nx, 1, -1, mask(1), &
-            ss(1,0), ss(1,1), ss(1,2), ss(1,XBC), &
-            beta(1,1), beta(2,1), xa(1), xb(1), dh(1), bclo, bchi)
+       call stencil_bndry_aaa(order, nx, 1, -1, mask(i), &
+            ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
+            beta(i,1), beta(i+1,1), xa(1), xb(1), dh(1), bclo, bchi)
     end if
 
-    if ( nx > 1 ) then
-       i = nx
+    if ( hi(1) > lo(1) ) then
+       i = hi(1)
        if (bchi .eq. BC_INT) then
           ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
        else
-          call stencil_bndry_aaa(order, nx, 1, 1, mask(nx), &
-               ss(nx,0), ss(nx,1), ss(nx,2), ss(nx,XBC), &
-               beta(nx,1), beta(nx+1,1), xa(1), xb(1), dh(1), bclo, bchi)
+          call stencil_bndry_aaa(order, nx, 1, 1, mask(i), &
+               ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
+               beta(i,1), beta(i+1,1), xa(1), xb(1), dh(1), bclo, bchi)
        end if
     end if
 
-    do i = 1, nx
+    do i = lo(1),hi(1)
        ss(i,0) = ss(i,0) + beta(i,0)
     end do
 
   end subroutine s_simple_1d_cc
 
-  subroutine s_simple_2d_cc(ss, beta, dh, mask, xa, xb, order)
-    integer, intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in)  :: beta(0:,0:,0:)
-    real (kind = dp_t), intent(in)  :: dh(:)
-    real (kind = dp_t), intent(in)  :: xa(:), xb(:)
-    integer, intent(in) :: order
-    integer nx, ny
-    integer i, j
-    real (kind = dp_t) f1(2)
+  subroutine s_simple_2d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
 
-    integer :: bclo, bchi
+    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
+    real (kind = dp_t) :: f1(2)
+    integer            :: i, j, bclo, bchi, nx, ny
     integer, parameter :: XBC = 5, YBC = 6
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
 
     f1 = ONE/dh**2
 
@@ -2233,8 +2230,8 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
 
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
           ss(i,j,0) = ZERO
           ss(i,j,1) = -beta(i+1,j,1)*f1(1)
           ss(i,j,2) = -beta(i  ,j,1)*f1(1)
@@ -2247,17 +2244,17 @@ contains
 
     ! x derivatives
 
-    do j = 1, ny
-       do i = 2, nx-1
+    do j = lo(2),hi(2)
+       do i = lo(1)+1,hi(1)-1
           ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
        end do
     end do
 
-    do j = 1,ny
-       bclo = stencil_bc_type(mask( 1, j),1,-1)
-       bchi = stencil_bc_type(mask(nx, j),1,+1)
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
  
-       i = 1
+       i = lo(1)
        if (bclo .eq. BC_INT) then
           ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
        else
@@ -2267,8 +2264,8 @@ contains
                xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
-       if ( nx > 1 ) then
-          i = nx
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
           if (bchi .eq. BC_INT) then
              ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
           else
@@ -2282,17 +2279,17 @@ contains
 
     ! y derivatives
 
-    do i = 1, nx
-       do j = 2, ny-1
+    do i = lo(1),hi(1)
+       do j = lo(2)+1,hi(2)-1
           ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
        end do
     end do
 
-    do i = 1, nx
-       bclo = stencil_bc_type(mask( i, 1),2,-1)
-       bchi = stencil_bc_type(mask( i,ny),2,+1)
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
 
-       j = 1
+       j = lo(2)
        if (bclo .eq. BC_INT) then
           ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
        else
@@ -2301,8 +2298,9 @@ contains
                beta(i,j,2), beta(i,j+1,2), &
                xa(2), xb(2), dh(2), bclo, bchi)
        end if
-       if ( ny > 1 ) then
-          j = ny
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
           if (bchi .eq. BC_INT) then
              ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
           else
@@ -2314,38 +2312,36 @@ contains
        end if
     end do
 
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
           ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
        end do
     end do
 
   end subroutine s_simple_2d_cc
 
-  subroutine s_simple_3d_cc(ss, beta, dh, mask, xa, xb, order)
-    integer nx,ny,nz
-    integer, intent(inout) :: mask(:,:,:)
-    real (kind = dp_t), intent(out) :: ss(:,:,:,0:)
-    real (kind = dp_t), intent(in)  :: beta(0:,0:,0:,0:)
-    real (kind = dp_t), intent(in) :: dh(:)
-    real (kind = dp_t), intent(in) :: xa(:), xb(:)
-    integer, intent(in) :: order
-    integer i, j, k
-    real (kind = dp_t) f1(3)
+  subroutine s_simple_3d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
 
-    integer :: bclo, bchi
+    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,lo(3)  :,0:)
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,lo(3)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
+    real (kind = dp_t) :: f1(3)
+    integer            :: i, j, k, bclo, bchi, nx, ny, nz
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+    nz = hi(3)-lo(3)+1
 
     f1 = ONE/dh**2
 
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              ss(i,j,k,0) = ZERO
              ss(i,j,k,1) = -beta(i+1,j,k,1)*f1(1)
              ss(i,j,k,2) = -beta(i  ,j,k,1)*f1(1)
@@ -2369,20 +2365,20 @@ contains
 
     ! x derivatives
 
-    do k = 1, nz
-       do j = 1, ny
-          do i = 2, nx-1
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1)+1,hi(1)-1
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
           end do
        end do
     end do
 
-    do k = 1,nz
-       do j = 1,ny
-          bclo = stencil_bc_type(mask( 1, j,k),1,-1)
-          bchi = stencil_bc_type(mask(nx, j,k),1,+1)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
+          bchi = stencil_bc_type(mask(hi(1),j,k),1,+1)
 
-          i = 1
+          i = lo(1)
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
           else
@@ -2391,8 +2387,8 @@ contains
                   beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
           end if
 
-          if ( nx > 1 ) then
-             i = nx
+          if ( hi(1) > lo(1) ) then
+             i = hi(1)
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
              else
@@ -2406,20 +2402,20 @@ contains
 
     ! y derivatives
 
-    do k = 1,nz
-       do i = 1,nx
-          do j = 2,ny-1
+    do k = lo(3),hi(3)
+       do j = lo(2)+1,hi(2)-1
+          do i = lo(1),hi(1)
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
           end do
        end do
     end do
 
-    do k = 1, nz
-       do i = 1, nx
-          bclo = stencil_bc_type(mask(i,1,k) ,2,-1)
-          bchi = stencil_bc_type(mask(i,ny,k),2,+1)
+    do k = lo(3),hi(3)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,lo(2),k) ,2,-1)
+          bchi = stencil_bc_type(mask(i,hi(2),k),2,+1)
 
-          j = 1
+          j = lo(2)
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
           else
@@ -2427,8 +2423,8 @@ contains
                   ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
                   beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
           end if
-          if ( ny > 1 ) then
-             j = ny
+          if ( hi(2) > lo(2) ) then
+             j = hi(2)
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
              else
@@ -2442,20 +2438,20 @@ contains
 
     ! z derivatives
 
-    do j = 1, ny
-       do i = 1, nx
-          do k = 2, nz-1
+    do k = lo(3)+1,hi(3)-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
           end do
        end do
     end do
 
-    do j = 1, ny
-       do i = 1, nx
-          bclo = stencil_bc_type(mask(i,j,1) ,3,-1)
-          bchi = stencil_bc_type(mask(i,j,nz),3,+1)
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,j,lo(3)) ,3,-1)
+          bchi = stencil_bc_type(mask(i,j,hi(3)),3,+1)
 
-          k = 1
+          k = lo(3)
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
           else
@@ -2463,8 +2459,8 @@ contains
                   ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
                   beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
           end if
-          if ( nz > 1 ) then
-             k = nz
+          if ( hi(3) > lo(3) ) then
+             k = hi(3)
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
              else
@@ -2476,9 +2472,9 @@ contains
        end do
     end do
 
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
           end do
        end do
