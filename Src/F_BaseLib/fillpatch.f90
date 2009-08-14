@@ -298,6 +298,11 @@ contains
        src => dataptr(cfine, i)
 
        select case (dm)
+       case (1)
+          allocate(fp(lo_f(1):hi_f(1),1:1,1:1,1:nc))
+          call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
+             fvcx, lo_f(1), cvcx, lo_c(1), &
+             cslope_lo, cslope_hi, lim_slope, lin_limit)
        case (2)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
           call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
