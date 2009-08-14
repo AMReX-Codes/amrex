@@ -88,7 +88,8 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, n
+
+    integer :: i, n, lo(rr%dim), hi(rr%dim)
     logical :: nodal_flag, lcross
     type(bl_prof_timer), save :: bpt
 
@@ -108,12 +109,14 @@ contains
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)
+       lo = lwb(get_box(uu,i))
+       hi = upb(get_box(uu,i))
        do n = 1, rr%nc
           select case(rr%dim)
           case (1)
              if ( .not. nodal_flag) then
                 call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), rr%ng, up(:,1,1,n), uu%ng,  &
-                     mp(:,1,1,1))
+                                      mp(:,1,1,1), lo, hi)
              else
                 call stencil_apply_1d_nodal(ap(:,1,1,:), rp(:,1,1,n), up(:,1,1,n),  &
                      mp(:,1,1,1), uu%ng)
@@ -121,7 +124,7 @@ contains
           case (2)
              if ( .not. nodal_flag) then
                 call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), rr%ng, up(:,:,1,n), uu%ng,  &
-                     mp(:,:,1,1))
+                     mp(:,:,1,1), lo, hi)
              else
                 call stencil_apply_2d_nodal(ap(:,:,1,:), rp(:,:,1,n), up(:,:,1,n),  &
                      mp(:,:,1,1), uu%ng)
