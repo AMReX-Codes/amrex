@@ -2855,7 +2855,7 @@ contains
     real (kind = dp_t), intent(in)  :: ss(lo(1)     :,0:)
     real (kind = dp_t), intent(out) :: dd(lo(1)-ng_d:)
     real (kind = dp_t), intent(in)  :: uu(lo(1)-ng_u:)
-    integer           , intent(in)  :: mm(:)
+    integer           , intent(in)  :: mm(lo(1):)
     logical, intent(in), optional   :: skwd
 
     integer, parameter :: XBC = 3
