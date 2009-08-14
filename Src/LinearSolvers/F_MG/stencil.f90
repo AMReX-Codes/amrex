@@ -547,8 +547,10 @@ contains
     real(kind=dp_t), pointer :: upn(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer i
-    logical :: skwd, lcross
+
+    type(box) :: bx
+    integer   :: i,lo(st%dim),hi(st%dim)
+    logical   :: skwd, lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_ap_st_c")
@@ -569,6 +571,8 @@ contains
        up => dataptr(uu, i, cu)
        sp => dataptr(st%ss, i)
        mp => dataptr(st%mm, i)
+       lo = lwb(get_box(uu,i))
+       hi = upb(get_box(uu,i))
        select case ( st%type )
        case (ST_DIAG)
           upn => dataptr(uu, i, get_ibox(uu,i), cu)
@@ -577,9 +581,11 @@ contains
           skwd = st%skewed(i)
           select case( st%dim )
           case (1)
-             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
+             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
+                                   lo, hi, skwd)
           case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                   lo, hi, skwd)
           case (3)
              call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
@@ -595,14 +601,16 @@ contains
        case (ST_MINION_CROSS)
           select case( st%dim )
           case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                   lo, hi, skwd)
           case (3)
              call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
        case (ST_MINION_FULL)
           select case( st%dim )
           case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                   lo, hi, skwd)
           case (3)
              call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
           end select
@@ -620,10 +628,11 @@ contains
     logical, intent(in), optional :: mask(:)
     real(kind=dp_t), pointer :: rp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: upn(:,:,:,:)
+    real(kind=dp_t), pointer :: upn(:,:,:,:) 
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer i, n
+
+    integer :: i, n, lo(st%dim), hi(st%dim)
     logical :: skwd, lcross
     type(bl_prof_timer), save :: bpt
 
@@ -646,6 +655,8 @@ contains
           up => dataptr(uu, i, n)
           sp => dataptr(st%ss, i)
           mp => dataptr(st%mm, i)
+          lo = lwb(get_box(uu,i))
+          hi = upb(get_box(uu,i))
           select case ( st%type )
           case (ST_DIAG)
             upn => dataptr(uu, i, get_ibox(uu,i), n)
@@ -654,9 +665,11 @@ contains
              skwd = st%skewed(i)
              select case( st%dim )
              case (1)
-                call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
+                call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
+                                   lo, hi, skwd)
              case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                   lo, hi, skwd)
              case (3)
                 call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
              end select
@@ -672,12 +685,14 @@ contains
           case (ST_MINION_CROSS)
              select case( st%dim )
              case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                      lo, hi, skwd)
              end select
           case (ST_MINION_FULL)
              select case( st%dim )
              case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                      lo, hi, skwd)
              end select
           end select
        end do
@@ -699,9 +714,11 @@ contains
                 skwd = st%skewed(i)
                 select case( st%dim )
                 case (1)
-                   call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), skwd)
+                   call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
+                                      lo, hi, skwd)
                 case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                      lo, hi, skwd)
                 case (3)
                    call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
                 end select
@@ -717,12 +734,14 @@ contains
              case (ST_MINION_CROSS)
                 select case( st%dim )
                 case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                         lo, hi, skwd)
                 end select
              case (ST_MINION_FULL)
                 select case( st%dim )
                 case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), skwd)
+                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
+                                         lo, hi, skwd)
                 end select
              end select
           end do
@@ -2150,8 +2169,8 @@ contains
 
     integer           , intent(in   ) :: lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1):)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,0:      )
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(1)-1:)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,0:)
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,0:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2830,33 +2849,33 @@ contains
 
   end subroutine s_minion_cross_fill_3d
 
-  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, skwd)
-    integer, intent(in) :: ng_d, ng_u
+  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+
+    integer, intent(in) :: ng_d, ng_u, lo(:), hi(:)
     real (kind = dp_t), intent(in)  :: ss(:,0:)
     real (kind = dp_t), intent(out) :: dd(1-ng_d:)
     real (kind = dp_t), intent(in)  :: uu(1-ng_u:)
     integer           , intent(in)  :: mm(:)
-    logical, intent(in), optional :: skwd
-    integer nx
-    integer i
+    logical, intent(in), optional   :: skwd
+
     integer, parameter :: XBC = 3
     logical :: lskwd
+    integer :: i
    
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    nx = size(ss,dim=1)
-
-    do i = 1,nx
+    do i = lo(1),hi(1)
        dd(i) = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
     end do
+
     if ( lskwd ) then
-       if (nx >= 2) then
-          i = 1
+       if (hi(1) > lo(1)) then
+          i = lo(1)
           if (bc_skewed(mm(i),1,+1)) then
              dd(i) = dd(i) + ss(i,XBC)*uu(i+2)
           end if
   
-          i = nx
+          i = hi(1)
           if (bc_skewed(mm(i),1,-1)) then
              dd(i) = dd(i) + ss(i,XBC)*uu(i-2)
           end if
@@ -2918,14 +2937,14 @@ contains
 
   end subroutine stencil_flux_1d
 
-  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, skwd)
-    integer, intent(in) :: ng_d, ng_u
-    real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
-    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng_u:,1-ng_u:)
-    logical, intent(in), optional :: skwd
-    integer           , intent(in)  :: mm(:,:)
-    integer nx,ny
+  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+    integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
+    real (kind = dp_t), intent(in   ) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
+    integer           , intent(in   )  :: mm(lo(1):,lo(2):)
+    logical           , intent(in   ), optional :: skwd
+
     integer i,j
 
     integer, parameter :: XBC = 5, YBC = 6
@@ -2934,14 +2953,11 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
     ! This is the Minion 4th order cross stencil.
     if (size(ss,dim=3) .eq. 9) then
 
-       do j = 1,ny
-          do i = 1,nx
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
             dd(i,j) = &
                    ss(i,j,0) * uu(i,j) &
                  + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
@@ -2954,8 +2970,8 @@ contains
     ! This is the Minion 4th order full stencil.
     else if (size(ss,dim=3) .eq. 25) then
 
-       do j = 1,ny
-          do i = 1,nx
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
             dd(i,j) = ss(i,j, 0) * uu(i,j) &
                     + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
                     + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
@@ -2974,10 +2990,11 @@ contains
           end do
        end do
 
+    ! This is our standard 5-point Laplacian with a possible correction at boundaries
     else 
 
-       do j = 1,ny
-          do i = 1,nx
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              dd(i,j) = ss(i,j,0)*uu(i,j) &
                   + ss(i,j,1)*uu(i+1,j  ) + ss(i,j,2)*uu(i-1,j  ) &
                   + ss(i,j,3)*uu(i  ,j+1) + ss(i,j,4)*uu(i  ,j-1)
@@ -2986,30 +3003,30 @@ contains
 
        if ( lskwd ) then
        ! Corrections for skewed stencils
-       if (nx > 1) then
-          do j = 1, ny
+       if (hi(1) > lo(1)) then
+          do j = lo(2),hi(2)
 
-             i = 1
+             i = lo(1)
              if (bc_skewed(mm(i,j),1,+1)) then
                 dd(i,j) = dd(i,j) + ss(i,j,XBC)*uu(i+2,j)
              end if
 
-             i = nx
+             i = hi(1)
              if (bc_skewed(mm(i,j),1,-1)) then
                 dd(i,j) = dd(i,j) + ss(i,j,XBC)*uu(i-2,j)
              end if
           end do
        end if
 
-       if (ny > 1) then
-          do i = 1, nx
+       if (hi(2) > lo(2)) then
+          do i = lo(1),hi(1)
 
-             j = 1
+             j = lo(2)
              if (bc_skewed(mm(i,j),2,+1)) then
                 dd(i,j) = dd(i,j) + ss(i,j,YBC)*uu(i,j+2)
              end if
 
-             j = ny
+             j = hi(2)
              if (bc_skewed(mm(i,j),2,-1)) then
                 dd(i,j) = dd(i,j) + ss(i,j,YBC)*uu(i,j-2)
              end if
