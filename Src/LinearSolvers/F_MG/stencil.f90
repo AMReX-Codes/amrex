@@ -2852,9 +2852,9 @@ contains
   subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
     integer, intent(in) :: ng_d, ng_u, lo(:), hi(:)
-    real (kind = dp_t), intent(in)  :: ss(lo(1):,0:)
-    real (kind = dp_t), intent(out) :: dd(lo(1)1-ng_d:)
-    real (kind = dp_t), intent(in)  :: uu(lo(1)1-ng_u:)
+    real (kind = dp_t), intent(in)  :: ss(lo(1)     :,0:)
+    real (kind = dp_t), intent(out) :: dd(lo(1)-ng_d:)
+    real (kind = dp_t), intent(in)  :: uu(lo(1)-ng_u:)
     integer           , intent(in)  :: mm(:)
     logical, intent(in), optional   :: skwd
 
