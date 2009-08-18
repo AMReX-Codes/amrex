@@ -993,6 +993,10 @@ contains
             dp => dataptr(divu_rhs(n), i)
             mp => dataptr(mgt(n)%mm(mglev_fine),i)
             select case (dm)
+               case (1)
+                 call subtract_divu_from_rh_1d(rp(:,1,1,1), ng_r, &
+                                               dp(:,1,1,1), ng_d, &
+                                               mp(:,1,1,1) )
                case (2)
                  call subtract_divu_from_rh_2d(rp(:,:,1,1), ng_r, &
                                                dp(:,:,1,1), ng_d, &
@@ -1006,6 +1010,26 @@ contains
       end do
 
     end subroutine subtract_divu_from_rh
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_1d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:)
+      integer        , intent(inout) :: mm(0:)
+
+      integer         :: i,nx
+
+      nx = size(mm,dim=1) - 1
+
+      do i = 0,nx
+         if (.not. bc_dirichlet(mm(i),1,0)) &
+           rh(i) = rh(i) - divu_rhs(i)
+      end do
+
+    end subroutine subtract_divu_from_rh_1d
 
 !   ********************************************************************************************* !
 
