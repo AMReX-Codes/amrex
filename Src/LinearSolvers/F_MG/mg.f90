@@ -1370,7 +1370,6 @@ contains
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
                print *,'DN: NORM AFTER  RELAX         ',lev, nrm
-          call print(mgt%cc(lev))
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
