@@ -668,7 +668,7 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: nodal_ng
+    integer :: dm,nodal_ng
     logical :: lcross
     type(bl_prof_timer), save :: bpt
 
@@ -676,7 +676,8 @@ contains
 
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
-    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+    dm = mgt%dim
+    lcross = (ncomp(ss) == (2*dm+1))
 
     call multifab_fill_boundary(uu, cross = lcross)
 
@@ -688,7 +689,7 @@ contains
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
        do n = 1, mgt%nc
-          select case(mgt%dim)
+          select case(dm)
           case (1)
              call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
                                   mp(:,1,1,1), mgt%ng, nodal_ng)
@@ -802,7 +803,7 @@ contains
     use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
          jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, &
          nodal_smoother_2d, nodal_smoother_3d, gs_rb_smoother_2d,  gs_rb_smoother_3d, &
-         minion_smoother_2d, minion_smoother_3d
+         minion_smoother_2d, minion_smoother_3d, nodal_line_solve_1d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
 
     integer        , intent(in   ) :: lev
@@ -826,7 +827,7 @@ contains
 
     call build(bpt, "mgt_smoother")
 
-    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+    lcross = (ncomp(ss) == 2*mgt%dim+1) 
 
     if (mgt%skewed_not_set(lev)) then 
        do i = 1, mgt%nboxes
@@ -1045,7 +1046,7 @@ contains
        end if ! if (mgt%dim > 1)
 
     else 
-       if (lcross .and. mgt%dim > 1) then
+       if (lcross) then
           ! k is the red-black parameter
           do k = 0, 1
              call multifab_fill_boundary(uu, cross = lcross)
@@ -1058,6 +1059,11 @@ contains
                 lo =  lwb(get_box(ss, i))
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
+                   case (1)
+                      call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                             mp(:,1,1,1), lo, mgt%ng, k)
+!                     call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+!                                              mp(:,1,1,1), lo, mgt%ng)
                    case (2)
                       call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
                                              fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, pmask, k)
@@ -1084,7 +1090,9 @@ contains
                 select case ( mgt%dim)
                 case (1)
                    call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                                          mp(:,1,1,1), lo, mgt%ng)
+                                          mp(:,1,1,1), lo, mgt%ng, k)
+!                  call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+!                                           mp(:,1,1,1), lo, mgt%ng)
                 case (2)
                    call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                                           mp(:,:,1,1), lo, mgt%ng, pmask, k)
@@ -1362,6 +1370,7 @@ contains
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
                print *,'DN: NORM AFTER  RELAX         ',lev, nrm
+          call print(mgt%cc(lev))
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
