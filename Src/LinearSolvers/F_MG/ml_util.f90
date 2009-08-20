@@ -255,7 +255,7 @@ contains
                (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
              select case(flux%dim)
              case (1)
-                call bl_error("ML_FILL_FLUXES: no 1 D case")
+                call fine_edge_resid_1d(fp(:,1,1,n), rp(:,1,1,1), mp(:,1,1,1), ratio, side, lof)
              case (2)
                 call fine_edge_resid_2d(fp(:,:,1,n), rp(:,:,1,1), mp(:,:,1,1), ratio, side, lof)
              case (3)
