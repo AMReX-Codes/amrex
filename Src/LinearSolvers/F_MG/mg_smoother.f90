@@ -566,9 +566,80 @@ contains
 
   end subroutine minion_smoother_3d
 
-  subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng)
+  subroutine nodal_line_solve_1d(ss, uu, ff, mm, lo, ng)
+
+    integer        , intent(in   ) :: lo(:),ng
+    real(kind=dp_t), intent(in   ) :: ff(lo(1)-1:)
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:)
+    real(kind=dp_t), intent(in   ) :: ss(lo(1):,0:)
+    integer        , intent(in   ) :: mm(lo(1):)
+
+!   real(kind=dp_t)              :: dd
+    real(kind=dp_t), allocatable :: a_ls(:), b_ls(:), c_ls(:), r_ls(:), u_ls(:)
+    integer                      :: is, ie, ilen, i, hi(size(lo))
+
+    hi = ubound(uu)-ng
+
+    if (.not. bc_dirichlet(mm(lo(1)),1,0)) then
+       is = lo(1)
+    else
+       is = lo(1)+1
+    end if
+    if (.not. bc_dirichlet(mm(hi(1)),1,0)) then
+       ie = hi(1)
+    else
+       ie = hi(1)-1
+    end if
+
+    ilen = ie-is+1
+
+    allocate(a_ls(0:ilen-1))
+    allocate(b_ls(0:ilen-1))
+    allocate(c_ls(0:ilen-1))
+    allocate(r_ls(0:ilen-1))
+    allocate(u_ls(0:ilen-1))
+
+    do i = is,ie
+      a_ls(i-is) = ss(i,2)
+      b_ls(i-is) = ss(i,0)
+      c_ls(i-is) = ss(i,1)
+      r_ls(i-is) = ff(i)
+    end do
+
+    r_ls(0)      = r_ls(0)      - ss(is,2) * uu(is-1)
+    r_ls(ilen-1) = r_ls(ilen-1) - ss(ie,1) * uu(ie+1)
+
+    call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
+ 
+    do i = is, ie
+       uu(i) = u_ls(i-is)
+    end do
+
+!   TESTING ONLY 
+!   i = lo(1)
+!   if (.not. bc_dirichlet(mm(i),1,0)) then
+!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      print *,'RES AT ',i, ff(i) - dd
+!   end if
+
+!   do i = lo(1)+1,hi(1)-1
+!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      print *,'RES AT ',i, ff(i) - dd
+!   end do
+
+!   i = hi(1)
+!   if (.not. bc_dirichlet(mm(i),1,0)) then
+!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      print *,'RES AT ',i, ff(i) - dd
+!   end if
+
+    deallocate(a_ls,b_ls,c_ls,r_ls,u_ls)
+
+  end subroutine nodal_line_solve_1d
+
+  subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng, red_black)
     integer, intent(in) :: lo(:)
-    integer, intent(in) :: ng
+    integer, intent(in) :: ng, red_black
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(lo(1)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
@@ -579,24 +650,13 @@ contains
 
     hi = ubound(uu)-ng
 
-    !   Leave Dirichlet boundaries untouched.
-    i = lo(1)
-    if (.not. bc_dirichlet(mm(i),1,0)) then
-       dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
-    end if
-
-    do i = lo(1)+1,hi(1)-1
-       dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+    ! Red/black
+    do i = lo(1)+red_black,hi(1),2
+       if (.not. bc_dirichlet(mm(i),1,0)) then
+          dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+          uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+       end if
     end do
-
-    i = hi(1)
-    !   Leave Dirichlet boundaries untouched.
-    if (.not. bc_dirichlet(mm(i),1,0)) then
-       dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
-    end if
 
   end subroutine nodal_smoother_1d
 
