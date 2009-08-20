@@ -1203,36 +1203,51 @@ contains
 
   end subroutine stencil_apply_3d_nodal
 
-  subroutine fine_edge_resid_1d(ss, dd, uu, res, mm, ratio, side)
-    real (kind = dp_t), intent(in)  ::  ss(0:,0:)
-    real (kind = dp_t), intent(out) ::  dd(:)
-    real (kind = dp_t), intent(in)  ::  uu(-1:)
-    real (kind = dp_t), intent(in)  :: res(-1:)
-    integer           , intent(in)  ::  mm(:)
+  subroutine fine_edge_resid_1d(dd, res, mm, ratio, side, lod)
+
+    integer           , intent(in   ) :: lod(1)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):)
+    real (kind = dp_t), intent(in   ) :: res(-1:)
+    integer           , intent(in   ) ::  mm( 0:)
     integer, intent(in) :: ratio(:), side
 
-    integer i,nx
-    real (kind = dp_t) :: fac
+    integer            :: i,ic,m,isign,ioff,nx,nxc
+    real (kind = dp_t) :: fac,fac0
 
-    nx = size(ss,dim=1)-1
+    nx  = size(mm,dim=1)-1
+    nxc = size(dd,dim=1)
 
-    fac = ONE / float(ratio(1))
-
+!   Lo/Hi i side
     if (side == -1) then
-      i = 0
-      dd(1) = fac*ss(i,1)*(uu(i+1)-uu(i))
-    else if (side == 1) then
-      i = nx
-      dd(1) = fac*ss(i,2)*(uu(i-1)-uu(i))
+       i  = 0
+       isign =  1 
+    else
+       i  = nx
+       isign = -1
     end if
+
+    ic = lod(1)
+
+    dd(ic) = res(i)
+
+!   Average towards the interior of the fine grid
+    fac0 = ONE / ratio(1)
+    do m = 1,ratio(1)-1
+       fac = (ratio(1)-m) * fac0
+       ioff = i+isign*m
+       dd(ic) = dd(ic) + fac * res(ioff)
+    end do
+
+    if (.not.bc_dirichlet(mm(i),1,0)) dd(ic) = ZERO
 
   end subroutine fine_edge_resid_1d
 
   subroutine fine_edge_resid_2d(dd, res, mm, ratio, side, lod)
+
     integer           , intent(in   ) :: lod(2)
     real (kind = dp_t), intent(inout) :: dd(lod(1):,lod(2):)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:)
-    integer           , intent(in   ) :: mm(0:,0:)
+    integer           , intent(in   ) ::  mm( 0:, 0:)
     integer, intent(in) :: ratio(:), side
     integer :: nx, ny, nxc, nyc
     integer :: hid(2)
