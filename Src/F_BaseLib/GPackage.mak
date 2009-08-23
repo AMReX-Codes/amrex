@@ -16,6 +16,7 @@ f90sources += bl_parmparse.f90
 f90sources += bl_space.f90  
 f90sources += bl_stream.f90  
 f90sources += bl_string.f90  
+f90sources += bl_system.f90
 f90sources += bl_timer.f90  
 f90sources += bl_types.f90  
 
@@ -62,6 +63,7 @@ endif
 csources += fabio_c.c
 csources += timer_c.c
 csources += ppm_util_c.c
+csources += system_util_c.c
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),g95)
