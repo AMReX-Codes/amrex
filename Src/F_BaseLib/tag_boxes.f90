@@ -25,7 +25,7 @@ contains
 
     real(kind = dp_t), pointer :: sp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
-    integer           :: i, lo(mf%dim), ng
+    integer           :: i, lo(mf%dim), hi(mf%dim), ng
 
     ng = mf%ng
 
@@ -34,36 +34,34 @@ contains
        sp => dataptr(mf, i)
        tp => dataptr(tagboxes, i)
        lo =  lwb(get_box(tagboxes, i))
-
+       hi =  upb(get_box(tagboxes, i))
        select case (mf%dim)
        case (2)
-          call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,ng,lev)
+          call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,hi,ng,lev)
        case  (3)
-          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,ng,lev)
+          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,hi,ng,lev)
        end select
     end do
 
   end subroutine tag_boxes
 
-  subroutine tag_boxes_2d(tagbox,mf,lo,ng,lev)
+  subroutine tag_boxes_2d(tagbox,mf,lo,hi,ng,lev)
 
-    integer          , intent(in   ) :: lo(:),ng
+    integer          , intent(in   ) :: lo(:),hi(:),ng
     logical          , intent(  out) :: tagbox(lo(1):,lo(2):)
     real(kind = dp_t), intent(in   ) :: mf(lo(1)-ng:,lo(2)-ng:)
     integer, optional, intent(in   ) :: lev
-    integer :: i,j,nx,ny,llev
+    integer :: i,j,llev
 
     llev = 1; if (present(lev)) llev = lev
-    nx = size(tagbox,dim=1)
-    ny = size(tagbox,dim=2)
 
     tagbox = .false.
 
     select case(llev)
     case (1)
        ! tag all boxes with a density >= 1.01
-       do j = lo(2),lo(2)+ny-1
-          do i = lo(1),lo(1)+nx-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.01d0) then
                 tagbox(i,j) = .true.
              end if
@@ -71,8 +69,8 @@ contains
        enddo
     case (2)
        ! for level 2 tag all boxes with a density >= 1.1
-       do j = lo(2),lo(2)+ny-1
-          do i = lo(1),lo(1)+nx-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.1d0) then
                 tagbox(i,j) = .true.
              end if
@@ -80,8 +78,8 @@ contains
        end do
     case default
        ! for level 3 or greater tag all boxes with a density >= 1.5
-       do j = lo(2),lo(2)+ny-1
-          do i = lo(1),lo(1)+nx-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.5d0) then
                 tagbox(i,j) = .true.
              end if
@@ -91,28 +89,25 @@ contains
 
   end subroutine tag_boxes_2d
 
-  subroutine tag_boxes_3d(tagbox,mf,lo,ng,lev)
+  subroutine tag_boxes_3d(tagbox,mf,lo,hi,ng,lev)
 
-    integer          , intent(in   ) :: lo(:),ng
+    integer          , intent(in   ) :: lo(:),hi(:),ng
     logical          , intent(  out) :: tagbox(lo(1):,lo(2):,lo(3):)
     real(kind = dp_t), intent(in   ) :: mf(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     integer, optional, intent(in   ) :: lev
 
-    integer :: i,j,k,nx,ny,nz,llev
+    integer :: i,j,k,llev
 
     llev = 1; if (present(lev)) llev = lev
-    nx = size(tagbox,dim=1)
-    ny = size(tagbox,dim=2)
-    nz = size(tagbox,dim=3)
 
     tagbox = .false.
 
     select case(llev)
     case (1)
        ! tag all boxes with a density >= 1.01
-       do k = lo(3),lo(3)+nz-1
-          do j = lo(2),lo(2)+ny-1
-             do i = lo(1),lo(1)+nx-1
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
                 if (mf(i,j,k) .gt. 1.01d0) then
                    tagbox(i,j,k) = .true.
                 end if
@@ -121,9 +116,9 @@ contains
        end do
     case (2)
        ! for level 2 tag all boxes with a density >= 1.1
-       do k = lo(3),lo(3)+nz-1
-          do j = lo(2),lo(2)+ny-1
-             do i = lo(1),lo(1)+nx-1
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
                 if (mf(i,j,k) .gt. 1.1d0) then
                    tagbox(i,j,k) = .true.
                 end if
@@ -132,9 +127,9 @@ contains
        end do
     case default
        ! for level 3 or greater tag all boxes with a density >= 1.5
-       do k = lo(3),lo(3)+nz-1
-          do j = lo(2),lo(2)+ny-1
-             do i = lo(1),lo(1)+nx-1
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
                 if (mf(i,j,k) .gt. 1.5d0) then
                    tagbox(i,j,k) = .true.
                 end if
