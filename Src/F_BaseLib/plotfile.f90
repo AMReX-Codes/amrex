@@ -92,7 +92,8 @@ contains
   end function plotfile_var_name
 
   function plotfile_var_index(pf, r) result(idx)
-    use bl_error_module
+    ! return the interger index corresponding to a variable name
+    ! -1 is return if the variable is not found.
     character(len=*), intent(in) :: r
     type(plotfile), intent(in) :: pf
     integer :: idx
@@ -105,10 +106,6 @@ contains
           exit
        endif
     enddo
-
-    if (idx == -1) then
-       call bl_error("ERROR: plotfile does not contain variable, ", r)
-    endif
   end function plotfile_var_index
 
   function plotfile_refrat_n(pf, n) result(r)
