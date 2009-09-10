@@ -229,6 +229,12 @@ ifeq ($(ARCH),Linux)
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
 
+    ifdef OMP
+      F90FLAGS += -mp
+      FFLAGS += -mp
+      CFLAGS += -mp
+    endif
+
     ifdef USE_HPCTOOLKIT
       HPCLINK = hpclink
       HPCLINK_FLAGS_PATHSCALE = -g
