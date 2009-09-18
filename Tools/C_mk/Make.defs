@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.133 2009-09-11 18:20:09 vince Exp $
+# Make.defs $Id: Make.defs,v 1.134 2009-09-18 22:10:33 lijewski Exp $
 #
 
 #
@@ -310,6 +310,12 @@ ifeq ($(COMP),Intel)
      _icpc := icc
      _icc  := icc
    endif
+
+   ifeq ($(USE_OMP),TRUE)
+     CXXOPTF += -openmp
+     CXXDEBF += -openmp
+   endif
+
    CXXOPTF += -g
    CXXOPTF += -O3
 #  CXXOPTF += -parallel
@@ -429,6 +435,14 @@ ifeq ($(FCOMP),Intel)
    else
      _ifc := ifc
    endif
+
+   ifeq ($(USE_OMP),TRUE)
+     FOPTF += -openmp
+     fOPTF += -openmp
+     FDEBF += -openmp
+     fDEBF += -openmp
+   endif
+
    __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
    ifneq ($(IFC_MAJOR_VERSION),7)
      _ifc = ifort
@@ -522,8 +536,8 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
 
-   FDEBF += -g -u
-   fDEBF += -g -u
+   FDEBF += -g -u #-C
+   fDEBF += -g -u #-C
    ifneq ($(IFC_MAJOR_VERSION), 10)
      FOPTF += -g
      fOPTF += -g
@@ -673,6 +687,14 @@ else
     MPISuffix	:=
 endif
 
+ifeq ($(USE_OMP),TRUE)
+    OMPSuffix	:= .OMP
+    CPPFLAGS	+= -DBL_USE_OMP
+    #include $(PBOXLIB_HOME)/mk/Make.mpi
+else
+    OMPSuffix	:=
+endif
+
 ifeq ($(USE_THREADS),TRUE)
     DEFINES += -DBL_THREADS
     ifeq ($(COMP),KCC)
@@ -743,7 +765,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
