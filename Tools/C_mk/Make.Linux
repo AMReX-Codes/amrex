@@ -17,7 +17,11 @@ ifeq ($(COMP),PathScale)
   endif
 
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
-  override XTRALIBS += -lpathfortran  -lmv
+
+  ifeq ($(USE_OMP),TRUE)
+    CXXOPTF += -mp
+    CXXDEBF += -mp
+  endif
 else
 ifeq ($(COMP),KCC)
   CXX      = KCC
@@ -35,11 +39,15 @@ ifeq ($(COMP),PGI)
     CXXOPTF += -fast --no_exceptions
   endif
 
-  ifeq ($(USE_MPI),TRUE)
-    override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf
-  else
+  ifneq ($(USE_MPI),TRUE)
     override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
   endif
+
+  ifeq ($(USE_OMP),TRUE)
+    CXXOPTF += -mp=nonuma
+    CXXDEBF += -mp=nonuma
+  endif
+
 else
 ifeq ($(COMP),xlC)
   CXX     := xlC
@@ -68,6 +76,13 @@ ifeq ($(FCOMP),PathScale)
   else
     FOPTF += -Ofast
     fOPTF += -Ofast
+  endif
+
+  ifeq ($(USE_OMP),TRUE)
+    FOPTF += -mp
+    fOPTF += -mp
+    FDEBF += -mp
+    fDEBF += -mp
   endif
 
   fFLAGS += -extend-source -module $(objEXETempDir)
@@ -106,9 +121,16 @@ ifeq ($(FCOMP),PGI)
     fOPTF  += -fast
   endif
 
+  ifeq ($(USE_OMP),TRUE)
+    FOPTF += -mp,nonuma -Minfo=mp
+    fOPTF += -mp,nonuma -Minfo=mp
+    FDEBF += -mp,nonuma -Minfo=mp
+    fDEBF += -mp,nonuma -Minfo=mp
+  endif
+
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
-  FDEBF += -g
-  fDEBF += -g
+  FDEBF += -g #-C
+  fDEBF += -g #-C
 #  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
 else
 ifeq ($(FCOMP),Intel)
