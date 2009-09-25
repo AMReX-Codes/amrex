@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.34 2009-09-24 21:48:47 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.35 2009-09-25 03:50:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -424,7 +424,7 @@ c     Computed unlimited and limited slopes
 c
       do n = 1, nvar 
 
-!$omp sections private(i,j,k,cen,forw,back,slp)
+!$omp do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -438,10 +438,12 @@ c
              end do
             end do
           end do
+!$omp end do
 
           if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
             i = cslopelo(1)
             if (xok) then
+!$omp do private(j,k)
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n)  = -sixteen/fifteen*crse(i-1,j,k,n) 
@@ -449,14 +451,18 @@ c
      &                        + two3rd*crse(i+1,j,k,n) - tenth*crse(i+2,j,k,n)
                 end do
               end do
+!$omp end do
             else
+!$omp do private(j,k)
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n)  = fourth * (
      &               crse(i+1,j,k,n) + five*crse(i,j,k,n) - six*crse(i-1,j,k,n) )
                 end do
               end do
+!$omp end do
             endif
+!$omp do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -467,11 +473,13 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end do
           end if
 
           if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
             i = cslopehi(1)
             if (xok) then
+!$omp do private(j,k)
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n) = sixteen/fifteen*crse(i+1,j,k,n) 
@@ -479,14 +487,19 @@ c
      &                      - two3rd*crse(i-1,j,k,n) + tenth*crse(i-2,j,k,n)
                 end do
               end do
+!$omp end do
             else 
+!$omp do private(j,k)
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n)  = -fourth * (
      &               crse(i-1,j,k,n) + five*crse(i,j,k,n) - six*crse(i+1,j,k,n) )
                 end do
               end do
+!$omp end do
             endif
+
+!$omp do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -497,10 +510,10 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end do
           end if
-!$omp end sections
 
-!$omp sections private(i,j,k,cen,forw,back,slp)
+!$omp do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -514,10 +527,12 @@ c
                end do
             end do
           end do
+!$omp end do
 
           if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
             j = cslopelo(2)
             if (yok) then
+!$omp do private(i,k)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j-1,k,n) 
@@ -525,14 +540,18 @@ c
      $                        + two3rd*crse(i,j+1,k,n) - tenth*crse(i,j+2,k,n)
                 end do
               end do
+!$omp end do
             else
+!$omp do private(i,k)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n)  = fourth * (
      &               crse(i,j+1,k,n) + five*crse(i,j,k,n) - six*crse(i,j-1,k,n) )
                 end do
               end do
+!$omp end do
             endif
+!$omp do private(i,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_yslope(i,j,k,n)
@@ -543,11 +562,13 @@ c
                 lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end do
           end if
 
           if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
             j = cslopehi(2)
             if (yok) then
+!$omp do private(i,k)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n) = sixteen/fifteen*crse(i,j+1,k,n) 
@@ -555,14 +576,19 @@ c
      $                      - two3rd*crse(i,j-1,k,n) + tenth*crse(i,j-2,k,n)
                 end do
               end do
+!$omp end do
             else
+!$omp do private(i,k)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n)  = -fourth * (
      &               crse(i,j-1,k,n) + five*crse(i,j,k,n) - six*crse(i,j+1,k,n) )
                 end do
               end do
+!$omp end do
             endif
+
+!$omp do private(i,k,cen,forw,back,slp)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   cen  = uc_yslope(i,j,k,n)
@@ -573,10 +599,10 @@ c
                   lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
+!$omp end do
           end if
-!$omp end sections
 
-!$omp sections private(i,j,k,cen,forw,back,slp)
+!$omp do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -590,10 +616,12 @@ c
               end do
             end do
           end do
+!$omp end do
 
           if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
             k = cslopelo(3)
             if (zok) then
+!$omp do private(i,j)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j,k-1,n) 
@@ -601,14 +629,19 @@ c
      $                        + two3rd*crse(i,j,k+1,n) - tenth*crse(i,j,k+2,n)
                 end do
               end do
+!$omp end do
             else
+!$omp do private(i,j)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n)  = fourth * (
      &               crse(i,j,k+1,n) + five*crse(i,j,k,n) - six*crse(i,j,k-1,n) )
                 end do
               end do
+!$omp end do
             endif
+
+!$omp do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -619,11 +652,13 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end do
           end if
 
           if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
             k = cslopehi(3)
             if (zok) then
+!$omp do private(i,j)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n) = sixteen/fifteen*crse(i,j,k+1,n) 
@@ -631,14 +666,19 @@ c
      $                      - two3rd*crse(i,j,k-1,n) + tenth*crse(i,j,k-2,n)
                end do
               end do
+!$omp end do
             else
+!$omp do private(i,j)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n)  = -fourth * (
      &               crse(i,j,k-1,n) + five*crse(i,j,k,n) - six*crse(i,j,k+1,n) )
                end do
               end do
+!$omp end do
             endif
+
+!$omp do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -649,8 +689,8 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
              end do
             end do
+!$omp end do
           end if
-!$omp end sections
 
        end do
 
