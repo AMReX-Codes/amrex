@@ -10,11 +10,16 @@ ifeq ($(COMP),PathScale)
     CXX = mpicxx
   endif
 
-  ifeq ($(BL_NOFAST),TRUE)
+#
+# -Ofast is currently breaking something in mglib/*.cpp on franklin
+#
+
+#  ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O -fno-exceptions -Wno-deprecated
-  else
-    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
-  endif
+    LDFLAGS += -Ofast
+#  else
+#    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+#  endif
 
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
 
