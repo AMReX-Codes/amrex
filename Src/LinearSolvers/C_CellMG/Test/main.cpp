@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.36 2008-09-04 17:00:04 marc Exp $
+// $Id: main.cpp,v 1.37 2009-09-25 23:18:53 lijewski Exp $
 //
 
 #include <fstream>
@@ -301,6 +301,8 @@ main (int argc, char* argv[])
       }
       if ( mg )
       {
+          const Real run_strt = ParallelDescriptor::second();
+
 	  MultiGrid mg(lp);
 	  mg.solve(soln, rhs, tolerance, tolerance_abs);
 	  if ( new_bc )
@@ -317,6 +319,14 @@ main (int argc, char* argv[])
 	      lp.bndryData(bd);
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
           }
+
+          const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+          Real      run_stop = ParallelDescriptor::second() - run_strt;
+
+          ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
+
+         if (ParallelDescriptor::IOProcessor())
+              std::cout << "Run time = " << run_stop << std::endl;
       }
       if ( cg )
       {
