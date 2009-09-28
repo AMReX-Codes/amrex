@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.8 2009-09-28 16:46:16 lijewski Exp $
+c     $Id: CG_3D.F,v 1.9 2009-09-28 17:05:50 lijewski Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -47,7 +47,6 @@ c-----------------------------------------------------------------------
       integer i,j,k,n
 
       do n = 1, nc
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -56,7 +55,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -91,7 +89,6 @@ c
       integer i,j,k,n
 
       do n = 1, nc
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -99,7 +96,6 @@ c
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -135,7 +131,6 @@ c-----------------------------------------------------------------------
 
       pw = 0.0D0
       do n = 1, nc
-!$omp parallel do private(i,j,k) reduction(+ : pw)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -143,7 +138,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -170,7 +164,6 @@ c-----------------------------------------------------------------------
       integer i, j, k, n
 
       do n = 1, nc
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -178,7 +171,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
