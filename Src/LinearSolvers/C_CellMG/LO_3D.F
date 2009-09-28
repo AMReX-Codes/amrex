@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.8 2009-09-28 19:23:01 lijewski Exp $
+c $Id: LO_3D.F,v 1.9 2009-09-28 20:14:48 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -343,6 +343,11 @@ c
       lenx = MIN(hi(1)-lo(1), Lmaxorder-2)
       leny = MIN(hi(2)-lo(2), Lmaxorder-2)
       lenz = MIN(hi(3)-lo(3), Lmaxorder-2)
+      xInt = -0.5D0
+
+      do m=0,Lmaxorder-2
+         x(m) = m + 0.5D0
+      end do
 c
 c     TODO:
 c     In order for this to work with growing multigrid, must
@@ -372,11 +377,7 @@ c
                end do
             end if
          else if (is_dirichlet(bct)) then
-            do m=0,lenx
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(1)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -465,11 +466,7 @@ c
                end do
 	    end if
          else if (is_dirichlet(bct)) then
-            do m=0,lenx
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(1)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -558,11 +555,7 @@ c
                end do
             end if
          else if (is_dirichlet(bct)) then
-            do m=0,leny
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(2)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, leny+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -651,11 +644,7 @@ c
                end do
             end if
          else if (is_dirichlet(bct)) then
-            do m=0,leny
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(2)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, leny+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -744,11 +733,7 @@ c
                end do
             end if
          else if (is_dirichlet(bct)) then
-            do m=0,lenz
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(3)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenz+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
@@ -837,11 +822,7 @@ c
                end do
             end if
          else if (is_dirichlet(bct)) then
-            do m=0,lenz
-               x(m) = m + 0.5D0
-            end do
             x(-1) = - bcl/h(3)
-            xInt = - 0.5D0
             call polyInterpCoeff(xInt, x, lenz+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
