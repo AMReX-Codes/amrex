@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.5 2008-02-08 18:08:01 lijewski Exp $
+c $Id: LP_3D.F,v 1.6 2009-09-28 16:46:16 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -80,19 +80,21 @@ c-----------------------------------------------------------------------
       integer m4(DIMV(m4))
       integer m5(DIMV(m5))
       REAL_T  h
-c
+
       integer  i, j, k, ioff, n
-c
+
       REAL_T cf0, cf1, cf2, cf3, cf4, cf5
       REAL_T delta, gamma, rho
-c
+
       gamma = 6.0D0
+
       do n = 1, nc
+!$omp parallel do private(i,j,k,ioff,cf0,cf1,cf2,cf3,cf4,cf5,delta,rho)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
                do i = lo(1) + ioff,hi(1),2
-c
+
                   cf0 = cvmgt(f0(lo(1),j,k), 0.0D0,
      $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
                   cf1 = cvmgt(f1(i,lo(2),k), 0.0D0,
@@ -105,64 +107,23 @@ c
      $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
                   cf5 = cvmgt(f5(i,j,hi(3)), 0.0D0,
      $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
-c
+
                   delta = cf0 + cf1 + cf2 + cf3 + cf4 + cf5
-c
+
                   rho =  phi(i-1,j,k,n) + phi(i+1,j,k,n)
      $                 + phi(i,j-1,k,n) + phi(i,j+1,k,n)
      $                 + phi(i,j,k-1,n) + phi(i,j,k+1,n)
-c
+
                   phi(i,j,k,n) 
      $                 = (rhs(i,j,k,n)*h*h - rho + phi(i,j,k,n)*delta)
      $                 /             (delta - gamma)
-c                  
+                  
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c     
-      end
-c-----------------------------------------------------------------------
-c
-c     Solve Preconditioned system here
-c
-      subroutine FORT_CGPRECND(
-     $     zz, DIMS(zz),
-     $     rho,
-     $     rr, DIMS(rr),
-     $     lo, hi, nc,
-     $     h
-     $     )
-      implicit none
-      integer nc
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(zz)
-      REAL_T  zz(DIMV(zz),nc)
-      integer DIMDEC(rr)
-      REAL_T  rr(DIMV(rr),nc)
-      REAL_T  h
-      REAL_T  rho
-c
-      integer i
-      integer j
-      integer k
-      integer n
-      REAL_T denom
-c
-      rho = 0.0D0
-      denom = -h**2*sixth
-      do n = 1, nc
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  zz(i,j,k,n) = rr(i,j,k,n)*denom
-                  rho = rho + zz(i,j,k,n)*rr(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
-c     
+
       end
 c-----------------------------------------------------------------------
 c
@@ -183,13 +144,14 @@ c
       integer DIMDEC(x)
       REAL_T  x(DIMV(x),nc)
       REAL_T  h
-c
+
       integer i, j, k, n
       REAL_T scal
-c     
+
       scal = 1.0D0/h**2
-c     
+
       do n = 1, nc
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -201,8 +163,9 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c     
+
       end
 
 c-----------------------------------------------------------------------
@@ -228,15 +191,17 @@ c
       REAL_T yflux(DIMV(yflux),nc)
       REAL_T zflux(DIMV(zflux),nc)
       REAL_T h(BL_SPACEDIM)
-c
+
       REAL_T dhx, dhy, dhz
       integer i,j,k,n
-c
+
       dhx = one/h(1)
       dhy = one/h(2)
       dhz = one/h(3)
-c
+
+!$omp parallel
       do n = 1, nc
+!$omp do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)+1
@@ -244,8 +209,10 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
       do n = 1, nc
+!$omp do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)+1
                do i = lo(1), hi(1)
@@ -253,8 +220,10 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
       do n = 1, nc
+!$omp do private(i,j,k)
          do k = lo(3), hi(3)+1
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -262,8 +231,7 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
+!$omp end parallel
       end
-
-      
-      

@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.6 2008-02-08 18:08:01 lijewski Exp $
+c $Id: LO_3D.F,v 1.7 2009-09-28 16:46:16 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -29,13 +29,14 @@ c-----------------------------------------------------------------------
       REAL_T rhs(DIMV(rhs),nc)
       integer DIMDEC(res)
       REAL_T res(DIMV(res),nc)
-c
+
       integer i
       integer j
       integer k
       integer n
-c
+!$omp parallel
       do n = 1, nc
+!$omp do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -43,8 +44,9 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
-c     
+!$omp end parallel
       end
 c-----------------------------------------------------------------------
       subroutine FORT_HARMONIC_AVERAGEEC (
@@ -53,7 +55,7 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc,
      $     cdir
      $     )
-c
+
       implicit none
       integer nc
       integer lo(BL_SPACEDIM)
@@ -63,7 +65,7 @@ c
       REAL_T f(DIMV(f),nc)
       integer DIMDEC(c)
       REAL_T c(DIMV(c),nc)
-c
+
       REAL_T  factor
       parameter(factor=four)
 
@@ -71,57 +73,64 @@ c
       integer i
       integer j
       integer k
-c
+
+!$omp parallel
       if ( cdir .eq. 0 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
-c                  
+
                      c(i,j,k,n) = factor/(
      $                    + 1.0D0/f(2*i,2*j  ,2*k  ,n)
      $                    + 1.0D0/f(2*i,2*j+1,2*k  ,n)
      $                    + 1.0D0/f(2*i,2*j  ,2*k+1,n)
      $                    + 1.0D0/f(2*i,2*j+1,2*k+1,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
-c
+
                      c(i,j,k,n) = factor/(
      $                    + 1.0D0/f(2*i  ,2*j,2*k  ,n)
      $                    + 1.0D0/f(2*i+1,2*j,2*k  ,n)
      $                    + 1.0D0/f(2*i  ,2*j,2*k+1,n)
      $                    + 1.0D0/f(2*i+1,2*j,2*k+1,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-c                     
+
                      c(i,j,k,n) = factor/(
      $                    + 1.0D0/f(2*i  ,2*j  ,2*k,n)
      $                    + 1.0D0/f(2*i+1,2*j  ,2*k,n)
      $                    + 1.0D0/f(2*i  ,2*j+1,2*k,n)
      $                    + 1.0D0/f(2*i+1,2*j+1,2*k,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       end if
-c
+!$omp end parallel
       end
 c-----------------------------------------------------------------------
       subroutine FORT_AVERAGEEC (
@@ -130,7 +139,7 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc,
      $     cdir
      $     )
-c
+
       implicit none
       integer nc
       integer lo(BL_SPACEDIM)
@@ -140,64 +149,72 @@ c
       REAL_T f(DIMV(f),nc)
       integer DIMDEC(c)
       REAL_T c(DIMV(c),nc)
-c     
+
       integer n
       integer i
       integer j
       integer k
       REAL_T factor
       parameter(factor = fourth)
-c     
+
+!$omp parallel
       if ( cdir .eq. 0 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
-c     
+
                      c(i,j,k,n) = factor*(
      $                    + f(2*i,2*j  ,2*k  ,n)
      $                    + f(2*i,2*j+1,2*k  ,n)
      $                    + f(2*i,2*j  ,2*k+1,n)
      $                    + f(2*i,2*j+1,2*k+1,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
-c                     
+
                      c(i,j,k,n) = factor*(
      $                    + f(2*i  ,2*j,2*k  ,n)
      $                    + f(2*i+1,2*j,2*k  ,n)
      $                    + f(2*i  ,2*j,2*k+1,n)
      $                    + f(2*i+1,2*j,2*k+1,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
+!$omp do private(i,j,k)
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-c     
+
                      c(i,j,k,n) = factor*(
      $                    + f(2*i  ,2*j  ,2*k,n)
      $                    + f(2*i+1,2*j  ,2*k,n)
      $                    + f(2*i  ,2*j+1,2*k,n)
      $                    + f(2*i+1,2*j+1,2*k,n) )
-c                     
+
                   end do
                end do
             end do
+!$omp end do
          end do
       end if
-c     
+!$omp end parallel
+
       end
 c-----------------------------------------------------------------------
       subroutine FORT_AVERAGECC (
@@ -205,7 +222,7 @@ c-----------------------------------------------------------------------
      $     f, DIMS(f),
      $     lo, hi, nc
      $     )
-c
+
       implicit none
       integer nc
       integer DIMDEC(f)
@@ -214,19 +231,20 @@ c
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
-c
+
       integer i
       integer j
       integer k
       integer n
       REAL_T factor
       parameter(factor=eighth)
-c
+
       do n = 1, nc
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-c                  
+
                   c(i,j,k,n) =  factor*(
      $                 + f(2*i+1,2*j+1,2*k  ,n)
      $                 + f(2*i  ,2*j+1,2*k  ,n)
@@ -236,12 +254,13 @@ c
      $                 + f(2*i  ,2*j+1,2*k+1,n)
      $                 + f(2*i+1,2*j  ,2*k+1,n)
      $                 + f(2*i  ,2*j  ,2*k+1,n) )
-c                     
+
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c     
+
       end
 c-----------------------------------------------------------------------
       subroutine FORT_APPLYBC (
@@ -293,30 +312,29 @@ c
       integer bct
       REAL_T bcl
       REAL_T h(BL_SPACEDIM)
-c
+
       integer i
       integer j
       integer k
       integer n
       logical is_dirichlet
       logical is_neumann
-c      REAL_T xb
-c
+
       integer lenx
       integer leny
       integer lenz
       integer m
-c
+
       integer Lmaxorder
       integer maxmaxorder
       parameter(maxmaxorder=4)
       REAL_T x(-1:maxmaxorder-2)
       REAL_T coef(-1:maxmaxorder-2)
       REAL_T xInt
-c
+
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
       is_neumann(i) = (i .eq. LO_NEUMANN)
-c
+
       if ( maxorder .eq. -1 ) then
          Lmaxorder = maxmaxorder
       else
