@@ -1,5 +1,5 @@
 c
-c $Id: LP_2D.F,v 1.7 2008-02-08 18:08:01 lijewski Exp $
+c $Id: LP_2D.F,v 1.8 2009-09-28 21:13:06 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -103,45 +103,6 @@ c
          end do
       end do
       
-      end
-c-----------------------------------------------------------------------
-c
-c     Solve Preconditioned system here
-c
-      subroutine FORT_CGPRECND(
-     $     zz, DIMS(zz),
-     $     rho,
-     $     rr, DIMS(rr),
-     $     lo, hi, nc,
-     $     h
-     $     )
-      implicit none
-      integer nc
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(zz)
-      REAL_T zz(DIMV(zz),nc)
-      integer DIMDEC(rr)
-      REAL_T rr(DIMV(rr),nc)
-      REAL_T h
-      REAL_T rho
-c
-      integer i
-      integer j
-      integer n
-      REAL_T denom
-c
-      rho = 0.0D0
-      denom = -h**2/4.0D0
-      do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               zz(i,j,n) = rr(i,j,n)*denom
-               rho = rho + zz(i,j,n)*rr(i,j,n)
-            end do
-         end do
-      end do
-c
       end
 c-----------------------------------------------------------------------
 c

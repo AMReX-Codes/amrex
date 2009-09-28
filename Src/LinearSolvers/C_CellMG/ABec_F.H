@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.9 2007-10-30 20:47:09 almgren Exp $
+** $Id: ABec_F.H,v 1.10 2009-09-28 21:13:06 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -19,7 +19,6 @@
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB          gsrb2daabbec
 #define FORT_JACOBI        jacobi2daabbec
-#define FORT_CGPRECND      cgprecnd2daabbec
 #define FORT_ADOTX         adotx2daabbec
 #define FORT_NORMA         norma2daabbec
 #define FORT_FLUX          flux2daabbec
@@ -28,7 +27,6 @@
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB          gsrb3daabbec
 #define FORT_JACOBI        jacobi3daabbec
-#define FORT_CGPRECND      cgprecnd3daabbec
 #define FORT_ADOTX         adotx3daabbec
 #define FORT_NORMA         norma3daabbec
 #define FORT_FLUX          flux3daabbec
@@ -62,21 +60,18 @@
 #if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB     GSRB2DAABBEC
 #define FORT_JACOBI   JACOBI2DAABBEC
-#define FORT_CGPRECND CGPRECND2DAABBEC
 #define FORT_ADOTX    ADOTX2DAABBEC
 #define FORT_NORMA    NORMA2DAABBEC
 #define FORT_FLUX     FLUX2DAABBEC
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB     gsrb2daabbec
 #define FORT_JACOBI   jacobi2daabbec
-#define FORT_CGPRECND cgprecnd2daabbec
 #define FORT_ADOTX    adotx2daabbec
 #define FORT_NORMA    norma2daabbec
 #define FORT_FLUX     flux2daabbec
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb2daabbec_
 #define FORT_JACOBI   jacobi2daabbec_
-#define FORT_CGPRECND cgprecnd2daabbec_
 #define FORT_ADOTX    adotx2daabbec_
 #define FORT_NORMA    norma2daabbec_
 #define FORT_FLUX     flux2daabbec_
@@ -90,21 +85,18 @@
 #if   defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB     GSRB3DAABBEC
 #define FORT_JACOBI   JACOBI3DAABBEC
-#define FORT_CGPRECND CGPRECND3DAABBEC
 #define FORT_ADOTX    ADOTX3DAABBEC
 #define FORT_NORMA    NORMA3DAABBEC
 #define FORT_FLUX     FLUX3DAABBEC
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB     gsrb3daabbec
 #define FORT_JACOBI   jacobi3daabbec
-#define FORT_CGPRECND cgprecnd3daabbec
 #define FORT_ADOTX    adotx3daabbec
 #define FORT_NORMA    norma3daabbec
 #define FORT_FLUX     flux3daabbec
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb3daabbec_
 #define FORT_JACOBI   jacobi3daabbec_
-#define FORT_CGPRECND cgprecnd3daabbec_
 #define FORT_ADOTX    adotx3daabbec_
 #define FORT_NORMA    norma3daabbec_
 #define FORT_FLUX     flux3daabbec_
@@ -200,18 +192,6 @@ extern "C"
         const Real *h
         );
 
-    void FORT_CGPRECND(
-        Real *tmpz      , ARLIM_P(tmpz_lo), ARLIM_P(tmpz_hi),
-        Real *rho,
-        const Real *tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
-        const Real* alpha, const Real* beta,
-        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
-        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
-        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
-        const int *lo, const int *hi, const int *nc,
-        const Real *h
-        );
-
     void FORT_ADOTX(
         Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
@@ -292,19 +272,6 @@ extern "C"
         const Real* den5, ARLIM_P(den5_lo), ARLIM_P(den5_hi),
         const int* m5   , ARLIM_P(m5_lo),   ARLIM_P(m5_hi),
         const int* lo, const int* hi, const int *nc,
-        const Real *h
-        );
-
-    void FORT_CGPRECND(
-        Real *tmpz      , ARLIM_P(tmpz_lo), ARLIM_P(tmpz_hi),
-        Real *rho,
-        const Real *tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
-        const Real* alpha, const Real* beta,
-        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
-        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
-        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
-        const Real* bZ, ARLIM_P(bZ_lo), ARLIM_P(bZ_hi),
-        const int *lo, const int *hi, const int *nc,
         const Real *h
         );
 
