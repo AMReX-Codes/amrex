@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.9 2009-09-28 20:14:48 lijewski Exp $
+c $Id: LO_3D.F,v 1.10 2009-09-28 20:29:59 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -353,11 +353,13 @@ c     TODO:
 c     In order for this to work with growing multigrid, must
 c     sort xa[] because it is possible for the xb value to lay
 c     within this range.
-
-c     
-c     The Left face of the grid
 c
-      if(cdir .eq. 0) then
+      select case (cdir)
+
+      case (0)
+         !     
+         ! The Left face of the grid
+         !
          if (is_neumann(bct)) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -442,11 +444,11 @@ c
             print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
             call bl_error("stop")
          end if
-      end if
-c
-c     The Right face of the grid
-c
-      if(cdir .eq. 3) then
+
+      case (3)
+         !
+         ! The Right face of the grid
+         ! 
          if(is_neumann(bct)) then
             do n = 1, nc
                do k = lo(3), hi(3)
@@ -531,362 +533,362 @@ c
             print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
             call bl_error("stop")
          end if
-      end if
-c
-c     The Bottom of the Grid
-c
-      if(cdir .eq. 1) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
-               do k = lo(3), hi(3)
-                  do i = lo(1),hi(1)
-                     phi(i,lo(2)-1,k,n) = cvmgt(
-     $                    phi(i,lo(2),k,n),
-     $                    phi(i,lo(2)-1,k,n),
-     $                    mask(i,lo(2)-1,k) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1),hi(1)
-                     den(i,lo(2),k)   = 1.0D0
-                  end do
-               end do
-            end if
-         else if (is_dirichlet(bct)) then
-            x(-1) = - bcl/h(2)
-            call polyInterpCoeff(xInt, x, leny+2, coef)
-            do n = 1, nc
-               if ( flagbc .eq. 1 ) then
+
+         case (1)
+            !
+            ! The Bottom of the Grid
+            !
+            if(is_neumann(bct)) then
+               do n = 1, nc
                   do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
+                     do i = lo(1),hi(1)
                         phi(i,lo(2)-1,k,n) = cvmgt(
-     $                       bcval(i,lo(2)-1,k,n)*coef(-1),
+     $                       phi(i,lo(2),k,n),
      $                       phi(i,lo(2)-1,k,n),
      $                       mask(i,lo(2)-1,k) .gt. 0)
                      end do
                   end do
-               else
+               end do
+               if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
-                        phi(i,lo(2)-1,k,n) = cvmgt(
-     $                       0.0D0,
-     $                       phi(i,lo(2)-1,k,n),
-     $                       mask(i,lo(2)-1,k) .gt. 0)
+                     do i = lo(1),hi(1)
+                        den(i,lo(2),k)   = 1.0D0
                      end do
                   end do
                end if
-               do m = 0, leny
+            else if (is_dirichlet(bct)) then
+               x(-1) = - bcl/h(2)
+               call polyInterpCoeff(xInt, x, leny+2, coef)
+               do n = 1, nc
+                  if ( flagbc .eq. 1 ) then
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i,lo(2)-1,k,n) = cvmgt(
+     $                          bcval(i,lo(2)-1,k,n)*coef(-1),
+     $                          phi(i,lo(2)-1,k,n),
+     $                          mask(i,lo(2)-1,k) .gt. 0)
+                        end do
+                     end do
+                  else
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i,lo(2)-1,k,n) = cvmgt(
+     $                          0.0D0,
+     $                          phi(i,lo(2)-1,k,n),
+     $                          mask(i,lo(2)-1,k) .gt. 0)
+                        end do
+                     end do
+                  end if
+                  do m = 0, leny
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i, lo(2)-1, k, n) = cvmgt(
+     $                          phi(i, lo(2)-1,k,n)
+     $                          + phi(i, lo(2)+m, k,n)*coef(m),
+     $                          phi(i, lo(2)-1, k, n),
+     $                          mask(i, lo(2)-1, k) .gt. 0)
+                        end do
+                     end do
+                  end do
+               end do
+               if ( flagden .eq. 1 ) then
+                  do k = lo(3), hi(3)
+                     do i = lo(1), hi(1)
+                        den(i, lo(2),k)   = cvmgt(coef(0), 0.0D0,
+     $                       mask(i, lo(2)-1,k) .gt. 0)
+                     end do
+                  end do
+               end if
+            else if ( bct .eq. LO_REFLECT_ODD ) then
+               do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
                         phi(i, lo(2)-1, k, n) = cvmgt(
-     $                       phi(i, lo(2)-1,k,n)
-     $                       + phi(i, lo(2)+m, k,n)*coef(m),
-     $                       phi(i, lo(2)-1, k, n),
-     $                       mask(i, lo(2)-1, k) .gt. 0)
+     $                       -phi(i,lo(2),k,n),
+     $                       phi(i,lo(2)-1,k,n),
+     $                       mask(i,lo(2)-1,k) .gt. 0)
                      end do
                   end do
                end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     den(i, lo(2),k)   = cvmgt(coef(0), 0.0D0,
-     $                    mask(i, lo(2)-1,k) .gt. 0)
+               if ( flagden .eq. 1 ) then
+                  do k = lo(3), hi(3)
+                     do i = lo(1), hi(1)
+                        den(i,lo(2),k) = cvmgt(-1.0D0, 0.0D0,
+     $                       mask(i,lo(2)-1,k) .gt. 0)
+                     end do
                   end do
-               end do
+               end if
+            else
+               print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
+               call bl_error("stop")
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     phi(i, lo(2)-1, k, n) = cvmgt(
-     $                   -phi(i,lo(2),k,n),
-     $                    phi(i,lo(2)-1,k,n),
-     $                    mask(i,lo(2)-1,k) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     den(i,lo(2),k) = cvmgt(-1.0D0, 0.0D0,
-     $                    mask(i,lo(2)-1,k) .gt. 0)
-                  end do
-               end do
-            end if
-         else
-            print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
-            call bl_error("stop")
-         end if
-      end if
-c
-c     The top of the grid
-c
-      if (cdir .eq. 4) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     phi(i,hi(2)+1,k,n) = cvmgt(
-     $                    phi(i,hi(2),k,n),
-     $                    phi(i,hi(2)+1,k,n),
-     $                    mask(i,hi(2)+1,k) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     den(i,hi(2),k)   = 1.0D0
-                  end do
-               end do
-            end if
-         else if (is_dirichlet(bct)) then
-            x(-1) = - bcl/h(2)
-            call polyInterpCoeff(xInt, x, leny+2, coef)
-            do n = 1, nc
-               if ( flagbc .eq. 1 ) then
+
+         case (4)
+            !
+            ! The top of the grid
+            !
+            if(is_neumann(bct)) then
+               do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
                         phi(i,hi(2)+1,k,n) = cvmgt(
-     $                       bcval(i,hi(2)+1,k,n)*coef(-1),
+     $                       phi(i,hi(2),k,n),
      $                       phi(i,hi(2)+1,k,n),
      $                       mask(i,hi(2)+1,k) .gt. 0)
                      end do
                   end do
-               else
+               end do
+               if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        phi(i,hi(2)+1,k,n) = cvmgt(
-     $                       0.0D0,
-     $                       phi(i,hi(2)+1,k,n),
+                        den(i,hi(2),k)   = 1.0D0
+                     end do
+                  end do
+               end if
+            else if (is_dirichlet(bct)) then
+               x(-1) = - bcl/h(2)
+               call polyInterpCoeff(xInt, x, leny+2, coef)
+               do n = 1, nc
+                  if ( flagbc .eq. 1 ) then
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i,hi(2)+1,k,n) = cvmgt(
+     $                          bcval(i,hi(2)+1,k,n)*coef(-1),
+     $                          phi(i,hi(2)+1,k,n),
+     $                          mask(i,hi(2)+1,k) .gt. 0)
+                        end do
+                     end do
+                  else
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i,hi(2)+1,k,n) = cvmgt(
+     $                          0.0D0,
+     $                          phi(i,hi(2)+1,k,n),
+     $                          mask(i,hi(2)+1,k) .gt. 0)
+                        end do
+                     end do
+                  end if
+                  do m = 0, leny
+                     do k = lo(3), hi(3)
+                        do i = lo(1), hi(1)
+                           phi(i, hi(2)+1,k,n) = cvmgt(
+     $                          phi(i,hi(2)+1,k,n)
+     $                          + phi(i, hi(2)-m,k,n)*coef(m),
+     $                          phi(i,hi(2)+1,k,n),
+     $                          mask(i,hi(2)+1,k) .gt. 0)
+                        end do
+                     end do
+                  end do
+               end do
+               if ( flagden .eq. 1 ) then
+                  do k = lo(3), hi(3)
+                     do i = lo(1), hi(1)
+                        den(i,hi(2),k)   = cvmgt(coef(0), 0.0D0,
      $                       mask(i,hi(2)+1,k) .gt. 0)
                      end do
                   end do
                end if
-               do m = 0, leny
+            else if ( bct .eq. LO_REFLECT_ODD ) then
+               do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        phi(i, hi(2)+1,k,n) = cvmgt(
-     $                       phi(i,hi(2)+1,k,n)
-     $                       + phi(i, hi(2)-m,k,n)*coef(m),
+                        phi(i, hi(2)+1, k, n) = cvmgt(
+     $                       -phi(i,hi(2),k,n),
      $                       phi(i,hi(2)+1,k,n),
      $                       mask(i,hi(2)+1,k) .gt. 0)
                      end do
                   end do
                end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     den(i,hi(2),k)   = cvmgt(coef(0), 0.0D0,
-     $                    mask(i,hi(2)+1,k) .gt. 0)
-                  end do
-               end do
-            end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     phi(i, hi(2)+1, k, n) = cvmgt(
-     $                   -phi(i,hi(2),k,n),
-     $                    phi(i,hi(2)+1,k,n),
-     $                    mask(i,hi(2)+1,k) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do k = lo(3), hi(3)
-                  do i = lo(1), hi(1)
-                     den(i,hi(2),k) = cvmgt(-1.0D0, 0.0D0,
-     $                    mask(i,hi(2)+1,k) .gt. 0)
-                  end do
-               end do
-            end if
-         else
-            print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
-            call bl_error("stop")
-         end if
-      end if
-c
-c     The Front of the Grid
-c
-      if(cdir .eq. 2) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
-               do j = lo(2), hi(2)
-                  do i = lo(1),hi(1)
-                     phi(i,j,lo(3)-1,n) = cvmgt(
-     $                    phi(i,j,lo(3),n),
-     $                    phi(i,j,lo(3)-1,n),
-     $                    mask(i,j,lo(3)-1) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1),hi(1)
-                     den(i,j,lo(3))   = 1.0D0
-                  end do
-               end do
-            end if
-         else if (is_dirichlet(bct)) then
-            x(-1) = - bcl/h(3)
-            call polyInterpCoeff(xInt, x, lenz+2, coef)
-            do n = 1, nc
-               if ( flagbc .eq. 1 ) then
-                  do j = lo(2), hi(2)
+               if ( flagden .eq. 1 ) then
+                  do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        phi(i,j,lo(3)-1,n) = cvmgt(
-     $                       bcval(i,j,lo(3)-1,n)*coef(-1),
-     $                       phi(i,j,lo(3)-1,n),
-     $                       mask(i,j,lo(3)-1) .gt. 0)
-                     end do
-                  end do
-               else
-                  do j = lo(2), hi(2)
-                     do i = lo(1), hi(1)
-                        phi(i,j,lo(3)-1,n) = cvmgt(
-     $                       0.0D0,
-     $                       phi(i,j,lo(3)-1,n),
-     $                       mask(i,j,lo(3)-1) .gt. 0)
+                        den(i,hi(2),k) = cvmgt(-1.0D0, 0.0D0,
+     $                       mask(i,hi(2)+1,k) .gt. 0)
                      end do
                   end do
                end if
-               do m = 0, lenz
+            else
+               print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
+               call bl_error("stop")
+            end if
+
+         case (2)
+            !
+            ! The Front of the Grid
+            !
+            if(is_neumann(bct)) then
+               do n = 1, nc
+                  do j = lo(2), hi(2)
+                     do i = lo(1),hi(1)
+                        phi(i,j,lo(3)-1,n) = cvmgt(
+     $                       phi(i,j,lo(3),n),
+     $                       phi(i,j,lo(3)-1,n),
+     $                       mask(i,j,lo(3)-1) .gt. 0)
+                     end do
+                  end do
+               end do
+               if ( flagden .eq. 1 ) then
+                  do j = lo(2), hi(2)
+                     do i = lo(1),hi(1)
+                        den(i,j,lo(3))   = 1.0D0
+                     end do
+                  end do
+               end if
+            else if (is_dirichlet(bct)) then
+               x(-1) = - bcl/h(3)
+               call polyInterpCoeff(xInt, x, lenz+2, coef)
+               do n = 1, nc
+                  if ( flagbc .eq. 1 ) then
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i,j,lo(3)-1,n) = cvmgt(
+     $                          bcval(i,j,lo(3)-1,n)*coef(-1),
+     $                          phi(i,j,lo(3)-1,n),
+     $                          mask(i,j,lo(3)-1) .gt. 0)
+                        end do
+                     end do
+                  else
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i,j,lo(3)-1,n) = cvmgt(
+     $                          0.0D0,
+     $                          phi(i,j,lo(3)-1,n),
+     $                          mask(i,j,lo(3)-1) .gt. 0)
+                        end do
+                     end do
+                  end if
+                  do m = 0, lenz
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i, j, lo(3)-1, n) = cvmgt(
+     $                          phi(i, j, lo(3)-1,n)
+     $                          + phi(i, j, lo(3)+m, n)*coef(m),
+     $                          phi(i, j, lo(3)-1,n),
+     $                          mask(i, j, lo(3)-1) .gt. 0)
+                        end do
+                     end do
+                  end do
+               end do
+               if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        phi(i, j, lo(3)-1, n) = cvmgt(
-     $                       phi(i, j, lo(3)-1,n)
-     $                       + phi(i, j, lo(3)+m, n)*coef(m),
-     $                       phi(i, j, lo(3)-1,n),
+                        den(i, j, lo(3))   = cvmgt(coef(0), 0.0D0,
      $                       mask(i, j, lo(3)-1) .gt. 0)
                      end do
                   end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     den(i, j, lo(3))   = cvmgt(coef(0), 0.0D0,
-     $                    mask(i, j, lo(3)-1) .gt. 0)
+               end if
+            else if ( bct .eq. LO_REFLECT_ODD ) then
+               do n = 1, nc
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        phi(i, j, lo(3)-1, n) = cvmgt(
+     $                       -phi(i,j,lo(3),n),
+     $                       phi(i,j,lo(3)-1,n),
+     $                       mask(i,j,lo(3)-1) .gt. 0)
+                     end do
                   end do
                end do
+               if ( flagden .eq. 1 ) then
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        den(i,j,lo(3)) = cvmgt(-1.0D0, 0.0D0,
+     $                       mask(i,j,lo(3)-1) .gt. 0)
+                     end do
+                  end do
+               end if
+            else
+               print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
+               call bl_error("stop")
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     phi(i, j, lo(3)-1, n) = cvmgt(
-     $                   -phi(i,j,lo(3),n),
-     $                    phi(i,j,lo(3)-1,n),
-     $                    mask(i,j,lo(3)-1) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     den(i,j,lo(3)) = cvmgt(-1.0D0, 0.0D0,
-     $                    mask(i,j,lo(3)-1) .gt. 0)
-                  end do
-               end do
-            end if
-         else
-            print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
-            call bl_error("stop")
-         end if
-      end if
-c
-c     The back of the grid
-c
-      if (cdir .eq. 5) then
-         if(is_neumann(bct)) then
-            do n = 1, nc
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     phi(i,j, hi(3)+1,n) = cvmgt(
-     $                    phi(i,j, hi(3),n),
-     $                    phi(i,j, hi(3)+1,n),
-     $                    mask(i,j, hi(3)+1) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     den(i,j, hi(3))   = 1.0D0
-                  end do
-               end do
-            end if
-         else if (is_dirichlet(bct)) then
-            x(-1) = - bcl/h(3)
-            call polyInterpCoeff(xInt, x, lenz+2, coef)
-            do n = 1, nc
-               if ( flagbc .eq. 1 ) then
+
+         case (5)
+            !
+            ! The back of the grid
+            !
+            if(is_neumann(bct)) then
+               do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         phi(i,j, hi(3)+1,n) = cvmgt(
-     $                       bcval(i,j, hi(3)+1,n)*coef(-1),
+     $                       phi(i,j, hi(3),n),
      $                       phi(i,j, hi(3)+1,n),
      $                       mask(i,j, hi(3)+1) .gt. 0)
                      end do
                   end do
-               else
+               end do
+               if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        phi(i,j, hi(3)+1,n) = cvmgt(
-     $                       0.0D0,
-     $                       phi(i,j, hi(3)+1,n),
+                        den(i,j, hi(3))   = 1.0D0
+                     end do
+                  end do
+               end if
+            else if (is_dirichlet(bct)) then
+               x(-1) = - bcl/h(3)
+               call polyInterpCoeff(xInt, x, lenz+2, coef)
+               do n = 1, nc
+                  if ( flagbc .eq. 1 ) then
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i,j, hi(3)+1,n) = cvmgt(
+     $                          bcval(i,j, hi(3)+1,n)*coef(-1),
+     $                          phi(i,j, hi(3)+1,n),
+     $                          mask(i,j, hi(3)+1) .gt. 0)
+                        end do
+                     end do
+                  else
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i,j, hi(3)+1,n) = cvmgt(
+     $                          0.0D0,
+     $                          phi(i,j, hi(3)+1,n),
+     $                          mask(i,j, hi(3)+1) .gt. 0)
+                        end do
+                     end do
+                  end if
+                  do m = 0, lenz
+                     do j = lo(2), hi(2)
+                        do i = lo(1), hi(1)
+                           phi(i, j, hi(3)+1,n) = cvmgt(
+     $                          phi(i,j, hi(3)+1,n)
+     $                          + phi(i, j, hi(3)-m,n)*coef(m),
+     $                          phi(i,j, hi(3)+1,n),
+     $                          mask(i,j, hi(3)+1) .gt. 0)
+                        end do
+                     end do
+                  end do
+               end do
+               if ( flagden .eq. 1 ) then
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        den(i,j, hi(3))   = cvmgt(coef(0), 0.0D0,
      $                       mask(i,j, hi(3)+1) .gt. 0)
                      end do
                   end do
                end if
-               do m = 0, lenz
+            else if ( bct .eq. LO_REFLECT_ODD ) then
+               do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        phi(i, j, hi(3)+1,n) = cvmgt(
-     $                       phi(i,j, hi(3)+1,n)
-     $                       + phi(i, j, hi(3)-m,n)*coef(m),
-     $                       phi(i,j, hi(3)+1,n),
-     $                       mask(i,j, hi(3)+1) .gt. 0)
+                        phi(i, j, hi(3)+1, n) = cvmgt(
+     $                       -phi(i,j,hi(3),n),
+     $                       phi(i,j,hi(3)+1,n),
+     $                       mask(i,j,hi(3)+1) .gt. 0)
                      end do
                   end do
                end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     den(i,j, hi(3))   = cvmgt(coef(0), 0.0D0,
-     $                    mask(i,j, hi(3)+1) .gt. 0)
+               if ( flagden .eq. 1 ) then
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        den(i,j,hi(3)) = cvmgt(-1.0D0, 0.0D0,
+     $                       mask(i,j,hi(3)+1) .gt. 0)
+                     end do
                   end do
-               end do
+               end if
+            else
+               print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
+               call bl_error("stop")
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
-            do n = 1, nc
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     phi(i, j, hi(3)+1, n) = cvmgt(
-     $                   -phi(i,j,hi(3),n),
-     $                    phi(i,j,hi(3)+1,n),
-     $                    mask(i,j,hi(3)+1) .gt. 0)
-                  end do
-               end do
-            end do
-            if ( flagden .eq. 1 ) then
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     den(i,j,hi(3)) = cvmgt(-1.0D0, 0.0D0,
-     $                    mask(i,j,hi(3)+1) .gt. 0)
-                  end do
-               end do
-            end if
-         else
-            print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
-            call bl_error("stop")
-         end if
-      end if
-c
+         end select
+
       end
