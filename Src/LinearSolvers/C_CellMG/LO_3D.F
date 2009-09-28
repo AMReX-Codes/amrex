@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.7 2009-09-28 16:46:16 lijewski Exp $
+c $Id: LO_3D.F,v 1.8 2009-09-28 19:23:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -44,7 +44,7 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
       end
@@ -91,7 +91,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
@@ -109,7 +109,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
@@ -127,7 +127,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end if
 !$omp end parallel
@@ -174,7 +174,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       else if (cdir .eq. 1 ) then
          do n = 1, nc
@@ -192,7 +192,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       else if (cdir .eq. 2 ) then
          do n = 1, nc
@@ -210,7 +210,7 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end if
 !$omp end parallel

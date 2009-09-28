@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.6 2009-09-28 16:46:16 lijewski Exp $
+c $Id: LP_3D.F,v 1.7 2009-09-28 19:23:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -199,9 +199,9 @@ c
       dhy = one/h(2)
       dhz = one/h(3)
 
-!$omp parallel
+!$omp parallel private(i,j,k,n)
       do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)+1
@@ -209,10 +209,10 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
       do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)+1
                do i = lo(1), hi(1)
@@ -220,10 +220,10 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
       do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
          do k = lo(3), hi(3)+1
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -231,7 +231,8 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
+
       end

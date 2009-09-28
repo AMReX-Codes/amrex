@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.13 2009-09-28 19:13:53 lijewski Exp $
+c $Id: ABec_3D.F,v 1.14 2009-09-28 19:23:01 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -465,7 +465,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
       do n = 1, nc
 !$omp do
@@ -476,7 +476,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
       do n = 1, nc
 !$omp do
@@ -487,7 +487,7 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end do nowait
       end do
 !$omp end parallel
 
