@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.7 2008-02-08 18:08:01 lijewski Exp $
+c     $Id: CG_3D.F,v 1.8 2009-09-28 16:46:16 lijewski Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -43,25 +43,22 @@ c-----------------------------------------------------------------------
       integer DIMDEC(phi)
       REAL_T phi(DIMV(phi),nc)
       REAL_T a
-c ::: wyc change -- why was a a vector?
-c     REAL_T a(nc)
-c
+
       integer i,j,k,n
-c
+
       do n = 1, nc
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   phi(i,j,k,n) = phi(i,j,k,n) + a * pp(i,j,k,n)
                   rr(i,j,k,n) = rr(i,j,k,n) - a * ww(i,j,k,n)
-c ::: wyc change -- why was a a vector?
-c                 phi(i,j,k,n) = phi(i,j,k,n) + a(n) * pp(i,j,k,n)
-c                 rr(i,j,k,n) = rr(i,j,k,n) - a(n) * ww(i,j,k,n)
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c
+
       end
 c-----------------------------------------------------------------------
 c      
@@ -90,23 +87,21 @@ c
       integer DIMDEC(pp)
       REAL_T pp(DIMV(pp),nc)
       REAL_T b
-c ::: wyc change
-c     REAL_T b(nc)
-c
-c
+
       integer i,j,k,n
-c
+
       do n = 1, nc
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   pp(i,j,k,n) = rr(i,j,k,n) + b*pp(i,j,k,n)
-c                 pp(i,j,k,n) = rr(i,j,k,n) + b(n)*pp(i,j,k,n)
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c
+
       end
       
 c-----------------------------------------------------------------------
@@ -135,11 +130,12 @@ c-----------------------------------------------------------------------
       integer DIMDEC(pp)
       REAL_T pp(DIMV(pp),nc)
       REAL_T pw
-c
+
       integer i, j, k, n
-c
+
       pw = 0.0D0
       do n = 1, nc
+!$omp parallel do private(i,j,k) reduction(+ : pw)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -147,8 +143,9 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c
+
       end
 c-----------------------------------------------------------------------
       subroutine FORT_CGSXAY(
@@ -169,10 +166,11 @@ c-----------------------------------------------------------------------
       integer DIMDEC(yy)
       REAL_T yy(DIMV(yy),nc)
       REAL_T a
-c
+
       integer i, j, k, n
-c
+
       do n = 1, nc
+!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -180,6 +178,7 @@ c
                end do
             end do
          end do
+!$omp end parallel do
       end do
-c
+
       end
