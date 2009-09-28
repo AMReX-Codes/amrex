@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.5 2009-09-28 17:51:35 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.6 2009-09-28 17:57:54 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -130,7 +130,7 @@ c        ::::: interpolate to fine grid
 c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do private(kc,k,joff,xx,jc,j)
+!$omp do private(kc,k,joff,xx,jc,j) firstprivate(yy)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
@@ -260,7 +260,7 @@ c        ::::: interpolate to fine grid
 c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do private(kc,k,joff,xx,jc,j)
+!$omp do private(kc,k,joff,xx,jc,j) firstprivate(yy)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
@@ -273,7 +273,7 @@ c
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end do
 !$omp end parallel
@@ -390,7 +390,7 @@ c        ::::: interpolate to fine grid
 c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do private(kc,k,ioff,xx,ic,i)
+!$omp do private(kc,k,ioff,xx,ic,i) firstprivate(yy)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
@@ -403,7 +403,7 @@ c
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end do
 !$omp end parallel
@@ -521,7 +521,7 @@ c        ::::: interpolate to fine grid
 c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do private(kc,k,ioff,xx,ic,i)
+!$omp do private(kc,k,ioff,xx,ic,i) firstprivate(yy)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
@@ -534,7 +534,7 @@ c
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end do
 !$omp end parallel
@@ -651,7 +651,7 @@ c     ::::: interpolate to fine grid
 c
          do joff = 0, ratioy - 1
             yy = (dble(joff - ratioy/2) + half)/ratioy
-!$omp do private(jc,j,ioff,xx,ic,i)
+!$omp do private(jc,j,ioff,xx,ic,i) firstprivate(yy)
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
@@ -664,7 +664,7 @@ c
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end do
 !$omp end parallel      
@@ -781,7 +781,7 @@ c        ::::: interpolate to fine grid
 c
          do joff = 0, ratioy - 1
             yy = (dble(joff - ratioy/2) + half)/ratioy
-!$omp do private(jc,j,ioff,xx,ic,i)
+!$omp do private(jc,j,ioff,xx,ic,i) firstprivate(yy)
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
@@ -794,7 +794,7 @@ c
                   end do
                end do
             end do
-!$omp end do
+!$omp end do nowait
          end do
       end do
 !$omp end parallel
