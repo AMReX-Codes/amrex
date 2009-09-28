@@ -1,5 +1,5 @@
 c
-c $Id: MG_3D.F,v 1.4 2008-02-08 18:08:01 lijewski Exp $
+c $Id: MG_3D.F,v 1.5 2009-09-28 17:52:26 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -32,27 +32,26 @@ c
       parameter(denom=eighth)
 
       do n = 1, nc
+!$omp parallel do private(i,j,k,k2,k2p1,j2,j2p1,i2,i2p1)
          do k = lo(3), hi(3)
             k2 = 2*k
             k2p1 = k2 + 1
 	    do j = lo(2), hi(2)
                j2 = 2*j
                j2p1 = j2 + 1
-
                do i = lo(1), hi(1)
                   i2 = 2*i
                   i2p1 = i2 + 1
-
                   c(i,j,k,n) =  (
      $                 + f(i2p1,j2p1,k2  ,n) + f(i2,j2p1,k2  ,n)
      $                 + f(i2p1,j2  ,k2  ,n) + f(i2,j2  ,k2  ,n)
      $                 + f(i2p1,j2p1,k2p1,n) + f(i2,j2p1,k2p1,n)
      $                 + f(i2p1,j2  ,k2p1,n) + f(i2,j2  ,k2p1,n)
      $                 )*denom
-
                end do
             end do
          end do
+!$omp end parallel do
       end do
 
       end
