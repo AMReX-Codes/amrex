@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.34 2007-10-22 20:27:04 almgren Exp $
+// $Id: LinOp.cpp,v 1.35 2009-09-28 21:29:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,7 +13,7 @@
 #include <LinOp.H>
 #include <Profiler.H>
 
-#include <WorkQueue.H>
+
 
 bool LinOp::initialized = false;
 int LinOp::def_harmavg  = 0;
@@ -201,147 +201,6 @@ LinOp::apply (MultiFab&      out,
     Fapply(out,in,level);
 }
 
-#ifdef BL_THREADS
-class task_applybc_orientation
-  :
-    public WorkQueue::task
-{
-public:
-  task_applybc_orientation(const OrientationIter& oitr_,
-			   int level_,
-			   int flagden_, int flagbc_, int maxorder_,
-			   MultiFab& inout_, int src_comp_, int num_comp_,
-			   int cdr_,
-			   const Array< Array<BoundCond> >&  b_, const Array<Real>& r_,
-			   const FabSet& fs_,
-			   const Array< Array< Array< Mask*> > >& maskvals_,
-			   FabSet& f_,
-			   int nc_,
-			   const Real* h_);
-  virtual void run();
-private:
-  const OrientationIter oitr;
-  const int level;
-  const int flagden;
-  const int flagbc;
-  const int maxorder;
-  MultiFab& inout;
-  const int src_comp;
-  const int num_comp;
-  const int cdr;
-  const Array< Array<BoundCond> >& b;
-  const Array< Real>& r;
-  const FabSet& fs;
-  const Array< Array< Array< Mask*> > >& maskvals;
-  FabSet& f;
-  int nc;
-  const Real* h;
-};
-
-task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_, int level_,
-						   int flagden_, int flagbc_, int maxorder_,
-						   MultiFab& inout_, int src_comp_, int num_comp_,
-						   int cdr_,
-						   const Array< Array<BoundCond> >& b_, const Array<Real>& r_,
-						   const FabSet& fs_,
-						   const Array< Array< Array< Mask*> > >& maskvals_,
-						   FabSet& f_,
-						   int nc_,
-						   const Real* h_)
-  : oitr(oitr_), level(level_), flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
-    inout(inout_), src_comp(src_comp_), num_comp(num_comp_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
-{}
-
-void
-task_applybc_orientation::run()
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::run()");
-    const int comp = 0;
-    for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
-    {
-      const int gn = inoutmfi.index();
-
-      const Mask& m = *maskvals[level][gn][oitr()];
-      Real bcl      = r[gn];
-      int bct       = b[gn][comp];
-
-      FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-		   inout[inoutmfi].dataPtr(src_comp),
-		   ARLIM(inout[inoutmfi].loVect()), ARLIM(inout[inoutmfi].hiVect()),
-		   &cdr, &bct, &bcl,
-		   fs[inoutmfi].dataPtr(), 
-		   ARLIM(fs[inoutmfi].loVect()), ARLIM(fs[inoutmfi].hiVect()),
-		   m.dataPtr(),
-		   ARLIM(m.loVect()), ARLIM(m.hiVect()),
-		   f[inoutmfi].dataPtr(),
-		   ARLIM(f[inoutmfi].loVect()), ARLIM(f[inoutmfi].hiVect()),
-		   inoutmfi.validbox().loVect(),
-		   inoutmfi.validbox().hiVect(), &nc, h);
-    }
-}
-
-class task_applybc
-    :
-    public WorkQueue::task
-{
-public:
-    task_applybc(int flagden_, int flagbc_, int maxorder_,
-		 FArrayBox& inout_, int srccomp_,
-		 int cdr_, int bct_, Real bcl_,
-		 const FArrayBox& fs_,
-		 const Mask& m_,
-		 FArrayBox& f_,
-		 const Box& vbox_,
-		 int nc_,
-		 const Real* h_);
-    virtual void run();
-private:  
-    const int flagden;
-    const int flagbc;
-    const int maxorder;
-    FArrayBox& inout;
-    int src_comp;
-    const int cdr;
-    const int bcl;
-    Real bct;
-    const FArrayBox& fs;
-    const Mask& m;
-    FArrayBox& f;
-    const Box vbox;
-    int nc;
-    const Real* h;
-};
-
-task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
-			   FArrayBox& inout_, int srccomp_,
-			   int cdr_, int bcl_, Real bct_,
-			   const FArrayBox& fs_,
-			   const Mask& m_,
-			   FArrayBox& f_,
-			   const Box& vbox_,
-			   int nc_,
-			   const Real* h_)
-  : flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
-    inout(inout_), src_comp(srccomp_), cdr(cdr_), bcl(bcl_), bct(bct_), fs(fs_), m(m_), f(f_), vbox(vbox_), nc(nc_), h(h_)
-{}
-
-void
-task_applybc::run()
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::run()");
-  FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-	       inout.dataPtr(src_comp),
-	       ARLIM(inout.loVect()), ARLIM(inout.hiVect()),
-	       &cdr, &bcl, &bct,
-	       fs.dataPtr(), ARLIM(fs.loVect()), ARLIM(fs.hiVect()),
-	       m.dataPtr(), ARLIM(m.loVect()), ARLIM(m.hiVect()),
-	       f.dataPtr(), ARLIM(f.loVect()), ARLIM(f.hiVect()),
-	       vbox.loVect(), vbox.hiVect(),
-	       &nc, h);
-  
-}
-#endif
-
 void
 LinOp::applyBC (MultiFab&      inout,
                 int            src_comp,
@@ -395,39 +254,6 @@ LinOp::applyBC (MultiFab&      inout,
         FabSet& f                          = (*undrrelxr[level])[oitr()];
         int cdr                            = oitr();
         const FabSet& fs                   = bgb.bndryValues(oitr());
-
-#ifdef BL_THREADS
-#if 1
-	BoxLib::theWorkQueue().add(new task_applybc_orientation(oitr, level,
-					      flagden, flagbc, maxorder,
-					      inout, src_comp, num_comp,
-					      cdr, b, r,
-					      fs,
-					      maskvals,
-					      f,
-					      num_comp, h[level]));
-#else
-        for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
-        {
-            const int gn = inoutmfi.index();
-
-            BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
-
-            const Mask& m = local ? (*lmaskvals[level][gn][oitr()]) : (*maskvals[level][gn][oitr()]);
-            Real bcl      = r[gn];
-            int bct       = b[gn][comp];
-
-	    BoxLib::theWorkQueue().add(new task_applybc(flagden, flagbc, maxorder,
-				      inout[gn], src_comp, num_comp,
-				      cdr, bct, bcl,
-				      fs[gn],
-				      m,
-				      f[gn],
-				      inoutmfi.validbox(),
-				      num_comp, h[level]));
-        }
-#endif
-#else
         const int comp                     = 0;
         for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
@@ -452,9 +278,7 @@ LinOp::applyBC (MultiFab&      inout,
                          inoutmfi.validbox().loVect(),
                          inoutmfi.validbox().hiVect(), &num_comp, h[level]);
         }
-#endif
     }
-    BoxLib::theWorkQueue().wait();
 }
 
 void

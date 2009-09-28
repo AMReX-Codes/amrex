@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.26 2007-10-29 04:26:20 almgren Exp $
+// $Id: ABecLaplacian.cpp,v 1.27 2009-09-28 21:29:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -254,114 +254,6 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 		  );
     }
 }
-
-#ifdef BL_THREADS
-class task_gsrb
-  :
-    public WorkQueue::task
-{
-public:
-  task_gsrb(FArrayBox& solnL_,
-	    const FArrayBox& rhsL_,
-	    Real alpha_, Real beta_,
-	    const FArrayBox& a_,
-	    D_DECL(const FArrayBox& bX_,
-                   const FArrayBox& bY_,
-                   const FArrayBox& bZ_),
-	    const FArrayBox& f0_, const Mask& m0_,
-	    const FArrayBox& f1_, const Mask& m1_,
-	    const FArrayBox& f2_, const Mask& m2_,
-	    const FArrayBox& f3_, const Mask& m3_,
-#if BL_SPACEDIM == 3
-	    const FArrayBox& f4_, const Mask& m4_,
-	    const FArrayBox& f5_, const Mask& m5_,
-#endif
-	    const Box& vbox_,
-	    int nc_,
-	    const Real* h_,
-	    int redBlackFlag_)
-    :
-      solnL(solnL_),
-      rhsL(rhsL_),
-      alpha(alpha_), beta(beta_),
-      a(a_),
-      D_DECL(bX(bX_),
-             bY(bY_),
-             bZ(bZ_)),
-      f0(f0_), m0(m0_),
-      f1(f1_), m1(m1_),
-      f2(f2_), m2(m2_),
-      f3(f3_), m3(m3_),
-#if BL_SPACEDIM == 3
-      f4(f4_), m4(m4_),
-      f5(f5_), m5(m5_),
-#endif
-      vbox(vbox_),
-      nc(nc_),
-      h(h_),
-      redBlackFlag(redBlackFlag_)
-  {}
-  virtual void run();
-private:
-  FArrayBox& solnL;
-  const FArrayBox& rhsL;
-  const Real alpha, beta;
-  const FArrayBox& a;
-  D_TERM(const FArrayBox& bX,
-         ;const FArrayBox& bY,
-         ;const FArrayBox& bZ);
-  const FArrayBox& f0;
-  const Mask& m0;
-  const FArrayBox& f1;
-  const Mask& m1;
-  const FArrayBox& f2;
-  const Mask& m2;
-  const FArrayBox& f3;
-  const Mask& m3;
-#if BL_SPACEDIM == 3
-  const FArrayBox& f4;
-  const Mask& m4;
-  const FArrayBox& f5;
-  const Mask& m5;
-#endif
-  const Box vbox;
-  const int nc;
-  const Real* h;
-  const int redBlackFlag;
-};
-
-void
-task_gsrb::run ()
-{
-  BL_PROFILE(BL_PROFILE_THIS_NAME() + "::run()");
-
-  FORT_GSRB(solnL.dataPtr(), ARLIM(solnL.loVect()),ARLIM(solnL.hiVect()),
-	    rhsL.dataPtr(), ARLIM(rhsL.loVect()), ARLIM(rhsL.hiVect()),
-	    &alpha, &beta,
-	    a.dataPtr(), ARLIM(a.loVect()), ARLIM(a.hiVect()),
-	    bX.dataPtr(), ARLIM(bX.loVect()), ARLIM(bX.hiVect()),
-	    bY.dataPtr(), ARLIM(bY.loVect()), ARLIM(bY.hiVect()),
-#if BL_SPACEDIM==3
-	    bZ.dataPtr(), ARLIM(bZ.loVect()), ARLIM(bZ.hiVect()),
-#endif
-	    f0.dataPtr(), ARLIM(f0.loVect()), ARLIM(f0.hiVect()),
-	    m0.dataPtr(), ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-	    f1.dataPtr(), ARLIM(f1.loVect()), ARLIM(f1.hiVect()),
-	    m1.dataPtr(), ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-	    f2.dataPtr(), ARLIM(f2.loVect()), ARLIM(f2.hiVect()),
-	    m2.dataPtr(), ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-	    f3.dataPtr(), ARLIM(f3.loVect()), ARLIM(f3.hiVect()),
-	    m3.dataPtr(), ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-#if BL_SPACEDIM==3  
-	    f4.dataPtr(), ARLIM(f4.loVect()), ARLIM(f4.hiVect()),
-	    m4.dataPtr(), ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
-	    f5.dataPtr(), ARLIM(f5.loVect()), ARLIM(f5.hiVect()),
-	    m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
-#endif
-	    vbox.loVect(), vbox.hiVect(),
-	    &nc, h, &redBlackFlag);
-}
-#endif	
         
 //
 // Must be defined for MultiGrid/CGSolver to work.
@@ -408,23 +300,6 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
 
-#ifdef BL_THREADS
-	BoxLib::theWorkQueue().add(new task_gsrb(solnL[gn],
-			       rhsL[gn],
-			       alpha, beta,
-			       a[gn],
-			       D_DECL(bX[gn], bY[gn], bZ[gn]),
-			       f0[gn], m0,
-			       f1[gn], m1,
-			       f2[gn], m2,
-			       f3[gn], m3,
-#if BL_SPACEDIM == 3
-			       f4[gn], m4,
-			       f5[gn], m5,
-#endif
-			       solnLmfi.validbox(),
-			       nc, h[level], redBlackFlag));
-#else
 #if (BL_SPACEDIM == 2)
         FORT_GSRB(solnL[solnLmfi].dataPtr(), ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
                   rhsL[solnLmfi].dataPtr(), ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
@@ -467,9 +342,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                   solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(),
                   &nc, h[level], &redBlackFlag);
 #endif
-#endif
     }
-    BoxLib::theWorkQueue().wait();
 }
 
 void
