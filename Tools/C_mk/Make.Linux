@@ -228,7 +228,8 @@ endif
 ifeq ($(WHICHLINUX), ATLAS)
   ifeq ($(COMP),Intel)
     CXX = icpc
-    CXXOPTF = -O3 -ip -mp -fno-exceptions
+#    CXXOPTF = -O3 -ip -mp -fno-exceptions
+    CXXOPTF = -O3 -ip -fp-model fast=2 -fno-exceptions
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
 # MAS: 4.17.2008
