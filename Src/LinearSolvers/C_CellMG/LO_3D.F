@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.10 2009-09-28 20:29:59 lijewski Exp $
+c $Id: LO_3D.F,v 1.11 2009-09-28 21:13:32 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -69,15 +69,14 @@ c-----------------------------------------------------------------------
       REAL_T  factor
       parameter(factor=four)
 
-      integer n
-      integer i
-      integer j
-      integer k
+      integer n, i, j, k
 
-!$omp parallel
-      if ( cdir .eq. 0 ) then
+!$omp parallel private(i,j,k)
+      select case(cdir)
+
+      case (0)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
@@ -93,9 +92,10 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      else if (cdir .eq. 1 ) then
+
+      case (1)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
@@ -111,9 +111,9 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      else if (cdir .eq. 2 ) then
+      case (2)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -129,8 +129,10 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      end if
+
+      end select
 !$omp end parallel
+
       end
 c-----------------------------------------------------------------------
       subroutine FORT_AVERAGEEC (
@@ -150,17 +152,16 @@ c-----------------------------------------------------------------------
       integer DIMDEC(c)
       REAL_T c(DIMV(c),nc)
 
-      integer n
-      integer i
-      integer j
-      integer k
+      integer n, i, j, k
       REAL_T factor
       parameter(factor = fourth)
 
-!$omp parallel
-      if ( cdir .eq. 0 ) then
+!$omp parallel private(i,j,k)
+      select case(cdir)
+
+      case (0)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
@@ -176,9 +177,10 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      else if (cdir .eq. 1 ) then
+
+      case (1)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
@@ -194,9 +196,10 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      else if (cdir .eq. 2 ) then
+
+      case (2)
          do n = 1, nc
-!$omp do private(i,j,k)
+!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -212,7 +215,8 @@ c-----------------------------------------------------------------------
             end do
 !$omp end do nowait
          end do
-      end if
+
+      end select
 !$omp end parallel
 
       end
@@ -232,10 +236,7 @@ c-----------------------------------------------------------------------
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
 
-      integer i
-      integer j
-      integer k
-      integer n
+      integer i, j, k, n
       REAL_T factor
       parameter(factor=eighth)
 
@@ -313,17 +314,10 @@ c
       REAL_T bcl
       REAL_T h(BL_SPACEDIM)
 
-      integer i
-      integer j
-      integer k
-      integer n
-      logical is_dirichlet
-      logical is_neumann
+      integer i, j, k, n
+      logical is_dirichlet, is_neumann
 
-      integer lenx
-      integer leny
-      integer lenz
-      integer m
+      integer lenx, leny, lenz, m
 
       integer Lmaxorder
       integer maxmaxorder
