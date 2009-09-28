@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.4 2008-02-08 18:08:01 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.5 2009-09-28 17:51:35 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -70,8 +70,12 @@ c ---------------------------------------------------------------
       ic   = ARG_L1(cb)-1
       i    = lo(1)-1
 
+!$omp parallel
       do n = 1, nvar
+c
 c        ::::: define interp coefs
+c
+!$omp do private(kc,k,jc,j)
          do kc = kclo, kchi
          k = ratioz*kc
          do jc = jclo, jchi
@@ -120,10 +124,13 @@ c        ::::: define interp coefs
             end if
          end do
          end do
-
+!$omp end do
+c
 c        ::::: interpolate to fine grid
+c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
+!$omp do private(kc,k,joff,xx,jc,j)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
@@ -136,10 +143,11 @@ c        ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do nowait
          end do
       end do
+!$omp end parallel
 
-      return
       end
 
 c ---------------------------------------------------------------
@@ -192,8 +200,12 @@ c ---------------------------------------------------------------
       ic   = ARG_H1(cb)+1
       i    = hi(1)+1
 
+!$omp parallel
       do n = 1, nvar
+c
 c        ::::: define interp coefs
+c
+!$omp do private(kc,k,jc,j)
          do kc = kclo, kchi
          k = ratioz*kc
          do jc = jclo, jchi
@@ -242,10 +254,13 @@ c        ::::: define interp coefs
             end if
          end do
          end do
-
+!$omp end do
+c
 c        ::::: interpolate to fine grid
+c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
+!$omp do private(kc,k,joff,xx,jc,j)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do joff = 0, ratioy - 1
@@ -258,10 +273,11 @@ c        ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do
          end do
       end do
+!$omp end parallel
 
-      return
       end
       
 c ---------------------------------------------------------------
@@ -314,8 +330,12 @@ c ---------------------------------------------------------------
       jc   = ARG_L2(cb)-1
       j    = lo(2)-1
 
+!$omp parallel
       do n = 1, nvar
+c
 c        ::::: define interp coefs
+c
+!$omp do private(kc,k,ic,i)
          do kc = kclo, kchi
          k = ratioz*kc
          do ic = iclo, ichi
@@ -364,10 +384,13 @@ c        ::::: define interp coefs
             end if
          end do
          end do
-
+!$omp end do
+c
 c        ::::: interpolate to fine grid
+c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
+!$omp do private(kc,k,ioff,xx,ic,i)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
@@ -380,10 +403,11 @@ c        ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do
          end do
       end do
+!$omp end parallel
 
-      return
       end
 
 c ---------------------------------------------------------------
@@ -436,8 +460,12 @@ c ---------------------------------------------------------------
       jc   = ARG_H2(cb)+1
       j    = hi(2)+1
 
+!$omp parallel
       do n = 1, nvar
+c
 c        ::::: define interp coefs
+c
+!$omp do private(kc,k,ic,i)
          do kc = kclo, kchi
          k = ratioz*kc
          do ic = iclo, ichi
@@ -487,10 +515,13 @@ c        ::::: define interp coefs
             end if
          end do
          end do
-
+!$omp end do
+c
 c        ::::: interpolate to fine grid
+c
          do koff = 0, ratioz - 1
             yy = (dble(koff - ratioz/2) + half)/ratioz
+!$omp do private(kc,k,ioff,xx,ic,i)
             do kc = kclo,kchi
                k = ratioz*kc + koff
                do ioff = 0, ratiox - 1
@@ -503,10 +534,11 @@ c        ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do
          end do
       end do
+!$omp end parallel
 
-      return
       end
 
 c ---------------------------------------------------------------
@@ -559,8 +591,12 @@ c ---------------------------------------------------------------
       kc   = ARG_L3(cb)-1
       k    = lo(3)-1
 
+!$omp parallel
       do n = 1, nvar
+c
 c     ::::: define interp coefs
+c
+!$omp do private(jc,j,ic,i)
          do jc = jclo, jchi
             j = ratioy*jc
             do ic = iclo, ichi
@@ -609,10 +645,13 @@ c     ::::: define interp coefs
                end if
             end do
          end do
-         
+!$omp end do
+c         
 c     ::::: interpolate to fine grid
+c
          do joff = 0, ratioy - 1
             yy = (dble(joff - ratioy/2) + half)/ratioy
+!$omp do private(jc,j,ioff,xx,ic,i)
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
@@ -625,10 +664,11 @@ c     ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do
          end do
       end do
-      
-      return
+!$omp end parallel      
+
       end
       
 c ---------------------------------------------------------------
@@ -681,8 +721,12 @@ c ---------------------------------------------------------------
       kc   = ARG_H3(cb)+1
       k    = hi(3)+1
 
+!$omp parallel
       do n = 1, nvar
+c
 c        ::::: define interp coefs
+c
+!$omp do private(jc,j,ic,i)
          do jc = jclo, jchi
          j = ratioy*jc
          do ic = iclo, ichi
@@ -731,10 +775,13 @@ c        ::::: define interp coefs
             end if
          end do
          end do
-
+!$omp end do
+c
 c        ::::: interpolate to fine grid
+c
          do joff = 0, ratioy - 1
             yy = (dble(joff - ratioy/2) + half)/ratioy
+!$omp do private(jc,j,ioff,xx,ic,i)
             do jc = jclo,jchi
                j = ratioy*jc + joff
                do ioff = 0, ratiox - 1
@@ -747,10 +794,11 @@ c        ::::: interpolate to fine grid
                   end do
                end do
             end do
+!$omp end do
          end do
       end do
+!$omp end parallel
 
-      return
       end
 
 #undef NUMDERIV
