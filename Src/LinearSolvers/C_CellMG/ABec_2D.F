@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.13 2008-02-08 18:08:01 lijewski Exp $
+c $Id: ABec_2D.F,v 1.14 2009-09-28 21:13:06 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -358,58 +358,6 @@ c
          end do
       end do
 
-      end
-      
-c-----------------------------------------------------------------------
-c
-c     Solve Preconditioned system here
-c
-      subroutine FORT_CGPRECND(
-     $     zz,DIMS(zz),
-     $     rho,
-     $     rr,DIMS(rr),
-     $     alpha, beta,
-     $     a, DIMS(a),
-     $     bX,DIMS(bX),
-     $     bY,DIMS(bY),
-     $     lo,hi,nc,
-     $     h
-     $     )
-
-      implicit none
-
-      REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
-      integer DIMDEC(zz)
-      integer DIMDEC(rr)
-      integer DIMDEC(a)
-      integer DIMDEC(bX)
-      integer DIMDEC(bY)
-      REAL_T zz(DIMV(zz),nc)
-      REAL_T rr(DIMV(rr),nc)
-      REAL_T  a(DIMV(a))
-      REAL_T bX(DIMV(bX))
-      REAL_T bY(DIMV(bY))
-      REAL_T h(BL_SPACEDIM), rho
-c
-      integer i,j, n
-      REAL_T de, dhx, dhy
-c
-      rho = 0
-      dhx = beta/h(1)**2
-      dhy = beta/h(2)**2
-      do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               de = 1.0D0/(alpha*a(i,j) + dhx*(bX(i+1,j)+bX(i,j))
-     $              + dhy*(bY(i,j+1)+bY(i,j))
-     $              )
-               zz(i,j,n) = rr(i,j,n)*de
-               rho = rho + zz(i,j,n)*rr(i,j,n)
-            end do
-         end do
-      end do
-c
       end
 c-----------------------------------------------------------------------
 c

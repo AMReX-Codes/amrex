@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.10 2007-10-30 20:47:09 almgren Exp $
+** $Id: LP_F.H,v 1.11 2009-09-28 21:13:06 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -17,14 +17,12 @@
 
 #if (BL_SPACEDIM == 2)
 #define FORT_GSRB      gsrb2dsim
-#define FORT_CGPRECND  cgprecnd2dsim
 #define FORT_ADOTX     adotx2dsim
 #define FORT_FLUX      flux2dsim
 #endif
 
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB      gsrb3dsim
-#define FORT_CGPRECND  cgprecnd3dsim
 #define FORT_ADOTX     adotx3dsim
 #define FORT_FLUX      flux3dsim
 #endif
@@ -50,17 +48,14 @@
 #if (BL_SPACEDIM == 2)
 #if defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB      GSRB2DSIM
-#define FORT_CGPRECND  CGPRECND2DSIM
 #define FORT_ADOTX     ADOTX2DSIM
 #define FORT_FLUX      FLUX2DSIM
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB      gsrb2dsim
-#define FORT_CGPRECND  cgprecnd2dsim
 #define FORT_ADOTX     adotx2dsim
 #define FORT_FLUX      flux2dsim
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB      gsrb2dsim_
-#define FORT_CGPRECND  cgprecnd2dsim_
 #define FORT_ADOTX     adotx2dsim_
 #define FORT_FLUX      flux2dsim_
 #endif
@@ -69,17 +64,14 @@
 #if (BL_SPACEDIM == 3)
 #if   defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB      GSRB3DSIM
-#define FORT_CGPRECND  CGPRECND3DSIM
 #define FORT_ADOTX     ADOTX3DSIM
 #define FORT_FLUX      FLUX3DSIM
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB      gsrb3dsim
-#define FORT_CGPRECND  cgprecnd3dsim
 #define FORT_ADOTX     adotx3dsim
 #define FORT_FLUX      flux3dsim
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB      gsrb3dsim_
-#define FORT_CGPRECND  cgprecnd3dsim_
 #define FORT_ADOTX     adotx3dsim_
 #define FORT_FLUX      flux3dsim_
 #endif
@@ -162,14 +154,6 @@ extern "C"
         Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
         );
 #endif
-
-    void FORT_CGPRECND(
-        Real *tmpz,       ARLIM_P(tmpz_lo), ARLIM_P(tmzr_hi),
-        Real *rho,
-        const Real *tmpr, ARLIM_P(tmpr_lo), ARLIM_P(tmpr_hi),
-        const int *lo, const int *hi, const int *nc,
-        const Real *h
-        );
 
     void FORT_ADOTX(
         Real *y,       ARLIM_P(y_lo), ARLIM_P(y_hi),
