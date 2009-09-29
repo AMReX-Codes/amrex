@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.27 2009-09-28 21:29:25 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.28 2009-09-29 20:42:36 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -10,8 +10,6 @@
 #include <ABec_F.H>
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
-
-#include <WorkQueue.H>
 
 Real ABecLaplacian::a_def     = 0.0;
 Real ABecLaplacian::b_def     = 1.0;
@@ -428,7 +426,6 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
                     &nc, h[level]);
 #endif
     }
-    BoxLib::theWorkQueue().wait();
 }
 
 void
