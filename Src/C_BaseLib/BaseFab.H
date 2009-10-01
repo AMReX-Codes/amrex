@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.63 2008-07-30 01:10:47 lijewski Exp $
+// $Id: BaseFab.H,v 1.64 2009-10-01 18:18:10 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1447,13 +1447,18 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             const Box&           destbox,
                             int                  destcomp,
                             int                  numcomp);
-
 template <>
 void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
                               int        num);
+template <>
+Real
+BaseFab<Real>::norm (const Box& subbox,
+                     int        p,
+                     int        comp,
+                     int        ncomp) const;
 #endif
 
 template <class T>

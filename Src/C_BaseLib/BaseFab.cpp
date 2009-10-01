@@ -111,7 +111,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                       ARLIM(_x_phi),
                       D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                       D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
-                      numcomp);
+                      &numcomp);
     }
 }
 
@@ -119,17 +119,17 @@ template<>
 void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
-                              int        ns,
-                              int        num)
+                              int        comp,
+                              int        ncomp)
 {
     BL_ASSERT(domain.contains(bx));
-    BL_ASSERT(ns >= 0 && ns + num <= nvar);
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    Real* data = dataPtr(comp);
 
     if (bx == domain)
     {
-        Real* data = &dptr[ns*numpts];
-
-        for (long i = 0, N = num*numpts; i < N; i++)
+        for (long i = 0, N = ncomp*numpts; i < N; i++)
         {
             *data++ = val;
         }
@@ -141,15 +141,60 @@ BaseFab<Real>::performSetVal (Real       val,
         const int* _th_plo = loVect();                           
         const int* _th_phi = hiVect();
 
-        Real* _th_p = dataPtr(ns);
-
         FORT_FASTSETVAL(&val,
                         _box_lo,
                         _box_hi,
-                        _th_p,
+                        data,
                         ARLIM(_th_plo),
                         ARLIM(_th_phi),
-                        num);
+                        &ncomp);
     }
+}
+
+template<>
+Real
+BaseFab<Real>::norm (const Box& bx,
+                     int        p,
+                     int        comp,
+                     int        ncomp) const
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    Real nrm = 0;
+
+    if (p == 0)
+    {
+        FORT_FASTZERONORM(_data,
+                          ARLIM(_datalo),
+                          ARLIM(_datahi),
+                          _box_lo,
+                          _box_hi,
+                          &ncomp,
+                          &nrm);
+    }
+    else if (p == 1)
+    {
+        FORT_FASTONENORM(_data,
+                         ARLIM(_datalo),
+                         ARLIM(_datahi),
+                         _box_lo,
+                         _box_hi,
+                         &ncomp,
+                         &nrm);
+    }
+    else
+    {
+        BoxLib::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
+    }
+
+    return nrm;
 }
 #endif

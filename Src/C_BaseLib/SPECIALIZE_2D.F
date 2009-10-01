@@ -83,3 +83,69 @@ c
       end do
 
       end
+c
+c     Calculate max(abs) over section of an array.
+c
+      subroutine FORT_FASTZERONORM (src,DIMS(src),lo,hi,ncomp,nrm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), nrm
+c
+c     Local variables.
+c
+      integer i,j,k
+      integer imin,jmin,imax,jmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      nrm = 0.0d0
+
+      do k = 1,ncomp
+         do j = jmin,jmax
+            do i = imin,imax
+               nrm = max(nrm, abs(src(i,j,k)))
+            end do
+         end do
+      end do
+
+      end
+c
+c     Calculate sum(abs) over section of an array.
+c
+      subroutine FORT_FASTONENORM (src,DIMS(src),lo,hi,ncomp,nrm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), nrm
+c
+c     Local variables.
+c
+      integer i,j,k
+      integer imin,jmin,imax,jmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      nrm = 0.0d0
+
+      do k = 1, ncomp
+         do j = jmin,jmax
+            do i = imin,imax
+               nrm = nrm + abs(src(i,j,k))
+            end do
+         end do
+      end do
+
+      end
