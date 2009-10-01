@@ -8,18 +8,25 @@
 
 #define FORT_FASTCOPY   fastcopy
 #define FORT_FASTSETVAL fastsetval
-
+#define FORT_FASTZERONORM   fastzeronorm
+#define FORT_FASTONENORM   fastonenorm
 #else
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #define FORT_FASTCOPY       FASTCOPY
 #define FORT_FASTSETVAL     FASTSETVAL
+#define FORT_FASTZERONORM   FASTZERONORM
+#define FORT_FASTONENORM   FASTONENORM
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_FASTCOPY       fastcopy
 #define FORT_FASTSETVAL     fastsetval
+#define FORT_FASTZERONORM   fastzeronorm
+#define FORT_FASTONENORM   fastonenorm
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_FASTCOPY       fastcopy_
 #define FORT_FASTSETVAL     fastsetval_
+#define FORT_FASTZERONORM   fastzeronorm_
+#define FORT_FASTONENORM   fastonenorm_
 #endif
 
 extern "C"
@@ -32,14 +39,28 @@ extern "C"
                         ARLIM_P(slo), ARLIM_P(shi),
                         D_DECL(const int&,const int&,const int&),
                         D_DECL(const int&,const int&,const int&),
-                        const int& ncomp);
+                        const int* ncomp);
 
     void FORT_FASTSETVAL (const Real* val,
                           const int*  lo,
                           const int*  hi,
                           Real*       dest,
                           ARLIM_P(dlo), ARLIM_P(dhi),
-                          const int&  ncomp);
+                          const int*  ncomp);
+
+    void FORT_FASTZERONORM (const Real* dest,
+                            ARLIM_P(dlo), ARLIM_P(dhi),
+                            const int*  lo,
+                            const int*  hi,
+                            const int*  ncomp,
+                            const Real* nrm);
+
+    void FORT_FASTONENORM (const Real* dest,
+                           ARLIM_P(dlo), ARLIM_P(dhi),
+                           const int*  lo,
+                           const int*  hi,
+                           const int*  ncomp,
+                           const Real* nrm);
 }
 
 #endif

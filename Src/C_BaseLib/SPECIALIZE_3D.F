@@ -91,3 +91,81 @@ c
       end do
 
       end
+c
+c     Calculate max(abs) over section of an array.
+c
+      subroutine FORT_FASTZERONORM (src,DIMS(src),lo,hi,ncomp,nrm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), nrm
+c
+c     Local variables.
+c
+      integer i,j,k,l
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      nrm = 0.0d0
+
+      do l = 1, ncomp
+!$omp parallel do reduction(max : nrm)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  nrm = max(nrm, abs(src(i,j,k,l)))
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
+c
+c     Calculate sum(abs) over section of an array.
+c
+      subroutine FORT_FASTONENORM (src,DIMS(src),lo,hi,ncomp,nrm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), nrm
+c
+c     Local variables.
+c
+      integer i,j,k,l
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      nrm = 0.0d0
+
+      do l = 1, ncomp
+!$omp parallel do reduction(+ : nrm)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  nrm = nrm + abs(src(i,j,k,l))
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
