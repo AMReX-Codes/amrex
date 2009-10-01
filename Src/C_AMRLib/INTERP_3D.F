@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.36 2009-10-01 20:51:08 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.37 2009-10-01 21:20:40 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -86,16 +86,22 @@ c :::
 c
 c     NOTES:
 c         1) (i, j, k) loop over the coarse cells
-c         2) ?strtFine and ?stopFine are the beginning and ending fine cell
-c            indices corresponding to the current coarse cell.  ?stopFine
+c         2) strtFine and stopFine are the beginning and ending fine cell
+c            indices corresponding to the current coarse cell.  stopFine
 c            is restricted for the last coarse cell in each direction since
 c            for this cell we only need to do the face and not the fine nodes
 c            inside this cell.
-c         3) (lx, ly, lz) as well as ?lo and ?hi refer to the fine node indices
-c            as an offset from ?strtFine.
+c         3) (lx, ly, lz) as well as lo and hi refer to the fine node indices
+c            as an offset from strtFine.
 c
-      do 100 n = 1, nvar
-         do 110 k = ARG_L3(cb), ARG_H3(cb)
+      do n = 1, nvar
+
+!$omp parallel do private(i,j,k,kstrtFine,kstopFine,klo,khi)
+!$omp&private(jstrtFine,jstopFine,jlo,jhi)
+!$omp&private(dx00,d0x0,d00x,dx10,dx01,d0x1,dx11)
+!$omp&private(sl,lz,kfn,fz,ly,jfn,fy,istrtFine,istopFine)
+!$omp&private(ilo,ihi,lx,ifn,fx)
+         do k = ARG_L3(cb), ARG_H3(cb)
             kstrtFine = k * lratioz
             kstopFine = kstrtFine + lratioz - 1
             if (k .eq. ARG_H3(cb)) kstopFine = kstrtFine
@@ -103,7 +109,7 @@ c
             klo = max(ARG_L3(fb),kstrtFine) - kstrtFine
             khi = min(ARG_H3(fb),kstopFine) - kstrtFine
 
-            do 120 j = ARG_L2(cb), ARG_H2(cb)
+            do j = ARG_L2(cb), ARG_H2(cb)
                jstrtFine = j * lratioy
                jstopFine = jstrtFine + lratioy - 1
                if (j .eq. ARG_H2(cb)) jstopFine = jstrtFine
@@ -115,7 +121,7 @@ c           ::::: compute slopes :::::
 c
 c           NOTE: The IF logic in the calculation of the slopes is to
 c                 prevent stepping out of bounds on the coarse data when
-c                 computing the slopes on the ARG_H?(cb) cells.  These
+c                 computing the slopes on the ARG_H(cb) cells.  These
 c                 slopes actually are not used since they are multiplied by
 c                 zero.
 c
@@ -178,9 +184,9 @@ c
                   end do
                end do
 
-120         continue
-110      continue
-100   continue
+            end do
+         end do
+      end do
 
 #undef  SLX
 #undef  SLY
