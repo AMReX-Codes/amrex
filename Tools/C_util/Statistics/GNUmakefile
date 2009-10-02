@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 2009-01-10 00:05:56 gpau Exp $
+# $Id: GNUmakefile,v 1.3 2009-10-02 00:36:15 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -9,11 +9,11 @@ TOP = $(PBOXLIB_HOME)
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
-#DEBUG	      = FALSE
+DEBUG	      = FALSE
 PROFILE       = FALSE
 DIM	      = 2
-DIM           = 3
-COMP          = g++
+#DIM           = 3
+COMP          = Intel
 FCOMP         = Intel
 USE_MPI       = FALSE
 USE_MPI       = TRUE
@@ -32,7 +32,7 @@ endif
 # Base name of the executable.
 #
 EBASE = PltFileXAve
-#EBASE = PltFileStat
+EBASE = PltFileStat
 #EBASE = PltFileList
 CEXE_sources += $(EBASE).cpp
 

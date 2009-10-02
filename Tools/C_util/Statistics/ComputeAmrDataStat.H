@@ -14,3 +14,16 @@ ComputeAmrDataList (AmrData&         amrData,
 		    Array<MultiFab*> variance,
 		    int              sComp,
 		    int              nComp);
+
+void
+ComputeAmrDataPDF (AmrData&     amrData,
+		   Real**       icount,
+		   int          nBin,
+		   Array<std::string> cNames);
+
+void
+ComputeAmrDataPDF (AmrData&     amrData,
+		   Real**       icount,
+		   int          nBin,
+		   Array<std::string> cNames,
+		   Array<BoxArray> bas);
