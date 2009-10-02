@@ -327,8 +327,12 @@ main (int   argc,
 	      xold[iz] = xnew[iz];
 	    }
 #endif
+
+	  //sumnew = SumThisComp(amrData, 0);
+	  //Real dF = phi*(sumnew - sumold)/dt;
+	  //sumold = sumnew;
 	  //std::cout << dtnew << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
-	  std::cout << dtnew << " " << FL << std::endl;
+	  std::cout << dtnew <<  " " << FL << std::endl;
 	}
 
 
