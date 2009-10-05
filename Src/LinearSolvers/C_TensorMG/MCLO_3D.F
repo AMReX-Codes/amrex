@@ -61,9 +61,11 @@ c
       integer i
       integer j
       integer k
+!$omp parallel private(i,j,k)
 c
       if ( cdir .eq. 0 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
@@ -77,9 +79,11 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
@@ -93,9 +97,11 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -109,8 +115,10 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       endif
+!$omp end parallel
 c
       end
 c-----------------------------------------------------------------------
@@ -134,16 +142,17 @@ c
       integer i
       integer j
       integer k
-      REAL_T factor
-      parameter(factor = 0.25d0)
+
+!$omp parallel private(i,j,k)
 c     
       if ( cdir .eq. 0 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
 c     
-                     c(i,j,k,n) = factor*(
+                     c(i,j,k,n) = 0.25d0*(
      $                    + f(2*i,2*j  ,2*k  ,n)
      $                    + f(2*i,2*j+1,2*k  ,n)
      $                    + f(2*i,2*j  ,2*k+1,n)
@@ -152,14 +161,16 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
 c                     
-                     c(i,j,k,n) = factor*(
+                     c(i,j,k,n) = 0.25d0*(
      $                    + f(2*i  ,2*j,2*k  ,n)
      $                    + f(2*i+1,2*j,2*k  ,n)
      $                    + f(2*i  ,2*j,2*k+1,n)
@@ -168,14 +179,16 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
+!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 c     
-                     c(i,j,k,n) = factor*(
+                     c(i,j,k,n) = 0.25d0*(
      $                    + f(2*i  ,2*j  ,2*k,n)
      $                    + f(2*i+1,2*j  ,2*k,n)
      $                    + f(2*i  ,2*j+1,2*k,n)
@@ -184,8 +197,10 @@ c
                   enddo
                enddo
             enddo
+!$omp end do nowait
          enddo
       endif
+!$omp end parallel
 c     
       end
 c-----------------------------------------------------------------------
@@ -207,15 +222,15 @@ c
       integer j
       integer k
       integer n
-      REAL_T factor
-      parameter(factor=0.125d0)
 c
+!$omp parallel private(i,j,k)
       do n = 1, nc
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
 c                  
-                  c(i,j,k,n) =  factor*(
+                  c(i,j,k,n) =  0.125d0*(
      $                 + f(2*i+1,2*j+1,2*k  ,n)
      $                 + f(2*i  ,2*j+1,2*k  ,n)
      $                 + f(2*i+1,2*j  ,2*k  ,n)
@@ -228,6 +243,8 @@ c
                enddo
             enddo
          enddo
+!$omp end do nowait
       enddo
+!$omp end parallel
 c     
       end
