@@ -1425,54 +1425,61 @@ c NODE-based data, factor of 2 only.
          end do
       end do
       if (ir .eq. 2) then
+!$omp parallel do private(i,j,k,ic,jc,kc)
          do kc = bbl2, bbh2
+            k = kr * kc
             do jc = bbl1, bbh1
+               j = jr * jc
                do ic = bbl0, bbh0-1
-                  i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
+                  i = 2 * ic
                   dest(i+1,j,k) = (signd(i,j,k,1)   * src(ic,jc,kc) +
      &                          signd(i+1,j,k,1) * src(ic+1,jc,kc)) /
      &                         (signd(i,j,k,1) + signd(i+1,j,k,1))
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (jr .eq. 2) then
+!$omp parallel do private(i,j,k,ic,jc,kc)
          do kc = bbl2, bbh2
+            k = kr * kc
             do jc = bbl1, bbh1-1
+               j = 2 * jc
                do ic = bbl0, bbh0
                   i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
                   dest(i,j+1,k) = (signd(i,j,k,2)   * src(ic,jc,kc) +
      &                          signd(i,j+1,k,2) * src(ic,jc+1,kc)) /
      &                         (signd(i,j,k,2) + signd(i,j+1,k,2))
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (kr .eq. 2) then
+!$omp parallel do private(i,j,k,ic,jc,kc)
          do kc = bbl2, bbh2-1
+            k = 2 * kc
             do jc = bbl1, bbh1
+               j = jr * jc
                do ic = bbl0, bbh0
                   i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
                   dest(i,j,k+1) = (signd(i,j,k,3)   * src(ic,jc,kc) +
      &                          signd(i,j,k+1,3) * src(ic,jc,kc+1)) /
      &                         (signd(i,j,k,3) + signd(i,j,k+1,3))
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
+!$omp parallel do private(i,j,k,ic,jc,kc)
          do kc = bbl2, bbh2
+            k = kr * kc
             do jc = bbl1, bbh1-1
+               j = 2 * jc
                do ic = bbl0, bbh0-1
-                  i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
+                  i = 2 * ic
                  dest(i+1,j+1,k) = (signd(i,j+1,k,1)   * dest(i,j+1,k) +
      &                            signd(i+1,j+1,k,1) * dest(i+2,j+1,k) +
      &                            signd(i+1,j,k,2)   * dest(i+1,j,k) +
@@ -1482,14 +1489,15 @@ c NODE-based data, factor of 2 only.
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (ir .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
+            k = 2 * kc
             do jc = bbl1, bbh1
+               j = jr * jc
                do ic = bbl0, bbh0-1
-                  i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
+                  i = 2 * ic
                dest(i+1,j,k+1) = (signd(i,j,k+1,1)   * dest(i,j,k+1) +
      &                            signd(i+1,j,k+1,1) * dest(i+2,j,k+1) +
      &                            signd(i+1,j,k,3)   * dest(i+1,j,k) +
@@ -1502,11 +1510,11 @@ c NODE-based data, factor of 2 only.
       end if
       if (jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
+            k = 2 * kc
             do jc = bbl1, bbh1-1
+               j = 2 * jc
                do ic = bbl0, bbh0
                   i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
                  dest(i,j+1,k+1) = (signd(i,j,k+1,2)   * dest(i,j,k+1) +
      &                            signd(i,j+1,k+1,2) * dest(i,j+2,k+1) +
      &                            signd(i,j+1,k,3)   * dest(i,j+1,k) +
@@ -1519,11 +1527,11 @@ c NODE-based data, factor of 2 only.
       end if
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
+            k = 2 * kc
             do jc = bbl1, bbh1-1
+               j = 2 * jc
                do ic = bbl0, bbh0-1
-                  i = ir * ic
-                  j = jr * jc
-                  k = kr * kc
+                  i = 2 * ic
                   dest(i+1,j+1,k+1) =
      &                (signd(i,j+1,k+1,1)   * dest(i,j+1,k+1) +
      &                 signd(i+1,j+1,k+1,1) * dest(i+2,j+1,k+1) +
@@ -1759,6 +1767,7 @@ c sig here contains three different directions all stored on "nodes"
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
+!$omp parallel do private(i)
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -1766,6 +1775,9 @@ c sig here contains three different directions all stored on "nodes"
          cor(i) = cor(i)
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
+!$omp end parallel do
+
+!$omp parallel do private(i)
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -1773,6 +1785,7 @@ c sig here contains three different directions all stored on "nodes"
          cor(i) = cor(i)
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
+!$omp end parallel do
       end
 
 c-----------------------------------------------------------------------
@@ -2298,6 +2311,7 @@ c-----------------------------------------------------------------------
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
+!$omp parallel do private(i)
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -2310,6 +2324,7 @@ c-----------------------------------------------------------------------
      &      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
      &      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgresur(
