@@ -143,6 +143,10 @@ c     ::: 19-26) corners.
 c ::: case 0
 c ::: Null
 c ::: Null
+!$omp parallel do private(i,j,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb)
+!$omp&private(dudyn,dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt)
+!$omp&private(dwdxw,dwdxe,dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt)
+!$omp&private(dudye,dudyw,dwdyb,dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
          do j=lo(2)+1,hi(2)-1
             do i=lo(1)+1,hi(1)-1
@@ -219,12 +223,17 @@ c     :::  evaluate expression
             enddo
          enddo
       enddo
+!$omp end parallel do
 
 c ::: case 1, top face
 c ::: Null
 c ::: Null
 c ::: Null
       k=hi(3)
+!$omp parallel do private(i,j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb)
+!$omp&private(dudyn,dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw)
+!$omp&private(dwdxe,dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt)
+!$omp&private(dwdyb,dwdyt,dudzw,dudze,dvdzs,dvdzn)
          do j=lo(2)+1,hi(2)-1
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
@@ -321,12 +330,17 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
             enddo
          enddo
+!$omp end parallel do
 
 c ::: case 2, bottom face
 c ::: Null
 c ::: Null
 c ::: Null
       k=lo(3)
+!$omp parallel do private(i,j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
          do j=lo(2)+1,hi(2)-1
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
@@ -424,12 +438,17 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
             enddo
          enddo
+!$omp end parallel do
 
 c ::: case 3, west face
 c ::: Null
 c ::: Null
 c ::: Null
       i = lo(1)
+!$omp parallel do private(j,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
@@ -526,12 +545,17 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
          enddo
       enddo
+!$omp end parallel do 
 
 c ::: case 4, east face
 c ::: Null
 c ::: Null
 c ::: Null
       i = hi(1)
+!$omp parallel do private(j,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
@@ -628,12 +652,17 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
          enddo
       enddo
+!$omp end parallel do
 	
 c ::: case 5, north face
 c ::: Null
 c ::: Null
 c ::: Null
       j = hi(2)
+!$omp parallel do private(i,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
@@ -730,6 +759,7 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
             enddo
       enddo
+!$omp end parallel do
 
 
 c ::: case 6, south face
@@ -737,6 +767,10 @@ c ::: Null
 c ::: Null
 c ::: Null
       j = lo(2)
+!$omp parallel do private(i,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
@@ -833,6 +867,7 @@ c     :::  evaluate expression
      &  j,k)*u(i,j,k,3)
             enddo
       enddo
+!$omp end parallel do
 
 c ::: case 7, top-north edge 
 c ::: Null
