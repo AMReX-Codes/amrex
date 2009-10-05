@@ -44,6 +44,10 @@ contains
             rhp => dataptr(rh(n)  , i)
             mp   => dataptr(mgt(n)%mm(mglev_fine),i)
             select case (dm)
+               case (1)
+                 call divu_1d(unp(:,1,1,1), rhp(:,1,1,1), &
+                               mp(:,1,1,1), mgt(n)%dh(:,mglev_fine), &
+                              mgt(n)%face_type(i,:,:), ng)
                case (2)
                  call divu_2d(unp(:,:,1,:), rhp(:,:,1,1), &
                                mp(:,:,1,1), mgt(n)%dh(:,mglev_fine), &
@@ -72,6 +76,34 @@ contains
       end do
 
     end subroutine divu
+
+!   ********************************************************************************************* !
+
+    subroutine divu_1d(u,rh,mm,dx,face_type,ng)
+
+      integer        , intent(in   ) :: ng
+      real(kind=dp_t), intent(inout) ::  u(-ng:)
+      real(kind=dp_t), intent(inout) :: rh(-1:)
+      integer        , intent(inout) :: mm(0:)
+      real(kind=dp_t), intent(in   ) :: dx(:)
+      integer        , intent(in   ) :: face_type(:,:)
+
+      integer         :: i,nx
+
+      nx = size(rh,dim=1) - 3
+
+      rh = ZERO
+
+      do i = 0,nx
+         if (.not.bc_dirichlet(mm(i),1,0)) then 
+           rh(i) = (u(i)-u(i-1)) / dx(1) 
+         end if
+      end do
+
+      if (face_type(1,1) == BC_NEU) rh( 0) = TWO*rh( 0)
+      if (face_type(1,2) == BC_NEU) rh(nx) = TWO*rh(nx)
+
+    end subroutine divu_1d
 
 !   ********************************************************************************************* !
 
@@ -210,6 +242,9 @@ contains
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
           select case (dm)
+             case (1)
+               call grid_divu_1d(unp(:,1,1,1), rhp(:,1,1,1), mgt(n_fine)%dh(:,mglev_fine), &
+                                 mgt(n_fine)%face_type(i,:,:), ng)
              case (2)
                call grid_divu_2d(unp(:,:,1,:), rhp(:,:,1,1), mgt(n_fine)%dh(:,mglev_fine), &
                                  mgt(n_fine)%face_type(i,:,:), ng)
@@ -249,6 +284,31 @@ contains
       call multifab_destroy(temp_rhs_crse)
 
     end subroutine crse_fine_divu
+
+!   ********************************************************************************************* !
+
+    subroutine grid_divu_1d(u,rh,dx,face_type,ng)
+
+      integer        , intent(in   ) :: ng
+      real(kind=dp_t), intent(inout) ::  u(-ng:)
+      real(kind=dp_t), intent(inout) :: rh(-1:)
+      real(kind=dp_t), intent(in   ) :: dx(:)
+      integer        , intent(in   ) :: face_type(:,:)
+
+      integer :: i,nx
+      nx = size(rh,dim=1) - 3
+
+      u(-1) = ZERO
+      u(nx) = ZERO
+
+      do i = 0,nx
+         rh(i) = (u(i)-u(i-1)) / dx(1)
+      end do
+
+      if (face_type(1,1) == BC_NEU) rh( 0) = TWO*rh( 0)
+      if (face_type(1,2) == BC_NEU) rh(nx) = TWO*rh(nx)
+
+    end subroutine grid_divu_1d
 
 !   ********************************************************************************************* !
 
@@ -407,6 +467,10 @@ contains
              up   => dataptr(u   ,j)
              rp   => dataptr(rh  ,j)
              select case (rh%dim)
+             case (1)
+                call ml_interface_1d_divu(rp(:,1,1,1), lor, &
+                     fp(:,1,1,1), lof, hif, lof, hif, &
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, hi, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
                      fp(:,:,1,1), lof, hif, lof, hif, &
@@ -444,6 +508,10 @@ contains
              up => dataptr(u  ,j)
              rp => dataptr(rh ,j)
              select case (rh%dim)
+             case (1)
+                call ml_interface_1d_divu(rp(:,1,1,1), lor, &
+                     fp(:,1,1,1), lo, hi, lof, hif, &
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, hi, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
                      fp(:,:,1,1), lo, hi, lof, hif, &
@@ -461,6 +529,58 @@ contains
     call destroy(bpt)
 
    end subroutine ml_crse_divu_contrib
+
+!   ********************************************************************************************* !
+
+    subroutine ml_interface_1d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
+                                    mm, lom, lo, hi, ir, side, dx)
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: loc(:)
+    integer, intent(in) :: lom(:)
+    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) ::        rh(lor(1):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
+    real (kind = dp_t), intent(in   ) ::        uc(loc(1):)
+    integer           , intent(in   ) ::        mm(lom(1):)
+    integer           , intent(in   ) :: ir(:)
+    integer           , intent(in   ) :: side
+    real(kind=dp_t)   , intent(in   ) :: dx(:)
+
+    integer :: i
+    real (kind = dp_t) :: crse_flux,fac
+
+    i = lo(1)
+
+!   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
+
+    fac = 1.0_dp_t / dble(ir(1))
+
+!   Lo i side
+    if (side == -1) then
+
+          if (bc_dirichlet(mm(ir(1)*i),1,0)) then
+
+             crse_flux = uc(i) / dx(1)
+
+             rh(i) = rh(i) - crse_flux + fac*fine_flux(i)
+
+          end if
+
+!   Hi i side
+    else if (side ==  1) then
+
+          if (bc_dirichlet(mm(ir(1)*i),1,0)) then
+
+             crse_flux = -uc(i-1) / dx(1)
+             
+             rh(i) = rh(i) - crse_flux + fac*fine_flux(i)
+
+          end if
+
+    end if
+
+  end subroutine ml_interface_1d_divu
 
 !   ********************************************************************************************* !
 
