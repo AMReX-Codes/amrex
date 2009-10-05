@@ -141,8 +141,10 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(kc,k,jc,j)
          do kc = kclo, kchi
             k = ratio*kc
             do jc = jclo, jchi
@@ -236,10 +238,12 @@ c     :::: :::: : negative size usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do koff = 0, ratio - 1
             zz = (koff+half)*hf(3)-hc(3)/2
+!$omp do private(kc,k,joff,yy,jc,j)
             do kc = kclo,kchi
                k = ratio*kc + koff
                do joff = 0, ratio - 1
@@ -263,13 +267,12 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
-      end
+!$omp end parallel
 
+      end
 
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPXHI : Interpolation on Xhi Face
@@ -388,8 +391,10 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(j,k,jc,kc)
          do kc = kclo, kchi
             k = ratio*kc
             do jc = jclo, jchi
@@ -483,10 +488,12 @@ c     :::: :::: : negative size usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do koff = 0, ratio - 1
             zz = (koff+half)*hf(3)-hc(3)/2
+!$omp do private(kc,k,joff,yy,jc,j)
             do kc = kclo,kchi
                k = ratio*kc + koff
                do joff = 0, ratio - 1
@@ -510,16 +517,12 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
+!$omp end parallel
+
       end
-
-
-
-
 
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPYLO : Interpolation on Ylo Face
@@ -638,8 +641,10 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(kc,k,ic,i)
          do kc = kclo, kchi
             k = ratio*kc
             do ic = iclo, ichi
@@ -733,10 +738,12 @@ c     :::: :::: : negative size usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do koff = 0, ratio - 1
             zz = (koff+half)*hf(3)-hc(3)/2
+!$omp do private(kc,k,ioff,xx,ic,i)
             do kc = kclo,kchi
                k = ratio*kc + koff
                do ioff = 0, ratio - 1
@@ -760,13 +767,12 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
-      end
+!$omp end parallel
 
+      end
 
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPYHI : Interpolation on Yhi Face
@@ -885,8 +891,10 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(kc,k,ic,i)
          do kc = kclo, kchi
             k = ratio*kc
             do ic = iclo, ichi
@@ -980,10 +988,12 @@ c     :::: :::: : negative size usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do koff = 0, ratio - 1
             zz = (koff+half)*hf(3)-hc(3)/2
+!$omp do private(kc,k,ioff,xx,ic,i)
             do kc = kclo,kchi
                k = ratio*kc + koff
                do ioff = 0, ratio - 1
@@ -1007,17 +1017,12 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
+!$omp end parallel
+
       end
-
-
-
-
-
 
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPZLO : Interpolation on Zlo Face
@@ -1136,8 +1141,10 @@ c ::: :::
       hc(3) = 0
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(jc,j,ic,i)
          do jc = jclo, jchi
             j = ratio*jc
             do ic = iclo, ichi
@@ -1232,10 +1239,12 @@ c     :::: :::: : negative side usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do joff = 0, ratio - 1
             yy = (joff+half)*hf(2)-hc(2)/2
+!$omp do private(jc,j,ioff,xx,ic,i)
             do jc = jclo,jchi
                j = ratio*jc + joff
                do ioff = 0, ratio - 1
@@ -1259,13 +1268,12 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
-      end
+!$omp end parallel
 
+      end
 
 c ---------------------------------------------------------------
 c ::  FORT_BDINTERPZHI : Interpolation on Zhi Face
@@ -1385,8 +1393,10 @@ c ::: :::
       hc(3) = 0
 c ::: :::
 
+!$omp parallel
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
+!$omp do private(jc,j,ic,i)
          do jc = jclo, jchi
             j = ratio*jc
             do ic = iclo, ichi
@@ -1481,10 +1491,12 @@ c     :::: :::: : negative side usable
 
             enddo
          enddo
+!$omp end do
 
 c     ::::: interpolate to fine grid
          do joff = 0, ratio - 1
             yy = (joff+half)*hf(2)-hc(2)/2
+!$omp do private(jc,j,ioff,xx,ic,i)
             do jc = jclo,jchi
                j = ratio*jc + joff
                do ioff = 0, ratio - 1
@@ -1508,11 +1520,11 @@ c     ::::: interpolate to fine grid
                   enddo
                enddo
             enddo
+!$omp end do
          enddo
-
       enddo
-            
-      return
+!$omp end parallel
+
       end
 
 c ------------------------------------------------------------------------
