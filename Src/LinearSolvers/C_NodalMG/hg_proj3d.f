@@ -15,6 +15,7 @@ c-----------------------------------------------------------------------
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
       integer idummy
       integer i, j, k
+!$omp parallel do private(i,j,k)
       do k = fregl2, fregh2
           do j = fregl1, fregh1
               do i = fregl0, fregh0
@@ -36,6 +37,7 @@ c-----------------------------------------------------------------------
               end do
           end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgdiv_dense(
@@ -56,6 +58,7 @@ c-----------------------------------------------------------------------
       integer idummy, jdummy
       integer i, j, k
       fac = 0.25d0
+!$omp parallel do private(i,j,k)
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -75,6 +78,7 @@ c-----------------------------------------------------------------------
               end do
           end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
@@ -868,6 +872,7 @@ c-----------------------------------------------------------------------
       hxm1h = 0.25d0 / hx
       hym1h = 0.25d0 / hy
       hzm1h = 0.25d0 / hz
+!$omp parallel do private(i,j,k)
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -886,6 +891,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgdiv(
@@ -909,6 +915,7 @@ c-----------------------------------------------------------------------
       hym1 = 1.0D0 / hy
       hzm1 = 1.0D0 / hz
       fac = 0.25d0
+!$omp parallel do private(i,j,k)
       do k = fregl2, fregh2
          do j = fregl1, fregh1
             do i = fregl0, fregh0
@@ -928,6 +935,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid

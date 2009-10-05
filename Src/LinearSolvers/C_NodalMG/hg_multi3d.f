@@ -1725,6 +1725,7 @@ c-----------------------------------------------------------------------
       double precision tmp
       integer i, j, k
       integer idd
+!$omp parallel do private(i,j,k,tmp)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -1739,6 +1740,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
@@ -2278,6 +2280,7 @@ c-----------------------------------------------------------------------
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
+!$omp parallel do private(i,j,k)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -2291,6 +2294,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgresu(
@@ -2374,6 +2378,8 @@ c-----------------------------------------------------------------------
       facx = 0.25D0 / (hx*hx)
       facy = 0.25D0 / (hy*hy)
       facz = 0.25D0 / (hz*hz)
+!$omp parallel private(i,j,k)
+!$omp do
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0-1, regh0
@@ -2383,6 +2389,8 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = regl2, regh2
          do j = regl1-1, regh1
             do i = regl0, regh0
@@ -2392,6 +2400,8 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end do nowait
+!$omp do
       do k = regl2-1, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -2401,6 +2411,8 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end do nowait
+!$omp end parallel
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx_no_sigma(
