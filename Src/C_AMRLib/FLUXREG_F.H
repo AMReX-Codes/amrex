@@ -8,7 +8,6 @@
 #    define FORT_FRFAADD     frfaadd
 #    define FORT_FRREFLUX    frreflux
 #    define FORT_FRCVREFLUX  frcvreflux
-#    define FORT_SCALADDTO   scaladdto
 #else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_FRCRSEINIT  FRCRSEINIT
@@ -17,7 +16,6 @@
 #    define FORT_FRFAADD     FRFAADD
 #    define FORT_FRREFLUX    FRREFLUX
 #    define FORT_FRCVREFLUX  FRCVREFLUX
-#    define FORT_SCALADDTO   SCALADDTO
 #  else
 #  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_FRCRSEINIT  frcrseinit
@@ -26,7 +24,6 @@
 #    define FORT_FRFAADD     frfaadd
 #    define FORT_FRREFLUX    frreflux
 #    define FORT_FRCVREFLUX  frcvreflux
-#    define FORT_SCALADDTO   scaladdto
 #  else
 #    define FORT_FRCRSEINIT  frcrseinit_
 #    define FORT_FRFINEADD   frfineadd_
@@ -34,7 +31,6 @@
 #    define FORT_FRFAADD     frfaadd_
 #    define FORT_FRREFLUX    frreflux_
 #    define FORT_FRCVREFLUX  frcvreflux_
-#    define FORT_SCALADDTO   scaladdto_
 #  endif
 #  endif
 
@@ -78,13 +74,6 @@ extern "C"
 			  const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
 			  const int* lo, const int* hi,
 			  const int* numcomp, const Real* mult);
-
-    void FORT_SCALADDTO (Real * flx,         ARLIM_P(flo), ARLIM_P(fhi),
-                         const Real * area,  ARLIM_P(alo), ARLIM_P(ahi),
-                         Real * reg,         ARLIM_P(rlo), ARLIM_P(rhi),
-                         const int * lo, const int * hi,
-                         const int * numcomp, const Real * mult);
-
 }
 #endif
 
