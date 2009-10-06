@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.11 2008-02-08 17:48:47 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.12 2009-10-06 21:40:30 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -431,58 +431,3 @@ c ::
       end do
       
       end
-
-c ::: -----------------------------------------------------------
-c ::: Add flux register into coarse grid flux (opposite of standard reflux ops)
-c :::
-c ::: INPUTS/OUTPUTS:
-c ::: flx        => flux array
-c ::: DIMS(flx)  => index limits for flx
-c ::: reg       <=  flux register
-c ::: DIMS(reg)  => index limits for reg
-c ::: lo,hi      => region of update
-c ::: mult       => scalar multiplicative factor
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SCALADDTO (flx,DIMS(flx),area,DIMS(area),reg,DIMS(reg),
-     $                           lo,hi,numcomp,mult)
-
-      implicit none
-
-      integer    DIMDEC(flx)
-      integer    DIMDEC(area)
-      integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM)
-      integer    numcomp
-      REAL_T     mult
-      REAL_T      flx(DIMV(flx),numcomp)
-      REAL_T     area(DIMV(area))
-      REAL_T      reg(DIMV(reg),numcomp)
-
-      integer    n, i, j, k, istart
-
-      if (area(lo(1),lo(2),lo(3)) .lt. onetominuseight) then
-         do n = 1, numcomp
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  flx(lo(1),j,k,n) = flx(lo(1),j,k,n)
-               end do
-            end do
-         end do
-         istart = lo(1)+1
-      else
-         istart = lo(1)
-      end if
-
-      do n = 1, numcomp
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = istart, hi(1)
-                  flx(i,j,k,n) = flx(i,j,k,n) + mult*reg(i,j,k,numcomp)/area(i,j,k)
-               end do
-            end do
-         end do
-      end do
-
-      end
-
