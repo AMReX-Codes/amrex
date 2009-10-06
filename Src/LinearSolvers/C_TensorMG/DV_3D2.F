@@ -149,6 +149,8 @@ c     ::: 19-26) corners.
 c ::: case 0
 c ::: Null
 c ::: Null
+!$omp parallel do private(i,j,k,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb)
+!$omp&private(dvdzb,dwdxw,dwdys,dvdxs,dwdxb,dudyw,dwdyb,dudzw,dvdzs)
       do k=lo(3)+1,hi(3)
          do j=lo(2)+1,hi(2)
             do i=lo(1)+1,hi(1)
@@ -201,6 +203,7 @@ c     :::  evaluate expression
             enddo
          enddo
       enddo
+!$omp end parallel do
 
 
 c ::: case 1, top face
@@ -209,6 +212,8 @@ c ::: Null
 c ::: Null
 c ::: wst
       k=hi(3)
+!$omp parallel do private(i,j,dudxw,dvdys,dwdzt,dudys,dvdxw,dudzt,dvdzt)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxt,dwdyt,dudzw,dvdzs)
          do j=lo(2)+1,hi(2)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
@@ -268,6 +273,7 @@ c     :::  evaluate expression
 
             enddo
          enddo
+!$omp end parallel do
 
 c ::: case 2, bottom face
 c ::: Null
@@ -275,6 +281,8 @@ c ::: Null
 c ::: Null
 c ::: wsb
       k=lo(3)
+!$omp parallel do private(i,j,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
          do j=lo(2)+1,hi(2)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
@@ -336,7 +344,7 @@ c     :::  evaluate expression
 
             enddo
          enddo
-
+!$omp end parallel do
 
 c ::: case 3, west face
 c ::: Null
@@ -344,6 +352,8 @@ c ::: Null
 c ::: Null
 c ::: wsb
       i = lo(1)
+!$omp parallel do private(j,k,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
       do k=lo(3)+1,hi(3)
          do j=lo(2)+1,hi(2)
 c     :::  get expressions for normal derivatives
@@ -404,7 +414,7 @@ c     :::  evaluate expression
 
          enddo
       enddo
-
+!$omp end parallel do
 
 c ::: case 4, east face
 c ::: Null
@@ -412,6 +422,8 @@ c ::: Null
 c ::: Null
 c ::: esb
       i = hi(1)
+!$omp parallel do private(j,k,dudxe,dvdys,dwdzb,dudys,dvdxe,dudzb,dvdzb)
+!$omp&private(dwdxe,dwdys,dudye,dvdxs,dwdxb,dwdyb,dudze,dvdzs)
       do k=lo(3)+1,hi(3)
          do j=lo(2)+1,hi(2)
 c     :::  get expressions for normal derivatives
@@ -472,7 +484,7 @@ c     :::  evaluate expression
 
          enddo
       enddo
-
+!$omp end parallel do
 
 c ::: case 5, north face
 c ::: Null
@@ -480,6 +492,8 @@ c ::: Null
 c ::: Null
 c ::: wnb
       j = hi(2)
+!$omp parallel do private(i,k,dudxw,dvdyn,dwdzb,dudyn,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdyn,dudyw,dvdxn,dwdxb,dwdyb,dudzw,dvdzn)
       do k=lo(3)+1,hi(3)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
@@ -539,7 +553,7 @@ c     :::  evaluate expression
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
             enddo
       enddo
-
+!$omp end parallel do
 	
 c ::: case 6, south face
 c ::: Null
@@ -547,6 +561,8 @@ c ::: Null
 c ::: Null
 c ::: wsb
       j = lo(2)
+!$omp parallel do private(i,k,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
       do k=lo(3)+1,hi(3)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
@@ -606,6 +622,7 @@ c     :::  evaluate expression
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
             enddo
       enddo
+!$omp end parallel do
 
 c ::: case 7, top-north edge 
 c ::: Null
