@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 2009-10-02 00:36:15 gpau Exp $
+# $Id: GNUmakefile,v 1.4 2009-10-07 16:35:31 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -32,7 +32,7 @@ endif
 # Base name of the executable.
 #
 EBASE = PltFileXAve
-EBASE = PltFileStat
+#EBASE = PltFileStat
 #EBASE = PltFileList
 CEXE_sources += $(EBASE).cpp
 
