@@ -156,6 +156,7 @@ c
       logical False, True
       parameter( False=.false.)
       parameter( True=.true. )
+      parameter( xInt = -0.5d0 )
 c
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
       is_neumann(i) = (i .eq. LO_NEUMANN)
@@ -171,6 +172,11 @@ c
       hx = h(1)
       hy = h(2)
       hz = h(3)
+
+      do m=0,maxmaxorder-2
+         x(m) = m + 0.5D0
+      end do
+
 c...........trial change .................
       if( (hi(1)-lo(1)+1).gt.tmplen .or. 
      &     (hi(2)-lo(2)+1).gt.tmplen .or. 
@@ -203,7 +209,7 @@ c
                if ( flagden .eq. 1) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(lo(1),j,k,n) = 1.0
+                        den(lo(1),j,k,n) = 1.0d0
                      enddo
                   enddo
                endif
@@ -254,11 +260,7 @@ c ::: ::: ::: Z
                   trander(i-1,j,k,n,3) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,lenx
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(1)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, lenx+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
@@ -268,7 +270,7 @@ c ::: ::: ::: Z
                      enddo
                   else
                      do j = lo(2), hi(2)
-                        tmp(j-lo(2)) = 0.0
+                        tmp(j-lo(2)) = 0.0d0
                      enddo
                   endif
                   do m = 0, lenx
@@ -297,7 +299,7 @@ c ::: ::: ::: Z
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
                         u(lo(1)-1, j, k, n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(lo(1)-1, j, k, n),
      $                       maskw(lo(1)-1,j, k) .gt. 0)
                      enddo
@@ -318,7 +320,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(lo(1),j,k,n) = cvmgt(coef(0), 0.0,
+                        den(lo(1),j,k,n) = cvmgt(coef(0), 0.0d0,
      $                       maskw(lo(1)-1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -332,14 +334,14 @@ c ::: ::: ::: Y
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-U(-1+i,-1+j,k,n)+U(-1+i,1+j,k,n))/(2.d0*hy)
                      elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,1+j,k,n)-U(-1+i,2+j,k,n))/(2.d0
      &  *hy)
                      elseif( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (U(-1+i,-2+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hy)
                      else
@@ -347,10 +349,10 @@ c ::: ::: ::: Y
                         if( flagbc .eq. 1) then
                            outder = exttd(i-1,j,k,n,2)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
@@ -358,14 +360,14 @@ c ::: ::: ::: Y
 c ::: ::: ::: now endpoints
                   j = lo(2)
                   if( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,-1+j,k,n)+U(-1+i,1+j,k,n))/(2.d0*hy)
                   elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,1+j,k,n)-U(-1+i,2+j,k,n))/(2.d0
      &  *hy)
                   elseif( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-1+i,-2+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hy)
                   else
@@ -373,7 +375,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i-1,j,k,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(masks(i,-1+j,k).gt.0) then
@@ -381,20 +383,20 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
 
                   j = hi(2)
                   if( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,-1+j,k,n)+U(-1+i,1+j,k,n))/(2.d0*hy)
                   elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,1+j,k,n)-U(-1+i,2+j,k,n))/(2.d0
      &  *hy)
                   elseif( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-1+i,-2+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hy)
                   else
@@ -402,7 +404,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i-1,j,k,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskn(i,1+j,k).gt.0) then
@@ -410,7 +412,7 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
@@ -418,14 +420,14 @@ c ::: ::: ::: Z
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-U(-1+i,j,-1+k,n)+U(-1+i,j,1+k,n))/(2.d0*hz)
                      elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,j,1+k,n)-U(-1+i,j,2+k,n))/(2.d0
      &  *hz)
                      elseif( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (U(-1+i,j,-2+k,n)-4*U(-1+i,j,-1+k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hz)
                      else
@@ -433,10 +435,10 @@ c ::: ::: ::: Z
                         if( flagbc .eq. 1) then
                            outder = exttd(i-1,j,k,n,3)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -444,14 +446,14 @@ c ::: ::: ::: Z
 c ::: ::: ::: now endpoints
                   k = lo(3)
                   if( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,-1+k,n)+U(-1+i,j,1+k,n))/(2.d0*hz)
                   elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,j,1+k,n)-U(-1+i,j,2+k,n))/(2.d0
      &  *hz)
                   elseif( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-1+i,j,-2+k,n)-4*U(-1+i,j,-1+k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hz)
                   else
@@ -459,7 +461,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i-1,j,k,n,3)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskb(i,j,-1+k).gt.0) then
@@ -467,20 +469,20 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
 
                   k = hi(3)
                   if( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,-1+k,n)+U(-1+i,j,1+k,n))/(2.d0*hz)
                   elseif( maskw(-1+i,j,k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(-1+i,j,k,n)+4*U(-1+i,j,1+k,n)-U(-1+i,j,2+k,n))/(2.d0
      &  *hz)
                   elseif( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-1+i,j,-2+k,n)-4*U(-1+i,j,-1+k,n)+3*U(-1+i,j,k,n))/(2.d
      &  0*hz)
                   else
@@ -488,7 +490,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i-1,j,k,n,3)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskt(i,j,1+k).gt.0) then
@@ -496,7 +498,7 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
@@ -514,7 +516,7 @@ c ::: ::: ::: now endpoints
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(lo(1),j,k,n) = cvmgt(-1.0, 0.0,
+                        den(lo(1),j,k,n) = cvmgt(-1.0d0, 0.0d0,
      $                       maskw(lo(1)-1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -542,7 +544,7 @@ c
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(hi(1),j,k,n) = 1.0
+                        den(hi(1),j,k,n) = 1.0d0
                      enddo
                   enddo
                endif
@@ -592,11 +594,7 @@ c ::: ::: ::: Z
                   trander(i+1,j,k,n,3) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,lenx
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(1)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, lenx+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
@@ -606,7 +604,7 @@ c ::: ::: ::: Z
                      enddo
                   else
                      do j = lo(2), hi(2)
-                        tmp(j-lo(2)) = 0.0
+                        tmp(j-lo(2)) = 0.0d0
                      enddo
                   endif
                   do m = 0, lenx
@@ -635,7 +633,7 @@ c ::: ::: ::: Z
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
                         u(hi(1)+1,j,k,n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(hi(1)+1,j,k,n),
      $                       maske(hi(1)+1,j,k) .gt. 0)
                      enddo
@@ -656,7 +654,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(hi(1),j,k,n)   = cvmgt(coef(0), 0.0,
+                        den(hi(1),j,k,n)   = cvmgt(coef(0), 0.0d0,
      $                       maske(hi(1)+1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -669,14 +667,14 @@ c ::: ::: ::: Y
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maske(1+i,-1+j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-U(1+i,-1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hy)
                      elseif( maske(1+i,j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-3*U(1+i,j,k,n)+4*U(1+i,1+j,k,n)-U(1+i,2+j,k,n))/(2.d0*hy
      &  )
                      elseif( maske(1+i,-1+j,k).eq.0.and.maske(1+i,j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (U(1+i,-2+j,k,n)-4*U(1+i,-1+j,k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  y)
                      else
@@ -684,10 +682,10 @@ c ::: ::: ::: Y
                         if( flagbc .eq. 1) then
                            outder = exttd(i+1,j,k,n,2)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
@@ -695,14 +693,14 @@ c ::: ::: ::: Y
 c ::: ::: ::: now endpoints
                   j = lo(2)
                   if( maske(1+i,-1+j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(1+i,-1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hy)
                   elseif( maske(1+i,j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(1+i,j,k,n)+4*U(1+i,1+j,k,n)-U(1+i,2+j,k,n))/(2.d0*hy
      &  )
                   elseif( maske(1+i,-1+j,k).eq.0.and.maske(1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(1+i,-2+j,k,n)-4*U(1+i,-1+j,k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  y)
                   else
@@ -710,7 +708,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i+1,j,k,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(masks(i,-1+j,k).gt.0) then
@@ -718,20 +716,20 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
 
                   j = hi(2)
                   if( maske(1+i,-1+j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(1+i,-1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hy)
                   elseif( maske(1+i,j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(1+i,j,k,n)+4*U(1+i,1+j,k,n)-U(1+i,2+j,k,n))/(2.d0*hy
      &  )
                   elseif( maske(1+i,-1+j,k).eq.0.and.maske(1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(1+i,-2+j,k,n)-4*U(1+i,-1+j,k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  y)
                   else
@@ -739,7 +737,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i+1,j,k,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskn(i,1+j,k).gt.0) then
@@ -747,7 +745,7 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
@@ -755,14 +753,14 @@ c ::: ::: ::: Z
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-U(1+i,j,-1+k,n)+U(1+i,j,1+k,n))/(2.d0*hz)
                      elseif( maske(1+i,j,k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (-3*U(1+i,j,k,n)+4*U(1+i,j,1+k,n)-U(1+i,j,2+k,n))/(2.d0*hz
      &  )
                      elseif( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,k).eq.0)then
-                         outloc = -0.5
+                         outloc = -0.5d0
                          outder = (U(1+i,j,-2+k,n)-4*U(1+i,j,-1+k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  z)
                      else
@@ -770,10 +768,10 @@ c ::: ::: ::: Z
                         if( flagbc .eq. 1) then
                            outder = exttd(i+1,j,k,n,3)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -781,14 +779,14 @@ c ::: ::: ::: Z
 c ::: ::: ::: now endpoints
                   k = lo(3)
                   if( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(1+i,j,-1+k,n)+U(1+i,j,1+k,n))/(2.d0*hz)
                   elseif( maske(1+i,j,k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(1+i,j,k,n)+4*U(1+i,j,1+k,n)-U(1+i,j,2+k,n))/(2.d0*hz
      &  )
                   elseif( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(1+i,j,-2+k,n)-4*U(1+i,j,-1+k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  z)
                   else
@@ -796,7 +794,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i+1,j,k,n,3)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskb(i,j,-1+k).gt.0) then
@@ -804,20 +802,20 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
 
                   k = hi(3)
                   if( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(1+i,j,-1+k,n)+U(1+i,j,1+k,n))/(2.d0*hz)
                   elseif( maske(1+i,j,k).eq.0.and.maske(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(1+i,j,k,n)+4*U(1+i,j,1+k,n)-U(1+i,j,2+k,n))/(2.d0*hz
      &  )
                   elseif( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(1+i,j,-2+k,n)-4*U(1+i,j,-1+k,n)+3*U(1+i,j,k,n))/(2.d0*h
      &  z)
                   else
@@ -825,7 +823,7 @@ c ::: ::: ::: now endpoints
                      if( flagbc .eq. 1) then
                         outder = exttd(i+1,j,k,n,3)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskt(i,j,1+k).gt.0) then
@@ -833,7 +831,7 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
@@ -851,7 +849,7 @@ c ::: ::: ::: now endpoints
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(hi(1),j,k,n) = cvmgt(-1.0, 0.0,
+                        den(hi(1),j,k,n) = cvmgt(-1.0d0, 0.0d0,
      $                       maske(hi(1)+1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -879,7 +877,7 @@ c
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1),hi(1)
-                        den(i,lo(2),k,n)   = 1.0
+                        den(i,lo(2),k,n)   = 1.0d0
                      enddo
                   enddo
                endif
@@ -930,11 +928,7 @@ c ::: ::: ::: ::: interior part of south face
                   trander(i,j-1,k,n,3) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,leny
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(2)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, leny+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
@@ -944,7 +938,7 @@ c ::: ::: ::: ::: interior part of south face
                      enddo
                   else
                      do i = lo(1), hi(1)
-                        tmp(i-lo(1)) = 0.0
+                        tmp(i-lo(1)) = 0.0d0
                      enddo
                   endif
                   do m = 0, leny
@@ -973,7 +967,7 @@ c ::: ::: ::: ::: interior part of south face
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
                         u(i,lo(2)-1,k,n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(i,lo(2)-1,k,n),
      $                       masks(i,lo(2)-1,k) .gt. 0)
                      enddo
@@ -994,7 +988,7 @@ c ::: ::: ::: ::: interior part of south face
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i, lo(2),k,n)   = cvmgt(coef(0), 0.0,
+                        den(i, lo(2),k,n)   = cvmgt(coef(0), 0.0d0,
      $                       masks(i, lo(2)-1,k) .gt. 0)
                      enddo
                   enddo
@@ -1007,14 +1001,14 @@ c ::: ::: ::: X
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( masks(-1+i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-U(-1+i,-1+j,k,n)+U(1+i,-1+j,k,n))/(2.d0*hx)
                     elseif( masks(i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-3*U(i,-1+j,k,n)+4*U(1+i,-1+j,k,n)-U(2+i,-1+j,k,n))/(2.d0
      &  *hx)
                     elseif( masks(-1+i,-1+j,k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (U(-2+i,-1+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hx)
                     else
@@ -1022,10 +1016,10 @@ c ::: ::: ::: X
                        if( flagbc .eq. 1 ) then
                           outder = exttd(i,j-1,k,n,1)
                        else
-                          outder = 0.
+                          outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5
+                    innloc = 0.5d0
                     innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder
@@ -1033,14 +1027,14 @@ c ::: ::: ::: X
 
                   i = lo(1)
                   if( masks(-1+i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(-1+i,-1+j,k,n)+U(1+i,-1+j,k,n))/(2.d0*hx)
                   elseif( masks(i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,-1+j,k,n)+4*U(1+i,-1+j,k,n)-U(2+i,-1+j,k,n))/(2.d0
      &  *hx)
                   elseif( masks(-1+i,-1+j,k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(-2+i,-1+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hx)
                   else
@@ -1048,7 +1042,7 @@ c ::: ::: ::: X
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j-1,k,n,1)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskw(-1+i,j,k).gt.0) then
@@ -1056,20 +1050,20 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder
 
                   i = hi(1)
                   if( masks(-1+i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(-1+i,-1+j,k,n)+U(1+i,-1+j,k,n))/(2.d0*hx)
                   elseif( masks(i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,-1+j,k,n)+4*U(1+i,-1+j,k,n)-U(2+i,-1+j,k,n))/(2.d0
      &  *hx)
                   elseif( masks(-1+i,-1+j,k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(-2+i,-1+j,k,n)-4*U(-1+i,-1+j,k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hx)
                   else
@@ -1077,7 +1071,7 @@ c ::: ::: ::: X
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j-1,k,n,1)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maske(1+i,j,k).gt.0) then
@@ -1085,7 +1079,7 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
@@ -1093,14 +1087,14 @@ c ::: ::: ::: Z
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-U(i,-1+j,-1+k,n)+U(i,-1+j,1+k,n))/(2.d0*hz)
                     elseif( masks(i,-1+j,k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-3*U(i,-1+j,k,n)+4*U(i,-1+j,1+k,n)-U(i,-1+j,2+k,n))/(2.d0
      &  *hz)
                     elseif( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (U(i,-1+j,-2+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hz)
                     else
@@ -1108,10 +1102,10 @@ c ::: ::: ::: Z
                        if( flagbc .eq. 1 ) then
                           outder = exttd(i,j-1,k,n,3)
                        else
-                          outder = 0.
+                          outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5
+                    innloc = 0.5d0
                     innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -1119,14 +1113,14 @@ c ::: ::: ::: Z
 
                   k = lo(3)
                   if( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(i,-1+j,-1+k,n)+U(i,-1+j,1+k,n))/(2.d0*hz)
                   elseif( masks(i,-1+j,k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,-1+j,k,n)+4*U(i,-1+j,1+k,n)-U(i,-1+j,2+k,n))/(2.d0
      &  *hz)
                   elseif( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(i,-1+j,-2+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hz)
                   else
@@ -1134,7 +1128,7 @@ c ::: ::: ::: Z
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j-1,k,n,3)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskb(i,j,-1+k).gt.0) then
@@ -1142,20 +1136,20 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder
 
                   k = hi(3)
                   if( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(i,-1+j,-1+k,n)+U(i,-1+j,1+k,n))/(2.d0*hz)
                   elseif( masks(i,-1+j,k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,-1+j,k,n)+4*U(i,-1+j,1+k,n)-U(i,-1+j,2+k,n))/(2.d0
      &  *hz)
                   elseif( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(i,-1+j,-2+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,-1+j,k,n))/(2.d
      &  0*hz)
                   else
@@ -1163,7 +1157,7 @@ c ::: ::: ::: Z
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j-1,k,n,3)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskt(i,j,1+k).gt.0) then
@@ -1171,7 +1165,7 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
@@ -1189,7 +1183,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,lo(2),k,n) = cvmgt(-1.0, 0.0,
+                        den(i,lo(2),k,n) = cvmgt(-1.0d0, 0.0d0,
      $                       masks(i,lo(2)-1,k) .gt. 0)
                      enddo
                   enddo
@@ -1217,7 +1211,7 @@ c
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,hi(2),k,n)   = 1.0
+                        den(i,hi(2),k,n)   = 1.0d0
                      enddo
                   enddo
                endif
@@ -1268,11 +1262,7 @@ c ::: ::: ::: ::: interior part of south face
                   trander(i,j+1,k,n,3) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,leny
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(2)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, leny+2, coef)
 #if USE_TMP
                do k = lo(3), hi(3)
@@ -1282,7 +1272,7 @@ c ::: ::: ::: ::: interior part of south face
                      enddo
                   else
                      do i = lo(1), hi(1)
-                        tmp(i-lo(1)) = 0.0
+                        tmp(i-lo(1)) = 0.0d0
                      enddo
                   endif
                   do m = 0, leny
@@ -1311,7 +1301,7 @@ c ::: ::: ::: ::: interior part of south face
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
                         u(i,hi(2)+1,k,n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(i,hi(2)+1,k,n),
      $                       maskn(i,hi(2)+1,k) .gt. 0)
                      enddo
@@ -1332,7 +1322,7 @@ c ::: ::: ::: ::: interior part of south face
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,hi(2),k,n)   = cvmgt(coef(0), 0.0,
+                        den(i,hi(2),k,n)   = cvmgt(coef(0), 0.0d0,
      $                       maskn(i,hi(2)+1,k) .gt. 0)
                      enddo
                   enddo
@@ -1345,14 +1335,14 @@ c ::: ::: ::: X
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( maskn(-1+i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-U(-1+i,1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hx)
                     elseif( maskn(i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-3*U(i,1+j,k,n)+4*U(1+i,1+j,k,n)-U(2+i,1+j,k,n))/(2.d0*hx
      &  )
                     elseif( maskn(-1+i,1+j,k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (U(-2+i,1+j,k,n)-4*U(-1+i,1+j,k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  x)
                     else
@@ -1360,10 +1350,10 @@ c ::: ::: ::: X
                        if( flagbc .eq. 1 ) then
                           outder = exttd(i,j+1,k,n,1)
                        else
-                          outder = 0.
+                          outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5
+                    innloc = 0.5d0
                     innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder
@@ -1371,14 +1361,14 @@ c ::: ::: ::: X
 
                   i = lo(1)
                   if( maskn(-1+i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(-1+i,1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hx)
                   elseif( maskn(i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,1+j,k,n)+4*U(1+i,1+j,k,n)-U(2+i,1+j,k,n))/(2.d0*hx
      &  )
                   elseif( maskn(-1+i,1+j,k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(-2+i,1+j,k,n)-4*U(-1+i,1+j,k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  x)
                   else
@@ -1386,7 +1376,7 @@ c ::: ::: ::: X
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j+1,k,n,1)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskw(-1+i,j,k).gt.0) then
@@ -1394,20 +1384,20 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder
 
                   i = hi(1)
                   if( maskn(-1+i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(-1+i,1+j,k,n)+U(1+i,1+j,k,n))/(2.d0*hx)
                   elseif( maskn(i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,1+j,k,n)+4*U(1+i,1+j,k,n)-U(2+i,1+j,k,n))/(2.d0*hx
      &  )
                   elseif( maskn(-1+i,1+j,k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(-2+i,1+j,k,n)-4*U(-1+i,1+j,k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  x)
                   else
@@ -1415,7 +1405,7 @@ c ::: ::: ::: X
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j+1,k,n,1)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maske(1+i,j,k).gt.0) then
@@ -1423,7 +1413,7 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
@@ -1431,14 +1421,14 @@ c ::: ::: ::: Z
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-U(i,1+j,-1+k,n)+U(i,1+j,1+k,n))/(2.d0*hz)
                     elseif( maskn(i,1+j,k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (-3*U(i,1+j,k,n)+4*U(i,1+j,1+k,n)-U(i,1+j,2+k,n))/(2.d0*hz
      &  )
                     elseif( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                       outloc = -0.5
+                       outloc = -0.5d0
                        outder = (U(i,1+j,-2+k,n)-4*U(i,1+j,-1+k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  z)
                     else
@@ -1446,10 +1436,10 @@ c ::: ::: ::: Z
                        if( flagbc .eq. 1 ) then
                           outder = exttd(i,j+1,k,n,3)
                        else
-                          outder = 0.
+                          outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5
+                    innloc = 0.5d0
                     innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -1457,14 +1447,14 @@ c ::: ::: ::: Z
 
                   k = lo(3)
                   if( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(i,1+j,-1+k,n)+U(i,1+j,1+k,n))/(2.d0*hz)
                   elseif( maskn(i,1+j,k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,1+j,k,n)+4*U(i,1+j,1+k,n)-U(i,1+j,2+k,n))/(2.d0*hz
      &  )
                   elseif( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(i,1+j,-2+k,n)-4*U(i,1+j,-1+k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  z)
                   else
@@ -1472,7 +1462,7 @@ c ::: ::: ::: Z
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j+1,k,n,3)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskb(i,j,-1+k).gt.0) then
@@ -1480,20 +1470,20 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder
 
                   k = hi(3)
                   if( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-U(i,1+j,-1+k,n)+U(i,1+j,1+k,n))/(2.d0*hz)
                   elseif( maskn(i,1+j,k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (-3*U(i,1+j,k,n)+4*U(i,1+j,1+k,n)-U(i,1+j,2+k,n))/(2.d0*hz
      &  )
                   elseif( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,k).eq.0)then
-                    outloc = -0.5
+                    outloc = -0.5d0
                     outder = (U(i,1+j,-2+k,n)-4*U(i,1+j,-1+k,n)+3*U(i,1+j,k,n))/(2.d0*h
      &  z)
                   else
@@ -1501,7 +1491,7 @@ c ::: ::: ::: Z
                     if( flagbc .eq. 1 ) then
                        outder = exttd(i,j+1,k,n,3)
                     else
-                       outder = 0.
+                       outder = 0.0d0
                     endif
                   endif
                   if(maskt(i,j,1+k).gt.0) then
@@ -1509,7 +1499,7 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
@@ -1527,7 +1517,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,hi(2),k,n) = cvmgt(-1.0, 0.0,
+                        den(i,hi(2),k,n) = cvmgt(-1.0d0, 0.0d0,
      $                       maskn(i,hi(2)+1,k) .gt. 0)
                      enddo
                   enddo
@@ -1555,7 +1545,7 @@ c
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1),hi(1)
-                        den(i,j,lo(3),n)   = 1.0
+                        den(i,j,lo(3),n)   = 1.0d0
                      enddo
                   enddo
                endif
@@ -1606,11 +1596,7 @@ c ::: ::: ::: interior part of bottom face
                   trander(i,j,k-1,n,2) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,lenz
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(3)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, lenz+2, coef)
 #if USE_TMP
                do j = lo(2), hi(2)
@@ -1620,7 +1606,7 @@ c ::: ::: ::: interior part of bottom face
                      enddo
                   else
                      do i = lo(1), hi(1)
-                        tmp(i-lo(1)) = 0.0
+                        tmp(i-lo(1)) = 0.0d0
                      enddo
                   endif
                   do m = 0, lenz
@@ -1649,7 +1635,7 @@ c ::: ::: ::: interior part of bottom face
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         u(i,j,lo(3)-1,n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(i,j,lo(3)-1,n),
      $                       maskb(i,j,lo(3)-1) .gt. 0)
                      enddo
@@ -1670,7 +1656,7 @@ c ::: ::: ::: interior part of bottom face
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i, j, lo(3),n)   = cvmgt(coef(0), 0.0,
+                        den(i, j, lo(3),n)   = cvmgt(coef(0), 0.0d0,
      $                       maskb(i, j, lo(3)-1) .gt. 0)
                      enddo
                   enddo
@@ -1683,14 +1669,14 @@ c ::: ::: ::: X
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskb(-1+i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-U(-1+i,j,-1+k,n)+U(1+i,j,-1+k,n))/(2.d0*hx)
                      else if( maskb(i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-3*U(i,j,-1+k,n)+4*U(1+i,j,-1+k,n)-U(2+i,j,-1+k,n))/(2.d0
      &  *hx)
                      else if( maskb(-1+i,j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (U(-2+i,j,-1+k,n)-4*U(-1+i,j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hx)
                      else
@@ -1698,10 +1684,10 @@ c ::: ::: ::: X
                         if( flagbc .eq. 1 ) then
                            outder = exttd(i,j,k-1,n,1)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-u(-1+i,j,k,n)+u(1+i,j,k,n))/(2.d0*hx)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
@@ -1709,14 +1695,14 @@ c ::: ::: ::: X
 
                   i = lo(1)
                   if( maskb(-1+i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,-1+k,n)+U(1+i,j,-1+k,n))/(2.d0*hx)
                   else if( maskb(i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,-1+k,n)+4*U(1+i,j,-1+k,n)-U(2+i,j,-1+k,n))/(2.d0
      &  *hx)
                   else if( maskb(-1+i,j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-2+i,j,-1+k,n)-4*U(-1+i,j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hx)
                   else
@@ -1724,7 +1710,7 @@ c ::: ::: ::: X
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k-1,n,1)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskw(-1+i,j,k).gt.0) then
@@ -1732,20 +1718,20 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
 
                   i = hi(1)
                   if( maskb(-1+i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,-1+k,n)+U(1+i,j,-1+k,n))/(2.d0*hx)
                   else if( maskb(i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,-1+k,n)+4*U(1+i,j,-1+k,n)-U(2+i,j,-1+k,n))/(2.d0
      &  *hx)
                   else if( maskb(-1+i,j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-2+i,j,-1+k,n)-4*U(-1+i,j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hx)
                   else
@@ -1753,7 +1739,7 @@ c ::: ::: ::: X
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k-1,n,1)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maske(1+i,j,k).gt.0) then
@@ -1761,7 +1747,7 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
@@ -1769,14 +1755,14 @@ c ::: ::: ::: Y
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-U(i,-1+j,-1+k,n)+U(i,1+j,-1+k,n))/(2.d0*hy)
                      else if( maskb(i,j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-3*U(i,j,-1+k,n)+4*U(i,1+j,-1+k,n)-U(i,2+j,-1+k,n))/(2.d0
      &  *hy)
                      else if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (U(i,-2+j,-1+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hy)
                      else
@@ -1784,10 +1770,10 @@ c ::: ::: ::: Y
                         if( flagbc .eq. 1 ) then
                            outder = exttd(i,j,k-1,n,2)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-u(i,-1+j,k,n)+u(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
@@ -1795,14 +1781,14 @@ c ::: ::: ::: Y
 
                   j = lo(2)
                   if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(i,-1+j,-1+k,n)+U(i,1+j,-1+k,n))/(2.d0*hy)
                   else if( maskb(i,j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,-1+k,n)+4*U(i,1+j,-1+k,n)-U(i,2+j,-1+k,n))/(2.d0
      &  *hy)
                   else if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(i,-2+j,-1+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hy)
                   else
@@ -1810,7 +1796,7 @@ c ::: ::: ::: Y
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k-1,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(masks(i,-1+j,k).gt.0) then
@@ -1818,20 +1804,20 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
 
                   j = hi(2)
                   if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(i,-1+j,-1+k,n)+U(i,1+j,-1+k,n))/(2.d0*hy)
                   else if( maskb(i,j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,-1+k,n)+4*U(i,1+j,-1+k,n)-U(i,2+j,-1+k,n))/(2.d0
      &  *hy)
                   else if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,j,-1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(i,-2+j,-1+k,n)-4*U(i,-1+j,-1+k,n)+3*U(i,j,-1+k,n))/(2.d
      &  0*hy)
                   else
@@ -1839,7 +1825,7 @@ c ::: ::: ::: Y
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k-1,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskn(i,1+j,k).gt.0) then
@@ -1847,7 +1833,7 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
@@ -1865,7 +1851,7 @@ c ::: ::: ::: Y
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j,lo(3),n) = cvmgt(-1.0, 0.0,
+                        den(i,j,lo(3),n) = cvmgt(-1.0d0, 0.0d0,
      $                       maskb(i,j,lo(3)-1) .gt. 0)
                      enddo
                   enddo
@@ -1893,7 +1879,7 @@ c
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j, hi(3),n)   = 1.0
+                        den(i,j, hi(3),n)   = 1.0d0
                      enddo
                   enddo
                endif
@@ -1944,11 +1930,7 @@ c ::: ::: ::: interior part of bottom face
                   trander(i,j,k+1,n,2) = innder
                enddo
             else if (is_dirichlet(bct(n))) then
-               do m=0,lenz
-                  x(m) = m + 0.5
-               enddo
                x(-1) = - bcl/h(3)
-               xInt = - 0.5
                call polyInterpCoeff(xInt, x, lenz+2, coef)
 #if USE_TMP
                do j = lo(2), hi(2)
@@ -1958,7 +1940,7 @@ c ::: ::: ::: interior part of bottom face
                      enddo
                   else
                      do i = lo(1), hi(1)
-                        tmp(i-lo(1)) = 0.0
+                        tmp(i-lo(1)) = 0.0d0
                      enddo
                   endif
                   do m = 0, lenz
@@ -1988,7 +1970,7 @@ c ::: ::: ::: interior part of bottom face
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         u(i,j, hi(3)+1,n) = cvmgt(
-     $                       0.0,
+     $                       0.0d0,
      $                       u(i,j, hi(3)+1,n),
      $                       maskt(i,j, hi(3)+1) .gt. 0)
                      enddo
@@ -2009,7 +1991,7 @@ c ::: ::: ::: interior part of bottom face
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j, hi(3),n)   = cvmgt(coef(0), 0.0,
+                        den(i,j, hi(3),n)   = cvmgt(coef(0), 0.0d0,
      $                       maskt(i,j, hi(3)+1) .gt. 0)
                      enddo
                   enddo
@@ -2022,14 +2004,14 @@ c ::: ::: ::: X
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskt(-1+i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-U(-1+i,j,1+k,n)+U(1+i,j,1+k,n))/(2.d0*hx)
                      else if( maskt(i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-3*U(i,j,1+k,n)+4*U(1+i,j,1+k,n)-U(2+i,j,1+k,n))/(2.d0*hx
      &  )
                      else if( maskt(-1+i,j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (U(-2+i,j,1+k,n)-4*U(-1+i,j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  x)
                      else
@@ -2037,10 +2019,10 @@ c ::: ::: ::: X
                         if( flagbc .eq. 1 ) then
                            outder = exttd(i,j,k+1,n,1)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-u(-1+i,j,k,n)+u(1+i,j,k,n))/(2.d0*hx)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
@@ -2048,14 +2030,14 @@ c ::: ::: ::: X
 
                   i = lo(1)
                   if( maskt(-1+i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,1+k,n)+U(1+i,j,1+k,n))/(2.d0*hx)
                   else if( maskt(i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,1+k,n)+4*U(1+i,j,1+k,n)-U(2+i,j,1+k,n))/(2.d0*hx
      &  )
                   else if( maskt(-1+i,j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-2+i,j,1+k,n)-4*U(-1+i,j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  x)
                   else
@@ -2063,7 +2045,7 @@ c ::: ::: ::: X
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k+1,n,1)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskw(-1+i,j,k).gt.0) then
@@ -2071,20 +2053,20 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
 
                   i = hi(1)
                   if( maskt(-1+i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(-1+i,j,1+k,n)+U(1+i,j,1+k,n))/(2.d0*hx)
                   else if( maskt(i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,1+k,n)+4*U(1+i,j,1+k,n)-U(2+i,j,1+k,n))/(2.d0*hx
      &  )
                   else if( maskt(-1+i,j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(-2+i,j,1+k,n)-4*U(-1+i,j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  x)
                   else
@@ -2092,7 +2074,7 @@ c ::: ::: ::: X
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k+1,n,1)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maske(1+i,j,k).gt.0) then
@@ -2100,7 +2082,7 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
@@ -2108,14 +2090,14 @@ c ::: ::: ::: Y
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-U(i,-1+j,1+k,n)+U(i,1+j,1+k,n))/(2.d0*hy)
                      else if( maskt(i,j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (-3*U(i,j,1+k,n)+4*U(i,1+j,1+k,n)-U(i,2+j,1+k,n))/(2.d0*hy
      &  )
                      else if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                        outloc = -0.5
+                        outloc = -0.5d0
                         outder = (U(i,-2+j,1+k,n)-4*U(i,-1+j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  y)
                      else
@@ -2123,10 +2105,10 @@ c ::: ::: ::: Y
                         if( flagbc .eq. 1 ) then
                            outder = exttd(i,j,k+1,n,2)
                         else
-                           outder = 0.
+                           outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5
+                     innloc = 0.5d0
                      innder = (-u(i,-1+j,k,n)+u(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
@@ -2134,14 +2116,14 @@ c ::: ::: ::: Y
 
                   j = lo(2)
                   if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(i,-1+j,1+k,n)+U(i,1+j,1+k,n))/(2.d0*hy)
                   else if( maskt(i,j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,1+k,n)+4*U(i,1+j,1+k,n)-U(i,2+j,1+k,n))/(2.d0*hy
      &  )
                   else if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(i,-2+j,1+k,n)-4*U(i,-1+j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  y)
                   else
@@ -2149,7 +2131,7 @@ c ::: ::: ::: Y
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k+1,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(masks(i,-1+j,k).gt.0) then
@@ -2157,20 +2139,20 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
 
                   j = hi(2)
                   if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-U(i,-1+j,1+k,n)+U(i,1+j,1+k,n))/(2.d0*hy)
                   else if( maskt(i,j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (-3*U(i,j,1+k,n)+4*U(i,1+j,1+k,n)-U(i,2+j,1+k,n))/(2.d0*hy
      &  )
                   else if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,j,1+k).eq.0)then
-                     outloc = -0.5
+                     outloc = -0.5d0
                      outder = (U(i,-2+j,1+k,n)-4*U(i,-1+j,1+k,n)+3*U(i,j,1+k,n))/(2.d0*h
      &  y)
                   else
@@ -2178,7 +2160,7 @@ c ::: ::: ::: Y
                      if( flagbc .eq. 1 ) then
                         outder = exttd(i,j,k+1,n,2)
                      else
-                        outder = 0.
+                        outder = 0.0d0
                      endif
                   endif
                   if(maskn(i,1+j,k).gt.0) then
@@ -2186,7 +2168,7 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5
+                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
@@ -2204,7 +2186,7 @@ c ::: ::: ::: Y
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j,hi(3),n) = cvmgt(-1.0, 0.0,
+                        den(i,j,hi(3),n) = cvmgt(-1.0d0, 0.0d0,
      $                       maskt(i,j,hi(3)+1) .gt. 0)
                      enddo
                   enddo
