@@ -211,10 +211,13 @@ main (int   argc,
       compute_flux_all(nstart, nmax, nfac, iFile);
     else if (analysis == 1) {
 
+      bool do_init = false;
       Real flux  = 0;
       Real dtnew = 0;
       Real dtold = 0;
       Real dt;
+      Array<string> cNames(2);
+      Array<Real> xold;
       for (int i = nstart; i < nmax; i++) {
 	char buf[64];
 	sprintf(buf,"%05d",i*nfac);
@@ -231,16 +234,19 @@ main (int   argc,
 	  DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
 	AmrData& amrData = dataServices.AmrDataRef();
-
-	Array<string> cNames(2);
-	cNames[0] = amrData.PlotVarNames()[0];
-	cNames[1] = amrData.PlotVarNames()[1];
-	
 	dtnew = amrData.Time();
 	dt    = dtnew - dtold;
 	dtold = dtnew;
-	
-	compute_flux(amrData,0,cNames,dt,flux,phi);
+
+	if (i == nstart) {
+	  cNames[0] = amrData.PlotVarNames()[0];
+	  cNames[1] = amrData.PlotVarNames()[1];
+	  do_init = true;
+	}
+	else
+	  do_init = false;
+		
+	compute_flux(amrData,0,cNames,dt,xold,flux,phi,do_init);
 	
 	std::cout << dtnew <<  " " << flux << std::endl;
       }
@@ -408,15 +414,16 @@ compute_flux(AmrData&           amrData,
 	     int                dir, 
 	     Array<std::string> cNames,
 	     Real               dt,
+	     Array<Real>        xold,
 	     Real               flux,
 	     Real               phi,
+	     bool               do_init,
  	     Real*              barr)
 { 
   Array<Real> xnew;
-  Array<Real> xold;
   Array<Real> FLs;
   MultiFab tmpmean;
-  Real sumold,sumnew;
+  Real sumnew;
   int finestLevel = 0;
   int nComp = cNames.size();
 
@@ -457,12 +464,11 @@ compute_flux(AmrData&           amrData,
   }
   tmpmean.define(ba,nComp,0,Fab_allocate);
   xnew.resize(domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
-  xold.resize(domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
   FLs.resize (domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
 
-  for (int iy=0;iy<xold.size();iy++)
-    xold[iy] = 0.0;
-
+  if (do_init) 
+    for (int iy=0;iy<xold.size();iy++)
+      xold[iy] = 0.0;
 
   const Array<Real>& dx = amrData.DxLevel()[finestLevel];
       

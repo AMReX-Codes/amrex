@@ -11,6 +11,8 @@ compute_flux(AmrData&           amrData,
 	     int                dir, 
 	     Array<std::string> cNames,
 	     Real               dt,
+	     Array<Real>        xold,
 	     Real               flux,
 	     Real               phi,
+	     bool               do_init,
  	     Real*              barr=0);
