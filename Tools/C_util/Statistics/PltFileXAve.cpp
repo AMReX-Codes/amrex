@@ -9,11 +9,11 @@ using std::ios;
 using std::set_new_handler;
 
 #include <unistd.h>
+#include "PltFileXAve.H"
 #include "WritePlotFile.H"
 #include "ComputeAmrDataStat.H"
 #include "ParmParse.H"
 #include "ParallelDescriptor.H"
-#include "DataServices.H"
 #include "Utility.H"
 
 #ifndef NDEBUG
@@ -202,149 +202,324 @@ main (int   argc,
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
 
-    int finestLevel;
-    int nComp;
-    Box dmn;
-    Array<Real> xnew;
-    Array<Real> xold;
-    Array<Real> FLs;
-    Real sumold,sumnew;
-    MultiFab tmpmean;
-    Real dtnew, dtold;
-    dtold = 0.;
-    sumold = 0.;
     Real phi = 0.3;
-    
-    for (int i = nstart; i < nmax; i++)
-    {
-      char buf[64];
-      sprintf(buf,"%05d",i*nfac);
+
+    int analysis;
+    pp.query("analysis",analysis);
+
+    if (analysis == 0) 
+      compute_flux_all(nstart, nmax, nfac, iFile);
+    else if (analysis == 1) {
+
+      Real flux  = 0;
+      Real dtnew = 0;
+      Real dtold = 0;
+      Real dt;
+      for (int i = nstart; i < nmax; i++) {
+	char buf[64];
+	sprintf(buf,"%05d",i*nfac);
           
-      std::string idxs(buf);
-      File = iFile + idxs;
-      //File = hdrFile + idxs + iFile;
-      //File = hdrFile + idxs;
-      //if (i == 0) File +=idxs;
-      //std::cout << File << std::endl;
+	std::string idxs(buf);
+	File = iFile + idxs;
       
-      DataServices dataServices(File, fileType);
+	DataServices dataServices(File, fileType);
 
-      if (!dataServices.AmrDataOk())
-        //
-        // This calls ParallelDescriptor::EndParallel() and exit()
-        //
-        DataServices::Dispatch(DataServices::ExitRequest, NULL);
+	if (!dataServices.AmrDataOk())
+	  //
+	  // This calls ParallelDescriptor::EndParallel() and exit()
+	  //
+	  DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
-      AmrData& amrData = dataServices.AmrDataRef();
-      dtnew = amrData.Time();
+	AmrData& amrData = dataServices.AmrDataRef();
 
-      nComp = 2;
-      Array<string> names(2);
-      Array<int>    destcomp(2);
+	Array<string> cNames(2);
+	cNames[0] = amrData.PlotVarNames()[0];
+	cNames[1] = amrData.PlotVarNames()[1];
+	
+	dtnew = amrData.Time();
+	dt    = dtnew - dtold;
+	dtold = dtnew;
+	
+	compute_flux(amrData,0,cNames,dt,flux,phi);
+	
+	std::cout << dtnew <<  " " << flux << std::endl;
+      }
+    }
+    else 
+      BoxLib::Abort("Analysis type not defined");
 
-      names[0] = amrData.PlotVarNames()[0];
-      names[1] = amrData.PlotVarNames()[1];
-      destcomp[0] = 0;
-      destcomp[1] = 1;
+    BoxLib::Finalize();
+
+}
+
+void 
+compute_flux_all(int nstart,
+		 int nmax,
+		 int nfac,
+		 std::string iFile)
+{
+
+  DataServices::SetBatchMode();
+  FileType fileType(NEWPLT);
+
+  int finestLevel;
+  int nComp;
+  Box dmn;
+  Array<Real> xnew;
+  Array<Real> xold;
+  Array<Real> FLs;
+  Real sumold,sumnew;
+  MultiFab tmpmean;
+  Real dtnew, dtold;
+  dtold = 0.;
+  sumold = 0.;
+  Real phi = 0.3;
+    
+  for (int i = nstart; i < nmax; i++)
+  {
+    char buf[64];
+    sprintf(buf,"%05d",i*nfac);
+          
+    std::string idxs(buf);
+    std::string File = iFile + idxs;
+    //File = hdrFile + idxs + iFile;
+    //File = hdrFile + idxs;
+    //if (i == 0) File +=idxs;
+    //std::cout << File << std::endl;
+      
+    DataServices dataServices(File, fileType);
+
+    if (!dataServices.AmrDataOk())
+      //
+      // This calls ParallelDescriptor::EndParallel() and exit()
+      //
+      DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+    AmrData& amrData = dataServices.AmrDataRef();
+    dtnew = amrData.Time();
+
+    nComp = 2;
+    Array<string> names(2);
+    Array<int>    destcomp(2);
+
+    names[0] = amrData.PlotVarNames()[0];
+    names[1] = amrData.PlotVarNames()[1];
+    destcomp[0] = 0;
+    destcomp[1] = 1;
 	
 
-      if (i == nstart) {
-	//finestLevel = amrData.FinestLevel();
-	finestLevel = 0;
-	BoxArray ba = amrData.boxArray(finestLevel);
+    if (i == nstart) {
+      //finestLevel = amrData.FinestLevel();
+      finestLevel = 0;
+      BoxArray ba = amrData.boxArray(finestLevel);
+      
+      tmpmean.define(ba,nComp,0,Fab_allocate);
 
-	tmpmean.define(ba,nComp,0,Fab_allocate);
+      dmn = amrData.ProbDomain()[finestLevel];
+      //
+      // Currently we assume dmn starts at zero.
+      //
+      xnew.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
+      xold.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
+      FLs.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
 
-	dmn = amrData.ProbDomain()[finestLevel];
-	//
-	// Currently we assume dmn starts at zero.
-	//
-	xnew.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
-	xold.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
-	FLs.resize(dmn.bigEnd(BL_SPACEDIM-1)+1);
+      for (int iy=0;iy<xold.size();iy++)
+	xold[iy] = 0.0;
+    }
 
-	for (int iy=0;iy<xold.size();iy++)
-	    xold[iy] = 0.0;
-      }
-
-      const Array<Real>& dx = amrData.DxLevel()[finestLevel];
-
-      //      if (ParallelDescriptor::IOProcessor())
-      //std::cout << "Filling tmpmean ... " << std::flush;
-
-      amrData.FillVar(tmpmean,finestLevel,names,destcomp);
-
-      for (int n = 0; n < nComp; n++)
-	amrData.FlushGrids(destcomp[n]);
-
-      Real dt = dtnew - dtold;
-      dtold = dtnew;
-
-      for (int ix = 0; ix < xnew.size(); ix++)
-	xnew[ix] = 0;
-
-      for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
-	{
-	  const int* lo = tmpmean[mfi].loVect();
-	  const int* hi = tmpmean[mfi].hiVect();
+    const Array<Real>& dx = amrData.DxLevel()[finestLevel];
+    
+    //      if (ParallelDescriptor::IOProcessor())
+    //std::cout << "Filling tmpmean ... " << std::flush;
+    
+    amrData.FillVar(tmpmean,finestLevel,names,destcomp);
+    
+    for (int n = 0; n < nComp; n++)
+      amrData.FlushGrids(destcomp[n]);
+    
+    Real dt = dtnew - dtold;
+    dtold = dtnew;
+    
+    for (int ix = 0; ix < xnew.size(); ix++)
+      xnew[ix] = 0;
+    
+    for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
+    {
+      const int* lo = tmpmean[mfi].loVect();
+      const int* hi = tmpmean[mfi].hiVect();
       
 #if (BL_SPACEDIM == 2)
-	  for (int iy=lo[1]; iy<=hi[1]; iy++)
-	      for (int ix=lo[0]; ix<=hi[0]; ix++)
-		  xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+      for (int iy=lo[1]; iy<=hi[1]; iy++)
+	for (int ix=lo[0]; ix<=hi[0]; ix++)
+	  xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
 #else
-	  for (int iz=lo[2]; iz<=hi[2]; iz++)
-	    for (int iy=lo[1]; iy<=hi[1]; iy++)
-	      for (int ix=lo[0]; ix<=hi[0]; ix++)
-		xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
+      for (int iz=lo[2]; iz<=hi[2]; iz++)
+	for (int iy=lo[1]; iy<=hi[1]; iy++)
+	  for (int ix=lo[0]; ix<=hi[0]; ix++)
+	    xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
 #endif
-	}
+    }
 
-      const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    
+    ParallelDescriptor::ReduceRealSum(xnew.dataPtr(), xnew.size(), IOProc);
 
-      ParallelDescriptor::ReduceRealSum(xnew.dataPtr(), xnew.size(), IOProc);
-
-      if (ParallelDescriptor::IOProcessor())
-	{
-	  Real FL = 0;
+    if (ParallelDescriptor::IOProcessor())
+    {
+      Real FL = 0;
 
 #if (BL_SPACEDIM == 2)
-	  for (int iy = 0; iy < xnew.size(); iy++)
-	    {
-	      xnew[iy] = xnew[iy]/dmn.length(0);
-	      Real ct = (xnew[iy]-xold[iy])/dt;
-	      FL += ct*dx[1];
-	      FLs[iy] = FL;
-	      xold[iy] = xnew[iy];
-	    }
+      for (int iy = 0; iy < xnew.size(); iy++)
+      {
+	xnew[iy] = xnew[iy]/dmn.length(0);
+	Real ct = (xnew[iy]-xold[iy])/dt;
+	FL += ct*dx[1];
+	FLs[iy] = FL;
+	xold[iy] = xnew[iy];
+      }
 #else
-	  for (int iz = 0; iz < xnew.size(); iz++)
-	    {
-	      xnew[iz] = xnew[iz]/(dmn.length(0)*dmn.length(1));
-	      Real ct = (xnew[iz]-xold[iz])/dt;
-	      FL += ct*dx[2];
-	      FLs[iz] = FL;
-	      xold[iz] = xnew[iz];
-	    }
+      for (int iz = 0; iz < xnew.size(); iz++)
+      {
+	xnew[iz] = xnew[iz]/(dmn.length(0)*dmn.length(1));
+	Real ct = (xnew[iz]-xold[iz])/dt;
+	FL += ct*dx[2];
+	FLs[iz] = FL;
+	xold[iz] = xnew[iz];
+      }
 #endif
-
-	  //sumnew = SumThisComp(amrData, 0);
-	  //Real dF = phi*(sumnew - sumold)/dt;
-	  //sumold = sumnew;
-	  //std::cout << dtnew << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
-	  std::cout << dtnew <<  " " << FL << std::endl;
-	}
-
 
       //sumnew = SumThisComp(amrData, 0);
       //Real dF = phi*(sumnew - sumold)/dt;
       //sumold = sumnew;
+      //std::cout << dtnew << " " << FL << " " << FLs[896] << " " << FLs[768] << " " << FLs[512] << std::endl;
+      std::cout << dtnew <<  " " << FL << std::endl;
+    }
 
-    }    
+    //sumnew = SumThisComp(amrData, 0);
+    //Real dF = phi*(sumnew - sumold)/dt;
+    //sumold = sumnew;
+    
+  }    
 
-    BoxLib::Finalize();
+}
+
+void
+compute_flux(AmrData&           amrData, 
+	     int                dir, 
+	     Array<std::string> cNames,
+	     Real               dt,
+	     Real               flux,
+	     Real               phi,
+ 	     Real*              barr)
+{ 
+  Array<Real> xnew;
+  Array<Real> xold;
+  Array<Real> FLs;
+  MultiFab tmpmean;
+  Real sumold,sumnew;
+  int finestLevel = 0;
+  int nComp = cNames.size();
+
+  Array<int> destFillComps(nComp);
+  for (int i=0; i<nComp; ++i)
+    destFillComps[i] = i;
+
+  BoxArray ba;
+  Box domain = amrData.ProbDomain()[0];
+  if (barr == 0) {
+    ba = amrData.boxArray(finestLevel);
+  }
+  else {
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      const Real dx = amrData.ProbSize()[i]/ 
+	amrData.ProbDomain()[0].length(i);
+      domain.setSmall(i,std::max(domain.smallEnd()[i], 
+	(int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx)/dx)));
+      domain.setBig(i,std::min(domain.bigEnd()[i], 
+	(int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
+    }
+
+   //for (int i=1; i<=finestLevel; i++)
+   //    domain.refine(amrData.RefRatio()[i]);
+
+    ba = BoxLib::intersect(amrData.boxArray(0),domain);
+  }
+  tmpmean.define(ba,nComp,0,Fab_allocate);
+  xnew.resize(domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
+  xold.resize(domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
+  FLs.resize (domain.bigEnd(BL_SPACEDIM-1)-domain.smallEnd(BL_SPACEDIM-1)+1);
+
+  for (int iy=0;iy<xold.size();iy++)
+    xold[iy] = 0.0;
 
 
+  const Array<Real>& dx = amrData.DxLevel()[finestLevel];
+      
+  amrData.FillVar(tmpmean,finestLevel,cNames,destFillComps);
+
+  for (int n = 0; n < nComp; n++)
+    amrData.FlushGrids(destFillComps[n]);
+
+  for (int ix = 0; ix < xnew.size(); ix++)
+    xnew[ix] = 0;
+
+  for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
+  {
+    const int* lo = tmpmean[mfi].loVect();
+    const int* hi = tmpmean[mfi].hiVect();
+      
+#if (BL_SPACEDIM == 2)
+    for (int iy=lo[1]; iy<=hi[1]; iy++)
+      for (int ix=lo[0]; ix<=hi[0]; ix++)
+	xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+#else
+    for (int iz=lo[2]; iz<=hi[2]; iz++)
+      for (int iy=lo[1]; iy<=hi[1]; iy++)
+	for (int ix=lo[0]; ix<=hi[0]; ix++)
+	  xnew[iz] += tmpmean[mfi](IntVect(ix,iy,iz),0)*phi;
+#endif
+  }
+
+  const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+  ParallelDescriptor::ReduceRealSum(xnew.dataPtr(), xnew.size(), IOProc);
+
+  if (ParallelDescriptor::IOProcessor())
+  {
+    Real FL = 0;
+
+#if (BL_SPACEDIM == 2)
+    for (int iy = 0; iy < xnew.size(); iy++)
+    {
+      xnew[iy] = xnew[iy]/domain.length(0);
+      Real ct = (xnew[iy]-xold[iy])/dt;
+      FL += ct*dx[1];
+      FLs[iy] = FL;
+      xold[iy] = xnew[iy];
+    }
+#else
+    for (int iz = 0; iz < xnew.size(); iz++)
+    {
+      xnew[iz] = xnew[iz]/(domain.length(0)*domain.length(1));
+      Real ct = (xnew[iz]-xold[iz])/dt;
+      FL += ct*dx[2];
+      FLs[iz] = FL;
+      xold[iz] = xnew[iz];
+    }
+#endif
+    flux = FL;  
+  }
 }
 
 

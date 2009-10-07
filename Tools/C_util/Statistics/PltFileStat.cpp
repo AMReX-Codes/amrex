@@ -63,18 +63,33 @@ main (int   argc,
       verbose = true;
       AmrData::SetVerbose(true);
     }
+    std::string tmpFile;
     pp.query("infile", iFile);
     if (iFile.empty())
       BoxLib::Abort("You must specify `infile'");
+    else
+      tmpFile = iFile;
 
     int analysis_type = 0;
     pp.query("analysis", analysis_type);
     if (analysis_type == 0)
       BoxLib::Abort("Analysis type is not specified.");
 
+    if (analysis_type == 4) {
+
+      int nstart = 10;
+      pp.query("nstart",nstart);
+
+      char buftmp[64];
+      sprintf(buftmp,"%05d",nstart);
+          
+      std::string idxs(buftmp);
+      tmpFile = iFile + buftmp;
+    }
+
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
-    DataServices dataServices(iFile, fileType);
+    DataServices dataServices(tmpFile, fileType);
     if (!dataServices.AmrDataOk())
       //
       // This calls ParallelDescriptor::EndParallel() and exit()
@@ -113,12 +128,12 @@ main (int   argc,
     
     // Limit to a smaller region    
     Box domain = amrData.ProbDomain()[0];
+    Array<Real> barr;
     vector<Real> bbll,bbur;
     bool do_bounds = 0;
     if (int nx=pp.countval("bounds"))
     {
       do_bounds = 1;
-      Array<Real> barr;
       pp.getarr("bounds",barr,0,nx);
       int d=BL_SPACEDIM;
       BL_ASSERT(barr.size()==2*d);
@@ -158,6 +173,10 @@ main (int   argc,
             bas.resize(iLevel);
         }
     }
+
+    int nBin = 0;
+    pp.query("nBin", nBin);
+
     if (analysis_type == 1) { // mean and variance of a plot file
       Array<Real> mean, variance;
       ComputeAmrDataMeanVar(amrData, mean, variance, 0, nComp, verbose);
@@ -171,8 +190,6 @@ main (int   argc,
 
     else if (analysis_type == 2) {// determine the pdf of a plot file
 
-      int nBin = 0;
-      pp.query("nBin", nBin);
       if (nBin == 0) {
 	std::cout << "nBin was not specified.  Setting nBin to 100.\n";
 	nBin = 100;
@@ -187,15 +204,11 @@ main (int   argc,
       else
 	ComputeAmrDataPDF(amrData,icount,nBin,cNames);
 
-      std::string oFile(iFile + "_PDF");
+      std::string oFile(tmpFile + "_PDF");
       pp.query("outfile",oFile);
 
-      char outputFileName[oFile.size()];
-      for (int ic=0; ic<oFile.size(); ic++)
-	outputFileName[ic] = oFile[ic];
-
       std::ofstream outputFile;
-      outputFile.open(outputFileName,std::ios::out);
+      outputFile.open(oFile.c_str(),std::ios::out);
       if (outputFile.fail()) return (1);
       for (int ic=0; ic<nComp; ic++) {
 	for (int ib=0; ib<nBin; ib++) {		
@@ -208,11 +221,53 @@ main (int   argc,
       for (int ic=0;ic<nComp;ic++)
 	delete [] icount[ic];
     }
-     else if (analysis_type == 3) {// determine the correlation in space
+    else if (analysis_type == 3) {// determine the correlation in space
        
-       std::cout << "In progress\n";
+      if (nBin == 0) {
+	std::cout << "nBin was not specified.  Setting nBin to 100.\n";
+	nBin = 100;
+      }
+      
+      std::string oFile(tmpFile + "_VAR");
+      pp.query("outfile",oFile);
+
+      ComputeAmrDataVAR(amrData,nBin,cNames,barr,oFile);
+      
+    }
+
+    else if (analysis_type == 4) {// same as 3 but for a list of files
        
-     }
+      if (nBin == 0) {
+	std::cout << "nBin was not specified.  Setting nBin to 100.\n";
+	nBin = 100;
+      }
+      
+      int nstart = 1;
+      pp.query("nstart",nstart);
+      int nmax = 100;
+      pp.query("nfile",nmax);
+      int nfac = 10;
+      pp.query("nfac",nfac);
+
+      for (int i = nstart; i<nmax;i++) {
+	char buf[64];
+	sprintf(buf,"%05d",i*nfac);
+	std::string idxs(buf);
+	tmpFile = iFile + idxs;
+
+
+	DataServices tmpdataServices(tmpFile, fileType);
+	if (!tmpdataServices.AmrDataOk())
+	  DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+	AmrData& tmpamrData = tmpdataServices.AmrDataRef();
+
+	std::string oFile = tmpFile + "_VAR";
+
+	ComputeAmrDataVAR(tmpamrData,nBin,cNames,barr,oFile);
+      }
+      
+    }
 
     else 
       std::cout << "Analysis Type is undefined.\n";

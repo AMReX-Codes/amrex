@@ -27,3 +27,10 @@ ComputeAmrDataPDF (AmrData&     amrData,
 		   int          nBin,
 		   Array<std::string> cNames,
 		   Array<BoxArray> bas);
+
+void
+ComputeAmrDataVAR (AmrData&           amrData,
+		   int                nBin,
+		   Array<std::string> cNames,
+		   Array<Real>        barr,
+		   std::string        oFile);
