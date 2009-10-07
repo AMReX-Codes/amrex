@@ -1,4 +1,3 @@
-#define USE_TMP 1
 #include <REAL.H>
 
 #include "DivVis_F.H"
@@ -136,16 +135,16 @@ c
       REAL_T edgloc,outloc
       REAL_T lambda
       REAL_T hx,hy,hz
+      parameter(edgloc = 0.0d0)
+      parameter(innloc = 0.5d0)
 c
       integer lenx
       integer leny
       integer lenz
       integer m
-c...........trial change .................
       integer tmplen
       parameter(tmplen=256)
       REAL_T tmp(0:tmplen)
-c...........trial change .................
 c
       integer Lmaxorder
       integer maxmaxorder
@@ -177,14 +176,12 @@ c
          x(m) = m + 0.5D0
       end do
 
-c...........trial change .................
       if( (hi(1)-lo(1)+1).gt.tmplen .or. 
      &     (hi(2)-lo(2)+1).gt.tmplen .or. 
      &     (hi(3)-lo(3)+1).gt.tmplen) then
          write(6,*)'FORT_APPLYBC: tmplen must be larger'
          stop
       endif
-c...........trial change .................
 
 c
 c     TODO:
@@ -262,7 +259,6 @@ c ::: ::: ::: Z
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
                call polyInterpCoeff(xInt, x, lenx+2, coef)
-#if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do j = lo(2), hi(2)
@@ -285,38 +281,6 @@ c ::: ::: ::: Z
      $                    maskw(lo(1)-1,j,k) .gt. 0)
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do k = lo(3), hi(3)
-                     do j = lo(2), hi(2)
-                        u(lo(1)-1, j, k, n) = cvmgt(
-     $                       bcval(lo(1)-1,j,k,n)*coef(-1),
-     $                       u(lo(1)-1, j,k, n),
-     $                       maskw(lo(1)-1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do k = lo(3), hi(3)
-                     do j = lo(2), hi(2)
-                        u(lo(1)-1, j, k, n) = cvmgt(
-     $                       0.0d0,
-     $                       u(lo(1)-1, j, k, n),
-     $                       maskw(lo(1)-1,j, k) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do k = lo(3), hi(3)
-                  do m = 0, lenx
-                     do j = lo(2), hi(2)
-                        u(lo(1)-1,j,k,n) = cvmgt(
-     $                       u(lo(1)-1,j,k,n)
-     $                       + u(lo(1)+m, j, k, n)*coef(m),
-     $                       u(lo(1)-1,j,k,n),
-     $                       maskw(lo(1)-1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -328,9 +292,9 @@ c ::: ::: ::: Z
 c ::: ::: now do the tangential deriv part
 c ::: ::: Null
 c ::: ::: interior part of west side
-               edgloc = 0.
                i = lo(1)
 c ::: ::: ::: Y
+!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
@@ -352,7 +316,6 @@ c ::: ::: ::: Y
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
@@ -383,7 +346,6 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
 
@@ -412,11 +374,12 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
 c ::: ::: ::: Z
+!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
@@ -438,7 +401,6 @@ c ::: ::: ::: Z
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -469,7 +431,6 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
 
@@ -498,10 +459,10 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -596,7 +557,6 @@ c ::: ::: ::: Z
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
                call polyInterpCoeff(xInt, x, lenx+2, coef)
-#if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do j = lo(2), hi(2)
@@ -619,38 +579,6 @@ c ::: ::: ::: Z
      $                    maske(hi(1)+1,j,k) .gt. 0)
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do k = lo(3), hi(3)
-                     do j = lo(2), hi(2)
-                        u(hi(1)+1,j,k,n) = cvmgt(
-     $                       bcval(hi(1)+1,j,k,n)*coef(-1),
-     $                       u(hi(1)+1,j,k,n),
-     $                       maske(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do k = lo(3), hi(3)
-                     do j = lo(2), hi(2)
-                        u(hi(1)+1,j,k,n) = cvmgt(
-     $                       0.0d0,
-     $                       u(hi(1)+1,j,k,n),
-     $                       maske(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do k = lo(3), hi(3)
-                  do m = 0, lenx
-                     do j = lo(2), hi(2)
-                        u(hi(1)+1,j,k,n) = cvmgt(
-     $                       u(hi(1)+1,j,k,n)
-     $                       + u(hi(1)-m,j,k,n)*coef(m),
-     $                       u(hi(1)+1,j,k,n),
-     $                       maske(hi(1)+1,j,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
@@ -661,9 +589,9 @@ c ::: ::: ::: Z
                endif
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part of west side
-               edgloc = 0.
                i = hi(1)
 c ::: ::: ::: Y
+!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maske(1+i,-1+j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
@@ -685,7 +613,6 @@ c ::: ::: ::: Y
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
@@ -716,7 +643,6 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
 
@@ -745,11 +671,12 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
 c ::: ::: ::: Z
+!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,1+k).eq.0)then
@@ -771,7 +698,6 @@ c ::: ::: ::: Z
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -802,7 +728,6 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
 
@@ -831,10 +756,10 @@ c ::: ::: ::: now endpoints
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -930,7 +855,6 @@ c ::: ::: ::: ::: interior part of south face
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
                call polyInterpCoeff(xInt, x, leny+2, coef)
-#if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -953,38 +877,6 @@ c ::: ::: ::: ::: interior part of south face
      $                    masks(i,lo(2)-1,k) .gt. 0)
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
-                        u(i,lo(2)-1,k,n) = cvmgt(
-     $                       bcval(i,lo(2)-1,k,n)*coef(-1),
-     $                       u(i,lo(2)-1,k,n),
-     $                       masks(i,lo(2)-1,k) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
-                        u(i,lo(2)-1,k,n) = cvmgt(
-     $                       0.0d0,
-     $                       u(i,lo(2)-1,k,n),
-     $                       masks(i,lo(2)-1,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do k = lo(3), hi(3)
-                  do m = 0, leny
-                     do i = lo(1), hi(1)
-                        u(i, lo(2)-1, k, n) = cvmgt(
-     $                       u(i, lo(2)-1,k,n)
-     $                       + u(i, lo(2)+m, k,n)*coef(m),
-     $                       u(i, lo(2)-1, k, n),
-     $                       masks(i, lo(2)-1, k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -995,9 +887,9 @@ c ::: ::: ::: ::: interior part of south face
                endif
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-               edgloc = 0.
                j=lo(2)
 c ::: ::: ::: X
+!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( masks(-1+i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
@@ -1019,7 +911,6 @@ c ::: ::: ::: X
                           outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5d0
                     innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder
@@ -1050,7 +941,6 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder
 
@@ -1079,11 +969,12 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
+!$omp end parallel do
 c ::: ::: ::: Z
+!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
@@ -1105,7 +996,6 @@ c ::: ::: ::: Z
                           outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5d0
                     innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -1136,7 +1026,6 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder
 
@@ -1165,10 +1054,10 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -1264,7 +1153,6 @@ c ::: ::: ::: ::: interior part of south face
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
                call polyInterpCoeff(xInt, x, leny+2, coef)
-#if USE_TMP
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1287,38 +1175,6 @@ c ::: ::: ::: ::: interior part of south face
      $                    maskn(i,hi(2)+1,k) .gt. 0)
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
-                        u(i,hi(2)+1,k,n) = cvmgt(
-     $                       bcval(i,hi(2)+1,k,n)*coef(-1),
-     $                       u(i,hi(2)+1,k,n),
-     $                       maskn(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do k = lo(3), hi(3)
-                     do i = lo(1), hi(1)
-                        u(i,hi(2)+1,k,n) = cvmgt(
-     $                       0.0d0,
-     $                       u(i,hi(2)+1,k,n),
-     $                       maskn(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do k = lo(3), hi(3)
-                  do m = 0, leny
-                     do i = lo(1), hi(1)
-                        u(i, hi(2)+1,k,n) = cvmgt(
-     $                       u(i,hi(2)+1,k,n)
-     $                       + u(i, hi(2)-m,k,n)*coef(m),
-     $                       u(i,hi(2)+1,k,n),
-     $                       maskn(i,hi(2)+1,k) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -1329,9 +1185,9 @@ c ::: ::: ::: ::: interior part of south face
                endif
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-               edgloc = 0.
                j=hi(2)
 c ::: ::: ::: X
+!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( maskn(-1+i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
@@ -1353,7 +1209,6 @@ c ::: ::: ::: X
                           outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5d0
                     innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder
@@ -1384,7 +1239,6 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder
 
@@ -1413,11 +1267,12 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
+!$omp end parallel do
 c ::: ::: ::: Z
+!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
@@ -1439,7 +1294,6 @@ c ::: ::: ::: Z
                           outder = 0.0d0
                        endif
                     endif
-                    innloc = 0.5d0
                     innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                     lambda = (edgloc-outloc)/(innloc-outloc)
                     trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder
@@ -1470,7 +1324,6 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder
 
@@ -1499,10 +1352,10 @@ c ::: ::: ::: Z
                   else
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
                   endif
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -1598,7 +1451,6 @@ c ::: ::: ::: interior part of bottom face
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
                call polyInterpCoeff(xInt, x, lenz+2, coef)
-#if USE_TMP
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1621,38 +1473,6 @@ c ::: ::: ::: interior part of bottom face
      &                    maskb(i,j,lo(3)-1).gt. 0 )
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do j = lo(2), hi(2)
-                     do i = lo(1), hi(1)
-                        u(i,j,lo(3)-1,n) = cvmgt(
-     $                       bcval(i,j,lo(3)-1,n)*coef(-1),
-     $                       u(i,j,lo(3)-1,n),
-     $                       maskb(i,j,lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do j = lo(2), hi(2)
-                     do i = lo(1), hi(1)
-                        u(i,j,lo(3)-1,n) = cvmgt(
-     $                       0.0d0,
-     $                       u(i,j,lo(3)-1,n),
-     $                       maskb(i,j,lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do j = lo(2), hi(2)
-                  do m = 0, lenz
-                     do i = lo(1), hi(1)
-                        u(i, j, lo(3)-1, n) = cvmgt(
-     $                       u(i, j, lo(3)-1,n)
-     $                       + u(i, j, lo(3)+m, n)*coef(m),
-     $                       u(i, j, lo(3)-1,n),
-     $                       maskb(i, j, lo(3)-1) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -1663,9 +1483,9 @@ c ::: ::: ::: interior part of bottom face
                endif
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-               edgloc = 0.
                k = lo(3)
 c ::: ::: ::: X
+!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskb(-1+i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
@@ -1687,7 +1507,6 @@ c ::: ::: ::: X
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-u(-1+i,j,k,n)+u(1+i,j,k,n))/(2.d0*hx)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
@@ -1718,7 +1537,6 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
 
@@ -1747,11 +1565,12 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
 c ::: ::: ::: Y               
+!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
@@ -1773,7 +1592,6 @@ c ::: ::: ::: Y
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-u(i,-1+j,k,n)+u(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
@@ -1804,7 +1622,6 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
 
@@ -1833,10 +1650,10 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -1932,7 +1749,6 @@ c ::: ::: ::: interior part of bottom face
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
                call polyInterpCoeff(xInt, x, lenz+2, coef)
-#if USE_TMP
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1956,38 +1772,6 @@ c ::: ::: ::: interior part of bottom face
      $                    maskt(i,j, hi(3)+1) .gt. 0)
                   enddo
                enddo
-#else
-               if ( flagbc .eq. 1 ) then
-                  do j = lo(2), hi(2)
-                     do i = lo(1), hi(1)
-                        u(i,j, hi(3)+1,n) = cvmgt(
-     $                       bcval(i,j, hi(3)+1,n)*coef(-1),
-     $                       u(i,j, hi(3)+1,n),
-     $                       maskt(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
-               else
-                  do j = lo(2), hi(2)
-                     do i = lo(1), hi(1)
-                        u(i,j, hi(3)+1,n) = cvmgt(
-     $                       0.0d0,
-     $                       u(i,j, hi(3)+1,n),
-     $                       maskt(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
-               endif
-               do j = lo(2), hi(2)
-                  do m = 0, lenz
-                     do i = lo(1), hi(1)
-                        u(i, j, hi(3)+1,n) = cvmgt(
-     $                       u(i,j, hi(3)+1,n)
-     $                       + u(i, j, hi(3)-m,n)*coef(m),
-     $                       u(i,j, hi(3)+1,n),
-     $                       maskt(i,j, hi(3)+1) .gt. 0)
-                     enddo
-                  enddo
-               enddo
-#endif
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -1998,9 +1782,9 @@ c ::: ::: ::: interior part of bottom face
                endif
 c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
-               edgloc = 0.
                k = hi(3)
 c ::: ::: ::: X
+!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskt(-1+i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
@@ -2022,7 +1806,6 @@ c ::: ::: ::: X
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-u(-1+i,j,k,n)+u(1+i,j,k,n))/(2.d0*hx)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
@@ -2053,7 +1836,6 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
 
@@ -2082,11 +1864,12 @@ c ::: ::: ::: X
                   else
                      innder = (-U(-1+i,j,k,n)+U(1+i,j,k,n))/(2.d0*hx)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
-c ::: ::: ::: Y               
+!$omp end parallel do
+c ::: ::: ::: Y      
+!$omp parallel do private(i,j,outloc,outder,innder,lambda)         
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
@@ -2108,7 +1891,6 @@ c ::: ::: ::: Y
                            outder = 0.0d0
                         endif
                      endif
-                     innloc = 0.5d0
                      innder = (-u(i,-1+j,k,n)+u(i,1+j,k,n))/(2.d0*hy)
                      lambda = (edgloc-outloc)/(innloc-outloc)
                      trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
@@ -2139,7 +1921,6 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
 
@@ -2168,10 +1949,10 @@ c ::: ::: ::: Y
                   else
                      innder = (-U(i,-1+j,k,n)+U(i,1+j,k,n))/(2.d0*hy)
                   endif                     
-                  innloc = 0.5d0
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
+!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
