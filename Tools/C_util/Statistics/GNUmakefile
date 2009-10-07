@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 2009-10-07 16:35:31 gpau Exp $
+# $Id: GNUmakefile,v 1.5 2009-10-07 21:24:49 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -37,6 +37,7 @@ EBASE = PltFileXAve
 CEXE_sources += $(EBASE).cpp
 
 include $(TOP)/mk/Make.defs ./Make.package
+XTRALIBS += -ldl
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
