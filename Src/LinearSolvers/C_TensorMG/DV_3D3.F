@@ -1142,6 +1142,11 @@ c ::: Null
       k=hi(3)
          j=hi(2)
          if( mod(k,2).eq.modz .and. mod(j,2).eq.mody ) then
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1275,6 +1280,7 @@ c ::: do relaxation
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
 
             enddo
+!$omp end parallel do
       endif
 
 c ::: case 8, top-south edge 
@@ -1282,6 +1288,11 @@ c ::: Null
       k=hi(3)
          j=lo(2)
          if( mod(k,2).eq.modz .and. mod(j,2).eq.mody) then
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1416,6 +1427,7 @@ c ::: do relaxation
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
 
             enddo
+!$omp end parallel do
       endif
 
 
@@ -1424,6 +1436,11 @@ c ::: Null
       k=hi(3)
       i=lo(1)
       if( mod(k,2).eq.modz .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1511,7 +1528,6 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))/(4.d0*hz)
       endif
 
-
 c ::: get diagonal element
       diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
      &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
@@ -1558,6 +1574,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
          enddo
+!$omp end parallel do
       endif
 
 
@@ -1567,6 +1584,11 @@ c ::: Null
       k=hi(3)
       i=hi(1)
       if( mod(k,2).eq.modz .and. mod(i,2).eq.modx) then
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1595,7 +1617,7 @@ c     :::  get expressions for normal derivatives
 
                dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
                dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
-
+               
 c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
@@ -1653,7 +1675,7 @@ c     ::: get expressions for tangential derivatives
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
      &  +U(i,1+j,1+k,2))/(4.d0*hz)
       endif
-
+        
 c ::: get diagonal element
       diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
      &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
@@ -1700,6 +1722,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
          enddo
+!$omp end parallel do
       endif
 
 
@@ -1709,6 +1732,11 @@ c ::: Null
       k=lo(3)
       j=hi(2)
       if( mod(k,2).eq.modz .and. mod(j,2).eq.mody) then
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1795,7 +1823,7 @@ c     ::: get expressions for tangential derivatives
      &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
-
+        
 c ::: get diagonal element
       diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
      &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
@@ -1842,6 +1870,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
             enddo
+!$omp end parallel do
         endif
 
 
@@ -1851,6 +1880,11 @@ c ::: Null
       k=lo(3)
       j=lo(2)
       if( mod(k,2).eq.modz .and. mod(j,2).eq.mody ) then
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1984,6 +2018,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
             enddo
+!$omp end parallel do
        endif
 
 
@@ -1993,6 +2028,11 @@ c ::: Null
       k=lo(3)
       i=lo(1)
       if( mod(k,2).eq.modz .and. mod(i,2).eq.modx) then
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
       do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2126,6 +2166,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
          enddo
+!$omp end parallel do
          endif
 
 
@@ -2135,6 +2176,11 @@ c ::: Null
       k=lo(3)
       i=hi(1)
       if( mod(k,2).eq.modz .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2268,6 +2314,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
          enddo
+!$omp end parallel do
          endif
 
 
@@ -2277,6 +2324,11 @@ c ::: Null
       j=hi(2)
       i=hi(1)
       if( mod(j,2).eq.mody .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2411,6 +2463,7 @@ c ::: do relaxation
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
 
       enddo
+!$omp end parallel do
       endif
 
 
@@ -2419,6 +2472,11 @@ c ::: Null
       j=lo(2)
       i=hi(1)
       if( mod(j,2).eq.mody .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2552,6 +2610,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
       enddo
+!$omp end parallel do
       endif
 
 
@@ -2561,6 +2620,11 @@ c ::: Null
       j=hi(2)
       i=lo(1)
       if( mod(j,2).eq.mody .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2647,8 +2711,7 @@ c     ::: get expressions for tangential derivatives
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
      &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
         dvdzn=trandern(i,1+j,k,2,3)
-
-
+        
 c ::: get diagonal element
       diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
      &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
@@ -2695,6 +2758,7 @@ c ::: do relaxation
                u(i,j,k,2) = (rhs(i,j,k,2)-operv)/diagv+u(i,j,k,2)
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
       enddo
+!$omp end parallel do
       endif
 
 
@@ -2704,6 +2768,11 @@ c ::: Null
       j=lo(2)
       i=lo(1)
       if( mod(j,2).eq.mody .and. mod(i,2).eq.modx ) then
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
+!$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2838,6 +2907,7 @@ c ::: do relaxation
                u(i,j,k,3) = (rhs(i,j,k,3)-operw)/diagw+u(i,j,k,3)
 
       enddo
+!$omp end parallel do
       endif
 
 
