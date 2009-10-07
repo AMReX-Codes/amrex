@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.12 2009-10-01 19:30:58 lijewski Exp $
+c $Id: LO_3D.F,v 1.13 2009-10-07 17:58:29 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -318,6 +318,7 @@ c
       REAL_T x(-1:maxmaxorder-2)
       REAL_T coef(-1:maxmaxorder-2)
       REAL_T xInt
+      parameter(xInt = -0.5D0)
 
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
       is_neumann(i) = (i .eq. LO_NEUMANN)
@@ -330,9 +331,8 @@ c
       lenx = MIN(hi(1)-lo(1), Lmaxorder-2)
       leny = MIN(hi(2)-lo(2), Lmaxorder-2)
       lenz = MIN(hi(3)-lo(3), Lmaxorder-2)
-      xInt = -0.5D0
 
-      do m=0,Lmaxorder-2
+      do m=0,maxmaxorder-2
          x(m) = m + 0.5D0
       end do
 c
