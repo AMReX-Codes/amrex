@@ -875,6 +875,10 @@ c ::: Null
 c ::: Null
       k=hi(3)
          j=hi(2)
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -979,12 +983,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
+!$omp end parallel do
 
 
 c ::: case 8, top-south edge 
 c ::: Null
       k=hi(3)
          j=lo(2)
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1089,12 +1098,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
+!$omp end parallel do
 
 
 c ::: case 9, top-west edge 
 c ::: Null
       k=hi(3)
       i=lo(1)
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1181,7 +1195,7 @@ c     ::: get expressions for tangential derivatives
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
      &  +U(i,1+j,1+k,2))/(4.d0*hz)
       endif
-
+        
 c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
@@ -1199,11 +1213,16 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
+!$omp end parallel do
 
 c ::: case 10, top-east edge 
 c ::: Null
       k=hi(3)
       i=hi(1)
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1308,12 +1327,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
+!$omp end parallel do
 
 
 c ::: case 11, bottom-north edge 
 c ::: Null
       k=lo(3)
       j=hi(2)
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1418,12 +1442,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
+!$omp end parallel do
 
 
 c ::: case 12, bottom-south edge 
 c ::: Null
       k=lo(3)
       j=lo(2)
+!$omp parallel do private(i,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1452,7 +1481,7 @@ c     :::  get expressions for normal derivatives
 
                dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
                dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
-
+               
 c     ::: get expressions for tangential derivatives
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
@@ -1528,13 +1557,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
-
+!$omp end parallel do
 
 
 c ::: case 13, bottom-west edge 
 c ::: Null
       k=lo(3)
       i=lo(1)
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1639,13 +1672,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
-
+!$omp end parallel do
 
 
 c ::: case 14, bottom-east edge 
 c ::: Null
       k=lo(3)
       i=hi(1)
+!$omp parallel do private(j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1750,12 +1787,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
+!$omp end parallel do
 
 
 c ::: case 15, east-north edge
 c ::: Null
       j=hi(2)
       i=hi(1)
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1860,12 +1902,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
+!$omp end parallel do
 
 
 c ::: case 16, east-south edge
 c ::: Null
       j=lo(2)
       i=hi(1)
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1970,12 +2017,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
+!$omp end parallel do
 
 
 c ::: case 17, west-north edge
 c ::: Null
       j=hi(2)
       i=lo(1)
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2080,13 +2132,17 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
-
+!$omp end parallel do
 
 
 c ::: case 18, west-south edge
 c ::: Null
       j=lo(2)
       i=lo(1)
+!$omp parallel do private(k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
+!$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
+!$omp&private(dwdys,dwdyn,dvdxn,dvdxs,dwdxb,dwdxt,dudye,dudyw,dwdyb)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -2191,6 +2247,8 @@ c     :::  evaluate expression
      &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
+!$omp end parallel do
+
 
 c ::: case 19, top-north-east corner
 c ::: Null
