@@ -69,6 +69,7 @@ c :::    to check the masks.
      $                         tranderb,DIMS(tranderb),
      $                         lo,hi,h,ncomp,phaseflag
      $                         )
+      implicit none
       REAL_T alpha, beta
       integer DIMDEC(u)
       integer DIMDEC(rhs)
@@ -463,7 +464,7 @@ c ::: Null
 !$omp parallel do private(i,j,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
 !$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
 !$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
-!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diavw)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
 !$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
             do i=istart,hi(1)-1,2
@@ -868,7 +869,7 @@ c ::: Null
 !$omp parallel do private(i,k,dudxe,dudxw,dvdyn,dvdys,dwdzt,dwdzb,dudyn)
 !$omp&private(dudys,dvdxe,dvdxw,dudzt,dudzb,dvdzb,dvdzt,dwdxw,dwdxe)
 !$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
-!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diavw)
+!$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
 !$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
             do i=istart,hi(1)-1,2
