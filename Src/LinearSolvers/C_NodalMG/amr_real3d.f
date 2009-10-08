@@ -778,6 +778,7 @@ c NODE-based data only.
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision fac0, fac1, fac2, fac
       integer i, j, k, l, m, n, nc
+!$omp parallel
       do nc = 1, ncomp
          do k = regl2, regh2
             do j = regl1, regh1
@@ -796,6 +797,7 @@ c NODE-based data only.
                do m = 0, ir-1
                   fac = (ir-m) * fac1
                   if (m .eq. 0) fac = 0.5D0 * fac
+!$omp do private(i,j,k)
                   do k = regl2, regh2
                      do j = regl1, regh1
                         do i = regl0, regh0
@@ -811,6 +813,7 @@ c NODE-based data only.
                         end do
                      end do
                   end do
+!$omp end do nowait
                end do
             end do
          end do
@@ -825,6 +828,7 @@ c NODE-based data only.
             end do
          end if
       end do
+!$omp end parallel
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.

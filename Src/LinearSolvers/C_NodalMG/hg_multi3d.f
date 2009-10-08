@@ -2620,12 +2620,14 @@ c-----------------------------------------------------------------------
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
+!$omp parallel do reduction(+ : rho)
       do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
          r(i) = r(i) - alpha * w(i)
          x(i) = x(i) + alpha * p(i)
          z(i) = r(i) * c(i)
          rho = rho + mask(i) * z(i) * r(i)
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgcg2(
