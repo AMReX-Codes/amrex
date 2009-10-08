@@ -975,6 +975,7 @@ c Note---only generates values at coarse points along edge of fine grid
          hxm1 = 1.0D0 / (ir * hx)
          hym1 = 1.0D0 / (jr * hy)
          hzm1 = 1.0D0 / (kr * hz)
+!$omp parallel do private(j,k)
          do k = cregl2, cregh2
             do j = cregl1, cregh1
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -986,6 +987,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                           uc(iuc,j-1,k) + uc(iuc,j-1,k-1)))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * jr * kr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -997,6 +999,7 @@ c Note---only generates values at coarse points along edge of fine grid
             do n = 0, jr-1
                fac = (jr-n) * fac1
                if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(j,k,tmp)
                do k = kr*cregl2, kr*cregh2, kr
                   do j = jr*cregl1, jr*cregh1, jr
                      tmp = hxm1 * idir *
@@ -1028,6 +1031,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  wf(iuf,j+n-1,k+l) - wf(iuf,j+n-1,k+l-1)))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else if (idim .eq. 1) then
@@ -1043,6 +1047,7 @@ c Note---only generates values at coarse points along edge of fine grid
          hxm1 = 1.0D0 / (ir * hx)
          hym1 = 1.0D0 / (jr * hy)
          hzm1 = 1.0D0 / (kr * hz)
+!$omp parallel do private(i,k)
          do k = cregl2, cregh2
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -1054,6 +1059,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                    wc(i-1,juc,k) - wc(i-1,juc,k-1)))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * ir * kr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -1065,6 +1071,7 @@ c Note---only generates values at coarse points along edge of fine grid
             do m = 0, ir-1
                fac = (ir-m) * fac1
                if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(i,k,tmp)
                do k = kr*cregl2, kr*cregh2, kr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = hxm1 *
@@ -1096,6 +1103,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  wf(i+m-1,juf,k+l) - wf(i+m-1,juf,k+l-1)))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else
@@ -1111,6 +1119,7 @@ c Note---only generates values at coarse points along edge of fine grid
          hxm1 = 1.0D0 / (ir * hx)
          hym1 = 1.0D0 / (jr * hy)
          hzm1 = 1.0D0 / (kr * hz)
+!$omp parallel do private(i,j)
          do j = cregl1, cregh1
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) = fac0 *
@@ -1122,6 +1131,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                           wc(i-1,j,kuc) + wc(i-1,j-1,kuc)))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * ir * jr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -1133,6 +1143,7 @@ c Note---only generates values at coarse points along edge of fine grid
             do m = 0, ir-1
                fac = (ir-m) * fac1
                if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(i,j,tmp)
                do j = jr*cregl1, jr*cregh1, jr
                   do i = ir*cregl0, ir*cregh0, ir
                      tmp = hxm1 *
@@ -1164,6 +1175,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  wf(i+m-1,j+n,kuf) + wf(i+m-1,j+n-1,kuf)))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       end if
