@@ -35,6 +35,7 @@ c Works for CELL-based data.
       double precision v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
       double precision sum
       integer i, j, k
+!$omp parallel do private(i,j,k) reduction(+ : sum)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -42,6 +43,7 @@ c Works for CELL-based data.
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -108,6 +110,7 @@ c Works for CELL- or NODE-based data.
      &                   v0(regh0,j,k) * v1(regh0,j,k))
          end do
       end do
+!$omp parallel do private(i,j,k) reduction(+ : sum)
       do  k = regl2 + 1, regh2 - 1
          do  j = regl1 + 1, regh1 - 1
             do  i = regl0 + 1, regh0 - 1
@@ -115,6 +118,7 @@ c Works for CELL- or NODE-based data.
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c     These routines implement boundary conditions
@@ -595,6 +599,7 @@ c CELL-based data only.
       double precision xoff, yoff, zoff, sx, sy, sz
       integer ic, jc, kc, i, j, k, nc
       do nc = 1, ncomp
+!$omp parallel do private(i,j,k,kc,jc,ic,zoff,yoff,xoff)
       do k = regl2, regh2
          kc = k/kr
          zoff = (mod(k,kr) + 0.5D0) / kr - 0.5D0
@@ -612,6 +617,7 @@ c CELL-based data only.
             end do
          end do
       end do
+!$omp end parallel do
       end do
       end
 c-----------------------------------------------------------------------
@@ -865,6 +871,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
+!$omp parallel
          do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
@@ -874,6 +881,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                if (n .eq. 0) fac1 = 0.5D0 * fac1
                do m = idir, idir*(ir-1), idir
                   fac = (ir-abs(m)) * fac1
+!$omp do private(j,k)
                   do k = regl2, regh2
                      do j = regl1, regh1
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
@@ -883,10 +891,12 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
+!$omp end do nowait
                end do
             end do
          end do
          end do
+!$omp end parallel
       else if (idim .eq. 1) then
          if (integ .eq. 0) then
             fac = (0.5D0 + 0.5D0 / jr)
@@ -903,6 +913,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
+!$omp parallel
          do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
@@ -912,6 +923,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                do m = 0, ir-1
                   fac = (ir-m) * fac1
                   if (m .eq. 0) fac = 0.5D0 * fac
+!$omp do private(i,k)
                   do k = regl2, regh2
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
@@ -921,10 +933,12 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
+!$omp end do nowait
                end do
             end do
          end do
          end do
+!$omp end parallel
       else
          if (integ .eq. 0) then
             fac = (0.5D0 + 0.5D0 / kr)
@@ -941,6 +955,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
+!$omp parallel
          do nc = 1, ncomp
          do l = idir, idir*(kr-1), idir
             fac2 = (kr-abs(l)) * fac0
@@ -950,6 +965,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                do m = 0, ir-1
                   fac = (ir-m) * fac1
                   if (m .eq. 0) fac = 0.5D0 * fac
+!$omp do private(i,j)
                   do j = regl1, regh1
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
@@ -959,9 +975,11 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
+!$omp end do nowait
                end do
             end do
          end do
          end do
+!$omp end parallel
       end if
       end
