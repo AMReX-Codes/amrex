@@ -199,9 +199,10 @@ main (int   argc,
     std::string pfile;
     MultiFab phidata;
     pp.query("phifile",pfile);
-    pfile += "/pp";
-    VisMF::Read(phidata,pfile);
-
+    if (!pfile.empty()) {
+      pfile += "/pp";
+      VisMF::Read(phidata,pfile);
+    }
     Real phi = 0.;
     pp.query("phi",phi);
 
@@ -214,8 +215,9 @@ main (int   argc,
     pp.query("analysis",analysis);
 
     if (analysis == 0) { 
-      if (pfile.empty())
+      if (pfile.empty()) {
 	compute_flux_all(nstart, nmax, nfac, iFile, phi);
+      }
       else
 	compute_flux_all(nstart, nmax, nfac, iFile, phidata);
     }
@@ -323,7 +325,6 @@ compute_flux_all(int nstart,
 	
 
     if (i == nstart) {
-      //finestLevel = amrData.FinestLevel();
       finestLevel = 0;
       BoxArray ba = amrData.boxArray(finestLevel);
       
@@ -363,9 +364,12 @@ compute_flux_all(int nstart,
       const int* hi = tmpmean[mfi].hiVect();
       
 #if (BL_SPACEDIM == 2)
-      for (int iy=lo[1]; iy<=hi[1]; iy++)
-	for (int ix=lo[0]; ix<=hi[0]; ix++)
+      for (int iy=lo[1]; iy<=hi[1]; iy++){
+	for (int ix=lo[0]; ix<=hi[0]; ix++) {
 	  xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*phi;
+	  std::cout << dx[1] <<  " " << dmn.length(0) << std::endl;
+	}
+      }
 #else
       for (int iz=lo[2]; iz<=hi[2]; iz++)
 	for (int iy=lo[1]; iy<=hi[1]; iy++)
@@ -462,8 +466,12 @@ compute_flux_all(int nstart,
       destcomp[1] = 1;
 
       finestLevel = amrData.FinestLevel();
-      //finestLevel = 0;
-      BoxArray ba = amrData.boxArray(finestLevel);
+      dmn = amrData.ProbDomain()[finestLevel];
+      BoxArray ba(dmn);
+      ba.maxSize(128);
+
+      //int baseLevel = 0;
+      //BoxArray ba = amrData.boxArray(baseLevel);
       
       int ng_twoexp = 1;
       for (int ii = 0; ii<finestLevel; ii++) {
@@ -479,15 +487,13 @@ compute_flux_all(int nstart,
       
       MultiFab mftmp(ba2,1,0);
       mftmp.copy(phidata);
-
+      
       tmpmean.define(ba,nComp,0,Fab_allocate);
       tmpphi.define(ba,nComp,0,Fab_allocate);
       for (MFIter mfi(mftmp);mfi.isValid();++mfi)
 	tmpphi[mfi].copy(mftmp[mfi]);
-      
       mftmp.clear();      
 
-      dmn = amrData.ProbDomain()[finestLevel];
       //
       // Currently we assume dmn starts at zero.
       //
@@ -518,10 +524,12 @@ compute_flux_all(int nstart,
       const int* hi = tmpmean[mfi].hiVect();
       
 #if (BL_SPACEDIM == 2)
-      for (int iy=lo[1]; iy<=hi[1]; iy++)
-	for (int ix=lo[0]; ix<=hi[0]; ix++)
+      for (int iy=lo[1]; iy<=hi[1]; iy++) {
+	for (int ix=lo[0]; ix<=hi[0]; ix++) {
 	  xnew[iy] += tmpmean[mfi](IntVect(ix,iy),0)*
 	    tmpphi[mfi](IntVect(ix,iy),0);
+	}
+      }
 #else
       for (int iz=lo[2]; iz<=hi[2]; iz++)
 	for (int iy=lo[1]; iy<=hi[1]; iy++)
