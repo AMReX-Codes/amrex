@@ -157,8 +157,8 @@ c
       parameter( True=.true. )
       parameter( xInt = -0.5d0 )
 c
-      is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
-      is_neumann(i) = (i .eq. LO_NEUMANN)
+      is_dirichlet(ii) = (ii .eq. LO_DIRICHLET)
+      is_neumann(ii) = (ii .eq. LO_NEUMANN)
 c
       if ( maxorder .eq. -1 ) then
          Lmaxorder = maxmaxorder
