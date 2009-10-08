@@ -631,6 +631,8 @@ c ::: Null
 c ::: tnw
       k=hi(3)
          j=hi(2)
+!$omp parallel do private(i,dudxw,dvdyn,dwdzt,dudyn,dvdxw,dudzt,dvdzt)
+!$omp&private(dwdxw,dwdyn,dudyw,dvdxn,dwdxt,dwdyt,dudzw,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -687,12 +689,15 @@ c     :::  evaluate expression
               zflux(i,j,k+1,3)=-(2*dwdzt*muZ(i,j,1+k))
 
             enddo
+!$omp end parallel do
 
 c ::: case 8, top-south edge 
 c ::: Null
 c ::: tsw
       k=hi(3)
          j=lo(2)
+!$omp parallel do private(i,dudxw,dvdys,dwdzt,dudys,dvdxw,dudzt,dvdzt)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxt,dwdyt,dudzw,dvdzs)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -734,7 +739,7 @@ c     ::: get expressions for tangential derivatives
      &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
-
+        
 c     :::  evaluate expression
               xflux(i,j,k,1)=-(2*dudxw*muX(i,j,k))
               xflux(i,j,k,2)=-((dudyw+dvdxw)*muX(i,j,k))
@@ -748,6 +753,7 @@ c     :::  evaluate expression
               zflux(i,j,k+1,2)=-((dvdzt+dwdyt)*muZ(i,j,1+k))
               zflux(i,j,k+1,3)=-(2*dwdzt*muZ(i,j,1+k))
             enddo
+!$omp end parallel do
 
 
 c ::: case 9, top-west edge 
@@ -755,6 +761,8 @@ c ::: Null
 c ::: tsw
       k=hi(3)
       i=lo(1)
+!$omp parallel do private(j,dudxw,dvdys,dwdzt,dudys,dvdxw,dudzt,dvdzt)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxt,dwdyt,dudzw,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -811,12 +819,16 @@ c     :::  evaluate expression
               zflux(i,j,k+1,3)=-(2*dwdzt*muZ(i,j,1+k))
 
          enddo
+!$omp end parallel do
+
 
 c ::: case 10, top-east edge 
 c ::: Null
 c ::: tes
       k=hi(3)
       i=hi(1)
+!$omp parallel do private(j,dudxe,dvdys,dwdzt,dudys,dvdxe,dudzt,dvdzt)
+!$omp&private(dwdxe,dwdys,dudye,dvdxs,dwdxt,dwdyt,dudze,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -873,11 +885,16 @@ c     :::  evaluate expression
               zflux(i,j,k+1,3)=-(2*dwdzt*muZ(i,j,1+k))
 
          enddo
+!$omp end parallel do
+
+
 c ::: case 11, bottom-north edge 
 c ::: Null
 c ::: bnw
       k=lo(3)
       j=hi(2)
+!$omp parallel do private(i,dudxw,dvdyn,dwdzb,dudyn,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdyn,dudyw,dvdxn,dwdxb,dwdyb,dudzw,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -932,14 +949,17 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
             enddo
+!$omp end parallel do
+
 
 c ::: case 12, bottom-south edge 
 c ::: Null
 c ::: bsw
       k=lo(3)
       j=lo(2)
+!$omp parallel do private(i,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -994,8 +1014,8 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
             enddo
+!$omp end parallel do
 
 
 c ::: case 13, bottom-west edge 
@@ -1003,6 +1023,8 @@ c ::: Null
 c ::: bws
       k=lo(3)
       i=lo(1)
+!$omp parallel do private(j,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
       do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -1057,9 +1079,8 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
          enddo
-
+!$omp end parallel do
 
 
 c ::: case 14, bottom-east edge 
@@ -1067,6 +1088,8 @@ c ::: Null
 c ::: bse
       k=lo(3)
       i=hi(1)
+!$omp parallel do private(j,dudxe,dvdys,dwdzb,dudys,dvdxe,dudzb,dvdzb)
+!$omp&private(dwdxe,dwdys,dvdxs,dwdxb,dudye,dwdyb,dudze,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1108,7 +1131,7 @@ c     ::: get expressions for tangential derivatives
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
      &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
       endif
-
+        
 c     :::  evaluate expression
               xflux(i+1,j,k,1)=-(2*dudxe*muX(1+i,j,k))
               xflux(i+1,j,k,2)=-((dudye+dvdxe)*muX(1+i,j,k))
@@ -1121,9 +1144,8 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
          enddo
-
+!$omp end parallel do
 
 
 c ::: case 15, east-north edge
@@ -1131,6 +1153,8 @@ c ::: Null
 c ::: neb
       j=hi(2)
       i=hi(1)
+!$omp parallel do private(k,dudxe,dvdyn,dwdzb,dudyn,dvdxe,dudzb,dvdzb)
+!$omp&private(dwdxe,dwdyn,dvdxn,dwdxb,dudye,dwdyb,dudze,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1185,15 +1209,16 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
       enddo
-
+!$omp end parallel do
 
 c ::: case 16, east-south edge
 c ::: Null
 c ::: esb
       j=lo(2)
       i=hi(1)
+!$omp parallel do private(k,dudxe,dvdys,dwdzb,dudys,dvdxe,dudzb,dvdzb)
+!$omp&private(dwdxe,dwdys,dvdxs,dwdxb,dudye,dwdyb,dudze,dvdzs)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
@@ -1248,14 +1273,17 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
       enddo
+!$omp end parallel do
+
 
 c ::: case 17, west-north edge
 c ::: Null
 c ::: nwb
       j=hi(2)
       i=lo(1)
+!$omp parallel do private(k,dudxw,dvdyn,dwdzb,dudyn,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdyn,dvdxn,dwdxb,dudyw,dwdyb,dudzw,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -1311,6 +1339,7 @@ c     :::  evaluate expression
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
       enddo
+!$omp end parallel do
 
 
 c ::: case 18, west-south edge
@@ -1318,6 +1347,8 @@ c ::: Null
 c ::: swb
       j=lo(2)
       i=lo(1)
+!$omp parallel do private(k,dudxw,dvdys,dwdzb,dudys,dvdxw,dudzb,dvdzb)
+!$omp&private(dwdxw,dwdys,dvdxs,dwdxb,dudyw,dwdyb,dudzw,dvdzs)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
@@ -1373,6 +1404,7 @@ c     :::  evaluate expression
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
       enddo
+!$omp end parallel do
 
 
 c ::: case 19, top-north-east corner
@@ -2022,8 +2054,4 @@ c     :::  evaluate expression
               zflux(i,j,k,1)=-((dudzb+dwdxb)*muZ(i,j,k))
               zflux(i,j,k,2)=-((dvdzb+dwdyb)*muZ(i,j,k))
               zflux(i,j,k,3)=-(2*dwdzb*muZ(i,j,k))
-
-
-
-
       end
