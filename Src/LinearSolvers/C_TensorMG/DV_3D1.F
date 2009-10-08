@@ -107,8 +107,6 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       REAL_T tranderb(DIMV(tranderb),3,3)
 
       integer i,j,k
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
       REAL_T hx,hy,hz
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
