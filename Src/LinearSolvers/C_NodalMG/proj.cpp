@@ -645,7 +645,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // Real tol = 2.e-10;
     //Real tol = 5.e-9;
 #endif
-    t0 = BoxLib::second();
+    t0 = ParallelDescriptor::second();
     inviscid_fluid_boundary afb(bc);
     holy_grail_amr_projector proj(m, ratio,
 				  domain[m.size() - 1], 0,
@@ -667,7 +667,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 
     if (m.size() == 1)
     {
-	t1 = BoxLib::second();
+	t1 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol);
@@ -678,7 +678,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			 0, 0, crse_geom,
 			 h, tol);
 	}
-	t2 = BoxLib::second();
+	t2 = ParallelDescriptor::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
@@ -705,18 +705,18 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
         double t00, t01, t10, t11, t20, t21;
 #if 1
         init(u, p, m, ratio);
-	t00 = BoxLib::second();
+	t00 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol, 1, 1);
-	t01 = BoxLib::second();
+	t01 = ParallelDescriptor::second();
 #endif
 	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
         init(u, p, m, ratio);
-	t10 = BoxLib::second();
+	t10 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol, 0, 1);
@@ -727,7 +727,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			 0, 0, crse_geom,
 			 h, tol, 0, 1);
 	}
-	t11 = BoxLib::second();
+	t11 = ParallelDescriptor::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
@@ -753,34 +753,34 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     {
         double t00, t01, t10, t11, t20, t21;
         init(u, p, m, ratio);
-	t00 = BoxLib::second();
+	t00 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     2, 2);
-	t01 = BoxLib::second();
+	t01 = ParallelDescriptor::second();
 	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
         init(u, p, m, ratio);
-	t10 = BoxLib::second();
+	t10 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     1, 2);
-	t11 = BoxLib::second();
+	t11 = ParallelDescriptor::second();
 	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
         init(u, p, m, ratio);
-	t20 = BoxLib::second();
+	t20 = ParallelDescriptor::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     0, 2);
-	t21 = BoxLib::second();
+	t21 = ParallelDescriptor::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
@@ -800,7 +800,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			    0, 0, crse_geom,
 			    true,
 			    h, tol, 2, 3);
-	t1 = BoxLib::second();
+	t1 = ParallelDescriptor::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
@@ -817,7 +817,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     p[i].setVal(0.0);
     holy_grail_amr_projector proj(m, 0, m.size() - 1, afb, pcode);
     proj.project(u, p, null_amr_real, rhoinv, h, 1.e-14);
-    t2 = BoxLib::second();
+    t2 = ParallelDescriptor::second();
     std::cout << "Second time is " << t2 - t1 << std::endl;
     std::cout << "Total time was  " << t2 - t0 << std::endl;
     }
