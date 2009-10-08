@@ -38,6 +38,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
          hxm2 = 1.0D0 / (ir * ir * hx * hx)
          hym2 = 1.0D0 / (jr * jr * hy * hy)
          hzm2 = 1.0D0 / (kr * kr * hz * hz)
+!$omp parallel do private(j,k)
          do k = regl2, regh2
             do j = regl1, regh1
                res(i*ir,j*jr,k*kr) =
@@ -58,6 +59,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 (cdst(i,j,k+1) - cdst(i,j,k))))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * jr * kr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -74,6 +76,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             do n = 0, jr-1
                fac1 = (jr-n) * fac2
                if (n .eq. 0) fac1 = 0.5D0 * fac1
+!$omp parallel do private(j,k,tmp)
                do k = kr*regl2, kr*regh2, kr
                   do j = jr*regl1, jr*regh1, jr
                      tmp = hxm2 *
@@ -125,6 +128,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                   (fdst(i,j+n,k+l+1) - fdst(i,j+n,k+l))))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else if (idim .eq. 1) then
@@ -138,6 +142,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
          hxm2 = 1.0D0 / (ir * ir * hx * hx)
          hym2 = 1.0D0 / (jr * jr * hy * hy)
          hzm2 = 1.0D0 / (kr * kr * hz * hz)
+!$omp parallel do private(i,k)
          do k = regl2, regh2
             do i = regl0, regh0
                res(i*ir,j*jr,k*kr) =
@@ -158,6 +163,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 (cdst(i,j,k+1) - cdst(i,j,k))))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * ir * kr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -174,6 +180,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             do m = 0, ir-1
                fac1 = (ir-m) * fac2
                if (m .eq. 0) fac1 = 0.5D0 * fac1
+!$omp parallel do private(i,k,tmp)
                do k = kr*regl2, kr*regh2, kr
                   do i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
@@ -225,6 +232,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                   (fdst(i+m,j,k+l+1) - fdst(i+m,j,k+l))))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else
@@ -238,6 +246,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
          hxm2 = 1.0D0 / (ir * ir * hx * hx)
          hym2 = 1.0D0 / (jr * jr * hy * hy)
          hzm2 = 1.0D0 / (kr * kr * hz * hz)
+!$omp parallel do private(i,j)
          do j = regl1, regh1
             do i = regl0, regh0
                res(i*ir,j*jr,k*kr) =
@@ -258,6 +267,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                 (cdst(i,j,k-idir) - cdst(i,j,k))))
             end do
          end do
+!$omp end parallel do
          fac0 = fac0 / (ir * jr * kr * ir * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -274,6 +284,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             do m = 0, ir-1
                fac1 = (ir-m) * fac2
                if (m .eq. 0) fac1 = 0.5D0 * fac1
+!$omp parallel do private(i,j,tmp)
                do j = jr*regl1, jr*regh1, jr
                   do i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
@@ -325,6 +336,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                   (fdst(i+m,j+n,k+idir) - fdst(i+m,j+n,k))))
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       end if
@@ -1570,13 +1582,15 @@ c CELL-based data only.
       if (ir .ne. 2 .and. jr .ne. 2 .and. kr .ne. 2) then
           stop "this can't happen"
       endif
+!$omp parallel private(i,j,k,i2,j2,k2)
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
+!$omp do
          do k = regl2, regh2
+            k2 = 2 * k
             do j = regl1, regh1
+               j2 = 2 * j
                do i = regl0, regh0
                   i2 = 2 * i
-                  j2 = 2 * j
-                  k2 = 2 * k
                   destx(i,j,k) = 0.5D0 / (1.0D0 / (srcx(i2,j2,k2) +
      &                                            srcx(i2,j2,k2+1) +
      &                                            srcx(i2,j2+1,k2) +
@@ -1604,12 +1618,14 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (ir .eq. 2 .and. jr .eq. 2) then
+!$omp do
          do k = regl2, regh2
             do j = regl1, regh1
+               j2 = 2 * j
                do i = regl0, regh0
                   i2 = 2 * i
-                  j2 = 2 * j
                   destx(i,j,k) = 1.0D0 / (1.0D0 / (srcx(i2,j2,k) +
      &                                           srcx(i2,j2+1,k)) +
      &                                   1.0D0 / (srcx(i2+1,j2,k) +
@@ -1625,12 +1641,14 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (ir .eq. 2 .and. kr .eq. 2) then
+!$omp do
          do k = regl2, regh2
+            k2 = 2 * k
             do j = regl1, regh1
                do i = regl0, regh0
                   i2 = 2 * i
-                  k2 = 2 * k
                   destx(i,j,k) = 1.0D0 / (1.0D0 / (srcx(i2,j,k2) +
      &                                           srcx(i2,j,k2+1)) +
      &                                   1.0D0 / (srcx(i2+1,j,k2) +
@@ -1646,12 +1664,14 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (jr .eq. 2 .and. kr .eq. 2) then
+!$omp do
          do k = regl2, regh2
+            k2 = 2 * k
             do j = regl1, regh1
+               j2 = 2 * j
                do i = regl0, regh0
-                  j2 = 2 * j
-                  k2 = 2 * k
                   destx(i,j,k) = 0.25D0 * (srcx(i,j2,k2) +
      &                                     srcx(i,j2,k2+1) +
      &                                     srcx(i,j2+1,k2) +
@@ -1667,7 +1687,9 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (ir .eq. 2) then
+!$omp do
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
@@ -1681,11 +1703,13 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (jr .eq. 2) then
+!$omp do
          do k = regl2, regh2
             do j = regl1, regh1
+               j2 = 2 * j
                do i = regl0, regh0
-                  j2 = 2 * j
                   destx(i,j,k) = 0.5D0 * (srcx(i,j2,k) +
      &                                    srcx(i,j2+1,k))
                   desty(i,j,k) = 2.0D0 / (1.0D0 / srcy(i,j2,k) +
@@ -1695,11 +1719,13 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       else if (kr .eq. 2) then
+!$omp do
          do k = regl2, regh2
+            k2 = 2 * k
             do j = regl1, regh1
                do i = regl0, regh0
-                  k2 = 2 * k
                   destx(i,j,k) = 0.5D0 * (srcx(i,j,k2) +
      &                                    srcx(i,j,k2+1))
                   desty(i,j,k) = 0.5D0 * (srcy(i,j,k2) +
@@ -1709,7 +1735,9 @@ c CELL-based data only.
                end do
             end do
          end do
+!$omp end do
       end if
+!$omp end parallel
       end
 c seven-point variable stencils
 c-----------------------------------------------------------------------
@@ -2344,6 +2372,7 @@ c-----------------------------------------------------------------------
       double precision signd(resl0:resh0,resl1:resh1,resl2:resh2,3)
       integer i, j, k, jdiff, kdiff, ly, lz
       integer idd
+!$omp parallel do private(i,j,k)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -2357,6 +2386,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgscon(
@@ -2494,6 +2524,7 @@ c-----------------------------------------------------------------------
       hxm2 = 1.0D0 / (hx*hx)
       hym2 = 1.0D0 / (hy*hy)
       hzm2 = 1.0D0 / (hz*hz)
+!$omp parallel do private(i,j,k)
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
@@ -2519,6 +2550,7 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnb(
@@ -2599,9 +2631,11 @@ c Works for NODE-based data.
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
+!$omp parallel do reduction(+ : sum)
       do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
          sum = sum + mask(i) * v0(i) * v1(i)
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgcg1(
