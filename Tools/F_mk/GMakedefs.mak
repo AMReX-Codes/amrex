@@ -273,6 +273,16 @@ ifeq ($(ARCH),Linux)
     _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
+    ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
+      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+        _ifc  := mpiifort
+        _icc  := mpicc
+        _comp := Intel11
+      else
+        _ifc  := ifort
+        _comp := Intel11
+      endif
+    else
     ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
       ifeq ($(findstring homer, $(UNAMEN)), homer)
         _ifc  := mpif90
@@ -297,6 +307,7 @@ ifeq ($(ARCH),Linux)
       _comp := Intel8
     else
       $(errorr "$(_ifc_version) of IFC is not supported")
+    endif
     endif
     endif
     endif
