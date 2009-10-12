@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.64 2009-10-01 18:18:10 lijewski Exp $
+// $Id: BaseFab.H,v 1.65 2009-10-12 21:37:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1408,7 +1408,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 
 template <class T>
 void
-BaseFab<T>::performSetVal (T         val,
+BaseFab<T>::performSetVal (T          val,
                            const Box& bx,
                            int        ns,
                            int        num)
@@ -1436,8 +1436,8 @@ BaseFab<T>::performSetVal (T         val,
 
 #if !( defined(WIN32))
 //
-// Forward declaration of template specializaton for Real.
-// Definition is found in BaseFab.cpp.
+// Forward declaration of template specializatons for Real.
+// Definitions are found in BaseFab.cpp.
 //
 template <>
 void
@@ -1459,6 +1459,38 @@ BaseFab<Real>::norm (const Box& subbox,
                      int        p,
                      int        comp,
                      int        ncomp) const;
+template <>
+BaseFab<Real>&
+BaseFab<Real>::plus (const BaseFab<Real>& src,
+                     const Box&           srcbox,
+                     const Box&           destbox,
+                     int                  srccomp,
+                     int                  destcomp,
+                     int                  numcomp);
+template <>
+BaseFab<Real>&
+BaseFab<Real>::mult (const BaseFab<Real>& src,
+                     const Box&           srcbox,
+                     const Box&           destbox,
+                     int                  srccomp,
+                     int                  destcomp,
+                     int                  numcomp);
+template <>
+BaseFab<Real>&
+BaseFab<Real>::minus (const BaseFab<Real>& src,
+                      const Box&           srcbox,
+                      const Box&           destbox,
+                      int                  srccomp,
+                      int                  destcomp,
+                      int                  numcomp);
+template <>
+BaseFab<Real>&
+BaseFab<Real>::divide (const BaseFab<Real>& src,
+                       const Box&           srcbox,
+                       const Box&           destbox,
+                       int                  srccomp,
+                       int                  destcomp,
+                       int                  numcomp);
 #endif
 
 template <class T>
@@ -1477,10 +1509,7 @@ template <class T>
 void
 BaseFab<T>::abs ()
 {
-    ForAllThis(Real)
-    {
-        thisR = std::abs(thisR);
-    } EndFor
+    return this->abs(domain,0,nvar);
 }
 
 template <class T>
@@ -1488,10 +1517,7 @@ void
 BaseFab<T>::abs (int comp,
                  int numcomp)
 {
-    ForAllThisNN(Real,comp,numcomp)
-    {
-        thisR = std::abs(thisR);
-    } EndFor
+    return this->abs(domain,comp,numcomp);
 }
 
 template <class T>
@@ -1590,32 +1616,7 @@ template <class T>
 T
 BaseFab<T>::min (int comp) const
 {
-    T*  _min_row = 0;
-    int _X_len   = 0;
-    ForAllThisCPencil(T,domain,comp,1)
-    {
-        const T* _row = &thisR;
-        if (_min_row == 0)
-        {
-            _min_row = new T[thisLen];
-            _X_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _min_row[i] = _row[i];
-        }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-                _min_row[i] = std::min(_row[i],_min_row[i]);
-        }
-    } EndForPencil;
-
-    T _min = _min_row[0];
-    for (int i = 1; i < _X_len; i++)
-        _min = std::min(_min,_min_row[i]);
-
-    delete [] _min_row;
-
-    return _min;
+    return this->min(domain,comp);
 }
 
 template <class T>
@@ -1655,32 +1656,7 @@ template <class T>
 T
 BaseFab<T>::max (int comp) const
 {
-    T* _max_row = 0;
-    int _X_len  = 0;
-    ForAllThisCPencil(T,domain,comp,1)
-    {
-        const T* _row = &thisR;
-        if (_max_row== 0)
-        {
-            _max_row = new T[thisLen];
-            _X_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _max_row[i] = _row[i];
-        }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-                _max_row[i] = std::max(_row[i],_max_row[i]);
-        }
-    } EndForPencil;
-
-    T _max = _max_row[0];
-    for (int i = 1; i < _X_len; i++)
-        _max = std::max(_max,_max_row[i]);
-
-    delete [] _max_row;
-
-    return _max;
+    return this->max(domain,comp);
 }
 
 template <class T>
@@ -1720,20 +1696,7 @@ template <class T>
 IntVect
 BaseFab<T>::minIndex (int comp) const
 {
-    IntVect _min_loc(domain.smallEnd());
-    T _min_val = (*this).operator()(_min_loc,comp);
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        if (thisR < _min_val)
-        {
-            _min_val = thisR;
-            D_EXPR(_min_loc[0] = iR,
-                   _min_loc[1] = jR,
-                   _min_loc[2] = kR);
-        }
-    } EndFor;
-
-    return _min_loc;
+    return this->minIndex(domain,comp);
 }
 
 template <class T>
@@ -1761,20 +1724,7 @@ template <class T>
 IntVect
 BaseFab<T>::maxIndex (int comp) const
 {
-    IntVect _max_loc(domain.smallEnd());
-    T _max_val = (*this).operator()(_max_loc,comp);
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        if (thisR > _max_val)
-        {
-            _max_val = thisR;
-            D_EXPR(_max_loc[0] = iR,
-                   _max_loc[1] = jR,
-                   _max_loc[2] = kR);
-        }
-    } EndFor;
-
-    return _max_loc;
+    return this->maxIndex(domain,comp);
 }
 
 template <class T>
@@ -1951,7 +1901,6 @@ BaseFab<T>::minus (const BaseFab<T>& x)
     return operator-=(x);
 }
 
-
 template <class T>
 BaseFab<T>&
 BaseFab<T>::mult (T r)
@@ -2012,32 +1961,7 @@ T
 BaseFab<T>::sum (int comp,
                  int numcomp) const
 {
-    T*  _sum_row = 0;
-    int _sum_len = 0;
-    ForAllThisCPencil(T,domain,comp,numcomp)
-    {
-        const T* _row = &thisR;
-        if (_sum_row == 0)
-        {
-            _sum_row = new T[thisLen];
-            _sum_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _sum_row[i] = _row[i];
-        }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-                _sum_row[i] += _row[i];
-        }
-    } EndForPencil;
-
-    T _sum = _sum_row[0];
-    for (int i = 1; i < _sum_len; i++)
-        _sum += _sum_row[i];
-
-    delete [] _sum_row;
-
-    return _sum;
+    return this->sum(domain,comp,numcomp);
 }
 
 template <class T>
@@ -2080,11 +2004,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::negate ()
 {
-    ForAllThis(T)
-    {
-        thisR = - thisR;
-    } EndFor
-    return *this;
+    return this->negate(domain,0,nvar);
 }
 
 template <class T>
@@ -2092,11 +2012,7 @@ BaseFab<T>&
 BaseFab<T>::negate (int comp,
                     int numcomp)
 {
-    ForAllThisNN(T,comp,numcomp)
-    {
-        thisR = - thisR;
-    } EndFor
-    return *this;
+    return this->negate(domain,comp,numcomp);
 }
 
 template <class T>
@@ -2116,11 +2032,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::invert (T r)
 {
-    ForAllThis(T)
-    {
-        thisR = r/thisR;
-    } EndFor
-    return *this;
+    return this->invert(r,domain,0,nvar);
 }
 
 template <class T>
@@ -2129,11 +2041,7 @@ BaseFab<T>::invert (T   r,
                     int comp,
                     int numcomp)
 {
-    ForAllThisNN(T,comp,numcomp)
-    {
-        thisR = r/thisR;
-    } EndFor
-    return *this;
+    return this->invert(r,domain,comp,numcomp);
 }
 
 template <class T>
@@ -2154,11 +2062,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator+= (T r)
 {
-    ForAllThis(T)
-    {
-        thisR += r;
-    } EndFor
-    return *this;
+    return this->plus(r,domain,0,nvar);
 }
 
 template <class T>
@@ -2167,11 +2071,7 @@ BaseFab<T>::plus (T   r,
                   int comp,
                   int numcomp)
 {
-    ForAllThisNN(T,comp,numcomp)
-    {
-        thisR += r;
-    } EndFor
-    return *this;
+    return this->plus(r,domain,comp,numcomp);
 }
 
 template <class T>
@@ -2190,52 +2090,47 @@ BaseFab<T>::plus (T          r,
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator+= (const BaseFab<T>& x)
+BaseFab<T>::operator+= (const BaseFab<T>& src)
 {
-    ForAllThisXC(T,x)
-    {
-        thisR += xR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->plus(src,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
-    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
-    {
-        thisR += srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src,
-                  const Box&         subbox,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  const Box&        subbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
-    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
-    {
-        thisR += srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src,
-                  const Box&         srcbox,
-                  const Box&         destbox,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  const Box&        srcbox,
+                  const Box&        destbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2246,52 +2141,47 @@ BaseFab<T>::plus (const BaseFab<T>& src,
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator-= (const BaseFab<T>& x)
+BaseFab<T>::operator-= (const BaseFab<T>& src)
 {
-    ForAllThisXC(T,x)
-    {
-        thisR -= xR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->minus(src,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src,
-                   int                srccomp,
-                   int                destcomp,
-                   int                numcomp)
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp)
 {
-    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
-    {
-        thisR -= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->minus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src,
-                   const Box&         subbox,
-                   int                srccomp,
-                   int                destcomp,
-                   int                numcomp)
+                   const Box&        subbox,
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp)
 {
-    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
-    {
-        thisR -= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->minus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src,
-                   const Box&         srcbox,
-                   const Box&         destbox,
-                   int                srccomp,
-                   int                destcomp,
-                   int                numcomp)
+                   const Box&        srcbox,
+                   const Box&        destbox,
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2304,11 +2194,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator*= (T r)
 {
-    ForAllThis(T)
-    {
-        thisR *= r;
-    } EndFor
-    return *this;
+    return this->mult(r,domain,0,nvar);
 }
 
 template <class T>
@@ -2317,11 +2203,7 @@ BaseFab<T>::mult (T   r,
                   int comp,
                   int numcomp)
 {
-    ForAllThisNN(T,comp,numcomp)
-    {
-        thisR *= r;
-    } EndFor
-    return *this;
+    return this->mult(r,domain,comp,numcomp);
 }
 
 template <class T>
@@ -2340,52 +2222,47 @@ BaseFab<T>::mult (T          r,
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator*= (const BaseFab<T> &x)
+BaseFab<T>::operator*= (const BaseFab<T>& src)
 {
-    ForAllThisXC(T,x)
-    {
-        thisR *= xR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->mult(src,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
-    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
-    {
-        thisR *= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->mult(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src,
-                  const Box&         subbox,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  const Box&        subbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
-    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
-    {
-        thisR *= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->mult(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src,
-                  const Box&         srcbox,
-                  const Box&         destbox,
-                  int                srccomp,
-                  int                destcomp,
-                  int                numcomp)
+                  const Box&        srcbox,
+                  const Box&        destbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2398,11 +2275,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator/= (T r)
 {
-    ForAllThis(T)
-    {
-        thisR /= r;
-    } EndFor
-    return *this;
+    return this->divide(r,domain,0,nvar);
 }
 
 template <class T>
@@ -2411,11 +2284,7 @@ BaseFab<T>::divide (T   r,
                     int comp,
                     int numcomp)
 {
-    ForAllThisNN(T,comp,numcomp)
-    {
-        thisR /= r;
-    } EndFor
-    return *this;
+    return this->divide(r,domain,comp,numcomp);
 }
 
 template <class T>
@@ -2434,52 +2303,47 @@ BaseFab<T>::divide (T          r,
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator/= (const BaseFab<T> &x)
+BaseFab<T>::operator/= (const BaseFab<T>& src)
 {
-    ForAllThisXC(T,x)
-    {
-        thisR /= xR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->divide(src,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src,
-                    int                srccomp,
-                    int                destcomp,
-                    int                numcomp)
+                    int               srccomp,
+                    int               destcomp,
+                    int               numcomp)
 {
-    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
-    {
-        thisR /= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src,
-                    const Box&         subbox,
-                    int                srccomp,
-                    int                destcomp,
-                    int                numcomp)
+                    const Box&        subbox,
+                    int               srccomp,
+                    int               destcomp,
+                    int               numcomp)
 {
-    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
-    {
-        thisR /= srcR;
-    } EndForTX
-    return *this;
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src,
-                    const Box&         srcbox,
-                    const Box&         destbox,
-                    int                srccomp,
-                    int                destcomp,
-                    int                numcomp)
+                    const Box&        srcbox,
+                    const Box&        destbox,
+                    int               srccomp,
+                    int               destcomp,
+                    int               numcomp)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {

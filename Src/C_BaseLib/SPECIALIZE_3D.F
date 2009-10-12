@@ -169,3 +169,195 @@ c
       end do
 
       end
+c
+c     This function adds floating point numbers from one array to another.
+c
+      subroutine FORT_FASTPLUS (dst,
+     &                          DIMS(dst),
+     &                          imin, jmin, kmin, imax, jmax, kmax,
+     &                          src,
+     &                          DIMS(src),
+     &                          imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                          ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+      do l = 1, ncomp
+!$omp parallel do private(i,j,k)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(i,j,k,l) = dst(i,j,k,l) + src(i+ioff,j+joff,k+koff,l)
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
+c
+c     This function multiplys floating point numbers from one array to another.
+c
+      subroutine FORT_FASTMULT (dst,
+     &                          DIMS(dst),
+     &                          imin, jmin, kmin, imax, jmax, kmax,
+     &                          src,
+     &                          DIMS(src),
+     &                          imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                          ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+      do l = 1, ncomp
+!$omp parallel do private(i,j,k)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(i,j,k,l) = dst(i,j,k,l) * src(i+ioff,j+joff,k+koff,l)
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
+c
+c     This function subtracts floating point numbers from one array to another.
+c
+      subroutine FORT_FASTMINUS (dst,
+     &                           DIMS(dst),
+     &                           imin, jmin, kmin, imax, jmax, kmax,
+     &                           src,
+     &                           DIMS(src),
+     &                           imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                           ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+      do l = 1, ncomp
+!$omp parallel do private(i,j,k)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(i,j,k,l) = dst(i,j,k,l) - src(i+ioff,j+joff,k+koff,l)
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
+c
+c     This function divides floating point numbers from one array by another.
+c
+      subroutine FORT_FASTDIVIDE (dst,
+     &                            DIMS(dst),
+     &                            imin, jmin, kmin, imax, jmax, kmax,
+     &                            src,
+     &                            DIMS(src),
+     &                            imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                            ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+      do l = 1, ncomp
+!$omp parallel do private(i,j,k)
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(i,j,k,l) = dst(i,j,k,l) / src(i+ioff,j+joff,k+koff,l)
+               end do
+            end do
+         end do
+!$omp end parallel do
+      end do
+
+      end
