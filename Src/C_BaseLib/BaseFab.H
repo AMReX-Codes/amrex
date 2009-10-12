@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.65 2009-10-12 21:37:41 lijewski Exp $
+// $Id: BaseFab.H,v 1.66 2009-10-12 21:40:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2319,7 +2319,7 @@ BaseFab<T>::divide (const BaseFab<T>& src,
 {
     Box ovlp(domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this
+    return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
