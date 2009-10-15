@@ -156,17 +156,19 @@ contains
     integer,    intent(in)    :: lom_crse(:)
     integer,    intent(in)    :: lo(:), hi(:)
     real(dp_t), intent(inout) :: cc(loc(1):)
-    real(dp_t), intent(in)    :: ff(lof(1):)
+    real(dp_t), intent(inout) :: ff(lof(1):)
     integer,    intent(in)    :: mm_fine(lom_fine(1):)
     integer,    intent(in)    :: mm_crse(lom_crse(1):)
     integer,    intent(in)    :: ir(:)
     logical,    intent(in)    :: inject
     integer,    intent(in)    :: mg_restriction_mode
 
-    integer    :: hif, i, ifine, m
+    integer    :: hif, i, ifine, m, ng
     real(dp_t) :: fac, fac0
 
     hif = lof(1)+size(ff,dim=1)-1
+
+    print *,'MG_RESTRICTION ',mg_restriction_mode
 
     if ( inject ) then
 
@@ -176,7 +178,10 @@ contains
 
     else if ( mg_restriction_mode == 1 ) then
 
-       fac0 = 1.0_dp_t
+       ng = lom_fine(1) - lof(1)
+       call impose_neumann_bcs_1d(ff,mm_fine,lom_fine,ng)
+
+       fac0 = 1.0_dp_t / ir(1)
        do m = 0, ir(1)-1
          fac = (ir(1)-m) * fac0
          if (m == 0) fac = HALF * fac
@@ -189,7 +194,10 @@ contains
 
     else 
 
-       fac0 = 1.0_dp_t
+       ng = lom_fine(1) - lof(1)
+       call impose_neumann_bcs_1d(ff,mm_fine,lom_fine,ng)
+
+       fac0 = 1.0_dp_t / ir(1)
        do m = 0, ir(1)-1
          fac = (ir(1)-m) * fac0
          if ( m == 0 ) fac = HALF * fac
