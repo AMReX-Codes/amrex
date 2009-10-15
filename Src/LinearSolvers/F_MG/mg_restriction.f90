@@ -168,8 +168,6 @@ contains
 
     hif = lof(1)+size(ff,dim=1)-1
 
-    print *,'MG_RESTRICTION ',mg_restriction_mode
-
     if ( inject ) then
 
        do i = lo(1),hi(1)
