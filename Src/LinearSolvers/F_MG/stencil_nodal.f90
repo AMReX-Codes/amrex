@@ -145,7 +145,7 @@ contains
 
        select case (ss%dim)
        case (1)
-          call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
+          call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
           if (stencil_type == ST_DENSE) then
             call s_dense_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
@@ -276,12 +276,11 @@ contains
 
   end subroutine stencil_set_bc_nodal
 
-  subroutine s_simple_1d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_simple_1d_nodal(ss, sg, mm, dh)
     real (kind = dp_t), intent(  out) :: ss(:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:)
     integer           , intent(in   ) :: mm(:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer           , intent(in   ) :: face_type(:)
 
     integer i,nx
     real (kind = dp_t) f1
@@ -291,14 +290,14 @@ contains
     ! x derivatives
     nx = size(ss,dim=1)
 
+    if (bc_neumann(mm( 1),1,-1)) sg( 0) = sg(   1)
+    if (bc_neumann(mm(nx),1,+1)) sg(nx) = sg(nx-1)
+
     do i = 1,nx
        ss(i,0) = (sg(i)+sg(i-1))*f1
        ss(i,1) = -sg(i  )*f1
        ss(i,2) = -sg(i-1)*f1
     end do
-
-    if (bc_neumann(mm( 1),1,-1)) sg( 0) = sg(   1)
-    if (bc_neumann(mm(nx),1,+1)) sg(nx) = sg(nx-1)
 
   end subroutine s_simple_1d_nodal
 
@@ -2119,6 +2118,20 @@ contains
     end if
 
   end subroutine fine_edge_resid_3d
+
+  subroutine impose_neumann_bcs_1d(uu,mm,lo,ng)
+
+    integer, intent(in) :: ng,lo(:)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
+    integer           , intent(in   ) :: mm(lo(1)   :)
+    integer :: i,hi(1)
+
+    hi(1) = lo(1) + size(mm,dim=1)-1
+
+    if (bc_neumann(mm(lo(1)),1,-1)) uu(lo(1)-1) = uu(lo(1)+1)
+    if (bc_neumann(mm(hi(1)),1,+1)) uu(hi(1)+1) = uu(hi(1)-1)
+
+  end subroutine impose_neumann_bcs_1d
 
   subroutine impose_neumann_bcs_2d(uu,mm,lo,ng)
 
