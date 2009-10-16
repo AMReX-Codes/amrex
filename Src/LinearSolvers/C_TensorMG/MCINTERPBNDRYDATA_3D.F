@@ -141,7 +141,7 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(zz)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(kc,k,jc,j)
@@ -391,7 +391,7 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(zz)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(j,k,jc,kc)
@@ -641,7 +641,7 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(zz)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(kc,k,ic,i)
@@ -891,7 +891,7 @@ c ::: :::
       hc(3) = hfine(2)*ratio
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(zz)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(kc,k,ic,i)
@@ -1141,7 +1141,7 @@ c ::: :::
       hc(3) = 0
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(yy)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(jc,j,ic,i)
@@ -1393,7 +1393,7 @@ c ::: :::
       hc(3) = 0
 c ::: :::
 
-!$omp parallel
+!$omp parallel shared(yy)
       do n = 1, nvar
 c     ::::: calculate derivatives for interpolation
 !$omp do private(jc,j,ic,i)
