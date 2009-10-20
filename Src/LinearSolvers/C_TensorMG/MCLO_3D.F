@@ -21,7 +21,7 @@ c-----------------------------------------------------------------------
       integer DIMDEC(res)
       REAL_T res(DIMV(res),nc)
 
-      integer i, j k n
+      integer i, j, k, n
 
       do n = 1, nc
          do k = lo(3), hi(3)
