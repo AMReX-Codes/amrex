@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.37 2009-10-01 21:20:40 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.38 2009-10-22 21:00:30 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -33,7 +33,6 @@ c ::: num_slp      =>  (const)  number of types of slopes
 c :::
 c ::: TEMPORARY ARRAYS
 c ::: sl           =>  num_slp 1-D slope arrays
-c ::: strip        =>  1-D temp array
 c ::: --------------------------------------------------------------
 c :::
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
@@ -95,12 +94,6 @@ c         3) (lx, ly, lz) as well as lo and hi refer to the fine node indices
 c            as an offset from strtFine.
 c
       do n = 1, nvar
-
-!$omp parallel do private(i,j,k,kstrtFine,kstopFine,klo,khi)
-!$omp&private(jstrtFine,jstopFine,jlo,jhi)
-!$omp&private(dx00,d0x0,d00x,dx10,dx01,d0x1,dx11)
-!$omp&private(sl,lz,kfn,fz,ly,jfn,fy,istrtFine,istopFine)
-!$omp&private(ilo,ihi,lx,ifn,fx)
          do k = ARG_L3(cb), ARG_H3(cb)
             kstrtFine = k * lratioz
             kstopFine = kstrtFine + lratioz - 1
