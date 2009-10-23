@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.134 2009-09-18 22:10:33 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.135 2009-10-23 19:57:50 lijewski Exp $
 #
 
 #
@@ -405,7 +405,9 @@ ifeq ($(COMP),Intel)
    endif
    endif
    endif
-   ifneq ($(ICC_MAJOR_VERSION),11)
+   ifeq ($(ICC_MAJOR_VERSION),11)
+     CXXOPTF += -mp1
+   else
      CXXOPTF += -mp
    endif
    ifeq ($(ICC_MAJOR_VERSION),9)
@@ -434,13 +436,6 @@ ifeq ($(FCOMP),Intel)
      _ifc := efc
    else
      _ifc := ifc
-   endif
-
-   ifeq ($(USE_OMP),TRUE)
-     FOPTF += -openmp
-     fOPTF += -openmp
-     FDEBF += -openmp
-     fDEBF += -openmp
    endif
 
    __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
@@ -536,6 +531,19 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
 
+   ifeq ($(USE_OMP),TRUE)
+     FOPTF += -openmp
+     fOPTF += -openmp
+     FDEBF += -openmp
+     fDEBF += -openmp
+     ifeq ($(ICC_MAJOR_VERSION),11)
+       FOPTF += -openmp-report2
+       fOPTF += -openmp-report2
+       FDEBF += -openmp-report2
+       fDEBF += -openmp-report2
+     endif
+   endif
+
    FDEBF += -g -u #-C
    fDEBF += -g -u #-C
    ifneq ($(IFC_MAJOR_VERSION), 10)
@@ -550,7 +558,10 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -ip
 #  FOPTF += -ipo
 #  fOPTF += -ipo
-   ifneq ($(IFC_MAJOR_VERSION), 11)
+   ifeq ($(IFC_MAJOR_VERSION), 11)
+     FOPTF += -mp1
+     fOPTF += -mp1
+   else
      FOPTF += -mp
      fOPTF += -mp
    endif
@@ -574,7 +585,6 @@ ifeq ($(FCOMP),Intel)
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
    endif
-#   _ifc += -mp -module $(fmoddir)
    _ifc += -module $(fmoddir)
     FC = $(_ifc)
     fC = $(_ifc)
