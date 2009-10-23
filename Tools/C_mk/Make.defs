@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.135 2009-10-23 19:57:50 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.136 2009-10-23 20:12:29 lijewski Exp $
 #
 
 #
@@ -536,7 +536,7 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -openmp
      FDEBF += -openmp
      fDEBF += -openmp
-     ifeq ($(ICC_MAJOR_VERSION),11)
+     ifeq ($(IFC_MAJOR_VERSION),11)
        FOPTF += -openmp-report2
        fOPTF += -openmp-report2
        FDEBF += -openmp-report2
