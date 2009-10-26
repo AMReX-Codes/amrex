@@ -152,7 +152,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "AuxBoundaryData::initialize() time = " << run_time << '\n';
+            std::cout << "AuxBoundaryData::initialize() size = " << gcells.size() << ", time = " << run_time << '\n';
     }
 
     m_initialized = true;
