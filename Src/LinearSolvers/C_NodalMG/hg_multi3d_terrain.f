@@ -2215,28 +2215,3 @@ c
             end do
          end do
       end
-c-----------------------------------------------------------------------
-      subroutine hgrlnf_terrain(
-     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
-     & wrk,   wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
-     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     &        regl0,regh0,regl1,regh1,regl2,regh2,
-     &        doml0,domh0,doml1,domh1,doml2,domh2,
-     & lsd, ipass)
-      integer corl0,corh0,corl1,corh1,corl2,corh2
-      integer resl0,resh0,resl1,resh1,resl2,resh2
-      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
-      integer snl0,snh0,snl1,snh1,snl2,snh2
-      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      integer doml0,domh0,doml1,domh1,doml2,domh2
-      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
-      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
-      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      integer lsd, ipass
-      stop 'hgrlnf_terrain: no code'
-      end

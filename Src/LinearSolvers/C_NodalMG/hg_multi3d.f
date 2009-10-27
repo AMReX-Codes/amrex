@@ -1522,10 +1522,11 @@ c NODE-based data, factor of 2 only.
 !$omp end parallel do
       end if
       if (ir .eq. 2 .and. kr .eq. 2) then
-         do kc = bbl2, bbh2-1
-            k = 2 * kc
-            do jc = bbl1, bbh1
-               j = jr * jc
+!$omp parallel do private(i,j,k,ic,jc,kc)
+         do jc = bbl1, bbh1
+            j = jr * jc
+            do kc = bbl2, bbh2-1
+               k = 2 * kc
                do ic = bbl0, bbh0-1
                   i = 2 * ic
                dest(i+1,j,k+1) = (signd(i,j,k+1,1)   * dest(i,j,k+1) +
@@ -1537,14 +1538,16 @@ c NODE-based data, factor of 2 only.
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (jr .eq. 2 .and. kr .eq. 2) then
-         do kc = bbl2, bbh2-1
-            k = 2 * kc
-            do jc = bbl1, bbh1-1
-               j = 2 * jc
-               do ic = bbl0, bbh0
-                  i = ir * ic
+!$omp parallel do private(i,j,k,ic,jc,kc)
+         do ic = bbl0, bbh0
+            i = ir * ic
+            do kc = bbl2, bbh2-1
+               k = 2 * kc
+               do jc = bbl1, bbh1-1
+                  j = 2 * jc
                  dest(i,j+1,k+1) = (signd(i,j,k+1,2)   * dest(i,j,k+1) +
      &                            signd(i,j+1,k+1,2) * dest(i,j+2,k+1) +
      &                            signd(i,j+1,k,3)   * dest(i,j+1,k) +
@@ -1554,6 +1557,7 @@ c NODE-based data, factor of 2 only.
                end do
             end do
          end do
+!$omp end parallel do
       end if
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
@@ -1979,337 +1983,6 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlxl(
-     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
-     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     &        regl0,regh0,regl1,regh1,regl2,regh2,
-     &        doml0,domh0,doml1,domh1,doml2,domh2,
-     & lsd)
-      integer corl0,corh0,corl1,corh1,corl2,corh2
-      integer resl0,resh0,resl1,resh1,resl2,resh2
-      integer snl0,snh0,snl1,snh1,snl2,snh2
-      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      integer doml0,domh0,doml1,domh1,doml2,domh2
-      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
-      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      double precision wrk(256)
-      integer lsd
-      double precision betm, aj
-      double precision RHSL2
-      integer i, j, k, kw, ipass, ipar
-
-      RHSL2() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
-     &                        signd(i,j,k,1)   * cor(i+1,j,k) +
-     &                        signd(i,j-1,k,2) * cor(i,j-1,k) +
-     &                        signd(i,j,k,2)   * cor(i,j+1,k)))
-
-      if (lsd .ne. 2) then
-         print *, "Line solve not implemented in dimension", lsd
-          stop
-      end if
-
-      do ipass = 1, 0, -1
-         ipar = ipass
-         do i = regl0, regh0
-            ipar = 1 - ipar
-            do j = regl1 + ipar, regh1, 2
-               k = regl2
-               betm = -cen(i,j,k)
-               if (betm .eq. 0.0D0) then
-c dirichlet bdy:
-                  cor(i,j,k) = 0.0D0
-                  wrk(1) = 0.0D0
-               else if (regl2 .eq. doml2) then
-c neumann bdy:
-                  cor(i,j,k) = RHSL2() * betm
-                  aj = signd(i,j,k,3)
-                  wrk(1) = 2.0D0 * aj * betm
-               else
-c interface to grid at same level:
-                  aj = signd(i,j,k-1,3)
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-                  aj = signd(i,j,k,3)
-                  wrk(1) = aj * betm
-               end if
-c forward solve loop:
-               do k = regl2 + 1, regh2 - 1
-                  kw = k - regl2
-                  if (cen(i,j,k) .eq. 0.0D0) then
-                     betm = 0.0D0
-                  else
-                     betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
-                  end if
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-                  aj = signd(i,j,k,3)
-                  wrk(kw + 1) = aj * betm
-               end do
-               k = regh2
-               kw = k - regl2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-                  cor(i,j,k) = 0.0D0
-               else if (regh2 .eq. domh2) then
-c neumann bdy:
-                  aj = 2.0D0 * aj
-                  betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-               else if (kw .gt. 0) then
-c interface to grid at same level:
-                  betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
-                  cor(i,j,k) = RHSL2() - aj * cor(i,j,k-1)
-                  aj = signd(i,j,k,3)
-                  cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
-               end if
-c back substitution loop:
-               do k = regh2 - 1, regl2, -1
-                  kw = k - regl2
-                  cor(i,j,k) = cor(i,j,k) - wrk(kw + 1) * cor(i,j,k+1)
-               end do
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
-      subroutine hgrlnf(
-     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
-     & wrk,   wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
-     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0, regh0,regl1,regh1,regl2,regh2,
-     & doml0, domh0,doml1,domh1,doml2,domh2,
-     & lsd, ipass)
-      integer corl0,corh0,corl1,corh1,corl2,corh2
-      integer resl0,resh0,resl1,resh1,resl2,resh2
-      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
-      integer snl0,snh0,snl1,snh1,snl2,snh2
-      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      integer doml0,domh0,doml1,domh1,doml2,domh2
-      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
-      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
-      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      integer lsd, ipass
-      double precision betm, aj
-      double precision rhsl0, rhsl1, rhsl2
-      integer i, j, k, ioff, ipar
-      RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) +
-     &                        signd(i,j,k,2)   * cor(i,j+1,k) +
-     &                        signd(i,j,k-1,3) * cor(i,j,k-1) +
-     &                        signd(i,j,k,3)   * cor(i,j,k+1)))
-
-      RHSL1() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
-     &                        signd(i,j,k,1)   * cor(i+1,j,k) +
-     &                        signd(i,j,k-1,3) * cor(i,j,k-1) +
-     &                        signd(i,j,k,3)   * cor(i,j,k+1)))
-
-      RHSL2() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
-     &                        signd(i,j,k,1)   * cor(i+1,j,k) +
-     &                        signd(i,j-1,k,2) * cor(i,j-1,k) +
-     &                        signd(i,j,k,2)   * cor(i,j+1,k)))
-
-      if (lsd .eq. 0) then
-         if (mod(regl1 + regl2, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-         i = regl0
-         ipar = ioff
-         do k = regl2, regh2
-            ipar = 1 - ipar
-            do j = regl1 + ipar, regh1, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-                  wrk(i,j,k) = 0.0D0
-               else if (regl0 .eq. doml0) then
-c neumann bdy:
-                  betm = -cen(i,j,k)
-                  cor(i,j,k) = RHSL0() * betm
-                  aj = signd(i,j,k,1)
-                  wrk(i,j,k) = 2.0D0 * aj * betm
-               end if
-            end do
-         end do
-c forward solve loop:
-         do i = regl0 + 1, regh0 - 1
-            ipar = ioff
-            do k = regl2, regh2
-               ipar = 1 - ipar
-               do j = regl1 + ipar, regh1, 2
-                  aj = signd(i-1,j,k,1)
-                  if (cen(i,j,k) .eq. 0.0D0) then
-                     betm = 0.0D0
-                  else
-                     betm = 1.0D0
-     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
-                  end if
-                  cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
-                  aj = signd(i,j,k,1)
-                  wrk(i,j,k) = aj * betm
-               end do
-            end do
-         end do
-         i = regh0
-         ipar = ioff
-         do k = regl2, regh2
-            ipar = 1 - ipar
-            do j = regl1 + ipar, regh1, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-               else if (regh0 .eq. domh0) then
-c neumann bdy:
-                  aj = 2.0D0 * signd(i-1,j,k,1)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
-                  cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
-               else if (i .gt. regl0) then
-c interface to grid at same level:
-                  aj = signd(i-1,j,k,1)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
-                  cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
-                  aj = signd(i,j,k,1)
-                  wrk(i,j,k) = aj * betm
-               end if
-            end do
-         end do
-      else if (lsd .eq. 1) then
-         if (mod(regl0 + regl2, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-         j = regl1
-         ipar = ioff
-         do  k = regl2, regh2
-            ipar = 1 - ipar
-            do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-                  wrk(i,j,k) = 0.0D0
-               else if (regl1 .eq. doml1) then
-c neumann bdy:
-                  betm = -cen(i,j,k)
-                  cor(i,j,k) = RHSL1() * betm
-                  aj = signd(i,j,k,2)
-                  wrk(i,j,k) = 2.0D0 * aj * betm
-               end if
-            end do
-         end do
-c forward solve loop:
-         do j = regl1 + 1, regh1 - 1
-            ipar = ioff
-            do k = regl2, regh2
-               ipar = 1 - ipar
-               do i = regl0 + ipar, regh0, 2
-                  aj = signd(i,j-1,k,2)
-                  if (cen(i,j,k) .eq. 0.0D0) then
-                     betm = 0.0D0
-                  else
-                     betm = 1.0D0
-     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
-                  end if
-                  cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
-                  aj = signd(i,j,k,2)
-                  wrk(i,j,k) = aj * betm
-               end do
-            end do
-         end do
-         j = regh1
-         ipar = ioff
-         do k = regl2, regh2
-            ipar = 1 - ipar
-            do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-               else if (regh1 .eq. domh1) then
-c neumann bdy:
-                  aj = 2.0D0 * signd(i,j-1,k,2)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
-                  cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
-               else if (j .gt. regl1) then
-c interface to grid at same level:
-                  aj = signd(i,j-1,k,2)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
-                  cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
-                  aj = signd(i,j,k,2)
-                  wrk(i,j,k) = aj * betm
-               end if
-            end do
-         end do
-      else
-         if (mod(regl0 + regl1, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-         k = regl2
-         ipar = ioff
-         do j = regl1, regh1
-            ipar = 1 - ipar
-            do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-                  wrk(i,j,k) = 0.0D0
-               else if (regl2 .eq. doml2) then
-c neumann bdy:
-                  betm = -cen(i,j,k)
-                  cor(i,j,k) = RHSL2() * betm
-                  aj = signd(i,j,k,3)
-                  wrk(i,j,k) = 2.0D0 * aj * betm
-               end if
-            end do
-         end do
-c forward solve loop:
-         do k = regl2 + 1, regh2 - 1
-            ipar = ioff
-            do j = regl1, regh1
-               ipar = 1 - ipar
-               do i = regl0 + ipar, regh0, 2
-                  aj = signd(i,j,k-1,3)
-                  if (cen(i,j,k) .eq. 0.0D0) then
-                     betm = 0.0D0
-                  else
-                     betm = 1.0D0
-     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  end if
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-                  aj = signd(i,j,k,3)
-                  wrk(i,j,k) = aj * betm
-               end do
-            end do
-         end do
-         k = regh2
-         ipar = ioff
-         do j = regl1, regh1
-            ipar = 1 - ipar
-            do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. 0.0D0) then
-c dirichlet bdy:
-               else if (regh2 .eq. domh2) then
-c neumann bdy:
-                  aj = 2.0D0 * signd(i,j,k-1,3)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-               else if (k .gt. regl2) then
-c interface to grid at same level:
-                  aj = signd(i,j,k-1,3)
-                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-                  aj = signd(i,j,k,3)
-                  wrk(i,j,k) = aj * betm
-               end if
-            end do
-         end do
-      end if
-      end
-c-----------------------------------------------------------------------
       subroutine hgres(
      & res,   resl0,resh0,resl1,resh1,resl2,resh2,
      & src,   srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -2571,68 +2244,6 @@ c-----------------------------------------------------------------------
 !$omp end parallel do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnb(
-     & cor, corl0,corh0,corl1,corh1,corl2,corh2,
-     & wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
-     &      regl0,regh0,regl1,regh1,regl2,regh2,
-     & lsd, ipass)
-      integer corl0,corh0,corl1,corh1,corl2,corh2
-      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
-      integer lsd, ipass
-      integer ioff, ipar, i, j, k
-      if (lsd .eq. 0) then
-         if (mod(regl1 + regl2, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-c back substitution loop:
-         do i = regh0 - 1, regl0, -1
-            ipar = ioff
-            do k = regl2, regh2
-               ipar = 1 - ipar
-               do j = regl1 + ipar, regh1, 2
-                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i+1,j,k)
-               end do
-            end do
-         end do
-      else if (lsd .eq. 1) then
-         if (mod(regl0 + regl2, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-c back substitution loop:
-         do j = regh1 - 1, regl1, -1
-            ipar = ioff
-            do k = regl2, regh2
-               ipar = 1 - ipar
-               do i = regl0 + ipar, regh0, 2
-                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j+1,k)
-               end do
-            end do
-         end do
-      else
-         if (mod(regl0 + regl1, 2) .eq. 0) then
-            ioff = 1 - ipass
-         else
-            ioff = ipass
-         end if
-c back substitution loop:
-         do k = regh2 - 1, regl2, -1
-            ipar = ioff
-            do j = regl1, regh1
-               ipar = 1 - ipar
-               do i = regl0 + ipar, regh0, 2
-                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j,k+1)
-               end do
-            end do
-         end do
-      end if
-      end
 c Unrolled indexing in these 3 routines uses the fact that each array
 c has a border of width 1
 c-----------------------------------------------------------------------
@@ -2698,99 +2309,4 @@ c-----------------------------------------------------------------------
          p(i) = alpha * p(i) + z(i)
       end do
 !$omp end parallel do
-      end
-c-----------------------------------------------------------------------
-      subroutine hgcg_cd(
-     & r, p, z, x, w, c, mask,
-     & ngrids, strid1, strid2, nvals,
-     & rs, ps, zs, xs, ws, cs, ms,
-     & nsets, edge, nvals1, nvals2, dstart, sstart,
-     & dstrd1, dstrd2, sstrd1, sstrd2,
-     & hx, alpha, rho, it, pcode)
-      double precision r(0:*), p(0:*), z(0:*)
-      double precision x(0:*), w(0:*), c(0:*), mask(0:*)
-      integer ngrids
-      integer strid1(ngrids), strid2(ngrids), nvals(ngrids)
-      integer rs(ngrids), ps(ngrids), zs(ngrids)
-      integer xs(ngrids), ws(ngrids), cs(ngrids), ms(ngrids)
-      double precision edge(0:*)
-      integer nsets
-      integer nvals1(nsets), nvals2(nsets)
-      integer dstart(nsets), sstart(nsets)
-      integer dstrd1(nsets), dstrd2(nsets)
-      integer sstrd1(nsets), sstrd2(nsets)
-      double precision hx, alpha, rho
-      double precision hxm2, facm, tol, rhoold
-      integer it, pcode, k, i, j, MAXITER
-      parameter (MAXITER = 250)
-      hxm2 = 1.0D0 / (hx*hx)
-cifdef HG_CROSS_STENCIL
-      facm = -hxm2
-celse
-c      facm = -hxm2 / three
-cendif
-      rho = 0.0D0
-      do k = 1, ngrids
-c must do this loop over entire array to initialize borders of p
-         do i = 0, nvals(k) - 1
-            z(zs(k)+i) = r(rs(k)+i) * c(cs(k)+i)
-            p(ps(k)+i) = z(zs(k)+i)
-            rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
-         end do
-      end do
-      tol = rho / 1000
-      if (tol .le. 0.0D0) return
- 100  continue
-      it = it + 1
-      if (it .gt. MAXITER) then
-         STOP "FORTRAN hgcg---conjugate-gradient iteration failed"
-      end if
-      rhoold = rho
-      alpha = 0.0D0
-      do k = 1, nsets
-         do j = 0, nvals2(k) - 1
-            do i = 0, nvals1(k) - 1
-               edge(dstart(k) + j * dstrd2(k) + i * dstrd1(k)) =
-     &         edge(sstart(k) + j * sstrd2(k) + i * sstrd1(k))
-            end do
-         end do
-      end do
-      do k = 1, ngrids
-         do i = strid1(k) + strid2(k) + 1,
-     &              nvals(k) - strid1(k) - strid2(k) - 2
-cifdef HG_CROSS_STENCIL
-            w(ws(k)+i) = facm *
-     &        (p(ps(k)+i-1) + p(ps(k)+i+1) +
-     &         p(ps(k)+i-strid1(k)) + p(ps(k)+i+strid1(k)) +
-     &         p(ps(k)+i-strid2(k)) + p(ps(k)+i+strid2(k)) -
-     &         6.0D0 * p(ps(k)+i))
-celse
-c            print *, "FORTRAN hgcg---full box stencils not implemented"
-cendif
-            alpha = alpha + mask(ms(k)+i) * p(ps(k)+i) * w(ws(k)+i)
-         end do
-      end do
-      alpha = rho / alpha
-      rho = 0.0D0
-      do k = 1, ngrids
-         do i = strid1(k) + strid2(k) + 1,
-     &              nvals(k) - strid1(k) - strid2(k) - 2
-            r(rs(k)+i) = r(rs(k)+i) - alpha * w(ws(k)+i)
-            x(xs(k)+i) = x(xs(k)+i) + alpha * p(ps(k)+i)
-            z(zs(k)+i) = r(rs(k)+i) * c(cs(k)+i)
-            rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
-         end do
-      end do
-      if (pcode .ge. 3) then
-         print *, it, rho
-      end if
-      if (rho .le. tol .or. it .gt. MAXITER) return
-      alpha = rho / rhoold
-      do k = 1, ngrids
-         do i = strid1(k) + strid2(k) + 1,
-     &              nvals(k) - strid1(k) - strid2(k) - 2
-            p(ps(k)+i) = alpha * p(ps(k)+i) + z(zs(k)+i)
-         end do
-      end do
-      go to 100
       end
