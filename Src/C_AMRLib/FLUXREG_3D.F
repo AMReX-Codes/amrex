@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.13 2009-10-27 04:43:04 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.14 2009-10-27 19:09:12 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -148,7 +148,7 @@ c ::: -----------------------------------------------------------
       ratiox = ratio(1)
       ratioy = ratio(2)
       ratioz = ratio(3)
-      
+
       if (dir .eq. 0) then
 c
 c        ::::: flux normal to X direction
@@ -163,6 +163,7 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
+!$omp parallel do private(kc,k,joff,jc,j)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -172,6 +173,7 @@ c
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else if (dir .eq. 1) then
@@ -186,6 +188,7 @@ c        ::::: flux normal to Y direction
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
+!$omp parallel do private(kc,k,ioff,ic,i)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -195,6 +198,7 @@ c        ::::: flux normal to Y direction
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else
@@ -211,6 +215,7 @@ c
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1
+!$omp parallel do private(jc,j,ioff,ic,i)
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -220,6 +225,7 @@ c
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       end if
@@ -266,7 +272,7 @@ c ::: -----------------------------------------------------------
       ratiox = ratio(1)
       ratioy = ratio(2)
       ratioz = ratio(3)
-      
+
       if (dir .eq. 0) then
 c
 c        ::::: flux normal to X direction
@@ -281,6 +287,7 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
+!$omp parallel do private(kc,k,joff,jc,j)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -291,6 +298,7 @@ c
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else if (dir .eq. 1) then
@@ -307,6 +315,7 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
+!$omp parallel do private(kc,k,ioff,ic,i)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -317,6 +326,7 @@ c
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       else
@@ -333,6 +343,7 @@ c
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1
+!$omp parallel do private(jc,j,ioff,ic,i)
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -343,6 +354,7 @@ c
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
          end do
       end if
