@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.12 2009-10-06 21:40:30 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.13 2009-10-27 04:43:04 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -49,7 +49,9 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -57,7 +59,9 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 
@@ -93,7 +97,9 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -101,7 +107,9 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 
@@ -374,8 +382,10 @@ c ::
       REAL_T     reg(DIMV(reg),numcomp)
       
       integer n, i, j, k
-      
+
+!$omp parallel private(i,j,k)      
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -383,7 +393,9 @@ c ::
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
       
       end
 
@@ -419,8 +431,10 @@ c ::
       REAL_T vmult
 
       vmult = mult/(dx(1)*dx(2)*dx(3))
-      
+
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -428,6 +442,8 @@ c ::
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
       
       end
