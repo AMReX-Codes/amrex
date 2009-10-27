@@ -1241,6 +1241,7 @@ c each quadrant is two octants and their share of the two central edges
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
                      if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if)
                      do if = ir*cregl0, ir*cregh0, ir
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 *
@@ -1253,11 +1254,13 @@ c each quadrant is two octants and their share of the two central edges
      &                    (wf(if-m,juf,kuf) + wf(if-m-1,juf,kuf) +
      &                     wf(if+m,juf,kuf) + wf(if+m-1,juf,kuf)))
                      end do
+!$omp end parallel do
                   end do
                else
                   kuc = kc + ki - 1
                   juc = jc + ji - 1
                   center = center + cfac
+!$omp parallel do private(ic,if)
                   do ic = cregl0, cregh0
                      if = ic * ir
                      src(if,jf,kf) = src(if,jf,kf) + r3 *
@@ -1265,6 +1268,7 @@ c each quadrant is two octants and their share of the two central edges
      &             hym1c * jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
      &             hzm1c * kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
                   end do
+!$omp end parallel do
                end if
             end do
          end do
@@ -1284,6 +1288,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if)
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1302,6 +1307,7 @@ c each face is two faces and two sides of an edge
      &                 wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
      &                 wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1315,6 +1321,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if)
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1333,6 +1340,7 @@ c each face is two faces and two sides of an edge
      &                 wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
      &                 wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1362,6 +1370,7 @@ c each quadrant is two octants and their share of the two central edges
                   do n = 0, jr-1
                      fac = (jr-n) * fac1
                      if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(jf)
                      do jf = jr*cregl1, jr*cregh1, jr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 * idir *
@@ -1374,11 +1383,13 @@ c each quadrant is two octants and their share of the two central edges
      &                    (wf(iuf,jf-n,kuf) + wf(iuf,jf-n-1,kuf) +
      &                     wf(iuf,jf+n,kuf) + wf(iuf,jf+n-1,kuf)))
                      end do
+!$omp end parallel do
                   end do
                else
                   kuc = kc + ki - 1
                   iuc = ic + ii - 1
                   center = center + cfac
+!$omp parallel do private(jc,jf)
                   do jc = cregl1, cregh1
                      jf = jc * jr
                      src(if,jf,kf) = src(if,jf,kf) + r3 *
@@ -1386,6 +1397,7 @@ c each quadrant is two octants and their share of the two central edges
      &             hym1c *        (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
      &             hzm1c * kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
                   end do
+!$omp end parallel do
                end if
             end do
          end do
@@ -1405,6 +1417,7 @@ c each face is two faces and two sides of an edge
                      if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(jf)
                         do jf = jr*cregl1, jr*cregh1, jr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1423,6 +1436,7 @@ c each face is two faces and two sides of an edge
      &                 wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
      &                 wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1436,6 +1450,7 @@ c each face is two faces and two sides of an edge
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
                         if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(jf)
                         do jf = jr*cregl1, jr*cregh1, jr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 * idir *
@@ -1454,6 +1469,7 @@ c each face is two faces and two sides of an edge
      &                 wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
      &                 wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1483,6 +1499,7 @@ c each quadrant is two octants and their share of the two central edges
                   do l = 0, kr-1
                      fac = (kr-l) * fac1
                      if (l .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(kf)
                      do kf = kr*cregl2, kr*cregh2, kr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                 (hxm1 * idir *
@@ -1495,11 +1512,13 @@ c each quadrant is two octants and their share of the two central edges
      &                    (wf(iuf,juf,kf-l) - wf(iuf,juf,kf-l-1) +
      &                     wf(iuf,juf,kf+l) - wf(iuf,juf,kf+l-1)))
                      end do
+!$omp end parallel do
                   end do
                else
                   juc = jc + ji - 1
                   iuc = ic + ii - 1
                   center = center + cfac
+!$omp parallel do private(kc,kf)
                   do kc = cregl2, cregh2
                      kf = kc * kr
                      src(if,jf,kf) = src(if,jf,kf) + r3 *
@@ -1507,6 +1526,7 @@ c each quadrant is two octants and their share of the two central edges
      &              hym1c * jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
      &              hzm1c *        (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
                   end do
+!$omp end parallel do
                end if
             end do
          end do
@@ -1526,6 +1546,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(kf)
                         do kf = kr*cregl2, kr*cregh2, kr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 *
@@ -1544,6 +1565,7 @@ c each face is two faces and two sides of an edge
      &                 wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
      &                 wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1557,6 +1579,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
+!$omp parallel do private(kf)
                         do kf = kr*cregl2, kr*cregh2, kr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                                       (hxm1 * idir *
@@ -1575,6 +1598,7 @@ c each face is two faces and two sides of an edge
      &                 wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
      &                 wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
