@@ -405,6 +405,7 @@ c each quadrant is two octants and their share of the two central edges
                   do m = 0, ir-1
                      fac = (ir-m) * fac0
                      if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if,tmp)
                      do if = ir*regl0, ir*regh0, ir
                         tmp = hxm2 *
      &                    (sigmaf(if-m-1,jf+ji-1,kf+ki-1) *
@@ -430,6 +431,7 @@ c each quadrant is two octants and their share of the two central edges
      &                      sigmaf(if+m,jf+ji-1,kf+ki-1)) *
      &                      (fdst(if+m,jf,kf+kdir) - fdst(if+m,jf,kf))))
                      end do
+!$omp end parallel do
                   end do
                else
                   center = center + cfac
@@ -463,6 +465,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if,tmp)
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1)
@@ -503,6 +506,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -515,6 +519,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if,tmp)
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1)
@@ -555,6 +560,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -582,6 +588,7 @@ c each quadrant is two octants and their share of the two central edges
                   do  n = 0, jr-1
                      fac = (jr-n) * fac0
                      if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(jf,tmp)
                      do  jf = jr*regl1, jr*regh1, jr
                         tmp = hxm2 *
      &                    ((sigmaf(if+ii-1,jf-n-1,kf+ki-1) +
@@ -607,6 +614,7 @@ c each quadrant is two octants and their share of the two central edges
      &                      sigmaf(if+ii-1,jf+n,kf+ki-1)) *
      &                      (fdst(if,jf+n,kf+kdir) - fdst(if,jf+n,kf))))
                      end do
+!$omp end parallel do
                   end do
                else
                   center = center + cfac
@@ -640,6 +648,7 @@ c each face is two faces and two sides of an edge
                      if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(jf,tmp)
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1)
@@ -680,6 +689,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -692,6 +702,7 @@ c each face is two faces and two sides of an edge
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
                         if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(jf,tmp)
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1)
@@ -732,6 +743,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -759,6 +771,7 @@ c each quadrant is two octants and their share of the two central edges
                   do l = 0, kr-1
                      fac = (kr-l) * fac0
                      if (l .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(kf,tmp)
                      do kf = kr*regl2, kr*regh2, kr
                         tmp = hxm2 *
      &                    ((sigmaf(if+ii-1,jf+ji-1,kf-l-1) +
@@ -784,6 +797,7 @@ c each quadrant is two octants and their share of the two central edges
      &                     sigmaf(if+ii-1,jf+ji-1,kf+l) *
      &                      (fdst(if,jf,kf+l+1) - fdst(if,jf,kf+l))))
                      end do
+!$omp end parallel do
                   end do
                else
                   center = center + cfac
@@ -817,6 +831,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(kf,tmp)
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1)
@@ -857,6 +872,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -869,6 +885,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
+!$omp parallel do private(kf,tmp)
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1)
@@ -909,6 +926,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -2675,9 +2693,11 @@ c-----------------------------------------------------------------------
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
+!$omp parallel do private(i)
       do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
          p(i) = alpha * p(i) + z(i)
       end do
+!$omp end parallel do
       end
 c-----------------------------------------------------------------------
       subroutine hgcg_cd(
