@@ -294,9 +294,9 @@ contains
     if (bc_neumann(mm(nx),1,+1)) sg(nx) = sg(nx-1)
 
     do i = 1,nx
-       ss(i,0) = (sg(i)+sg(i-1))*f1
-       ss(i,1) = -sg(i  )*f1
-       ss(i,2) = -sg(i-1)*f1
+       ss(i,1) = sg(i  )*f1
+       ss(i,2) = sg(i-1)*f1
+       ss(i,0) = -(sg(i)+sg(i-1))*f1
     end do
 
   end subroutine s_simple_1d_nodal
@@ -482,6 +482,7 @@ contains
  
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
                        +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) ) 
+
       end do
     end do
 
@@ -1015,11 +1016,16 @@ contains
 
   subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)  :: ss(:,0:)
-    real (kind = dp_t), intent(out) :: dd(0:)
-    real (kind = dp_t), intent(in)  :: uu(1-ng:)
-    integer           , intent(in)  :: mm(:)
-    integer i
+    real (kind = dp_t), intent(in   ) :: ss(:,0:)
+    real (kind = dp_t), intent(  out) :: dd(0:)
+    real (kind = dp_t), intent(inout) :: uu(1-ng:)
+    integer           , intent(in   ) :: mm(:)
+    integer i,lo(1)
+ 
+    dd(:) = ZERO
+
+    lo(:) = 1
+    call impose_neumann_bcs_1d(uu,mm,lo,ng)
    
     i = 1
     if (.not. bc_dirichlet(mm(i),1,0)) then
@@ -2124,7 +2130,7 @@ contains
     integer, intent(in) :: ng,lo(:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     integer           , intent(in   ) :: mm(lo(1)   :)
-    integer :: i,hi(1)
+    integer :: hi(1)
 
     hi(1) = lo(1) + size(mm,dim=1)-1
 
