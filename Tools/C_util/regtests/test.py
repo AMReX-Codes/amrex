@@ -754,7 +754,8 @@ def test(argv):
 
 
     #--------------------------------------------------------------------------
-    # get the Fortran compiler for fParallel tests and utilities (if available)
+    # get the Fortran compiler for fParallel/Parallel tests and utilities
+    # (if available)
     #--------------------------------------------------------------------------
     if (not keyIsValid("main.FCOMP")):
 
@@ -763,6 +764,18 @@ def test(argv):
 
     else:
        FCOMP = getParam("main.FCOMP")
+
+
+    #--------------------------------------------------------------------------
+    # get the C++ compiler for Parallel tests (if available)
+    #--------------------------------------------------------------------------
+    if (not keyIsValid("main.COMP")):
+
+       print "WARNING: COMP not set; assuming Intel"
+       COMP = "Intel"
+
+    else:
+       COMP = getParam("main.COMP")
 
        
     #--------------------------------------------------------------------------
@@ -896,7 +909,7 @@ def test(argv):
         if (sourceTree == "Parallel"):
             os.system("gmake realclean")
         else:
-            os.system("gmake MPI= COMP=%s realclean NDEBUG=t" % (FCOMP))
+            os.system("gmake realclean")
             
     print "\n"
 
@@ -943,15 +956,15 @@ def test(argv):
             dim = getParam(test + ".dim")
 
 	    useMPI = getParam(test + ".useMPI")
-	    
+
 	    if (useMPI):
 	       executable = "%s%dd.MPI.ex" % (suiteName, dim)
-	       os.system("gmake -j 4 DIM=%d USE_MPI=TRUE executable=%s  >& %s/%s.make.out" % 
-			 (dim, executable, outputDir, test))
+	       os.system("gmake -j 4 DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % 
+			 (dim, COMP, FCOMP, executable, outputDir, test))
             else:
 	       executable = "%s%dd.ex" % (suiteName, dim)
-	       os.system("gmake -j 4 DIM=%d USE_MPI=false executable=%s  >& %s/%s.make.out" % 
-			 (dim, executable, outputDir, test))
+	       os.system("gmake -j 4 DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % 
+			 (dim, COMP, FCOMP, executable, outputDir, test))
 	       
             
         elif (sourceTree == "fParallel"):
