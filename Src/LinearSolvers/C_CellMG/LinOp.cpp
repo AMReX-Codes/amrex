@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.35 2009-09-28 21:29:25 lijewski Exp $
+// $Id: LinOp.cpp,v 1.36 2009-11-03 16:35:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -247,13 +247,16 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
-    for (OrientationIter oitr; oitr; ++oitr)
+#pragma omp parallel for
+    for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        const Array< Array<BoundCond> >& b = bgb.bndryConds(oitr());
-        const Array<Real>& r               = bgb.bndryLocs(oitr());
-        FabSet& f                          = (*undrrelxr[level])[oitr()];
-        int cdr                            = oitr();
-        const FabSet& fs                   = bgb.bndryValues(oitr());
+        Orientation o(i%BL_SPACEDIM,i/BL_SPACEDIM == 0 ? Orientation::low : Orientation::high);
+
+        const Array< Array<BoundCond> >& b = bgb.bndryConds(o);
+        const Array<Real>& r               = bgb.bndryLocs(o);
+        FabSet& f                          = (*undrrelxr[level])[o];
+        int cdr                            = o;
+        const FabSet& fs                   = bgb.bndryValues(o);
         const int comp                     = 0;
         for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
@@ -261,7 +264,7 @@ LinOp::applyBC (MultiFab&      inout,
 
             BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
 
-            const Mask& m = local ? (*lmaskvals[level][gn][oitr()]) : (*maskvals[level][gn][oitr()]);
+            const Mask& m = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
             Real bcl      = r[gn];
             int bct       = b[gn][comp];
 

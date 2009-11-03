@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.13 2009-10-07 17:58:29 lijewski Exp $
+c $Id: LO_3D.F,v 1.14 2009-11-03 16:35:22 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -257,6 +257,9 @@ c-----------------------------------------------------------------------
 
       end
 c-----------------------------------------------------------------------
+c
+c Don't thread this.  We instead thread LinOp::applyBC() across faces.
+c
       subroutine FORT_APPLYBC (
      $     flagden, flagbc, maxorder,
      $     phi, DIMS(phi),
