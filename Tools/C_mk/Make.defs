@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.136 2009-10-23 20:12:29 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.137 2009-11-03 21:37:29 lijewski Exp $
 #
 
 #
@@ -311,11 +311,6 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   ifeq ($(USE_OMP),TRUE)
-     CXXOPTF += -openmp
-     CXXDEBF += -openmp
-   endif
-
    CXXOPTF += -g
    CXXOPTF += -O3
 #  CXXOPTF += -parallel
@@ -405,6 +400,16 @@ ifeq ($(COMP),Intel)
    endif
    endif
    endif
+
+   ifeq ($(USE_OMP),TRUE)
+     CXXOPTF += -openmp
+     CXXDEBF += -openmp
+     ifeq ($(ICC_MAJOR_VERSION),11)
+        CXXOPTF += -openmp-report2
+        CXXDEBF += -openmp-report2
+     endif
+   endif
+
    ifeq ($(ICC_MAJOR_VERSION),11)
      CXXOPTF += -mp1
    else
