@@ -28,25 +28,6 @@ FabArrayBase::Finalize ()
 FabArrayBase::FabArrayBase ()
 {}
 
-FabArrayBase::FabArrayBase (const BoxArray& bxs, int nvar, int ngrow)
-    :
-    boxarray(bxs),
-    distributionMap(boxarray, ParallelDescriptor::NProcs()),
-    n_grow(ngrow),
-    n_comp(nvar)
-{}
-
-FabArrayBase::FabArrayBase (const BoxArray&            bxs,
-                            int                        nvar,
-                            int                        ngrow,
-                            const DistributionMapping& map)
-    :
-    boxarray(bxs),
-    distributionMap(map),
-    n_grow(ngrow),
-    n_comp(nvar)
-{}
-
 FabArrayBase::~FabArrayBase () {}
 
 Box
@@ -63,16 +44,16 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     fabArray(fabarray),
     currentIndex(0)
 {
-    //
-    // Increment the currentIndex to start at the first valid index
-    // for this ParallelDescriptor::MyProc.
-    //
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    while (fabArray.DistributionMap()[currentIndex] != MyProc)
-    {
-        ++currentIndex;
-    }
+//    //
+//    // Increment the currentIndex to start at the first valid index
+//    // for this ParallelDescriptor::MyProc.
+//    //
+//    const int MyProc = ParallelDescriptor::MyProc();
+//
+//    while (fabArray.DistributionMap()[currentIndex] != MyProc)
+//    {
+//        ++currentIndex;
+//    }
 }
 
 FabArrayBase::FabComTag::FabComTag ()
@@ -91,40 +72,16 @@ FabArrayBase::FabComTag::FabComTag ()
     procThatHasData   = 0;
 }
 
-void
-MFIter::operator++ ()
-{
-    const int MyProc = ParallelDescriptor::MyProc();
-    //
-    // Go to the next index on this processor.
-    //
-    do
-    {
-        ++currentIndex;
-    }
-    while (fabArray.DistributionMap()[currentIndex] != MyProc);
-}
-
-bool
-MFIter::isValid ()
-{
-    BL_ASSERT(currentIndex >= 0);
-
-    bool rc = currentIndex < fabArray.size();
-
-    return rc;
-}
-
 const Box&
 MFIter::validbox () const
 {
-    return fabArray.box(currentIndex);
+    return fabArray.box(fabArray.IndexMap()[currentIndex]);
 }
 
 Box
 MFIter::fabbox () const
 {
-    return fabArray.fabbox(currentIndex);
+    return fabArray.fabbox(fabArray.IndexMap()[currentIndex]);
 }
 
 //

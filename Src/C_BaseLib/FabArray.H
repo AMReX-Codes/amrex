@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.200 2009-05-29 21:57:03 ajnonaka Exp $
+// $Id: FabArray.H,v 1.201 2009-11-04 02:30:19 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -58,15 +58,11 @@ private:
     int m_fabIndex;
 };
 
-
-
 class FabArrayBase
 {
 public:
 
     FabArrayBase ();
-    FabArrayBase (const BoxArray& bx, int nvar, int ngrow);
-    FabArrayBase (const BoxArray& bx, int nvar, int ngrow, const DistributionMapping& map);
 
     virtual ~FabArrayBase();
     //
@@ -100,6 +96,10 @@ public:
     // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const;
+    //
+    // Returns constant reference to indices in the FabArray that we own.
+    //
+    const Array<int>& IndexMap () const;
     //
     // Flush the cache of self-intersection info used by FillBoundary.
     //
@@ -296,6 +296,7 @@ protected:
     //
     mutable BoxArray    boxarray;   /* So FabSets can modify'm */
     DistributionMapping distributionMap;
+    Array<int>          indexMap;
     int                 n_grow;
     int                 n_comp;
 };
@@ -841,6 +842,13 @@ FabArrayBase::DistributionMap () const
 }
 
 inline
+const Array<int>&
+FabArrayBase::IndexMap () const
+{
+    return indexMap;
+}
+
+inline
 const FabArrayBase&
 MFIter::theFabArrayBase () const
 {
@@ -851,7 +859,21 @@ inline
 int
 MFIter::index () const
 {
-    return currentIndex;
+    return fabArray.IndexMap()[currentIndex];
+}
+
+inline
+void
+MFIter::operator++ ()
+{
+    ++currentIndex;
+}
+
+inline
+bool
+MFIter::isValid ()
+{
+    return currentIndex < fabArray.IndexMap().size();
 }
 
 template <class FAB>
@@ -990,11 +1012,24 @@ FabArray<FAB>::define (const BoxArray& bxs,
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
+
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap.define(boxarray,ParallelDescriptor::NProcs());
     fabparray.resize(bxs.size());
+
+    int cnt = 0;
+    const int MyProc = ParallelDescriptor::MyProc();
+    for (int i = 0; i < boxarray.size(); i++)
+        if (distributionMap[i] == MyProc)
+            cnt++;
+    indexMap.resize(cnt);
+    cnt = 0;
+    for (int i = 0; i < boxarray.size(); i++)
+        if (distributionMap[i] == MyProc)
+            indexMap[cnt++] = i;
+
     if (alloc == Fab_allocate)
         AllocFabs();
 }
@@ -1010,11 +1045,24 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
     BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
+
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap = dm;
     fabparray.resize(bxs.size());
+
+    int cnt = 0;
+    const int MyProc = ParallelDescriptor::MyProc();
+    for (int i = 0; i < boxarray.size(); i++)
+        if (distributionMap[i] == MyProc)
+            cnt++;
+    indexMap.resize(cnt);
+    cnt = 0;
+    for (int i = 0; i < boxarray.size(); i++)
+        if (distributionMap[i] == MyProc)
+            indexMap[cnt++] = i;
+
     if (alloc == Fab_allocate)
         AllocFabs();
 }
