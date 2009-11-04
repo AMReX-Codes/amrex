@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.48 2009-04-21 19:21:16 almgren Exp $
+// $Id: CGSolver.cpp,v 1.49 2009-11-04 02:28:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -72,8 +72,8 @@ CGSolver::initialize ()
 }
 
 CGSolver::CGSolver (LinOp& _Lp,
-            bool   _use_mg_precond,
-            int    _lev)
+                    bool   _use_mg_precond,
+                    int    _lev)
     :
     Lp(_Lp),
     mg_precond(0),
@@ -108,12 +108,15 @@ Real
 norm_inf (const MultiFab& res, bool local = false)
 {
     Real restot = 0.0;
+
     for (MFIter mfi(res); mfi.isValid(); ++mfi) 
     {
         restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
     }
+
     if (!local)
         ParallelDescriptor::ReduceRealMax(restot);
+
     return restot;
 }
 
@@ -142,130 +145,66 @@ CGSolver::solve (MultiFab&       sol,
     return ret;
 }
 
-
-void
-CGSolver::advance (MultiFab&       p,
-                   Real            beta,
-                   const MultiFab& z)
-{
-    //
-    // Compute p = z  +  beta p
-    //
-    int ncomp = p.nComp();
-    const BoxArray& zbox = z.boxArray();
-
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
-    {
-        FORT_CGADVCP(p[pmfi].dataPtr(),
-                     ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
-                     z[pmfi].dataPtr(),
-                     ARLIM(z[pmfi].loVect()), ARLIM(z[pmfi].hiVect()),
-                     &beta,
-                     zbox[pmfi.index()].loVect(), zbox[pmfi.index()].hiVect(),
-                     &ncomp);
-    }
-}
-
-void
-CGSolver::update (MultiFab&       sol,
-                  Real            alpha,
-                  MultiFab&       r,
-                  const MultiFab& p,
-                  const MultiFab& w)
-{
-    //
-    // compute x =+ alpha p  and  r -= alpha w
-    //
-    int ncomp = r.nComp();
-
-    for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
-    {
-        FORT_CGUPDATE(sol[solmfi].dataPtr(),
-                      ARLIM(sol[solmfi].loVect()), ARLIM(sol[solmfi].hiVect()),
-                      r[solmfi].dataPtr(),
-                      ARLIM(r[solmfi].loVect()),   ARLIM(r[solmfi].hiVect()),
-                      &alpha,
-                      w[solmfi].dataPtr(),
-                      ARLIM(w[solmfi].loVect()), ARLIM(w[solmfi].hiVect()),
-                      p[solmfi].dataPtr(),
-                      ARLIM(p[solmfi].loVect()), ARLIM(p[solmfi].hiVect()),
-                      solmfi.validbox().loVect(), solmfi.validbox().hiVect(),
-                      &ncomp);
-    }
-}
-
-Real
-CGSolver::axp (MultiFab&      w,
-               MultiFab&      p,
-               LinOp::BC_Mode bc_mode)
-{
-    //
-    // Compute w = A.p, and return Transpose(p).w
-    //
-    Real pw = 0.0;
-    Lp.apply(w, p, lev, bc_mode);
-    int ncomp = p.nComp();
-
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
-    {
-        Real tpw;
-        FORT_CGXDOTY(&tpw,
-                     p[pmfi].dataPtr(),
-                     ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
-                     w[pmfi].dataPtr(),
-                     ARLIM(w[pmfi].loVect()), ARLIM(w[pmfi].hiVect()),
-                     pmfi.validbox().loVect(), pmfi.validbox().hiVect(),
-                     &ncomp);
-        pw += tpw;
-    }
-
-    ParallelDescriptor::ReduceRealSum(pw);
-
-    return pw;
-}
-
 static
 void
-sxay (MultiFab& ss, const MultiFab& xx, Real a, const MultiFab& yy)
+sxay (MultiFab&       ss,
+      const MultiFab& xx,
+      Real            a,
+      const MultiFab& yy)
 {
+    BL_PROFILE("CGSolver::sxay");
+
     const int ncomp = ss.nComp();
 
-    for (MFIter smfi(ss); smfi.isValid(); ++smfi)
+    const int N = ss.IndexMap().size();
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
     {
-        FORT_CGSXAY(ss[smfi].dataPtr(),
-                    ARLIM(ss[smfi].loVect()), ARLIM(ss[smfi].hiVect()),
-		    xx[smfi].dataPtr(),
-                    ARLIM(xx[smfi].loVect()), ARLIM(xx[smfi].hiVect()),
-		    &a,
-		    yy[smfi].dataPtr(),
-                    ARLIM(yy[smfi].loVect()), ARLIM(yy[smfi].hiVect()),
-		    smfi.validbox().loVect(), smfi.validbox().hiVect(),
-		    &ncomp);
+        const int k = ss.IndexMap()[i];
+        FORT_CGSXAY(ss[k].dataPtr(),
+                    ARLIM(ss[k].loVect()), ARLIM(ss[k].hiVect()),
+                    xx[k].dataPtr(),
+                    ARLIM(xx[k].loVect()), ARLIM(xx[k].hiVect()),
+                    &a,
+                    yy[k].dataPtr(),
+                    ARLIM(yy[k].loVect()), ARLIM(yy[k].hiVect()),
+                    ss.box(k).loVect(), ss.box(k).hiVect(),
+                    &ncomp);
     }
 }
 
 static
 Real
-dotxy (const MultiFab& r, const MultiFab& z, bool local = false)
+dotxy (const MultiFab& r,
+       const MultiFab& z,
+       bool            local = false)
 {
     BL_PROFILE("CGSolver::dotxy");
 
-    int ncomp = z.nComp();
-    Real rho = 0.0;
-    for (MFIter rmfi(r); rmfi.isValid(); ++rmfi)
+    int  ncomp = z.nComp();
+    Real rho   = 0.0;
+
+    const int N = r.IndexMap().size();
+
+#pragma omp parallel for reduction(+:rho)
+    for (int i = 0; i < N; i++)
     {
+        const int k = r.IndexMap()[i];
         Real trho;
         FORT_CGXDOTY(&trho,
-                     z[rmfi].dataPtr(),
-                     ARLIM(z[rmfi].loVect()),ARLIM(z[rmfi].hiVect()),
-                     r[rmfi].dataPtr(),
-                     ARLIM(r[rmfi].loVect()),ARLIM(r[rmfi].hiVect()),
-                     rmfi.validbox().loVect(),rmfi.validbox().hiVect(),
+                     z[k].dataPtr(),
+                     ARLIM(z[k].loVect()),ARLIM(z[k].hiVect()),
+                     r[k].dataPtr(),
+                     ARLIM(r[k].loVect()),ARLIM(r[k].hiVect()),
+                     r.box(k).loVect(),r.box(k).hiVect(),
                      &ncomp);
         rho += trho;
     }
+
     if (!local)
         ParallelDescriptor::ReduceRealSum(rho);
+
     return rho;
 }
 
@@ -339,7 +278,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     for (; nit <= maxiter; ++nit)
     {
-        Real rho = dotxy(rh, r);
+        Real rho = dotxy(rh,r);
         if ( rho == 0 ) 
 	{
             ret = 1;
@@ -371,7 +310,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         }
         Lp.apply(v, ph, lev, temp_bc_mode);
 
-        if ( Real rhTv = dotxy(rh, v) )
+        if ( Real rhTv = dotxy(rh,v) )
 	{
             alpha = rho/rhTv;
 	}
@@ -595,7 +534,7 @@ CGSolver::solve_cg (MultiFab&       sol,
         Lp.apply(q, p, lev, temp_bc_mode);
 
         Real alpha;
-        if ( Real pw = dotxy(p, q) )
+        if ( Real pw = dotxy(p,q) )
 	{
             alpha = rho/pw;
 	}
@@ -756,6 +695,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
 	}
         return 0;
     }
+
     for (; nit <= maxiter; ++nit)
     {
         z.copy(r);
