@@ -1,5 +1,5 @@
 c
-c $Id: MG_3D.F,v 1.6 2009-10-01 19:34:35 lijewski Exp $
+c $Id: MG_3D.F,v 1.7 2009-11-04 16:55:37 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -52,7 +52,10 @@ c
 !$omp end parallel
 
       end
-
+!
+! This can't be OpenMP'd.
+! Instead we thread over FABs in MultiGrid::interpolate()
+!
       subroutine FORT_INTERP (
      $     f, DIMS(f),
      $     c, DIMS(c),

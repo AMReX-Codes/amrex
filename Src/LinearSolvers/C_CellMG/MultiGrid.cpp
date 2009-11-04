@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.46 2009-04-30 22:04:28 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.47 2009-11-04 16:55:37 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -576,15 +576,19 @@ MultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.
     //
-    for (MFIter fmfi(f); fmfi.isValid(); ++fmfi)
-    {
-        const Box& bx = c.boxArray()[fmfi.index()];
-        int nc        = f.nComp();
+    const int N = f.IndexMap().size();
 
-        FORT_INTERP(f[fmfi].dataPtr(),
-                    ARLIM(f[fmfi].loVect()), ARLIM(f[fmfi].hiVect()),
-                    c[fmfi].dataPtr(),
-                    ARLIM(c[fmfi].loVect()), ARLIM(c[fmfi].hiVect()),
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
+    {
+        const int  k  = f.IndexMap()[i];
+        const Box& bx = c.boxArray()[k];
+        int        nc = f.nComp();
+
+        FORT_INTERP(f[k].dataPtr(),
+                    ARLIM(f[k].loVect()), ARLIM(f[k].hiVect()),
+                    c[k].dataPtr(),
+                    ARLIM(c[k].loVect()), ARLIM(c[k].hiVect()),
                     bx.loVect(), bx.hiVect(), &nc);
     }
 }
