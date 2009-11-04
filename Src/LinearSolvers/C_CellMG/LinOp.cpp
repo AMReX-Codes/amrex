@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.36 2009-11-03 16:35:22 lijewski Exp $
+// $Id: LinOp.cpp,v 1.37 2009-11-04 17:11:39 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -247,39 +247,42 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
+    const int comp = 0;
+
+    const int N = inout.IndexMap().size();
+
 #pragma omp parallel for
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    for (int i = 0; i < N; i++)
     {
-        Orientation o(i%BL_SPACEDIM,i/BL_SPACEDIM == 0 ? Orientation::low : Orientation::high);
+        const int gn = inout.IndexMap()[i];
 
-        const Array< Array<BoundCond> >& b = bgb.bndryConds(o);
-        const Array<Real>& r               = bgb.bndryLocs(o);
-        FabSet& f                          = (*undrrelxr[level])[o];
-        int cdr                            = o;
-        const FabSet& fs                   = bgb.bndryValues(o);
-        const int comp                     = 0;
-        for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+        BL_ASSERT(gbox[level][gn] == inout.box(gn));
+
+        for (OrientationIter oitr; oitr; ++oitr)
         {
-            const int gn = inoutmfi.index();
+            Orientation o(oitr());
 
-            BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
-
-            const Mask& m = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
-            Real bcl      = r[gn];
-            int bct       = b[gn][comp];
+            const Array< Array<BoundCond> >& b   = bgb.bndryConds(o);
+            const Array<Real>&               r   = bgb.bndryLocs(o);
+            FabSet&                          f   = (*undrrelxr[level])[o];
+            int                              cdr = o;
+            const FabSet&                    fs  = bgb.bndryValues(o);
+            const Mask&                      m   = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
+            Real                             bcl = r[gn];
+            int                              bct = b[gn][comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         inout[inoutmfi].dataPtr(src_comp),
-                         ARLIM(inout[inoutmfi].loVect()), ARLIM(inout[inoutmfi].hiVect()),
+                         inout[gn].dataPtr(src_comp),
+                         ARLIM(inout[gn].loVect()), ARLIM(inout[gn].hiVect()),
                          &cdr, &bct, &bcl,
-                         fs[inoutmfi].dataPtr(), 
-                         ARLIM(fs[inoutmfi].loVect()), ARLIM(fs[inoutmfi].hiVect()),
+                         fs[gn].dataPtr(), 
+                         ARLIM(fs[gn].loVect()), ARLIM(fs[gn].hiVect()),
                          m.dataPtr(),
                          ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         f[inoutmfi].dataPtr(),
-                         ARLIM(f[inoutmfi].loVect()), ARLIM(f[inoutmfi].hiVect()),
-                         inoutmfi.validbox().loVect(),
-                         inoutmfi.validbox().hiVect(), &num_comp, h[level]);
+                         f[gn].dataPtr(),
+                         ARLIM(f[gn].loVect()), ARLIM(f[gn].hiVect()),
+                         inout.box(gn).loVect(),
+                         inout.box(gn).hiVect(), &num_comp, h[level]);
         }
     }
 }
