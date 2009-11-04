@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.91 2009-06-02 02:51:02 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.92 2009-11-04 21:35:24 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -691,7 +691,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     FArrayBox mflx_fab, area_fab, tmp_fab;
 
-    for (int i = 0; i < fillBoxId_mflx.size(); i++)
+    const int N = fillBoxId_mflx.size();
+
+#pragma omp for private(mflx_fab, area_fab, tmp_fab)
+    for (int i = 0; i < N; i++)
     {
         const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
         const FillBoxId& fbid_area = fillBoxId_area[i];
@@ -1169,9 +1172,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (MFIter mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    const int N = mflx.IndexMap().size();
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
     {
-        FineAdd(mflx[mflxmfi],dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
+        const int k = mflx.IndexMap()[i];
+        FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -1184,9 +1191,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (MFIter mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    const int N = mflx.IndexMap().size();
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
     {
-        FineAdd(mflx[mflxmfi],area[mflxmfi],dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
+        const int k = mflx.IndexMap()[i];
+        FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 

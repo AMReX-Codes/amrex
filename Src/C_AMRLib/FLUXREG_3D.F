@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.14 2009-10-27 19:09:12 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.15 2009-11-04 21:35:24 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -49,9 +49,7 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k
 
-!$omp parallel private(i,j,k)
       do n = 1, numcomp
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -59,9 +57,7 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 
@@ -97,9 +93,7 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k
 
-!$omp parallel private(i,j,k)
       do n = 1, numcomp
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -107,9 +101,7 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 
@@ -163,7 +155,6 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
-!$omp parallel do private(kc,k,joff,jc,j)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -173,7 +164,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       else if (dir .eq. 1) then
@@ -188,7 +178,6 @@ c        ::::: flux normal to Y direction
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
-!$omp parallel do private(kc,k,ioff,ic,i)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -198,7 +187,6 @@ c        ::::: flux normal to Y direction
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       else
@@ -215,7 +203,6 @@ c
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1
-!$omp parallel do private(jc,j,ioff,ic,i)
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -225,7 +212,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       end if
@@ -287,7 +273,6 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
-!$omp parallel do private(kc,k,joff,jc,j)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -298,7 +283,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       else if (dir .eq. 1) then
@@ -315,7 +299,6 @@ c
          end if
          do n = 1, numcomp
             do koff = 0, ratioz-1
-!$omp parallel do private(kc,k,ioff,ic,i)
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -326,7 +309,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       else
@@ -343,7 +325,6 @@ c
          end if
          do n = 1, numcomp
             do joff = 0, ratioy-1
-!$omp parallel do private(jc,j,ioff,ic,i)
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -354,7 +335,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end do
       end if
@@ -395,9 +375,7 @@ c ::
       
       integer n, i, j, k
 
-!$omp parallel private(i,j,k)      
       do n = 1, numcomp
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -405,9 +383,7 @@ c ::
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
       
       end
 
@@ -444,9 +420,7 @@ c ::
 
       vmult = mult/(dx(1)*dx(2)*dx(3))
 
-!$omp parallel private(i,j,k)
       do n = 1, numcomp
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -454,8 +428,6 @@ c ::
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
       
       end
