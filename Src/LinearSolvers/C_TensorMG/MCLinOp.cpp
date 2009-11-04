@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.22 2007-07-05 20:02:51 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.23 2009-11-04 18:14:56 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -194,21 +194,20 @@ MCLinOp::applyBC (MultiFab& inout,
     //
     // Fill boundary cells.
     //
-    OrientationIter oitr;
-
-    while (oitr)
+    for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
     {
-	const Array<Array<BoundCond> > &b = bgb.bndryConds(oitr());
-	const Array<Real> &r = bgb.bndryLocs(oitr());
-	FabSet& f  = (*undrrelxr[level])[oitr()];
-	FabSet& td = (*tangderiv[level])[oitr()];
-	int cdr(oitr());
-	const FabSet& fs = bgb.bndryValues(oitr());
-	int cdir = oitr().coordDir();
-        for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+        const int gn = inoutmfi.index();
+        BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+
+        for (OrientationIter oitr; oitr; ++oitr)
         {
-	    const int gn = inoutmfi.index();
-	    BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+            const Array<Array<BoundCond> > &b = bgb.bndryConds(oitr());
+            const Array<Real> &r = bgb.bndryLocs(oitr());
+            FabSet& f  = (*undrrelxr[level])[oitr()];
+            FabSet& td = (*tangderiv[level])[oitr()];
+            int cdr(oitr());
+            const FabSet& fs = bgb.bndryValues(oitr());
+            int cdir = oitr().coordDir();
 	    Real bcl(r[gn]);
 	    const int *bct = (const int *)b[gn].dataPtr();
 	    const FArrayBox& fsfab = fs[inoutmfi.index()];
@@ -278,7 +277,6 @@ MCLinOp::applyBC (MultiFab& inout,
 		&nc, h[level]);
 #endif
 	}
-	++oitr;
     }
 }
     
