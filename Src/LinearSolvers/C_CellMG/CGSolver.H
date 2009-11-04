@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.13 2007-10-22 02:49:57 almgren Exp $
+// $Id: CGSolver.H,v 1.14 2009-11-04 02:28:22 lijewski Exp $
 //
 
 #include <cmath>
@@ -172,26 +172,6 @@ protected:
     //@ManDoc: if  (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
     //
     virtual void set_mg_precond ();
-    //
-    //@ManDoc: compute p = z  +  beta p in the CG algorithm
-    //
-    void advance (MultiFab&       p,
-                  Real            beta,
-                  const MultiFab& z);
-    //
-    //@ManDoc: compute x =+ alpha p  and  r -= alpha w in the CG algorithm
-    //
-    void update (MultiFab&       sol,
-                 Real            alpha,
-                 MultiFab&       r,
-                 const MultiFab& p,
-                 const MultiFab& w);
-    //
-    //@ManDoc: compute w = A.p, and return Transpose(p).w in the CG algorithm
-    //
-    Real axp (MultiFab&      w,
-              MultiFab&      p,
-              LinOp::BC_Mode bc_mode);
     //
     //@ManDoc: Initialized yet?
     //
