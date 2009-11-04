@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.23 2009-11-04 18:14:56 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.24 2009-11-04 18:50:35 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -194,10 +194,13 @@ MCLinOp::applyBC (MultiFab& inout,
     //
     // Fill boundary cells.
     //
-    for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+    const int N = inout.IndexMap().size();
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
     {
-        const int gn = inoutmfi.index();
-        BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+        const int gn = inout.IndexMap()[i];
+        BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -210,7 +213,7 @@ MCLinOp::applyBC (MultiFab& inout,
             int cdir = oitr().coordDir();
 	    Real bcl(r[gn]);
 	    const int *bct = (const int *)b[gn].dataPtr();
-	    const FArrayBox& fsfab = fs[inoutmfi.index()];
+	    const FArrayBox& fsfab = fs[gn];
 	    const Real* bcvalptr = fsfab.dataPtr();
             //
 	    // Way external derivs stored.
@@ -218,9 +221,9 @@ MCLinOp::applyBC (MultiFab& inout,
 	    const Real* exttdptr = fsfab.dataPtr(numcomp); 
 	    const int* fslo      = fsfab.loVect();
 	    const int* fshi      = fsfab.hiVect();
-	    FArrayBox& inoutfab  = inout[inoutmfi];
-	    FArrayBox& denfab    = f[inoutmfi.index()];
-	    FArrayBox& tdfab     = td[inoutmfi.index()];
+	    FArrayBox& inoutfab  = inout[gn];
+	    FArrayBox& denfab    = f[gn];
+	    FArrayBox& tdfab     = td[gn];
 #if BL_SPACEDIM==2
 	    int perpdir;
 	    if (cdir == 0)
@@ -248,7 +251,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		ARLIM(denfab.loVect()), ARLIM(denfab.hiVect()),
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
-		inoutmfi.validbox().loVect(), inoutmfi.validbox().hiVect(),
+		inout.box(gn).loVect(), inout.box(gn).hiVect(),
 		&nc, h[level]);
 #elif BL_SPACEDIM==3
 	    const Mask& mn = *maskvals[level][gn][Orientation(1,Orientation::high)];
@@ -273,7 +276,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		ARLIM(denfab.loVect()), ARLIM(denfab.hiVect()),
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
-		inoutmfi.validbox().loVect(), inoutmfi.validbox().hiVect(),
+		inout.box(gn).loVect(), inout.box(gn).hiVect(),
 		&nc, h[level]);
 #endif
 	}

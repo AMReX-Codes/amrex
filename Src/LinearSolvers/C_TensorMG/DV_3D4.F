@@ -214,7 +214,6 @@ c ::: ::: now do the tangential derivative part
 c ::: ::: Null
                i = lo(1)
 c ::: ::: ::: Y
-!$omp parallel do private(j,k,innder)
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of west face
                   do j=lo(2)+1,hi(2)-1
@@ -236,9 +235,7 @@ c ::: ::: ::: ::: interior part of west face
                   endif
                   trander(i-1,j,k,n,2) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(j,k,innder)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
@@ -259,7 +256,6 @@ c ::: ::: ::: Z
                   endif
                   trander(i-1,j,k,n,3) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
                call polyInterpCoeff(xInt, x, lenx+2, coef)
@@ -298,7 +294,6 @@ c ::: ::: Null
 c ::: ::: interior part of west side
                i = lo(1)
 c ::: ::: ::: Y
-!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maskw(-1+i,-1+j,k).eq.0.and.maskw(-1+i,1+j,k).eq.0)then
@@ -381,9 +376,7 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maskw(-1+i,j,-1+k).eq.0.and.maskw(-1+i,j,1+k).eq.0)then
@@ -466,7 +459,6 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i-1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -516,7 +508,6 @@ c
 c ::: ::: now do the tangential derivative part
                i = hi(1)
 c ::: ::: ::: Y
-!$omp parallel do private(j,k,innder)
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of west face
                   do j=lo(2)+1,hi(2)-1
@@ -538,9 +529,7 @@ c ::: ::: ::: ::: interior part of west face
                   endif
                   trander(i+1,j,k,n,2) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(j,k,innder)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      innder = (-U(i,j,-1+k,n)+U(i,j,1+k,n))/(2.d0*hz)
@@ -561,7 +550,6 @@ c ::: ::: ::: Z
                   endif
                   trander(i+1,j,k,n,3) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
                call polyInterpCoeff(xInt, x, lenx+2, coef)
@@ -599,7 +587,6 @@ c ::: ::: now do the tangential deriv part
 c ::: ::: interior part of west side
                i = hi(1)
 c ::: ::: ::: Y
-!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do j=lo(2)+1,hi(2)-1
                      if( maske(1+i,-1+j,k).eq.0.and.maske(1+i,1+j,k).eq.0)then
@@ -682,9 +669,8 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
+
 c ::: ::: ::: Z
-!$omp parallel do private(j,k,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do k=lo(3)+1,hi(3)-1
                      if( maske(1+i,j,-1+k).eq.0.and.maske(1+i,j,1+k).eq.0)then
@@ -767,7 +753,6 @@ c ::: ::: ::: now endpoints
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i+1,j,k,n,3) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -817,7 +802,6 @@ c
 c ::: ::: now do the tangential derivative part
                j = lo(2)
 c ::: ::: ::: X
-!$omp parallel do private(i,k,innder)
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of south face
                   do i=lo(1)+1,hi(1)-1
@@ -839,9 +823,7 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j-1,k,n,1) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(i,k,innder)
                do i=lo(1),hi(1)
 c ::: ::: ::: ::: interior part of south face
                   do k=lo(3)+1,hi(3)-1
@@ -863,7 +845,6 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j-1,k,n,3) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
                call polyInterpCoeff(xInt, x, leny+2, coef)
@@ -901,7 +882,6 @@ c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
                j=lo(2)
 c ::: ::: ::: X
-!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( masks(-1+i,-1+j,k).eq.0.and.masks(1+i,-1+j,k).eq.0)then
@@ -984,9 +964,7 @@ c ::: ::: ::: X
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( masks(i,-1+j,-1+k).eq.0.and.masks(i,-1+j,1+k).eq.0)then
@@ -1069,7 +1047,6 @@ c ::: ::: ::: Z
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j-1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -1119,7 +1096,6 @@ c
 c ::: ::: now do the tangential derivative part
                j = hi(2)
 c ::: ::: ::: X
-!$omp parallel do private(i,k,innder)
                do k=lo(3),hi(3)
 c ::: ::: ::: ::: interior part of south face
                   do i=lo(1)+1,hi(1)-1
@@ -1141,9 +1117,7 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j+1,k,n,1) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(i,k,innder)
                do i=lo(1),hi(1)
 c ::: ::: ::: ::: interior part of south face
                   do k=lo(3)+1,hi(3)-1
@@ -1165,7 +1139,6 @@ c ::: ::: ::: ::: interior part of south face
                   endif
                   trander(i,j+1,k,n,3) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
                call polyInterpCoeff(xInt, x, leny+2, coef)
@@ -1203,7 +1176,6 @@ c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
                j=hi(2)
 c ::: ::: ::: X
-!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do k=lo(3),hi(3)
                   do i=lo(1)+1, hi(1)-1
                      if( maskn(-1+i,1+j,k).eq.0.and.maskn(1+i,1+j,k).eq.0)then
@@ -1286,9 +1258,7 @@ c ::: ::: ::: X
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,1) = lambda*innder+(1-lambda)*outder                 
                enddo
-!$omp end parallel do
 c ::: ::: ::: Z
-!$omp parallel do private(i,k,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do k=lo(3)+1,hi(3)-1
                      if( maskn(i,1+j,-1+k).eq.0.and.maskn(i,1+j,1+k).eq.0)then
@@ -1371,7 +1341,6 @@ c ::: ::: ::: Z
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j+1,k,n,3) = lambda*innder+(1-lambda)*outder                 
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -1421,7 +1390,6 @@ c
 c ::: ::: now do the tangential derivative part
                k = lo(3)
 c ::: ::: X
-!$omp parallel do private(i,j,innder)
                do j=lo(2),hi(2)
 c ::: ::: ::: interior part of bottom face
                   do i=lo(1)+1,hi(1)-1
@@ -1443,9 +1411,7 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k-1,n,1) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Y
-!$omp parallel do private(i,j,innder)
                do i=lo(1),hi(1)
 c ::: ::: ::: interior part of bottom face
                   do j=lo(2)+1,hi(2)-1
@@ -1467,7 +1433,6 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k-1,n,2) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
                call polyInterpCoeff(xInt, x, lenz+2, coef)
@@ -1505,7 +1470,6 @@ c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
                k = lo(3)
 c ::: ::: ::: X
-!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskb(-1+i,j,-1+k).eq.0.and.maskb(1+i,j,-1+k).eq.0)then
@@ -1588,9 +1552,7 @@ c ::: ::: ::: X
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Y               
-!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskb(i,-1+j,-1+k).eq.0.and.maskb(i,1+j,-1+k).eq.0)then
@@ -1673,7 +1635,6 @@ c ::: ::: ::: Y
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k-1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -1723,7 +1684,6 @@ c
 c ::: ::: now do the tangential derivative part
                k = hi(3)
 c ::: ::: X
-!$omp parallel do private(i,j,innder)
                do j=lo(2),hi(2)
 c ::: ::: ::: interior part of bottom face
                   do i=lo(1)+1,hi(1)-1
@@ -1745,9 +1705,7 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k+1,n,1) = innder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Y
-!$omp parallel do private(i,j,innder)
                do i=lo(1),hi(1)
 c ::: ::: ::: interior part of bottom face
                   do j=lo(2)+1,hi(2)-1
@@ -1769,7 +1727,6 @@ c ::: ::: ::: interior part of bottom face
                   endif
                   trander(i,j,k+1,n,2) = innder
                enddo
-!$omp end parallel do
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
                call polyInterpCoeff(xInt, x, lenz+2, coef)
@@ -1808,7 +1765,6 @@ c ::: ::: now do the tangential deriv part
 c ::: ::: interior part first, followed by end points
                k = hi(3)
 c ::: ::: ::: X
-!$omp parallel do private(i,j,outloc,outder,innder,lambda)
                do j=lo(2),hi(2)
                   do i=lo(1)+1, hi(1)-1
                      if( maskt(-1+i,j,1+k).eq.0.and.maskt(1+i,j,1+k).eq.0)then
@@ -1891,9 +1847,7 @@ c ::: ::: ::: X
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,1) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
 c ::: ::: ::: Y      
-!$omp parallel do private(i,j,outloc,outder,innder,lambda)         
                do i=lo(1), hi(1)
                   do j=lo(2)+1,hi(2)-1
                      if( maskt(i,-1+j,1+k).eq.0.and.maskt(i,1+j,1+k).eq.0)then
@@ -1976,7 +1930,6 @@ c ::: ::: ::: Y
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   trander(i,j,k+1,n,2) = lambda*innder+(1-lambda)*outder
                enddo
-!$omp end parallel do
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
