@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.37 2008-10-01 18:20:07 almgren Exp $
+// $Id: Amr.H,v 1.38 2009-11-05 23:07:06 almgren Exp $
 //
 
 #include <fstream>
@@ -58,7 +58,7 @@ public:
     //
     //@ManDoc: Largest allowable grid.
     //
-    int maxGridSize () const;
+    int maxGridSize (int lev) const;
     //
     //@ManDoc: Subcycle in time?
     //
@@ -333,9 +333,9 @@ protected:
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
     Array<int>       regrid_int;      // Interval between regridding.
     Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    Array<int>       blocking_factor; // Blocking factor in grid generation.
+    Array<int>       blocking_factor; // Blocking factor in grid generation (by level).
+    Array<int>       max_grid_size;   // Maximum allowable grid size (by level).
     Real             grid_eff;        // Grid efficiency.
-    int              max_grid_size;   // Maximum allowable grid size.
     int              n_proper;        // # cells required for proper nesting.
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
