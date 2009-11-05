@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.92 2009-11-04 21:35:24 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.93 2009-11-05 07:50:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -693,7 +693,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     const int N = fillBoxId_mflx.size();
 
-#pragma omp for private(mflx_fab, area_fab, tmp_fab)
+//#pragma omp for private(mflx_fab, area_fab, tmp_fab)
     for (int i = 0; i < N; i++)
     {
         const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
