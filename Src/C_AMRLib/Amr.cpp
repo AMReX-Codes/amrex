@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.186 2009-11-05 04:01:13 almgren Exp $
+// $Id: Amr.cpp,v 1.187 2009-11-05 23:07:06 almgren Exp $
 //
 #include <winstd.H>
 
@@ -102,9 +102,9 @@ Amr::derivePlotVars ()
 }
 
 int
-Amr::maxGridSize () const
+Amr::maxGridSize (int lev) const
 {
-    return max_grid_size;
+    return max_grid_size[lev];
 }
 
 int
@@ -288,7 +288,6 @@ Amr::Amr ()
     last_plotfile    = 0;
     plot_int         = -1;
     n_proper         = 1;
-    max_grid_size    = (BL_SPACEDIM == 2) ? 128 : 32;
 
     // This is the default for the format of plotfile and checkpoint names.
     file_name_digits = 5;
@@ -383,6 +382,7 @@ Amr::Amr ()
     n_cycle.resize(nlev);
     dt_min.resize(nlev);
     blocking_factor.resize(nlev);
+    max_grid_size.resize(nlev);
     n_error_buf.resize(nlev);
     amr_level.resize(nlev);
     //
@@ -397,7 +397,8 @@ Amr::Amr ()
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
-        blocking_factor[i] = 1;
+        blocking_factor[i] = 2;
+        max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
@@ -441,7 +442,6 @@ Amr::Amr ()
         BoxLib::Warning("Specifying amr.plot_per will change the time step");
     }
 
-    pp.query("max_grid_size",max_grid_size);
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
@@ -486,6 +486,32 @@ Amr::Amr ()
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
     }
+
+    //
+    // Read in max_grid_size..
+    //
+    if (pp.countval("max_grid_size") == 1)
+    {
+        //
+        // Set all values to the single available value.
+        //
+        int the_max_grid_size = 0;
+
+        pp.query("max_grid_size",the_max_grid_size);
+
+        for (i = 0; i <= max_level; i++)
+        {
+            max_grid_size[i] = the_max_grid_size;
+        }
+    }
+    else
+    {
+        //
+        // Otherwise we expect a vector of max_grid_size values.
+        //
+        pp.queryarr("max_grid_size",max_grid_size,0,max_level);
+    }
+
     //
     // Read in the blocking_factors.
     //
@@ -498,7 +524,7 @@ Amr::Amr ()
 
         pp.query("blocking_factor",the_blocking_factor);
 
-        for (i = 0; i < max_level; i++)
+        for (i = 0; i <= max_level; i++)
         {
             blocking_factor[i] = the_blocking_factor;
         }
@@ -870,20 +896,23 @@ Amr::checkInput ()
             BoxLib::Error("domain size not divisible by blocking_factor");
     }
     //
-    // Check that max_grid_size is a multiple of blocking_factor.
+    // Check that max_grid_size is even.
     //
     for (i = 0; i < max_level; i++)
     {
-//      for (int n=0; n<BL_SPACEDIM; n++)
-//      {
-//          int lratio = blocking_factor[i]*ref_ratio[i][n];
-//          if (max_grid_size%lratio != 0)
-//              BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
-//      }
-        int lratio = blocking_factor[i];
-        if (max_grid_size%lratio != 0)
+        if (max_grid_size[i]%2 != 0)
+            BoxLib::Error("max_grid_size is not even");
+    }
+
+    //
+    // Check that max_grid_size is a multiple of blocking_factor at every level.
+    //
+    for (i = 0; i < max_level; i++)
+    {
+        if (max_grid_size[i]%blocking_factor[i] != 0)
             BoxLib::Error("max_grid_size not divisible by blocking_factor");
     }
+
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
 
@@ -1473,9 +1502,9 @@ Amr::timeStep (int  level,
         //
         BoxArray lev0(BoxLib::coarsen(geom[0].Domain(),2));
         //
-        // Now split up into list of grids within max_grid_size limit.
+        // Now split up into list of grids within max_grid_size[0] limit.
         //
-        lev0.maxSize(max_grid_size/2);
+        lev0.maxSize(max_grid_size[0]/2);
         //
         // Now refine these boxes back to level 0.
         //
@@ -1713,9 +1742,9 @@ Amr::defBaseLevel (Real strt_time)
 
     lev0.set(0,BoxLib::coarsen(domain,2));
     //
-    // Now split up into list of grids within max_grid_size limit.
+    // Now split up into list of grids within max_grid_size[0] limit.
     //
-    lev0.maxSize(max_grid_size/2);
+    lev0.maxSize(max_grid_size[0]/2);
     //
     // Now refine these boxes back to level 0.
     //
@@ -2030,16 +2059,16 @@ Amr::grid_places (int              lbase,
     if (lbase == 0)
     {
         //
-        // Recalculate level 0 BoxArray in case max_grid_size has changed.
+        // Recalculate level 0 BoxArray in case max_grid_size[0] has changed.
         // This is done exactly as in defBaseLev().
         //
         BoxArray lev0(1);
 
         lev0.set(0,BoxLib::coarsen(geom[0].Domain(),2));
         //
-        // Now split up into list of grids within max_grid_size limit.
+        // Now split up into list of grids within max_grid_size[0] limit.
         //
-        lev0.maxSize(max_grid_size/2);
+        lev0.maxSize(max_grid_size[0]/2);
         //
         // Now refine these boxes back to level 0.
         //
@@ -2076,7 +2105,7 @@ Amr::grid_places (int              lbase,
                 if (lev > lbase)
                 {
                     bx.refine(ref_ratio[lev-1]);
-                    if (bx.longside() > max_grid_size)
+                    if (bx.longside() > max_grid_size[lev])
                     {
                         std::cout << "Grid " << bx << " too large" << '\n';
                         BoxLib::Error();
@@ -2301,7 +2330,7 @@ Amr::grid_places (int              lbase,
             BL_ASSERT(new_bx.isDisjoint());
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
-                largest_grid_size[n] = max_grid_size / ref_ratio[levc][n];
+                largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
             //
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
@@ -2349,16 +2378,30 @@ Amr::grid_places (int              lbase,
         //
         // Chop up grids if fewer grids at level than CPUs.
         // The idea here is to make more grids on a given level
-        // to spread the work around.  Don't do the finest grid though.
+        // to spread the work around.  
         //
-        for (int i = lbase; i < new_finest; i++)
+        for (int i = lbase; i <= new_finest; i++)
         {
-            if (new_grids[i].size() < ParallelDescriptor::NProcs() &&
-                blocking_factor[i] <= max_grid_size/2)
+            int new_max_size = max_grid_size[i]/2;
+            if ( (new_grids[i].size() < ParallelDescriptor::NProcs()) &&
+                 (new_max_size%blocking_factor[i] == 0) )
             {
-                new_grids[i].maxSize(max_grid_size/2);
+                new_grids[i].maxSize(new_max_size);
             }
         }
+
+        // Do this one more time just in case we still have too few grids
+        for (int i = lbase; i <= new_finest; i++)
+        {
+            int new_max_size = max_grid_size[i]/4;
+            if ( (new_grids[i].size() < ParallelDescriptor::NProcs()) &&
+                 (new_max_size%blocking_factor[i] == 0) &&
+                 (max_grid_size[i]%4 == 0) )
+            {
+                new_grids[i].maxSize(new_max_size);
+            }
+        }
+
     }
 
     if (verbose)
