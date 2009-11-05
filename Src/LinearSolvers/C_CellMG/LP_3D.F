@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.7 2009-09-28 19:23:01 lijewski Exp $
+c $Id: LP_3D.F,v 1.8 2009-11-05 23:41:37 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -86,10 +86,11 @@ c-----------------------------------------------------------------------
       REAL_T cf0, cf1, cf2, cf3, cf4, cf5
       REAL_T delta, gamma, rho
 
-      gamma = 6.0D0
+      parameter(gamma = 6.0D0)
 
       do n = 1, nc
 !$omp parallel do private(i,j,k,ioff,cf0,cf1,cf2,cf3,cf4,cf5,delta,rho)
+!$omp&if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
@@ -151,7 +152,7 @@ c
       scal = 1.0D0/h**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k)
+!$omp parallel do private(i,j,k) if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -199,7 +200,7 @@ c
       dhy = one/h(2)
       dhz = one/h(3)
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
 !$omp do
          do k = lo(3), hi(3)
