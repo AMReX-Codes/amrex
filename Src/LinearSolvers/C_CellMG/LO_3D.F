@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.14 2009-11-03 16:35:22 lijewski Exp $
+c $Id: LO_3D.F,v 1.15 2009-11-05 23:34:18 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -32,7 +32,7 @@ c-----------------------------------------------------------------------
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
 !$omp do 
          do k = lo(3), hi(3)
@@ -66,7 +66,7 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       select case(cdir)
 
       case (0)
@@ -149,7 +149,7 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       select case(cdir)
 
       case (0)
@@ -231,7 +231,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k,n)
+!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
 !$omp do
          do k = lo(3), hi(3)
