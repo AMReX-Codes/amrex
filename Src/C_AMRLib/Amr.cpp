@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.185 2009-08-28 16:55:31 lijewski Exp $
+// $Id: Amr.cpp,v 1.186 2009-11-05 04:01:13 almgren Exp $
 //
 #include <winstd.H>
 
@@ -838,7 +838,7 @@ Amr::checkInput ()
     if (max_level < 0)
         BoxLib::Error("checkInput: max_level not set");
     //
-    // Check that multigrid factor is a power of 2.
+    // Check that blocking_factor is a power of 2.
     //
     for (int i = 0; i < max_level; i++)
     {
@@ -846,7 +846,7 @@ Amr::checkInput ()
         while ( k > 0 && (k%2 == 0) )
             k /= 2;
         if (k != 1)
-            BoxLib::Error("Amr::checkInputs: multiGrid factor not power of 2");
+            BoxLib::Error("Amr::checkInputs: blocking_factor not power of 2");
     }
     //
     // Check level dependent values.
@@ -861,7 +861,7 @@ Amr::checkInput ()
     if (!domain.ok())
         BoxLib::Error("level 0 domain bad or not set");
     //
-    // Check that domain size has a factor of blocking_factor[0].
+    // Check that domain size is a multiple of blocking_factor[0].
     //
     for (i = 0; i < BL_SPACEDIM; i++)
     {
@@ -870,16 +870,19 @@ Amr::checkInput ()
             BoxLib::Error("domain size not divisible by blocking_factor");
     }
     //
-    // Check that max_grid_size has a factor of blocking_factor.
+    // Check that max_grid_size is a multiple of blocking_factor.
     //
     for (i = 0; i < max_level; i++)
     {
-        for (int n=0; n<BL_SPACEDIM; n++)
-        {
-            int lratio = blocking_factor[i]*ref_ratio[i][n];
-            if (max_grid_size%lratio != 0)
-                BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
-        }
+//      for (int n=0; n<BL_SPACEDIM; n++)
+//      {
+//          int lratio = blocking_factor[i]*ref_ratio[i][n];
+//          if (max_grid_size%lratio != 0)
+//              BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
+//      }
+        int lratio = blocking_factor[i];
+        if (max_grid_size%lratio != 0)
+            BoxLib::Error("max_grid_size not divisible by blocking_factor");
     }
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
@@ -2244,7 +2247,7 @@ Amr::grid_places (int              lbase,
         //
         tags.buffer(n_error_buf[levc]+ngrow);
         //
-        // Coarsen the taglist by blocking_factor.
+        // Coarsen the taglist by blocking_factor/ref_ratio.
         //
         int bl_max = 0;
         for (int n=0; n<BL_SPACEDIM; n++)
