@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.14 2009-09-28 19:23:01 lijewski Exp $
+c $Id: ABec_3D.F,v 1.15 2009-11-05 23:23:24 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -113,7 +113,7 @@ c-----------------------------------------------------------------------
 
       do n = 1, nc
 !$omp parallel do private(i,j,k,ioff,cf0,cf1,cf2,cf3,cf4,cf5,delta)
-!$omp&private(gamma,rho)
+!$omp&private(gamma,rho) if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
@@ -258,6 +258,7 @@ c-----------------------------------------------------------------------
 
       do n = 1, nc
 !$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma)
+!$omp&if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1),hi(1)
@@ -333,7 +334,7 @@ c
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k)
+!$omp parallel do private(i,j,k) if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -392,6 +393,7 @@ c
       res = 0.0D0
       do n = 1, nc
 !$omp parallel do private(i,j,k) reduction(max : res)
+!$omp&if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
