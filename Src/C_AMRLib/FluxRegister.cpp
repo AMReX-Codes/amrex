@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.93 2009-11-05 07:50:40 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.94 2009-11-06 20:06:43 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -612,7 +612,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(mfi_lo.fabbox());
+        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
 
         for (int i = 0; i < isects.size(); i++)
         {
@@ -648,7 +648,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             fillBoxId_area.back().FabIndex(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi].fabbox(mfi_lo.index()));
+        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
 
         for (int i = 0; i < isects.size(); i++)
         {
@@ -770,7 +770,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(mfi_lo.fabbox());
+        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
 
         for (int i = 0; i < isects.size(); i++)
         {
@@ -793,7 +793,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             side.push_back(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi].fabbox(mfi_lo.index()));
+        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
 
         for (int i = 0; i < isects.size(); i++)
         {
