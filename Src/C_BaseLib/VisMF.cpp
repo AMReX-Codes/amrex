@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.111 2009-03-12 01:11:37 vince Exp $
+// $Id: VisMF.cpp,v 1.112 2009-11-06 16:44:43 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -345,7 +345,7 @@ VisMF::BaseName (const std::string& filename)
 {
     BL_ASSERT(filename[filename.length() - 1] != '/');
 
-    if (char* slash = strrchr(filename.c_str(), '/'))
+    if (const char* slash = strrchr(filename.c_str(), '/'))
     {
         //
         // Got at least one slash -- give'm the following tail.
@@ -370,7 +370,7 @@ VisMF::DirName (const std::string& filename)
 
     const char* str = filename.c_str();    
 
-    if (char* slash = strrchr(str, '/'))
+    if (const char* slash = strrchr(str, '/'))
     {
         //
         // Got at least one slash -- give'm the dirname including last slash.
