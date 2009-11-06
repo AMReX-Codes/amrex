@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.50 2009-11-06 20:34:20 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.51 2009-11-06 21:00:18 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -156,14 +156,9 @@ sxay (MultiFab&       ss,
 
     const int ncomp = ss.nComp();
 
-    const int N = ss.IndexMap().size();
-
-#ifdef BL_USE_OMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(ss); mfi.isValid(); ++mfi)
     {
-        const int k = ss.IndexMap()[i];
+        const int k = mfi.index();
         FORT_CGSXAY(ss[k].dataPtr(),
                     ARLIM(ss[k].loVect()), ARLIM(ss[k].hiVect()),
                     xx[k].dataPtr(),
@@ -187,14 +182,9 @@ dotxy (const MultiFab& r,
     int  ncomp = z.nComp();
     Real rho   = 0.0;
 
-    const int N = r.IndexMap().size();
-
-#ifdef BL_USE_OMP
-#pragma omp parallel for reduction(+:rho)
-#endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(r); mfi.isValid(); ++mfi)
     {
-        const int k = r.IndexMap()[i];
+        const int k = mfi.index();
         Real trho;
         FORT_CGXDOTY(&trho,
                      z[k].dataPtr(),
