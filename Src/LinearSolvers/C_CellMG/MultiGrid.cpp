@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.47 2009-11-04 16:55:37 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.48 2009-11-06 20:34:20 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -578,7 +578,9 @@ MultiGrid::interpolate (MultiFab&       f,
     //
     const int N = f.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int  k  = f.IndexMap()[i];

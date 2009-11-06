@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.49 2009-11-04 02:28:22 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.50 2009-11-06 20:34:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -158,7 +158,9 @@ sxay (MultiFab&       ss,
 
     const int N = ss.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int k = ss.IndexMap()[i];
@@ -187,7 +189,9 @@ dotxy (const MultiFab& r,
 
     const int N = r.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for reduction(+:rho)
+#endif
     for (int i = 0; i < N; i++)
     {
         const int k = r.IndexMap()[i];

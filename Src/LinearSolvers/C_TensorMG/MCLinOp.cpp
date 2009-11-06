@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.24 2009-11-04 18:50:35 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.25 2009-11-06 20:34:20 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -196,7 +196,9 @@ MCLinOp::applyBC (MultiFab& inout,
     //
     const int N = inout.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int gn = inout.IndexMap()[i];
