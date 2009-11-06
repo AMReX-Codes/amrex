@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.37 2009-11-04 17:11:39 lijewski Exp $
+// $Id: LinOp.cpp,v 1.38 2009-11-06 20:34:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -251,7 +251,9 @@ LinOp::applyBC (MultiFab&      inout,
 
     const int N = inout.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int gn = inout.IndexMap()[i];

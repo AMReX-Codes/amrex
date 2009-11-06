@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.94 2009-11-06 20:06:43 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.95 2009-11-06 20:34:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1174,7 +1174,9 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     const int N = mflx.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
@@ -1193,7 +1195,9 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     const int N = mflx.IndexMap().size();
 
+#ifdef BL_USE_OMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
