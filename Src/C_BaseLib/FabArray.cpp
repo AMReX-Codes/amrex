@@ -22,8 +22,7 @@ FabArrayBase::Initialize ()
 
 void
 FabArrayBase::Finalize ()
-{
-}
+{}
 
 FabArrayBase::FabArrayBase ()
 {}
@@ -43,18 +42,7 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
-{
-//    //
-//    // Increment the currentIndex to start at the first valid index
-//    // for this ParallelDescriptor::MyProc.
-//    //
-//    const int MyProc = ParallelDescriptor::MyProc();
-//
-//    while (fabArray.DistributionMap()[currentIndex] != MyProc)
-//    {
-//        ++currentIndex;
-//    }
-}
+{}
 
 FabArrayBase::FabComTag::FabComTag ()
 {
