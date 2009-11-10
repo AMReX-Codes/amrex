@@ -57,7 +57,7 @@ main (int   argc,
     //
     std::string iFile;
     std::string outfile;
-    std::string hdrFile = "rdm_";//("rdm_0_plt00");
+    std::string hdrFile = "sol";//("rdm_0_plt00");
     std::string File;
 
     bool verbose = false;
@@ -75,28 +75,28 @@ main (int   argc,
     if (outfile.empty())
         BoxLib::Abort("You must specify `outfile'");
 
+    int nmax = 100;
+    pp.query("nmax", nmax);
+
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
     MultiFab mean;
     MultiFab variance;
 
     int finestLevel;
-    int nmax = 100;
     Real nmaxinv = 1.0/double(nmax);
     Real nmaxinvm1 = 1.0/double(nmax-1);
-    std::cout << nmaxinv << std::endl;
     int nComp;
+    bool first = true;
 
-    for (int i = 0; i < nmax; i++)
+    for (int i = 1; i <= nmax; i++)
     {
 
       char idx[4];
       sprintf(idx,"%i",i);
           
       std::string idxs(idx);
-      File = hdrFile + idxs + iFile;
-      //File = hdrFile + idxs;
-      //if (i == 0) File +=idxs;
+      File = hdrFile + idxs + "/" + iFile;
       std::cout << File << std::endl;
       
       DataServices dataServices(File, fileType);
@@ -116,7 +116,7 @@ main (int   argc,
       for (int j=0; j<names.size();j++) 
 	destcomp[j] = j;
 
-      if (i == 0) {
+      if (first) {
 
 	finestLevel = amrData.FinestLevel();
 	Box tmpbox(amrData.ProbDomain()[finestLevel]);
@@ -125,7 +125,7 @@ main (int   argc,
 	variance.define(ba,nComp,0,Fab_allocate);
 	mean.setVal(0);
 	variance.setVal(0);
-
+	first = false;
       }
     	
       MultiFab tmpmean(mean.boxArray(),nComp,0);
@@ -148,8 +148,16 @@ main (int   argc,
     variance.minus(tmpmean,0,nComp,0);
     variance.mult(nmaxinvm1);
 
-    VisMF::Write(mean,"mean");
-    VisMF::Write(variance,"variance");
+    // The I/O processor makes the directory if it doesn't already exist.
+    if (ParallelDescriptor::IOProcessor())
+      if (!BoxLib::UtilCreateDirectory(outfile, 0755))
+	BoxLib::CreateDirectoryFailed(outfile);
+    ParallelDescriptor::Barrier();
+    std::string mfile = outfile + "/mean";
+    std::string vfile = outfile + "/var";
+
+    VisMF::Write(mean,mfile);
+    VisMF::Write(variance,vfile);
 
     BoxLib::Finalize();
 }
