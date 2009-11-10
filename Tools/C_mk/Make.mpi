@@ -86,9 +86,11 @@ ifeq ($(MACHINE), Linux)
     endif
     ifeq ($(WHICHLINUX), DELLA)
       MPI_HOME = /usr/local/mpich/1.2.7p1/intel/x86_64
+#      MPI_HOME = /usr/local/openmpi/1.2.8/intel91/x86_64
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       BL_MPI_LIBS += -lmpich
+#      BL_MPI_LIBS += -lmpi -lmpi_f77
     endif
     ifeq ($(WHICHLINUX), ATLAS)
       ifeq ($(FCOMP), Intel)
