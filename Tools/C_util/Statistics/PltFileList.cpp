@@ -121,6 +121,7 @@ main (int   argc,
 	finestLevel = amrData.FinestLevel();
 	Box tmpbox(amrData.ProbDomain()[finestLevel]);
 	BoxArray ba(tmpbox);
+	ba.maxSize(128);
 	mean.define(ba,nComp,0,Fab_allocate);
 	variance.define(ba,nComp,0,Fab_allocate);
 	mean.setVal(0);
@@ -134,7 +135,7 @@ main (int   argc,
       amrData.FillVar(tmpvar,finestLevel,names,destcomp);
 
       MultiFab::Add(mean,tmpmean,0,0,nComp,0);
-      for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
+      for (MFIter mfi(tmpvar); mfi.isValid(); ++mfi)
       { 
 	const int idx = mfi.index();
 	tmpvar[idx].mult(tmpvar[idx]);
