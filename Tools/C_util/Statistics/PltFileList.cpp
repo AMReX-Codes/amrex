@@ -134,8 +134,11 @@ main (int   argc,
       amrData.FillVar(tmpvar,finestLevel,names,destcomp);
 
       MultiFab::Add(mean,tmpmean,0,0,nComp,0);
-
-      tmpvar[0].mult(tmpvar[0]);
+      for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
+      { 
+	const int idx = mfi.index();
+	tmpvar[idx].mult(tmpvar[idx]);
+      }
       MultiFab::Add(variance,tmpvar,0,0,nComp,0);
     }
 
@@ -143,7 +146,12 @@ main (int   argc,
     mean.mult(nmaxinv);
     MultiFab tmpmean(mean.boxArray(),nComp,0);
     tmpmean.copy(mean);
-    tmpmean[0].mult(tmpmean[0]);
+
+    for (MFIter mfi(tmpmean); mfi.isValid(); ++mfi)
+    { 
+      const int idx = mfi.index();
+      tmpmean[idx].mult(tmpmean[idx]);
+    }
     tmpmean.mult(double(nmax));
     variance.minus(tmpmean,0,nComp,0);
     variance.mult(nmaxinvm1);
