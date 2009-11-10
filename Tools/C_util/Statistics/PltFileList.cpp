@@ -153,8 +153,8 @@ main (int   argc,
       if (!BoxLib::UtilCreateDirectory(outfile, 0755))
 	BoxLib::CreateDirectoryFailed(outfile);
     ParallelDescriptor::Barrier();
-    std::string mfile = outfile + "/mean";
-    std::string vfile = outfile + "/var";
+    std::string mfile = outfile + "/" + iFile + "_mean";
+    std::string vfile = outfile + "/" + iFile + "_var";
 
     VisMF::Write(mean,mfile);
     VisMF::Write(variance,vfile);
