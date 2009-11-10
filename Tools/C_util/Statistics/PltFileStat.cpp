@@ -221,7 +221,7 @@ main (int   argc,
       for (int ic=0;ic<nComp;ic++)
 	delete [] icount[ic];
     }
-    else if (analysis_type == 3) {// determine the correlation in space
+    else if (analysis_type == 3) {// determine the simple variogram
        
       if (nBin == 0) {
 	std::cout << "nBin was not specified.  Setting nBin to 100.\n";
@@ -241,7 +241,7 @@ main (int   argc,
 	std::cout << "nBin was not specified.  Setting nBin to 100.\n";
 	nBin = 100;
       }
-      
+
       int nstart = 1;
       pp.query("nstart",nstart);
       int nmax = 100;
@@ -265,10 +265,41 @@ main (int   argc,
 	std::string oFile = tmpFile + "_VAR";
 
 	ComputeAmrDataVAR(tmpamrData,nBin,cNames,barr,oFile);
-      }
-      
+      }      
     }
 
+
+    else if (analysis_type == 5) 
+    {
+      std::cout << "GSIB variogram calculations.\n";
+      if (nBin == 0) {
+	std::cout << "nlag was not specified.  Setting nlag to 100.\n";
+	nBin = 100;
+      }
+      
+      std::string oFile(tmpFile + "_VAR");
+      pp.query("outfile",oFile);
+
+      int nvarg = pp.countname("varg");
+      if (nvarg == 0)
+	BoxLib::Abort("No variogram is specified");
+
+      Array< Array<int> > ivoption(nvarg);
+      for (int i=0; i<nvarg; i++) {
+	int nopt = pp.countval("varg");
+	ivoption[i].resize(nopt);
+	pp.queryktharr("varg",i,ivoption[i],0,nopt);
+      }
+
+      int isill = 0;
+      Array<Real> mean(nComp), variance(nComp);
+      pp.query("isill",isill);
+      if (isill == 1) 
+	ComputeAmrDataMeanVar (amrData,cNames,bas,mean,variance);
+      
+      VariogramUniform(amrData,cNames,barr,ivoption,nBin,isill,variance,oFile);
+      
+    }
     else 
       std::cout << "Analysis Type is undefined.\n";
       
