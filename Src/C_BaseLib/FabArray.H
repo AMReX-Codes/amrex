@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.201 2009-11-04 02:30:19 lijewski Exp $
+// $Id: FabArray.H,v 1.202 2009-11-10 21:43:44 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -457,10 +457,10 @@ public:
 		 const DistributionMapping& dm,
                  FabAlloc                   mem_mode);
 
-    /*@ManDoc: Returns true if the FabArray is well-defined.  That is,
-               if FABs are allocated for each Box in the BoxArray and the
-               sizes of the FABs and the number of components are consistent
-               with the definition of the FabArray.
+    /*Returns true if the FabArray is well-defined.  That is,
+      if FABs are allocated for each Box in the BoxArray and the
+      sizes of the FABs and the number of components are consistent
+      with the definition of the FabArray.
     */
     bool ok () const;
 
@@ -481,10 +481,14 @@ public:
                Kth element.
     */
     const FAB& operator[] (int K) const;
+
+    const FAB& get (int K) const;
     //
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (int K);
+
+    FAB& get (int K);
     //
     //@ManDoc: Explicitly set the Kth FAB in the FabArray to point to elem.
     //
@@ -613,7 +617,11 @@ public:
 
 protected:
 
-    PArray<FAB> fabparray;
+    std::map<int,FAB*> m_fabs;
+
+    typedef typename std::map<int,FAB*>::iterator Iterator;
+
+    typedef typename std::map<int,FAB*>::const_iterator Const_Iterator;
 
 private:
     //
@@ -877,19 +885,28 @@ MFIter::isValid ()
 }
 
 template <class FAB>
-inline
 bool
 FabArray<FAB>::defined (int i) const
 {
-    return fabparray.defined(i);
+    Const_Iterator it = m_fabs.find(i);
+
+    if (it != m_fabs.end())
+    {
+        return it->second != 0;
+    }
+
+    return false;
 }
 
 template <class FAB>
-inline
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
-    return fabparray[mfi.index()];
+    Const_Iterator it = m_fabs.find(mfi.index());
+
+    BL_ASSERT(it != m_fabs.end());
+
+    return *(it->second);
 }
 
 template <class FAB>
@@ -897,15 +914,18 @@ inline
 const FAB&
 FabArray<FAB>::get (const MFIter& mfi) const
 {
-    return fabparray[mfi.index()];
+    return this->operator[](mfi);
 }
 
 template <class FAB>
-inline
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
-    return fabparray[mfi.index()];
+    Iterator it = m_fabs.find(mfi.index());
+
+    BL_ASSERT(it != m_fabs.end());
+
+    return *(it->second);
 }
 
 template <class FAB>
@@ -913,30 +933,57 @@ inline
 FAB&
 FabArray<FAB>::get (const MFIter& mfi)
 {
-    return fabparray[mfi.index()];
+    return this->operator[](mfi);
+}
+
+template <class FAB>
+const FAB&
+FabArray<FAB>::operator[] (int K) const
+{
+    Const_Iterator it = m_fabs.find(K);
+
+    BL_ASSERT(it != m_fabs.end());
+
+    return *(it->second);
+}
+
+template <class FAB>
+FAB&
+FabArray<FAB>::operator[] (int K)
+{
+    Iterator it = m_fabs.find(K);
+
+    BL_ASSERT(it != m_fabs.end());
+
+    return *(it->second);
 }
 
 template <class FAB>
 inline
 const FAB&
-FabArray<FAB>::operator[] (int K) const
+FabArray<FAB>::get (int K) const
 {
-    return fabparray[K];
+    return this->operator[](K);
 }
 
 template <class FAB>
 inline
 FAB&
-FabArray<FAB>::operator[] (int K)
+FabArray<FAB>::get (int K)
 {
-    return fabparray[K];
+    return this->operator[](K);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    fabparray.clear();
+    Iterator it = m_fabs.begin();
+
+    for (; it != m_fabs.end(); ++it)
+        delete it->second;
+
+    m_fabs.clear();
 }
 
 template <class FAB>
@@ -958,8 +1005,6 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-    :
-    fabparray(0,PArrayManage)
 {}
 
 template <class FAB>
@@ -967,15 +1012,15 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          int             nvar,
                          int             ngrow,
                          FabAlloc        alloc)
-    :
-    fabparray(0, PArrayManage)
 {
     define(bxs,nvar,ngrow,alloc);
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
-{}
+{
+    clear();
+}
 
 template <class FAB>
 bool
@@ -985,7 +1030,7 @@ FabArray<FAB>::ok () const
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
-        if (fabparray.defined(fai.index()))
+        if (defined(fai.index()))
         {
             if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
             {
@@ -1017,7 +1062,6 @@ FabArray<FAB>::define (const BoxArray& bxs,
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap.define(boxarray,ParallelDescriptor::NProcs());
-    fabparray.resize(bxs.size());
 
     int cnt = 0;
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1050,7 +1094,6 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap = dm;
-    fabparray.resize(bxs.size());
 
     int cnt = 0;
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1075,7 +1118,7 @@ FabArray<FAB>::AllocFabs ()
     {
         Box tmp = BoxLib::grow(fai.validbox(), n_grow);
 
-        fabparray.set(fai.index(), new FAB(tmp, n_comp));
+        m_fabs[fai.index()] = new FAB(tmp, n_comp);
     }
 }
 
@@ -1093,10 +1136,10 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);
     BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
-    BL_ASSERT(!fabparray.defined(boxno));
+    BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
-    fabparray.set(boxno,elem);
+    m_fabs[boxno] = elem;
 }
 
 template <class FAB>
@@ -1160,7 +1203,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
             BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
             
-            fabparray[tag.fabIndex].copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+            get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
         }
     }
     else
@@ -1183,7 +1226,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 {
                     if (src.distributionMap[iii] == MyProc)
                     {
-                        fabparray[i].copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                        get(i).copy(src[iii],bx,scomp,bx,dcomp,ncomp);
 
                         tag.box      = bx;
                         tag.fabIndex = i;
@@ -1292,7 +1335,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 fab.resize(bx, ncomp);
                 const int N = bx.numPts() * ncomp;
                 memcpy(fab.dataPtr(), recvdptr, N*sizeof(value_type));
-                fabparray[thecpc.m_RcvTags[i][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
+                get(thecpc.m_RcvTags[i][j].fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
                 recvdptr += N;
             }
         }
@@ -1375,7 +1418,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     fab.resize(bx, ncomp);
                     int N = bx.numPts() * ncomp;
                     memcpy(fab.dataPtr(), dptr, N*sizeof(value_type));
-                    fabparray[thecpc.m_RcvTags[indx[k]][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
+                    get(thecpc.m_RcvTags[indx[k]][j].fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
                     dptr += N;
                 }
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
@@ -1453,7 +1496,7 @@ FabArray<FAB>::copy (FAB&       dest,
             {
                 Box destbox = boxarray[j] & subbox;
 
-                dest.copy(fabparray[j],destbox,scomp,destbox,dcomp,ncomp);
+                dest.copy(get(j),destbox,scomp,destbox,dcomp,ncomp);
             }
         }
 
@@ -1472,7 +1515,7 @@ FabArray<FAB>::copy (FAB&       dest,
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
             {
-                ovlp.copy(fabparray[i],bx,scomp,bx,0,ncomp);
+                ovlp.copy(get(i),bx,scomp,bx,0,ncomp);
             }
 
             const int N = bx.numPts()*ncomp;

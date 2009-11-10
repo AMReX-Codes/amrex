@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.53 2009-05-15 16:51:34 gpau Exp $
+// $Id: MultiFab.H,v 1.54 2009-11-10 21:43:44 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -405,17 +405,17 @@ public:
     //
     bool contains_inf () const;
 
-    const FArrayBox& operator[] (const MFIter& mfi) const;
-
-    const FArrayBox& get (const MFIter& mfi) const;
-
-    FArrayBox& operator[] (const MFIter& mfi);
-
-    FArrayBox& get (const MFIter& mfi);
-
     const FArrayBox& operator[] (int K) const;
 
     FArrayBox& operator[] (int K);
+
+    const FArrayBox& operator[] (const MFIter& mfi) const { return operator[](mfi.index()); }
+
+    const FArrayBox& get (const MFIter& mfi) const { return operator[](mfi.index()); }
+
+    FArrayBox& operator[] (const MFIter& mfi) { return operator[](mfi.index()); }
+
+    FArrayBox& get (const MFIter& mfi) { return operator[](mfi.index()); }
 
     void FillBoundary (bool local = false);
     //

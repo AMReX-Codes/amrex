@@ -32,9 +32,6 @@ FabArrayBase::~FabArrayBase () {}
 Box
 FabArrayBase::fabbox (int K) const
 {
-    //
-    // Do not use fabparray[K] because it may not be valid in parallel.
-    //
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
