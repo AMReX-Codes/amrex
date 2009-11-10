@@ -1,7 +1,7 @@
 #ifndef _FABSET_H_
 #define _FABSET_H_
 //
-// $Id: FabSet.H,v 1.20 2009-07-24 19:14:09 lijewski Exp $
+// $Id: FabSet.H,v 1.21 2009-11-10 21:44:13 lijewski Exp $
 //
 #include <MultiFab.H>
 
@@ -212,7 +212,7 @@ public:
     //
     //@ManDoc: True if there is a FAB at specified index.
     //
-    bool defined (int i) const { return fabparray.defined(i); }
+    bool defined (int i) const { return this->MultiFab::defined(i); }
 
 protected:
     //

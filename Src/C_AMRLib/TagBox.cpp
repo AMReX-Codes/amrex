@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.75 2009-08-11 20:28:28 almgren Exp $
+// $Id: TagBox.cpp,v 1.76 2009-11-10 21:44:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -396,7 +396,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
                             BL_ASSERT(fillBoxId.back().box() == intbox);
                             //
-                            // Here we'll save the index into fabparray.
+                            // Here we'll save the fab index.
                             //
                             fillBoxId.back().FabIndex(j);
                             //
@@ -426,7 +426,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
         src.shift(shifts[i]);
 
-        fabparray[fillBoxId[i].FabIndex()].merge(src);
+        get(fillBoxId[i].FabIndex()).merge(src);
     }
 }
 
@@ -562,9 +562,9 @@ TagBoxArray::coarsen (const IntVect & ratio)
 {
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        TagBox* tfine = fabparray.remove(fai.index());
+        TagBox* tfine = m_fabs[fai.index()];
         TagBox* tcrse = tfine->coarsen(ratio);
-        fabparray.set(fai.index(),tcrse);
+        m_fabs[fai.index()] = tcrse;
         delete tfine;
     }
     boxarray.coarsen(ratio);
