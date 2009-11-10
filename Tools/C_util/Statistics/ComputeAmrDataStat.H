@@ -9,6 +9,13 @@ ComputeAmrDataMeanVar (AmrData&     amrData,
 		       bool         verbose);
 
 void
+ComputeAmrDataMeanVar (AmrData&           amrData,
+		       Array<std::string> cNames,
+		       Array<BoxArray>    bas,
+		       Array<Real>&       mean,
+		       Array<Real>&       variance);
+
+void
 ComputeAmrDataList (AmrData&         amrData,
 		    Array<MultiFab*> mean,
 		    Array<MultiFab*> variance,
@@ -34,3 +41,13 @@ ComputeAmrDataVAR (AmrData&           amrData,
 		   Array<std::string> cNames,
 		   Array<Real>        barr,
 		   std::string        oFile);
+
+void
+VariogramUniform (AmrData&             amrData,
+		  Array<std::string>   cNames,
+		  Array<Real>          barr,
+		  Array< Array<int> >  ivoption,
+		  int                  nlag,
+		  int                  isill,
+		  Array<Real>          sills,
+		  std::string          oFile);
