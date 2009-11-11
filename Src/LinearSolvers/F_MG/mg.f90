@@ -35,7 +35,7 @@ module mg_module
      integer :: nuf = 8
      integer :: nub = 10
      integer :: gamma = 1
-     integer :: cycle = MG_Vcycle
+     integer :: cycle_type = MG_Vcycle
      real(kind=dp_t) :: omega = 1.0_dp_t
 
      ! bottom solver defaults good for bicg
@@ -98,7 +98,7 @@ module mg_module
 contains
 
   subroutine mg_tower_build(mgt, la, pd, domain_bc, &
-                            nu1, nu2, nuf, nub, gamma, cycle, &
+                            nu1, nu2, nuf, nub, gamma, cycle_type, &
                             smoother, omega, &
                             dh, &
                             ns, &
@@ -119,7 +119,7 @@ contains
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: nu1, nu2, nuf, nub, gamma, cycle
+    integer, intent(in), optional :: nu1, nu2, nuf, nub, gamma, cycle_type
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
     real(dp_t), intent(in), optional :: omega
@@ -164,7 +164,7 @@ contains
     if ( present(nub)               ) mgt%nub               = nub
     if ( present(gamma)             ) mgt%gamma             = gamma
     if ( present(omega)             ) mgt%omega             = omega
-    if ( present(cycle)             ) mgt%cycle             = cycle
+    if ( present(cycle_type)        ) mgt%cycle_type        = cycle_type
     if ( present(bottom_solver)     ) mgt%bottom_solver     = bottom_solver
     if ( present(bottom_solver_eps) ) mgt%bottom_solver_eps = bottom_solver_eps
     if ( present(bottom_max_iter)   ) mgt%bottom_max_iter   = bottom_max_iter
@@ -318,7 +318,7 @@ contains
 
     !   if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
-    if ( mgt%cycle == MG_WCycle ) mgt%gamma = 2
+    if ( mgt%cycle_type == MG_WCycle ) mgt%gamma = 2
 
     ! if only the bottom solver is 'solving' make sure that its eps is in effect
     if ( mgt%nlevels == 1 ) then
@@ -379,7 +379,7 @@ contains
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'omega             = ', mgt%omega
     !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'cycle             = ', mgt%cycle
+    !   write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
     !   call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
     call unit_skip(un, skip)
@@ -644,7 +644,7 @@ contains
 
        call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
 
-       call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle, mglev, &
+       call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle_type, mglev, &
                            bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
                            bottom_mgt%mm(mglev), bottom_mgt%nu1, bottom_mgt%nu2, &
                            bottom_mgt%gamma)
@@ -1552,7 +1552,7 @@ contains
     end if
 
     if ( present(stat) ) stat = 0
-    if ( mgt%cycle == MG_FCycle ) then
+    if ( mgt%cycle_type == MG_FCycle ) then
        gamma = 2
     else
        gamma = mgt%gamma
@@ -1563,7 +1563,7 @@ contains
     if ( present(qq) ) then
        n_qq = size(qq)
     end if
-    cyc   = mgt%cycle
+    cyc   = mgt%cycle_type
     Anorm = stencil_norm(mgt%ss(mgt%nlevels))
     ynorm = norm_inf(rh)
 
