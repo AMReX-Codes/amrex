@@ -18,7 +18,7 @@ module nodal_cpp_mg_module
      integer         :: max_nlevel
      integer         :: min_width
      integer         :: smoother
-     integer         :: cycle
+     integer         :: cycle_type
      integer         :: verbose
      integer         :: cg_verbose
      integer         :: bottom_max_iter
@@ -251,7 +251,7 @@ subroutine mgt_nodal_finalize(dx,bc)
           nuf               = mgts%nuf, &
           nub               = mgts%nub, &
           gamma             = mgts%gamma, &
-          cycle             = mgts%cycle, &
+          cycle_type        = mgts%cycle_type, &
           omega             = mgts%omega, &
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
@@ -708,11 +708,11 @@ end subroutine mgt_nodal_solve
 
 subroutine mgt_set_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
                                   bottom_solver,bottom_solver_eps, &
-                                  verbose,cg_verbose,max_nlevel,min_width,cycle,smoother,stencil_type)
+                                  verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother,stencil_type)
   use nodal_cpp_mg_module
   implicit none
   integer   , intent(in) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
-  integer   , intent(in) :: verbose, cg_verbose, max_nlevel, min_width, cycle, smoother, stencil_type
+  integer   , intent(in) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother, stencil_type
   real(dp_t), intent(in) :: omega, bottom_solver_eps
 
   call mgt_not_final("MGT_SET_NODAL_DEFAULTS")
@@ -727,7 +727,7 @@ subroutine mgt_set_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,botto
   mgts%verbose         = verbose
   mgts%cg_verbose      = cg_verbose
   mgts%smoother        = smoother
-  mgts%cycle           = cycle
+  mgts%cycle_type      = cycle_type
   mgts%bottom_max_iter = bottom_max_iter
   mgts%bottom_solver   = bottom_solver
   mgts%bottom_solver_eps = bottom_solver_eps
@@ -740,11 +740,11 @@ end subroutine mgt_set_nodal_defaults
 
 subroutine mgt_get_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
                                   bottom_solver, &
-                                  verbose,cg_verbose,max_nlevel,min_width,cycle,smoother)
+                                  verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use nodal_cpp_mg_module
   implicit none
   integer   , intent(out) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
-  integer   , intent(out) :: verbose, cg_verbose, max_nlevel, min_width, cycle, smoother
+  integer   , intent(out) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
   real(dp_t), intent(out) :: omega
 
   nu_1       = mgts%mg_tower_default%nu1
@@ -757,7 +757,7 @@ subroutine mgt_get_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,botto
   verbose    = mgts%mg_tower_default%verbose
   cg_verbose = mgts%mg_tower_default%cg_verbose
   smoother   = mgts%mg_tower_default%smoother
-  cycle      = mgts%mg_tower_default%cycle
+  cycle_type = mgts%mg_tower_default%cycle_type
 
   bottom_max_iter = mgts%mg_tower_default%bottom_max_iter
   bottom_solver    = mgts%mg_tower_default%bottom_solver
