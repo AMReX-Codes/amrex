@@ -90,7 +90,7 @@ contains
     real (dp_t), intent(in)    :: cc(0:)
     integer,     intent(in)    :: ir(:)
     integer                    :: nx, i, l
-    real (dp_t)                :: fac_left, fac_rght
+    real (dp_t)                :: fac_left, fac_rght, cc_avg
 
     nx = size(cc,dim=1)-1
 
@@ -102,7 +102,8 @@ contains
        fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
        fac_rght = 1.0_dp_t - fac_left
        do i = 0, nx - 1
-          ff(ir(1)*i+l) = ff(ir(1)*i+l) + fac_left*cc(i) + fac_rght*cc(i+1)
+          cc_avg = fac_left*cc(i) + fac_rght*cc(i+1)
+          ff(ir(1)*i+l) = ff(ir(1)*i+l) + cc_avg
        end do
     end do
 
