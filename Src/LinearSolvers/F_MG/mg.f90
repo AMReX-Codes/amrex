@@ -496,6 +496,45 @@ contains
 
   end function max_mg_levels
 
+  function max_mg_levels_bottom(ba, min_size) result(r)
+
+    type(boxarray), intent(in)           :: ba
+    integer       , intent(in), optional :: min_size
+    integer                              :: r
+    integer, parameter :: rrr = 2
+    type(box)          :: bx, bx1
+    type(boxarray)     :: ba1
+    real(kind=dp_t)    :: vol
+    integer            :: i, rr, lmn, dm
+
+    lmn = 1; if ( present(min_size) ) lmn = min_size
+    r = 1
+    rr = rrr
+    dm = ba%dim
+    call copy(ba1,ba)
+    do
+       call boxarray_coarsen(ba1,rrr)
+       vol = boxarray_volume(ba1)
+       do i = 1, size(ba%bxs)
+          bx = ba%bxs(i)
+          bx1 = coarsen(bx, rr)
+          if ( any(extent(bx1) < lmn) .or. any(mod(extent(bx1),2) .eq. 1)) then
+             call destroy(ba1)
+             return
+          end if
+          if ( bx /= refine(bx1, rr)  ) then
+             call destroy(ba1)
+             return
+          end if
+       end do
+       rr = rr*rrr
+       r  = r + 1
+    end do
+
+    call destroy(ba1)
+
+  end function max_mg_levels_bottom
+
   subroutine mg_tower_v_cycle(mgt, uu, rh)
 
     type(mg_tower), intent(inout) :: mgt
