@@ -269,9 +269,9 @@ main (int   argc,
     }
 
 
-    else if (analysis_type == 5) 
+    else if (analysis_type == 5) // determine the variogram based on GSLIB
     {
-      std::cout << "GSIB variogram calculations.\n";
+      std::cout << "GSLIB variogram calculations.\n";
       if (nBin == 0) {
 	std::cout << "nlag was not specified.  Setting nlag to 100.\n";
 	nBin = 100;
@@ -298,6 +298,91 @@ main (int   argc,
 	ComputeAmrDataMeanVar (amrData,cNames,bas,mean,variance);
       
       VariogramUniform(amrData,cNames,barr,ivoption,nBin,isill,variance,oFile);
+      
+    }
+
+    else if (analysis_type == 6) // compare coarse and fine solution
+    {
+      std::cout << "Analysis 6: coarse-fine comparison.\n";
+
+      std::string crsefile;
+      pp.query("crsefile",crsefile);
+      if (crsefile.empty()) 
+	BoxLib::Abort("You must specify `crsefile'");
+
+      std::string oFile;
+      pp.query("outfile",oFile);
+      
+      DataServices crseDataServices(crsefile,fileType);
+      if (!crseDataServices.AmrDataOk())
+	DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+      AmrData& amrDataCrse = crseDataServices.AmrDataRef();
+      const Real dtcrse = amrDataCrse.Time();
+
+      // The I/O processor makes the directory if it doesn't already exist.
+      if (ParallelDescriptor::IOProcessor())
+	if (!BoxLib::UtilCreateDirectory(oFile, 0755))
+	  BoxLib::CreateDirectoryFailed(oFile);
+      ParallelDescriptor::Barrier();
+      std::string mFile = iFile + "_dif";
+      TakeDifferenceFine(amrData,amrDataCrse,cNames,barr,mFile);
+      
+    }
+
+    else if (analysis_type == 7) // compare coarse and fine solution
+    {
+      std::cout << "Analysis 6: coarse-fine comparison.\n";
+
+      std::string crsefile;
+      pp.query("crsefile",crsefile);
+      if (crsefile.empty()) 
+	BoxLib::Abort("You must specify `crsefile'");
+
+      std::string oFile;
+      pp.query("outfile",oFile);
+      
+      DataServices crseDataServices(crsefile,fileType);
+      if (!crseDataServices.AmrDataOk())
+	DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+      AmrData& amrDataCrse = crseDataServices.AmrDataRef();
+      const Real dtcrse = amrDataCrse.Time();
+
+      // The I/O processor makes the directory if it doesn't already exist.
+      if (ParallelDescriptor::IOProcessor())
+	if (!BoxLib::UtilCreateDirectory(oFile, 0755))
+	  BoxLib::CreateDirectoryFailed(oFile);
+      ParallelDescriptor::Barrier();
+      std::string mFile = iFile + "_dif";
+      TakeDifferenceCrse(amrData,amrDataCrse,cNames,barr,mFile);
+      
+    }
+
+    else if (analysis_type == 8) // compare coarse and fine solution
+    {
+      std::string crsefile;
+      pp.query("crsefile",crsefile);
+      if (crsefile.empty()) 
+	BoxLib::Abort("You must specify `crsefile'");
+
+      std::string oFile;
+      pp.query("outfile",oFile);
+      
+      DataServices crseDataServices(crsefile,fileType);
+      if (!crseDataServices.AmrDataOk())
+	DataServices::Dispatch(DataServices::ExitRequest, NULL);
+
+      AmrData& amrDataCrse = crseDataServices.AmrDataRef();
+      const Real dtcrse = amrDataCrse.Time();
+
+      // The I/O processor makes the directory if it doesn't already exist.
+      if (ParallelDescriptor::IOProcessor())
+	if (!BoxLib::UtilCreateDirectory(oFile, 0755))
+	  BoxLib::CreateDirectoryFailed(oFile);
+      ParallelDescriptor::Barrier();
+      std::string mFile = iFile + "_dif";
+      TakeDifferenceSum(amrData,amrDataCrse,cNames,barr,mFile);
       
     }
     else 

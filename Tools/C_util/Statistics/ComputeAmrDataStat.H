@@ -51,3 +51,23 @@ VariogramUniform (AmrData&             amrData,
 		  int                  isill,
 		  Array<Real>          sills,
 		  std::string          oFile);
+
+void
+TakeDifferenceFine(AmrData&             amrDataf,
+		   AmrData&             amrDatac,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   std::string          oFile);
+
+void
+TakeDifferenceCrse(AmrData&             amrDataf,
+		   AmrData&             amrDatac,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   std::string          oFile);
+void
+TakeDifferenceSum(AmrData&             amrDataf,
+		  AmrData&             amrDatac,
+		  Array<std::string>   cNames,
+		  Array<Real>          barr,
+		  std::string          oFile);
