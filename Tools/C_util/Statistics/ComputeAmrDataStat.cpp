@@ -24,10 +24,10 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     
     if (verbose)
     {
-	ParmParse pp;
-	pp.query("outfile", oFile);
-	if (oFile.empty())
-	    BoxLib::Abort("You must specify `outfile' if run in verbose mode");
+      ParmParse pp;
+      pp.query("outfile", oFile);
+      if (oFile.empty())
+	BoxLib::Abort("You must specify `outfile' if run in verbose mode");
     }
     
     int finestLevel = amrData.FinestLevel();
@@ -38,12 +38,12 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     Array<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
-	int ref_ratio = amrData.RefRatio()[iLevel];
-	int vol = 1;
-	for (int i=0; i<BL_SPACEDIM; ++i)
-	    vol *= ref_ratio;
-	for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	    refMult[jLevel] *= vol;
+      int ref_ratio = amrData.RefRatio()[iLevel];
+      int vol = 1;
+      for (int i=0; i<BL_SPACEDIM; ++i)
+	vol *= ref_ratio;
+      for (int jLevel=0; jLevel<=iLevel; ++jLevel)
+	refMult[jLevel] *= vol;
     }
 
     //
@@ -54,103 +54,103 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
-        const BoxArray& ba = amrData.boxArray(iLevel);
+      const BoxArray& ba = amrData.boxArray(iLevel);
+      
+      error[iLevel] = new MultiFab(ba, nComp, 0);
+      for (int iComp=0; iComp<nComp; ++iComp) {
+	MultiFab& data = amrData.GetGrids(iLevel,iComp);
+	error[iLevel]->copy(data,0,iComp+sComp,1);
+      }
 
-	error[iLevel] = new MultiFab(ba, nComp, 0);
-	for (int iComp=0; iComp<nComp; ++iComp)
+      // Zero out the error covered by fine grid
+      long covered_volume = 0;
+      if (iLevel != finestLevel) 
+      {
+	int ref_ratio = amrData.RefRatio()[iLevel];	    
+	BoxArray baF  = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
+	for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	{
-	    MultiFab& data = amrData.GetGrids(iLevel,iComp);
-	    error[iLevel]->copy(data,0,iComp+sComp,1);
-	}
-
-	// Zero out the error covered by fine grid
-	long covered_volume = 0;
-	if (iLevel != finestLevel)
-	{
-	    int ref_ratio = amrData.RefRatio()[iLevel];	    
-	    BoxArray baF = ::BoxArray(amrData.boxArray(iLevel+1)).coarsen(ref_ratio);
-	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+	  {
+	    Box ovlp = baF[iGrid] & mfi.validbox();
+	    if (ovlp.ok())
 	    {
-		for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-		{
-		    Box ovlp = baF[iGrid] & mfi.validbox();
-		    if (ovlp.ok())
-		    {
-                        (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
-			covered_volume += ovlp.numPts()*refMult[iLevel];
-		    }
-		}
+	      (*error[iLevel])[mfi].setVal(0.0, ovlp, 0, nComp);
+	      covered_volume += ovlp.numPts()*refMult[iLevel];
 	    }
-	    ParallelDescriptor::ReduceLongSum(covered_volume);
+	  }
 	}
+	ParallelDescriptor::ReduceLongSum(covered_volume);
+      }
 
-	// Compute volume at this level
-	Real level_volume = 0.0;
-	for (int iGrid=0; iGrid<ba.size(); ++iGrid)
-	    level_volume += ba[iGrid].numPts()*refMult[iLevel];
-	level_volume -= covered_volume;
+      // Compute volume at this level
+      Real level_volume = 0.0;
+      for (int iGrid=0; iGrid<ba.size(); ++iGrid)
+	level_volume += ba[iGrid].numPts()*refMult[iLevel];
+      level_volume -= covered_volume;
+      
+      if (level_volume > 0.0)
+      {
+	// Convert volume in numPts to volume in number of fine cells
+	total_volume += long(level_volume);
+	
+	// Get norms at this level
+	Array<Real> n1(nComp,0.0), n2(nComp,0.0);
 
-	if (level_volume > 0.0)
+	for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	{
-	    // Convert volume in numPts to volume in number of fine cells
-	    total_volume += long(level_volume);
+	  FArrayBox& fab = (*error[iLevel])[mfi];
+	  const Box& fabbox = mfi.validbox();
+
+	  FArrayBox vwFab(fabbox,nComp);
+	  FArrayBox vwFabSqrd(fabbox,nComp);
+	  
+	  // sum
+	  vwFab.copy(fab,0,0,nComp);
+	  vwFab.mult(refMult[iLevel]);
+	  
+	  //sum-squared
+	  vwFabSqrd.copy(fab,0,0,nComp);
+	  vwFabSqrd.mult(fab,0,0,nComp);
+	  vwFabSqrd.mult(refMult[iLevel]);
+	  
+	  for (int iComp=0; iComp<nComp+sComp; ++iComp)
+	  {
+	    n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+	    n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+	  }
+	}
 	    
-	    // Get norms at this level
-	    Array<Real> n1(nComp,0.0), n2(nComp,0.0);
-
-	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
-	    {
-		FArrayBox& fab = (*error[iLevel])[mfi];
-		const Box& fabbox = mfi.validbox();
-
-		FArrayBox vwFab(fabbox,nComp);
-		FArrayBox vwFabSqrd(fabbox,nComp);
+	// Do necessary communication, then blend this level's norms
+	//  in with the running global values
+	for (int iComp=0; iComp<nComp+sComp; ++iComp)
+	{
+	  ParallelDescriptor::ReduceRealSum(n1[iComp]);
+	  ParallelDescriptor::ReduceRealSum(n2[iComp]);
 		
-		// sum
-		vwFab.copy(fab,0,0,nComp);
-		vwFab.mult(refMult[iLevel]);
-
-		//sum-squared
-		vwFabSqrd.copy(fab,0,0,nComp);
-		vwFabSqrd.mult(fab,0,0,nComp);
-		vwFabSqrd.mult(refMult[iLevel]);
-		
-		for (int iComp=0; iComp<nComp+sComp; ++iComp)
-		{
-		  n1[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
-		  n2[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
-		}
-	    }
-	    
-	    // Do necessary communication, then blend this level's norms
-	    //  in with the running global values
-	    for (int iComp=0; iComp<nComp+sComp; ++iComp)
-	    {
-		ParallelDescriptor::ReduceRealSum(n1[iComp]);
-		ParallelDescriptor::ReduceRealSum(n2[iComp]);
-		
-		mean[iComp] += n1[iComp];
-		variance[iComp] += n2[iComp];
-	    }
+	  mean[iComp] += n1[iComp];
+	  variance[iComp] += n2[iComp];
 	}
+      }
     }
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp+sComp; ++iComp)
       {
 	mean[iComp] /= total_volume;
-	variance[iComp] = variance[iComp]/total_volume - mean[iComp]*mean[iComp];
+	variance[iComp] = variance[iComp]/total_volume - 
+	                  mean[iComp]*mean[iComp];
       }
     }
 
     if (ParallelDescriptor::IOProcessor() && verbose)
     {
-	std::cout << "Writing zeroed state to " << oFile << '\n';
-	WritePlotFile(error, amrData, oFile, verbose);
+      std::cout << "Writing zeroed state to " << oFile << '\n';
+      WritePlotFile(error, amrData, oFile, verbose);
     }
 
     // Clean up memory
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
+      delete error[iLevel];
 }
 
 
@@ -203,7 +203,7 @@ ComputeAmrDataList  (AmrData&         amrData,
     }
 }
 
-// Determine the mean and variance
+// Determine the mean and variance for a given boxarray
 void
 ComputeAmrDataMeanVar (AmrData&           amrData,
 		       Array<std::string> cNames,
@@ -515,10 +515,10 @@ ComputeAmrDataPDF (AmrData&     amrData,
     Array<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
-	int ref_ratio = amrData.RefRatio()[iLevel];
-	int area = ref_ratio;
-	for (int jLevel=0; jLevel<=iLevel; ++jLevel)
-	    refMult[jLevel] *= area;
+      int ref_ratio = amrData.RefRatio()[iLevel];
+      int area = ref_ratio;
+      for (int jLevel=0; jLevel<=iLevel; ++jLevel)
+	refMult[jLevel] *= area;
     }
 
     //
@@ -531,97 +531,97 @@ ComputeAmrDataPDF (AmrData&     amrData,
     
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
-        const BoxArray& ba = amrData.boxArray(iLevel);
-	MultiFab mf(ba,nComp,0,Fab_allocate);
-	amrData.FillVar(mf,iLevel,cNames,destFillComps);
+      const BoxArray& ba = amrData.boxArray(iLevel);
+      MultiFab mf(ba,nComp,0,Fab_allocate);
+      amrData.FillVar(mf,iLevel,cNames,destFillComps);
 
-	// Zero out the error covered by fine grid
-	long covered_volume = 0;
-	if (iLevel != finestLevel)
+      // Zero out the error covered by fine grid
+      long covered_volume = 0;
+      if (iLevel != finestLevel)
+      {
+	int ref_ratio = amrData.RefRatio()[iLevel];	    
+	BoxArray baF = BoxArray(ba[iLevel+1]).coarsen(ref_ratio);
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    int ref_ratio = amrData.RefRatio()[iLevel];	    
-	    BoxArray baF = BoxArray(ba[iLevel+1]).coarsen(ref_ratio);
-	    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	  for (int iGrid=0; iGrid<baF.size(); ++iGrid)
+	  {
+	    Box ovlp = baF[iGrid] & mfi.validbox();
+	    if (ovlp.ok())
 	    {
-		for (int iGrid=0; iGrid<baF.size(); ++iGrid)
-		{
-		    Box ovlp = baF[iGrid] & mfi.validbox();
-		    if (ovlp.ok())
-		    {
-                        mf[mfi].setVal(0.0, ovlp, 0, nComp);
-			covered_volume += ovlp.numPts()*refMult[iLevel];
-		    }
-		}
+	      mf[mfi].setVal(0.0, ovlp, 0, nComp);
+	      covered_volume += ovlp.numPts()*refMult[iLevel];
 	    }
-	    ParallelDescriptor::ReduceLongSum(covered_volume);
+	  }
 	}
+	ParallelDescriptor::ReduceLongSum(covered_volume);
+      }
 
-
-
-	// Compute volume at this level
-	Real level_volume = 0.0;
-	for (int iGrid=0; iGrid<ba.size(); ++iGrid)
-	    level_volume += ba[iGrid].numPts()*refMult[iLevel];
-	level_volume -= covered_volume;
-
-	if (level_volume > 0.0)
-	{
-	    // Convert volume in numPts to volume in number of fine cells
-	    total_volume += long(level_volume);
+      // Compute volume at this level
+      Real level_volume = 0.0;
+      for (int iGrid=0; iGrid<ba.size(); ++iGrid)
+	level_volume += ba[iGrid].numPts()*refMult[iLevel];
+      level_volume -= covered_volume;
+      
+      if (level_volume > 0.0)
+      {
+	// Convert volume in numPts to volume in number of fine cells
+	total_volume += long(level_volume);
 	    
-	    // Get counts at this level
-	    int n1[nComp][nBin];
-	    for (int iComp=0; iComp<nComp; iComp++)
-	      for (int iBin=0; iBin<nBin; iBin++)
-		n1[iComp][iBin] = 0;
+	// Get counts at this level
+	int n1[nComp][nBin];
+	for (int iComp=0; iComp<nComp; iComp++)
+	  for (int iBin=0; iBin<nBin; iBin++)
+	    n1[iComp][iBin] = 0;
 
-	    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	    {
-	      const int* lo = mf[mfi].loVect();
-	      const int* hi = mf[mfi].hiVect();
-		
-	      Real tmp;
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+	  const int* lo = mf[mfi].loVect();
+	  const int* hi = mf[mfi].hiVect();
+	  
+	  Real tmp;
 #if (BL_SPACEDIM == 2)
-	      for (int iy=lo[1]; iy<=hi[1]; iy++) {
-		for (int ix=lo[0]; ix<=hi[0]; ix++) {
-		  for (int ic=0; ic<nComp; ic++) {
-		    tmp = mf[mfi](IntVect(ix,iy),ic);
-		    if (tmp != 0) {
-		      for (int ib=0; ib<nBin; ib++) {
-			if (tmp >= scount[ic][ib] && tmp <  scount[ic][ib+1])
-			  n1[ic][ib] += refMult[iLevel];
-		      }
-		      
-		    }
+	  for (int iy=lo[1]; iy<=hi[1]; iy++) {
+	    for (int ix=lo[0]; ix<=hi[0]; ix++) {
+	      for (int ic=0; ic<nComp; ic++) {
+		tmp = mf[mfi](IntVect(ix,iy),ic);
+		if (tmp != 0) {
+		  for (int ib=0; ib<nBin; ib++) {
+		    if (tmp >= scount[ic][ib] && 
+			tmp <  scount[ic][ib+1])
+		      n1[ic][ib] += refMult[iLevel];
 		  }
 		}
 	      }
+	    }
+	  }
 #else 
-	      for (int iz=lo[1]; iz<=hi[1]; iz++) {
-		for (int iy=lo[1]; iy<=hi[1]; iy++) {
-		  for (int ix=lo[0]; ix<=hi[0]; ix++) {
-		    for (int ic=0; ic<nComp; ic++) {
-		      tmp = mf[mfi](IntVect(ix,iy,iz),ic);
-		      if (tmp != 0) {
-			for (int ib=0; ib<nBin; ib++) 
-			  if (tmp >= scount[ic][ib] && tmp < scount[ic][ib+1])
-			    n1[ic][ib] += refMult[iLevel];
-		      }
-		    }
+	  for (int iz=lo[1]; iz<=hi[1]; iz++) {
+	    for (int iy=lo[1]; iy<=hi[1]; iy++) {
+	      for (int ix=lo[0]; ix<=hi[0]; ix++) {
+		for (int ic=0; ic<nComp; ic++) {
+		  tmp = mf[mfi](IntVect(ix,iy,iz),ic);
+		  if (tmp != 0) {
+		    for (int ib=0; ib<nBin; ib++) 
+		      if (tmp >= scount[ic][ib] && 
+			  tmp < scount[ic][ib+1])
+			n1[ic][ib] += refMult[iLevel];
 		  }
 		}
 	      }
+	    }
+	  }
 #endif
-	    }
-	    // Do necessary communication, then blend this level's norms
-	    //  in with the running global values
-	    for (int iComp=0; iComp<nComp; iComp++) {
-	      for (int iBin=0; iBin<nBin; iBin++) {
-		ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
-		icount[iComp][iBin] += n1[iComp][iBin];
-	      }
-	    }
 	}
+
+	// Do necessary communication, then blend this level's norms
+	//  in with the running global values
+	for (int iComp=0; iComp<nComp; iComp++) {
+	  for (int iBin=0; iBin<nBin; iBin++) {
+	    ParallelDescriptor::ReduceIntSum(n1[iComp][iBin]);
+	    icount[iComp][iBin] += n1[iComp][iBin];
+	  }
+	}
+      }
     }
     for (int iComp=0; iComp<nComp; ++iComp) {
       for (int iBin=0; iBin<nBin; iBin++) {
@@ -1223,3 +1223,302 @@ VariogramUniform (AmrData&             amrData,
     }
 }
 
+// fine solution - coarse solution on the grid finest level specified.
+void
+TakeDifferenceFine(AmrData&             amrDataf,
+		   AmrData&             amrDatac,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   std::string          oFile)
+{
+    int nComp = cNames.size();
+
+    Box domainf = amrDataf.ProbDomain()[0];
+    Box domainc = amrDatac.ProbDomain()[0];
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    Array <int> rratio(BL_SPACEDIM);
+    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      dxf[i] = amrDataf.ProbSize()[i]/
+	amrDataf.ProbDomain()[0].length(i);            
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
+	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
+	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+
+      dxc[i] = amrDatac.ProbSize()[i]/
+	amrDatac.ProbDomain()[0].length(i);            
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
+	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
+	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+
+      rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
+		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+    }
+
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    for (int i=1; i<=amrDataf.FinestLevel(); i++)
+      domainf.refine(amrDataf.RefRatio()[i]);
+    for (int i=1; i<=amrDatac.FinestLevel(); i++)
+      domainc.refine(amrDatac.RefRatio()[i]);
+
+    BoxArray baf(domainf), bac(domainc);
+    
+    // Fill tmpx with the data
+    Array<int> destFillComps(nComp);
+    Array<std::string> destNames(nComp);
+    for (int i=0; i<nComp; ++i) 
+      destFillComps[i] = i;
+    MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
+
+    amrDatac.FillVar(tmpc,amrDatac.FinestLevel(),cNames,destFillComps);
+    amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
+
+    for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
+	  
+      const int* lo = tmpc[mfi].loVect();
+      const int* hi = tmpc[mfi].hiVect();
+
+      for (int joff=0; joff<rratio[1]; joff++) {
+	for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	  int j = jc*rratio[1] +joff;
+	  for (int ioff=0; ioff<rratio[0]; ioff++) {
+	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	      int i = ic*rratio[0] + ioff;
+	      for (int n=0; n<nComp; n++) {
+		tmpf[mfi](IntVect(i,j),n) -= 
+		  tmpc[mfi](IntVect(ic,jc),n);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    VisMF::Write(tmpf,oFile);
+}
+
+// fine solution - coarse solution on the coarse finest level specified.
+void
+TakeDifferenceCrse(AmrData&             amrDataf,
+		   AmrData&             amrDatac,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   std::string          oFile)
+{
+    int nComp = cNames.size();
+
+    Box domainf = amrDataf.ProbDomain()[0];
+    Box domainc = amrDatac.ProbDomain()[0];
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    Array <int> rratio(BL_SPACEDIM);
+    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      dxf[i] = amrDataf.ProbSize()[i]/
+	amrDataf.ProbDomain()[0].length(i);            
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
+	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
+	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+
+      dxc[i] = amrDatac.ProbSize()[i]/
+	amrDatac.ProbDomain()[0].length(i);            
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
+	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
+	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+
+      rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
+		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+    }
+
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    for (int i=1; i<=amrDataf.FinestLevel(); i++)
+      domainf.refine(amrDataf.RefRatio()[i]);
+    for (int i=1; i<=amrDatac.FinestLevel(); i++)
+      domainc.refine(amrDatac.RefRatio()[i]);
+
+    BoxArray baf(domainf), bac(domainc);
+    
+    // Fill tmpx with the data
+    Array<int> destFillComps(nComp);
+    Array<std::string> destNames(nComp);
+    for (int i=0; i<nComp; ++i) 
+      destFillComps[i] = i;
+    MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
+
+    amrDatac.FillVar(tmpc,amrDatac.FinestLevel(),cNames,destFillComps);
+    amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
+
+    Real fv = 1.0/(rratio[0]*rratio[1]);
+
+    for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
+	  
+      const int* lo = tmpc[mfi].loVect();
+      const int* hi = tmpc[mfi].hiVect();
+
+      for (int joff=0; joff<rratio[1]; joff++) {
+	for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	  int j = jc*rratio[1] +joff;
+	  for (int ioff=0; ioff<rratio[0]; ioff++) {
+	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	      int i = ic*rratio[0] + ioff;
+	      for (int n=0; n<nComp; n++) {
+		tmpc[mfi](IntVect(ic,jc),n) -= fv* 
+		  tmpf[mfi](IntVect(i,j),n);
+	      }
+	    }
+	  }
+	}
+      }
+
+      tmpc[mfi].mult(-1.0);
+    }
+
+    VisMF::Write(tmpc,oFile);
+}
+
+// fine solution - coarse solution on the grid finest level specified.
+void
+TakeDifferenceSum(AmrData&             amrDataf,
+		  AmrData&             amrDatac,
+		  Array<std::string>   cNames,
+		  Array<Real>          barr,
+		  std::string          oFile)
+{
+    int nComp = cNames.size();
+
+    Box domainf = amrDataf.ProbDomain()[0];
+    Box domainc = amrDatac.ProbDomain()[0];
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    Array <int> rratio(BL_SPACEDIM);
+    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      dxf[i] = amrDataf.ProbSize()[i]/
+	amrDataf.ProbDomain()[0].length(i);            
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
+	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
+	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+
+      dxc[i] = amrDatac.ProbSize()[i]/
+	amrDatac.ProbDomain()[0].length(i);            
+      domainc.setSmall(i,std::max(domainc.smallEnd()[i], 
+	(int)((bbll[i]-amrDatac.ProbLo()[i]+.0001*dxc[i])/dxc[i])));
+      domainc.setBig(i,std::min(domainc.bigEnd()[i], 
+	(int)((bbur[i]-amrDatac.ProbLo()[i]-.0001*dxc[i])/dxc[i])));
+
+      rratio[i] = (int)((dxc[i]/(amrDatac.FinestLevel()+1))/
+		        (dxf[i]/(amrDataf.FinestLevel()+1)));
+    }
+
+    for (int i=0;i<BL_SPACEDIM;i++) {
+      if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
+	BoxLib::Abort("Domains of coarse and fine do not match!");
+    }
+
+    for (int i=1; i<=amrDataf.FinestLevel(); i++)
+      domainf.refine(amrDataf.RefRatio()[i]);
+    for (int i=1; i<=amrDatac.FinestLevel(); i++)
+      domainc.refine(amrDatac.RefRatio()[i]);
+
+    BoxArray baf(domainf), bac(domainc);
+    
+    // Fill tmpx with the data
+    Array<int> destFillComps(nComp);
+    Array<std::string> destNames(nComp);
+    for (int i=0; i<nComp; ++i) 
+      destFillComps[i] = i;
+    MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
+    MultiFab tmpfl(bac,2,0);
+    tmpfl.setVal(0.);
+    amrDatac.FillVar(tmpc,amrDatac.FinestLevel(),cNames,destFillComps);
+    amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
+
+    for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
+	  
+      const int* lo = tmpc[mfi].loVect();
+      const int* hi = tmpc[mfi].hiVect();
+
+      for (int joff=0; joff<rratio[1]; joff++) {
+	for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	  int j = jc*rratio[1] +joff;
+	  for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	    int i = ic*rratio[0];
+	    tmpfl[mfi](IntVect(ic,jc),0) += 
+	      tmpf[mfi](IntVect(i,j),0);
+	  }
+	}
+      }
+
+      
+      for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	int j = jc*rratio[1];
+	for (int ioff=0; ioff<rratio[0]; ioff++) {
+	  for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	    int i = ic*rratio[0] + ioff;
+	    for (int n=0; n<nComp; n++) {
+	      tmpfl[mfi](IntVect(ic,jc),1) += 
+		tmpf[mfi](IntVect(i,j),1);
+	    }
+	  }
+	}
+      }
+    }
+
+    tmpfl.minus(tmpc,0,2,0);  
+    VisMF::Write(tmpfl,oFile);
+}
