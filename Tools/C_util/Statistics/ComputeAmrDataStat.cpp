@@ -203,7 +203,7 @@ ComputeAmrDataList  (AmrData&         amrData,
     }
 }
 
-// Determine the mean and variance for a given boxarray
+// Determine the mean and variance for a plotfile
 void
 ComputeAmrDataMeanVar (AmrData&           amrData,
 		       Array<std::string> cNames,
@@ -311,6 +311,66 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 	}
       }
     }
+
+    if (ParallelDescriptor::IOProcessor()) {
+      for (int iComp=0; iComp<nComp; ++iComp)
+      {
+	mean[iComp] /= total_volume;
+	variance[iComp] = variance[iComp]/total_volume - 
+	  mean[iComp]*mean[iComp];
+
+	std::cout << " comp= " << iComp 
+	          << " mean = " << mean[iComp] 
+	          << " variance = " << variance[iComp] << std::endl;
+
+      }
+    }
+}
+
+
+// Determine the mean and variance for a plotfile
+void
+ComputeMeanVarMF (MultiFab&          mf,
+		  Array<Real>&       mean,
+		  Array<Real>&       variance)
+{
+    
+    int nComp = mf.nComp();
+    BoxArray  ba = mf.boxArray();
+    //
+    // Compute the sum and sum-squares
+    //
+    long total_volume = 0;
+    for (int iGrid=0; iGrid<ba.size(); ++iGrid)
+	total_volume += ba[iGrid].numPts();
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+      FArrayBox& fab = mf[mfi];
+      const Box& fabbox = mfi.validbox();
+
+      FArrayBox vwFab(fabbox,nComp);
+      FArrayBox vwFabSqrd(fabbox,nComp);
+		
+      // sum
+      vwFab.copy(fab,0,0,nComp);
+      
+      //sum-squared
+      vwFabSqrd.copy(fab,0,0,nComp);
+      vwFabSqrd.mult(fab,0,0,nComp);
+		
+      for (int iComp=0; iComp<nComp; ++iComp)
+      {
+	mean[iComp] += vwFab.norm(fabbox, 1, iComp, 1);
+	variance[iComp] += vwFabSqrd.norm(fabbox, 1, iComp, 1);
+      }
+    }
+
+    // Do necessary communication, then blend this level's norms
+    //  in with the running global values
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    ParallelDescriptor::ReduceRealSum(mean.dataPtr(),nComp,IOProc);
+    ParallelDescriptor::ReduceRealSum(variance.dataPtr(),nComp,IOProc);
 
     if (ParallelDescriptor::IOProcessor()) {
       for (int iComp=0; iComp<nComp; ++iComp)
@@ -1001,8 +1061,60 @@ VariogramUniform (AmrData&             amrData,
     IntVect sm = domain.smallEnd();
     IntVect bg = domain.bigEnd();
 
-    // Initialize covariance, correlation and variogram matrices.
-    int nvarg = ivoption.size();
+    BoxArray ba(domain);
+    Array<int> destFillComps(nComp);
+    for (int i=0; i<nComp; ++i) destFillComps[i] = i;
+    MultiFab mf(ba,nComp,0);
+    amrData.FillVar(mf,amrData.FinestLevel(),cNames,destFillComps);
+
+    VariogramUniformMFG(mf,dx,sm,bg,ivoption,nlag,isill,sills,oFile);
+
+}
+
+void
+VariogramUniformMF (const MultiFab&      mf,
+		    Array<Real>          dx,
+		    Array< Array<int> >  ivoption,
+		    int                  nlag,
+		    int                  isill,
+		    Array<Real>          sills,
+		    std::string          oFile)
+{
+
+  Array<int> domloc(BL_SPACEDIM), domhic(BL_SPACEDIM);
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+  {
+    const int* k_lo  = mf[mfi].loVect();
+    const int* k_hi  = mf[mfi].hiVect();
+    
+    for (int i=0;i<BL_SPACEDIM; i++) {
+      domloc[i] = k_lo[i];
+      domhic[i] = k_hi[i];
+    }
+  }
+  ParallelDescriptor::ReduceIntMin(domloc.dataPtr(),BL_SPACEDIM);
+  ParallelDescriptor::ReduceIntMax(domhic.dataPtr(),BL_SPACEDIM);
+  
+  IntVect sm(domloc.dataPtr());
+  IntVect bg(domhic.dataPtr());
+
+  VariogramUniformMFG (mf,dx,sm,bg,ivoption,nlag,isill,sills,oFile);
+  
+}
+
+void
+VariogramUniformMFG (const MultiFab&      mf,
+		     Array<Real>          dx,
+		     IntVect              sm,
+		     IntVect              bg,
+		     Array< Array<int> >  ivoption,
+		     int                  nlag,
+		     int                  isill,
+		     Array<Real>          sills,
+		     std::string          oFile)
+{
+
+    bool firsttime = true;
 
     for (int dir=0; dir<BL_SPACEDIM; dir++) 
     {
@@ -1035,13 +1147,10 @@ VariogramUniform (AmrData&             amrData,
       }
 
       // Fill tmpx with the data
-      Array<int> destFillComps(nComp);
-      Array<std::string> destNames(nComp);
-      for (int i=0; i<nComp; ++i) 
-	destFillComps[i] = i;
-      MultiFab tmpx(ba,nComp,0);
-      amrData.FillVar(tmpx,amrData.FinestLevel(),cNames,destFillComps);
-    
+      MultiFab tmpx(ba,mf.nComp(),0);
+      tmpx.copy(mf);
+
+      int nvarg = ivoption.size();
       for (int iv=0; iv<nvarg; iv++) 
       {
 	int ivtail = ivoption[iv][0];
@@ -1059,7 +1168,7 @@ VariogramUniform (AmrData&             amrData,
 	  
 	  const int* lo = tmpx[mfi].loVect();
 	  const int* hi = tmpx[mfi].hiVect();
-	  
+
 	  Array<int> lod(BL_SPACEDIM),hid(BL_SPACEDIM);
 	  if (dir == 0) {
 	    lod[0] = lo[0]; 
@@ -1141,6 +1250,7 @@ VariogramUniform (AmrData&             amrData,
 		}
 		else if (ivtype == 8)
 		  gam[i] = gam[i] + abs(vrt-vrh);
+ 
 	      }
 	    }
 	  }
@@ -1195,7 +1305,9 @@ VariogramUniform (AmrData&             amrData,
 		gam[i] = gam[i]/htave;
 	    }
 	  }
-	  
+	  std::cout << ivtail  << " " << ivhead << " " 
+		    << ivtype  << " " << dir << " " 
+		    << dx[dir] << " " << nlag << std::endl;
 	  // write out to datafile
 	  std::ofstream outputFile;
 	  if (firsttime) {
@@ -1204,13 +1316,13 @@ VariogramUniform (AmrData&             amrData,
 	      BoxLib::Abort("Output file cannot be opened");
 	    firsttime = false;
 	  }
-	  else
+	  else 
 	    outputFile.open(oFile.c_str(),std::ios::app);
 
 	  // ivtail,ivhead,ivtype,dir,nlag
 	  outputFile << ivtail  << " " << ivhead << " " 
-	             << ivtype  << " " << dir << " " 
-                     << dx[dir] << " " << nlag << std::endl;
+		     << ivtype  << " " << dir << " " 
+		     << dx[dir] << " " << nlag << std::endl;
 	  
 	  for (int i=0; i<nlag; i++)
 	    outputFile << gam[i] << " ";
@@ -1221,7 +1333,11 @@ VariogramUniform (AmrData&             amrData,
 	}
       }
     }
+
+    std::cout << "DONE ...\n";
 }
+
+
 
 // fine solution - coarse solution on the grid finest level specified.
 void

@@ -14,6 +14,10 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 		       Array<BoxArray>    bas,
 		       Array<Real>&       mean,
 		       Array<Real>&       variance);
+void
+ComputeMeanVarMF (MultiFab&          mf,
+		  Array<Real>&       mean,
+		  Array<Real>&       variance);
 
 void
 ComputeAmrDataList (AmrData&         amrData,
@@ -51,7 +55,24 @@ VariogramUniform (AmrData&             amrData,
 		  int                  isill,
 		  Array<Real>          sills,
 		  std::string          oFile);
-
+void
+VariogramUniformMF (const MultiFab&      mf,
+		    Array<Real>          dx,
+		    Array< Array<int> >  ivoption,
+		    int                  nlag,
+		    int                  isill,
+		    Array<Real>          sills,
+		    std::string          oFile);
+void
+VariogramUniformMFG (const MultiFab&      mf,
+		     Array<Real>          dx,
+		     IntVect              sm,
+		     IntVect              bg,
+		     Array< Array<int> >  ivoption,
+		     int                  nlag,
+		     int                  isill,
+		     Array<Real>          sills,
+		     std::string          oFile);
 void
 TakeDifferenceFine(AmrData&             amrDataf,
 		   AmrData&             amrDatac,
