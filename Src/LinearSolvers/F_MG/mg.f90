@@ -1086,6 +1086,28 @@ contains
 
     else 
        if (lcross) then
+
+        if (ff%dim == 1) then
+
+             call multifab_fill_boundary(uu, cross = lcross)
+             do i = 1, mgt%nboxes
+                if ( remote(ff, i) ) cycle
+                up => dataptr(uu, i)
+                fp => dataptr(ff, i)
+                sp => dataptr(ss, i)
+                mp => dataptr(mm, i)
+                lo =  lwb(get_box(ss, i))
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (1)
+                      call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                               mp(:,1,1,1), lo, mgt%ng)
+                   end select
+                end do
+             end do
+
+        else
+
           ! k is the red-black parameter
           do k = 0, 1
              call multifab_fill_boundary(uu, cross = lcross)
@@ -1099,10 +1121,11 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
-                      call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                                             mp(:,1,1,1), lo, mgt%ng, k)
-!                     call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-!                                              mp(:,1,1,1), lo, mgt%ng)
+!                     call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+!                                            mp(:,1,1,1), lo, mgt%ng, k)
+                      if (k.eq.0) &
+                      call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                               mp(:,1,1,1), lo, mgt%ng)
                    case (2)
                       call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
                                              fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, pmask, k)
@@ -1114,6 +1137,7 @@ contains
                 end do
              end do
           end do
+        end if
        else
           call multifab_fill_boundary(uu, cross = lcross)
           ! This value of k isn't used
@@ -1128,10 +1152,10 @@ contains
              do n = 1, mgt%nc
                 select case ( mgt%dim)
                 case (1)
-                   call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                                          mp(:,1,1,1), lo, mgt%ng, k)
-!                  call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-!                                           mp(:,1,1,1), lo, mgt%ng)
+!                  call nodal_smoother_1d(mgt%omega, sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+!                                         mp(:,1,1,1), lo, mgt%ng, k)
+                   call nodal_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
+                                            mp(:,1,1,1), lo, mgt%ng)
                 case (2)
                    call nodal_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), fp(:,:,1,n), &
                                           mp(:,:,1,1), lo, mgt%ng, pmask, k)
@@ -1363,7 +1387,29 @@ contains
     nodal_flag = nodal_q(ss)
 
     call timer_start(mgt%tm(lev))
-    if ( lev == lbl ) then
+
+    if ( rh%dim == 1 ) then
+
+       if (do_diag) then
+          nrm = norm_inf(rh)
+          if ( parallel_IOProcessor() ) then
+             print *,'DN: NORM BEFORE RELAX         ',lev, nrm
+          end if
+       end if
+
+       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+
+       ! compute mgt%cc(lev) = ss * uu - rh
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+
+       if (do_diag) then
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) &
+               print *,'DN: NORM AFTER  RELAX         ',lev, nrm
+       end if
+
+    else if ( lev == lbl ) then
+
        if (do_diag) then
           ! compute mgt%cc(lev) = ss * uu - rh
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
