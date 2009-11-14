@@ -606,6 +606,16 @@ contains
       r_ls(i-is) = ff(i)
     end do
 
+    ! Adjust low end for Neumann boundary condition
+    if (bc_neumann(mm(is),1,-1)) then
+      c_ls(0) = 2.d0*c_ls(0)
+    end if
+
+    ! Adjust high end for Neumann boundary condition
+    if (bc_neumann(mm(ie),1,1)) then
+      a_ls(0) = 2.d0*a_ls(0)
+    end if
+
     r_ls(0)      = r_ls(0)      - ss(is,2) * uu(is-1)
     r_ls(ilen-1) = r_ls(ilen-1) - ss(ie,1) * uu(ie+1)
 
@@ -618,7 +628,7 @@ contains
 !   TESTING ONLY 
 !   i = lo(1)
 !   if (.not. bc_dirichlet(mm(i),1,0)) then
-!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1)
 !      print *,'RES AT ',i, ff(i) - dd
 !   end if
 
