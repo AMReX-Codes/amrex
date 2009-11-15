@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.8 2009-11-12 21:57:09 gpau Exp $
+# $Id: GNUmakefile,v 1.9 2009-11-15 17:01:53 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -33,7 +33,7 @@ endif
 #
 EBASE = PltFileXAve
 EBASE = PltFileStat
-#EBASE = PltFileList
+EBASE = PltFileList
 CEXE_sources += $(EBASE).cpp
 
 include $(TOP)/mk/Make.defs ./Make.package
