@@ -75,8 +75,13 @@ main (int   argc,
     if (outfile.empty())
         BoxLib::Abort("You must specify `outfile'");
 
+    int iFile_type = 0;
+    pp.query("infile_type", iFile_type);
+  
     int nmax = 100;
     pp.query("nmax", nmax);
+
+
 
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
@@ -89,58 +94,94 @@ main (int   argc,
     int nComp;
     bool first = true;
 
-    for (int i = 1; i <= nmax; i++)
+
+    if (iFile_type == 0) 
     {
-
-      char idx[4];
-      sprintf(idx,"%i",i);
+      for (int i = 1; i <= nmax; i++)
+      {
+	char idx[4];
+	sprintf(idx,"%i",i);
           
-      std::string idxs(idx);
-      File = hdrFile + idxs + "/" + iFile;
-      std::cout << File << std::endl;
+	std::string idxs(idx);
+	File = hdrFile + idxs + "/" + iFile;
       
-      DataServices dataServices(File, fileType);
+	DataServices dataServices(File, fileType);
+	
+	if (!dataServices.AmrDataOk())
+	  //
+	  // This calls ParallelDescriptor::EndParallel() and exit()
+	  //
+	  DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
-      if (!dataServices.AmrDataOk())
-        //
-        // This calls ParallelDescriptor::EndParallel() and exit()
-        //
-        DataServices::Dispatch(DataServices::ExitRequest, NULL);
-
-      AmrData& amrData = dataServices.AmrDataRef();
+	AmrData& amrData = dataServices.AmrDataRef();
       
-      nComp = amrData.NComp();
-      Array<string> names = amrData.PlotVarNames();
-      Array<int> destcomp(names.size());
+	nComp = amrData.NComp();
+	Array<string> names = amrData.PlotVarNames();
+	Array<int> destcomp(names.size());
 
-      for (int j=0; j<names.size();j++) 
-	destcomp[j] = j;
+	for (int j=0; j<names.size();j++) 
+	  destcomp[j] = j;
 
-      if (first) {
-
-	finestLevel = amrData.FinestLevel();
-	Box tmpbox(amrData.ProbDomain()[finestLevel]);
-	BoxArray ba(tmpbox);
-	ba.maxSize(128);
-	mean.define(ba,nComp,0,Fab_allocate);
-	variance.define(ba,nComp,0,Fab_allocate);
-	mean.setVal(0);
-	variance.setVal(0);
-	first = false;
-      }
+	if (first) {
+	  
+	  finestLevel = amrData.FinestLevel();
+	  Box tmpbox(amrData.ProbDomain()[finestLevel]);
+	  BoxArray ba(tmpbox);
+	  ba.maxSize(128);
+	  mean.define(ba,nComp,0,Fab_allocate);
+	  variance.define(ba,nComp,0,Fab_allocate);
+	  mean.setVal(0);
+	  variance.setVal(0);
+	  first = false;
+	}
     	
-      MultiFab tmpmean(mean.boxArray(),nComp,0);
-      MultiFab tmpvar(mean.boxArray(),nComp,0);
-      amrData.FillVar(tmpmean,finestLevel,names,destcomp);
-      amrData.FillVar(tmpvar,finestLevel,names,destcomp);
-
-      MultiFab::Add(mean,tmpmean,0,0,nComp,0);
-      for (MFIter mfi(tmpvar); mfi.isValid(); ++mfi)
-      { 
-	const int idx = mfi.index();
-	tmpvar[idx].mult(tmpvar[idx]);
+	MultiFab tmpmean(mean.boxArray(),nComp,0);
+	MultiFab tmpvar(mean.boxArray(),nComp,0);
+	amrData.FillVar(tmpmean,finestLevel,names,destcomp);
+	amrData.FillVar(tmpvar,finestLevel,names,destcomp);
+      
+	MultiFab::Add(mean,tmpmean,0,0,nComp,0);
+	for (MFIter mfi(tmpvar); mfi.isValid(); ++mfi)
+	{ 
+	  const int idx = mfi.index();
+	  tmpvar[idx].mult(tmpvar[idx]);
+	}
+	MultiFab::Add(variance,tmpvar,0,0,nComp,0);
       }
-      MultiFab::Add(variance,tmpvar,0,0,nComp,0);
+    }
+    else if (iFile_type == 1) 
+    {
+      for (int i = 1; i <= nmax; i++)
+      {
+	char idx[4];
+	sprintf(idx,"%i",i);
+          
+	std::string idxs(idx);
+	File = hdrFile + idxs + "/" + iFile;
+
+	MultiFab tmpmean;
+	VisMF::Read(tmpmean,File);
+	MultiFab tmpvar(tmpmean.boxArray(),tmpmean.nComp(),0);
+	tmpvar.copy(tmpmean);
+
+	if (first) {
+	  nComp = tmpmean.nComp();
+	  mean.define(tmpmean.boxArray(),nComp,0,Fab_allocate);
+	  variance.define(tmpmean.boxArray(),nComp,0,Fab_allocate);
+	  mean.setVal(0.);
+	  variance.setVal(0.);
+	  first = false;
+	}
+      
+	MultiFab::Add(mean,tmpmean,0,0,nComp,0);
+	for (MFIter mfi(tmpvar); mfi.isValid(); ++mfi)
+	{ 
+	  const int idx = mfi.index();
+	  tmpvar[idx].mult(tmpvar[idx]);
+	}
+	MultiFab::Add(variance,tmpvar,0,0,nComp,0);
+      }
+
     }
 
 
