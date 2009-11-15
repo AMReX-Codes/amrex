@@ -301,14 +301,14 @@ main (int   argc,
 
       else if (analysis_type == 6) // compare coarse and fine solution
       {
-	std::cout << "Analysis 6: coarse-fine comparison.\n";
+	std::cout << "Analysis 6: take difference on fine grid.\n";
 
 	std::string crsefile;
 	pp.query("crsefile",crsefile);
 	if (crsefile.empty()) 
 	  BoxLib::Abort("You must specify `crsefile'");
 
-	std::string oFile;
+	std::string oFile = iFile + "_diffine";
 	pp.query("outfile",oFile);
       
 	DataServices crseDataServices(crsefile,fileType);
