@@ -1071,6 +1071,62 @@ VariogramUniform (AmrData&             amrData,
 
 }
 
+// Compute variograms based on GSLIB for a uniform grid.
+// Cross correlation is done with respect to a multifab.
+void
+VariogramCross(AmrData&             amrData,
+	       Array<std::string>   cNames,
+	       MultiFab&            mf,
+	       Array<Real>          barr,
+	       Array< Array<int> >  ivoption,
+	       int                  nlag,
+	       int                  isill,
+	       Array<Real>          sills,
+	       std::string          oFile)
+{
+    int finestLevel = amrData.FinestLevel();
+    int nComp = cNames.size();
+
+    Box domain = amrData.ProbDomain()[0];
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    Array<Real> dx(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      dx[i] = amrData.ProbSize()[i]/
+	amrData.ProbDomain()[0].length(i);            
+      domain.setSmall(i,std::max(domain.smallEnd()[i], 
+	(int)((bbll[i]-amrData.ProbLo()[i]+.0001*dx[i])/dx[i])));
+      domain.setBig(i,std::min(domain.bigEnd()[i], 
+	(int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx[i])/dx[i])));
+    }
+    
+    for (int i=1; i<=finestLevel; i++)
+      domain.refine(amrData.RefRatio()[i]);
+
+    IntVect sm = domain.smallEnd();
+    IntVect bg = domain.bigEnd();
+
+    BoxArray ba(domain);
+    Array<int> destFillComps(nComp);
+    for (int i=0; i<nComp; ++i) destFillComps[i] = i;
+    MultiFab mf_amr(ba,nComp+1,0);
+    mf_amr.setVal(0.);
+    amrData.FillVar(mf_amr,amrData.FinestLevel(),cNames,destFillComps);
+    mf_amr.copy(mf,0,nComp,1);
+
+    VariogramUniformMFG(mf_amr,dx,sm,bg,ivoption,nlag,isill,sills,oFile);
+
+}
+
 void
 VariogramUniformMF (const MultiFab&      mf,
 		    Array<Real>          dx,

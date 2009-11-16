@@ -112,7 +112,7 @@ main (int   argc,
       int finestLevel = amrData.FinestLevel();
       int Nlev = finestLevel + 1;
 
-      // limit analysi to components specified
+      // limit analysis to components specified
       Array<std::string> cNames;
       Array<std::string> varNames = amrData.PlotVarNames();
       if (int nx=pp.countval("cNames"))
@@ -169,7 +169,15 @@ main (int   argc,
 		     (int)((bbur[i]-amrData.ProbLo()[i]-.0001*dx)/dx)));
 	}
       }
-
+      else
+      {
+	barr.resize(2*BL_SPACEDIM);
+	for (int i=0;i<BL_SPACEDIM;++i)
+	{
+	  barr[i] = domain.smallEnd()[i];
+	  barr[BL_SPACEDIM+i] = domain.bigEnd()[i];
+	}
+      }
       // Build boxarrays for fillvar call
       Box levelDomain = domain;
       bas.resize(Nlev);
@@ -379,6 +387,57 @@ main (int   argc,
 	TakeDifferenceSum(amrData,amrDataCrse,cNames,barr,mFile);
       
       }
+
+      else if (analysis_type == 9) // determine the variogram based on GSLIB
+      {
+	std::cout << "GSLIB cross-variogram calculations.\n";
+      
+	std::string oFile(tmpFile + "_VAR");
+	pp.query("outfile",oFile);
+	
+	std::string sFile;
+	pp.query("secfile",sFile);
+	
+	int nvarg = pp.countname("varg");
+	if (nvarg == 0)
+	  BoxLib::Abort("No variogram is specified");
+
+	Array< Array<int> > ivoption(nvarg);
+	for (int i=0; i<nvarg; i++) {
+	  int nopt = pp.countval("varg");
+	  ivoption[i].resize(nopt);
+	  pp.queryktharr("varg",i,ivoption[i],0,nopt);
+	}
+	
+	int isill = 0;
+	pp.query("isill",isill);
+
+	MultiFab secmf;
+	VisMF::Read(secmf,sFile);
+	
+	Array<Real> mean, variance;
+	Array<Real> secmean, secvariance;
+	if (isill == 1) {
+
+	  mean.resize(nComp+secmf.nComp());
+	  variance.resize(nComp+secmf.nComp());
+	  secmean.resize(secmf.nComp());
+	  secvariance.resize(secmf.nComp());
+
+	  ComputeAmrDataMeanVar(amrData,cNames,bas,mean,variance);
+	  ComputeMeanVarMF(secmf,secmean,secvariance);
+
+	  for (int i=0;i < secmf.nComp(); i++) {
+	    mean[nComp+i] = secmean[i];
+	    variance[nComp+i] = secvariance[i];
+	  }
+
+	}
+
+	VariogramCross(amrData,cNames,secmf,barr,
+		       ivoption,nBin,isill,variance,oFile);
+      }
+
       else 
 	std::cout << "Analysis Type is undefined.\n";
 
