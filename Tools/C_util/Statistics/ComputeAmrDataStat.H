@@ -55,6 +55,18 @@ VariogramUniform (AmrData&             amrData,
 		  int                  isill,
 		  Array<Real>          sills,
 		  std::string          oFile);
+
+void
+VariogramCross(AmrData&             amrData,
+	       Array<std::string>   cNames,
+	       MultiFab&            mf,
+	       Array<Real>          barr,
+	       Array< Array<int> >  ivoption,
+	       int                  nlag,
+	       int                  isill,
+	       Array<Real>          sills,
+	       std::string          oFile);
+
 void
 VariogramUniformMF (const MultiFab&      mf,
 		    Array<Real>          dx,
