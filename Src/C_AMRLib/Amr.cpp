@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.187 2009-11-05 23:07:06 almgren Exp $
+// $Id: Amr.cpp,v 1.188 2009-11-17 18:57:50 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1662,7 +1662,7 @@ Amr::coarseTimeStep (Real stop_time)
         BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "\nFAB byte spread across CPUs for timestep: ["
+            std::cout << "\nFAB byte spread across MPI nodes for timestep: ["
                       << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
