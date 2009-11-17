@@ -193,6 +193,8 @@ contains
                 fmp => dataptr(mm_fine,i)
 
                 select case (dm)
+                case (1)
+                   call create_nodal_mask_1d(mkp(:,1,1,1),cmp(:,1,1,1),loc,fmp(:,1,1,1),lof,lo,hi,ir)
                 case (2)
                    call create_nodal_mask_2d(mkp(:,:,1,1),cmp(:,:,1,1),loc,fmp(:,:,1,1),lof,lo,hi,ir)
                 case (3)
@@ -221,6 +223,8 @@ contains
                 call parallel_recv(fmp, proc, tag)
 
                 select case (dm)
+                case (1)
+                   call create_nodal_mask_1d(mkp(:,:,1,1),cmp(:,:,1,1),loc,fmp(:,:,1,1),lof,lo,hi,ir)
                 case (2)
                    call create_nodal_mask_2d(mkp(:,:,1,1),cmp(:,:,1,1),loc,fmp(:,:,1,1),lof,lo,hi,ir)
                 case (3)
@@ -236,6 +240,25 @@ contains
        call destroy(bpt)
 
      end subroutine create_nodal_mask
+
+     subroutine create_nodal_mask_1d(mask,mm_crse,loc,mm_fine,lof,lo,hi,ir)
+
+       integer, intent(in   ) :: loc(:),lof(:)
+       logical, intent(inout) ::    mask(loc(1):)
+       integer, intent(inout) :: mm_crse(loc(1):)
+       integer, intent(inout) :: mm_fine(lof(1):)
+       integer, intent(in   ) :: lo(:),hi(:)
+       integer, intent(in   ) :: ir(:)
+
+       integer :: i,fi
+
+       do i = lo(1),hi(1)
+          fi = i*ir(1)
+          if (.not.  bc_dirichlet(mm_fine(fi),1,0) .or. bc_dirichlet(mm_crse(i),1,0)) &
+               mask(i) = .false.
+       end do
+
+     end subroutine create_nodal_mask_1d
 
      subroutine create_nodal_mask_2d(mask,mm_crse,loc,mm_fine,lof,lo,hi,ir)
 
@@ -256,7 +279,6 @@ contains
                   mask(i,j) = .false.
           end do
        end do
-
 
      end subroutine create_nodal_mask_2d
 
