@@ -110,7 +110,6 @@ c Works for CELL- or NODE-based data.
      &                   v0(regh0,j,k) * v1(regh0,j,k))
          end do
       end do
-!$omp parallel do private(i,j,k) reduction(+:sum)if((regh2-regl2).ge.5)
       do  k = regl2 + 1, regh2 - 1
          do  j = regl1 + 1, regh1 - 1
             do  i = regl0 + 1, regh0 - 1
@@ -118,7 +117,6 @@ c Works for CELL- or NODE-based data.
             end do
          end do
       end do
-!$omp end parallel do
       end
 c-----------------------------------------------------------------------
 c     These routines implement boundary conditions
@@ -651,6 +649,7 @@ c NODE-based data only.
          do m = 1, kr-1
             q = dble(m)/kr
             p = 1.0D0 - q
+!$omp parallel do private(ic,jc,kc) if ((bbh2-bbl2).gt.3)
             do kc = bbl2, bbh2-1
                do jc = bbl1, bbh1
                   do ic = bbl0, bbh0
@@ -659,32 +658,37 @@ c NODE-based data only.
                   end do
                end do
             end do
+!$omp end parallel do
          end do
          do m = 1, jr-1
             q = dble(m)/jr
             p = 1.0D0 - q
-            do jc = bbl1, bbh1-1
-               do ic = bbl0, bbh0
-                  do k = regl2, regh2
+!$omp parallel do private(ic,jc,k) if ((regh2-regl2).ge.3)
+            do k = regl2, regh2
+               do jc = bbl1, bbh1-1
+                  do ic = bbl0, bbh0
                      dest(ir*ic,jr*jc+m,k,nc) =
      &                  p * dest(ir*ic,jr*jc,k,nc) +
      &                  q * dest(ir*ic,jr*(jc+1),k,nc)
                   end do
                end do
             end do
+!$omp end parallel do
          end do
-            do  m = 1, ir-1
+            do m = 1, ir-1
                q = dble(m)/ir
                p = 1.0D0 - q
-               do ic = bbl0, bbh0-1
-                  do k = regl2, regh2
-                     do j = regl1, regh1
+!$omp parallel do private(ic,jc,k) if ((regh2-regl2).ge.3)
+               do k = regl2, regh2
+                  do j = regl1, regh1
+                     do ic = bbl0, bbh0-1
                         dest(ir*ic+m,j,k,nc) =
      &                     p * dest(ir*ic,j,k,nc) +
      &                     q * dest(ir*(ic+1),j,k,nc)
                      end do
                   end do
                end do
+!$omp end parallel do
             end do
       end do
       end
@@ -875,33 +879,37 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          end if
          i = regl0
          do nc = 1, ncomp
+!$omp parallel do private(j,k)
             do k = regl2, regh2
                do j = regl1, regh1
                   dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
                end do
             end do
+!$omp end parallel do
          end do
          do nc = 1, ncomp
-         do l = 0, kr-1
-            fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = 0.5D0 * fac2
-            do n = 0, jr-1
-               fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = 0.5D0 * fac1
-               do m = idir, idir*(ir-1), idir
-                  fac = (ir-abs(m)) * fac1
-                  do k = regl2, regh2
-                     do j = regl1, regh1
-                        dest(i,j,k,nc) = dest(i,j,k,nc) +
-     &                       fac * (src(i*ir+m,j*jr-n,k*kr-l,nc) +
-     &                              src(i*ir+m,j*jr-n,k*kr+l,nc) +
-     &                              src(i*ir+m,j*jr+n,k*kr-l,nc) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
+            do l = 0, kr-1
+               fac2 = (kr-l) * fac0
+               if (l .eq. 0) fac2 = 0.5D0 * fac2
+               do n = 0, jr-1
+                  fac1 = (jr-n) * fac2
+                  if (n .eq. 0) fac1 = 0.5D0 * fac1
+                  do m = idir, idir*(ir-1), idir
+                     fac = (ir-abs(m)) * fac1
+!$omp parallel do private(j,k)
+                     do k = regl2, regh2
+                        do j = regl1, regh1
+                           dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir+m,j*jr-n,k*kr-l,nc) +
+     &                          src(i*ir+m,j*jr-n,k*kr+l,nc) +
+     &                          src(i*ir+m,j*jr+n,k*kr-l,nc) +
+     &                          src(i*ir+m,j*jr+n,k*kr+l,nc))
+                        end do
                      end do
+!$omp end parallel do
                   end do
                end do
             end do
-         end do
          end do
       else if (idim .eq. 1) then
          if (integ .eq. 0) then
@@ -913,33 +921,37 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          end if
          j = regl1
          do nc = 1, ncomp
-         do k = regl2, regh2
-            do i = regl0, regh0
-               dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
+!$omp parallel do private(i,k)
+            do k = regl2, regh2
+               do i = regl0, regh0
+                  dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
+               end do
             end do
-         end do
+!$omp end parallel do
          end do
          do nc = 1, ncomp
-         do l = 0, kr-1
-            fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = 0.5D0 * fac2
-            do n = idir, idir*(jr-1), idir
-               fac1 = (jr-abs(n)) * fac2
-               do m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5D0 * fac
-                  do k = regl2, regh2
-                     do i = regl0, regh0
-                        dest(i,j,k,nc) = dest(i,j,k,nc) +
-     &                       fac * (src(i*ir-m,j*jr+n,k*kr-l,nc) +
-     &                              src(i*ir-m,j*jr+n,k*kr+l,nc) +
-     &                              src(i*ir+m,j*jr+n,k*kr-l,nc) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
+            do l = 0, kr-1
+               fac2 = (kr-l) * fac0
+               if (l .eq. 0) fac2 = 0.5D0 * fac2
+               do n = idir, idir*(jr-1), idir
+                  fac1 = (jr-abs(n)) * fac2
+                  do m = 0, ir-1
+                     fac = (ir-m) * fac1
+                     if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(i,k)
+                     do k = regl2, regh2
+                        do i = regl0, regh0
+                           dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir-m,j*jr+n,k*kr-l,nc) +
+     &                          src(i*ir-m,j*jr+n,k*kr+l,nc) +
+     &                          src(i*ir+m,j*jr+n,k*kr-l,nc) +
+     &                          src(i*ir+m,j*jr+n,k*kr+l,nc))
+                        end do
                      end do
+!$omp end parallel do
                   end do
                end do
             end do
-         end do
          end do
       else
          if (integ .eq. 0) then
@@ -951,33 +963,37 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          end if
          k = regl2
          do nc = 1, ncomp
-         do j = regl1, regh1
-            do i = regl0, regh0
-               dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
+!$omp parallel do private(i,j)
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
+               end do
             end do
-         end do
+!$omp end parallel do
          end do
          do nc = 1, ncomp
-         do l = idir, idir*(kr-1), idir
-            fac2 = (kr-abs(l)) * fac0
-            do n = 0, jr-1
-               fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = 0.5D0 * fac1
-               do m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5D0 * fac
-                  do j = regl1, regh1
-                     do i = regl0, regh0
-                        dest(i,j,k,nc) = dest(i,j,k,nc) +
-     &                       fac * (src(i*ir-m,j*jr-n,k*kr+l,nc) +
-     &                              src(i*ir-m,j*jr+n,k*kr+l,nc) +
-     &                              src(i*ir+m,j*jr-n,k*kr+l,nc) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
+            do l = idir, idir*(kr-1), idir
+               fac2 = (kr-abs(l)) * fac0
+               do n = 0, jr-1
+                  fac1 = (jr-n) * fac2
+                  if (n .eq. 0) fac1 = 0.5D0 * fac1
+                  do m = 0, ir-1
+                     fac = (ir-m) * fac1
+                     if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(i,j)
+                     do j = regl1, regh1
+                        do i = regl0, regh0
+                           dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir-m,j*jr-n,k*kr+l,nc) +
+     &                          src(i*ir-m,j*jr+n,k*kr+l,nc) +
+     &                          src(i*ir+m,j*jr-n,k*kr+l,nc) +
+     &                          src(i*ir+m,j*jr+n,k*kr+l,nc))
+                        end do
                      end do
+!$omp end parallel do
                   end do
                end do
             end do
-         end do
          end do
       end if
       end
