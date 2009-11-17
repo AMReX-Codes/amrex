@@ -464,6 +464,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if,tmp)
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1)
@@ -504,6 +505,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -516,6 +518,7 @@ c each face is two faces and two sides of an edge
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
                         if (m .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(if,tmp)
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1)
@@ -556,6 +559,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -641,6 +645,7 @@ c each face is two faces and two sides of an edge
                      if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(jf,tmp)
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1)
@@ -681,6 +686,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -693,6 +699,7 @@ c each face is two faces and two sides of an edge
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
                         if (n .eq. 0) fac = 0.5D0 * fac
+!$omp parallel do private(jf,tmp)
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1)
@@ -733,6 +740,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -818,6 +826,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
+!$omp parallel do private(kf,tmp)
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1)
@@ -858,6 +867,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -870,6 +880,7 @@ c each face is two faces and two sides of an edge
                      if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
+!$omp parallel do private(kf,tmp)
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
      &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1)
@@ -910,6 +921,7 @@ c each face is two faces and two sides of an edge
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
+!$omp end parallel do
                      end do
                   end do
                end if
@@ -1793,6 +1805,7 @@ c sig here contains three different directions all stored on "nodes"
       double precision AVG
       integer i, jdiff, kdiff, ly, lz
       integer idd
+
       AVG() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
      &         sig(i+ly-jdiff) * cor(i-jdiff) +
