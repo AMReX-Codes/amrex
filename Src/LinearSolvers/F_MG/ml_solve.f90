@@ -224,7 +224,7 @@ contains
 
                 select case (dm)
                 case (1)
-                   call create_nodal_mask_1d(mkp(:,:,1,1),cmp(:,:,1,1),loc,fmp(:,:,1,1),lof,lo,hi,ir)
+                   call create_nodal_mask_1d(mkp(:,1,1,1),cmp(:,1,1,1),loc,fmp(:,1,1,1),lof,lo,hi,ir)
                 case (2)
                    call create_nodal_mask_2d(mkp(:,:,1,1),cmp(:,:,1,1),loc,fmp(:,:,1,1),lof,lo,hi,ir)
                 case (3)
