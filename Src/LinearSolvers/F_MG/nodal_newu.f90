@@ -30,6 +30,8 @@ contains
          pp => dataptr(phi, i)
          rp  => dataptr(coeff, i)
          select case (dm)
+            case (1)
+              call mkunew_1d(up(:,1,1,1), pp(:,1,1,1) ,rp(:,1,1,1), dx, ng)
             case (2)
               call mkunew_2d(up(:,:,1,:), pp(:,:,1,1) ,rp(:,:,1,1), dx, ng)
             case (3)
@@ -42,6 +44,29 @@ contains
 
 !   ********************************************************************************************* !
 
+    subroutine mkunew_1d(unew,phi,coeff,dx,ng)
+
+      integer        , intent(in   ) :: ng
+      real(kind=dp_t), intent(inout) :: unew(-ng:)
+      real(kind=dp_t), intent(inout) :: phi(-1:)
+      real(kind=dp_t), intent(in   ) :: coeff(-1:)
+      real(kind=dp_t), intent(in   ) :: dx(:)
+
+      ! Local variables
+      integer         :: i,nx
+      real(kind=dp_t) :: gpx
+
+      nx = size(phi,dim=1)-3
+
+      do i = 0,nx-1
+         gpx     = (phi(i+1) - phi(i)) /dx(1)
+         unew(i) = unew(i) - gpx * coeff(i)
+      end do
+
+    end subroutine mkunew_1d
+
+!   ********************************************************************************************* !
+
     subroutine mkunew_2d(unew,phi,coeff,dx,ng)
 
       integer        , intent(in   ) :: ng
@@ -49,9 +74,12 @@ contains
       real(kind=dp_t), intent(inout) :: phi(-1:,-1:)
       real(kind=dp_t), intent(in   ) :: coeff(-1:,-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
-      integer :: i,j,nx,ny
+
+      ! Local variables
+      integer         :: i,j,nx,ny
       real(kind=dp_t) :: gpx,gpy
 
+      ! Local variables
       nx = size(phi,dim=1)-3
       ny = size(phi,dim=2)-3
 
@@ -78,7 +106,8 @@ contains
       real(kind=dp_t), intent(in   ) :: rhohalf(-1:,-1:,-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
 
-      integer :: nx,ny,nz,i,j,k
+      ! Local variables
+      integer         :: nx,ny,nz,i,j,k
       real(kind=dp_t) :: gpx,gpy,gpz
 
       nx = size(phi,dim=1)-3
