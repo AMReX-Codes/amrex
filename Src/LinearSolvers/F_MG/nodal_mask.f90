@@ -54,6 +54,8 @@ module nodal_mask_module
      mkp  => dataptr(cfmask,j)
      fmp  => dataptr(mm_fine,j)
      select case (dm)
+     case (1)
+        call set_crsefine_nodal_mask_1d(mkp(:,1,1,1),fmp(:,1,1,1),lof,lo,hi,ir)
      case (2)
         call set_crsefine_nodal_mask_2d(mkp(:,:,1,1),fmp(:,:,1,1),lof,lo,hi,ir)
      case (3)
@@ -73,6 +75,8 @@ module nodal_mask_module
      mkp  => dataptr(mask,j)
      cmp  => dataptr(mm_crse,j)
      select case (dm)
+     case (1)
+        call set_crse_nodal_mask_1d(mkp(:,1,1,1),cmp(:,1,1,1),lo,hi)
      case (2)
         call set_crse_nodal_mask_2d(mkp(:,:,1,1),cmp(:,:,1,1),lo,hi)
      case (3)
@@ -81,6 +85,21 @@ module nodal_mask_module
   end do
 
   end subroutine create_nodal_mask
+
+  subroutine set_crsefine_nodal_mask_1d(mask,mm_fine,lof,lo,hi,ir)
+
+       integer, intent(in   ) :: lo(:),hi(:),lof(:),ir(:)
+       logical, intent(inout) :: mask(lo(1):)
+       integer, intent(inout) :: mm_fine(lof(1):)
+
+       integer :: i
+
+       do i = lo(1),hi(1)
+          if (.not.  bc_dirichlet(mm_fine(i*ir(1)),1,0) ) &
+             mask(i) = .false.
+       end do
+
+  end subroutine set_crsefine_nodal_mask_1d
 
   subroutine set_crsefine_nodal_mask_2d(mask,mm_fine,lof,lo,hi,ir)
 
@@ -119,6 +138,21 @@ module nodal_mask_module
 
   end subroutine set_crsefine_nodal_mask_3d
 
+  subroutine set_crse_nodal_mask_1d(mask,mm_crse,lo,hi)
+
+       integer, intent(in   ) :: lo(:),hi(:)
+       logical, intent(inout) ::    mask(lo(1):)
+       integer, intent(inout) :: mm_crse(lo(1):)
+
+       integer :: i
+
+       do i = lo(1),hi(1)
+          if ( bc_dirichlet(mm_crse(i),1,0 ) ) &
+             mask(i) = .false.
+       end do
+
+  end subroutine set_crse_nodal_mask_1d
+
   subroutine set_crse_nodal_mask_2d(mask,mm_crse,lo,hi)
 
        integer, intent(in   ) :: lo(:),hi(:)
@@ -134,7 +168,7 @@ module nodal_mask_module
           end do
        end do
 
-     end subroutine set_crse_nodal_mask_2d
+  end subroutine set_crse_nodal_mask_2d
 
   subroutine set_crse_nodal_mask_3d(mask,mm_crse,lo,hi)
 
