@@ -130,8 +130,6 @@ task::print_dependencies (std::ostream& os) const
 bool
 task::depend_ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::depend_ready()");
-
     std::list<task_proxy>::iterator lit = dependencies.begin();
 
     while (lit != dependencies.end())
@@ -176,7 +174,6 @@ task::depends_on_q (const task* t1) const
 bool
 task::ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
     BL_ASSERT(is_started());
     return true;
 }
@@ -189,8 +186,6 @@ task::_do_depend ()
         // In this case just doing tasks in order will be OK.
         //
         return;
-
-    //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::_do_depend()");
 
     for (std::list<task::task_proxy>::const_iterator cit = m_task_list.begin();
 	 cit != m_task_list.end();
@@ -211,6 +206,24 @@ task_list::task_list ()
 {}
 
 task_list::~task_list () {}
+
+task::task_proxy
+task_list::add_task (task* t)
+{
+    BL_ASSERT(t != 0);
+
+    if (t->is_finished())
+    {
+        delete t;
+        return task::task_proxy(0);
+    }
+    else
+    {
+        task::task_proxy tp(t);
+        tasks.push_back(tp);
+        return tp;
+    }
+}
 
 void
 task_list::print_dependencies (std::ostream& os) const
@@ -465,8 +478,6 @@ task_copy_base::need_to_communicate (int& with) const
 bool
 task_copy_base::startup ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::startup()");
-
     m_started = true;
 
     bool result = true;
@@ -605,8 +616,6 @@ task_copy::init ()
 bool
 task_copy::ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
-
     BL_ASSERT(is_started());
 
     if (m_local)
@@ -696,8 +705,6 @@ task_local_base::need_to_communicate (int& with) const
 bool
 task_local_base::startup ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::startup()");
-
     m_started = true;
 
     bool result = true;
@@ -810,8 +817,6 @@ task_copy_local::task_copy_local (task_list&      tl_,
 bool
 task_copy_local::ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
-
     BL_ASSERT(is_started());
 
     if (m_local)
@@ -902,8 +907,6 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
 bool
 task_bdy_fill::ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
-
     BL_ASSERT(is_started());
 
     if (m_local)
