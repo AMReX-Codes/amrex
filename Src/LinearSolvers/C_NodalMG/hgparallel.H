@@ -329,24 +329,6 @@ task_list::get_then_advance (int proc)
     return sno;
 }
 
-inline
-task::task_proxy
-task_list::add_task (task* t)
-{
-    BL_ASSERT(t != 0);
-
-    if (t->is_finished())
-    {
-        delete t;
-        return task::task_proxy(0);
-    }
-    else
-    {
-        tasks.push_back(task::task_proxy(t));
-        return tasks.back();
-    }
-}
-
 class task_copy_base
   :
     public task
