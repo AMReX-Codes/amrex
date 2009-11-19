@@ -9,17 +9,15 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-
-#
-# -Ofast is currently breaking something in mglib/*.cpp on franklin
-#
-
-#  ifeq ($(BL_NOFAST),TRUE)
+  #
+  # I'm going to get rid of the -Ofast stuff.
+  # For now you get the same thing w/wo BL_NOFAST.
+  #
+  ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
-#    LDFLAGS += -Ofast
-#  else
-#    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
-#  endif
+  else
+    CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+  endif
 
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
 
@@ -74,13 +72,16 @@ ifeq ($(FCOMP),PathScale)
   F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-
+  #
+  # I'm going to get rid of the -Ofast stuff.
+  # For now you get the same thing w/wo BL_NOFAST.
+  #
   ifeq ($(BL_NOFAST),TRUE)
     FOPTF += -O -ffast-math -fno-math-errno
     fOPTF += -O -ffast-math -fno-math-errno
   else
-    FOPTF += -Ofast
-    fOPTF += -Ofast
+    FOPTF += -O -ffast-math -fno-math-errno
+    fOPTF += -O -ffast-math -fno-math-errno
   endif
 
   ifeq ($(USE_OMP),TRUE)
