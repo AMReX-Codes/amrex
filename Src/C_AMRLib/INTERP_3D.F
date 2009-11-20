@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.38 2009-10-22 21:00:30 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.39 2009-11-20 21:46:35 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -378,14 +378,11 @@ c :::
          cxcen = half*(cvcx(ic)+cvcx(ic+1))
          voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
       end do
-
-!$omp parallel
-
-      do n = 1, nvar 
 c
 c         Prevent underflow for small crse values.
 c
-!$omp do private(i,j,k)
+      do n = 1, nvar 
+!$omp parallel do private(i,j,k)
           do k = cslopelo(3)-1,cslopehi(3)+1
             do j = cslopelo(2)-1,cslopehi(2)+1
               do i = cslopelo(1)-1, cslopehi(1)+1 
@@ -393,11 +390,11 @@ c
               end do
             end do
           end do
-!$omp end do
+!$omp end parallel do
 c
 c         Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
-!$omp do private(i,j,k,koff,joff,ioff)
+!$omp parallel do private(i,j,k,koff,joff,ioff)
           do k = cslopelo(3),cslopehi(3)
             do j = cslopelo(2),cslopehi(2)
               do i = cslopelo(1), cslopehi(1)
@@ -415,15 +412,14 @@ c
               end do
             end do
           end do
-!$omp end do nowait
-
+!$omp end parallel do
       end do
 c
 c     Computed unlimited and limited slopes
 c
       do n = 1, nvar 
 
-!$omp do private(i,j,k,cen,forw,back,slp)
+!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -437,7 +433,7 @@ c
              end do
             end do
           end do
-!$omp end do
+!$omp end parallel do
 
           if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
             i = cslopelo(1)
@@ -457,6 +453,7 @@ c
                 end do
               end do
             endif
+!$omp parallel do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -467,6 +464,7 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end parallel do
           end if
 
           if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
@@ -487,7 +485,7 @@ c
                 end do
               end do
             endif
-
+!$omp parallel do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -498,9 +496,10 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end parallel do
           end if
 
-!$omp do private(i,j,k,cen,forw,back,slp)
+!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -514,7 +513,7 @@ c
                end do
             end do
           end do
-!$omp end do
+!$omp end parallel do
 
           if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
             j = cslopelo(2)
@@ -534,7 +533,7 @@ c
                 end do
               end do
             endif
-
+!$omp parallel do private(i,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_yslope(i,j,k,n)
@@ -545,6 +544,7 @@ c
                 lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end parallel do
           end if
 
           if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
@@ -565,7 +565,7 @@ c
                 end do
               end do
             endif
-
+!$omp parallel do private(i,k,cen,forw,back,slp)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   cen  = uc_yslope(i,j,k,n)
@@ -576,9 +576,10 @@ c
                   lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
+!$omp end parallel do
           end if
 
-!$omp do private(i,j,k,cen,forw,back,slp)
+!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -592,7 +593,7 @@ c
               end do
             end do
           end do
-!$omp end do
+!$omp end parallel do
 
           if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
             k = cslopelo(3)
@@ -612,7 +613,7 @@ c
                 end do
               end do
             endif
-
+!$omp parallel do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -623,6 +624,7 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
+!$omp end parallel do
           end if
 
           if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
@@ -643,7 +645,7 @@ c
                end do
               end do
             endif
-
+!$omp parallel do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -654,6 +656,7 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
              end do
             end do
+!$omp end parallel do
           end if
 
        end do
@@ -663,7 +666,7 @@ c
 c        Do the interpolation using unlimited slopes.
 c
           do n = 1, nvar
-!$omp do private(i,j,k,ic,jc,kc)
+!$omp parallel do private(i,j,k,ic,jc,kc)
              do k = fblo(3), fbhi(3)
                kc = IX_PROJ(k,lratioz)
                do j = fblo(2), fbhi(2)
@@ -677,7 +680,7 @@ c
                   end do
                end do
              end do
-!$omp end do
+!$omp end parallel do
           end do
 
        else
@@ -690,6 +693,7 @@ c     have the same sign, and it is assumed that they do.
 c
 c     compute slope factors
 c
+!$omp parallel do private(i,j,k)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -699,9 +703,10 @@ c
               end do
             end do
           end do
+!$omp end parallel do
 
           do n = 1, nvar 
-!$omp do private(i,j,k,denom,factorn)
+!$omp parallel do private(i,j,k,denom,factorn)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -725,12 +730,13 @@ c
                 end do
               end do
             end do
-!$omp end do
+!$omp end parallel do
           end do
 c
 c         Compute linear limited slopes
 c
           do n = 1, nvar 
+!$omp parallel do private(i,j,k)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -740,6 +746,7 @@ c
                 end do
               end do
             end do
+!$omp end parallel do
           end do
 
          else
@@ -747,7 +754,8 @@ c
 c         Limit slopes so as to not introduce new maxs or mins.
 c
             do n = 1,nvar
-!$omp do private(i,j,k,ic,jc,kc,corr_fact,orig_corr_fact,dummy_fine)
+!$omp parallel do private(i,j,k,ic,jc,kc,corr_fact)
+!$omp&private(orig_corr_fact,dummy_fine)
                do k = voff_lo(3),voff_hi(3)
                   kc = IX_PROJ(k,lratioz)
                   do j = voff_lo(2),voff_hi(2)
@@ -789,14 +797,14 @@ c
                      end do
                   end do
                end do
-!$omp end do
+!$omp end parallel do
             end do
          end if
 c
 c       Do the interpolation with limited slopes.
 c
         do n = 1, nvar
-!$omp do private(i,j,k,ic,jc,kc)
+!$omp parallel do private(i,j,k,ic,jc,kc)
           do k = fblo(3), fbhi(3)
             kc = IX_PROJ(k,lratioz)
             do j = fblo(2), fbhi(2)
@@ -810,12 +818,10 @@ c
               end do
             end do
           end do
-!$omp end do nowait
+!$omp end parallel do
         end do
 
       end if
-
-!$omp end parallel
 
       end
 

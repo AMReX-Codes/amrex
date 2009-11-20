@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_3D.F,v 1.9 2008-02-08 17:48:47 lijewski Exp $
+c $Id: FILCC_3D.F,v 1.10 2009-11-20 21:46:35 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -61,9 +61,12 @@ c ::: -----------------------------------------------------------
       ntop = max(0,ARG_H2(q)-domhi(2))
       ndwn = max(0,domlo(3)-ARG_L3(q))
       nup  = max(0,ARG_H3(q)-domhi(3))
+
+!$omp sections private(i,j,k)
 c
 c     ::::: first fill sides
 c
+!$omp section
       if (nlft .gt. 0) then
          ilo = domlo(1)
 
@@ -116,6 +119,7 @@ c
 	 end if
       end if
 
+!$omp section
       if (nrgt .gt. 0) then
          ihi = domhi(1)
 
@@ -168,6 +172,7 @@ c
 	 end if
       end if
 
+!$omp section
       if (nbot .gt. 0) then
          jlo = domlo(2)
          
@@ -220,6 +225,7 @@ c
 	 end if
       end if
 
+!$omp section
       if (ntop .gt. 0) then
          jhi = domhi(2)
 
@@ -272,6 +278,7 @@ c
 	 end if
       end if
 
+!$omp section
       if (ndwn .gt. 0) then
          klo = domlo(3)
 
@@ -324,6 +331,7 @@ c
 	 end if
       end if
 
+!$omp section
       if (nup .gt. 0) then
          khi = domhi(3)
 
@@ -375,6 +383,7 @@ c
 	    end do
 	 end if
       end if
+!$omp end sections
 c
 c    First correct the i-j edges and all corners
 c
