@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.139 2009-11-11 20:37:02 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.140 2009-11-20 17:41:11 lijewski Exp $
 #
 
 #
@@ -311,8 +311,8 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2 -fno-exceptions
-   CXXDEBF += -g -fno-exceptions
+   CXXOPTF += -g -O2 #-fno-exceptions
+   CXXDEBF += -g #-fno-exceptions
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
