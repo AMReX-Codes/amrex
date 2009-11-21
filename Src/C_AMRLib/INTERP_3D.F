@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.39 2009-11-20 21:46:35 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.40 2009-11-21 03:46:42 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -40,156 +40,114 @@ c :::
      $                          lratiox, lratioy, lratioz, nvar,
      $                          sl, num_slp)
 
-      implicit none
-
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
       integer DIMDEC(fb)
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
-      REAL_T  fine(DIMV(fine),nvar)
-      REAL_T  crse(DIMV(crse),nvar)
-      REAL_T  sl(DIM1(cb),num_slp)
+      REAL_T fine(DIMV(fine),nvar)
+      REAL_T crse(DIMV(crse),nvar)
+      REAL_T sl(DIM1(cb),num_slp)
 
-#define  SLX 1
-#define  SLY 2
-#define  SLZ 3
-#define  SLXY 4
-#define  SLXZ 5
-#define  SLYZ 6
-#define  SLXYZ 7
-
-      integer lx, ly, lz
-      integer i, j, k, ifn, jfn, kfn, n
+      integer ioff, joff, koff
+      integer i, j, k, ic, jc, kc, n
       integer ilo, ihi, jlo, jhi, klo, khi
-      integer kstrtFine, kstopFine, jstrtFine, jstopFine, istrtFine, istopFine
+      integer iratio, jratio, kratio
+      integer kstrt, kstop, jstrt, jstop, istrt, istop
 
       REAL_T fx, fy,fz
+      REAL_T sx, sy, sz, sxy, sxz, syz, sxyz
       REAL_T RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
       REAL_T dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
-      REAL_T slope
 
-      slope(i,j,k,n,fx,fy,fz) = crse(i,j,k,n) +
-     &     fx*sl(i,SLX) + fy*sl(i,SLY) + fz*sl(i,SLZ) +
-     &     fx*fy*sl(i,SLXY) + fx*fz*sl(i,SLXZ) + fy*fz*sl(i,SLYZ) +
-     &     fx*fy*fz*sl(i,SLXYZ)
-
-      RX = one/dble(lratiox)
-      RY = one/dble(lratioy)
-      RZ = one/dble(lratioz)
-      RXY = RX*RY
-      RXZ = RX*RZ
-      RYZ = RY*RZ
+      RX   = one/dfloat(lratiox)
+      RY   = one/dfloat(lratioy)
+      RZ   = one/dfloat(lratioz)
+      RXY  = RX*RY
+      RXZ  = RX*RZ
+      RYZ  = RY*RZ
       RXYZ = RX*RY*RZ
-c
-c     NOTES:
-c         1) (i, j, k) loop over the coarse cells
-c         2) strtFine and stopFine are the beginning and ending fine cell
-c            indices corresponding to the current coarse cell.  stopFine
-c            is restricted for the last coarse cell in each direction since
-c            for this cell we only need to do the face and not the fine nodes
-c            inside this cell.
-c         3) (lx, ly, lz) as well as lo and hi refer to the fine node indices
-c            as an offset from strtFine.
-c
+
       do n = 1, nvar
-         do k = ARG_L3(cb), ARG_H3(cb)
-            kstrtFine = k * lratioz
-            kstopFine = kstrtFine + lratioz - 1
-            if (k .eq. ARG_H3(cb)) kstopFine = kstrtFine
 
-            klo = max(ARG_L3(fb),kstrtFine) - kstrtFine
-            khi = min(ARG_H3(fb),kstopFine) - kstrtFine
+!$omp parallel do private(i,j,k,ic,jc,kc,kratio,jratio,iratio,ilo,ihi)
+!$omp&private(jlo,jhi,klo,khi,istrt,istop,jstrt,jstop,kstrt,kstop)
+!$omp&private(dx00,d0x0,d00x,dx10,dx01,d0x1,dx11,ioff,joff,koff)
+!$omp&private(sx,sy,sz,sxy,sxz,syz,sxyz,fx,fy,fz)
+         do kc = ARG_L3(cb), ARG_H3(cb)-1
 
-            do j = ARG_L2(cb), ARG_H2(cb)
-               jstrtFine = j * lratioy
-               jstopFine = jstrtFine + lratioy - 1
-               if (j .eq. ARG_H2(cb)) jstopFine = jstrtFine
+            kratio = lratioz-1
+            if (kc .eq. ARG_H3(cb)-1) kratio = lratioz
+            kstrt = kc*lratioz
+            kstop = kstrt + kratio
+            klo = max(ARG_L3(fine),kstrt) - kstrt
+            khi = min(ARG_H3(fine),kstop) - kstrt
+            do jc = ARG_L2(cb), ARG_H2(cb)-1
 
-               jlo = max(ARG_L2(fb),jstrtFine) - jstrtFine
-               jhi = min(ARG_H2(fb),jstopFine) - jstrtFine
-c
-c           ::::: compute slopes :::::
-c
-c           NOTE: The IF logic in the calculation of the slopes is to
-c                 prevent stepping out of bounds on the coarse data when
-c                 computing the slopes on the ARG_H(cb) cells.  These
-c                 slopes actually are not used since they are multiplied by
-c                 zero.
-c
-               do i = ARG_L1(cb), ARG_H1(cb)
-                  dx00 = zero
-                  if (i .NE. ARG_H1(cb)) dx00 = crse(i+1,j,k,n) - crse(i,j,k,n)
+               jratio = lratioy-1
+               if (jc .eq. ARG_H2(cb)-1) jratio = lratioy
+               jstrt = jc*lratioy
+               jstop = jstrt + jratio
+               jlo = max(ARG_L2(fine),jstrt) - jstrt
+               jhi = min(ARG_H2(fine),jstop) - jstrt
 
-                  d0x0 = zero
-                  if (j .NE. ARG_H2(cb)) d0x0 = crse(i,j+1,k,n) - crse(i,j,k,n)
+               do ic = ARG_L1(cb), ARG_H1(cb)-1
 
-                  d00x = zero
-                  if (k .NE. ARG_H3(cb)) d00x = crse(i,j,k+1,n) - crse(i,j,k,n)
+                  iratio = lratiox-1
+                  if (ic .eq. ARG_H1(cb)-1) iratio = lratiox
+                  istrt = ic*lratiox
+                  istop = istrt + iratio
+                  ilo = max(ARG_L1(fine),istrt) - istrt
+                  ihi = min(ARG_H1(fine),istop) - istrt
+                  !
+                  ! ::::: compute slopes
+                  !
+                  dx00 = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                  d0x0 = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
+                  d00x = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
 
-                  dx10 = zero
-                  if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb))
-     $                 dx10 = crse(i+1,j+1,k,n) - crse(i,j+1,k,n)
+                  dx10 = crse(ic+1,jc+1,kc,n) - crse(ic,jc+1,kc,n)
+                  dx01 = crse(ic+1,jc,kc+1,n) - crse(ic,jc,kc+1,n)
+                  d0x1 = crse(ic,jc+1,kc+1,n) - crse(ic,jc,kc+1,n)
 
-                  dx01 = zero
-                  if (i .NE. ARG_H1(cb) .and. k .NE. ARG_H3(cb))
-     $                 dx01 = crse(i+1,j,k+1,n) - crse(i,j,k+1,n)
+                  dx11 = crse(ic+1,jc+1,kc+1,n) - crse(ic,jc+1,kc+1,n)
 
-                  d0x1 = zero
-                  if (j .NE. ARG_H2(cb) .and. k .NE. ARG_H3(cb))
-     $                 d0x1 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
-
-                  dx11 = zero
-                  if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb)
-     $                 .and. k .NE. ARG_H3(cb)) 
-     $                 dx11 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
-
-                  sl(i,SLX) = RX*dx00
-                  sl(i,SLY) = RY*d0x0
-                  sl(i,SLZ) = RZ*d00x
-                  sl(i,SLXY) = RXY*(dx10 - dx00)
-                  sl(i,SLXZ) = RXZ*(dx01 - dx00)
-                  sl(i,SLYZ) = RYZ*(d0x1 - d0x0)
-                  sl(i,SLXYZ) = RXYZ*(dx11 - dx01 - dx10 + dx00)
-               end do
-c
-c              compute fine strip of interpolated data
-c
-               do lz = klo, khi
-                  kfn = lratioz * k + lz
-                  fz = dble(lz)
-                  do ly = jlo, jhi
-                     jfn = lratioy * j + ly
-                     fy = dble(ly)
-                     do i = ARG_L1(cb), ARG_H1(cb)
-                        istrtFine = i * lratiox
-                        istopFine = istrtFine + lratiox - 1
-                        if (i .eq. ARG_H1(cb)) istopFine = istrtFine
-                        ilo = max(ARG_L1(fb),istrtFine) - istrtFine
-                        ihi = min(ARG_H1(fb),istopFine) - istrtFine
-                        do lx = ilo, ihi
-                           ifn = lratiox * i + lx
-                           fx = dble(lx)
-                           fine(ifn,jfn,kfn,n) = slope(i,j,k,n,fx,fy,fz)
+                  sx   = RX*dx00
+                  sy   = RY*d0x0
+                  sz   = RZ*d00x
+                  sxy  = RXY*(dx10 - dx00)
+                  sxz  = RXZ*(dx01 - dx00)
+                  syz  = RYZ*(d0x1 - d0x0)
+                  sxyz = RXYZ*(dx11 - dx01 - dx10 + dx00)
+                  !
+                  ! ::::: interpolate to fine grid
+                  !
+                  do koff = klo, khi
+                     k = lratioz*kc + koff
+                     fz = dfloat(koff)
+                     do joff = jlo, jhi
+                        j = lratioy*jc + joff
+                        fy = dfloat(joff)
+                        do ioff = ilo, ihi
+                           i = lratiox*ic + ioff
+                           fx = dfloat(ioff)
+                           fine(i,j,k,n) = crse(ic,jc,kc,n) +
+     $                          fx*sx + fy*sy + fz*sz +
+     $                          fx*fy*sxy + fx*fz*sxz + fy*fz*syz +
+     $                          fx*fy*fz*sxyz
                         end do
                      end do
-                  end do
-               end do
+                  end do           
 
+               end do
             end do
          end do
+!$omp end parallel do
       end do
 
-#undef  SLX
-#undef  SLY
-#undef  SLZ
-#undef  SLXY
-#undef  SLXZ
-#undef  SLYZ
-#undef  SLXYZ
-
       end
+
 c ::: 
 c ::: --------------------------------------------------------------
 c ::: cbinterp:  cell centered bilinear interpolation
@@ -233,12 +191,6 @@ c :::
       REAL_T strip(strip_lo:strip_hi)
       REAL_T sl(DIM1(cb), num_slp)
 
-#if 0
-      integer lx, ly
-      integer hrat, ic, jc, jfn, jfc, i, j, n
-      REAL_T x, y
-      REAL_T denom
-#endif
       call bl_abort("FORT_CBINTERP not implemented")
 
       end
@@ -453,7 +405,6 @@ c
                 end do
               end do
             endif
-!$omp parallel do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -464,7 +415,6 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
-!$omp end parallel do
           end if
 
           if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
@@ -485,7 +435,6 @@ c
                 end do
               end do
             endif
-!$omp parallel do private(j,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 cen  = uc_xslope(i,j,k,n)
@@ -496,7 +445,6 @@ c
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
-!$omp end parallel do
           end if
 
 !$omp parallel do private(i,j,k,cen,forw,back,slp)
@@ -533,7 +481,6 @@ c
                 end do
               end do
             endif
-!$omp parallel do private(i,k,cen,forw,back,slp)
             do k=cslopelo(3), cslopehi(3)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_yslope(i,j,k,n)
@@ -544,7 +491,6 @@ c
                 lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
-!$omp end parallel do
           end if
 
           if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
@@ -565,7 +511,6 @@ c
                 end do
               end do
             endif
-!$omp parallel do private(i,k,cen,forw,back,slp)
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   cen  = uc_yslope(i,j,k,n)
@@ -576,7 +521,6 @@ c
                   lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
-!$omp end parallel do
           end if
 
 !$omp parallel do private(i,j,k,cen,forw,back,slp)
@@ -613,7 +557,6 @@ c
                 end do
               end do
             endif
-!$omp parallel do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -624,7 +567,6 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
-!$omp end parallel do
           end if
 
           if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
@@ -645,7 +587,6 @@ c
                end do
               end do
             endif
-!$omp parallel do private(i,j,cen,forw,back,slp)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
                 cen  = uc_zslope(i,j,k,n)
@@ -656,7 +597,6 @@ c
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
              end do
             end do
-!$omp end parallel do
           end if
 
        end do
