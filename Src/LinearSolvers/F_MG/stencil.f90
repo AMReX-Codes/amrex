@@ -2842,14 +2842,14 @@ contains
           ss_sum=0.0d0
  ! DOING CONTRIB AT           -2          -2
  nsten =            1
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =     -25.0d0/hx2
-l2 =     170.0d0/hx2
-t1 =       0.0d0/hy2
+r1 =       0.0d0/hx2
+l2 =     -25.0d0/hx2
+l1 =     170.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =     -25.0d0/hy2
-b2 =     170.0d0/hy2
+t1 =       0.0d0/hy2
+b2 =     -25.0d0/hy2
+b1 =     170.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2861,14 +2861,14 @@ b2 =     170.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1          -2
  nsten =            2
-r1 =      25.0d0/hx2
-r2 =    -170.0d0/hx2
-l1 =     375.0d0/hx2
-l2 =   -2550.0d0/hx2
-t1 =       0.0d0/hy2
+r2 =      25.0d0/hx2
+r1 =    -170.0d0/hx2
+l2 =     375.0d0/hx2
+l1 =   -2550.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =     170.0d0/hy2
-b2 =   -1156.0d0/hy2
+t1 =       0.0d0/hy2
+b2 =     170.0d0/hy2
+b1 =   -1156.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2880,14 +2880,14 @@ b2 =   -1156.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0          -2
  nsten =            3
-r1 =    -375.0d0/hx2
-r2 =    2550.0d0/hx2
-l1 =    -375.0d0/hx2
-l2 =    2550.0d0/hx2
-t1 =       0.0d0/hy2
-t2 =      -0.0d0/hy2
-b1 =       0.0d0/hy2
+r2 =    -375.0d0/hx2
+r1 =    2550.0d0/hx2
+l2 =    -375.0d0/hx2
+l1 =    2550.0d0/hx2
+t2 =       0.0d0/hy2
+t1 =      -0.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2899,14 +2899,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1          -2
  nsten =            4
-r1 =     375.0d0/hx2
-r2 =   -2550.0d0/hx2
-l1 =      25.0d0/hx2
-l2 =    -170.0d0/hx2
-t1 =       0.0d0/hy2
+r2 =     375.0d0/hx2
+r1 =   -2550.0d0/hx2
+l2 =      25.0d0/hx2
+l1 =    -170.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =    -170.0d0/hy2
-b2 =    1156.0d0/hy2
+t1 =       0.0d0/hy2
+b2 =    -170.0d0/hy2
+b1 =    1156.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2918,14 +2918,14 @@ b2 =    1156.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2          -2
  nsten =            5
-r1 =     -25.0d0/hx2
-r2 =     170.0d0/hx2
-l1 =       0.0d0/hx2
+r2 =     -25.0d0/hx2
+r1 =     170.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =       0.0d0/hy2
+l1 =       0.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =      25.0d0/hy2
-b2 =    -170.0d0/hy2
+t1 =       0.0d0/hy2
+b2 =      25.0d0/hy2
+b1 =    -170.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2937,14 +2937,14 @@ b2 =    -170.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2          -1
  nsten =            6
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =     170.0d0/hx2
-l2 =   -1156.0d0/hx2
-t1 =      25.0d0/hy2
-t2 =    -170.0d0/hy2
-b1 =     375.0d0/hy2
-b2 =   -2550.0d0/hy2
+r1 =       0.0d0/hx2
+l2 =     170.0d0/hx2
+l1 =   -1156.0d0/hx2
+t2 =      25.0d0/hy2
+t1 =    -170.0d0/hy2
+b2 =     375.0d0/hy2
+b1 =   -2550.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2956,14 +2956,14 @@ b2 =   -2550.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1          -1
  nsten =            7
-r1 =    -170.0d0/hx2
-r2 =    1156.0d0/hx2
-l1 =   -2550.0d0/hx2
-l2 =   17340.0d0/hx2
-t1 =    -170.0d0/hy2
-t2 =    1156.0d0/hy2
-b1 =   -2550.0d0/hy2
-b2 =   17340.0d0/hy2
+r2 =    -170.0d0/hx2
+r1 =    1156.0d0/hx2
+l2 =   -2550.0d0/hx2
+l1 =   17340.0d0/hx2
+t2 =    -170.0d0/hy2
+t1 =    1156.0d0/hy2
+b2 =   -2550.0d0/hy2
+b1 =   17340.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2975,14 +2975,14 @@ b2 =   17340.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0          -1
  nsten =            8
-r1 =    2550.0d0/hx2
-r2 =  -17340.0d0/hx2
-l1 =    2550.0d0/hx2
-l2 =  -17340.0d0/hx2
-t1 =       0.0d0/hy2
+r2 =    2550.0d0/hx2
+r1 =  -17340.0d0/hx2
+l2 =    2550.0d0/hx2
+l1 =  -17340.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
+t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -2994,14 +2994,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1          -1
  nsten =            9
-r1 =   -2550.0d0/hx2
-r2 =   17340.0d0/hx2
-l1 =    -170.0d0/hx2
-l2 =    1156.0d0/hx2
-t1 =     170.0d0/hy2
-t2 =   -1156.0d0/hy2
-b1 =    2550.0d0/hy2
-b2 =  -17340.0d0/hy2
+r2 =   -2550.0d0/hx2
+r1 =   17340.0d0/hx2
+l2 =    -170.0d0/hx2
+l1 =    1156.0d0/hx2
+t2 =     170.0d0/hy2
+t1 =   -1156.0d0/hy2
+b2 =    2550.0d0/hy2
+b1 =  -17340.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3013,14 +3013,14 @@ b2 =  -17340.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2          -1
  nsten =           10
-r1 =     170.0d0/hx2
-r2 =   -1156.0d0/hx2
-l1 =       0.0d0/hx2
+r2 =     170.0d0/hx2
+r1 =   -1156.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =     -25.0d0/hy2
-t2 =     170.0d0/hy2
-b1 =    -375.0d0/hy2
-b2 =    2550.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =     -25.0d0/hy2
+t1 =     170.0d0/hy2
+b2 =    -375.0d0/hy2
+b1 =    2550.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3032,14 +3032,14 @@ b2 =    2550.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           0
  nsten =           11
-r1 =       0.0d0/hx2
-r2 =      -0.0d0/hx2
-l1 =       0.0d0/hx2
+r2 =       0.0d0/hx2
+r1 =      -0.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =    -375.0d0/hy2
-t2 =    2550.0d0/hy2
-b1 =    -375.0d0/hy2
-b2 =    2550.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =    -375.0d0/hy2
+t1 =    2550.0d0/hy2
+b2 =    -375.0d0/hy2
+b1 =    2550.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3051,14 +3051,14 @@ b2 =    2550.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           0
  nsten =           12
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
+r1 =       0.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =    2550.0d0/hy2
-t2 =  -17340.0d0/hy2
-b1 =    2550.0d0/hy2
-b2 =  -17340.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =    2550.0d0/hy2
+t1 =  -17340.0d0/hy2
+b2 =    2550.0d0/hy2
+b1 =  -17340.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3070,14 +3070,14 @@ b2 =  -17340.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           0
  nsten =            0
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
+r1 =       0.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =       0.0d0/hy2
+l1 =       0.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
+t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3089,14 +3089,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           0
  nsten =           13
-r1 =       0.0d0/hx2
-r2 =      -0.0d0/hx2
-l1 =       0.0d0/hx2
+r2 =       0.0d0/hx2
+r1 =      -0.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =   -2550.0d0/hy2
-t2 =   17340.0d0/hy2
-b1 =   -2550.0d0/hy2
-b2 =   17340.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =   -2550.0d0/hy2
+t1 =   17340.0d0/hy2
+b2 =   -2550.0d0/hy2
+b1 =   17340.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3108,14 +3108,14 @@ b2 =   17340.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           0
  nsten =           14
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
+r1 =       0.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =     375.0d0/hy2
-t2 =   -2550.0d0/hy2
-b1 =     375.0d0/hy2
-b2 =   -2550.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =     375.0d0/hy2
+t1 =   -2550.0d0/hy2
+b2 =     375.0d0/hy2
+b1 =   -2550.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3127,14 +3127,14 @@ b2 =   -2550.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           1
  nsten =           15
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =    -170.0d0/hx2
-l2 =    1156.0d0/hx2
-t1 =     375.0d0/hy2
-t2 =   -2550.0d0/hy2
-b1 =      25.0d0/hy2
-b2 =    -170.0d0/hy2
+r1 =       0.0d0/hx2
+l2 =    -170.0d0/hx2
+l1 =    1156.0d0/hx2
+t2 =     375.0d0/hy2
+t1 =   -2550.0d0/hy2
+b2 =      25.0d0/hy2
+b1 =    -170.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3146,14 +3146,14 @@ b2 =    -170.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           1
  nsten =           16
-r1 =     170.0d0/hx2
-r2 =   -1156.0d0/hx2
-l1 =    2550.0d0/hx2
-l2 =  -17340.0d0/hx2
-t1 =   -2550.0d0/hy2
-t2 =   17340.0d0/hy2
-b1 =    -170.0d0/hy2
-b2 =    1156.0d0/hy2
+r2 =     170.0d0/hx2
+r1 =   -1156.0d0/hx2
+l2 =    2550.0d0/hx2
+l1 =  -17340.0d0/hx2
+t2 =   -2550.0d0/hy2
+t1 =   17340.0d0/hy2
+b2 =    -170.0d0/hy2
+b1 =    1156.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3165,14 +3165,14 @@ b2 =    1156.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           1
  nsten =           17
-r1 =   -2550.0d0/hx2
-r2 =   17340.0d0/hx2
-l1 =   -2550.0d0/hx2
-l2 =   17340.0d0/hx2
-t1 =       0.0d0/hy2
-t2 =      -0.0d0/hy2
-b1 =       0.0d0/hy2
+r2 =   -2550.0d0/hx2
+r1 =   17340.0d0/hx2
+l2 =   -2550.0d0/hx2
+l1 =   17340.0d0/hx2
+t2 =       0.0d0/hy2
+t1 =      -0.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3184,14 +3184,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           1
  nsten =           18
-r1 =    2550.0d0/hx2
-r2 =  -17340.0d0/hx2
-l1 =     170.0d0/hx2
-l2 =   -1156.0d0/hx2
-t1 =    2550.0d0/hy2
-t2 =  -17340.0d0/hy2
-b1 =     170.0d0/hy2
-b2 =   -1156.0d0/hy2
+r2 =    2550.0d0/hx2
+r1 =  -17340.0d0/hx2
+l2 =     170.0d0/hx2
+l1 =   -1156.0d0/hx2
+t2 =    2550.0d0/hy2
+t1 =  -17340.0d0/hy2
+b2 =     170.0d0/hy2
+b1 =   -1156.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3203,14 +3203,14 @@ b2 =   -1156.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           1
  nsten =           19
-r1 =    -170.0d0/hx2
-r2 =    1156.0d0/hx2
-l1 =      -0.0d0/hx2
-l2 =       0.0d0/hx2
-t1 =    -375.0d0/hy2
-t2 =    2550.0d0/hy2
-b1 =     -25.0d0/hy2
-b2 =     170.0d0/hy2
+r2 =    -170.0d0/hx2
+r1 =    1156.0d0/hx2
+l2 =      -0.0d0/hx2
+l1 =       0.0d0/hx2
+t2 =    -375.0d0/hy2
+t1 =    2550.0d0/hy2
+b2 =     -25.0d0/hy2
+b1 =     170.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3222,14 +3222,14 @@ b2 =     170.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           2
  nsten =           20
-r1 =       0.0d0/hx2
 r2 =       0.0d0/hx2
-l1 =      25.0d0/hx2
-l2 =    -170.0d0/hx2
-t1 =     -25.0d0/hy2
-t2 =     170.0d0/hy2
-b1 =       0.0d0/hy2
+r1 =       0.0d0/hx2
+l2 =      25.0d0/hx2
+l1 =    -170.0d0/hx2
+t2 =     -25.0d0/hy2
+t1 =     170.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3241,14 +3241,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           2
  nsten =           21
-r1 =     -25.0d0/hx2
-r2 =     170.0d0/hx2
-l1 =    -375.0d0/hx2
-l2 =    2550.0d0/hx2
-t1 =     170.0d0/hy2
-t2 =   -1156.0d0/hy2
-b1 =       0.0d0/hy2
+r2 =     -25.0d0/hx2
+r1 =     170.0d0/hx2
+l2 =    -375.0d0/hx2
+l1 =    2550.0d0/hx2
+t2 =     170.0d0/hy2
+t1 =   -1156.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3260,14 +3260,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           2
  nsten =           22
-r1 =     375.0d0/hx2
-r2 =   -2550.0d0/hx2
-l1 =     375.0d0/hx2
-l2 =   -2550.0d0/hx2
-t1 =       0.0d0/hy2
+r2 =     375.0d0/hx2
+r1 =   -2550.0d0/hx2
+l2 =     375.0d0/hx2
+l1 =   -2550.0d0/hx2
 t2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
+t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3279,14 +3279,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           2
  nsten =           23
-r1 =    -375.0d0/hx2
-r2 =    2550.0d0/hx2
-l1 =     -25.0d0/hx2
-l2 =     170.0d0/hx2
-t1 =    -170.0d0/hy2
-t2 =    1156.0d0/hy2
-b1 =      -0.0d0/hy2
-b2 =       0.0d0/hy2
+r2 =    -375.0d0/hx2
+r1 =    2550.0d0/hx2
+l2 =     -25.0d0/hx2
+l1 =     170.0d0/hx2
+t2 =    -170.0d0/hy2
+t1 =    1156.0d0/hy2
+b2 =      -0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
@@ -3298,14 +3298,14 @@ b2 =       0.0d0/hy2
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           2
  nsten =           24
-r1 =      25.0d0/hx2
-r2 =    -170.0d0/hx2
-l1 =       0.0d0/hx2
+r2 =      25.0d0/hx2
+r1 =    -170.0d0/hx2
 l2 =       0.0d0/hx2
-t1 =      25.0d0/hy2
-t2 =    -170.0d0/hy2
-b1 =       0.0d0/hy2
+l1 =       0.0d0/hx2
+t2 =      25.0d0/hy2
+t1 =    -170.0d0/hy2
 b2 =       0.0d0/hy2
+b1 =       0.0d0/hy2
    ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
                 +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
                 +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
