@@ -2835,8 +2835,8 @@ contains
     ss=0.0d0
 
     !  The coefficients hx2 and hy2 are defined by
-    hx2 = -1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2 )
-    hy2 = -1.d0 / (12.d0**2 * 48.d0**2 * dh(2)**2 )
+    hx2 = -( 12.d0**2 * 48.d0**2 * dh(1)**2 )
+    hy2 = -( 12.d0**2 * 48.d0**2 * dh(2)**2 )
     do j = 1, ny
        do i = 1, nx
           ss_sum=0.0d0
@@ -3315,7 +3315,7 @@ b1 =       0.0d0/hy2
                 +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
                 +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
    ss_sum = ss_sum+ss(i,j,nsten)
-          print *, i,j,'ss_sum',ss_sum
+!         print *, i,j,'ss_sum',ss_sum
        end do
     end do
 
