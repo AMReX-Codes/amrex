@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.40 2009-11-21 03:46:42 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.41 2009-11-28 07:27:53 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1204,7 +1204,7 @@ c :::
       REAL_T fine_state(DIMV(state), nvar)
 
       integer rMAX
-      parameter (rMAX = 8)
+      parameter (rMAX = 16)
       REAL_T alpha, sumN, sumP, crseTot, negVal, posVal
       REAL_T sum_fine_new,sum_fine_old
       REAL_T orig_fine(0:rMAX-1,0:rMAX-1,0:rMAX-1)
