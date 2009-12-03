@@ -338,9 +338,10 @@ Geometry::Geometry () {}
 
 Geometry::Geometry (const Box&     dom,
                     const RealBox* rb,
-                    int            coord)
+                    int            coord,
+                    int*           is_per)
 {
-    define(dom,rb,coord);
+    define(dom,rb,coord,is_per);
 }
 
 Geometry::Geometry (const Geometry& g)
@@ -356,10 +357,11 @@ Geometry::~Geometry() {}
 void
 Geometry::define (const Box&     dom,
                   const RealBox* rb,
-                  int            coord)
+                  int            coord,
+                  int*           is_per)
 {
     if (c_sys == undef)
-        Setup(rb,coord);
+        Setup(rb,coord,is_per);
     domain = dom;
     ok     = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
@@ -378,10 +380,13 @@ Geometry::define (const Box&     dom,
             }
 	}
     } 
+
+    for (int n = 0; n < BL_SPACEDIM; n++)  
+      is_periodic[n] = is_per[n];
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord)
+Geometry::Setup (const RealBox* rb, int coord, int* isper)
 {
     ParmParse pp("geometry");
     //
@@ -431,10 +436,18 @@ Geometry::Setup (const RealBox* rb, int coord)
     //
     D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
 
-    Array<int> is_per(BL_SPACEDIM);
-    pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
-    for (int n = 0; n < BL_SPACEDIM; n++)  
-      is_periodic[n] = is_per[n];
+    if (isper == 0)
+    {
+        Array<int> is_per(BL_SPACEDIM);
+        pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
+        for (int n = 0; n < BL_SPACEDIM; n++)  
+            is_periodic[n] = is_per[n];
+    }
+    else
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)  
+            is_periodic[n] = isper[n];
+    }
 
     pp.query("fpb_cache_max_size", Geometry::fpb_cache_max_size);
 }

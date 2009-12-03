@@ -30,7 +30,10 @@ public:
     //
     // Constructor taking the rectangular domain.
     //
-    Geometry (const Box& dom, const RealBox* rb = 0, int coord = -1);
+    Geometry (const Box&     dom,
+              const RealBox* rb     =  0,
+              int            coord  = -1,
+              int*           is_per =  0);
     //
     // The copy constructor.
     //
@@ -42,11 +45,11 @@ public:
     //
     // Read static values from ParmParse database.
     //
-    static void Setup (const RealBox* rb = 0, int coord = -1);
+    static void Setup (const RealBox* rb = 0, int coord = -1, int* is_per = 0);
     //
     // Set the rectangular domain after using default constructor.
     //
-    void define (const Box& dom, const RealBox* rb = 0, int coord = -1);
+    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int* is_per = 0);
     //
     // Returns the problem domain.
     //
