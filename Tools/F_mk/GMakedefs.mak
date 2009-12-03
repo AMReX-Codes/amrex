@@ -276,7 +276,7 @@ ifeq ($(ARCH),Linux)
     ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
       ifeq ($(findstring atlas, $(UNAMEN)), atlas)
         _ifc  := mpiifort
-        _icc  := mpicc
+        _icc  := mpiicc
         _comp := Intel11
       else
         _ifc  := ifort
@@ -326,6 +326,28 @@ ifeq ($(ARCH),Linux)
     ifdef OMP
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
+    endif
+    ifeq ($(_comp),Intel11)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 -check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 -check all -warn all -u 
+        #CFLAGS   += -g -Wcheck
+      else
+        ifdef INTEL_X86
+	  F90FLAGS += -fast
+	  FFLAGS += -fast
+	  CFLAGS += -fast
+	else
+          F90FLAGS += -O3 -ip -mp 
+          FFLAGS += -O3 -ip -mp
+          CFLAGS += -O3 -ip -mp
+	endif
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
+      F90FLAGS += -stand f95
+#     FFLAGS += -stand f95
     endif
     ifeq ($(_comp),Intel10)
       ifndef NDEBUG
