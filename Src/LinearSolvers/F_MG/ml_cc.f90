@@ -463,8 +463,10 @@ contains
           if ( parallel_IOProcessor() ) then
              if (tres0 .gt. 0.0_dp_t) then
                write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,tres/tres0
+               write(unit=*, fmt='("")') 
              else
                write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,0.0_dp_t
+               write(unit=*, fmt='("")') 
              end if
           end if
         end if
