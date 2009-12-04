@@ -380,9 +380,6 @@ Geometry::define (const Box&     dom,
             }
 	}
     } 
-
-    for (int n = 0; n < BL_SPACEDIM; n++)  
-      is_periodic[n] = is_per[n];
 }
 
 void
