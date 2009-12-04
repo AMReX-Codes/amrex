@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.189 2009-11-25 05:28:18 lijewski Exp $
+// $Id: Amr.cpp,v 1.190 2009-12-04 17:35:13 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -11,6 +11,7 @@
 #include <strstream>
 #endif
 
+#include <Geometry.H>
 #include <TagBox.H>
 #include <Array.H>
 #include <CoordSys.H>
