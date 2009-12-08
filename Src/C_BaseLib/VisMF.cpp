@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.112 2009-11-06 16:44:43 lijewski Exp $
+// $Id: VisMF.cpp,v 1.113 2009-12-08 22:36:42 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -649,7 +649,7 @@ VisMF::Write (const MultiFab&    mf,
         }
     }
 
-    char buf[sizeof(int) + 1];
+    char buf[16];
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
