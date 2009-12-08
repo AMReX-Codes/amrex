@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.78 2009-12-08 19:23:14 lijewski Exp $
+// $Id: Utility.cpp,v 1.79 2009-12-08 21:20:35 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -642,10 +642,13 @@ BoxLib::mt19937::reload()
 unsigned long
 BoxLib::mt19937::igenrand()
 {
-    // generate N words at one time
+    //
+    // Generate N words at one time.
+    //
     if ( mti >= N ) reload();
 
     unsigned long y = mt[mti++];
+
     y ^= TEMPERING_SHIFT_U(y);
     y ^= TEMPERING_SHIFT_S(y) & TEMPERING_MASK_B;
     y ^= TEMPERING_SHIFT_T(y) & TEMPERING_MASK_C;
@@ -655,7 +658,9 @@ BoxLib::mt19937::igenrand()
 }
 
 BoxLib::mt19937::mt19937(unsigned long seed)
-    : init_seed(seed), mti(N+1)
+    :
+    init_seed(seed),
+    mti(N)
 {
     sgenrand(seed);
 }
@@ -696,6 +701,31 @@ BoxLib::mt19937::u_value()
     return igenrand();
 }
 
+void
+BoxLib::mt19937::save (Array<unsigned long>& state)
+{
+    state.resize(N+2);
+    state[0] = init_seed;
+    for (int i = 0; i < N; i++)
+        state[i+1] = mt[i];
+    state[N+1] = mti;
+}
+
+void
+BoxLib::mt19937::restore (const Array<unsigned long>& state)
+{
+    if (state.size() != N+2)
+        BoxLib::Error("mt19937::restore(): incorrectly sized state vector");
+
+    init_seed = state[0];
+    for (int i = 0; i < N; i++)
+        mt[i] = state[i+1];
+    mti = state[N+1];
+
+    if (mti < 0 || mti > N)
+        BoxLib::Error("mt19937::restore(): mti out-of-bounds");
+}
+
 namespace
 {
     BoxLib::mt19937 the_generator;
@@ -711,6 +741,18 @@ double
 BoxLib::Random ()
 {
     return the_generator.d1_value();
+}
+
+void
+BoxLib::SaveRandomState (Array<unsigned long>& state)
+{
+    the_generator.save(state);
+}
+
+void
+BoxLib::RestoreRandomState (const Array<unsigned long>& state)
+{
+    the_generator.restore(state);
 }
 
 //

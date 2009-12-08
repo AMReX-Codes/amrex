@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.59 2008-07-16 17:40:24 lijewski Exp $
+// $Id: Utility.H,v 1.60 2009-12-08 21:20:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -17,6 +17,7 @@
 
 #include <BLassert.H>
 #include <REAL.H>
+#include <Array.H>
 
 //
 //@Man:
@@ -166,8 +167,22 @@ namespace BoxLib
 
       INTEGER seed
       call blutilinitrand(seed)
+
+      or
+
+      INTEGER seed
+      call blinitrand(seed)
     */
+
     void InitRandom (unsigned long seed);
+    //
+    // Save and restore random state.
+    //
+    // state.size() == 626 on return from Save & on entry to Restore.
+    //
+    void SaveRandomState (Array<unsigned long>& state);
+
+    void RestoreRandomState (const Array<unsigned long>& state);
 
     /*@ManDoc: Try to execute a shell command in a subshell.
                User is responsible for calling waitpid() on the pid
@@ -239,6 +254,9 @@ namespace BoxLib
 	double d_value ();	// [0,1) random numbers
 	long l_value ();	// [0,2^31-1] random numbers
 	unsigned long u_value (); // [0,2^32-1] random numbers
+
+        void save (Array<unsigned long>& state);
+        void restore (const Array<unsigned long>& state);
     private:
 	void sgenrand (unsigned long seed);
 	void sgenrand (seed_type seed_array[], int len);
