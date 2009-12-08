@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.77 2008-07-16 17:40:24 lijewski Exp $
+// $Id: Utility.cpp,v 1.78 2009-12-08 19:23:14 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -718,6 +718,12 @@ BoxLib::Random ()
 //
 
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
+{
+    unsigned long seed = *sd;
+    BoxLib::InitRandom(seed);
+}
+
+BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
     BoxLib::InitRandom(seed);
