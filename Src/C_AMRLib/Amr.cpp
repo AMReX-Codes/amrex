@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.190 2009-12-04 17:35:13 lijewski Exp $
+// $Id: Amr.cpp,v 1.191 2009-12-09 19:15:15 almgren Exp $
 //
 #include <winstd.H>
 
@@ -445,7 +445,6 @@ Amr::Amr ()
 
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
-    pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
@@ -486,6 +485,31 @@ Amr::Amr ()
         {
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
+    }
+
+    //
+    // Read in n_error_buf.
+    //
+    if (pp.countval("n_error_buf") == 1)
+    {
+        //
+        // Set all values to the single available value.
+        //
+        int the_n_error_buf = 0;
+
+        pp.query("n_error_buf",the_n_error_buf);
+
+        for (i = 0; i <= max_level; i++)
+        {
+            n_error_buf[i] = the_n_error_buf;
+        }
+    }
+    else
+    {
+        //
+        // Otherwise we expect a vector of n_error_buf values.
+        //
+        pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     }
 
     //
