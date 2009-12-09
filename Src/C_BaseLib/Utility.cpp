@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.80 2009-12-09 06:37:50 lijewski Exp $
+// $Id: Utility.cpp,v 1.81 2009-12-09 17:41:57 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -661,23 +661,37 @@ BoxLib::mt19937::rewind()
     sgenrand(init_seed);
 }
 
-double
-BoxLib::mt19937::d1_value()
-{
-    return double(igenrand())/0xFFFFFFFFUL;
-}
-
+//
+// [0,1] random numbers
+//
 double
 BoxLib::mt19937::d_value()
 {
-    const double zzz = double(0x80000000UL)*2;
-    return double(igenrand())/zzz;
+    return double(igenrand()) * (1.0/4294967295.0);  // divided by 2^32-1
+}
+
+//
+// [0,1) random numbers
+//
+double
+BoxLib::mt19937::d1_value()
+{
+    return double(igenrand()) * (1.0/4294967296.0);  // divided by 2^32
+}
+
+//
+// (0,1) random numbers
+//
+double
+BoxLib::mt19937::d2_value()
+{
+    return (double(igenrand()) + .5) * (1.0/4294967296.0);  // divided by 2^32
 }
 
 long
 BoxLib::mt19937::l_value()
 {
-    return igenrand()&0x7FFFFFFFUL;
+    return (long)(igenrand()>>1);
 }
 
 unsigned long
@@ -687,7 +701,7 @@ BoxLib::mt19937::u_value()
 }
 
 void
-BoxLib::mt19937::save (Array<unsigned long>& state)
+BoxLib::mt19937::save (Array<unsigned long>& state) const
 {
     state.resize(N+2);
     state[0] = init_seed;
@@ -725,7 +739,7 @@ BoxLib::InitRandom (unsigned long seed)
 double
 BoxLib::Random ()
 {
-    return the_generator.d1_value();
+    return the_generator.d_value();
 }
 
 void
@@ -1001,30 +1015,20 @@ BoxLib::InvNormDist (double p, bool best)
 
 BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
 {
-    double val;
     //
     // Get a random number in (0,1);
     //
-    do
-    {
-        val = the_generator.d_value();
-    }
-    while (val == 0);
+    double val = the_generator.d2_value();
 
     *result = BoxLib::InvNormDist(val,false);
 }
 
 BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
 {
-    double val;
     //
     // Get a random number in (0,1);
     //
-    do
-    {
-        val = the_generator.d_value();
-    }
-    while (val == 0);
+    double val = the_generator.d2_value();
 
     *result = BoxLib::InvNormDist(val,true);
 }
