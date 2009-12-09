@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.79 2009-12-08 21:20:35 lijewski Exp $
+// $Id: Utility.cpp,v 1.80 2009-12-09 06:37:50 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -541,38 +541,12 @@ BoxLib::Time::get_time()
 /* ACM Transactions on Modeling and Computer Simulation,           */
 /* Vol. 8, No. 1, January 1998, pp 3--30.                          */
 
-namespace
-{
-// Period parameters
-// const int N = 624;
-const int M = 397;
-const unsigned long MATRIX_A   = 0x9908B0DFUL; // constant vector a
-const unsigned long UPPER_MASK = 0x80000000UL; // most significant w-r bits
-const unsigned long LOWER_MASK = 0x7FFFFFFFUL; // least significant r bits
-
-// Tempering parameters
-const unsigned long TEMPERING_MASK_B = 0x9D2C5680UL;
-const unsigned long TEMPERING_MASK_C = 0xEFC60000UL;
-
-inline unsigned long TEMPERING_SHIFT_U(unsigned long y) { return y >> 11L; }
-inline unsigned long TEMPERING_SHIFT_S(unsigned long y) { return y << 7L ; }
-inline unsigned long TEMPERING_SHIFT_T(unsigned long y) { return y << 15L; }
-inline unsigned long TEMPERING_SHIFT_L(unsigned long y) { return y >> 18L; }
-}
-
-// initializing the array with a NONZERO seed
+//
+// initializing with a NONZERO seed.
+//
 void
 BoxLib::mt19937::sgenrand(unsigned long seed)
 {
-#ifdef BL_MERSENNE_ORIGINAL_INIT
-    for ( int i = 0; i < N; ++i )
-    {
-	mt[i] = seed & 0xFFFF0000UL;
-	seed  = 69069U * seed + 1;
-	mt[i] |= (seed& 0xFFFF0000UL) >> 16;
-	seed = 69069U*seed + 1;
-    }
-#else
     mt[0]= seed & 0xffffffffUL;
     for ( mti=1; mti<N; mti++ ) 
     {
@@ -583,8 +557,6 @@ BoxLib::mt19937::sgenrand(unsigned long seed)
         /* 2002/01/09 modified by Makoto Matsumoto             */
         mt[mti] &= 0xffffffffUL;       /* for >32 bit machines */
     }
-#endif
-    mti = N;
 }
 
 /* initialize by an array with array-length */
@@ -621,7 +593,15 @@ BoxLib::mt19937::reload()
 {
     unsigned long y;
     int kk;
+
+    const int M = 397;
+
+#define MATRIX_A    0x9908B0DFUL // Constant vector a
+#define UPPER_MASK  0x80000000UL // Most significant w-r bits
+#define LOWER_MASK  0x7FFFFFFFUL // least significant r bits
+    //
     // mag01[x] = x * MATRIX_A  for x=0,1
+    //
     static unsigned long mag01[2]={0x0UL, MATRIX_A};
     for ( kk=0; kk<N-M; kk++ )
     {
@@ -637,6 +617,10 @@ BoxLib::mt19937::reload()
     mt[N-1] = mt[M-1] ^ (y >> 1L) ^ mag01[y & 0x1UL];
 
     mti = 0;
+
+#undef MATRIX_A
+#undef UPPER_MASK
+#undef LOWER_MASK
 }
 
 unsigned long
@@ -649,10 +633,11 @@ BoxLib::mt19937::igenrand()
 
     unsigned long y = mt[mti++];
 
-    y ^= TEMPERING_SHIFT_U(y);
-    y ^= TEMPERING_SHIFT_S(y) & TEMPERING_MASK_B;
-    y ^= TEMPERING_SHIFT_T(y) & TEMPERING_MASK_C;
-    y ^= TEMPERING_SHIFT_L(y);
+    /* Tempering */
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680UL;
+    y ^= (y << 15) & 0xefc60000UL;
+    y ^= (y >> 18);
 
     return y;
 }
