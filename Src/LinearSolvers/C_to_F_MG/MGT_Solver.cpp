@@ -647,6 +647,8 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
           gp.mult(dx[dir]);
         }
     }
+
+  mgt_delete_flux(lev);
 }
 
 void 
