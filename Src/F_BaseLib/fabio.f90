@@ -609,6 +609,7 @@ contains
     type(bl_stream) :: strm
     character(len=256) :: str
     integer :: lng
+    logical :: useoldplotreader = .false.
 
     lng = 0; if ( present(ng) ) lng = ng
 
@@ -621,7 +622,11 @@ contains
     if ( str == '&ML_MULTIFAB' ) then
        call bl_error("PLOTFILE_BUILD: not implemented")
     else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
-       call build_ns_plotfile
+       if(useoldplotreader) then
+         call build_ns_plotfile_old
+       else
+         call build_ns_plotfile
+       endif
     else
        call bl_error('FABIO_ML_MULTIFAB_WRITE_D: Header has improper magic string', str)
     end if
@@ -682,7 +687,9 @@ contains
     !       Close subgrid file
     !     ]
 
-    subroutine build_ns_plotfile()
+
+
+    subroutine build_ns_plotfile_old()
       use bl_error_module
       integer :: i, n, k
       integer :: j, nc
@@ -799,8 +806,212 @@ contains
       deallocate(refrat)
       deallocate(dxlev)
 
+    end subroutine build_ns_plotfile_old
+
+
+    subroutine build_ns_plotfile()
+      use bl_error_module
+      integer :: i, n, k
+      integer :: j, nc
+      character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
+      integer :: offset
+      integer :: idummy, sz, fd, llng
+      real(kind=dp_t) :: rdummy, tm
+      integer :: nvars, dm, flevel
+      integer, allocatable :: refrat(:,:), nboxes(:)
+      real(kind=dp_t), allocatable :: dxlev(:,:)
+      type(box), allocatable :: bxs(:)
+      type(box) :: bx_dummy
+      type(box) :: bx
+      type(boxarray) :: ba
+      type(boxarray), allocatable :: balevs(:)
+      type(layout) :: la
+      character(len=256), allocatable :: fileprefix(:)
+      character(len=256), allocatable :: header(:)
+      real(kind=dp_t), pointer :: pp(:,:,:,:)
+      logical :: nodal(MAX_SPACEDIM)
+      integer :: nSets, mySet, iSet, wakeUpPID, waitForPID, tag, nAtOnce, iBuff(2)
+
+      nAtOnce = min(parallel_nprocs(), 64)
+      nSets = (parallel_nprocs() + (nAtOnce - 1)) / nAtOnce
+      mySet = parallel_myproc() / nAtOnce
+
+
+      do iSet = 0, nSets - 1
+        if (mySet == iSet) then
+          read(unit=lun,fmt=*) nvars
+          do i = 1, nvars
+             read(unit=lun,fmt='(a)') cdummy
+          end do
+          read(unit=lun, fmt=*) dm
+          read(unit=lun, fmt=*) tm
+          read(unit=lun, fmt=*) flevel
+          flevel = flevel + 1
+
+          allocate(mmf(flevel))
+
+          allocate(nboxes(flevel))
+          allocate(fileprefix(flevel))
+          allocate(header(flevel))
+
+          read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+          !! Not make this really work correctly, I need to see if these are
+          !! IntVects here.  I have no examples of this.
+          allocate(refrat(flevel-1,1:dm))
+          read(unit=lun, fmt=*) refrat(:,1)
+          refrat(:,2:dm) = spread(refrat(:,1), dim=2, ncopies=dm-1)
+
+          do i = 1, flevel
+             call box_read(bx_dummy, unit = lun, nodal = nodal(1:dm))
+          end do
+          read(unit=lun, fmt=*) (idummy, i=1, flevel)
+          allocate(dxlev(flevel,1:dm))
+          do i = 1, flevel
+             read(unit=lun, fmt=*) dxlev(i,:)
+          end do
+
+          read(unit=lun, fmt=*) idummy, idummy
+          do i = 1, flevel
+             read(unit=lun, fmt=*) idummy, nboxes(i), rdummy, idummy
+             do j = 1, nboxes(i)
+                read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+             end do
+             read(unit=lun, fmt='(a)') str
+             str1 = str(:index(str, "/")-1)
+             fileprefix(i) = str1
+             str1 = trim(str(index(str, "/")+1:)) // "_H"
+             header(i) = trim(str1)
+          end do
+          close(unit=lun)
+          allocate(balevs(flevel))
+          do i = 1, flevel
+             open(unit=lun, &
+                  action = 'read', &
+                  status = 'old', file = trim(trim(root) // "/" //  &
+                  trim(fileprefix(i)) // "/" // &
+                  trim(header(i))) )
+             read(unit=lun, fmt=*) idummy, idummy, nc, llng
+             if ( llng > lng ) then
+                call bl_error("BUILD_PLOTFILE: confused lng", lng)
+             end if
+             allocate(bxs(nboxes(i)))
+             if ( nc /= nvars ) &
+                  call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+             call bl_stream_expect(strm, '(')
+             n = bl_stream_scan_int(strm)
+             if ( n /= nboxes(i) ) &
+                  call bl_error("BUILD_PLOTFILE: unexpected n", n)
+             idummy = bl_stream_scan_int(strm)
+             do j = 1, nboxes(i)
+                call box_read(bx, unit = lun, nodal = nodal(1:dm))
+                bxs(j) = box_denodalize(bx, nodal = nodal(1:dm))
+             end do
+             call bl_stream_expect(strm, ')')
+             call build(ba, bxs)
+             call boxarray_build_copy(balevs(i), ba)
+
+             close(unit=lun)
+             deallocate(bxs)
+             call destroy(ba)
+          end do
+
+          wakeUpPID = parallel_myproc() + nAtOnce
+          tag       = mod(parallel_myproc(), nAtOnce)
+          iBuff(1)  = tag
+          iBuff(2)  = wakeUpPID
+          if (wakeUpPID < parallel_nprocs()) then
+            call parallel_send(iBuff, wakeUpPID, tag)
+          endif
+
+        end if    !  mySet
+
+        if (mySet == (iSet + 1)) then
+          waitForPID = parallel_myproc() - nAtOnce
+          tag        = mod(parallel_myproc(), nAtOnce)
+          iBuff(1)   = tag
+          iBuff(2)   = waitForPID
+          call parallel_recv(iBuff, waitForPID, tag)
+        end if
+      enddo     !  iSet
+
+
+      do i = 1, flevel
+         call build(la, balevs(i))
+         call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
+      end do
+
+
+      do iSet = 0, nSets - 1
+        if (mySet == iSet) then
+          do i = 1, flevel
+             open(unit=lun, &
+                  action = 'read', &
+                  status = 'old', file = trim(trim(root) // "/" //  &
+                  trim(fileprefix(i)) // "/" // &
+                  trim(header(i))) )
+             read(unit=lun, fmt=*) idummy, idummy, nc, llng
+             if ( llng > lng ) then
+                call bl_error("BUILD_PLOTFILE: confused lng", lng)
+             end if
+             call bl_stream_expect(strm, '(')
+             n = bl_stream_scan_int(strm)
+             if ( n /= nboxes(i) ) &
+                  call bl_error("BUILD_PLOTFILE: unexpected n", n)
+             idummy = bl_stream_scan_int(strm)
+             do j = 1, nboxes(i)
+                call box_read(bx, unit = lun, nodal = nodal(1:dm))
+             end do
+             call bl_stream_expect(strm, ')')
+
+             read(unit=lun, fmt=*) idummy
+             do j = 1, nboxes(i)
+                read(unit=lun, fmt=*) cdummy, &
+                     filename, offset
+                if (multifab_remote(mmf(i),j)) cycle
+                call fabio_open(fd,                         &
+                   trim(root) // "/" //                &
+                   trim(fileprefix(i)) // "/" // &
+                   trim(filename))
+                bx = grow(get_ibox(mmf(i), j), lng)
+                pp => dataptr(mmf(i), j, bx)
+                sz = volume(get_ibox(mmf(i),j))
+                call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
+                call fabio_close(fd)
+             end do
+             close(unit=lun)
+          end do
+
+          deallocate(nboxes)
+          deallocate(fileprefix)
+          deallocate(header)
+          deallocate(refrat)
+          deallocate(dxlev)
+          deallocate(balevs)
+
+          wakeUpPID = parallel_myproc() + nAtOnce
+          tag       = mod(parallel_myproc(), nAtOnce)
+          iBuff(1)  = tag
+          iBuff(2)  = wakeUpPID
+          if (wakeUpPID < parallel_nprocs()) then
+            call parallel_send(iBuff, wakeUpPID, tag)
+          endif
+
+        end if    !  mySet
+
+        if (mySet == (iSet + 1)) then
+          waitForPID = parallel_myproc() - nAtOnce
+          tag        = mod(parallel_myproc(), nAtOnce)
+          iBuff(1)   = tag
+          iBuff(2)   = waitForPID
+          call parallel_recv(iBuff, waitForPID, tag)
+        end if
+
+      enddo     !  iSet
+
     end subroutine build_ns_plotfile
+
   end subroutine fabio_ml_multifab_read_d
+
 
   subroutine fabio_ml_boxarray_read(mba, root)
     use bl_stream_module
