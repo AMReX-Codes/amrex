@@ -1036,6 +1036,25 @@ subroutine mgt_compute_flux(lev)
 
 end subroutine mgt_compute_flux
 
+subroutine mgt_delete_flux(lev)
+
+  use cpp_mg_module
+! use ml_cc_module
+! use ml_util_module
+  implicit none
+
+  integer, intent(in) :: lev
+  integer             :: mglev,flev
+  integer             :: dir
+
+  flev = lev+1
+
+  do dir = 1, mgts%dim
+     call destroy(mgts%gp(flev,dir))
+  end do
+
+end subroutine mgt_delete_flux
+
 subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
                             bottom_solver,bottom_solver_eps, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
