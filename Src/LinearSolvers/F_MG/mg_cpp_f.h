@@ -20,6 +20,7 @@
 #define mgt_applyop               MGT_APPLYOP
 #define mgt_solve                 MGT_SOLVE
 #define mgt_compute_flux          MGT_COMPUTE_FLUX
+#define mgt_delete_flux           MGT_DELETE_FLUX
 #define mgt_compute_residual      MGT_COMPUTE_RESIDUAL
 #define mgt_nodal_solve           MGT_NODAL_SOLVE
 #define mgt_divu                  MGT_DIVU
@@ -110,6 +111,7 @@
 #define mgt_solve                 mgt_solve_
 #define mgt_applyop               mgt_applyop_
 #define mgt_compute_flux          mgt_compute_flux_
+#define mgt_delete_flux           mgt_delete_flux_
 #define mgt_compute_residual      mgt_compute_residual_
 #define mgt_nodal_solve           mgt_nodal_solve_
 #define mgt_divu                  mgt_divu_
@@ -195,6 +197,7 @@
 #define mgt_solve                 mgt_solve__
 #define mgt_applyop               mgt_applyop__
 #define mgt_compute_flux          mgt_compute_flux__
+#define mgt_delete_flux           mgt_delete_flux_
 #define mgt_compute_residual      mgt_compute_residual__
 #define mgt_divu                  mgt_divu__
 #define mgt_newu                  mgt_newu__
@@ -527,6 +530,8 @@ extern "C"
   void mgt_applyop();
   
   void mgt_compute_flux(const int& n);
+  
+  void mgt_delete_flux(const int& n);
   
   void mgt_compute_residual();
   
