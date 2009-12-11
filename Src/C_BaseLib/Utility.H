@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.61 2009-12-09 17:41:57 lijewski Exp $
+// $Id: Utility.H,v 1.62 2009-12-11 01:06:49 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -108,35 +108,60 @@ namespace BoxLib
       and the result has a relative error whose absolute value is less
       than 1.15e-9.
 
-      If "best" is true the approximation is further refined down to more
-      or less machine precision using one iteration of Halley's Rational
-      Method.
-
       Author:      Peter J. Acklam
       Time-stamp:  2002-06-09 18:45:44 +0200
       E-mail:      jacklam@math.uio.no
       WWW URL:     http://www.math.uio.no/~jacklam
 
-      C implementation adapted from Peter's Perl version.
-
       "p" MUST be in the open interval (0,1).
 
-      There are two entry points for Fortran:
-    
-      REAL\_T val
-      call blinvnormdist(val)
+      Entry points for Fortran:
 
-      and
+        REAL_T val
+        call blinvnormdist(val)
 
-      REAL\_T val
-      call blinvnormdistbest(val)
-
-      Internally, these Fortran entry points call a static Mersenne Twister
+      Internally, the Fortran entry point calls a static Mersenne Twister
       object (the same one called by blutilrand()) to get a random number in
       the open interval (0,1), and then sets "val" to the result of calling
       BoxLib::InvNormDist() with that random number.
      */
-    double InvNormDist (double p, bool best = false);
+    double InvNormDist (double p);
+
+    /*@ManDoc:
+
+      This function returns an approximation of the inverse cumulative
+      standard normal distribution function.  I.e., given P, it returns
+      an approximation to the X satisfying P = Pr{Z <= X} where Z is a
+      random variable from the standard normal distribution.
+
+      Original FORTRAN77 version by Michael Wichura.
+
+      Michael Wichura,
+      The Percentage Points of the Normal Distribution,
+      Algorithm AS 241,
+      Applied Statistics,
+      Volume 37, Number 3, pages 477-484, 1988.
+
+      Our version is based on the C++ version by John Burkardt.
+
+      The algorithm uses a minimax approximation by rational functions
+      and the result is good to roughly machine precision.  This routine
+      is roughly 30% more costly than InvNormDist() above.
+
+      "p" MUST be in the open interval (0,1).
+
+      Entry points for Fortran:
+    
+        REAL_T val
+        call blinvnormdistbest(val)
+
+      Internally, the Fortran entry point calls a static Mersenne Twister
+      object (the same one called by blutilrand()) to get a random number in
+      the open interval (0,1), and then sets "val" to the result of calling
+      BoxLib::InvNormDist() with that random number.
+     */
+
+    double InvNormDistBest (double p);
 
     /*@ManDoc:
       Mersenne Twister pseudo-random number generator.
