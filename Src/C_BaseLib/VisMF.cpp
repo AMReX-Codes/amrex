@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.113 2009-12-08 22:36:42 lijewski Exp $
+// $Id: VisMF.cpp,v 1.114 2009-12-14 21:13:58 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -1099,14 +1099,19 @@ VisMF::Read (MultiFab&          mf,
       }
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor() && false)
+    {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
-      std::cout << "MFRead:::  nBoxes = " << nBoxes << "  nMessages = "
-                << messTotal << std::endl;
-      std::cout << "MFRead:::  hTime = " << hEndTime - hStartTime << std::endl;
-      std::cout << "MFRead:::  mfReadTime = " << mfReadTime << "  totalTime = "
-                << totalTime << std::endl << std::flush;
+      std::cout << "MFRead:::  nBoxes = "
+                << nBoxes
+                << "  nMessages = "
+                << messTotal << '\n';
+      std::cout << "MFRead:::  hTime = " << (hEndTime - hStartTime) << '\n';
+      std::cout << "MFRead:::  mfReadTime = "
+                << mfReadTime
+                << "  totalTime = "
+                << totalTime << std::endl;
     }
 #else
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
