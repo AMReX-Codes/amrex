@@ -9,14 +9,11 @@ ifeq ($(COMP),PathScale)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
   endif
-  #
-  # I'm going to get rid of the -Ofast stuff.
-  # For now you get the same thing w/wo BL_NOFAST.
-  #
+
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
   else
-    CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+    CXXOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
   endif
 
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
@@ -72,16 +69,13 @@ ifeq ($(FCOMP),PathScale)
   F90 = pathf95 -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
-  #
-  # I'm going to get rid of the -Ofast stuff.
-  # For now you get the same thing w/wo BL_NOFAST.
-  #
+
   ifeq ($(BL_NOFAST),TRUE)
     FOPTF += -O -ffast-math -fno-math-errno
     fOPTF += -O -ffast-math -fno-math-errno
   else
-    FOPTF += -O -ffast-math -fno-math-errno
-    fOPTF += -O -ffast-math -fno-math-errno
+    FOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
+    fOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
   endif
 
   ifeq ($(USE_OMP),TRUE)
