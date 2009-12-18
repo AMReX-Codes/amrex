@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.191 2009-12-09 19:15:15 almgren Exp $
+// $Id: Amr.cpp,v 1.192 2009-12-18 18:41:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1019,9 +1019,10 @@ Amr::initialInit (Real strt_time,
     piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
-      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    if (false && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << '\n';
+        std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
 #else
     FORT_PROBINIT(&init,
@@ -1178,9 +1179,10 @@ Amr::restart (const std::string& filename)
     piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
-      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    if (false && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << '\n';
+        std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
 #else
     FORT_PROBINIT(&init,
