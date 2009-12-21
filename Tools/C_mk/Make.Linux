@@ -36,7 +36,8 @@ ifeq ($(COMP),PGI)
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O --no_exceptions
   else
-    CXXOPTF += -fast --no_exceptions
+    #CXXOPTF += -fast --no_exceptions
+    CXXOPTF += -O --no_exceptions
   endif
 
   ifneq ($(USE_MPI),TRUE)
@@ -117,8 +118,10 @@ ifeq ($(FCOMP),PGI)
     FOPTF  += -O
     fOPTF  += -O
   else
-    FOPTF  += -fast
-    fOPTF  += -fast
+    #FOPTF  += -fast
+    #fOPTF  += -fast
+    FOPTF  += -O
+    fOPTF  += -O
   endif
 
   ifeq ($(USE_OMP),TRUE)
