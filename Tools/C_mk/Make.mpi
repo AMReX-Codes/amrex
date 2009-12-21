@@ -92,6 +92,11 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpich
 #      BL_MPI_LIBS += -lmpi -lmpi_f77
     endif
+    ifeq ($(WHICHLINUX), RANGER)
+      MPI_HOME = /opt/apps/intel10_1/mvapich2/1.2/
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+    endif
     ifeq ($(WHICHLINUX), ATLAS)
       ifeq ($(FCOMP), Intel)
 	MPI_HOME=/usr/local/tools/mvapich-intel
@@ -313,4 +318,3 @@ ifeq ($(MACHINE), Linux)
     endif
   endif
 endif
-
