@@ -104,3 +104,9 @@ TakeDifferenceSum(AmrData&             amrDataf,
 		  Array<std::string>   cNames,
 		  Array<Real>          barr,
 		  std::string          oFile);
+void
+TakeDifferenceMean(AmrData&             amrDataf,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   Array<int>           rratio,
+		   std::string          oFile);

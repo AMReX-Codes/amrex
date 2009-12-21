@@ -12,6 +12,7 @@
 #include "Utility.H"
 #include "VisMF.H"
 
+// Determine the volume-averaged mean for an AMR data.
 void
 ComputeAmrDataMeanVar  (AmrData&     amrData,
 			Array<Real>& mean,
@@ -203,7 +204,7 @@ ComputeAmrDataList  (AmrData&         amrData,
     }
 }
 
-// Determine the mean and variance for a plotfile
+// Determine the mean and variance for an AMR data.
 void
 ComputeAmrDataMeanVar (AmrData&           amrData,
 		       Array<std::string> cNames,
@@ -328,7 +329,7 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 }
 
 
-// Determine the mean and variance for a plotfile
+// Determine the mean and variance of a multifab.
 void
 ComputeMeanVarMF (MultiFab&          mf,
 		  Array<Real>&       mean,
@@ -387,7 +388,7 @@ ComputeMeanVarMF (MultiFab&          mf,
     }
 }
 
-// determine the pdf of a plotfile
+// determine the pdf of an AMR data.
 void
 ComputeAmrDataPDF (AmrData&           amrData,
 		   Real**             icount,
@@ -1694,3 +1695,96 @@ TakeDifferenceSum(AmrData&             amrDataf,
     tmpfl.minus(tmpc,0,2,0);  
     VisMF::Write(tmpfl,oFile);
 }
+// fine solution - coarse solution on the coarse finest level specified.
+void
+TakeDifferenceMean(AmrData&             amrDataf,
+		   Array<std::string>   cNames,
+		   Array<Real>          barr,
+		   Array<int>           rratio,
+		   std::string          oFile)
+{
+    int nComp = cNames.size();
+
+    Box domainf = amrDataf.ProbDomain()[0];
+    vector<Real> bbll,bbur;
+    BL_ASSERT(barr.size()==2*BL_SPACEDIM);
+    bbll.resize(BL_SPACEDIM);
+    bbur.resize(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+      bbll[i] = barr[i];
+      bbur[i] = barr[BL_SPACEDIM+i];
+    }
+
+    // Find coarse-grid coordinates of bounding box, round outwardly
+    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+      dxf[i] = amrDataf.ProbSize()[i]/
+	amrDataf.ProbDomain()[0].length(i);            
+      domainf.setSmall(i,std::max(domainf.smallEnd()[i], 
+	(int)((bbll[i]-amrDataf.ProbLo()[i]+.0001*dxf[i])/dxf[i])));
+      domainf.setBig(i,std::min(domainf.bigEnd()[i], 
+	(int)((bbur[i]-amrDataf.ProbLo()[i]-.0001*dxf[i])/dxf[i])));
+    }
+
+    for (int i=1; i<=amrDataf.FinestLevel(); i++)
+      domainf.refine(amrDataf.RefRatio()[i]);
+
+    Box domainc = domainf;
+    for (int i=0; i<BL_SPACEDIM; i++) {
+      domainc.setSmall(i,domainc.smallEnd()[i]/rratio[i]);
+      domainc.setBig(i,domainf.bigEnd()[i]/rratio[i]);
+    }
+
+    BoxArray baf(domainf), bac(domainc);
+    
+    // Fill tmpx with the data
+    Array<int> destFillComps(nComp);
+    Array<std::string> destNames(nComp);
+    for (int i=0; i<nComp; ++i) 
+      destFillComps[i] = i;
+    MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
+    amrDataf.FillVar(tmpf,amrDataf.FinestLevel(),cNames,destFillComps);
+    tmpc.setVal(0.);
+
+    Real fv = 1.0/(rratio[0]*rratio[1]);
+
+    for (MFIter mfi(tmpc); mfi.isValid(); ++mfi) {
+	  
+      const int* lo = tmpc[mfi].loVect();
+      const int* hi = tmpc[mfi].hiVect();
+
+      for (int joff=0; joff<rratio[1]; joff++) {
+	for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	  int j = jc*rratio[1] +joff;
+	  for (int ioff=0; ioff<rratio[0]; ioff++) {
+	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	      int i = ic*rratio[0] + ioff;
+	      for (int n=0; n<nComp; n++) {
+		tmpc[mfi](IntVect(ic,jc),n) += fv*
+		  tmpf[mfi](IntVect(i,j),n);
+	      }
+	    }
+	  }
+	}
+      }
+
+      for (int joff=0; joff<rratio[1]; joff++) {
+	for (int jc=lo[1]; jc<=hi[1]; jc++) {
+	  int j = jc*rratio[1] +joff;
+	  for (int ioff=0; ioff<rratio[0]; ioff++) {
+	    for (int ic=lo[0]; ic<=hi[0]; ic++) {  
+	      int i = ic*rratio[0] + ioff;
+	      for (int n=0; n<nComp; n++) {
+		tmpf[mfi](IntVect(i,j),n) -= 
+		  tmpc[mfi](IntVect(ic,jc),n);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    VisMF::Write(tmpf,oFile);
+}
+

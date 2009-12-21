@@ -438,6 +438,28 @@ main (int   argc,
 		       ivoption,nBin,isill,variance,oFile);
       }
 
+      else if (analysis_type == 10) // compare coarse and fine solution
+      {
+	std::cout << "Analysis 10: difference from mean.\n";
+	
+	std::string oFile;
+	pp.query("outfile",oFile);
+
+	Array<int> rratio(BL_SPACEDIM,0);
+	if (int nx=pp.countval("rratio"))
+	  pp.getarr("rratio",rratio,0,BL_SPACEDIM);
+	for (int i=0;i<BL_SPACEDIM; i++)
+	  if (rratio[i] == 0) BoxLib::Abort("rratio must be nonzero.");
+
+	// The I/O processor makes the directory if it doesn't already exist.
+	if (ParallelDescriptor::IOProcessor())
+	  if (!BoxLib::UtilCreateDirectory(oFile, 0755))
+	    BoxLib::CreateDirectoryFailed(oFile);
+	ParallelDescriptor::Barrier();
+	std::string mFile = iFile + "_dif";
+	TakeDifferenceMean(amrData,cNames,barr,rratio,mFile);
+	
+      }
       else 
 	std::cout << "Analysis Type is undefined.\n";
 
@@ -482,6 +504,8 @@ main (int   argc,
     }
 
     BoxLib::Finalize();
+    std::cout << "Done ...\n";
+
 }
 
 
