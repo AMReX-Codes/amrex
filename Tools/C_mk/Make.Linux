@@ -13,7 +13,8 @@ ifeq ($(COMP),PathScale)
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
   else
-    CXXOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+    #CXXOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+    CXXOPTF += -O -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
   endif
 
   CXXDEBF += -O0 -OPT:Olimit=0 -fno-exceptions -g -Wno-deprecated
@@ -75,8 +76,10 @@ ifeq ($(FCOMP),PathScale)
     FOPTF += -O -ffast-math -fno-math-errno
     fOPTF += -O -ffast-math -fno-math-errno
   else
-    FOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
-    fOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
+    #FOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
+    #fOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
+    FOPTF += -O -ffast-math -fno-math-errno
+    fOPTF += -O -ffast-math -fno-math-errno
   endif
 
   ifeq ($(USE_OMP),TRUE)
