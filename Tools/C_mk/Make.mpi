@@ -177,6 +177,22 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST), mothra)
+      MPI_HOME=/usr/local
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST), orga)
+      MPI_HOME=/usr/local/mpich2
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOST), lijewski)
       MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
