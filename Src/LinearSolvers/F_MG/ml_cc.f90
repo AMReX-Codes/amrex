@@ -56,10 +56,13 @@ contains
 
     call build(bpt, "ml_cc")
 
+    dm = rh(1)%dim
+    nlevs = mla%nlevel
+
     if ( present(abs_eps_in) ) then
        abs_eps = abs_eps_in 
     else
-       abs_eps = 0.d0
+       abs_eps = mgt(nlevs)%abs_eps
     end if
 
     if ( present(need_grad_phi_in) ) then
@@ -67,10 +70,6 @@ contains
     else
        need_grad_phi = .false.
     end if
-
-    dm = rh(1)%dim
-
-    nlevs = mla%nlevel
 
     allocate(soln(nlevs), uu(nlevs), res(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
