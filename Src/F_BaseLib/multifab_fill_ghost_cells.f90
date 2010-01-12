@@ -45,7 +45,7 @@ contains
     if ( present(fill_crse_input) ) fill_crse = fill_crse_input
 
     if ( nghost(fine) <  ng          ) &
-         call bl_error('fillpatch: fine does NOT have enough ghost cells')
+         call bl_error('multifab_fill_ghost_cells: fine does NOT have enough ghost cells')
 
     if ( .not. cell_centered_q(fine) ) &
          call bl_error('fillpatch: fine is NOT cell centered')
