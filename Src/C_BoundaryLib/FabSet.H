@@ -1,7 +1,7 @@
 #ifndef _FABSET_H_
 #define _FABSET_H_
 //
-// $Id: FabSet.H,v 1.21 2009-11-10 21:44:13 lijewski Exp $
+// $Id: FabSet.H,v 1.22 2010-01-20 19:20:11 nazgul Exp $
 //
 #include <MultiFab.H>
 
@@ -213,6 +213,14 @@ public:
     //@ManDoc: True if there is a FAB at specified index.
     //
     bool defined (int i) const { return this->MultiFab::defined(i); }
+    //
+    //@ManDoc: Write (used for writing to checkpoint)
+    //
+    void write(const std::string& name) const;
+    //
+    //@ManDoc: Read (used for reading from checkpoint)
+    //
+    void read(const std::string& name);
 
 protected:
     //

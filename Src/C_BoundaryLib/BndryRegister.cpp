@@ -1,5 +1,5 @@
 //
-// $Id: BndryRegister.cpp,v 1.17 2005-01-07 17:38:55 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.18 2010-01-20 19:20:11 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -249,4 +249,54 @@ BndryRegister::plusFrom (const MultiFab& src,
         bndry[face()].plusFrom(src,nghost,src_comp,dest_comp,num_comp);
     }
     return *this;
+}
+
+void
+BndryRegister::write (const std::string& name, std::ostream& os) const
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
+        grids.writeOn(os);
+        os << '\n';
+    }
+
+    for (OrientationIter face; face; ++face)
+    {
+        //
+        // Take name here and make a "new" name unique to each face.
+        // Simplest thing would probably to append "_n" to the name,
+        // where n is the integer value of face().
+        //
+        std::string facename = name;
+        char buf[4]; // 3 should be enough
+        int i = face();
+        BL_ASSERT(i >= 0 && i <= 7);
+        sprintf(buf, "_%d", i);
+        facename += buf;
+
+        bndry[face()].write(facename);
+    }
+}
+
+void
+BndryRegister::read (const std::string& name, std::istream& is)
+{
+    grids.readFrom(is);
+
+    for (OrientationIter face; face; ++face)
+    {
+        //
+        // Take name here and make a "new" name unique to each face.
+        // Simplest thing would probably to append "_n" to the name,
+        // where n is the integer value of face().
+        //
+        std::string facename = name;
+        char buf[4]; // 3 should be enough
+        int i = face();
+        BL_ASSERT(i >= 0 && i <= 7);
+        sprintf(buf, "_%d", i);
+        facename += buf;
+
+        bndry[face()].read(facename);
+    }
 }

@@ -2,7 +2,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.10 2001-08-01 21:50:47 lijewski Exp $
+// $Id: BndryRegister.H,v 1.11 2010-01-20 19:20:11 nazgul Exp $
 //
 
 #include <BoxArray.H>
@@ -124,6 +124,16 @@ public:
                  int                out_rad,
                  int                extent_rad,
                  int                ncomp);
+
+    //
+    //@ManDoc: Write (used for writing to checkpoint)
+    //
+    void write (const std::string& name, std::ostream& os) const;
+    //
+    //@ManDoc: Read (used for reading from checkpoint)
+    //
+    void read (const std::string& name, std::istream& is);
+
 protected:
     //
     // Used by the copy constructor and assignment operator.

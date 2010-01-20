@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.59 2009-07-24 19:14:09 lijewski Exp $
+// $Id: FabSet.cpp,v 1.60 2010-01-20 19:20:11 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -7,6 +7,7 @@
 
 #include <FabSet.H>
 #include <ParallelDescriptor.H>
+#include <VisMF.H>
 
 FabSetIter::FabSetIter (const FabSet& fabset)
     :
@@ -439,4 +440,16 @@ FabSet::linComb (Real            a,
     }
 
     return *this;
+}
+
+void
+FabSet::write(const std::string& name) const
+{
+    VisMF::Write(*this,name);
+}
+
+void
+FabSet::read(const std::string& name)
+{
+    VisMF::Read(*this,name);
 }
