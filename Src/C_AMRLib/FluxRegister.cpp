@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.95 2009-11-06 20:34:20 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.96 2010-01-20 19:21:49 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -1290,4 +1290,33 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
+}
+
+void
+FluxRegister::write (const std::string& name, std::ostream& os) const
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
+        os << ratio      << '\n';
+        os << fine_level << '\n';
+        os << ncomp      << '\n';
+    }
+
+    const BndryRegister* br = this;
+
+    br->write(name,os);
+}
+
+
+void
+FluxRegister::read (const std::string& name, std::istream& is)
+{
+
+    is >> ratio;
+    is >> fine_level;
+    is >> ncomp;
+
+    BndryRegister* br = this;
+
+    br->read(name,is);
 }

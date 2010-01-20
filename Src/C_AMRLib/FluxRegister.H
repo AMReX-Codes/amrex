@@ -1,7 +1,7 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 //
-// $Id: FluxRegister.H,v 1.14 2009-06-02 02:51:02 lijewski Exp $
+// $Id: FluxRegister.H,v 1.15 2010-01-20 19:21:49 nazgul Exp $
 //
 #include <BndryRegister.H>
 
@@ -197,6 +197,15 @@ public:
                  int             destcomp,
                  int             numcomp,
                  const Geometry& crse_geom);
+
+    //
+    //@ManDoc: Write (used for writing to checkpoint)
+    //
+    void write (const std::string& name, std::ostream& os) const;
+    //
+    //@ManDoc: Read (used for reading from checkpoint)
+    //
+    void read (const std::string& name, std::istream& is);
 
 protected:
     //
