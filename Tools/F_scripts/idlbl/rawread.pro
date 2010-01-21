@@ -44,8 +44,8 @@ readu, lun, data
 dx = (xmax-xmin)/double(xsz)
 dy = (ymax-ymin)/double(ysz)
 
-x = (findgen(xsz) + 0.5)*dx
-y = (findgen(ysz) + 0.5)*dy
+x = (findgen(xsz) + 0.5)*dx + xmin
+y = (findgen(ysz) + 0.5)*dy + ymin
 
 close, lun
 free_lun, lun
