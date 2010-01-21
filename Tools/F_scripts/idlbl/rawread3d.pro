@@ -52,9 +52,9 @@ dx = (xmax-xmin)/double(xsz)
 dy = (ymax-ymin)/double(ysz)
 dz = (zmax-zmin)/double(zsz)
 
-x = (findgen(xsz) + 0.5)*dx
-y = (findgen(ysz) + 0.5)*dy
-z = (findgen(zsz) + 0.5)*dz
+x = (findgen(xsz) + 0.5)*dx + xmin
+y = (findgen(ysz) + 0.5)*dy + ymin
+z = (findgen(zsz) + 0.5)*dz + zmin
 
 close, lun
 free_lun, lun
