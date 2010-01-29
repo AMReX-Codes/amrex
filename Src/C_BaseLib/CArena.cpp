@@ -1,5 +1,5 @@
 //
-// $Id: CArena.cpp,v 1.31 2001-12-13 23:46:08 car Exp $
+// $Id: CArena.cpp,v 1.32 2010-01-29 20:42:04 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -111,8 +111,6 @@ CArena::free (void* vp)
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
-
-    void* freeblock = static_cast<char*>((*busy_it).block());
     //
     // Put free'd block on free list and save iterator to insert()ed position.
     //

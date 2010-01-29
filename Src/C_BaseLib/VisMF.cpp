@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.114 2009-12-14 21:13:58 lijewski Exp $
+// $Id: VisMF.cpp,v 1.115 2010-01-29 20:42:04 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -443,7 +443,6 @@ VisMF::Header::Header (const MultiFab& mf,
 #ifdef BL_USE_MPI
     BL_PROFILE("VisMF::Header::Header()");
 
-    const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
     // Calculate m_min and m_max on the CPU owning the fab.
@@ -947,7 +946,7 @@ VisMF::Read (MultiFab&          mf,
     Real startTime(ParallelDescriptor::second());
     static Real totalTime(0.0);
     int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
-    int nProcs(ParallelDescriptor::NProcs()), myProc(ParallelDescriptor::MyProc());
+    int myProc(ParallelDescriptor::MyProc());
     int nBoxes(hdr.m_ba.size());
     int totalIOReqs(nBoxes), nFiles(-1);
     std::vector<int> iDone(2);
