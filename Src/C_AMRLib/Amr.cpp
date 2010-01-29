@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.192 2009-12-18 18:41:34 lijewski Exp $
+// $Id: Amr.cpp,v 1.193 2010-01-29 20:42:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -992,8 +992,8 @@ Amr::initialInit (Real strt_time,
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart, piEnd, piTotal;
-    Real piStartAll, piEndAll, piTotalAll;
+    Real piStart = 0, piEnd = 0, piTotal = 0;
+    Real piStartAll = 0, piEndAll = 0, piTotalAll = 0;
     piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
@@ -1152,8 +1152,8 @@ Amr::restart (const std::string& filename)
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart, piEnd, piTotal;
-    Real piStartAll, piEndAll, piTotalAll;
+    Real piStart = 0, piEnd = 0, piTotal = 0;
+    Real piStartAll = 0, piEndAll = 0, piTotalAll = 0;
     piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
