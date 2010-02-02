@@ -1,5 +1,5 @@
 //
-// $Id: CArena.cpp,v 1.32 2010-01-29 20:42:04 lijewski Exp $
+// $Id: CArena.cpp,v 1.33 2010-02-02 12:56:23 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -119,6 +119,8 @@ CArena::free (void* vp)
     BL_ASSERT(pair_it.second == true);
 
     NL::iterator free_it = pair_it.first;
+
+    Node freeblock = *free_it;
 
     BL_ASSERT(free_it != m_freelist.end() && (*free_it).block() == freeblock);
     //
