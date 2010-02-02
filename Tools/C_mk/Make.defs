@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.143 2010-02-02 14:45:19 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.144 2010-02-02 19:15:06 ajnonaka Exp $
 #
 
 #
@@ -367,6 +367,7 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 9.1
        ICC_MAJOR_VERSION := 9
        ICC_MINOR_VERSION := 1
+       CXXDEBF += -Wunused-variable
        _icpc := icpc
    else
    ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
@@ -379,6 +380,7 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 10.1
        ICC_MAJOR_VERSION := 10
        ICC_MINOR_VERSION := 1
+       CXXDEBF += -Wunused-variable
        _icpc := icpc
    else
    ifeq ($(findstring Version 11.0, $(__icc_version)), Version 11.0)
@@ -505,6 +507,8 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 9.1
        IFC_MAJOR_VERSION := 9
        IFC_MINOR_VERSION := 1
+       FDEBF += -warn unused
+       fDEBF += -warn unused
 #      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
 #  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
    else
@@ -517,6 +521,8 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 10.1
        IFC_MAJOR_VERSION := 10
        IFC_MINOR_VERSION := 1
+       FDEBF += -warn unused
+       fDEBF += -warn unused
    else
    ifeq ($(findstring Version 11.0, $(__ifc_version)), Version 11.0)
        IFC_VERSION := 11.0
