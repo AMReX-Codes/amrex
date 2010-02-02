@@ -379,8 +379,8 @@ ifeq ($(ARCH),Linux)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0
         FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all
-        FFLAGS   += -check all
+        F90FLAGS += -check all -warn all -u
+        FFLAGS   += -check all -warn all -u
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
