@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.142 2009-12-21 17:42:40 almgren Exp $
+# Make.defs $Id: Make.defs,v 1.143 2010-02-02 14:45:19 ajnonaka Exp $
 #
 
 #
@@ -289,8 +289,8 @@ ifeq ($(FCOMP),gfortran)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132
     fOPTF += -ffixed-line-length-132
-    FDEBF += -g -ffixed-line-length-132
-    fDEBF += -g -ffixed-line-length-132
+    FDEBF += -g -ffixed-line-length-132 -Wall
+    fDEBF += -g -ffixed-line-length-132 -Wall
 endif
 ifeq ($(FCOMP),g95)
     FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
