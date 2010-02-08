@@ -508,21 +508,15 @@ BoxList::simplify ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
 
-    int count = 0;
+    std::vector<Box> v(lbox.begin(),lbox.end());
 
-    std::vector<Box> v(size());
-
-    for (int i = 0; !lbox.empty(); i++)
-    {
-        v[i] = lbox.front();
-        lbox.pop_front();
-    }
-
-    BL_ASSERT(lbox.empty());
+    lbox.clear();
 
     std::sort(v.begin(), v.end(), BoxCmp());
 
     const int N = 50;
+
+    int count = 0;
 
     for (int i = 0; i < v.size(); i += N)
     {
