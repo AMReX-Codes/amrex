@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.35 2008-07-01 18:00:10 lijewski Exp $
+// $Id: BoxArray.H,v 1.36 2010-02-08 19:01:38 almgren Exp $
 //
 #include <cstddef>
 
@@ -197,6 +197,10 @@ public:
     //@ManDoc: Applies function (*fp)(Box) to each Box in the BoxArray.
     //
     BoxArray& convert (Box (*fp)(const Box&));
+    //
+    //@ManDoc: Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
+    //
+    BoxArray& shift (const IntVect &iv);
     //
     //@ManDoc: Applies Box::shift(int,int) to each Box in the BoxArray.
     //

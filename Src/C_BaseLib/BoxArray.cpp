@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.64 2009-07-13 20:17:24 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.65 2010-02-08 19:01:38 almgren Exp $
 //
 #include <iostream>
 
@@ -210,6 +210,17 @@ BoxArray::shift (int dir,
         uniqify();
     for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).shift(dir, nzones);
+    return *this;
+}
+
+
+BoxArray&
+BoxArray::shift (const IntVect& iv)
+{
+    if (!m_ref.unique())
+        uniqify();
+    for (int i = 0; i < size(); i++)
+        m_ref->m_abox.get(i).shift(iv);
     return *this;
 }
 
