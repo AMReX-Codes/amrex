@@ -159,13 +159,11 @@ protected:
                          std::vector<LIpair>* LIpairV = 0);
 
     void KnapSackDoIt (const std::vector<long>& wgts,
-                       int                      nprocs,
-                       bool                     numpts = false);
+                       int                      nprocs);
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
-                              int                      nprocs,
-                              bool                     numpts = false);
+                              int                      nprocs);
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //

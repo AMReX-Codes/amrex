@@ -158,13 +158,12 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
 
-    std::vector<LIpair> LIpairV(nprocs);
+    std::vector<LIpair> LIpairV;
+
+    LIpairV.reserve(nprocs);
 
     for (int i = 0; i < nprocs; i++)
-    {
-        LIpairV[i].first  = bytes[i];
-        LIpairV[i].second = i;
-    }
+        LIpairV.push_back(LIpair(bytes[i],i));
 
     std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
@@ -311,6 +310,10 @@ DistributionMapping::FlushCache ()
 {
     DistributionMapping::CacheStats(std::cout);
     DistributionMapping::m_Cache.clear();
+    //
+    // To cut down on copying we'll give it a modest amount of initial capacity.
+    //
+    DistributionMapping::m_Cache.reserve(10);
 }
 
 void
@@ -321,25 +324,23 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     //
     if (ParallelDescriptor::NProcs() < 2) return;
 
-    bool              doit = true;
     const Array<int>& pmap = dm.ProcessorMap();
 
     if (pmap.size() > 0)
     {
         BL_ASSERT(pmap[pmap.size()-1] == ParallelDescriptor::MyProc());
 
-        for (unsigned int i = 0; i < m_Cache.size() && doit; i++)
+        for (unsigned int i = 0; i < m_Cache.size(); i++)
         {
             if (pmap.size() == m_Cache[i]->m_pmap.size())
             {
                 BL_ASSERT(pmap == m_Cache[i]->m_pmap);
 
-                doit = false;
+                return;
             }
         }
 
-        if (doit)
-            m_Cache.push_back(dm.m_ref);
+        m_Cache.push_back(dm.m_ref);
     }
 }
 
@@ -400,12 +401,13 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     // using RoundRobin to lay out fewer than NProc boxes across
     // the CPUs.
     //
-    std::vector<LIpair> LIpairV(boxes.size());
+    std::vector<LIpair> LIpairV;
+
+    LIpairV.reserve(boxes.size());
 
     for (int i = 0; i < boxes.size(); i++)
     {
-        LIpairV[i].first  = boxes[i].numPts();
-        LIpairV[i].second = i;
+        LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
     //
     // This call does the sort() from least to most numPts().
@@ -475,9 +477,7 @@ knapsack (const std::vector<long>& wgts, int nprocs)
     //
     // Sort balls by size largest first.
     //
-    static std::list<int> empty_list;  // Work-around MSVC++ bug :-(
-
-    std::vector< std::list<int> > result(nprocs, empty_list);
+    std::vector< std::list<int> > result(nprocs);
 
     std::vector<WeightedBox> lb;
     lb.reserve(wgts.size());
@@ -839,8 +839,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
-                                   int                      nprocs,
-                                   bool                     numpts)
+                                   int                      nprocs)
 {
     Array<int> ord = LeastUsedCPUs(nprocs);
 
@@ -848,37 +847,29 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     BL_ASSERT(vec.size() == nprocs);
 
-    std::vector<LIpair> LIpairV(nprocs);
+    Array<long> wgts_per_cpu(nprocs,0);
 
-    if (numpts)
+    for (unsigned int i = 0; i < vec.size(); i++)
     {
-        //
-        // wgts are derived using Box::numPts().
-        //
-        Array<long> wgts_per_cpu(nprocs,0);
-
-        for (unsigned int i = 0; i < vec.size(); i++)
-            for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-                wgts_per_cpu[i] += wgts[*lit];
-
-        for (int i = 0; i < nprocs; i++)
-        {
-            LIpairV[i].first  = wgts_per_cpu[i];
-            LIpairV[i].second = i;
-        }
-        //
-        // This call does the sort() from least to most weight.
-        // Will need to reverse the order afterwards.
-        //
-        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
-
-        std::reverse(LIpairV.begin(), LIpairV.end());
+        for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+            wgts_per_cpu[i] += wgts[*lit];
     }
-    else
+
+    std::vector<LIpair> LIpairV;
+
+    LIpairV.reserve(nprocs);
+
+    for (int i = 0; i < nprocs; i++)
     {
-        for (int i = 0; i < nprocs; i++)
-            LIpairV[i].second = i;
+        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
     }
+    //
+    // This call does the sort() from least to most weight.
+    // Will need to reverse the order afterwards.
+    //
+    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+    std::reverse(LIpairV.begin(), LIpairV.end());
 
     for (unsigned int i = 0; i < vec.size(); i++)
     {
@@ -936,14 +927,14 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
     else
     {
-        std::vector<long> wgts(boxes.size());
+        std::vector<long> wgts;
 
-        for (unsigned int i = 0; i < wgts.size(); i++)
-        {
-            wgts[i] = boxes[i].numPts();
-        }
+        wgts.reserve(boxes.size());
 
-        KnapSackDoIt(wgts, nprocs, true);
+        for (unsigned int i = 0; i < boxes.size(); i++)
+            wgts.push_back(boxes[i].numPts());
+
+        KnapSackDoIt(wgts, nprocs);
 
 	MinimizeCommCosts(m_ref->m_pmap,boxes,wgts,nprocs);
     }
@@ -959,6 +950,10 @@ namespace
             bool operator () (const SFCToken& lhs,
                               const SFCToken& rhs) const;
         };
+
+        SFCToken (int box, const IntVect& idx, Real vol)
+            :
+            m_box(box), m_idx(idx), m_vol(vol) {}
 
         int     m_box;
         IntVect m_idx;
@@ -1046,20 +1041,19 @@ Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
-                                          int                      nprocs,
-                                          bool                     numpts)
+                                          int                      nprocs)
 {
     const Real strttime = ParallelDescriptor::second();
 
-    std::vector<SFCToken> tokens(boxes.size());
+    std::vector<SFCToken> tokens;
+
+    tokens.reserve(boxes.size());
 
     int maxijk = 0;
 
     for (int i = 0; i < boxes.size(); i++)
     {
-        tokens[i].m_box = i;
-        tokens[i].m_idx = boxes[i].smallEnd();
-        tokens[i].m_vol = wgts[i];
+        tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
 
         for (int j = 0; j < BL_SPACEDIM; j++)
             maxijk = std::max(maxijk, tokens[i].m_idx[j]);
@@ -1089,41 +1083,31 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     Array<int> ord = LeastUsedCPUs(nprocs);
 
-    std::vector<LIpair> LIpairV(nprocs);
+    Array<long> wgts_per_cpu(nprocs,0);
 
-    if (numpts)
+    for (unsigned int i = 0; i < vec.size(); i++)
     {
-        //
-        // wgts are derived using Box::numPts().
-        //
-        Array<long> wgts_per_cpu(nprocs,0);
-
-        for (unsigned int i = 0; i < vec.size(); i++)
-        {
-            //std::cout << "vec[" << i << "]: wgt: ";
-            for (int j = 0; j < vec[i].size(); j++)
-                wgts_per_cpu[i] += wgts[vec[i][j]];
-            //std::cout << wgts_per_cpu[i] << '\n';
-        }
-
-        for (int i = 0; i < nprocs; i++)
-        {
-            LIpairV[i].first  = wgts_per_cpu[i];
-            LIpairV[i].second = i;
-        }
-        //
-        // This call does the sort() from least to most weight.
-        // Will need to reverse the order afterwards.
-        //
-        std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
-
-        std::reverse(LIpairV.begin(), LIpairV.end());
+        //std::cout << "vec[" << i << "]: wgt: ";
+        for (int j = 0; j < vec[i].size(); j++)
+            wgts_per_cpu[i] += wgts[vec[i][j]];
+        //std::cout << wgts_per_cpu[i] << '\n';
     }
-    else
+
+    std::vector<LIpair> LIpairV;
+
+    LIpairV.reserve(nprocs);
+
+    for (int i = 0; i < nprocs; i++)
     {
-        for (int i = 0; i < nprocs; i++)
-            LIpairV[i].second = i;
+        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
     }
+    //
+    // This call does the sort() from least to most weight.
+    // Will need to reverse the order afterwards.
+    //
+    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+
+    std::reverse(LIpairV.begin(), LIpairV.end());
 
     for (int i = 0; i < nprocs; i++)
     {
@@ -1186,12 +1170,14 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
     }
     else
     {
-        std::vector<long> wgts(boxes.size());
+        std::vector<long> wgts;
 
-        for (int i = 0; i < wgts.size(); i++)
-            wgts[i] = boxes[i].volume();
+        wgts.reserve(boxes.size());
 
-        SFCProcessorMapDoIt(boxes,wgts,nprocs,true);
+        for (int i = 0; i < boxes.size(); i++)
+            wgts.push_back(boxes[i].volume());
+
+        SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
 }
 
