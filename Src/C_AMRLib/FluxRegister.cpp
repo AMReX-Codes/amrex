@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.98 2010-02-09 18:19:35 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.99 2010-02-09 22:15:36 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -137,12 +137,6 @@ namespace
 {
     struct RF
     {
-        RF ()
-            :
-            m_fabidx(-1),
-            m_fridx(-1),
-            m_shifted(false) {}
-
         RF (int         fabidx,
             int         fridx,
             Orientation face,
@@ -166,26 +160,6 @@ namespace
             m_face(face),
             m_fbid(fbid),
             m_shifted(true) {}
-
-        RF (const RF& rhs)
-            :
-            m_iv(rhs.m_iv),
-            m_fabidx(rhs.m_fabidx),
-            m_fridx(rhs.m_fridx),
-            m_face(rhs.m_face),
-            m_fbid(rhs.m_fbid),
-            m_shifted(rhs.m_shifted) {}
-
-        RF& operator= (const RF& rhs)
-            {
-                m_iv      = rhs.m_iv;
-                m_fabidx  = rhs.m_fabidx;
-                m_fridx   = rhs.m_fridx;
-                m_face    = rhs.m_face;
-                m_fbid    = rhs.m_fbid;
-                m_shifted = rhs.m_shifted;
-                return *this;
-            }
 
         IntVect     m_iv;
         int         m_fabidx;
