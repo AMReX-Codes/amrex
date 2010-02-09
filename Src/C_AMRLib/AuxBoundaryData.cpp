@@ -77,7 +77,9 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
 
         if (isects.empty())
+        {
             bcells.push_back(*it);
+        }
         else
         {
             //
@@ -123,12 +125,13 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     if (gcells.size() > 0)
     {
-        std::vector<long> wgts(nba.size());
+        std::vector<long> wgts;
 
-        for (unsigned int i = 0; i < wgts.size(); i++)
-        {
-            wgts[i] = nba[i].numPts();
-        }
+        wgts.reserve(nba.size());
+
+        for (int i = 0; i < nba.size(); i++)
+            wgts.push_back(nba[i].numPts());
+
         DistributionMapping dm;
         //
         // This call doesn't invoke the MinimizeCommCosts() stuff.
