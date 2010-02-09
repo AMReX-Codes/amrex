@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.96 2010-01-20 19:21:49 nazgul Exp $
+// $Id: FluxRegister.cpp,v 1.97 2010-02-09 00:50:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -216,8 +216,9 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::vector<RF> RFs;
-    BoxArray        ba(grids.size());
+    std::list<RF> RFs;
+
+    BoxArray ba(grids.size());
 
     for (int i = 0; i < grids.size(); i++)
     {
@@ -326,9 +327,11 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (int i = 0; i < RFs.size(); i++)
+    for (std::list<RF>::const_iterator it = RFs.begin();
+         it != RFs.end();
+         ++it)
     {
-        const RF&        rf   = RFs[i];
+        const RF&        rf   = *it;
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
@@ -425,8 +428,9 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::vector<RF> RFs;
-    BoxArray        ba(grids.size());
+    std::list<RF> RFs;
+
+    BoxArray ba(grids.size());
 
     for (int i = 0; i < grids.size(); i++)
     {
@@ -524,9 +528,11 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (int i = 0; i < RFs.size(); i++)
+    for (std::list<RF>::const_iterator it = RFs.begin();
+         it != RFs.end();
+         ++it)
     {
-        const RF& rf          = RFs[i];
+        const RF& rf          = *it;
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
@@ -607,6 +613,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     MultiFabId mfid_area = mfcd.RegisterFabArray(const_cast<MultiFab*>(&area));
 
     std::vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
+
+    fillBoxId_mflx.reserve(20);
+    fillBoxId_area.reserve(20);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -764,8 +773,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     MultiFabId mfid = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mflx));
 
-    std::vector<int>                  side;
-    std::vector<FillBoxId>            fillBoxId;
+    std::vector<int>       side;
+    std::vector<FillBoxId> fillBoxId;
+
+    side.reserve(20);
+    fillBoxId.reserve(20);
+
     std::vector< std::pair<int,Box> > isects;
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
