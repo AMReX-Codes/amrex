@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.60 2010-01-20 19:20:11 nazgul Exp $
+// $Id: FabSet.cpp,v 1.61 2010-02-09 17:33:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -201,12 +201,13 @@ FabSet::DoIt (const MultiFab& src,
 
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
 
-    FArrayBox              tmp;
-    FabSetCopyDescriptor   fscd;
-    std::vector<FillBoxId> fbids;
-    std::vector<Box>       boxes;
-    std::vector<int>       mfidx;
-    std::vector<int>       fsidx;
+    std::vector<Box> boxes;
+    std::vector<int> mfidx;
+    std::vector<int> fsidx;
+
+    boxes.reserve(32);
+    mfidx.reserve(32);
+    fsidx.reserve(32);
     //
     // Calculate and cache intersection info.
     //
@@ -232,10 +233,16 @@ FabSet::DoIt (const MultiFab& src,
         }
     }
 
-    MultiFabId mfid  = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
+    FabSetCopyDescriptor fscd;
+
+    MultiFabId mfid = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
 
     BL_ASSERT(boxes.size() == mfidx.size());
     BL_ASSERT(boxes.size() == fsidx.size());
+
+    std::vector<FillBoxId> fbids;
+
+    fbids.reserve(boxes.size());
 
     for (int i = 0; i < boxes.size(); i++)
     {
@@ -256,6 +263,8 @@ FabSet::DoIt (const MultiFab& src,
     }
 
     fscd.CollectData();
+
+    FArrayBox tmp;
 
     for (int i = 0; i < fbids.size(); i++)
     {
@@ -366,6 +375,9 @@ FabSet::linComb (Real            a,
 
     std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
+    fbids_mfa.reserve(16);
+    fbids_mfb.reserve(16);
+
     BoxArray ba_isects(bxa.size());  // Temp BoxArray for intersections() usage below.
 
     for (int i = 0; i < bxa.size(); i++)
@@ -379,8 +391,8 @@ FabSet::linComb (Real            a,
 
         for (int j = 0; j < isects.size(); j++)
         {
-            int grd  = isects[j].first;
-            Box ovlp = isects[j].second;
+            const int  grd  = isects[j].first;
+            const Box& ovlp = isects[j].second;
 
             fbids_mfa.push_back(mfcd.AddBox(mfid_mfa,
                                             ovlp,
