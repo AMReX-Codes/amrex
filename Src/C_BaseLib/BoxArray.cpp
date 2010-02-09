@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.65 2010-02-08 19:01:38 almgren Exp $
+// $Id: BoxArray.cpp,v 1.66 2010-02-09 17:32:44 lijewski Exp $
 //
 #include <iostream>
 
@@ -670,6 +670,8 @@ BoxArray::intersections (const Box& bx) const
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     if (m_ref->hash.isAllocated())
     {
         BL_ASSERT(bx.sameType(get(0)));
@@ -687,8 +689,11 @@ BoxArray::intersections (const Box& bx) const
             for (int i = 0; i < v.size(); i++)
             {
                 const Box isect = bx & get(v[i]);
+
                 if (isect.ok())
+                {
                     isects.push_back(std::pair<int,Box>(v[i],isect));
+                }
             }
         }
     }
