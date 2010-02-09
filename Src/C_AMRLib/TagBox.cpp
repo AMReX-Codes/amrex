@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.76 2009-11-10 21:44:32 lijewski Exp $
+// $Id: TagBox.cpp,v 1.77 2010-02-09 00:50:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -363,6 +363,9 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     std::vector<FillBoxId> fillBoxId;
     std::vector<IntVect>   shifts;
+
+    fillBoxId.reserve(20);
+    shifts.reserve(20);
 
     for (int i = 0; i < boxarray.size(); i++)
     {
