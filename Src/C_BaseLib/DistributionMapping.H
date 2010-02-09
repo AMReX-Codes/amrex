@@ -1,6 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 
+#include <map>
 #include <vector>
 
 #include <Pointers.H>
@@ -220,7 +221,9 @@ protected:
     //
     // Our cache of processor maps.
     //
-    static std::vector< LnClassPtr<Ref> > m_Cache;
+    typedef std::map< int,LnClassPtr<Ref> > DMapCache;
+
+    static DMapCache m_Cache;
 };
 
 inline

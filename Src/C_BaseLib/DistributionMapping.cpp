@@ -140,7 +140,7 @@ void DistributionMapping::Finalize () {}
 //
 // Our cache of processor maps.
 //
-std::vector< LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
+DistributionMapping::DMapCache DistributionMapping::m_Cache;
 
 Array<int>
 DistributionMapping::LeastUsedCPUs (int nprocs)
@@ -186,20 +186,17 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 {
     const int N = boxes.size();
 
-    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
-    //
-    // Search from back to front ...
-    //
-    for (int i = m_Cache.size() - 1; i >= 0; i--)
+    BL_ASSERT(m_ref->m_pmap.size() == boxes.size() + 1);
+
+    DMapCache::const_iterator it = m_Cache.find(size());
+
+    if (it != m_Cache.end())
     {
-        if (m_Cache[i]->m_pmap.size() == N + 1)
-        {
-            m_ref = m_Cache[i];
+        m_ref = it->second;
 
-            BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
+        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -296,9 +293,9 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
         {
             (this->*m_BuildMap)(boxes,nprocs);
             //
-            // Append the new processor map to the cache.
+            // Add the new processor map to the cache.
             //
-            DistributionMapping::m_Cache.push_back(m_ref);
+            m_Cache.insert(DMapCache::value_type(size(),m_ref));
         }
     }
 }
@@ -308,12 +305,8 @@ DistributionMapping::~DistributionMapping () {}
 void
 DistributionMapping::FlushCache ()
 {
-    DistributionMapping::CacheStats(std::cout);
-    DistributionMapping::m_Cache.clear();
-    //
-    // To cut down on copying we'll give it a modest amount of initial capacity.
-    //
-    DistributionMapping::m_Cache.reserve(10);
+    CacheStats(std::cout);
+    m_Cache.clear();
 }
 
 void
@@ -324,24 +317,7 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     //
     if (ParallelDescriptor::NProcs() < 2) return;
 
-    const Array<int>& pmap = dm.ProcessorMap();
-
-    if (pmap.size() > 0)
-    {
-        BL_ASSERT(pmap[pmap.size()-1] == ParallelDescriptor::MyProc());
-
-        for (unsigned int i = 0; i < m_Cache.size(); i++)
-        {
-            if (pmap.size() == m_Cache[i]->m_pmap.size())
-            {
-                BL_ASSERT(pmap == m_Cache[i]->m_pmap);
-
-                return;
-            }
-        }
-
-        m_Cache.push_back(dm.m_ref);
-    }
+    m_Cache.insert(DMapCache::value_type(dm.size(),dm.m_ref));
 }
 
 void
@@ -1213,7 +1189,7 @@ DistributionMapping::CacheStats (std::ostream& os)
 {
     if (verbose && ParallelDescriptor::IOProcessor() && m_Cache.size())
     {
-        os << "DistributionMapping::m_Cache.size() = " << DistributionMapping::m_Cache.size() << '\n';
+        os << "DistributionMapping::m_Cache.size() = " << m_Cache.size() << '\n';
     }
 }
 
