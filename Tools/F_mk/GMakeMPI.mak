@@ -133,6 +133,16 @@ ifeq ($(findstring nid, $(HOST)), nid)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring hopper, $(HOST)), hopper)
+    #
+    # hopper.nersc.gov
+    #
+    ifdef MPI
+        CXX := CC -target=linux
+        FC  := ftn -target=linux
+        F90 := ftn -target=linux
+    endif
+endif
 ifeq ($(findstring jaguar, $(HOST)), jaguar)
     #
     # jaguar
