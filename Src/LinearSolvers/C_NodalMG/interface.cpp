@@ -266,16 +266,17 @@ level_interface::alloc (const BoxArray&     Im,
 
     BoxArray bim;
     {
-      std::vector<Box> tbim;
-      for ( int i = 0; i < im.size(); ++i )
+        std::vector<Box> tbim;
+        tbim.reserve(im.size() + em.size());
+        for ( int i = 0; i < im.size(); ++i )
 	{
-	  tbim.push_back(im[i]);
+            tbim.push_back(im[i]);
 	}
-      for ( int i = 0; i < em.size(); ++i )
+        for ( int i = 0; i < em.size(); ++i )
 	{
-	  tbim.push_back(em[i]);
+            tbim.push_back(em[i]);
 	}
-      bim = BoxArray(&tbim[0], tbim.size());
+        bim = BoxArray(&tbim[0], tbim.size());
     }
     //
     // Add edges in 2D or faces in 3D:
