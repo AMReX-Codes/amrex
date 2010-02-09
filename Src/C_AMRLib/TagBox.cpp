@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.77 2010-02-09 00:50:26 lijewski Exp $
+// $Id: TagBox.cpp,v 1.78 2010-02-09 06:32:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -356,16 +356,12 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     FabArrayCopyDescriptor<TagBox> facd;
 
-    FabArrayId        faid   = facd.RegisterFabArray(this);
-    const int         MyProc = ParallelDescriptor::MyProc();
-    const Box&        domain = geom.Domain();
-    Array<IntVect>    pshifts(27);
+    FabArrayId     faid   = facd.RegisterFabArray(this);
+    const int      MyProc = ParallelDescriptor::MyProc();
+    const Box&     domain = geom.Domain();
+    Array<IntVect> pshifts(27);
 
-    std::vector<FillBoxId> fillBoxId;
-    std::vector<IntVect>   shifts;
-
-    fillBoxId.reserve(20);
-    shifts.reserve(20);
+    std::list< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0; i < boxarray.size(); i++)
     {
@@ -383,29 +379,21 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 {
                     if (distributionMap[j] == MyProc)
                     {
-                        Box intbox = boxarray[j] & shiftbox;
+                        Box isect = boxarray[j] & shiftbox;
 
-                        if (intbox.ok())
+                        if (isect.ok())
                         {
-                            intbox.shift(-pshifts[iiv]);
+                            isect.shift(-pshifts[iiv]);
 
-                            fillBoxId.push_back(facd.AddBox(faid,
-                                                            intbox,
-                                                            0,
-                                                            i,
-                                                            0,
-                                                            0,
-                                                            n_comp));
+                            FillBoxId fbid = facd.AddBox(faid, isect, 0, i, 0, 0, n_comp);
 
-                            BL_ASSERT(fillBoxId.back().box() == intbox);
+                            BL_ASSERT(fbid.box() == isect);
                             //
                             // Here we'll save the fab index.
                             //
-                            fillBoxId.back().FabIndex(j);
-                            //
-                            // Maintain a parallel array of IntVect shifts.
-                            //
-                            shifts.push_back(pshifts[iiv]);
+                            fbid.FabIndex(j);
+
+                            IDs.push_back(std::pair<FillBoxId,IntVect>(fbid,pshifts[iiv]));
                         }
                     }
                 }
@@ -419,17 +407,19 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (int i = 0; i < fillBoxId.size(); i++)
+    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin();
+         it != IDs.end();
+         ++it)
     {
-        BL_ASSERT(distributionMap[fillBoxId[i].FabIndex()] == MyProc);
+        BL_ASSERT(distributionMap[it->first.FabIndex()] == MyProc);
 
-        src.resize(fillBoxId[i].box(), n_comp);
+        src.resize(it->first.box(), n_comp);
 
-        facd.FillFab(faid, fillBoxId[i], src);
+        facd.FillFab(faid, it->first, src);
 
-        src.shift(shifts[i]);
+        src.shift(it->second);
 
-        get(fillBoxId[i].FabIndex()).merge(src);
+        get(it->first.FabIndex()).merge(src);
     }
 }
 
