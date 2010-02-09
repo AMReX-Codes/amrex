@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.78 2010-02-09 06:32:27 lijewski Exp $
+// $Id: TagBox.cpp,v 1.79 2010-02-09 18:22:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -402,8 +402,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     }
 
     facd.CollectData();
-
-    BL_ASSERT(fillBoxId.size() == shifts.size());
 
     TagBox src;
 
