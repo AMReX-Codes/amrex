@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.97 2010-02-09 00:50:26 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.98 2010-02-09 18:19:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -614,8 +614,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     std::vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
 
-    fillBoxId_mflx.reserve(20);
-    fillBoxId_area.reserve(20);
+    fillBoxId_mflx.reserve(32);
+    fillBoxId_area.reserve(32);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -625,8 +625,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int i = 0; i < isects.size(); i++)
         {
-            int k     = isects[i].first;
-            Box lobox = isects[i].second;
+            const int  k     = isects[i].first;
+            const Box& lobox = isects[i].second;
 
             fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                  lobox,
@@ -661,8 +661,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int i = 0; i < isects.size(); i++)
         {
-            int k     = isects[i].first;
-            Box hibox = isects[i].second;
+            const int  k     = isects[i].first;
+            const Box& hibox = isects[i].second;
 
             fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                  hibox,
@@ -702,7 +702,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     const int N = fillBoxId_mflx.size();
 
-//#pragma omp for private(mflx_fab, area_fab, tmp_fab)
     for (int i = 0; i < N; i++)
     {
         const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
@@ -776,8 +775,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     std::vector<int>       side;
     std::vector<FillBoxId> fillBoxId;
 
-    side.reserve(20);
-    fillBoxId.reserve(20);
+    side.reserve(32);
+    fillBoxId.reserve(32);
 
     std::vector< std::pair<int,Box> > isects;
 
