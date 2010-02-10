@@ -1044,7 +1044,7 @@ subroutine mgt_delete_flux(lev)
   implicit none
 
   integer, intent(in) :: lev
-  integer             :: mglev,flev
+  integer             :: flev
   integer             :: dir
 
   flev = lev+1
