@@ -454,13 +454,6 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
 }
 
 void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol, 
-                  Real& final_resnorm)
-{
-  just_solve(uu,rh,tol,abs_tol,0,final_resnorm);
-}
-
-void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, Real& final_resnorm)
 {
@@ -482,15 +475,6 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
-
-  just_solve(uu,rh,tol,abs_tol,need_grad_phi,final_resnorm);
-
-}
-
-void 
-MGT_Solver::just_solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                       int need_grad_phi, Real& final_resnorm)
-{
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -669,7 +653,7 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
 }
 
 void 
-MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], const Real& tol, const Real& abs_tol)
+MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const Real& tol, const Real& abs_tol)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
