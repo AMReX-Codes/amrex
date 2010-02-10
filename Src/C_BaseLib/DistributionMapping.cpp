@@ -992,11 +992,15 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
 
 static
 std::vector< std::vector<int> >
-Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
+Distribute (const std::vector<SFCToken>& tokens,
+            int                          nprocs,
+            Real                         volpercpu)
 
 {
     int K         = 0;
     Real totalvol = 0;
+
+    const int Navg = tokens.size() / nprocs;
 
     std::vector< std::vector<int> > v(nprocs);
 
@@ -1004,6 +1008,8 @@ Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
     {
         int  cnt = 0;
         Real vol = 0;
+
+        v[i].reserve(Navg + 2);
 
         for ( ;
               K < tokens.size() && (i == (nprocs-1) || vol < volpercpu);
@@ -1017,7 +1023,7 @@ Distribute (const std::vector<SFCToken>& tokens, int nprocs, Real volpercpu)
         totalvol += vol;
 
         if ((totalvol/(i+1)) > volpercpu &&
-            cnt > 1                   &&
+            cnt > 1                      &&
             K < tokens.size())
         {
             K--;
