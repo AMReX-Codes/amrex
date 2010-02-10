@@ -32,9 +32,13 @@ public:
   void set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                              const Real& b, const BndryData& bd);
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+             Real& final_resnorm);
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, Real& final_resnorm);
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi, Real& final_resnorm);
+  void just_solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm);
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
