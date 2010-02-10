@@ -105,6 +105,8 @@ DistributionMapping::Initialize ()
 
     pp.query("swap_n_test_count", swap_n_test_count);
 
+    pp.query("sfc_threshold", sfc_threshold);
+
     if (swap_n_test_count <= 0)
         BoxLib::Abort("swap_n_test must be integer >= 1");
 
@@ -123,8 +125,6 @@ DistributionMapping::Initialize ()
         else if (theStrategy == "SFC")
         {
             strategy(SFC);
-
-            pp.query("sfc_threshold", sfc_threshold);
         }
         else
         {
@@ -140,7 +140,7 @@ void DistributionMapping::Finalize () {}
 //
 // Our cache of processor maps.
 //
-DistributionMapping::DMapCache DistributionMapping::m_Cache;
+std::vector< LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 Array<int>
 DistributionMapping::LeastUsedCPUs (int nprocs)
@@ -186,17 +186,22 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 {
     const int N = boxes.size();
 
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size() + 1);
-
-    DMapCache::const_iterator it = m_Cache.find(size());
-
-    if (it != m_Cache.end())
+    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
+    //
+    // Search from back to front ...
+    //
+    // The cache never gets very big so this is actually quite efficient.
+    //
+    for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        m_ref = it->second;
+        if (m_Cache[i]->m_pmap.size() == N + 1)
+        {
+            m_ref = m_Cache[i];
 
-        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
+            BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
-        return true;
+            return true;
+        }
     }
 
     return false;
@@ -293,9 +298,9 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
         {
             (this->*m_BuildMap)(boxes,nprocs);
             //
-            // Add the new processor map to the cache.
+            // Append the new processor map to the cache.
             //
-            m_Cache.insert(DMapCache::value_type(size(),m_ref));
+            m_Cache.push_back(m_ref);
         }
     }
 }
@@ -317,7 +322,24 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     //
     if (ParallelDescriptor::NProcs() < 2) return;
 
-    m_Cache.insert(DMapCache::value_type(dm.size(),dm.m_ref));
+    const Array<int>& pmap = dm.ProcessorMap();
+
+    if (pmap.size() > 0)
+    {
+        BL_ASSERT(pmap[pmap.size()-1] == ParallelDescriptor::MyProc());
+
+        for (int i = 0; i < m_Cache.size(); i++)
+        {
+            if (pmap.size() == m_Cache[i]->m_pmap.size())
+            {
+                BL_ASSERT(pmap == m_Cache[i]->m_pmap);
+
+                return;
+            }
+        }
+
+        m_Cache.push_back(dm.m_ref);
+    }
 }
 
 void
