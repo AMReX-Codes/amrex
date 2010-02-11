@@ -1,5 +1,5 @@
 //
-// $Id: CoordSys.cpp,v 1.19 2007-04-23 16:46:52 nazgul Exp $
+// $Id: CoordSys.cpp,v 1.20 2010-02-11 23:15:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -37,38 +37,6 @@ CoordSys::Coord ()
     return c_sys;
 }
 
-const Real*
-CoordSys::Offset ()
-{
-    return offset;
-}
-
-Real
-CoordSys::Offset (int dir)
-{
-    return offset[dir];
-}
-
-const Real*
-CoordSys::CellSize () const
-{
-    BL_ASSERT(ok);
-    return dx;
-}
-
-Real
-CoordSys::CellSize (int dir) const
-{
-    BL_ASSERT(ok);
-    return dx[dir];
-}
-
-void
-CoordSys::SetCoord (CoordType coord)
-{
-    c_sys = coord;
-}
-
 void
 CoordSys::SetOffset (const Real* x_lo)
 {
@@ -76,37 +44,6 @@ CoordSys::SetOffset (const Real* x_lo)
     {
         offset[k] = x_lo[k];
     }
-}
-
-bool
-CoordSys::IsSPHERICAL ()
-{
-    BL_ASSERT(c_sys != undef);
-#if (BL_SPACEDIM <= 2)
-    return (c_sys == SPHERICAL);
-#endif    
-#if (BL_SPACEDIM == 3)
-    return false;
-#endif    
-}
-
-bool
-CoordSys::IsRZ ()
-{
-    BL_ASSERT(c_sys != undef);
-#if (BL_SPACEDIM <= 2)
-    return (c_sys == RZ);
-#endif    
-#if (BL_SPACEDIM == 3)
-    return false;
-#endif    
-}
-
-bool
-CoordSys::IsCartesian ()
-{
-    BL_ASSERT(c_sys != undef);
-    return (c_sys == cartesian);
 }
 
 CoordSys::CoordSys ()
@@ -150,46 +87,6 @@ CoordSys::CellCenter (const IntVect& point,
     BL_ASSERT(ok);
     loc.resize(BL_SPACEDIM);
     CellCenter(point, loc.dataPtr());
-}
-
-Real
-CoordSys::CellCenter (int point,
-                      int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(0.5+ (Real)point);
-}
-
-Real
-CoordSys::LoEdge (int point,
-                  int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*point;
-}
-
-Real
-CoordSys::LoEdge (const IntVect& point,
-                  int            dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*point[dir];
-}
-
-Real
-CoordSys::HiEdge (int point,
-                  int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(point + 1);
-}
-
-Real
-CoordSys::HiEdge (const IntVect& point,
-                  int            dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(point[dir] + 1);
 }
 
 void

@@ -263,6 +263,131 @@ std::ostream& operator<< (std::ostream&, const Geometry&);
 //
 std::istream& operator>> (std::istream&, Geometry&);
 
+inline
+const RealBox&
+Geometry::ProbDomain ()
+{
+    return prob_domain;
+}
+
+inline
+void
+Geometry::ProbDomain (const RealBox& rb)
+{
+    prob_domain = rb;
+}
+
+inline
+const Box&
+Geometry::Domain () const
+{
+    return domain;
+}
+
+inline
+void
+Geometry::Domain (const Box& bx)
+{
+    domain = bx;
+}
+
+inline
+bool
+Geometry::isPeriodic (int dir)
+{
+    return is_periodic[dir] != 0;
+}
+
+inline
+bool
+Geometry::isAnyPeriodic ()
+{
+    return isPeriodic(0)
+#if BL_SPACEDIM>1
+        ||   isPeriodic(1)
+#endif
+#if BL_SPACEDIM>2
+        ||   isPeriodic(2)
+#endif
+        ;
+}
+
+inline
+bool
+Geometry::isAllPeriodic ()
+{
+#if BL_SPACEDIM==1
+    return isPeriodic(0);
+#elif BL_SPACEDIM==2
+    return (isPeriodic(0) && isPeriodic(1));
+#elif BL_SPACEDIM==3
+    return (isPeriodic(0) && isPeriodic(1) && isPeriodic(2));
+#endif
+}
+
+inline
+int
+Geometry::period (int dir) const
+{
+    BL_ASSERT(is_periodic[dir]);
+    return domain.length(dir);
+}
+
+inline
+const Real*
+Geometry::ProbLo ()
+{
+    return prob_domain.lo();
+}
+
+inline
+const Real*
+Geometry::ProbHi ()
+{
+    return prob_domain.hi();
+}
+
+inline
+Real
+Geometry::ProbLo (int dir)
+{
+    return prob_domain.lo(dir);
+}
+
+inline
+Real
+Geometry::ProbHi (int dir)
+{
+    return prob_domain.hi(dir);
+}
+
+inline
+const Real*
+Geometry::ProbLength ()
+{
+    return prob_domain.length();
+}
+
+inline
+Real
+Geometry::ProbLength (int dir)
+{
+    return prob_domain.length(dir);
+}
+
+inline
+Real
+Geometry::ProbSize ()
+{
+#if (BL_SPACEDIM == 1) 
+    return prob_domain.length(0);
+#elif (BL_SPACEDIM == 2) 
+    return prob_domain.length(0)*prob_domain.length(1);
+#elif (BL_SPACEDIM == 3) 
+    return prob_domain.length(0)*prob_domain.length(1)*prob_domain.length(2);
+#endif
+}
+
 namespace BoxLib
 {
     //
