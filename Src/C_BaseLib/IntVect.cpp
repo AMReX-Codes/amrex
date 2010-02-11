@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.21 2005-10-14 17:22:40 lijewski Exp $
+// $Id: IntVect.cpp,v 1.22 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -85,79 +85,6 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT0
 #undef LGT1
 #undef LGT2
-}
-
-IntVect&
-IntVect::scale (int s)
-{
-    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
-    return *this;
-}
-
-IntVect&
-IntVect::reflect (int ref_ix,
-                  int idir)
-{
-    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
-    vect[idir] = -vect[idir] + 2*ref_ix;
-    return *this;
-}
-
-IntVect&
-IntVect::shift (int coord,
-                int s)
-{
-    BL_ASSERT(coord >= 0 && coord < BL_SPACEDIM);
-    vect[coord] += s;
-    return *this;
-}
-
-IntVect&
-IntVect::shift (const IntVect& iv)
-{
-    *this += iv;
-    return *this;
-}
-
-IntVect&
-IntVect::diagShift (int s)
-{
-    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
-    return *this;
-}
-
-IntVect
-operator+ (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
-}
-
-IntVect
-operator- (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
-}
-
-IntVect
-operator* (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
-}
-
-IntVect
-BoxLib::scale (const IntVect& p,
-	       int            s)
-{
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
-}
-
-IntVect
-BoxLib::diagShift (const IntVect &p, int s)
-{
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect

@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.27 2006-09-06 17:26:53 lijewski Exp $
+// $Id: Box.H,v 1.28 2010-02-11 22:22:34 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -164,7 +164,7 @@ class Box
 public:
 
     /*@ManDoc: The default constructor.  For safety, the constructed Box is  
-               invalid  and may be tested for validity with ok().
+               invalid and may be tested for validity with ok().
     */
     Box ();
     //
@@ -728,6 +728,156 @@ Box::size () const
     return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
                           bigend[1]-smallend[1] + 1,
                           bigend[2]-smallend[2] + 1));
+}
+
+inline
+bool
+Box::volumeOK () const
+{
+    long ignore;
+    return volumeOK(ignore);
+}
+
+inline
+Box&
+Box::setSmall (const IntVect& sm)
+{
+    smallend = sm;
+    return *this;
+}
+
+inline
+Box&
+Box::setSmall (int dir,
+               int sm_index)
+{
+    smallend.setVal(dir,sm_index);
+    return *this;
+}
+
+inline
+Box&
+Box::setBig (const IntVect& bg)
+{
+    bigend = bg;
+    return *this;
+}
+
+inline
+Box&
+Box::setBig (int dir,
+             int bg_index)
+{
+    bigend.setVal(dir,bg_index);
+    return *this;
+}
+
+inline
+Box&
+Box::setRange (int dir,
+               int sm_index,
+               int n_cells)
+{
+    smallend.setVal(dir,sm_index);
+    bigend.setVal(dir,sm_index+n_cells-1);
+    return *this;
+}
+
+inline
+Box&
+Box::shift (int dir,
+            int nzones)
+{
+    smallend.shift(dir,nzones);
+    bigend.shift(dir,nzones);
+    return *this;
+}
+
+inline
+Box&
+Box::shift (const IntVect& iv)
+{
+    smallend.shift(iv);
+    bigend.shift(iv);
+    return *this;
+}
+
+inline
+long
+Box::index (const IntVect& v) const
+{
+    long result = v[0]-smallend[0];
+#if   BL_SPACEDIM==2
+    result += length(0)*(v[1]-smallend[1]);
+#elif BL_SPACEDIM==3
+    result += length(0)*(v[1]-smallend[1]
+                      +(v[2]-smallend[2])*length(1));
+#endif
+    return result;
+}
+
+inline
+Box&
+Box::operator+= (const IntVect& v)
+{
+    smallend += v;
+    bigend   += v;
+    return *this;
+}
+
+inline
+Box&
+Box::operator-= (const IntVect& v)
+{
+    smallend -= v;
+    bigend   -= v;
+    return *this;
+}
+
+inline
+Box&
+Box::grow (int i)
+{
+    smallend.diagShift(-i);
+    bigend.diagShift(i);
+    return *this;
+}
+
+inline
+Box&
+Box::grow (const IntVect& v)
+{
+    smallend -= v;
+    bigend   += v;
+    return *this;
+}
+
+inline
+Box&
+Box::grow (int idir,
+           int n_cell)
+{
+    smallend.shift(idir, -n_cell);
+    bigend.shift(idir, n_cell);
+    return *this;
+}
+
+inline
+Box&
+Box::growLo (int idir,
+             int n_cell)
+{
+    smallend.shift(idir, -n_cell);
+    return *this;
+}
+
+inline
+Box&
+Box::growHi (int idir,
+             int n_cell)
+{
+    bigend.shift(idir,n_cell);
+    return *this;
 }
 
 #endif /*BL_BOX_H*/
