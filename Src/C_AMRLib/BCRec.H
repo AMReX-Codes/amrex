@@ -1,7 +1,7 @@
 #ifndef _BCREC_H_
 #define _BCREC_H_ 
 //
-// $Id: BCRec.H,v 1.9 2001-08-01 21:50:44 lijewski Exp $
+// $Id: BCRec.H,v 1.10 2010-02-11 23:38:05 lijewski Exp $
 //
 #include <Box.H>
 #include <BC_TYPES.H>
@@ -78,6 +78,57 @@ protected:
     //
     int bc[2*BL_SPACEDIM];
 };
+
+inline
+void
+BCRec::setLo (int dir,
+              int bc_val)
+{
+    bc[dir] = bc_val;
+}
+
+inline
+void
+BCRec::setHi (int dir,
+              int bc_val)
+{
+    bc[BL_SPACEDIM+dir] = bc_val;
+}
+
+inline
+const int*
+BCRec::vect () const
+{
+    return bc;
+} 
+
+inline
+const int*
+BCRec::lo () const
+{
+    return bc;
+}
+
+inline
+const int*
+BCRec::hi () const
+{
+    return bc+BL_SPACEDIM;
+}
+
+inline
+int
+BCRec::lo (int dir) const
+{
+    return bc[dir];
+}
+
+inline
+int
+BCRec::hi (int dir) const
+{
+    return bc[BL_SPACEDIM+dir];
+}
 
 namespace BoxLib
 {

@@ -1,5 +1,5 @@
 //
-// $Id: BCRec.cpp,v 1.9 2001-08-01 21:50:44 lijewski Exp $
+// $Id: BCRec.cpp,v 1.10 2010-02-11 23:38:05 lijewski Exp $
 //
 #include <iostream>
 
@@ -42,50 +42,6 @@ BCRec::BCRec (const Box&   bx,
         bc[lo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[lo] : INT_DIR );
         bc[hi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[hi] : INT_DIR );
     }
-}
-
-void
-BCRec::setLo (int dir,
-              int bc_val)
-{
-    bc[dir] = bc_val;
-}
-
-void
-BCRec::setHi (int dir,
-              int bc_val)
-{
-    bc[BL_SPACEDIM+dir] = bc_val;
-}
-
-const int*
-BCRec::vect () const
-{
-    return bc;
-} 
-
-const int*
-BCRec::lo () const
-{
-    return bc;
-}
-
-const int*
-BCRec::hi () const
-{
-    return bc+BL_SPACEDIM;
-}
-
-int
-BCRec::lo (int dir) const
-{
-    return bc[dir];
-}
-
-int
-BCRec::hi (int dir) const
-{
-    return bc[BL_SPACEDIM+dir];
 }
 
 void
