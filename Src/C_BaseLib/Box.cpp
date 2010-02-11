@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.27 2006-08-19 03:46:18 lijewski Exp $
+// $Id: Box.cpp,v 1.28 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -56,83 +56,6 @@ Box::Box (const IntVect& small,
     btype(typ)
 {
     BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
-}
-
-bool
-Box::volumeOK () const
-{
-    long ignore;
-    return volumeOK(ignore);
-}
-
-long
-Box::index (const IntVect& v) const
-{
-    long result = v[0]-smallend[0];
-#if   BL_SPACEDIM==2
-    result += length(0)*(v[1]-smallend[1]);
-#elif BL_SPACEDIM==3
-    result += length(0)*(v[1]-smallend[1]
-                      +(v[2]-smallend[2])*length(1));
-#endif
-    return result;
-}
-
-Box&
-Box::setSmall (const IntVect& sm)
-{
-    smallend = sm;
-    return *this;
-}
-
-Box&
-Box::setSmall (int dir,
-               int sm_index)
-{
-    smallend.setVal(dir,sm_index);
-    return *this;
-}
-
-Box&
-Box::setBig (const IntVect& bg)
-{
-    bigend = bg;
-    return *this;
-}
-
-Box&
-Box::setBig (int dir,
-             int bg_index)
-{
-    bigend.setVal(dir,bg_index);
-    return *this;
-}
-
-Box&
-Box::setRange (int dir,
-               int sm_index,
-               int n_cells)
-{
-    smallend.setVal(dir,sm_index);
-    bigend.setVal(dir,sm_index+n_cells-1);
-    return *this;
-}
-
-Box&
-Box::shift (int dir,
-            int nzones)
-{
-    smallend.shift(dir,nzones);
-    bigend.shift(dir,nzones);
-    return *this;
-}
-
-Box&
-Box::shift (const IntVect& iv)
-{
-    smallend.shift(iv);
-    bigend.shift(iv);
-    return *this;
 }
 
 Box&
@@ -237,14 +160,6 @@ Box::enclosedCells ()
     return *this;
 }
 
-Box&
-Box::operator+= (const IntVect& v)
-{
-    smallend += v;
-    bigend   += v;
-    return *this;
-}
-
 Box
 Box::operator+ (const IntVect& v) const
 {
@@ -252,27 +167,11 @@ Box::operator+ (const IntVect& v) const
     return result += v;
 }
 
-Box&
-Box::operator-= (const IntVect& v)
-{
-    smallend -= v;
-    bigend   -= v;
-    return *this;
-}
-
 Box
 Box::operator-  (const IntVect& v) const
 {
     Box result = *this;
     return result -= v;
-}
-
-Box&
-Box::grow (int i)
-{
-    smallend.diagShift(-i);
-    bigend.diagShift(i);
-    return *this;
 }
 
 Box
@@ -283,14 +182,6 @@ BoxLib::grow (const Box& b,
     return result.grow(i);
 }
 
-Box&
-Box::grow (const IntVect& v)
-{
-    smallend -= v;
-    bigend   += v;
-    return *this;
-}
-
 Box
 BoxLib::grow (const Box&     b,
               const IntVect& v)
@@ -299,14 +190,6 @@ BoxLib::grow (const Box&     b,
     return result.grow(v);
 }
 
-Box&
-Box::grow (int idir,
-           int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    bigend.shift(idir, n_cell);
-    return *this;
-}
 
 Box&
 Box::grow (const Orientation& face,
@@ -317,22 +200,6 @@ Box::grow (const Orientation& face,
         smallend.shift(idir, -n_cell);
     else
         bigend.shift(idir,n_cell);
-    return *this;
-}
-
-Box&
-Box::growLo (int idir,
-             int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    return *this;
-}
-
-Box&
-Box::growHi (int idir,
-             int n_cell)
-{
-    bigend.shift(idir,n_cell);
     return *this;
 }
 

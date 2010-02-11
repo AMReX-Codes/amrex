@@ -1,7 +1,7 @@
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
 //
-// $Id: UseCount.H,v 1.13 2001-07-31 22:43:19 lijewski Exp $
+// $Id: UseCount.H,v 1.14 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -68,6 +68,14 @@ int
 UseCount::linkCount () const
 {
     return *cnt;
+}
+
+inline
+UseCount::UseCount (const UseCount& rhs)
+    :
+    cnt(rhs.cnt)
+{
+    ++*cnt;
 }
 
 #endif /*BL_USECOUNT_H*/

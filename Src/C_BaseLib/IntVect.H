@@ -1,7 +1,7 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.23 2005-10-09 03:08:33 lijewski Exp $
+// $Id: IntVect.H,v 1.24 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -404,6 +404,50 @@ IntVect::setVal (int i,
 }
 
 inline
+IntVect&
+IntVect::scale (int s)
+{
+    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+    return *this;
+}
+
+inline
+IntVect&
+IntVect::reflect (int ref_ix,
+                  int idir)
+{
+    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
+    vect[idir] = -vect[idir] + 2*ref_ix;
+    return *this;
+}
+
+inline
+IntVect&
+IntVect::shift (int coord,
+                int s)
+{
+    BL_ASSERT(coord >= 0 && coord < BL_SPACEDIM);
+    vect[coord] += s;
+    return *this;
+}
+
+inline
+IntVect&
+IntVect::shift (const IntVect& iv)
+{
+    *this += iv;
+    return *this;
+}
+
+inline
+IntVect&
+IntVect::diagShift (int s)
+{
+    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
+    return *this;
+}
+
+inline
 bool
 IntVect::operator== (const IntVect& p) const
 {
@@ -577,6 +621,45 @@ IntVect
 IntVect::operator/ (int s) const
 {
     return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
+}
+
+inline
+IntVect
+operator+ (int            s,
+           const IntVect& p)
+{
+    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+}
+
+inline
+IntVect
+operator- (int            s,
+           const IntVect& p)
+{
+    return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
+}
+
+inline
+IntVect
+operator* (int            s,
+           const IntVect& p)
+{
+    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+}
+
+inline
+IntVect
+BoxLib::scale (const IntVect& p,
+	       int            s)
+{
+    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+}
+
+inline
+IntVect
+BoxLib::diagShift (const IntVect &p, int s)
+{
+    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 inline

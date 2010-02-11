@@ -1,7 +1,7 @@
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
 //
-// $Id: IndexType.H,v 1.14 2001-10-10 20:12:44 car Exp $
+// $Id: IndexType.H,v 1.15 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -170,11 +170,37 @@ IndexType::IndexType (const IndexType& bt)
 {}
 
 inline
+IndexType::IndexType (const IntVect& iv)
+{
+    itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
+}
+
+inline
+IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
+{
+    itype = D_TERM(i, | (j<<1), | (k<<2));
+}
+
+inline
 IndexType&
 IndexType::operator= (const IndexType& bt)
 {
     itype = bt.itype;
     return *this;
+}
+
+inline
+IndexType::CellIndex
+IndexType::ixType (int dir) const
+{
+    return (CellIndex) ((itype & (1<<dir)) >> dir);
+}
+
+inline
+IntVect
+IndexType::ixType () const
+{
+    return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
 }
 
 inline

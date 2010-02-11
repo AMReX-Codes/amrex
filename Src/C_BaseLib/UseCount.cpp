@@ -1,5 +1,5 @@
 //
-// $Id: UseCount.cpp,v 1.2 2001-07-31 22:43:19 lijewski Exp $
+// $Id: UseCount.cpp,v 1.3 2010-02-11 22:22:34 lijewski Exp $
 //
 
 #include <UseCount.H>
@@ -8,13 +8,6 @@ UseCount::UseCount ()
     :
     cnt(new unsigned int(1))
 {}
-
-UseCount::UseCount (const UseCount& rhs)
-    :
-    cnt(rhs.cnt)
-{
-    ++*cnt;
-}
 
 void
 UseCount::decrement ()

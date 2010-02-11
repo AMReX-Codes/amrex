@@ -1,38 +1,16 @@
 //
-// $Id: IndexType.cpp,v 1.12 2001-07-31 22:43:18 lijewski Exp $
+// $Id: IndexType.cpp,v 1.13 2010-02-11 22:22:34 lijewski Exp $
 //
 #include <iostream>
 #include <iomanip>
 
 #include <IndexType.H>
 
-IndexType::IndexType (const IntVect& iv)
-{
-    itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
-}
-
-IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
-{
-    itype = D_TERM(i, | (j<<1), | (k<<2));
-}
-
 void
 IndexType::setType (int       dir,
                     CellIndex t)
 {
     t == CELL ? unset(dir) : set(dir);
-}
-
-IndexType::CellIndex
-IndexType::ixType (int dir) const
-{
-    return (CellIndex) ((itype & (1<<dir)) >> dir);
-}
-
-IntVect
-IndexType::ixType () const
-{
-    return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
 }
 
 IndexType
