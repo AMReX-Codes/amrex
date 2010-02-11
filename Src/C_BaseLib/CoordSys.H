@@ -2,7 +2,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.11 2001-08-15 19:23:55 lijewski Exp $
+// $Id: CoordSys.H,v 1.12 2010-02-11 23:15:08 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -247,5 +247,121 @@ protected:
     Real dx[BL_SPACEDIM];
     bool ok;
 };
+
+inline
+const Real*
+CoordSys::Offset ()
+{
+    return offset;
+}
+
+inline
+Real
+CoordSys::Offset (int dir)
+{
+    return offset[dir];
+}
+
+inline
+const Real*
+CoordSys::CellSize () const
+{
+    BL_ASSERT(ok);
+    return dx;
+}
+
+inline
+Real
+CoordSys::CellSize (int dir) const
+{
+    BL_ASSERT(ok);
+    return dx[dir];
+}
+
+inline
+void
+CoordSys::SetCoord (CoordType coord)
+{
+    c_sys = coord;
+}
+
+inline
+bool
+CoordSys::IsSPHERICAL ()
+{
+    BL_ASSERT(c_sys != undef);
+#if (BL_SPACEDIM <= 2)
+    return (c_sys == SPHERICAL);
+#endif    
+#if (BL_SPACEDIM == 3)
+    return false;
+#endif    
+}
+
+inline
+bool
+CoordSys::IsRZ ()
+{
+    BL_ASSERT(c_sys != undef);
+#if (BL_SPACEDIM <= 2)
+    return (c_sys == RZ);
+#endif    
+#if (BL_SPACEDIM == 3)
+    return false;
+#endif    
+}
+
+inline
+bool
+CoordSys::IsCartesian ()
+{
+    BL_ASSERT(c_sys != undef);
+    return (c_sys == cartesian);
+}
+
+inline
+Real
+CoordSys::CellCenter (int point,
+                      int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(0.5+ (Real)point);
+}
+
+inline
+Real
+CoordSys::LoEdge (int point,
+                  int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*point;
+}
+
+inline
+Real
+CoordSys::LoEdge (const IntVect& point,
+                  int            dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*point[dir];
+}
+
+inline
+Real
+CoordSys::HiEdge (int point,
+                  int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(point + 1);
+}
+
+inline
+Real
+CoordSys::HiEdge (const IntVect& point,
+                  int            dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(point[dir] + 1);
+}
 
 #endif /*_COORDSYS_H_*/

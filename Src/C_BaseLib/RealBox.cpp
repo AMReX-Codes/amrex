@@ -1,5 +1,5 @@
 //
-// $Id: RealBox.cpp,v 1.11 2008-03-21 22:07:37 vince Exp $
+// $Id: RealBox.cpp,v 1.12 2010-02-11 23:15:08 lijewski Exp $
 //
 #include <iostream>
 #include <string>
@@ -25,62 +25,6 @@ RealBox::RealBox (const Box&  bx,
     computeBoxLen();
 }
 
-void
-RealBox::setEpsilon (Real epsilon)
-{
-    eps = epsilon;
-}
-
-Real
-RealBox::epsilon ()
-{
-    return eps;
-}
-
-const Real*
-RealBox::lo () const
-{
-    return xlo;
-}
-
-const Real*
-RealBox::hi () const
-{
-    return xhi;
-}
-
-const Real*
-RealBox::length () const
-{
-    return len;
-}
-
-Real
-RealBox::lo (int dir) const
-{
-    return xlo[dir];
-}
-
-Real
-RealBox::hi (int dir) const
-{
-    return xhi[dir];
-}
-
-Real
-RealBox::length (int dir) const
-{
-    return len[dir];
-}
-
-void
-RealBox::computeBoxLen ()
-{
-    D_EXPR(len[0] = xhi[0]-xlo[0],
-           len[1] = xhi[1]-xlo[1],
-           len[2] = xhi[2]-xlo[2]);
-}
-
 RealBox::RealBox ()
 {
     D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
@@ -102,52 +46,6 @@ RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
     D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
     D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
     computeBoxLen() ;
-}
-
-void
-RealBox::setLo (const Real* lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
-}
-
-void
-RealBox::setLo (const Array<Real> &lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
-}
-
-void
-RealBox::setHi (const Real* hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
-}
-
-void
-RealBox::setHi (const Array<Real>& hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
-}
-
-void
-RealBox::setLo (int  indx,
-                Real lo)
-{
-   BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-   xlo[indx] = lo;
-   computeBoxLen();
-}
-
-void
-RealBox::setHi (int  indx,
-                Real hi)
-{
-    BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-    xhi[indx] = hi;
-    computeBoxLen();
 }
 
 bool

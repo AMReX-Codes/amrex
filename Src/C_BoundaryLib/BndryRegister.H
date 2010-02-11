@@ -2,7 +2,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.11 2010-01-20 19:20:11 nazgul Exp $
+// $Id: BndryRegister.H,v 1.12 2010-02-11 23:15:08 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -145,5 +145,33 @@ protected:
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
+
+inline
+const BoxArray&
+BndryRegister::boxes () const
+{
+    return grids;
+}
+
+inline
+int
+BndryRegister::size () const
+{
+    return grids.size();
+}
+
+inline
+const FabSet&
+BndryRegister::operator[] (const Orientation& _face) const
+{
+    return bndry[_face];
+}
+
+inline
+FabSet&
+BndryRegister::operator[] (const Orientation& _face)
+{
+    return bndry[_face];
+}
 
 #endif /*_BNDRYREGISTER_H_*/

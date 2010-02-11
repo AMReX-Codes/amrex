@@ -1,5 +1,5 @@
 //
-// $Id: BndryRegister.cpp,v 1.19 2010-02-09 23:04:49 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.20 2010-02-11 23:15:08 lijewski Exp $
 //
 #include <winstd.H>
 #include <cstdio>
@@ -49,30 +49,6 @@ BndryRegister::init (const BndryRegister& src)
 BndryRegister::BndryRegister (const BndryRegister& src)
 {
     init(src);
-}
-
-const BoxArray&
-BndryRegister::boxes () const
-{
-    return grids;
-}
-
-int
-BndryRegister::size () const
-{
-    return grids.size();
-}
-
-const FabSet&
-BndryRegister::operator[] (const Orientation& _face) const
-{
-    return bndry[_face];
-}
-
-FabSet&
-BndryRegister::operator[] (const Orientation& _face)
-{
-    return bndry[_face];
 }
 
 BndryRegister&
