@@ -1,7 +1,7 @@
 #ifndef _Cluster_H_
 #define _Cluster_H_ 
 //
-// $Id: Cluster.H,v 1.13 2001-08-01 21:50:44 lijewski Exp $
+// $Id: Cluster.H,v 1.14 2010-02-11 23:38:05 lijewski Exp $
 //
 #include <list>
 
@@ -174,5 +174,48 @@ private:
     //    
     std::list<Cluster*> lst;
 };
+
+inline
+const Box&
+Cluster::box () const
+{
+    return m_bx;
+}
+
+inline
+bool
+Cluster::ok () const
+{
+    return m_ar != 0 && m_len > 0;
+}
+
+inline
+long
+Cluster::numTag () const
+{
+    return m_len;
+}
+
+inline
+Real
+Cluster::eff () const
+{
+    BL_ASSERT(ok());
+    return numTag()/m_bx.d_numPts();
+}
+
+inline
+int
+ClusterList::length () const
+{
+    return lst.size();
+}
+
+inline
+void
+ClusterList::append (Cluster* c)
+{
+    lst.push_back(c);
+}
 
 #endif /*_Cluster_H_*/

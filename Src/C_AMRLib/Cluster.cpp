@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.25 2007-10-04 22:31:27 lijewski Exp $
+// $Id: Cluster.cpp,v 1.26 2010-02-11 23:38:05 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -25,31 +25,6 @@ Cluster::Cluster (IntVect* a, long len)
 
 Cluster::~Cluster () {}
 
-const Box&
-Cluster::box () const
-{
-    return m_bx;
-}
-
-bool
-Cluster::ok () const
-{
-    return m_ar != 0 && m_len > 0;
-}
-
-long
-Cluster::numTag () const
-{
-    return m_len;
-}
-
-Real
-Cluster::eff () const
-{
-    BL_ASSERT(ok());
-    return numTag()/m_bx.d_numPts();
-}
-
 //
 // Predicate in call to std::partition() in Cluster::Cluster(Cluster,Box).
 //
@@ -63,7 +38,7 @@ public:
         return m_box.contains(iv);
     }
 private:
-    const Box& m_box;
+    Box m_box;
 };
 
 Cluster::Cluster (Cluster&   c,
@@ -274,11 +249,11 @@ public:
 
     bool operator() (const IntVect& iv) const
     {
-        return iv[m_dir] < m_cut[m_dir] ? true : false;
+        return iv[m_dir] < m_cut[m_dir];
     }
 private:
-    const IntVect& m_cut;
-    int            m_dir;
+    IntVect m_cut;
+    int     m_dir;
 };
 
 Cluster*
@@ -387,18 +362,6 @@ ClusterList::~ClusterList ()
     {
         delete *cli;
     }
-}
-
-int
-ClusterList::length () const
-{
-    return lst.size();
-}
-
-void
-ClusterList::append (Cluster* c)
-{
-    lst.push_back(c);
 }
 
 BoxArray
