@@ -278,7 +278,7 @@ c-----------------------------------------------------------------------
       double precision signd(snl0:snh0,snl1:snh1, 2)
       double precision tmp
       integer irz
-      integer i, j, k
+      integer i, j
       do j = regl1, regh1
          do i = regl0, regh0
             tmp = (signd(i-1,j,1) + signd(i,j,1) 
@@ -301,134 +301,9 @@ c-----------------------------------------------------------------------
          end if
       end do
       end
+
 c five-point variable stencils
-c-----------------------------------------------------------------------
-      subroutine hgrlxaaaa(
-     & cor,   corl0, corh0, corl1, corh1,
-     & res,   resl0, resh0, resl1, resh1,
-     & sigx, sigy,
-     &     sfl0, sfh0, sfl1, sfh1,
-     & cen,   cenl0, cenh0, cenl1, cenh1,
-     &        regl0, regh0, regl1, regh1,
-     & hx, hy, irz, imax)
-      integer corl0, corh0, corl1, corh1
-      integer resl0, resh0, resl1, resh1
-      integer sfl0, sfh0, sfl1, sfh1
-      integer cenl0, cenh0, cenl1, cenh1
-      integer regl0, regh0, regl1, regh1
-      double precision cor(corl0:corh0,corl1:corh1)
-      double precision res(resl0:resh0,resl1:resh1)
-      double precision sigx(sfl0:sfh0,sfl1:sfh1)
-      double precision sigy(sfl0:sfh0,sfl1:sfh1)
-      double precision cen(cenl0:cenh0,cenl1:cenh1)
-      double precision hx, hy
-      integer irz, imax
-      double precision hxm2, hym2
-      integer i, j, ipass, ipar
-      double precision AVG
-      AVG() = 0.5d0 * (hxm2 *
-     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     &           (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
-     &                 hym2 *
-     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do ipass = 1, 0, -1
-            ipar = ipass
-            do i = regl0, regh0
-               ipar = 1 - ipar
-               do j = regl1 + ipar, regh1, 2
-                  cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
-                  if (irz .eq. 1 .and. i .eq. 0) then
-                    cor(i,j) = (
-     &                        0.5d0 * hxm2 *
-     &                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     &                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) +
-     &                       0.25d0 * hym2 *
-     &                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     &                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
-     &                    - res(i,j)) * cen(i,j)
-                  endif
-               end do
-            end do
-         end do
-      else
-         do ipass = 1, 0, -1
-            ipar = ipass
-            do j = regl1, regh1
-               ipar = 1 - ipar
-               do i = regl0 + ipar, regh0, 2
-                  cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
-                  if (irz .eq. 1 .and. i .eq. 0) then
-                    cor(i,j) = (
-     &                        0.5d0 * hxm2 *
-     &                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     &                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
-     &                       0.25d0 * hym2 *
-     &                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     &                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
-     &                    - res(i,j)) * cen(i,j)
-                  endif
-               end do
-            end do
-         end do
-      end if
-      end
-c-----------------------------------------------------------------------
-      subroutine hgresaaaa(
-     & res,   resl0, resh0, resl1, resh1,
-     & src,   srcl0, srch0, srcl1, srch1,
-     & dest,  destl0, desth0, destl1, desth1,
-     & sigx,  sigy, sfl0, sfh0, sfl1, sfh1,
-     &        regl0, regh0, regl1, regh1,
-     & hx, hy, irz)
-      integer resl0, resh0, resl1, resh1
-      integer srcl0, srch0, srcl1, srch1
-      integer destl0, desth0, destl1, desth1
-      integer sfl0, sfh0, sfl1, sfh1
-      integer regl0, regh0, regl1, regh1
-      double precision res(resl0:resh0,resl1:resh1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision sigx(sfl0:sfh0,sfl1:sfh1)
-      double precision sigy(sfl0:sfh0,sfl1:sfh1)
-      double precision hx, hy
-      integer irz
-      double precision hxm2, hym2
-      integer i, j
 
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
-
-      do j = regl1, regh1
-         do i = regl0, regh0
-            res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
-     &           ((sigx(i-1,j-1) + sigx(i-1,j)) *
-     &             (dest(i-1,j) - dest(i,j)) +
-     &            (sigx(i,j-1) + sigx(i,j)) *
-     &             (dest(i+1,j) - dest(i,j))) +
-     &                                        hym2 *
-     &           ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     &             (dest(i,j-1) - dest(i,j)) +
-     &            (sigy(i-1,j) + sigy(i,j)) *
-     &             (dest(i,j+1) - dest(i,j))))
-         end do
-      end do
-
-      if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
-         i = 0
-         do j = regl1, regh1
-            res(i,j) = res(i,j) + .25d0 * hym2 *
-     &        ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     &          (dest(i,j-1) - dest(i,j)) +
-     &         (sigy(i-1,j) + sigy(i,j)) *
-     &          (dest(i,j+1) - dest(i,j)))
-         end do
-      endif
-
-      end
 c-----------------------------------------------------------------------
       subroutine hgrlx_full_old(
      & cor,   corl0, corh0, corl1, corh1,
@@ -891,7 +766,6 @@ c-----------------------------------------------------------------------
       integer irz
       integer istart, iend
       integer i, j, jdiff, ly
-      integer ilocal, jlocal
       jdiff = resh0 - resl0 + 1
       ly = (resh1 - resl1 + 1) * jdiff
       istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
@@ -952,72 +826,9 @@ c-----------------------------------------------------------------------
             end do
          end do
       end
-c-----------------------------------------------------------------------
-c sig here contains three different directions all stored on "nodes"
-      subroutine hgrlxu(
-     & cor, res, sig, cen,
-     &     resl0,resh0,resl1,resh1,
-     & mask,
-     &     regl0,regh0,regl1,regh1,irz)
-      integer resl0,resh0,resl1,resh1
-      integer regl0,regh0,regl1,regh1
-      double precision cor(*)
-      double precision res(*)
-      double precision sig(*)
-      double precision cen(*)
-      double precision mask(*)
-      double precision AVG
-      double precision AVGREDGE
-      integer irz
-      integer istart, iend
-      integer i, jdiff, ly
-      AVG() = (sig(i-1)        * cor(i-1) +
-     &         sig(i)          * cor(i+1) +
-     &         sig(i+ly-jdiff) * cor(i-jdiff) +
-     &         sig(i+ly)       * cor(i+jdiff))
-      AVGREDGE() = (sig(i-1)        * cor(i-1) +
-     &              sig(i)          * cor(i+1) +
-     &              sig(i+ly-jdiff) * cor(i-jdiff) * 0.5d0 +
-     &              sig(i+ly)       * cor(i+jdiff) * 0.5d0 )
-      jdiff =  resh0 - resl0 + 1
-      ly    = (resh1 - resl1 + 1) * jdiff
-      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
-      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
-      if (irz .eq. 0 .or. regl0 .gt. 0) then
-        do i = istart + 1, iend + 1, 2
-           cor(i) = cor(i)
-     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-        end do
-        do i = istart + 2, iend + 1, 2
-           cor(i) = cor(i)
-     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-        end do
 
-      else
-
-c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
-        do i = istart + 1, iend + 1, 2
-           if (mod(i-istart-1,jdiff) .eq. 0) then
-             cor(i) = cor(i)
-     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
-           else
-             cor(i) = cor(i)
-     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-           endif
-        end do
-        do i = istart + 2, iend + 1, 2
-           if (mod(i-istart-1,jdiff) .eq. 0) then
-             cor(i) = cor(i)
-     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
-           else
-             cor(i) = cor(i)
-     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-           endif
-        end do
-      endif
-      end
 c-----------------------------------------------------------------------
-c sig here contains three different directions all stored on "nodes"
+
       subroutine hgrlxur(
      & cor, res, sig, cen,
      &     resl0,resh0,resl1,resh1,
@@ -1086,8 +897,8 @@ c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
         end do
       endif
       end
-c 9-point stencil versions:
 
+c 9-point stencil versions:
 
 c 9-point variable density stencils:
 c-----------------------------------------------------------------------
@@ -1943,26 +1754,6 @@ c NODE-based data, factor of 2 only.
             end do
          end do
       end if
-      end
-c-----------------------------------------------------------------------
-c NODE-based data, factor of 2 only.
-      subroutine hgints_old(
-     & dest, destl0, desth0, destl1, desth1,
-     &       regl0, regh0, regl1, regh1,
-     & signd, sbl0, sbh0, sbl1, sbh1,
-     & src,   srcl0, srch0, srcl1, srch1,
-     &        bbl0, bbh0, bbl1, bbh1,
-     & ir, jr)
-      integer destl0, desth0, destl1, desth1
-      integer regl0, regh0, regl1, regh1
-      integer sbl0, sbh0, sbl1, sbh1
-      integer srcl0, srch0, srcl1, srch1
-      integer bbl0, bbh0, bbl1, bbh1
-      integer ir, jr
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision signd(sbl0:sbh0,sbl1:sbh1, 2)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      stop 'no code for hgints (sigma node) in 2D'
       end
 
 c-----------------------------------------------------------------------
