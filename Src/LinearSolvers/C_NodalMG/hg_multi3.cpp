@@ -13,11 +13,6 @@
 #define   FORT_HGRLX		hgrlx_
 #define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
 #define   FORT_HGRLX_FULL	hgrlx_full_
-#ifdef BL_SUPERUX
-#define   FORT_HGRLXU		hgrlxu_sx_
-#else
-#define   FORT_HGRLXU		hgrlxu_
-#endif
 #define   FORT_HGRLXUR		hgrlxur_
 #define   FORT_HGCG		hgcg_
 #define   FORT_HGCG1		hgcg1_
@@ -32,11 +27,6 @@
 #define   FORT_HGRLX		HGRLX
 #define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
 #define   FORT_HGRLX_FULL	HGRLX_FULL
-#ifdef BL_SUPERUX
-#define   FORT_HGRLXU		HGRLXU_SX
-#else
-#define   FORT_HGRLXU		HGRLXU
-#endif
 #define   FORT_HGRLXUR		HGRLXUR
 #define   FORT_HGRLXL		HGRLXL
 #define   FORT_HGRLXL_FULL	HGRLXL_FULL
@@ -53,11 +43,6 @@
 #define   FORT_HGRLX		hgrlx
 #define   FORT_HGRLX_TERRAIN    hgrlx_terrain
 #define   FORT_HGRLX_FULL	hgrlx_full
-#ifdef BL_SUPERUX
-#define   FORT_HGRLXU		hgrlxu_sx
-#else
-#define   FORT_HGRLXU		hgrlxu
-#endif
 #define   FORT_HGRLXUR		hgrlxur
 #define   FORT_HGCG		hgcg
 #define   FORT_HGCG1		hgcg1
@@ -91,8 +76,6 @@ extern "C"
 			     const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS);
-    void FORT_HGRLXU        (Real*, const Real*, const Real*,
-			     const Real*, intS, const Real*, intS, const int*);
     void FORT_HGRLXUR        (Real*, const Real*, const Real*,
 			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
@@ -115,8 +98,6 @@ extern "C"
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS,
 			     const Real*, intS, intS);
-    void FORT_HGRLXU        (Real*, const Real*, const Real*,
-			     const Real*, intS, const Real*, intS, const int*);
     void FORT_HGRLXUR        (Real*, const Real*, const Real*,
 			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
@@ -280,22 +261,12 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		    else if (m_stencil == cross)
 		    {
 			const int isRZ = getCoordSys();
-#if 1
-			FORT_HGRLXU(corr[mglev][r_mfi].dataPtr(),
-                                    resid[mglev][r_mfi].dataPtr(),
-                                    sigma_node[mglev][r_mfi].dataPtr(),
-                                    cen[mglev][r_mfi].dataPtr(), DIMLIST(sbox),
-                                    mask[mglev][r_mfi].dataPtr(),
-                                    DIMLIST(freg),
-				    &isRZ);
-#else
 			FORT_HGRLXUR(corr[mglev][r_mfi].dataPtr(),
                                     resid[mglev][r_mfi].dataPtr(),
                                     sigma_node[mglev][r_mfi].dataPtr(),
                                     cen[mglev][r_mfi].dataPtr(), DIMLIST(sbox),
                                     DIMLIST(freg),
 				    &isRZ);
-#endif
 		    }
 		}
 		else
@@ -407,7 +378,7 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
     ParallelDescriptor::ReduceRealSum(rho);
     if ( pcode >= 3 && ParallelDescriptor::IOProcessor() )
     {
-	std::cout << "HG: cgsolve rho = " << rho << std::endl;
+	std::cout << "      HG: cgsolve rho = " << rho << std::endl;
     }
 
     const Real tol = HG::cgsolve_tolfact * rho;
@@ -454,7 +425,7 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 	ParallelDescriptor::ReduceRealSum(rho);
 	if (pcode >= 3  && ParallelDescriptor::IOProcessor())
 	{
-	    std::cout << "HG: cgsolve iter(" << i << ") rho=" << rho << std::endl;
+	    std::cout << "      HG: cgsolve iter(" << i << ") rho=" << rho << std::endl;
 	}
 	if (rho <= tol)
 	    break;
@@ -466,9 +437,9 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 	}
     }
 
-    if (pcode >= 2  && ParallelDescriptor::IOProcessor())
+    if (pcode >= 3  && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "HG: "
+	std::cout << "      HG: "
                   << i << " iterations required for conjugate-gradient" << std::endl;
     }
 }
