@@ -307,7 +307,7 @@ amr_multigrid::build_mesh (const Box& fdomain)
         //
 	// first, build mg_mesh
         //
-	int nlev =
+        int nlev =
 	    build_down(ml_mesh[lev_max], fdomain,
 		       lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
@@ -596,13 +596,16 @@ amr_multigrid::solve (Real reltol,
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "HG: Source norm is " << norm << std::endl;
+        if ( pcode >= 4) std::cout << " " << std::endl;
+	std::cout << "HG: Initial rhs              = " << norm << std::endl;
     }
 
-    Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
+//  Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
+    Real err = ml_residual(mglev_max, lev_max);
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "HG: Err from ml_cycle is " << err << std::endl;
+	std::cout << "HG: Initial error            = " << err << std::endl;
+        if ( pcode >= 4) std::cout << " " << std::endl;
     }
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
@@ -614,8 +617,10 @@ amr_multigrid::solve (Real reltol,
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
 	if ( pcode >= 2 && ParallelDescriptor::IOProcessor())
 	{
-	    std::cout << "HG: Err from "
-                      << it + 1 << "th ml_cycle is " << err << std::endl;
+	    if ( pcode >= 4) std::cout << " " << std::endl;
+            Real err = ml_residual(mglev_max, lev_max);
+	    std::cout << "HG: Iteration " << it+1 << " error/error0 = " << err/norm << std::endl;
+	    if ( pcode >= 4) std::cout << " " << std::endl;
 	}
 	if (++it > HG::multigrid_maxiter)
 	{
@@ -656,10 +661,10 @@ amr_multigrid::ml_cycle (int  lev,
     //
     Real res_norm = ml_residual(mglev, lev);
 
-    if (pcode >= 2  && ParallelDescriptor::IOProcessor())
-    {
-	std::cout << "HG: Residual at level " << lev << " is " << res_norm << std::endl;
-    }
+//  if (pcode >= 2  && ParallelDescriptor::IOProcessor())
+//  {
+//	std::cout << "HG: Residual at level " << lev << " is " << res_norm << std::endl;
+//  }
 
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
     //
@@ -751,7 +756,9 @@ amr_multigrid::ml_residual (int mglev,
     // kill a feedback loop by which garbage in the border of dest
     // could grow exponentially.
     //
+
     level_residual(resid[mglev], source[lev], dest[lev], mglev, true, 0);
+
     if (lev < lev_max)
     {
 	const int mgf = ml_index[lev+1];
@@ -774,12 +781,52 @@ amr_multigrid::mg_cycle (int mglev,
 {
     if (mglev == 0)
     {
+
+        if (pcode >= 4 )
+        {
+    	   MultiFab& wtmp = work[mglev];
+       	   MultiFab& ctmp = corr[mglev];
+            wtmp.setVal(0.0);
+            level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
+            double nm = mfnorm(wtmp);
+            if ( ParallelDescriptor::IOProcessor() )
+            {
+                std::cout << "HG: AT LEVEL " << mglev << std::endl;
+                std::cout << "   DN: Norm before bottom " << nm << std::endl;
+            }
+        }
+
 	cgsolve(mglev);
+
+        if (pcode >= 4 )
+        {
+    	   MultiFab& wtmp = work[mglev];
+       	   MultiFab& ctmp = corr[mglev];
+            wtmp.setVal(0.0);
+            level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
+            double nm = mfnorm(wtmp);
+            if ( ParallelDescriptor::IOProcessor() )
+            {
+                std::cout << "   UP: Norm after  bottom " << nm << std::endl;
+            }
+        }
     }
     else if (get_amr_level(mglev - 1) == -1)
     {
 	MultiFab& ctmp = corr[mglev];
 	MultiFab& wtmp = work[mglev];
+
+        if (pcode >= 4 )
+        {
+            wtmp.setVal(0.0);
+            level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
+            double nm = mfnorm(wtmp);
+            if ( ParallelDescriptor::IOProcessor() )
+            {
+                std::cout << "HG: AT LEVEL " << mglev << std::endl;
+                std::cout << "   DN: Norm before smooth " << nm << std::endl;
+            }
+        }
 
 	relax(mglev, i1, true);
 
@@ -790,10 +837,7 @@ amr_multigrid::mg_cycle (int mglev,
 	    level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
 	    double nm = mfnorm(wtmp);
 	    if ( ParallelDescriptor::IOProcessor() )
-	    {
-		std::cout << "HG: Residual at multigrid level "
-                          << mglev << " is " << nm << std::endl;
-	    }
+                std::cout << "   DN: Norm after  smooth " << nm << std::endl;
 	}
 	else
 	{
@@ -814,6 +858,33 @@ amr_multigrid::mg_cycle (int mglev,
         //
 	ctmp.plus(wtmp, 0, 1, 0);
     }
+
+    if (pcode >= 4 )
+    {
+	MultiFab& wtmp = work[mglev];
+	MultiFab& ctmp = corr[mglev];
+        wtmp.setVal(0.0);
+        level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
+        double nm = mfnorm(wtmp);
+        if ( ParallelDescriptor::IOProcessor() )
+        {
+            std::cout << "HG: AT LEVEL " << mglev << std::endl;
+            std::cout << "   UP: Norm after  interp " << nm << std::endl;
+        }
+    }
+
     relax(mglev, i2, false);
-    // ::exit(0);
+
+    if (pcode >= 4 )
+    {
+	MultiFab& wtmp = work[mglev];
+	MultiFab& ctmp = corr[mglev];
+        wtmp.setVal(0.0);
+        level_residual(wtmp, resid[mglev], ctmp, mglev, true, 0);
+        double nm = mfnorm(wtmp);
+        if ( ParallelDescriptor::IOProcessor() )
+        {
+            std::cout << "   UP: Norm after  smooth " << nm << std::endl;
+        }
+    }
 }
