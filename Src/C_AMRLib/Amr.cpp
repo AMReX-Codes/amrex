@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.193 2010-01-29 20:42:28 lijewski Exp $
+// $Id: Amr.cpp,v 1.194 2010-02-13 22:51:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -445,6 +445,7 @@ Amr::Amr ()
 
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
+    pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
@@ -485,31 +486,6 @@ Amr::Amr ()
         {
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
-    }
-
-    //
-    // Read in n_error_buf.
-    //
-    if (pp.countval("n_error_buf") == 1)
-    {
-        //
-        // Set all values to the single available value.
-        //
-        int the_n_error_buf = 0;
-
-        pp.query("n_error_buf",the_n_error_buf);
-
-        for (i = 0; i <= max_level; i++)
-        {
-            n_error_buf[i] = the_n_error_buf;
-        }
-    }
-    else
-    {
-        //
-        // Otherwise we expect a vector of n_error_buf values.
-        //
-        pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     }
 
     //
@@ -599,9 +575,9 @@ Amr::Amr ()
 bool
 Amr::isStatePlotVar (const std::string& name)
 {
-    std::list<std::string>::const_iterator li = state_plot_vars.begin();
+    std::list<std::string>::const_iterator li = state_plot_vars.begin(), end = state_plot_vars.end();
 
-    for ( ; li != state_plot_vars.end(); ++li)
+    for ( ; li != end; ++li)
         if (*li == name)
             return true;
 
@@ -642,8 +618,8 @@ Amr::deleteStatePlotVar (const std::string& name)
 bool
 Amr::isDerivePlotVar (const std::string& name)
 {
-    for (std::list<std::string>::const_iterator li = derive_plot_vars.begin();
-         li != derive_plot_vars.end();
+    for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), end = derive_plot_vars.end();
+         li != end;
          ++li)
     {
         if (*li == name)
@@ -659,8 +635,8 @@ Amr::fillDerivePlotVarList ()
     derive_plot_vars.clear();
     DeriveList& derive_lst = AmrLevel::get_derive_lst();
     std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-         it != dlist.end();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), end = dlist.end();
+         it != end;
          ++it)
     {
         if (it->deriveType() == IndexType::TheCellType())
@@ -992,8 +968,8 @@ Amr::initialInit (Real strt_time,
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart = 0, piEnd = 0, piTotal = 0;
-    Real piStartAll = 0, piEndAll = 0, piTotalAll = 0;
+    Real piStart, piEnd, piTotal;
+    Real piStartAll, piEndAll, piTotalAll;
     piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
@@ -1019,10 +995,9 @@ Amr::initialInit (Real strt_time,
     piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if (false && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << '\n';
-        std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
+      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
 #else
     FORT_PROBINIT(&init,
@@ -1152,8 +1127,8 @@ Amr::restart (const std::string& filename)
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart = 0, piEnd = 0, piTotal = 0;
-    Real piStartAll = 0, piEndAll = 0, piTotalAll = 0;
+    Real piStart, piEnd, piTotal;
+    Real piStartAll, piEndAll, piTotalAll;
     piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
@@ -1179,10 +1154,9 @@ Amr::restart (const std::string& filename)
     piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if (false && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << '\n';
-        std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
+      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
 #else
     FORT_PROBINIT(&init,
@@ -1851,8 +1825,8 @@ Amr::regrid (int  lbase,
         //
         std::list<SlabStatRec*>& ssl = AmrLevel::get_slabstat_lst().list();
 
-        for (std::list<SlabStatRec*>::iterator li = ssl.begin();
-             li != ssl.end();
+        for (std::list<SlabStatRec*>::iterator li = ssl.begin(), end = ssl.end();
+             li != end;
              ++li)
         {
             DistributionMapping::AddToCache((*li)->mf().DistributionMap());
@@ -2256,8 +2230,8 @@ Amr::grid_places (int              lbase,
             // We want the net effect to be that grids are NOT shrunk away
             // from the edges of the domain.
             //
-            for (BoxList::iterator blt = bl_tagged.begin();
-                 blt != bl_tagged.end();
+            for (BoxList::iterator blt = bl_tagged.begin(), end = bl_tagged.end();
+                 blt != end;
                  ++blt)
             {
                 for (int idir = 0; idir < BL_SPACEDIM; idir++)

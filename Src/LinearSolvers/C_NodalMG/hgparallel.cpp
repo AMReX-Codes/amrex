@@ -114,8 +114,8 @@ task::print_dependencies (std::ostream& os) const
 {
     os << "Task " << get_sequence_number() << " depends on ( ";
 
-    for (std::list<task_proxy>::const_iterator lit = dependencies.begin();
-	 lit != dependencies.end();
+    for (std::list<task_proxy>::const_iterator lit = dependencies.begin(), end = dependencies.end();
+	 lit != end;
 	 ++lit)
     {
         if (!(*lit).is_finished())
@@ -187,8 +187,8 @@ task::_do_depend ()
         //
         return;
 
-    for (std::list<task::task_proxy>::const_iterator cit = m_task_list.begin();
-	 cit != m_task_list.end();
+    for (std::list<task::task_proxy>::const_iterator cit = m_task_list.begin(), end = m_task_list.end();
+	 cit != end;
          ++cit)
     {
         BL_ASSERT(!(*cit).null());
@@ -230,8 +230,8 @@ task_list::print_dependencies (std::ostream& os) const
 {
     os << "Task list ( " << '\n';
 
-    for (std::list<task::task_proxy>::const_iterator tli = tasks.begin();
-	 tli != tasks.end();
+    for (std::list<task::task_proxy>::const_iterator tli = tasks.begin(), end = tasks.end();
+	 tli != end;
          ++tli)
     {
         (*tli)->print_dependencies(os);
@@ -251,9 +251,9 @@ task_list::execute (const char* msg)
     //
     // Assign message tag IDs ...
     //
-    std::list<task::task_proxy>::iterator tli = tasks.begin();
+    std::list<task::task_proxy>::iterator tli = tasks.begin(), end = tasks.end();
 
-    for ( ; tli != tasks.end(); ++tli)
+    for ( ; tli != end; ++tli)
     {
         int with = -1;
 

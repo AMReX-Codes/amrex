@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.55 2007-07-05 20:04:32 lijewski Exp $
+# $Id: GNUmakefile,v 1.56 2010-02-13 22:52:49 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -8,18 +8,17 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG     = TRUE
 DEBUG     = FALSE
-PROFILE   = FALSE
 PROFILE   = TRUE
+PROFILE   = FALSE
 GPROF     = TRUE
 GPROF     =
 DIM       = 2
 DIM       = 3
-COMP      = cxx
-COMP	  = g++
-FCOMP	  = g77
-FCOMP     = Intel
-USE_MPI   = TRUE
+COMP      = PathScale
+FCOMP     = PathScale
 USE_MPI   = FALSE
+USE_MPI   = TRUE
+USE_OMP   = TRUE
 
 # To build the executable: EBASE=proj
 

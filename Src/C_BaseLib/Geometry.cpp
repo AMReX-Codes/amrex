@@ -144,7 +144,7 @@ Geometry::FlushPIRMCache ()
 {
     int reused = 0;
 
-    for (FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); ++it)
+    for (FPBMMapIter it = m_FPBCache.begin(), end = m_FPBCache.end(); it != end; ++it)
         if (it->second.m_reused)
             reused++;
 

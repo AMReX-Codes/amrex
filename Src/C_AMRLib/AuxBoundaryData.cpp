@@ -72,7 +72,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     //
     // Now strip out intersections with original BoxArray.
     //
-    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    for (BoxList::const_iterator it = gcells.begin(), end = gcells.end(); it != end; ++it)
     {
         std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
 

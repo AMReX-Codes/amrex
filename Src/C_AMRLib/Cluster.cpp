@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.26 2010-02-11 23:38:05 lijewski Exp $
+// $Id: Cluster.cpp,v 1.27 2010-02-13 22:51:35 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -371,8 +371,8 @@ ClusterList::boxArray () const
 
     int i = 0;
 
-    for (std::list<Cluster*>::const_iterator cli = lst.begin();
-         cli != lst.end();
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
+         cli != end;
          ++cli, ++i)
     {
         ba.set(i,(*cli)->box());
@@ -390,8 +390,8 @@ ClusterList::boxArray (BoxArray& ba) const
 
     int i = 0;
 
-    for (std::list<Cluster*>::const_iterator cli = lst.begin();
-         cli != lst.end();
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
+         cli != end;
          ++cli, ++i)
     {
         ba.set(i,(*cli)->box());
@@ -402,8 +402,8 @@ BoxList
 ClusterList::boxList() const
 {
     BoxList blst;
-    for (std::list<Cluster*>::const_iterator cli = lst.begin();
-         cli != lst.end();
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
+         cli != end;
          ++cli)
     {
         blst.push_back((*cli)->box());
@@ -415,8 +415,8 @@ void
 ClusterList::boxList (BoxList& blst) const
 {
     blst.clear();
-    for (std::list<Cluster*>::const_iterator cli = lst.begin();
-         cli != lst.end();
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
+         cli != end;
          ++cli)
     {
         blst.push_back((*cli)->box());

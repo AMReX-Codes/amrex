@@ -86,8 +86,8 @@ amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
     BL_ASSERT(il.size() == exterior_mesh.size());
 
     grid_ref = new int[exterior_mesh.size()];
-    std::list<int>::iterator in = il.begin();
-    for (int igrid = 0; in != il.end(); ++in, ++igrid)
+    std::list<int>::const_iterator in = il.begin(), end = il.end();
+    for (int igrid = 0; in != end; ++in, ++igrid)
     {
 	grid_ref[igrid] = *in;
     }
@@ -1443,7 +1443,7 @@ mixed_boundary::duplicate (level_interface::BoxMSet& bmset,
 	{
             std::list<Box> pieces;
 
-	    for (level_interface::BoxMSetConstIter bn = bmset.begin(); bn != bmset.end(); ++bn)
+	    for (level_interface::BoxMSetConstIter bn = bmset.begin(), end = bmset.end(); bn != end; ++bn)
 	    {
 		if (bn->type(i) == IndexType::NODE)
 		{
@@ -1480,8 +1480,7 @@ mixed_boundary::duplicate (level_interface::BoxMSet& bmset,
 		}
 	    }
 
-            for (std::list<Box>::iterator it = pieces.begin(); it != pieces.end(); ++it)
-                bmset.insert(*it);
+            bmset.insert(pieces.begin(),pieces.end());
 	}
     }
 }
