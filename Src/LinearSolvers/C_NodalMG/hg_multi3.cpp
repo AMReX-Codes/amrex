@@ -5,29 +5,23 @@
 #include <Profiler.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
-#define   FORT_HGRES		hgres_
 #define   FORT_HGRES_TERRAIN	hgres_terrain_
 #define   FORT_HGRES_FULL	hgres_full_
-#define   FORT_HGRESU		hgresu_
-#define   FORT_HGRESUR		hgresur_
-#define   FORT_HGRLX		hgrlx_
+#define   FORT_HGRES_CROSS	hgres_cross_
 #define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
 #define   FORT_HGRLX_FULL	hgrlx_full_
-#define   FORT_HGRLXUR		hgrlxur_
+#define   FORT_HGRLX		hgrlx_
 #define   FORT_HGCG		hgcg_
 #define   FORT_HGCG1		hgcg1_
 #define   FORT_HGCG2		hgcg2_
 #define   FORT_HGIP		hgip_
 #elif defined( BL_FORT_USE_UPPERCASE )
-#define   FORT_HGRES		HGRES
 #define   FORT_HGRES_TERRAIN    HGRES_TERRAIN
 #define   FORT_HGRES_FULL	HGRES_FULL
-#define   FORT_HGRESU		HGRESU
-#define   FORT_HGRESUR		HGRESUR
+#define   FORT_HGRES_CROSS	HGRES_CROSS
 #define   FORT_HGRLX		HGRLX
 #define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
 #define   FORT_HGRLX_FULL	HGRLX_FULL
-#define   FORT_HGRLXUR		HGRLXUR
 #define   FORT_HGRLXL		HGRLXL
 #define   FORT_HGRLXL_FULL	HGRLXL_FULL
 #define   FORT_HGCG		HGCG
@@ -35,15 +29,12 @@
 #define   FORT_HGCG2		HGCG2
 #define   FORT_HGIP		HGIP
 #elif defined( BL_FORT_USE_LOWERCASE )
-#define   FORT_HGRES		hgres
 #define   FORT_HGRES_TERRAIN    hgres_terrain
 #define   FORT_HGRES_FULL	hgres_full
-#define   FORT_HGRESU		hgresu
-#define   FORT_HGRESUR		hgresur
+#define   FORT_HGRES_CROSS	hgres_cross
 #define   FORT_HGRLX		hgrlx
 #define   FORT_HGRLX_TERRAIN    hgrlx_terrain
 #define   FORT_HGRLX_FULL	hgrlx_full
-#define   FORT_HGRLXUR		hgrlxur
 #define   FORT_HGCG		hgcg
 #define   FORT_HGCG1		hgcg1
 #define   FORT_HGCG2		hgcg2
@@ -68,37 +59,25 @@ extern "C"
     void FORT_HGRES_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS,
 			     const Real*, intS, intS);
-    void FORT_HGRESU        (Real*, intS, const Real*, const Real*,
-			     const Real*, const Real*, intS, const int*);
-    void FORT_HGRESUR       (Real*, intS, const Real*, const Real*,
+    void FORT_HGRES_CROSS   (Real*, intS, const Real*, const Real*,
 			     const Real*, intS, const int*);
-    void FORT_HGRLX         (Real*, intS, const Real*, intS,
-			     const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS);
-    void FORT_HGRLXUR        (Real*, const Real*, const Real*,
+    void FORT_HGRLX          (Real*, const Real*, const Real*,
 			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS,
 			     intS, const int*);
 #else
-    void FORT_HGRES         (Real*, intS, const Real*, intS,
-			     const Real*, intS, CRealPS, intS, intS,
-			     CRealPS, const int* );
     void FORT_HGRES_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS,
 			     const Real*, intS, intS);
-    void FORT_HGRESU        (Real*, intS, const Real*, const Real*,
-			     const Real*, const Real*, intS, const int*);
-    void FORT_HGRESUR        (Real*, intS, const Real*, const Real*,
+    void FORT_HGRES_CROSS    (Real*, intS, const Real*, const Real*,
 			      const Real*, intS, const int*);
-    void FORT_HGRLX         (Real*, intS, const Real*, intS,
-			     CRealPS, intS, const Real*, intS, intS,
-			     CRealPS, const int*, const int*);
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS,
 			     const Real*, intS, intS);
-    void FORT_HGRLXUR        (Real*, const Real*, const Real*,
+    void FORT_HGRLX          (Real*, const Real*, const Real*,
 			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
 			     CRealPS, intS, Real*, intS, intS, intS,
@@ -183,17 +162,10 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 		BoxLib::surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
 		Box(lev_interface[mglev].part_fine(r_mfi.index()));
 
-#if 1
-	    FORT_HGRESU(r[r_mfi].dataPtr(), DIMLIST(rbox),
-			s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
-                        sigma_node[mglev][r_mfi].dataPtr(), mask[mglev][r_mfi].dataPtr(), DIMLIST(freg),
-                        &isRZ);
-#else
-	    FORT_HGRESUR(r[r_mfi].dataPtr(), DIMLIST(rbox),
-			s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
-                        sigma_node[mglev][r_mfi].dataPtr(), DIMLIST(freg),
-                        &isRZ);
-#endif
+	    FORT_HGRES_CROSS(r[r_mfi].dataPtr(), DIMLIST(rbox),
+			     s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
+                             sigma_node[mglev][r_mfi].dataPtr(), DIMLIST(freg),
+                             &isRZ);
 	}
     }
     HG_TEST_NORM(r, "level_residual: out");
@@ -261,12 +233,11 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		    else if (m_stencil == cross)
 		    {
 			const int isRZ = getCoordSys();
-			FORT_HGRLXUR(corr[mglev][r_mfi].dataPtr(),
-                                    resid[mglev][r_mfi].dataPtr(),
-                                    sigma_node[mglev][r_mfi].dataPtr(),
-                                    cen[mglev][r_mfi].dataPtr(), DIMLIST(sbox),
-                                    DIMLIST(freg),
-				    &isRZ);
+			FORT_HGRLX(corr[mglev][r_mfi].dataPtr(),
+                                  resid[mglev][r_mfi].dataPtr(),
+                                  sigma_node[mglev][r_mfi].dataPtr(),
+                                  cen[mglev][r_mfi].dataPtr(), DIMLIST(sbox),
+                                  DIMLIST(freg),&isRZ);
 		    }
 		}
 		else
