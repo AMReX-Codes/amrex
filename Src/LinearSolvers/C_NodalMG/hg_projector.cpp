@@ -936,12 +936,12 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     //
     if (Sync_resid_fine != 0)
     {
-	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, crse_geom, h, Lev_min, false);
+	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, h, Lev_min, false);
     }
 
     if (Sync_resid_crse != 0)
     {
-	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
+	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, h, Lev_min, true);
     }
 }
 
@@ -956,9 +956,6 @@ holy_grail_amr_projector::pressure_project (PArray<MultiFab>& p,
                                             Real              scale)
 {
     Box crse_domain(crse_geom.Domain());
-
-    PArray<MultiFab> rhs_local_crse(Lev_max+1, PArrayManage);
-    PArray<MultiFab> rhs_local_fine(Lev_max+1, PArrayManage);
 
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
@@ -978,7 +975,6 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          PArray<MultiFab>& rhs_local,
                                          PArray<MultiFab>& Sigma_local,
                                          MultiFab*         Sync_resid,
-                                         const Geometry&   crse_geom,
                                          Real              H[],
                                          int               Lev_min,
                                          bool              is_coarse)
@@ -1378,12 +1374,12 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     //
     if (Sync_resid_fine != 0)
     {
-	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, crse_geom, h, Lev_min, false);
+	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, h, Lev_min, false);
     }
 
     if (Sync_resid_crse != 0)
     {
-	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
+	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, h, Lev_min, true);
     }
 }
 
