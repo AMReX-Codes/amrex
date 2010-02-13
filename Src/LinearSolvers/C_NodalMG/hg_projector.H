@@ -182,7 +182,6 @@ protected:
                         PArray<MultiFab>& rhs_local,
                         PArray<MultiFab>& Sigma_local,
                         MultiFab*         Sync_resid,
-                        const Geometry&   crse_geom,
                         Real              H[],
                         int               Lev_min,
                         bool              is_coarse);
