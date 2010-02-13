@@ -193,7 +193,7 @@ BoxList::contains (const BoxList&  bl) const
 
     BoxArray ba(*this);
 
-    for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
+    for (const_iterator bli = bl.begin(), end = bl.end(); bli != end; ++bli)
         if (!ba.contains(*bli))
             return false;
 
@@ -237,7 +237,7 @@ BoxList::intersect (const BoxList& b)
 
     for (iterator lhs = begin(); lhs != end(); ++lhs)
     {
-        for (const_iterator rhs = b.begin(); rhs != b.end(); ++rhs)
+        for (const_iterator rhs = b.begin(), end = b.end(); rhs != end; ++rhs)
         {
             Box bx = *lhs & *rhs;
             if (bx.ok())
@@ -289,7 +289,7 @@ BoxList::complementIn (const Box&     b,
             mesh.push_back(minbox);
         mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
 
-        for (BoxList::const_iterator bli = mesh.begin(); bli != mesh.end(); ++bli)
+        for (BoxList::const_iterator bli = mesh.begin(), end = mesh.end(); bli != end; ++bli)
         {
             const Box bx = *bli & b;
 
@@ -328,7 +328,7 @@ BoxList::complementIn_base (const Box&     b,
 
     push_back(b);
 
-    for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
+    for (const_iterator bli = bl.begin(), end = bl.end(); bli != end && isNotEmpty(); ++bli)
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
         {

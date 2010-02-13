@@ -223,7 +223,7 @@ FabArrayBase::CPC::FlushCache ()
 {
     int reused = 0;
 
-    for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); ++it)
+    for (CPCCacheIter it = TheCopyCache.begin(), end = TheCopyCache.end(); it != end; ++it)
         if (it->second.m_reused)
             reused++;
 
@@ -288,7 +288,7 @@ FabArrayBase::FlushSICache ()
 {
     int reused = 0;
 
-    for (SIMMapIter it = SICache.begin(); it != SICache.end(); ++it)
+    for (SIMMapIter it = SICache.begin(), end = SICache.end(); it != end; ++it)
         if (it->second.m_reused)
             reused++;
 

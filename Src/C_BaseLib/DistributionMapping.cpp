@@ -519,7 +519,7 @@ knapsack (const std::vector<long>& wgts, int nprocs)
     double max_weight = 0;
     double sum_weight = 0;
     std::list<WeightedBoxList>::iterator it = wblqg.begin();
-    for ( ; it != wblqg.end(); ++it)
+    for (std::list<WeightedBoxList>::const_iterator end =  wblqg.end(); it != end; ++it)
     {
         long wgt = (*it).weight();
         sum_weight += wgt;
@@ -604,8 +604,8 @@ top:
     for (int i = 0; i < nprocs; ++i)
     {
         const WeightedBoxList& wbl = *cit;
-        std::list<WeightedBox>::const_iterator it1 = wbl.begin();
-        for ( ; it1 != wbl.end(); ++it1)
+        std::list<WeightedBox>::const_iterator it1 = wbl.begin(), end = wbl.end();
+        for ( ; it1 != end; ++it1)
         {
             result[i].push_back((*it1).boxid());
         }
@@ -849,7 +849,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     for (unsigned int i = 0; i < vec.size(); i++)
     {
-        for (std::list<int>::iterator lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+        for (std::list<int>::iterator lit = vec[i].begin(), end = vec[i].end(); lit != end; ++lit)
             wgts_per_cpu[i] += wgts[*lit];
     }
 
@@ -874,7 +874,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
         const int idx = LIpairV[i].second;
         const int cpu = ord[i%nprocs];
 
-        for (std::list<int>::iterator lit = vec[idx].begin(); lit != vec[idx].end(); ++lit)
+        for (std::list<int>::iterator lit = vec[idx].begin(), end = vec[idx].end(); lit != end; ++lit)
         {
             m_ref->m_pmap[*lit] = cpu;
         }

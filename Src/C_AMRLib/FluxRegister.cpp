@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.99 2010-02-09 22:15:36 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.100 2010-02-13 22:51:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -301,8 +301,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin();
-         it != RFs.end();
+    for (std::list<RF>::const_iterator it = RFs.begin(), end = RFs.end();
+         it != end;
          ++it)
     {
         const RF&        rf   = *it;
@@ -502,8 +502,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin();
-         it != RFs.end();
+    for (std::list<RF>::const_iterator it = RFs.begin(), end = RFs.end();
+         it != end;
          ++it)
     {
         const RF& rf          = *it;

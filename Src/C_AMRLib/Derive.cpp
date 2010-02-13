@@ -1,5 +1,5 @@
 //
-// $Id: Derive.cpp,v 1.17 2007-07-05 20:02:11 lijewski Exp $
+// $Id: Derive.cpp,v 1.18 2010-02-13 22:51:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -233,8 +233,8 @@ DeriveList::dlist ()
 bool
 DeriveList::canDerive (const std::string& name) const 
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin();
-         li != lst.end();
+    for (std::list<DeriveRec>::const_iterator li = lst.begin(), end = lst.end();
+         li != end;
          ++li)
     {
         if (li->derive_name == name)
@@ -246,8 +246,8 @@ DeriveList::canDerive (const std::string& name) const
 const DeriveRec*
 DeriveList::get (const std::string& name) const
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin();
-         li != lst.end();
+    for (std::list<DeriveRec>::const_iterator li = lst.begin(), end = lst.end();
+         li != end;
          ++li)
     {
         if (li->derive_name == name)
@@ -263,15 +263,15 @@ DeriveList::addComponent (const std::string&    name,
                           int                   s_comp,
                           int                   n_comp)
 {
-    std::list<DeriveRec>::iterator li = lst.begin();
+    std::list<DeriveRec>::iterator li = lst.begin(), end = lst.end();
 
-    for ( ; li != lst.end(); ++li)
+    for ( ; li != end; ++li)
     {
         if (li->derive_name == name)
             break;
     }
 
-    BL_ASSERT (li != lst.end());
+    BL_ASSERT (li != end);
 
     li->addRange(d_list, state_indx, s_comp, n_comp);
 }

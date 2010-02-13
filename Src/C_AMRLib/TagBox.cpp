@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.79 2010-02-09 18:22:09 lijewski Exp $
+// $Id: TagBox.cpp,v 1.80 2010-02-13 22:51:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -405,8 +405,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin();
-         it != IDs.end();
+    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), end = IDs.end();
+         it != end;
          ++it)
     {
         BL_ASSERT(distributionMap[it->first.FabIndex()] == MyProc);

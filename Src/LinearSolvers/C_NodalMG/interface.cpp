@@ -713,9 +713,9 @@ level_interface::xfer (const BoxMSet& bmset,
     ge[idim]  = new unsigned int[nbx[idim]];
     flg[idim] = new bool[nbx[idim]];
 
-    BoxMSetConstIter bn = bmset.begin();
+    BoxMSetConstIter bn = bmset.begin(), end = bmset.end();
 
-    for (int i = 0; bn != bmset.end(); ++bn, ++i)
+    for (int i = 0; bn != end; ++bn, ++i)
     {
 	bx[idim][i] = *bn;
 	const Box btmp = BoxLib::grow(*bn,bn->type()).convert(IntVect::TheCellVector());

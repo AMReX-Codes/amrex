@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.66 2010-02-09 17:32:44 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.67 2010-02-13 22:50:17 lijewski Exp $
 //
 #include <iostream>
 
@@ -157,7 +157,7 @@ BoxArray::Ref::define (const BoxList& bl)
     BL_ASSERT(m_abox.size() == 0);
     m_abox.resize(bl.size());
     int count = 0;
-    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
+    for (BoxList::const_iterator bli = bl.begin(), end = bl.end(); bli != end; ++bli)
         m_abox.get(count++) = *bli;
 }
 
@@ -499,8 +499,8 @@ BoxArray::maxSize (int block_size)
     blst.maxSize(block_size);
     clear();
     m_ref->m_abox.resize(blst.size());
-    BoxList::iterator bli = blst.begin();
-    for (int i = 0; bli != blst.end(); ++bli)
+    BoxList::iterator bli = blst.begin(), end = blst.end();
+    for (int i = 0; bli != end; ++bli)
         set(i++, *bli);
     return *this;
 }
@@ -609,7 +609,7 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     //
     // Now strip out intersections with original BoxArray.
     //
-    for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
+    for (BoxList::const_iterator it = gcells.begin(), end = gcells.end(); it != end; ++it)
     {
         std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
 
@@ -729,7 +729,7 @@ BoxArray::removeOverlap ()
 
                 m_ref->m_abox[isects[j].first] = EmptyBox;
 
-                for (BoxList::const_iterator it = diff.begin(); it != diff.end(); ++it)
+                for (BoxList::const_iterator it = diff.begin(), end = diff.end(); it != end; ++it)
                 {
                     m_ref->m_abox.push_back(*it);
 

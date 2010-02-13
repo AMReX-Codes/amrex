@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.66 2009-10-12 21:40:17 lijewski Exp $
+// $Id: BaseFab.H,v 1.67 2010-02-13 22:50:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1501,7 +1501,7 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = BoxLib::boxDiff(domain,b);
-    for (BoxList::iterator bli = b_lst.begin(); bli != b_lst.end(); ++bli)
+    for (BoxList::iterator bli = b_lst.begin(), end = b_lst.end(); bli != end; ++bli)
         performSetVal(x, *bli, ns, num);
 }
 
