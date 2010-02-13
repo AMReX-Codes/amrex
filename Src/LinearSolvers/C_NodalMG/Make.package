@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.22 2010-02-13 00:47:08 almgren Exp $
+# $Id: Make.package,v 1.23 2010-02-13 23:06:18 lijewski Exp $
 #
 
 HGPROJ_BASE=EXE
@@ -7,7 +7,7 @@ ifeq ($(LBASE),proj)
   HGPROJ_BASE=LIB
 endif
 
-C$(HGPROJ_BASE)_sources += \
+C$(HGPROJ_BASE)_sources += cg.cpp \
 		interface.cpp boundary.cpp interpolator.cpp \
                 restrictor.cpp fill_patch.cpp amr_multi.cpp \
                 hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
