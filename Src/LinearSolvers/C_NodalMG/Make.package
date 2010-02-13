@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.21 2008-01-31 18:50:17 marc Exp $
+# $Id: Make.package,v 1.22 2010-02-13 00:47:08 almgren Exp $
 #
 
 HGPROJ_BASE=EXE
@@ -24,6 +24,7 @@ C$(HGPROJ_BASE)_headers += amr_defs.H
 f$(HGPROJ_BASE)_sources += amr_real$(DIM)d.f hg_proj$(DIM)d.f hg_avg$(DIM)d.f
 f$(HGPROJ_BASE)_sources += amr_real$(DIM)d.2.f 
 
+f$(HGPROJ_BASE)_sources += cg_$(DIM)d.f
 f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d.f
 f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.f
 f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_full.f

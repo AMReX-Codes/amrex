@@ -1643,3 +1643,233 @@ c        last term.
          end do
       end do
       end
+
+c-----------------------------------------------------------------------
+
+c NODE-based data, factor of 2 only.
+      subroutine hgints_dense(
+     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
+     &       regl0,regh0,regl1,regh1,regl2,regh2,
+     & sigx, sigy, sigz,
+     &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
+     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
+     & ir, jr, kr)
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
+      integer ir, jr, kr
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      integer i, j, k, ic, jc, kc
+      do kc = bbl2, bbh2
+         do jc = bbl1, bbh1
+            do ic = bbl0, bbh0
+               dest(ir*ic,jr*jc,kr*kc) = src(ic,jc,kc)
+            end do
+         end do
+      end do
+      if (ir .eq. 2) then
+         do kc = bbl2, bbh2
+            do jc = bbl1, bbh1
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i+1,j,k) = ((sigx(i,j-1,k-1) + sigx(i,j-1,k) +
+     &                              sigx(i,j,k-1) + sigx(i,j,k)) *
+     &                             src(ic,jc,kc) +
+     &                           (sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
+     &                              sigx(i+1,j,k-1) + sigx(i+1,j,k)) *
+     &                             src(ic+1,jc,kc)) /
+     &                             (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
+     &                              sigx(i,j,k-1) + sigx(i,j,k) +
+     &                             sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
+     &                              sigx(i+1,j,k-1) + sigx(i+1,j,k))
+               end do
+            end do
+         end do
+      end if
+      if (jr .eq. 2) then
+         do kc = bbl2, bbh2
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i,j+1,k) = ((sigy(i-1,j,k-1) + sigy(i-1,j,k) +
+     &                              sigy(i,j,k-1) + sigy(i,j,k)) *
+     &                             src(ic,jc,kc) +
+     &                            (sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
+     &                              sigy(i,j+1,k-1) + sigy(i,j+1,k)) *
+     &                             src(ic,jc+1,kc)) /
+     &                             (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
+     &                              sigy(i,j,k-1) + sigy(i,j,k) +
+     &                             sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
+     &                              sigy(i,j+1,k-1) + sigy(i,j+1,k))
+               end do
+            end do
+         end do
+      end if
+      if (kr .eq. 2) then
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1
+               do ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i,j,k+1) = ((sigz(i-1,j-1,k) + sigz(i-1,j,k) +
+     &                              sigz(i,j-1,k) + sigz(i,j,k)) *
+     &                             src(ic,jc,kc) +
+     &                            (sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
+     &                              sigz(i,j-1,k+1) + sigz(i,j,k+1)) *
+     &                             src(ic,jc,kc+1)) /
+     &                             (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
+     &                              sigz(i,j-1,k) + sigz(i,j,k) +
+     &                             sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
+     &                              sigz(i,j-1,k+1) + sigz(i,j,k+1))
+               end do
+            end do
+         end do
+      end if
+      if (ir .eq. 2 .and. jr .eq. 2) then
+         do kc = bbl2, bbh2
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i+1,j+1,k) = ((sigx(i,j,k-1) + sigx(i,j,k) +
+     &                             sigx(i,j+1,k-1) + sigx(i,j+1,k)) *
+     &                            dest(i,j+1,k) +
+     &                            (sigx(i+1,j,k-1) + sigx(i+1,j,k) +
+     &                            sigx(i+1,j+1,k-1) + sigx(i+1,j+1,k)) *
+     &                            dest(i+2,j+1,k) +
+     &                            (sigy(i,j,k-1) + sigy(i,j,k) +
+     &                             sigy(i+1,j,k-1) + sigy(i+1,j,k)) *
+     &                            dest(i+1,j,k) +
+     &                            (sigy(i,j+1,k-1) + sigy(i,j+1,k) +
+     &                            sigy(i+1,j+1,k-1) + sigy(i+1,j+1,k)) *
+     &                            dest(i+1,j+2,k)) /
+     &                           (sigx(i,j,k-1) + sigx(i,j,k) +
+     &                            sigx(i,j+1,k-1) + sigx(i,j+1,k) +
+     &                            sigx(i+1,j,k-1) + sigx(i+1,j,k) +
+     &                            sigx(i+1,j+1,k-1) + sigx(i+1,j+1,k) +
+     &                            sigy(i,j,k-1) + sigy(i,j,k) +
+     &                            sigy(i+1,j,k-1) + sigy(i+1,j,k) +
+     &                            sigy(i,j+1,k-1) + sigy(i,j+1,k) +
+     &                            sigy(i+1,j+1,k-1) + sigy(i+1,j+1,k))
+               end do
+            end do
+         end do
+      end if
+      if (ir .eq. 2 .and. kr .eq. 2) then
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i+1,j,k+1) = ((sigx(i,j-1,k) + sigx(i,j-1,k+1) +
+     &                             sigx(i,j,k) + sigx(i,j,k+1)) *
+     &                            dest(i,j,k+1) +
+     &                            (sigx(i+1,j-1,k) + sigx(i+1,j-1,k+1) +
+     &                             sigx(i+1,j,k) + sigx(i+1,j,k+1)) *
+     &                            dest(i+2,j,k+1) +
+     &                            (sigz(i,j-1,k) + sigz(i,j,k) +
+     &                             sigz(i+1,j-1,k) + sigz(i+1,j,k)) *
+     &                            dest(i+1,j,k) +
+     &                            (sigz(i,j-1,k+1) + sigz(i,j,k+1) +
+     &                            sigz(i+1,j-1,k+1) + sigz(i+1,j,k+1)) *
+     &                            dest(i+1,j,k+2)) /
+     &                           (sigx(i,j-1,k) + sigx(i,j-1,k+1) +
+     &                            sigx(i,j,k) + sigx(i,j,k+1) +
+     &                            sigx(i+1,j-1,k) + sigx(i+1,j-1,k+1) +
+     &                            sigx(i+1,j,k) + sigx(i+1,j,k+1) +
+     &                            sigz(i,j-1,k) + sigz(i,j,k) +
+     &                            sigz(i+1,j-1,k) + sigz(i+1,j,k) +
+     &                            sigz(i,j-1,k+1) + sigz(i,j,k+1) +
+     &                            sigz(i+1,j-1,k+1) + sigz(i+1,j,k+1))
+               end do
+            end do
+         end do
+      end if
+      if (jr .eq. 2 .and. kr .eq. 2) then
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+                  dest(i,j+1,k+1) = ((sigy(i-1,j,k) + sigy(i-1,j,k+1) +
+     &                             sigy(i,j,k) + sigy(i,j,k+1)) *
+     &                            dest(i,j,k+1) +
+     &                            (sigy(i-1,j+1,k) + sigy(i-1,j+1,k+1) +
+     &                             sigy(i,j+1,k) + sigy(i,j+1,k+1)) *
+     &                            dest(i,j+2,k+1) +
+     &                            (sigz(i-1,j,k) + sigz(i-1,j+1,k) +
+     &                             sigz(i,j,k) + sigz(i,j+1,k)) *
+     &                            dest(i,j+1,k) +
+     &                            (sigz(i-1,j,k+1) + sigz(i-1,j+1,k+1) +
+     &                             sigz(i,j,k+1) + sigz(i,j+1,k+1)) *
+     &                            dest(i,j+1,k+2)) /
+     &                           (sigy(i-1,j,k) + sigy(i-1,j,k+1) +
+     &                            sigy(i,j,k) + sigy(i,j,k+1) +
+     &                            sigy(i-1,j+1,k) + sigy(i-1,j+1,k+1) +
+     &                            sigy(i,j+1,k) + sigy(i,j+1,k+1) +
+     &                            sigz(i-1,j,k) + sigz(i-1,j+1,k) +
+     &                            sigz(i,j,k) + sigz(i,j+1,k) +
+     &                            sigz(i-1,j,k+1) + sigz(i-1,j+1,k+1) +
+     &                            sigz(i,j,k+1) + sigz(i,j+1,k+1))
+               end do
+            end do
+         end do
+      end if
+      if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  k = kr * kc
+               dest(i+1,j+1,k+1) = ((sigx(i,j,k) + sigx(i,j,k+1) +
+     &                               sigx(i,j+1,k) + sigx(i,j+1,k+1)) *
+     &                              dest(i,j+1,k+1) +
+     &                              (sigx(i+1,j,k) + sigx(i+1,j,k+1) +
+     &                            sigx(i+1,j+1,k) + sigx(i+1,j+1,k+1)) *
+     &                              dest(i+2,j+1,k+1) +
+     &                              (sigy(i,j,k) + sigy(i,j,k+1) +
+     &                               sigy(i+1,j,k) + sigy(i+1,j,k+1)) *
+     &                              dest(i+1,j,k+1) +
+     &                              (sigy(i,j+1,k) + sigy(i,j+1,k+1) +
+     &                            sigy(i+1,j+1,k) + sigy(i+1,j+1,k+1)) *
+     &                              dest(i+1,j+2,k+1) +
+     &                              (sigz(i,j,k) + sigz(i,j+1,k) +
+     &                               sigz(i+1,j,k) + sigz(i+1,j+1,k)) *
+     &                              dest(i+1,j+1,k) +
+     &                              (sigz(i,j,k+1) + sigz(i,j+1,k+1) +
+     &                            sigz(i+1,j,k+1) + sigz(i+1,j+1,k+1)) *
+     &                              dest(i+1,j+1,k+2))
+               dest(i+1,j+1,k+1) = dest(i+1,j+1,k+1) /
+     &                             (sigx(i,j,k) + sigx(i,j,k+1) +
+     &                              sigx(i,j+1,k) + sigx(i,j+1,k+1) +
+     &                              sigx(i+1,j,k) + sigx(i+1,j,k+1) +
+     &                             sigx(i+1,j+1,k) + sigx(i+1,j+1,k+1) +
+     &                              sigy(i,j,k) + sigy(i,j,k+1) +
+     &                              sigy(i+1,j,k) + sigy(i+1,j,k+1) +
+     &                              sigy(i,j+1,k) + sigy(i,j+1,k+1) +
+     &                             sigy(i+1,j+1,k) + sigy(i+1,j+1,k+1) +
+     &                              sigz(i,j,k) + sigz(i,j+1,k) +
+     &                              sigz(i+1,j,k) + sigz(i+1,j+1,k) +
+     &                              sigz(i,j,k+1) + sigz(i,j+1,k+1) +
+     &                              sigz(i+1,j,k+1) + sigz(i+1,j+1,k+1))
+               end do
+            end do
+         end do
+      end if
+      end
