@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.204 2010-02-13 22:50:17 lijewski Exp $
+// $Id: FabArray.H,v 1.205 2010-02-16 18:41:07 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -58,13 +58,17 @@ private:
     int m_fabIndex;
 };
 
+//
+// This is meant to be a concrete class not a polymorphic one.
+//
+
 class FabArrayBase
 {
 public:
 
     FabArrayBase ();
 
-    virtual ~FabArrayBase();
+    ~FabArrayBase();
     //
     // Returns the grow factor that defines the region of definition.
     //
@@ -82,12 +86,12 @@ public:
     // Returns a constant reference to the Kth Box in the BoxArray.
     // That is, the valid region of the Kth grid.
     //
-    virtual const Box& box (int K) const;
+    const Box& box (int K) const;
     //
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
     //
-    virtual Box fabbox (int K) const;
+    const Box fabbox (int K) const;
     //
     // Returns the number of FABs in the FabArray..
     //
@@ -315,7 +319,7 @@ public:
     //
     //@ManDoc: Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const;
+    const Box fabbox () const;
     //
     //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
     //
@@ -437,9 +441,9 @@ public:
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
     //
-    //@ManDoc: The (virtual) destructor -- deletes all FABs in the array.
+    //@ManDoc: The destructor -- deletes all FABs in the array.
     //
-    virtual ~FabArray ();
+    ~FabArray ();
 
     /*@ManDoc: Define this FabArray identically to that performed by
                the constructor having an analogous function signature.
@@ -860,6 +864,13 @@ FabArrayBase::IndexMap () const
 }
 
 inline
+MFIter::MFIter (const FabArrayBase& fabarray)
+    :
+    fabArray(fabarray),
+    currentIndex(0)
+{}
+
+inline
 const FabArrayBase&
 MFIter::theFabArrayBase () const
 {
@@ -885,6 +896,20 @@ bool
 MFIter::isValid ()
 {
     return currentIndex < fabArray.IndexMap().size();
+}
+
+inline
+const Box&
+MFIter::validbox () const
+{
+    return fabArray.box(fabArray.IndexMap()[currentIndex]);
+}
+
+inline
+const Box
+MFIter::fabbox () const
+{
+    return fabArray.fabbox(fabArray.IndexMap()[currentIndex]);
 }
 
 template <class FAB>
