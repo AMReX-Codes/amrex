@@ -2,7 +2,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.5 2001-08-01 21:51:04 lijewski Exp $
+// $Id: Mask.H,v 1.6 2010-02-16 18:02:58 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -33,16 +33,12 @@ public:
     //
     //@ManDoc: default constructor
     //
-    Mask ()
-        :
-        BaseFab<int>() {}
+    Mask ();
     //
     //@ManDoc: allocating constructor (nc=number of components)
     //
     Mask (const Box& bx,
-          int        nc = 1)
-        :
-        BaseFab<int>(bx,nc) {}
+          int        nc = 1);
     //
     //@ManDoc: construct from input stream
     //
@@ -50,7 +46,7 @@ public:
     //
     //@ManDoc: destructor
     //
-    virtual ~Mask () {}
+    ~Mask ();
     //
     //@ManDoc: Initialize from stream.
     //
