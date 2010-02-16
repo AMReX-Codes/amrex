@@ -3,7 +3,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.9 2006-09-01 23:10:36 lijewski Exp $
+// $Id: InterpBndryData.H,v 1.10 2010-02-16 17:54:23 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -51,9 +51,7 @@ public:
     //
     //@ManDoc: default constructor
     //
-    InterpBndryData ()
-        :
-        BndryData() {}
+    InterpBndryData ();
     //
     //@ManDoc: constructor for given BoxArray, etc
     //
@@ -63,18 +61,11 @@ public:
     //
     //@ManDoc: Copy constructor.
     //
-    InterpBndryData (const InterpBndryData& rhs) : BndryData(rhs) {}
+    InterpBndryData (const InterpBndryData& rhs);
     //
     //@ManDoc: Copy assignment operator.
     //
-    InterpBndryData& operator= (const InterpBndryData& rhs)
-    {
-        if (!(this == &rhs))
-        {
-            BndryData::operator=(rhs);
-        }
-        return *this;
-    }
+    InterpBndryData& operator= (const InterpBndryData& rhs);
     //
     //@ManDoc: interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version

@@ -3,7 +3,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.12 2001-08-01 21:51:03 lijewski Exp $
+// $Id: BndryData.H,v 1.13 2010-02-16 17:55:01 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -61,7 +61,7 @@ public:
     //
     //@ManDoc: default constructor
     //
-    BndryData() : BndryRegister () {}
+    BndryData();
 
     /*@ManDoc: constructor specifying number of components and box of physical
         domain (cell-centered)

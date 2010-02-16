@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.21 2007-10-29 04:26:20 almgren Exp $
+// $Id: InterpBndryData.cpp,v 1.22 2010-02-16 17:54:23 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -57,6 +57,25 @@ Real* fabdat = (fab).dataPtr();
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
+
+
+InterpBndryData::InterpBndryData ()
+    :
+    BndryData() {}
+
+InterpBndryData::InterpBndryData (const InterpBndryData& rhs)
+    :
+    BndryData(rhs) {}
+
+InterpBndryData&
+InterpBndryData::operator= (const InterpBndryData& rhs)
+{
+    if (!(this == &rhs))
+    {
+        BndryData::operator=(rhs);
+    }
+    return *this;
+}
 
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
                                   int             _ncomp,
