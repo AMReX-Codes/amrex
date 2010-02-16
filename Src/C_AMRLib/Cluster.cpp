@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.27 2010-02-13 22:51:35 lijewski Exp $
+// $Id: Cluster.cpp,v 1.28 2010-02-16 17:42:46 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -106,8 +106,8 @@ Cluster::distribute (ClusterList&     clst,
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
    
-    for (BoxDomain::const_iterator bdi = bd.begin();
-         bdi != bd.end() && ok();
+    for (BoxDomain::const_iterator bdi = bd.begin(), end = bd.end();
+         bdi != end && ok();
          ++bdi)
     {
         Cluster* c = new Cluster(*this, *bdi);
@@ -356,8 +356,8 @@ ClusterList::ClusterList (IntVect* pts,
 
 ClusterList::~ClusterList ()
 {
-    for (std::list<Cluster*>::iterator cli = lst.begin();
-         cli != lst.end();
+    for (std::list<Cluster*>::iterator cli = lst.begin(), end = lst.end();
+         cli != end;
          ++cli)
     {
         delete *cli;
