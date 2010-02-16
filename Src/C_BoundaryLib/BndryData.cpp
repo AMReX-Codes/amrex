@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.19 2007-02-16 00:02:37 lijewski Exp $
+// $Id: BndryData.cpp,v 1.20 2010-02-16 17:55:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -9,9 +9,15 @@
 #include <LO_BCTYPES.H>
 #include <ParallelDescriptor.H>
 
+//
 // Mask info required for this many cells past grid edge
 //  (here, e.g. ref=4, crse stencil width=3, and let stencil slide 2 past grid edge)
+//
 int BndryData::NTangHalfWidth = 5;
+
+BndryData::BndryData()
+    :
+    BndryRegister () {}
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
