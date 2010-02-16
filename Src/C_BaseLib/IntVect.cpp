@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.22 2010-02-11 22:22:34 lijewski Exp $
+// $Id: IntVect.cpp,v 1.23 2010-02-16 18:15:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -87,7 +87,7 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT2
 }
 
-IntVect
+const IntVect
 BoxLib::min (const IntVect& p1,
 	     const IntVect& p2)
 {
@@ -95,7 +95,7 @@ BoxLib::min (const IntVect& p1,
     return p.min(p2);
 }
 
-IntVect
+const IntVect
 BoxLib::max (const IntVect& p1,
 	     const IntVect& p2)
 {
@@ -103,7 +103,7 @@ BoxLib::max (const IntVect& p1,
     return p.max(p2);
 }
 
-IntVect
+const IntVect
 BoxLib::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
@@ -112,7 +112,7 @@ BoxLib::BASISV (int dir)
     return tmp;
 }
 
-IntVect
+const IntVect
 BoxLib::reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
@@ -123,7 +123,7 @@ BoxLib::reflect (const IntVect& a,
     return b;
 }
 
-IntVect
+const IntVect
 BoxLib::coarsen (const IntVect& p,
 		 int            s)
 {
@@ -132,7 +132,7 @@ BoxLib::coarsen (const IntVect& p,
     return v.coarsen(IntVect(D_DECL(s,s,s)));
 }
 
-IntVect
+const IntVect
 BoxLib::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {

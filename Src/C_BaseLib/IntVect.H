@@ -1,7 +1,7 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.24 2010-02-11 22:22:34 lijewski Exp $
+// $Id: IntVect.H,v 1.25 2010-02-16 18:15:17 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -27,59 +27,59 @@ class IntVect;
 namespace BoxLib
 {
     /*@ManDoc: Returns a basis vector in the given coordinate direction;
-      eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
+      eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
       directions are zero based.
     */
-    IntVect BASISV (int dir);
+    const IntVect BASISV (int dir);
 
     /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
                argument IntVects.
     */
-    IntVect min (const IntVect& p1, const IntVect& p2);
+    const IntVect min (const IntVect& p1, const IntVect& p2);
 
     /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
       argument IntVects.
     */
-    IntVect max (const IntVect& p1, const IntVect& p2);
+    const IntVect max (const IntVect& p1, const IntVect& p2);
 
     /*@ManDoc: Returns a IntVect obtained by multiplying each of the
       components of this IntVect by s.
     */
-    IntVect scale (const IntVect& p, int s);
+    const IntVect scale (const IntVect& p, int s);
 
     /*@ManDoc: Returns an IntVect that is the reflection of input in the
       plane which passes through ref\_ix and normal to the
       coordinate direction idir.
     */
-    IntVect reflect(const IntVect& a, int ref_ix, int idir);
+    const IntVect reflect(const IntVect& a, int ref_ix, int idir);
 
     /*@ManDoc: Returns IntVect obtained by adding s to each of the
       components of this IntVect.
     */
-    IntVect diagShift (const IntVect& p, int s);
+    const IntVect diagShift (const IntVect& p, int s);
 
     /*@ManDoc: Returns an IntVect that is the component-wise integer
       projection of p by s.
     */
-    IntVect coarsen (const IntVect& p, int s);
+    const IntVect coarsen (const IntVect& p, int s);
 
     /*@ManDoc: Returns an IntVect which is the component-wise integer
       projection of IntVect p1 by IntVect p2.
     */
-    IntVect coarsen (const IntVect& p1, const IntVect& p2);
+    const IntVect coarsen (const IntVect& p1, const IntVect& p2);
 }
 //
 //@ManDoc: Returns p + s.
 //
-IntVect operator+ (int s, const IntVect& p);
+const IntVect operator+ (int s, const IntVect& p);
 //
 //@ManDoc: Returns -p + s.
 //
-IntVect operator- (int s, const IntVect& p);
+const IntVect operator- (int s, const IntVect& p);
 //
 //@ManDoc: Returns p * s.
 //
-IntVect operator* (int s, const IntVect& p);
+const IntVect operator* (int s, const IntVect& p);
 //
 //@ManDoc: Print the IntVect to given output stream in ASCII.
 //
@@ -199,11 +199,11 @@ public:
     //
     //@ManDoc: Unary plus -- for completeness.
     //
-    IntVect operator+ () const;
+    const IntVect operator+ () const;
     //
     //@ManDoc: Unary Minus -- negates all components.
     //
-    IntVect operator- () const;
+    const IntVect operator- () const;
     //
     //@ManDoc: Modifies IntVect by addition of a scaler to each component.
     //
@@ -240,35 +240,35 @@ public:
     //
     //@ManDoc: Returns component-wise sum of IntVect and argument.
     //
-    IntVect operator+ (const IntVect& p) const;
+    const IntVect operator+ (const IntVect& p) const;
     //
     //@ManDoc: Return an IntVect that is this IntVect + s.
     //
-    IntVect operator+ (int s) const;
+    const IntVect operator+ (int s) const;
     //
     //@ManDoc: Returns component-wise difference of IntVect and argument.
     //
-    IntVect operator- (const IntVect& p) const;
+    const IntVect operator- (const IntVect& p) const;
     //
     //@ManDoc: Return an IntVect that is this IntVect - s.
     //
-    IntVect operator- (int s) const;
+    const IntVect operator- (int s) const;
     //
     //@ManDoc: Returns component-wise product of IntVect and argument.
     //
-    IntVect operator* (const IntVect& p) const;
+    const IntVect operator* (const IntVect& p) const;
     //
     //@ManDoc: Returns component-wise product of IntVect and s.
     //
-    IntVect operator* (int s) const;
+    const IntVect operator* (int s) const;
     //
     //@ManDoc: Returns component-wise division of IntVect by argument.
     //
-    IntVect operator/ (const IntVect& p) const;
+    const IntVect operator/ (const IntVect& p) const;
     //
     //@ManDoc: Returns component-wise division of IntVect by s.
     //
-    IntVect operator/ (int s) const;
+    const IntVect operator/ (int s) const;
     //
     //@ManDoc: Modifies IntVect by taking component-wise min with argument.
     //
@@ -490,14 +490,14 @@ IntVect::operator>= (const IntVect& p) const
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator+ () const
 {
     return *this;
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator- () const
 {
     return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] ));
@@ -568,63 +568,63 @@ IntVect::operator-= (const IntVect& p)
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator+ (const IntVect& p) const
 {
     return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator+ (int s) const
 {
     return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator- (const IntVect& p) const
 {
     return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator- (int s) const
 {
     return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator* (const IntVect& p) const
 {
     return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator* (int s) const
 {
     return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator/ (const IntVect& p) const
 {
     return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
 }
 
 inline
-IntVect
+const IntVect
 IntVect::operator/ (int s) const
 {
     return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
 }
 
 inline
-IntVect
+const IntVect
 operator+ (int            s,
            const IntVect& p)
 {
@@ -632,7 +632,7 @@ operator+ (int            s,
 }
 
 inline
-IntVect
+const IntVect
 operator- (int            s,
            const IntVect& p)
 {
@@ -640,7 +640,7 @@ operator- (int            s,
 }
 
 inline
-IntVect
+const IntVect
 operator* (int            s,
            const IntVect& p)
 {
@@ -648,7 +648,7 @@ operator* (int            s,
 }
 
 inline
-IntVect
+const IntVect
 BoxLib::scale (const IntVect& p,
 	       int            s)
 {
@@ -656,7 +656,7 @@ BoxLib::scale (const IntVect& p,
 }
 
 inline
-IntVect
+const IntVect
 BoxLib::diagShift (const IntVect &p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
