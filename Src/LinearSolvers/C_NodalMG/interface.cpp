@@ -288,8 +288,8 @@ level_interface::alloc (const BoxArray&     Im,
 	{
 	    IntVect t = IntVect::TheCellVector();
 	    t[i] = IndexType::NODE;
-	    Box lo = BoxLib::bdryLo(im[igrid],i).convert(t);
-	    Box hi = BoxLib::bdryHi(im[igrid],i).convert(t);
+	    Box lo = BoxLib::bdryLo(im[igrid],i); lo.convert(t);
+	    Box hi = BoxLib::bdryHi(im[igrid],i); hi.convert(t);
 	    add(bmset,bim,lo,0);
 	    add(bmset,bim,hi,0);
 	}
@@ -312,8 +312,8 @@ level_interface::alloc (const BoxArray&     Im,
 		continue;
 	    else
 		t[i] = IndexType::NODE;
-	    Box lo = BoxLib::bdryLo(bx[2][iface], i).convert(t);
-	    Box hi = BoxLib::bdryHi(bx[2][iface], i).convert(t);
+	    Box lo = BoxLib::bdryLo(bx[2][iface], i); lo.convert(t);
+	    Box hi = BoxLib::bdryHi(bx[2][iface], i); hi.convert(t);
 	    add(bmset, bim,lo, 0);
 	    add(bmset, bim,hi, 0);
 	}
@@ -718,7 +718,9 @@ level_interface::xfer (const BoxMSet& bmset,
     for (int i = 0; bn != end; ++bn, ++i)
     {
 	bx[idim][i] = *bn;
-	const Box btmp = BoxLib::grow(*bn,bn->type()).convert(IntVect::TheCellVector());
+
+        Box btmp = BoxLib::grow(*bn,bn->type()); btmp.convert(IntVect::TheCellVector());
+
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp))
 	{
