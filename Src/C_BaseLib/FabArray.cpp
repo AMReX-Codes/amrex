@@ -29,17 +29,11 @@ FabArrayBase::FabArrayBase ()
 
 FabArrayBase::~FabArrayBase () {}
 
-Box
+const Box
 FabArrayBase::fabbox (int K) const
 {
     return BoxLib::grow(boxarray[K], n_grow);
 }
-
-MFIter::MFIter (const FabArrayBase& fabarray)
-    :
-    fabArray(fabarray),
-    currentIndex(0)
-{}
 
 FabArrayBase::FabComTag::FabComTag ()
 {
@@ -55,18 +49,6 @@ FabArrayBase::FabComTag::FabComTag ()
     fillBoxId         = 0;
     procThatNeedsData = 0;
     procThatHasData   = 0;
-}
-
-const Box&
-MFIter::validbox () const
-{
-    return fabArray.box(fabArray.IndexMap()[currentIndex]);
-}
-
-Box
-MFIter::fabbox () const
-{
-    return fabArray.fabbox(fabArray.IndexMap()[currentIndex]);
 }
 
 //
