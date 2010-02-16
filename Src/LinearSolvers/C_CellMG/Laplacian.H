@@ -3,7 +3,7 @@
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.9 2007-10-22 20:27:04 almgren Exp $
+// $Id: Laplacian.H,v 1.10 2010-02-16 17:52:34 lijewski Exp $
 //
 
 #include <LinOp.H>
@@ -44,16 +44,14 @@ class Laplacian
 {
 public:
     //
-    //@ManDoc: constructor (merely falls through to LinOp constructor)
+    //@ManDoc: constructor;
     //
     Laplacian (const BndryData& bd,
-               Real             _h)
-        :
-        LinOp(bd,_h) {}
+               Real             _h);
     //
     //@ManDoc: destructor
     //
-    ~Laplacian() {}
+    ~Laplacian();
     //
     //@ManDoc: Compute flux associated with the op
     //

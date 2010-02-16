@@ -1,12 +1,19 @@
 
 //
-// $Id: Laplacian.cpp,v 1.19 2007-10-29 04:26:20 almgren Exp $
+// $Id: Laplacian.cpp,v 1.20 2010-02-16 17:52:34 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <Laplacian.H>
 
 #include <LP_F.H>
+
+Laplacian::Laplacian (const BndryData& bd,
+                      Real             _h)
+    :
+    LinOp(bd,_h) {}
+
+Laplacian::~Laplacian() {}
 
 Real
 Laplacian::norm (int nm, int level, const bool local)
