@@ -1,6 +1,6 @@
 
 //
-// $Id: Mask.cpp,v 1.6 2001-08-01 21:51:04 lijewski Exp $
+// $Id: Mask.cpp,v 1.7 2010-02-16 18:02:58 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -11,6 +11,17 @@
 
 const char NL = '\n';
 const char SP = ' ';
+
+Mask::Mask ()
+    :
+    BaseFab<int>() {}
+
+Mask::Mask (const Box& bx,
+            int        nc)
+    :
+    BaseFab<int>(bx,nc) {}
+
+Mask::~Mask () {}
 
 Mask::Mask (std::istream& is)
 {
