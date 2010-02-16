@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.28 2010-02-11 22:22:34 lijewski Exp $
+// $Id: Box.cpp,v 1.29 2010-02-16 18:15:17 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -82,7 +82,7 @@ Box::convert (IndexType t)
    return *this;
 }
 
-Box
+const Box
 BoxLib::surroundingNodes (const Box& b,
                           int        dir)
 {
@@ -104,7 +104,7 @@ Box::surroundingNodes (int dir)
     return *this;
 }
 
-Box
+const Box
 BoxLib::surroundingNodes (const Box& b)
 {
     Box bx(b);
@@ -121,7 +121,7 @@ Box::surroundingNodes ()
     return *this;
 }
 
-Box
+const Box
 BoxLib::enclosedCells (const Box& b,
                        int        dir)
 {
@@ -143,7 +143,7 @@ Box::enclosedCells (int dir)
     return *this;
 }
 
-Box
+const Box
 BoxLib::enclosedCells (const Box& b)
 {
     Box bx(b);
@@ -160,21 +160,21 @@ Box::enclosedCells ()
     return *this;
 }
 
-Box
+const Box
 Box::operator+ (const IntVect& v) const
 {
     Box result = *this;
     return result += v;
 }
 
-Box
+const Box
 Box::operator-  (const IntVect& v) const
 {
     Box result = *this;
     return result -= v;
 }
 
-Box
+const Box
 BoxLib::grow (const Box& b,
               int        i)
 {
@@ -182,7 +182,7 @@ BoxLib::grow (const Box& b,
     return result.grow(i);
 }
 
-Box
+const Box
 BoxLib::grow (const Box&     b,
               const IntVect& v)
 {
@@ -203,7 +203,7 @@ Box::grow (const Orientation& face,
     return *this;
 }
 
-Box
+const Box
 Box::operator& (const Box& rhs) const
 {
     Box lhs = *this;
@@ -421,7 +421,7 @@ Box::next (IntVect&   p,
 #endif
 }
 
-Box
+const Box
 BoxLib::refine (const Box& b,
                 int        refinement_ratio)
 {
@@ -435,7 +435,7 @@ Box::refine (int refinement_ratio)
     return this->refine(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
-Box
+const Box
 BoxLib::refine (const Box&     b,
                 const IntVect& refinement_ratio)
 {
@@ -512,7 +512,7 @@ Box::shortside (int& dir) const
 // If NODE: chop_pnt included in both Boxes.
 //
 
-Box
+const Box
 Box::chop (int dir,
            int chop_pnt)
 {
@@ -547,7 +547,7 @@ Box::chop (int dir,
     return Box(sm,bg,btype);
 }
 
-Box
+const Box
 BoxLib::coarsen (const Box& b,
                  int        refinement_ratio)
 {
@@ -561,7 +561,7 @@ Box::coarsen (int refinement_ratio)
     return this->coarsen(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
-Box
+const Box
 BoxLib::coarsen (const Box&     b,
                  const IntVect& refinement_ratio)
 {
@@ -667,7 +667,7 @@ operator>> (std::istream& is,
     return is;
 }
 
-Box
+const Box
 BoxLib::minBox (const Box& b,
                 const Box& o)
 {
@@ -685,7 +685,7 @@ Box::minBox (const Box &b)
     return *this;
 }
 
-Box
+const Box
 BoxLib::bdryLo (const Box& b,
                 int        dir,
                 int        len)
@@ -702,7 +702,7 @@ BoxLib::bdryLo (const Box& b,
     return Box(low,hi,typ);
 }
 
-Box
+const Box
 BoxLib::bdryHi (const Box& b,
                 int        dir,
                 int        len)
@@ -721,7 +721,7 @@ BoxLib::bdryHi (const Box& b,
     return Box(low,hi,typ);
 }
 
-Box
+const Box
 BoxLib::bdryNode (const Box&         b,
                   const Orientation& face,
                   int                len)
@@ -749,7 +749,7 @@ BoxLib::bdryNode (const Box&         b,
     return Box(low,hi,typ);
 }
 
-Box
+const Box
 BoxLib::adjCellLo (const Box& b,
                    int        dir,
                    int        len)
@@ -768,7 +768,7 @@ BoxLib::adjCellLo (const Box& b,
     return Box(low,hi,typ);
 }
 
-Box
+const Box
 BoxLib::adjCellHi (const Box& b,
                    int        dir,
                    int        len)
@@ -788,7 +788,7 @@ BoxLib::adjCellHi (const Box& b,
     return Box(low,hi,typ);
 }
 
-Box
+const Box
 BoxLib::adjCell (const Box&         b,
                  const Orientation& face,
                  int                len)

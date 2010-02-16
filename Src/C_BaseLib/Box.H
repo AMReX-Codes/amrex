@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.28 2010-02-11 22:22:34 lijewski Exp $
+// $Id: Box.H,v 1.29 2010-02-16 18:15:17 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -24,11 +24,11 @@ namespace BoxLib
     /*@ManDoc: Grow Box in all directions by given amount.
                NOTE: n\_cell negative shrinks the Box by that number of cells.
     */
-    Box grow (const Box& b, int i);
+    const Box grow (const Box& b, int i);
     //
     //@ManDoc: Grow Box in each direction by specified amount.
     //
-    Box grow (const Box& b, const IntVect& v);
+    const Box grow (const Box& b, const IntVect& v);
 
     /*@ManDoc: Coarsen Box by given (positive) refinement ratio.
                NOTE: if type(dir) = CELL centered: lo <- lo/ratio and
@@ -38,7 +38,7 @@ namespace BoxLib
                That is, refinement of coarsened Box must contain
                the original Box.
     */
-    Box coarsen (const Box& b, int refinement_ratio);
+    const Box coarsen (const Box& b, int refinement_ratio);
 
     /*@ManDoc: Coarsen Box by given (positive) refinement ratio.
                NOTE: if type(dir) = CELL centered: lo <- lo/ratio and
@@ -48,7 +48,7 @@ namespace BoxLib
                That is, refinement of coarsened Box must contain
                the original Box.
     */
-    Box coarsen (const Box& b, const IntVect& refinement_ratio);
+    const Box coarsen (const Box& b, const IntVect& refinement_ratio);
 
     /*@ManDoc: Refine Box by given (positive) refinement ratio.
                NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -56,7 +56,7 @@ namespace BoxLib
                NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
                hi <- hi*ratio.
     */
-    Box refine (const Box& b, int refinement_ratio);
+    const Box refine (const Box& b, int refinement_ratio);
 
     /*@ManDoc: Refine Box by given (positive) refinement ratio.
                NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -64,45 +64,45 @@ namespace BoxLib
                NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
                hi <- hi*ratio.
     */
-    Box refine (const Box& b, const IntVect& refinement_ratio);
+    const Box refine (const Box& b, const IntVect& refinement_ratio);
 
     /*@ManDoc: Return a Box with NODE based coordinates in direction dir
                that encloses Box b.  NOTE: equivalent to b.convert(dir,NODE)
                NOTE: error if b.type(dir) == NODE.
     */
-    Box surroundingNodes (const Box& b, int dir);
+    const Box surroundingNodes (const Box& b, int dir);
 
     /*@ManDoc: Return a Box with NODE based coordinates in all
                directions that encloses Box b.
     */
-    Box surroundingNodes (const Box& b);
+    const Box surroundingNodes (const Box& b);
 
     /*@ManDoc: Return a Box with CELL based coordinates in 
                direction dir that is enclosed by b.
                NOTE: equivalent to b.convert(dir,CELL)
                NOTE: error if b.type(dir) == CELL.
     */
-    Box enclosedCells (const Box& b, int dir);
+    const Box enclosedCells (const Box& b, int dir);
 
     /*@ManDoc: Return a Box with CELL based coordinates in all
                directions that is enclosed by b.
     */
-    Box enclosedCells (const Box& b);
+    const Box enclosedCells (const Box& b);
 
     /*@ManDoc: Returns the edge-centered Box (in direction dir) defining
                the low side of Box b.
     */
-    Box bdryLo (const Box& b, int dir, int len=1);
+    const Box bdryLo (const Box& b, int dir, int len=1);
 
     /*@ManDoc: Returns the edge-centered Box (in direction dir) defining
                the high side of Box b.
     */
-    Box bdryHi (const Box& b, int dir, int len=1);
+    const Box bdryHi (const Box& b, int dir, int len=1);
 
     /*@ManDoc: Similar to bdryLo and bdryHi except that it operates on the
                given face of  box b.
     */
-    Box bdryNode (const Box& b, const Orientation& face, int len=1);
+    const Box bdryNode (const Box& b, const Orientation& face, int len=1);
 
    /*@ManDoc: Return the cell centered Box of length len adjacent
                to b on the low end along the coordinate direction dir.
@@ -115,21 +115,21 @@ namespace BoxLib
                retval.convert(dir,Box::CELL);
                retval.setrange(dir,retval.smallEnd(dir)-len,len);
     */
-    Box adjCellLo (const Box& b, int dir, int len=1);
+    const Box adjCellLo (const Box& b, int dir, int len=1);
 
     /*@ManDoc: Similar to adjCellLo but builds an adjacent Box on the high end.
     */
-    Box adjCellHi (const Box& b, int dir, int len=1);
+    const Box adjCellHi (const Box& b, int dir, int len=1);
 
    /*@ManDoc: Similar to adjCellLo and adjCellHi; operates on given face.
     */
-    Box adjCell (const Box& b, const Orientation& face, int len=1);
+    const Box adjCell (const Box& b, const Orientation& face, int len=1);
 
     /*@ManDoc: Modify Box to that of the minimum Box containing both
                the original Box and the argument.
                Both Boxes must have identical type.
     */
-    Box minBox (const Box& b1, const Box& b2);
+    const Box minBox (const Box& b1, const Box& b2);
 }
 
 //
@@ -161,6 +161,7 @@ std::istream& operator>> (std::istream& os, Box& bx);
 class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
+
 public:
 
     /*@ManDoc: The default constructor.  For safety, the constructed Box is  
@@ -213,7 +214,7 @@ public:
     //
     //@ManDoc: Return the indexing type.
     //
-    IntVect type () const;
+    const IntVect type () const;
     //
     //@ManDoc: Return the indexing type in the specified direction.
     //
@@ -221,7 +222,7 @@ public:
     //
     //@ManDoc: Return the length of the Box.
     //
-    IntVect size () const;
+    const IntVect size () const;
     //
     //@ManDoc: Return the length of the Box in given direction.
     //
@@ -422,7 +423,7 @@ public:
     /*@ManDoc: Return Box that is intersection of this Box
                and argument.  The Boxes MUST be of same type.
     */
-    Box operator& (const Box&) const;
+    const Box operator& (const Box&) const;
 
     /*@ManDoc: Intersect this Box with its argument.
                The Boxes MUST be of the same type.
@@ -441,7 +442,7 @@ public:
     //
     //@ManDoc: Shift Box (relative) by given IntVect.
     //
-    Box  operator+  (const IntVect& v) const;
+    const Box  operator+  (const IntVect& v) const;
     //
     //@ManDoc: Shift Box (relative) by given IntVect.
     //
@@ -449,7 +450,7 @@ public:
     //
     //@ManDoc: Shift Box (relative) by given IntVect.
     //
-    Box  operator-  (const IntVect& v) const;
+    const Box  operator-  (const IntVect& v) const;
 
     /*@ManDoc: Chop the Box at the chop\_pnt in the dir direction
                returns one Box, modifies the object Box.
@@ -462,8 +463,8 @@ public:
                but is the only point in common.  It is also an error if the
                chop\_pnt is an end node of the Box.
     */
-    Box chop (int dir,
-              int chop_pnt);
+    const Box chop (int dir,
+                    int chop_pnt);
 
     /*@ManDoc: Grow Box in all directions by given amount.
                NOTE: n\_cell negative shrinks the Box by that number of cells.
@@ -604,7 +605,7 @@ Box::ixType () const
 }
 
 inline
-IntVect
+const IntVect
 Box::type () const
 {
     return btype.ixType();
@@ -722,7 +723,7 @@ Box::ok () const
 }
 
 inline
-IntVect
+const IntVect
 Box::size () const
 {
     return IntVect(D_DECL(bigend[0]-smallend[0] + 1,

@@ -1,7 +1,7 @@
 #ifndef BL_ORIENTATION_H
 #define BL_ORIENTATION_H
 //
-// $Id: Orientation.H,v 1.15 2001-07-31 22:43:19 lijewski Exp $
+// $Id: Orientation.H,v 1.16 2010-02-16 18:15:17 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -82,7 +82,7 @@ public:
     //
     //@ManDoc: Return opposite orientation.
     //
-    Orientation flip () const;
+    const Orientation flip () const;
     //
     //@ManDoc: Returns the coordinate direction.
     //
@@ -307,7 +307,7 @@ Orientation::isHigh () const
 }
 
 inline
-Orientation
+const Orientation
 Orientation::flip () const
 {
     return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
