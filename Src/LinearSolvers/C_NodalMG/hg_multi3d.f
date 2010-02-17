@@ -1688,4 +1688,86 @@ c-----------------------------------------------------------------------
 !$omp end do nowait
 !$omp end parallel
       end
+c-----------------------------------------------------------------------
+      subroutine hgresu(
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
+     & src, dest, signd, mask,
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
+     & idd)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision res(*)
+      double precision src(*)
+      double precision dest(*)
+      double precision signd(*)
+      double precision mask(*)
+      integer i, jdiff, kdiff, ly, lz
+      integer idd
+      jdiff = resh0 - resl0 + 1
+      kdiff = (resh1 - resl1 + 1) * jdiff
+      ly    = (resh2 - resl2 + 1) * kdiff
+      lz    = 2 * ly
+!$omp parallel do private(i)
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+     &          (regl0 - resl0) + 1,
+     &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
+     &          (regh0 - resl0) + 1
+         res(i) = mask(i) * (src(i) -
+     &     (signd(i-1)        * (dest(i-1) - dest(i)) +
+     &      signd(i)          * (dest(i+1) - dest(i)) +
+     &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
+     &      signd(i+ly)       * (dest(i+jdiff) - dest(i)) +
+     &      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
+     &      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
+      end do
+!$omp end parallel do
+      end
+c-----------------------------------------------------------------------
+c sig here contains three different directions all stored on "nodes"
+      subroutine hgrlxu(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,resl2,resh2,
+     & mask,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,idd)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
+      integer i, jdiff, kdiff, ly, lz
+      integer idd
 
+      AVG() = (sig(i-1)        * cor(i-1) +
+     &         sig(i)          * cor(i+1) +
+     &         sig(i+ly-jdiff) * cor(i-jdiff) +
+     &         sig(i+ly)       * cor(i+jdiff) +
+     &         sig(i+lz-kdiff) * cor(i-kdiff) +
+     &         sig(i+lz)       * cor(i+kdiff))
+      jdiff =  resh0 - resl0 + 1
+      kdiff = (resh1 - resl1 + 1) * jdiff
+      ly    = (resh2 - resl2 + 1) * kdiff
+      lz    = 2 * ly
+
+!$omp parallel do private(i)
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+     &          (regl0 - resl0) + 1,
+     &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
+     &          (regh0 - resl0) + 1, 2
+         cor(i) = cor(i)
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+      end do
+!$omp end parallel do
+
+!$omp parallel do private(i)
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+     &          (regl0 - resl0) + 2,
+     &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
+     &          (regh0 - resl0) + 1, 2
+         cor(i) = cor(i)
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+      end do
+!$omp end parallel do
+      end
