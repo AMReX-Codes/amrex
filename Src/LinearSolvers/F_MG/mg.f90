@@ -1389,7 +1389,7 @@ contains
     call timer_start(mgt%tm(lev))
 
     if ( parallel_IOProcessor() .and. do_diag) &
-       write(6,1000) ,lev
+       write(6,1000) lev
 
     if ( rh%dim == 1 ) then
 
@@ -1481,7 +1481,7 @@ contains
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &
-          write(6,1000) ,lev
+          write(6,1000) lev
 
        if (do_diag) then
           ! compute mgt%cc(lev) = ss * uu - rh
