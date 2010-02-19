@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 #include <cmath>
 using std::ios;
 using std::set_new_handler;
@@ -24,14 +24,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    errorC=CrseErrorFileName" << '\n';
-    cout << "    errorF=FineErrorFileName" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    errorC=CrseErrorFileName" << '\n';
+    std::cout << "    errorF=FineErrorFileName" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -113,11 +113,11 @@ main (int   argc,
 	aString sformatStr =
 	    aString("\t%") + sbuf + aString("s |  %10s   %10s   %10s\n");
 	
-	cout << '\n' << "Rates for pltfiles = "
+	std::cout << '\n' << "Rates for pltfiles = "
 	     << cFile << ", "
 	     << fFile << ": " << '\n' << '\n';
 	printf(sformatStr.c_str(),"Derived","rate_L-inf","rate_L1","rate_L2");
-	cout << '\t'
+	std::cout << '\t'
 	     << "--------------+------------------------------------------" << '\n';
 
 	Real log2 = log(2.0);
@@ -129,7 +129,7 @@ main (int   argc,
 	    rate2 = (norm2f[i]==0 ? 0.0 : log(norm2c[i]/norm2f[i])/log2);
 	    printf(formatStr.c_str(),names[i].c_str(),rate0,rate1,rate2);
 	}
-	cout << '\n';
+	std::cout << '\n';
 	
     }
     
