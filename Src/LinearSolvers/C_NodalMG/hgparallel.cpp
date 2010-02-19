@@ -130,9 +130,9 @@ task::print_dependencies (std::ostream& os) const
 bool
 task::depend_ready ()
 {
-    std::list<task_proxy>::iterator lit = dependencies.begin();
+    std::list<task_proxy>::iterator lit = dependencies.begin(), end = dependencies.end();
 
-    while (lit != dependencies.end())
+    while (lit != end)
     {
         if ((*lit).is_finished())
         {
@@ -269,9 +269,9 @@ restart:
 
     while (!tasks.empty())
     {
-        std::list<task::task_proxy>::iterator tli = tasks.begin();
+        std::list<task::task_proxy>::iterator tli = tasks.begin(), end = tasks.end();
 
-        while (tli != tasks.end())
+        while (tli != end)
         {
             task::task_proxy t = *tli;
 
