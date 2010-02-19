@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffFab.cpp,v 1.7 2010-02-19 22:36:05 ajnonaka Exp $
+// $Id: DiffFab.cpp,v 1.8 2010-02-19 23:04:42 ajnonaka Exp $
 //
 
 #include <new>
@@ -128,8 +128,17 @@ main (int   argc,
 
     error.copy(exactAvg);
     error.minus(dataI);
-
     error.writeOn(os);
+
+    Box bx = error.box();
+    int points = bx.numPts();
+
+    std::cout << "L0 NORM                           = " << error.norm(0) 
+	      << std::endl;
+    std::cout << "L1 NORM (normalized by 1/N)       = " << error.norm(1)/points
+	      << std::endl;
+    std::cout << "L2 NORM (normalized by 1/sqrt(N)) = " << error.norm(2)/sqrt(points) 
+	      << std::endl;
 
     BoxLib::Finalize();
 
