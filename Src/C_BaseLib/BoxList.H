@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.34 2007-05-02 16:48:10 lijewski Exp $
+// $Id: BoxList.H,v 1.35 2010-02-19 18:18:34 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -20,39 +20,39 @@ namespace BoxLib
     /*@ManDoc: Returns a BoxList defining the complement of BoxList bl
       in Box b.
     */
-    BoxList complementIn (const Box& b, const BoxList& bl);
+    const BoxList complementIn (const Box& b, const BoxList& bl);
 
     //
     //@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
     //
-    BoxList boxDiff (const Box& b1in, const Box& b2);
+    const BoxList boxDiff (const Box& b1in, const Box& b2);
 
     /*@ManDoc: Returns a new BoxList in which each Box is refined by the
       given ratio.
     */
-    BoxList refine (const BoxList&  bl, int ratio);
+    const BoxList refine (const BoxList&  bl, int ratio);
 
     /*@ManDoc: Returns a new BoxList in which each Box is coarsened by
       the given ratio.
     */
-    BoxList coarsen (const BoxList& bl, int ratio);
+    const BoxList coarsen (const BoxList& bl, int ratio);
     //
     //@ManDoc: Returns a BoxList defining the intersection of bl with b.
     //
-    BoxList intersect (const BoxList& bl, const Box& b);
+    const BoxList intersect (const BoxList& bl, const Box& b);
     //
     //@ManDoc: Returns a BoxList defining the intersection of bl with br.
     //
-    BoxList intersect (const BoxList& bl, const BoxList& br);
+    const BoxList intersect (const BoxList& bl, const BoxList& br);
 
     /*@ManDoc: Returns a new BoxList in which each Box is grown by the
       given size.
     */
-    BoxList accrete (const BoxList& bl, int sz);
+    const BoxList accrete (const BoxList& bl, int sz);
     //
     // Return BoxList which covers the same area but has no overlapping boxes.
     //
-    BoxList removeOverlap (const BoxList& bl);
+    const BoxList removeOverlap (const BoxList& bl);
 }
 
 //
@@ -256,7 +256,7 @@ public:
     //
     //@ManDoc: Returns smallest Box that contains all Boxes in this BoxList.
     //
-    Box minimalBox () const;
+    const Box minimalBox () const;
     //
     //@ManDoc: Returns the IndexType of Boxes in this BoxList.
     //
