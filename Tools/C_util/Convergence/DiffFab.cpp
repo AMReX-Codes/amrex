@@ -1,13 +1,14 @@
 
 //
-// $Id: DiffFab.cpp,v 1.6 2001-10-17 17:53:33 lijewski Exp $
+// $Id: DiffFab.cpp,v 1.7 2010-02-19 22:36:05 ajnonaka Exp $
 //
 
 #include <new>
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 using std::ios;
 using std::set_new_handler;
 
@@ -32,14 +33,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile  = inputFileName" << '\n';
-    cout << "    exact   = exactFileName" << '\n';
-    cout << "    outfile = outputFileName" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << '\n';
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile  = inputFileName" << '\n';
+    std::cout << "    exact   = exactFileName" << '\n';
+    std::cout << "    outfile = outputFileName" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -67,37 +68,35 @@ main (int   argc,
 {
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParmParse pp(argc-1,argv+1);
+    BoxLib::Initialize(argc,argv);
+
+    ParmParse pp;
 
     FArrayBox::setFormat(FABio::FAB_IEEE_32);
     //
     // Scan the arguments.
     //
-    aString iFileDir, iFile, eFile, oFile, oFileDir;
+    std::string iFileDir, iFile, eFile, oFile, oFileDir;
 
 
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     pp.query("exact", eFile);
-    if (eFile.isNull())
+    if (eFile.empty())
         BoxLib::Abort("You must specify `exact' file");
 
     pp.query("outfile", oFile);
-    if (oFile.isNull())
+    if (oFile.empty())
         BoxLib::Abort("You must specify `outfile'");
 
-    ifstream is1(iFile.c_str(),ios::in);
-    ifstream is2(eFile.c_str(),ios::in);
-    ofstream os (oFile.c_str(),ios::out);
+    std::ifstream is1(iFile.c_str(),ios::in);
+    std::ifstream is2(eFile.c_str(),ios::in);
+    std::ofstream os (oFile.c_str(),ios::out);
 
-    FARRAYBOX dataI, dataE;
+    FArrayBox dataI, dataE;
     dataI.readFrom(is1);
     dataE.readFrom(is2);
 
@@ -107,17 +106,17 @@ main (int   argc,
     // Compute the error
     //
     int nComp = dataI.nComp();
-    const BOX& domainI = dataI.box();
-    const BOX& domainE = dataE.box();
+    const Box& domainI = dataI.box();
+    const Box& domainE = dataE.box();
     IntVect refine_ratio = getRefRatio(domainI, domainE);
 
     if (refine_ratio == IntVect())
       BoxLib::Error("Cannot find refinement ratio from data to exact");
     
-    FARRAYBOX error(domainI,nComp);
+    FArrayBox error(domainI,nComp);
     error.setVal(GARBAGE);
  
-    FARRAYBOX exactAvg(domainI,nComp);
+    FArrayBox exactAvg(domainI,nComp);
       
     FORT_CV_AVGDOWN(exactAvg.dataPtr(),
 		    ARLIM(exactAvg.loVect()), 
@@ -131,4 +130,7 @@ main (int   argc,
     error.minus(dataI);
 
     error.writeOn(os);
+
+    BoxLib::Finalize();
+
 }
