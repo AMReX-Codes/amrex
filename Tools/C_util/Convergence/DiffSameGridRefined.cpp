@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameGridRefined.cpp,v 1.7 2010-02-19 22:45:04 almgren Exp $
+// $Id: DiffSameGridRefined.cpp,v 1.8 2010-02-19 23:40:10 almgren Exp $
 //
 
 #include <new>
@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <string>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -74,16 +73,12 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -92,7 +87,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile1, iFile2, difFile;
+    std::string iFile1, iFile2, difFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -101,11 +96,11 @@ main (int   argc,
 //      AmrData::SetVerbose(true);
     }
     pp.query("infile1", iFile1);
-    if (iFile1.isNull())
+    if (iFile1.empty())
         BoxLib::Abort("You must specify `infile1'");
 
     pp.query("reffile", iFile2);
-    if (iFile2.isNull())
+    if (iFile2.empty())
         BoxLib::Abort("You must specify `reffile'");
 
     pp.query("diffile", difFile);
@@ -140,7 +135,7 @@ main (int   argc,
 
     int nComp       = amrData1.NComp();
     int finestLevel = amrData1.FinestLevel();
-    const Array<aString>& derives = amrData1.PlotVarNames();
+    const Array<std::string>& derives = amrData1.PlotVarNames();
     Array<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
@@ -163,7 +158,7 @@ main (int   argc,
         const BoxArray& ba1 = amrData1.boxArray(iLevel);
         const BoxArray& ba2 = amrData2.boxArray(iLevel);
 
-        if (ba1.length() != ba2.length())
+        if (ba1.size() != ba2.size())
         {
             std::cout << "ERROR: BoxArray lengths are not the same at level " 
                  << iLevel << std::endl;
@@ -187,8 +182,8 @@ main (int   argc,
             BoxLib::Error("Cannot find refinement ratio from data to exact");
 
         if (verbose)
-            cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
-                                                             << std::endl;
+            std::cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
+                                                                  << std::endl;
 
         BoxArray ba2Coarse(ba2);
         ba2Coarse.coarsen(refine_ratio);
@@ -210,37 +205,35 @@ main (int   argc,
             //
             // Calculate the errors  for each FAB in the MultiFab
             //
-            for (MultiFabIterator mfi1(data1); mfi1.isValid(); ++mfi1)
+            for (MFIter mfi(data1); mfi.isValid(); ++mfi)
             {
-                DependentMultiFabIterator mfi2Fine(mfi1, data2Fine);
-                DependentMultiFabIterator errMfi(mfi1, *error[iLevel]);
-    
                 //
                 // Create the Coarsened version of data2
                 //
-                FArrayBox data2Coarse(ba2Coarse[mfi1.index()], 1);
+                int index = mfi.index();
+
+                FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = data2Coarse.nComp();
 
                 FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
                                   ARLIM(data2Coarse.loVect()),
                                   ARLIM(data2Coarse.hiVect()),
                                 &ncCoarse,
-                                mfi2Fine().dataPtr(),
-                                  ARLIM(mfi2Fine().loVect()),
-                                  ARLIM(mfi2Fine().hiVect()), 
-                                ba2Coarse[mfi1.index()].loVect(), 
-                                ba2Coarse[mfi1.index()].hiVect(),
+                                data2Fine[mfi].dataPtr(),
+                                  ARLIM(data2Fine[mfi].loVect()),
+                                  ARLIM(data2Fine[mfi].hiVect()), 
+                                ba2Coarse[index].loVect(), 
+                                ba2Coarse[index].hiVect(),
                                 refine_ratio.getVect());
 
 
                 //
                 // Calculate the errors on this FAB for this component
                 //
-                errMfi().copy(mfi1(), 0, iComp, 1);
-                errMfi().minus(data2Coarse, 0, iComp, 1);
+                (*error[iLevel])[mfi].copy(data1[mfi], 0, iComp, 1);
+                (*error[iLevel])[mfi].minus(data2Coarse, 0, iComp, 1);
 
-   
-                Real grdL2 = errMfi().norm(norm, iComp, 1);
+                Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
 
                 if (norm != 0)
                 {
@@ -248,7 +241,7 @@ main (int   argc,
                 }
                 else
                 {
-                    norms[iComp] = Max(norms[iComp], grdL2);
+                    norms[iComp] = std::max(norms[iComp], grdL2);
                 }
             }
         }
@@ -284,7 +277,7 @@ main (int   argc,
                         }
                         else
                         {
-                            norms[iComp] = Max(norms[iComp], tmp[iComp]);
+                            norms[iComp] = std::max(norms[iComp], tmp[iComp]);
                         }
                 }
         }
@@ -322,16 +315,13 @@ main (int   argc,
     }
 
 
-    if (!difFile.isNull())
+    if (!difFile.empty())
         WritePlotFile(error, amrData1, difFile, verbose);
     
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    BoxLib::Finalize();
 }
 
 
@@ -339,10 +329,10 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    int length = derives1.size();
+    if (length != derives2.size())
 	return false;
     for (int i=0; i<length; ++i)
 	if (derives1[i] != derives2[i])

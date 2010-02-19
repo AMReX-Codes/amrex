@@ -1,15 +1,15 @@
 
 //
-// $Id: Add.cpp,v 1.5 2010-02-19 22:45:04 almgren Exp $
+// $Id: Add.cpp,v 1.6 2010-02-19 23:40:10 almgren Exp $
 //
 
 #include <new>
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -47,34 +47,32 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     FArrayBox::setFormat(FABio::FAB_IEEE_32);
     //
     // Scan the arguments.
     //
-    aString iFileDir, iFile, eFile, oFile, oFileDir;
-    REAL factor;
+    std::string iFileDir, iFile, eFile, oFile, oFileDir;
+    Real factor;
 
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     pp.query("factor", factor);
 
     pp.query("outfile", oFile);
-    if (oFile.isNull())
+    if (oFile.empty())
         BoxLib::Abort("You must specify `outfile'");
 
-    ifstream is(iFile.c_str(),ios::in);
-    ofstream os(oFile.c_str(),ios::out);
+    std::ifstream is(iFile.c_str(),ios::in);
+    std::ofstream os(oFile.c_str(),ios::out);
 
     FArrayBox dataI, dataE;
     dataI.readFrom(is);
@@ -82,4 +80,6 @@ main (int   argc,
     dataI.plus(factor);   
 
     dataI.writeOn(os);
+
+    BoxLib::Finalize();
 }
