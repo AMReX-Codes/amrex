@@ -215,6 +215,7 @@ ifeq ($(WHICHLINUX), HOPPER)
 endif
 
 ifeq ($(HOSTNAME), pleiades.ucsc.edu)
+  DEFINES += -DBL_PLEIADES
   ifeq ($(COMP),Intel)
     CXX = icc
     ifeq ($(USE_MPI),TRUE)
