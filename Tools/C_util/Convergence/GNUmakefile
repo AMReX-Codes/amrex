@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.8 2006-09-14 19:57:27 lijewski Exp $
+# $Id: GNUmakefile,v 1.9 2010-02-19 22:44:51 almgren Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -12,7 +12,7 @@ DEBUG	      = TRUE
 DEBUG	      = FALSE
 PROFILE       = FALSE
 DIM	      = 2
-COMP          = g++
+COMP          = Intel
 FCOMP         = Intel
 USE_MPI       = FALSE
 #
@@ -32,8 +32,8 @@ endif
 EBASE = DiffUniform
 EBASE = PltFileNorm
 EBASE = PltFileScalConvRate
-EBASE = DiffFab
 EBASE = DiffSameGrid
+EBASE = DiffFab
 
 CEXE_sources += $(EBASE).cpp
 
