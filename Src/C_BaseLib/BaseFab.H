@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.67 2010-02-13 22:50:17 lijewski Exp $
+// $Id: BaseFab.H,v 1.68 2010-02-19 17:59:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -77,35 +77,7 @@ class BaseFab
 {
 public:
     typedef T value_type;
-    class BFProxy
-    {
-	friend class BaseFab;
-    public:
-	BFProxy operator() (const Box& bx, int n) const;
-	BFProxy operator() (const Box& bx) const;
-	BFProxy operator() (int n) const;
-	BFProxy& operator= (const T& t);
-    private:
-	enum {All = -1};
-	BFProxy (BaseFab& bf, const Box& bx, int n);
-	BaseFab& m_fab;
-	const Box m_bx;
-	int slice;
-    };
-    class CBFProxy
-    {
-	friend class BaseFab;
-    public:
-	CBFProxy operator() (const Box& bx, int n) const;
-	CBFProxy operator() (const Box& bx) const;
-	CBFProxy operator() (int n) const;
-    private:
-	enum {All = -1};
-	CBFProxy (BaseFab& bf, const Box& bx, int n);
-	const BaseFab& m_fab;
-	const Box m_bx;
-	int slice;
-    };
+
     /*@ManDoc: Construct an invalid `BaseFab'.  The domain is invalid, the
                number of components is zero, and no actually array memory is
                allocated. An invalid `BaseFab' must be resized
@@ -116,15 +88,6 @@ public:
     BaseFab (const BaseFab&);
     BaseFab& operator= (const BaseFab&);
     BaseFab& operator= (const T&);
-    //
-    // Proxy Interface
-    //
-    BFProxy operator() (const Box& bx, int n);
-    BFProxy operator() (const Box& bx);
-    BFProxy operator() (int n);
-    CBFProxy operator() (const Box& bx, int n) const;
-    CBFProxy operator() (const Box& bx) const;
-    CBFProxy operator() (int n) const;
     //
     //@ManDoc: Make BaseFab with desired domain and number of components.
     //
@@ -2416,20 +2379,6 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
     return *this;
-}
-
-template <class T>
-typename BaseFab<T>::BFProxy
-BaseFab<T>::operator() (const Box& bx)
-{
-    return BFProxy(*this, bx&box(), BFProxy::All);
-}
-
-template <class T>
-typename BaseFab<T>::CBFProxy
-BaseFab<T>::operator() (const Box& bx) const
-{
-    return CBFProxy(*this, bx&box(), CBFProxy::All);
 }
 
 namespace BoxLib
