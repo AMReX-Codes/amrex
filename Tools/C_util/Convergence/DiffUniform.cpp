@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffUniform.cpp,v 1.10 2007-10-19 21:22:05 almgren Exp $
+// $Id: DiffUniform.cpp,v 1.11 2010-02-19 23:40:10 almgren Exp $
 //
 
 #include <new>
@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -66,10 +65,10 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
-
-    BoxLib::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -185,10 +184,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    BoxLib::Finalize();
 }
 
 

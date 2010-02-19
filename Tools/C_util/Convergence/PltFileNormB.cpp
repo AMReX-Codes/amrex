@@ -1,6 +1,6 @@
 
 //
-// $Id: PltFileNormB.cpp,v 1.5 2010-02-19 22:45:04 almgren Exp $
+// $Id: PltFileNormB.cpp,v 1.6 2010-02-19 23:40:10 almgren Exp $
 //
 
 #include <new>
@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <string>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -48,16 +47,12 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -66,7 +61,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile;
+    std::string iFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -75,7 +70,7 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("infile", iFile);
-    if (iFile.isNull())
+    if (iFile.empty())
         BoxLib::Abort("You must specify `infile'");
 
     int norm = 2;
@@ -100,7 +95,7 @@ main (int   argc,
     //
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
-    const Array<aString>& derives = amrDataI.PlotVarNames();
+    const Array<std::string>& derives = amrDataI.PlotVarNames();
     Array<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
@@ -133,11 +128,11 @@ main (int   argc,
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
-        for (MultiFabIterator mfi(dataI); mfi.isValid(); ++mfi)
+        for (MFIter mfi(dataI); mfi.isValid(); ++mfi)
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
-                Real grdL2 = mfi().norm(norm, iComp, 1);
+                Real grdL2 = dataI[mfi].norm(norm, iComp, 1);
 
                 if (norm != 0)
                 {
@@ -145,7 +140,7 @@ main (int   argc,
                 }
                 else
                 {
-                    norms[iComp] = Max(norms[iComp], grdL2);
+                    norms[iComp] = std::max(norms[iComp], grdL2);
                 }
                 
             }
@@ -212,10 +207,6 @@ main (int   argc,
         }
     }
 
-
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    BoxLib::Finalize();
 }
 

@@ -6,7 +6,6 @@
 #include <string>
 #include <cmath>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -43,16 +42,12 @@ int
 main (int   argc,
       char* argv[])
 {
+    BoxLib::Initialize(argc,argv);
+
     if (argc == 1)
         PrintUsage(argv[0]);
-    //
-    // Make sure to catch new failures.
-    //
-    set_new_handler(Utility::OutOfMemory);
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
-    ParmParse pp(argc-1,argv+1);
+    ParmParse pp;
 
     if (pp.contains("help"))
         PrintUsage(argv[0]);
@@ -61,7 +56,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString cFile, fFile;
+    std::string cFile, fFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -70,11 +65,11 @@ main (int   argc,
         AmrData::SetVerbose(true);
     }
     pp.query("errorC", cFile);
-    if (cFile.isNull())
+    if (cFile.empty())
         BoxLib::Abort("You must specify `errorC'");
 
     pp.query("errorF", fFile);
-    if (fFile.isNull())
+    if (fFile.empty())
         BoxLib::Abort("You must specify `errorF'");
 
     Array<Real> norm0c, norm1c, norm2c;
@@ -86,12 +81,6 @@ main (int   argc,
     DataServices dataServicesC(cFile, fileType);
     DataServices dataServicesF(fFile, fileType);
 
-    if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
-        //
-        // This calls ParallelDescriptor::EndParallel() and exit()
-        //
-        DataServices::Dispatch(DataServices::ExitRequest, NULL);
-
     AmrData& amrDataC = dataServicesC.AmrDataRef();
     AmrData& amrDataF = dataServicesF.AmrDataRef();
     BL_ASSERT(amrDatasHaveSameDerives(amrDataC,amrDataF));
@@ -102,16 +91,16 @@ main (int   argc,
     // Write norms to screen
     if (ParallelDescriptor::IOProcessor())
     {
-	const Array<aString>& names = amrDataC.PlotVarNames();
+	const Array<std::string>& names = amrDataC.PlotVarNames();
 	int maxl = 0;
-	for (int i=0; i<names.length(); ++i)
-	    maxl = Max(maxl,names[i].length());
+	for (int i=0; i<names.size(); ++i)
+	    maxl = std::max(maxl,int(names[i].size()));
 	char sbuf[128];
 	sprintf(sbuf,"%d",maxl);
-	aString formatStr =
-	    aString("\t%") + sbuf + aString("s |  %10e   %10e   %10e\n");
-	aString sformatStr =
-	    aString("\t%") + sbuf + aString("s |  %10s   %10s   %10s\n");
+	std::string formatStr =
+	    std::string("\t%") + sbuf + std::string("s |  %10e   %10e   %10e\n");
+	std::string sformatStr =
+	    std::string("\t%") + sbuf + std::string("s |  %10s   %10s   %10s\n");
 	
 	std::cout << '\n' << "Rates for pltfiles = "
 	     << cFile << ", "
@@ -121,7 +110,7 @@ main (int   argc,
 	     << "--------------+------------------------------------------" << '\n';
 
 	Real log2 = log(2.0);
-	for (int i=0; i<names.length(); ++i)
+	for (int i=0; i<names.size(); ++i)
 	{
 	    Real rate0, rate1, rate2;
 	    rate0 = (norm0f[i]==0 ? 0.0 : log(norm0c[i]/norm0f[i])/log2);
@@ -133,10 +122,7 @@ main (int   argc,
 	
     }
     
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
+    BoxLib::Finalize();
 }
 
 
@@ -144,10 +130,10 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
                         const AmrData& amrd2)
 {
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
+    const Array<std::string>& derives1 = amrd1.PlotVarNames();
+    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    int length = derives1.size();
+    if (length != derives2.size())
         return false;
     for (int i=0; i<length; ++i)
         if (derives1[i] != derives2[i])

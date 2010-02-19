@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.9 2010-02-19 22:44:51 almgren Exp $
+# $Id: GNUmakefile,v 1.10 2010-02-19 23:40:10 almgren Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -15,24 +15,21 @@ DIM	      = 2
 COMP          = Intel
 FCOMP         = Intel
 USE_MPI       = FALSE
-#
-# The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
-#
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-DEFINES += -DBL_USE_HGPROJ_SERIAL
-ifeq ($(DIM),2)
-PRVERSION = v5
-else
-PRVERSION = v7
-endif
-endif
+
 #
 # Base name of the executable.
 #
-EBASE = DiffUniform
-EBASE = PltFileNorm
-EBASE = PltFileScalConvRate
-EBASE = DiffSameGrid
+
+#EBASE = PltFileNorm
+#EBASE = PltFileNormB
+#EBASE = PltFileScalConvRate
+
+#EBASE = Add
+#EBASE = DiffSameGrid
+#EBASE = DiffSameGrid2
+#EBASE = DiffUniform
+#EBASE = DiffSameGridRefined
+
 EBASE = DiffFab
 
 CEXE_sources += $(EBASE).cpp

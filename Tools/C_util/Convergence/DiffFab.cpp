@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffFab.cpp,v 1.8 2010-02-19 23:04:42 ajnonaka Exp $
+// $Id: DiffFab.cpp,v 1.9 2010-02-19 23:40:10 almgren Exp $
 //
 
 #include <new>
@@ -10,7 +10,6 @@
 #include <cstdlib>
 #include <string>
 using std::ios;
-using std::set_new_handler;
 
 #include <unistd.h>
 
@@ -141,5 +140,4 @@ main (int   argc,
 	      << std::endl;
 
     BoxLib::Finalize();
-
 }
