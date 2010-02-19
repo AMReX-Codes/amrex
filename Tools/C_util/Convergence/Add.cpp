@@ -1,13 +1,13 @@
 
 //
-// $Id: Add.cpp,v 1.4 2001-10-17 17:53:33 lijewski Exp $
+// $Id: Add.cpp,v 1.5 2010-02-19 22:45:04 almgren Exp $
 //
 
 #include <new>
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 using std::ios;
 using std::set_new_handler;
 
@@ -32,14 +32,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile  = inputFileName" << '\n';
-    cout << "     factor = factor" << '\n';
-    cout << "    outfile = outputFileName" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << '\n';
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile  = inputFileName" << '\n';
+    std::cout << "     factor = factor" << '\n';
+    std::cout << "    outfile = outputFileName" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -76,7 +76,7 @@ main (int   argc,
     ifstream is(iFile.c_str(),ios::in);
     ofstream os(oFile.c_str(),ios::out);
 
-    FARRAYBOX dataI, dataE;
+    FArrayBox dataI, dataE;
     dataI.readFrom(is);
   
     dataI.plus(factor);   

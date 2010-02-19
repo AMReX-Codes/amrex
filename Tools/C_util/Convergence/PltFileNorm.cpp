@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 #include <cmath>
 using std::ios;
 using std::set_new_handler;
@@ -24,18 +24,18 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "This routine reads a pltfile and calculates the Linfty," << endl
-         << "L1 and L2 norms ov every component.                    " << endl
-         << endl;
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile=inputFileName" << '\n';
-    cout << "   [outfile=outputFileName]" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
-    cout << " Note: outfile required if verbose used" << '\n';
+    std::cout << '\n';
+    std::cout << "This routine reads a pltfile and calculates the Linfty," << std::endl
+         << "L1 and L2 norms ov every component.                    " << std::endl
+         << std::endl;
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile=inputFileName" << '\n';
+    std::cout << "   [outfile=outputFileName]" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
+    std::cout << " Note: outfile required if verbose used" << '\n';
     exit(1);
 }
 
@@ -104,16 +104,16 @@ main (int   argc,
 	aString sformatStr =
 	    aString("\t%") + sbuf + aString("s |  %10s   %10s   %10s\n");
 	
-	cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
+	std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
 	printf(sformatStr.c_str(),"Derived","L-inf","L1","L2");
-	cout << '\t'
+	std::cout << '\t'
 	     << "--------------+------------------------------------------" << '\n';
 	
 	for (int i=0; i<names.length(); ++i)
 	{
 	    printf(formatStr.c_str(),names[i].c_str(),norm0[i],norm1[i],norm2[i]);
 	}
-	cout << '\n';
+	std::cout << '\n';
 	
     }
     

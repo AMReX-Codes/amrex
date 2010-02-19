@@ -1,13 +1,13 @@
 
 //
-// $Id: PltFileNormB.cpp,v 1.4 2001-10-17 17:53:33 lijewski Exp $
+// $Id: PltFileNormB.cpp,v 1.5 2010-02-19 22:45:04 almgren Exp $
 //
 
 #include <new>
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 using std::ios;
 using std::set_new_handler;
 
@@ -33,14 +33,14 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile = inputFileName" << '\n';
-    cout << "      norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile = inputFileName" << '\n';
+    std::cout << "      norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -112,8 +112,8 @@ main (int   argc,
     Array<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
-        cout << "Level  L"<< norm << " norm of Error in Each Component" << endl
-             << "-----------------------------------------------" << endl;
+        std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
+             << "-----------------------------------------------" << std::endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -127,7 +127,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-            cout << "  " << iLevel << "    ";
+            std::cout << "  " << iLevel << "    ";
 
         Array<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
@@ -206,9 +206,9 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                cout << norms[iComp] << " ";
+                std::cout << norms[iComp] << " ";
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 

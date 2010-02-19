@@ -1,13 +1,13 @@
 
 //
-// $Id: DiffSameGridRefined.cpp,v 1.6 2001-12-03 22:39:22 lijewski Exp $
+// $Id: DiffSameGridRefined.cpp,v 1.7 2010-02-19 22:45:04 almgren Exp $
 //
 
 #include <new>
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 using std::ios;
 using std::set_new_handler;
 
@@ -34,30 +34,30 @@ static
 void
 PrintUsage (const char* progName)
 {
-    cout << "This utility performs a diff operation between two"     << endl
-         << "plotfiles which have the same geometrical grid"         << endl
-         << "configurations but a factor of refinement between"      << endl
-         << "the grids from each plotfile at the same level."        << endl
-         << "For instance, it works to diff two plotfiles having"    << endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"           << endl
-         << "  Plotfile 2: 50x50 base grid, Ref_Ratio = 2"           << endl
-         << "Should also work for,"                                  << endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"           << endl
-         << "  Plotfile 2: 25x25 base grid, Ref_Ratio = 4"           << endl
-         << "In both cases, the geometrical region which is refined" << endl
-         << "must be the same.  So, this is generally good for"      << endl
-         << "comparing cases ran using a fixed grid file."           << endl;
-    cout << '\n';
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "    infile1 = inputFileName1" << '\n';
-    cout << "    reffile = refinedPlotFile" << '\n';
-    cout << "    diffile = differenceFileName" << '\n';
-    cout << "              (If not specified no file is written)" << '\n';
-    cout << "       norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << "This utility performs a diff operation between two"     << std::endl
+         << "plotfiles which have the same geometrical grid"         << std::endl
+         << "configurations but a factor of refinement between"      << std::endl
+         << "the grids from each plotfile at the same level."        << std::endl
+         << "For instance, it works to diff two plotfiles having"    << std::endl
+         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"           << std::endl
+         << "  Plotfile 2: 50x50 base grid, Ref_Ratio = 2"           << std::endl
+         << "Should also work for,"                                  << std::endl
+         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"           << std::endl
+         << "  Plotfile 2: 25x25 base grid, Ref_Ratio = 4"           << std::endl
+         << "In both cases, the geometrical region which is refined" << std::endl
+         << "must be the same.  So, this is generally good for"      << std::endl
+         << "comparing cases ran using a fixed grid file."           << std::endl;
+    std::cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile1 = inputFileName1" << '\n';
+    std::cout << "    reffile = refinedPlotFile" << '\n';
+    std::cout << "    diffile = differenceFileName" << '\n';
+    std::cout << "              (If not specified no file is written)" << '\n';
+    std::cout << "       norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -152,8 +152,8 @@ main (int   argc,
     Array<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
-        cout << "Level  L"<< norm << " norm of Error in Each Component" << endl
-             << "-----------------------------------------------" << endl;
+        std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
+             << "-----------------------------------------------" << std::endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -165,8 +165,8 @@ main (int   argc,
 
         if (ba1.length() != ba2.length())
         {
-            cout << "ERROR: BoxArray lengths are not the same at level " 
-                 << iLevel << endl;
+            std::cout << "ERROR: BoxArray lengths are not the same at level " 
+                 << iLevel << std::endl;
             ParallelDescriptor::Abort();
         }
 
@@ -188,7 +188,7 @@ main (int   argc,
 
         if (verbose)
             cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
-                                                             << endl;
+                                                             << std::endl;
 
         BoxArray ba2Coarse(ba2);
         ba2Coarse.coarsen(refine_ratio);
@@ -258,7 +258,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-            cout << "  " << iLevel << "    ";
+            std::cout << "  " << iLevel << "    ";
 
 
 #ifdef BL_USE_MPI
@@ -315,9 +315,9 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                cout << norms[iComp] << " ";
+                std::cout << norms[iComp] << " ";
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
