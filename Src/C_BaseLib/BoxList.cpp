@@ -508,40 +508,14 @@ BoxList::simplify ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
 
-    std::vector<Box> v(lbox.begin(),lbox.end());
+    lbox.sort(BoxCmp());
 
-    lbox.clear();
-
-    std::sort(v.begin(), v.end(), BoxCmp());
-
-    const int N = 50;
-
-    int count = 0;
-
-    for (int i = 0; i < v.size(); i += N)
-    {
-        BoxList tmp(ixType());
-
-        int K = i + N;
-
-        if (K > v.size())
-            K = v.size();
-
-        for (int j = i; j < K; j++)
-            tmp.push_back(v[j]);
-
-        count += tmp.simplify_doit();
-
-        catenate(tmp);
-    }
-
-    return count;
+    return simplify_doit();
 }
 
 int
 BoxList::simplify_doit ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify_doit()");
     //
     // Try to merge adjacent boxes.
     //
@@ -549,7 +523,7 @@ BoxList::simplify_doit ()
     int lo[BL_SPACEDIM];
     int hi[BL_SPACEDIM];
 
-    for (iterator bla = begin(); bla != end(); )
+    for (iterator bla = begin(), End = end(); bla != End; )
     {
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
@@ -650,9 +624,7 @@ BoxList::minimalBox () const
 BoxList&
 BoxList::maxSize (const IntVect& chunk)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::maxSize()");
-
-    for (iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(), End = end(); bli != End; ++bli)
     {
         IntVect boxlen = bli->size();
         const int* len = boxlen.getVect();
