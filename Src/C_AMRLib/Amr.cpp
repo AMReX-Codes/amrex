@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.194 2010-02-13 22:51:35 lijewski Exp $
+// $Id: Amr.cpp,v 1.195 2010-02-22 00:53:12 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1249,8 +1249,6 @@ Amr::restart (const std::string& filename)
        for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
        for (i = 0; i <= mx_lev; i++) is >> level_count[i];
 
-       for (i = 0; i <= mx_lev; i++) {
-       }
        //
        // Set bndry conditions.
        //
