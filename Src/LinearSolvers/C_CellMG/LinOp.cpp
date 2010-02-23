@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.39 2010-02-23 21:08:02 lijewski Exp $
+// $Id: LinOp.cpp,v 1.40 2010-02-23 21:38:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -408,7 +408,7 @@ LinOp::prepareForLevel (int level)
             Mask& curmask = *(maskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);
             std::vector< std::pair<int,Box> > isects = gbox[level].intersections(bx_k);
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
                 if (isects[ii].first != gn)
                     curmask.setVal(BndryData::covered, isects[ii].second, 0);
             //
@@ -424,7 +424,7 @@ LinOp::prepareForLevel (int level)
                 {
                     curmask.shift(pshifts[iiv]);
                     std::vector< std::pair<int,Box> > isects = gbox[level].intersections(curmask.box());
-                    for (int ii = 0; ii < isects.size(); ii++)
+                    for (int ii = 0, N = isects.size(); ii < N; ii++)
                         curmask.setVal(BndryData::covered, isects[ii].second, 0);
                     curmask.shift(-pshifts[iiv]);
                 }
@@ -457,7 +457,7 @@ LinOp::prepareForLevel (int level)
             Mask& curmask = *(lmaskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);
             std::vector< std::pair<int,Box> > isects = gbox[level].intersections(bx_k);
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
                 if (isects[ii].first != gn && bgb[face].DistributionMap()[isects[ii].first] == MyProc)
                     curmask.setVal(BndryData::covered, isects[ii].second, 0);
             //
@@ -473,7 +473,7 @@ LinOp::prepareForLevel (int level)
                 {
                     curmask.shift(pshifts[iiv]);
                     std::vector< std::pair<int,Box> > isects = gbox[level].intersections(curmask.box());
-                    for (int ii = 0; ii < isects.size(); ii++)
+                    for (int ii = 0, N = isects.size(); ii < N; ii++)
                         if (bgb[face].DistributionMap()[isects[ii].first] == MyProc)
                             curmask.setVal(BndryData::covered, isects[ii].second, 0);
                     curmask.shift(-pshifts[iiv]);

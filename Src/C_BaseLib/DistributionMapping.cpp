@@ -758,7 +758,7 @@ CalculateNeighbors (const BoxArray& ba)
     {
         std::vector< std::pair<int,Box> > isects = ba.intersections(grown[i]);
 
-        for (int j = 0; j < isects.size(); j++)
+        for (int j = 0, N = isects.size(); j < N; j++)
             if (isects[j].first != i)
                 nbrs[i].push_back(isects[j].first);
     }

@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.80 2010-02-13 22:51:35 lijewski Exp $
+// $Id: TagBox.cpp,v 1.81 2010-02-23 21:37:42 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -541,7 +541,7 @@ TagBoxArray::setVal (const BoxArray& ba,
     {
         std::vector< std::pair<int,Box> > isects = ba.intersections(fai.validbox());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
             get(fai).setVal(val,isects[i].second,0);
         }
