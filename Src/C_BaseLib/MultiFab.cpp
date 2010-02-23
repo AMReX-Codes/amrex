@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.92 2009-11-10 21:43:44 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.93 2010-02-23 21:39:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -778,7 +778,7 @@ MultiFab::FillBoundary (int  scomp,
 
             std::vector< std::pair<int,Box> > isects = ba.intersections((*this)[mfi].box());
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
                 const Box& bx  = isects[ii].second;
                 const int  iii = isects[ii].first;

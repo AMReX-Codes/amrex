@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.100 2010-02-13 22:51:35 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.101 2010-02-23 21:37:42 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -206,9 +206,9 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
-            int k = isects[i].first;
+            const int k = isects[i].first;
 
             for (OrientationIter fi; fi; ++fi)
             {
@@ -418,9 +418,9 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
-            int k = isects[i].first;
+            const int k = isects[i].first;
 
             for (OrientationIter fi; fi; ++fi)
             {
@@ -597,7 +597,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
         isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
             const int  k     = isects[i].first;
             const Box& lobox = isects[i].second;
@@ -633,7 +633,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
             const int  k     = isects[i].first;
             const Box& hibox = isects[i].second;
@@ -758,7 +758,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
         isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
             fillBoxId.push_back(mfcd.AddBox(mfid,
                                             isects[i].second,
@@ -781,7 +781,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
             fillBoxId.push_back(mfcd.AddBox(mfid,
                                             isects[i].second,
@@ -931,7 +931,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
 
-    for (int i = 0; i < isects.size(); i++)
+    for (int i = 0, N = isects.size(); i < N; i++)
     {
         DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
     }
@@ -940,7 +940,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     isects = bndry[hi].boxArray().intersections(subbox);
 
-    for (int i = 0; i < isects.size(); i++)
+    for (int i = 0, N = isects.size(); i < N; i++)
     {
         DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
     }

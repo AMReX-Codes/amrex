@@ -313,7 +313,7 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
 
         std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.fabbox());
 
-        for (int ii = 0; ii < isects.size(); ii++)
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             const Box& bx  = isects[ii].second;
             const int  iii = isects[ii].first;

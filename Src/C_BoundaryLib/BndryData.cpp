@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.20 2010-02-16 17:55:01 lijewski Exp $
+// $Id: BndryData.cpp,v 1.21 2010-02-23 21:38:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -180,7 +180,8 @@ BndryData::define (const BoxArray& _grids,
             // Turn mask off on intersection with grids at this level.
             //
             std::vector< std::pair<int,Box> > isects = grids.intersections(face_box);
-            for (int ii = 0; ii < isects.size(); ii++)
+
+            for (int ii = 0, N = isects.size(); ii < N; ii++)
                 m->setVal(covered, isects[ii].second, 0);
             //
             // Handle special cases if is periodic.
@@ -193,7 +194,7 @@ BndryData::define (const BoxArray& _grids,
                 {
                     m->shift(pshifts[iiv]);
                     std::vector< std::pair<int,Box> > isects = grids.intersections(m->box());
-                    for (int ii = 0; ii < isects.size(); ii++)
+                    for (int ii = 0, N = isects.size(); ii < N; ii++)
                         m->setVal(covered, isects[ii].second, 0);
                     m->shift(-pshifts[iiv]);
                 }

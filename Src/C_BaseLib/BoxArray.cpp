@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.67 2010-02-13 22:50:17 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.68 2010-02-23 21:39:25 lijewski Exp $
 //
 #include <iostream>
 
@@ -305,7 +305,7 @@ BoxArray::contains (const IntVect& iv) const
     {
         std::vector< std::pair<int,Box> > isects = intersections(Box(iv,iv,get(0).ixType()));
 
-        for (int i = 0; i < isects.size(); i++)
+        for (int i = 0, N = isects.size(); i < N; i++)
             if (get(isects[i].first).contains(iv))
                 return true;
     }
@@ -327,7 +327,7 @@ BoxArray::contains (const Box& b) const
         if (isects.size() > 0)
         {
             BoxList bl(b.ixType());
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
                 bl.push_back(isects[i].second);
             BoxList blnew = BoxLib::complementIn(b, bl);
             return blnew.size() == 0;
@@ -573,7 +573,7 @@ BoxLib::intersect (const BoxArray& ba,
 {
     std::vector< std::pair<int,Box> > isects = ba.intersections(b);
     BoxArray r(isects.size());
-    for (int i = 0; i < isects.size(); i++)
+    for (int i = 0, N = isects.size(); i < N; i++)
     {
         r.set(i, isects[i].second);
     }
@@ -623,7 +623,7 @@ BoxLib::GetBndryCells (const BoxArray& ba,
             // Collect all the intersection pieces.
             //
             BoxList pieces;
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
                 pieces.push_back(isects[i].second);
             BoxList leftover = BoxLib::complementIn(*it,pieces);
             bcells.catenate(leftover);
@@ -721,7 +721,7 @@ BoxArray::removeOverlap ()
         {
             std::vector< std::pair<int,Box> > isects = intersections(b);
 
-            for (int j = 0; j < isects.size(); j++)
+            for (int j = 0, N = isects.size(); j < N; j++)
             {
                 if (isects[j].first == i) continue;
 

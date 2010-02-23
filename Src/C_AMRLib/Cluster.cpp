@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.28 2010-02-16 17:42:46 lijewski Exp $
+// $Id: Cluster.cpp,v 1.29 2010-02-23 21:37:42 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -459,7 +459,7 @@ FastContains (BoxArray& ba, const Box& bx)
         if (isects.size() > 0)
         {
             long nbx = bx.numPts(), nisects = 0;
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
                 nisects += isects[i].second.numPts();
             return nbx == nisects;
         }

@@ -86,7 +86,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
             // Collect all the intersection pieces.
             //
             BoxList pieces;
-            for (int i = 0; i < isects.size(); i++)
+            for (int i = 0, N = isects.size(); i < N; i++)
                 pieces.push_back(isects[i].second);
             BoxList leftover = BoxLib::complementIn(*it,pieces);
             bcells.catenate(leftover);

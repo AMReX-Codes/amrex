@@ -301,7 +301,7 @@ BoxList::complementIn (const Box&     b,
             {
                 tmpbl.clear();
                 BoxList tm(b.ixType());
-                for (int i = 0; i < isects.size(); i++)
+                for (int i = 0, N = isects.size(); i < N; i++)
                     tmpbl.push_back(isects[i].second);
                 tm.complementIn_base(bx,tmpbl);
                 catenate(tm);
