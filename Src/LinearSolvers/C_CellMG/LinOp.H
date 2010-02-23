@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.19 2007-10-22 20:27:04 almgren Exp $
+// $Id: LinOp.H,v 1.20 2010-02-23 21:08:02 lijewski Exp $
 //
 
 #include <Array.H>
@@ -98,12 +98,6 @@ public:
     //
     LinOp (const BndryData& mgb,
            const Real*      _h);
-    //
-    //@ManDoc: alocate a LinOp w/level structure beginning at the
-    //  specified level of this LinOp
-    //
-    LinOp (const LinOp& _Lp,
-           int          level);
     //
     //@ManDoc: destructor
     //
