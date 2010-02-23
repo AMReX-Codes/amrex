@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.38 2009-11-06 20:34:20 lijewski Exp $
+// $Id: LinOp.cpp,v 1.39 2010-02-23 21:08:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -70,6 +70,8 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::~LinOp ()
 {
+
+
     for (int i = 0; i < maskvals.size(); ++i)
     {
         for (int j = 0; j < maskvals[i].size(); ++j)
@@ -94,29 +96,22 @@ LinOp::~LinOp ()
 
 }
 
-LinOp::LinOp (const LinOp& _lp,
-          int          level)
-    :
-    bgb(_lp.bgb)
-{
-    harmavg = _lp.harmavg;
-    verbose = _lp.verbose;
-    gbox.resize(1);
-    gbox[0] = _lp.boxArray(level);
-    geomarray.resize(1);
-    geomarray[0] = bgb.getGeom();
-    h.resize(1);
-    BL_ASSERT(_lp.numLevels() > level);
-    h[0] = _lp.h[level];
-    undrrelxr.resize(1);
-    undrrelxr[0] = _lp.undrrelxr[level];
-}
-
 void
 LinOp::initConstruct (const Real* _h)
 {
     if (!initialized)
         initialize();
+    //
+    // We'll reserve() space to cut down on copying during resize()s.
+    //
+    const int N = 10;
+
+    h.reserve(N);
+    gbox.reserve(N);
+    undrrelxr.reserve(N);
+    maskvals.reserve(N);
+    lmaskvals.reserve(N);
+    geomarray.reserve(N);
 
     harmavg = def_harmavg;
     verbose = def_verbose;
