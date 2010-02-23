@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.68 2010-02-19 17:59:07 lijewski Exp $
+// $Id: BaseFab.H,v 1.69 2010-02-23 18:36:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -109,6 +109,10 @@ public:
     */
     void resize (const Box& b,
                  int        N = 1);
+    //
+    // Swap innards.
+    //
+    void swap (BaseFab& rhs);
 
     /*@ManDoc: The function returns the `BaseFab' to the invalid state.  (See
                comments for constructors above.)  The memory is freed.
@@ -1204,6 +1208,18 @@ template <class T>
 BaseFab<T>::~BaseFab ()
 {
     clear();
+}
+
+template <class T>
+void
+BaseFab<T>::swap (BaseFab& fab)
+{
+    std::swap(domain,fab.domain);
+    std::swap(dlen,fab.dlen);
+    std::swap(nvar,fab.nvar);
+    std::swap(numpts,fab.numpts);
+    std::swap(truesize,fab.truesize);
+    std::swap(dptr,fab.dptr);
 }
 
 template <class T>
