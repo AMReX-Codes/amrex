@@ -198,9 +198,9 @@ public:
     //
     // A handy typedef.
     //
-    typedef std::vector<PIRec> PIRMMap;
+    typedef std::list<PIRec> PIRMList;
     //
-    // Used in caching PIRMMaps && FabArrayBase::CommData.
+    // Used in caching PIRMLists && FabArrayBase::CommData.
     //
     struct FPB
     {
@@ -221,7 +221,7 @@ public:
 
         Array<int>                  m_cache;    // Snds cached for CollectData().
         FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
-        PIRMMap                     m_pirm;
+        PIRMList                    m_pirm;
         BoxArray                    m_ba;
         DistributionMapping         m_dm;
         Box                         m_domain;
@@ -403,7 +403,7 @@ namespace BoxLib
 
         Geometry::FPBMMapIter it = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
 
-        Geometry::PIRMMap& pirm = it->second.m_pirm;
+        Geometry::PIRMList& pirm = it->second.m_pirm;
 
         Array<IntVect> pshifts(27);
 
@@ -534,33 +534,37 @@ namespace BoxLib
 
         Geometry::FPB TheFPB(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
 
-        const FabArrayId   mfid = mfcd.RegisterFabArray(&mf);
-        Geometry::FPB&     fpb  = BoxLib::GetFPB(mf,geom,TheFPB,scomp,ncomp);
-        Geometry::PIRMMap& pirm = fpb.m_pirm;
+        const FabArrayId    mfid = mfcd.RegisterFabArray(&mf);
+        Geometry::FPB&      fpb  = BoxLib::GetFPB(mf,geom,TheFPB,scomp,ncomp);
+        Geometry::PIRMList& pirm = fpb.m_pirm;
         //
         // Add boxes we need to collect.
         //
-        for (int i = 0; i < pirm.size(); i++)
+        for (Geometry::PIRMList::iterator it = pirm.begin(), end = pirm.end();
+             it != end;
+             ++it)
         {
-            pirm[i].fbid = mfcd.AddBox(mfid,
-                                       pirm[i].srcBox,
-                                       0,
-                                       pirm[i].srcId,
-                                       scomp,
-                                       scomp,
-                                       ncomp,
-                                       !corners);
+            it->fbid = mfcd.AddBox(mfid,
+                                   it->srcBox,
+                                   0,
+                                   it->srcId,
+                                   scomp,
+                                   scomp,
+                                   ncomp,
+                                   !corners);
         }
 
         mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
 
-        for (int i = 0; i < pirm.size(); i++)
+        for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
+             it != end;
+             ++it)
         {
-            BL_ASSERT(pirm[i].fbid.box() == pirm[i].srcBox);
-            BL_ASSERT(pirm[i].srcBox.sameSize(pirm[i].dstBox));
-            BL_ASSERT(mf.DistributionMap()[pirm[i].mfid] == ParallelDescriptor::MyProc());
+            BL_ASSERT(it->fbid.box() == it->srcBox);
+            BL_ASSERT(it->srcBox.sameSize(it->dstBox));
+            BL_ASSERT(mf.DistributionMap()[it->mfid] == ParallelDescriptor::MyProc());
 
-            mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
+            mfcd.FillFab(mfid, it->fbid, mf[it->mfid], it->dstBox);
         }
     }
 }

@@ -61,11 +61,15 @@ operator<< (std::ostream&          os,
 }
 
 std::ostream&
-operator<< (std::ostream&            os,
-	    const Geometry::PIRMMap& pirm)
+operator<< (std::ostream&             os,
+	    const Geometry::PIRMList& pirm)
 {
-    for (int i = 0; i < pirm.size(); i++)
-        os << pirm[i] << '\n';
+    for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
+         it != end;
+         ++it)
+    {
+        os << *it << '\n';
+    }
     return os;
 }
 
@@ -142,14 +146,14 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
-    int reused = 0;
-
-    for (FPBMMapIter it = m_FPBCache.begin(), end = m_FPBCache.end(); it != end; ++it)
-        if (it->second.m_reused)
-            reused++;
-
-    if (ParallelDescriptor::IOProcessor() && m_FPBCache.size())
+    if (ParallelDescriptor::IOProcessor() && !m_FPBCache.empty())
     {
+        int reused = 0;
+
+        for (FPBMMapIter it = m_FPBCache.begin(), end = m_FPBCache.end(); it != end; ++it)
+            if (it->second.m_reused)
+                reused++;
+
         std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << ", # reused = " << reused << '\n';
     }
     m_FPBCache.clear();
