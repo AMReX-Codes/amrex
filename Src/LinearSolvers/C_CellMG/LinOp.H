@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.20 2010-02-23 21:08:02 lijewski Exp $
+// $Id: LinOp.H,v 1.21 2010-02-25 20:59:23 lijewski Exp $
 //
 
 #include <Array.H>
@@ -257,7 +257,7 @@ protected:
     //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    std::vector< CpClassPtr<BndryRegister> > undrrelxr;
+    std::vector< LnClassPtr<BndryRegister> > undrrelxr;
     //
     //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation)
     // of pointers to Masks for whether boundary Fabs are covered,
