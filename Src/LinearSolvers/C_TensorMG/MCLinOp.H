@@ -3,7 +3,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.10 2001-08-01 21:51:07 lijewski Exp $
+// $Id: MCLinOp.H,v 1.11 2010-02-25 22:34:34 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -101,11 +101,6 @@ public:
     //
     MCLinOp (const BndryData& mgb,
 	     const Real*      _h);
-    //
-    //@ManDoc: alocate a MCLinOp, pull level structure from _Lp at level
-    //
-    MCLinOp (const MCLinOp& _Lp,
-	     int            level);
     //
     //@ManDoc: destructor
     //
@@ -246,11 +241,11 @@ protected:
     //
     //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
     //
-    Array< CpClassPtr< BndryRegister > > undrrelxr;
+    Array< LnClassPtr< BndryRegister > > undrrelxr;
     //
     //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for tangential derivative data
     //
-    Array< CpClassPtr< BndryRegister > > tangderiv;
+    Array< LnClassPtr< BndryRegister > > tangderiv;
     //
     //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not_covered, outside_domain
     //

@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.25 2009-11-06 20:34:20 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.26 2010-02-25 22:34:34 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -77,31 +77,23 @@ MCLinOp::~MCLinOp ()
     }
 }
 
-MCLinOp::MCLinOp (const MCLinOp& _lp,
-		  int            level)
-    :
-    bgb(_lp.bgb)
-{
-    BL_ASSERT(_lp.numLevels() > level);
-    harmavg = _lp.harmavg;
-    verbose = _lp.verbose;
-    gbox.resize(1);
-    gbox[0] = _lp.boxArray(level);
-    geomarray.resize(1);
-    geomarray[0] = bgb.getGeom();
-    h.resize(1);
-    h[0] = _lp.h[level];	// level should be prepared here.
-    undrrelxr.resize(1);
-    undrrelxr[0] = _lp.undrrelxr[level];
-    tangderiv.resize(1);
-    tangderiv[0] = _lp.tangderiv[level];
-}
-
 void
 MCLinOp::initConstruct (const Real* _h)
 {   
     if (!initialized)
 	initialize();
+    //
+    // We'll reserve() space to cut down on copying during resize()s.
+    //
+    const int N = 10;
+
+    h.reserve(N);
+    gbox.reserve(N);
+    undrrelxr.reserve(N);
+    tangderiv.reserve(N);
+    maskvals.reserve(N);
+    geomarray.reserve(N);
+
     harmavg = def_harmavg;
     verbose = def_verbose;
     gbox.resize(1);
@@ -340,8 +332,6 @@ MCLinOp::clearToLevel (int level)
 {
     for (int i = level+1; i < numLevels(); ++i)
     {
-	delete undrrelxr[i].release();
-	delete tangderiv[i].release();
 	gbox[i].clear();
     }
     h.resize(level+1);
