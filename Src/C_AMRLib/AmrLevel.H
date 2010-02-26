@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.60 2009-03-11 16:44:17 lijewski Exp $
+// $Id: AmrLevel.H,v 1.61 2010-02-26 21:57:04 almgren Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -301,10 +301,12 @@ public:
     //@ManDoc: Returns list of derived variables.
     //
     static DeriveList& get_derive_lst ();
+#ifdef USE_SLABSTAT
     //
     //@ManDoc: Returns list of slab stats.
     //
     static SlabStatList& get_slabstat_lst ();
+#endif
     //
     //@ManDoc: Boundary condition access function.
     //
@@ -368,7 +370,9 @@ protected:
     IntVect fine_ratio;               // Refinement ratio to finer level.
     static DeriveList derive_lst;     // List of derived quantities.
     static DescriptorList desc_lst;   // List of state variables.
+#ifdef USE_SLABSTAT
     static SlabStatList slabstat_lst; // List of SlabStats.
+#endif
     Array<StateData> state;           // Array of state data.
 
 private:

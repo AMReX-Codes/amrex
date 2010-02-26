@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.195 2010-02-22 00:53:12 almgren Exp $
+// $Id: Amr.cpp,v 1.196 2010-02-26 21:57:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1083,8 +1083,10 @@ Amr::initialInit (Real strt_time,
         printGridInfo(gridlog,0,finest_level);
     }
 
+#ifdef USE_STATIONDATA
     station.init();
     station.findGrid(amr_level,geom);
+#endif
 }
 
 //
@@ -1353,8 +1355,10 @@ Amr::restart (const std::string& filename)
        finest_level = new_finest_level;
     }
    
+#ifdef USE_STATIONDATA
     station.init();
     station.findGrid(amr_level,geom);
+#endif
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -1461,10 +1465,14 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
     }
+
+#ifdef USE_SLABSTAT
     //
     // Dump out any SlabStats MultiFabs.
     //
     AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
+#endif
+
     //
     // Don't forget to reset FAB format.
     //
@@ -1592,9 +1600,13 @@ Amr::timeStep (int  level,
                   << std::endl;
     }
 
+#ifdef USE_STATIONDATA
     station.report(time+dt_level[level],level,amr_level[level]);
+#endif
 
+#ifdef USE_SLABSTAT
     AmrLevel::get_slabstat_lst().update(amr_level[level],time,dt_level[level]);
+#endif
     //
     // Advance grids at higher level.
     //
@@ -1818,6 +1830,8 @@ Amr::regrid (int  lbase,
 
             DistributionMapping::AddToCache(mf.DistributionMap());
         }
+
+#ifdef USE_SLABSTAT
         //
         // Recache the distribution maps for SlabStat MFs.
         //
@@ -1829,6 +1843,7 @@ Amr::regrid (int  lbase,
         {
             DistributionMapping::AddToCache((*li)->mf().DistributionMap());
         }
+#endif
     }
     //
     // Define the new grids from level start up to new_finest.
@@ -1876,7 +1891,9 @@ Amr::regrid (int  lbase,
     for (int lev = 0; lev <= new_finest; lev++)
         amr_level[lev].post_regrid(lbase,new_finest);
 
+#ifdef USE_STATIONDATA
     station.findGrid(amr_level,geom);
+#endif
     //
     // Report creation of new grids.
     //

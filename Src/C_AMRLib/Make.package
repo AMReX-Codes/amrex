@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.11 2007-04-17 18:12:14 lijewski Exp $
+# $Id: Make.package,v 1.12 2010-02-26 21:57:04 almgren Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -9,23 +9,37 @@ endif
 
 C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
-                Interpolater.cpp SlabStat.cpp StateData.cpp \
-                StateDescriptor.cpp StationData.cpp TagBox.cpp \
+                Interpolater.cpp StateData.cpp \
+                StateDescriptor.cpp TagBox.cpp \
                 AuxBoundaryData.cpp
 
 C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
                 Cluster.H Derive.H ErrorList.H FluxRegister.H \
-                LevelBld.H Interpolater.H SlabStat.H StateData.H \
-                StateDescriptor.H StationData.H TagBox.H PROB_AMR_F.H \
+                LevelBld.H Interpolater.H StateData.H \
+                StateDescriptor.H TagBox.H PROB_AMR_F.H \
                 AuxBoundaryData.H
 
-F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H SLABSTAT_F.H
+F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H
 
 F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
-                           SLABSTAT_$(DIM)D.F ARRAYLIM_$(DIM)D.F
+                           ARRAYLIM_$(DIM)D.F
 
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
+endif
+
+ifeq ($(USE_SLABSTAT), TRUE)
+  DEFINES += -DUSE_SLABSTAT
+  C$(AMRLIB_BASE)_sources += SlabStat.cpp 
+  C$(AMRLIB_BASE)_headers += SlabState.H
+  F$(AMRLIB_BASE)_sources += SLABSTAT_$(DIM)D.F 
+  F$(AMRLIB_BASE)_headers += SLABSTAT_F.H MAKESLICE_F.H
+endif
+
+ifeq ($(USE_STATIONDATA), TRUE)
+  DEFINES += -DUSE_STATIONDATA
+  C$(AMRLIB_BASE)_sources += StationData.cpp 
+  C$(AMRLIB_BASE)_headers += StationData.H
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
