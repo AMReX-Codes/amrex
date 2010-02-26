@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.81 2010-02-23 21:37:42 lijewski Exp $
+// $Id: TagBox.cpp,v 1.82 2010-02-26 22:23:37 almgren Exp $
 //
 #include <winstd.H>
 
@@ -51,7 +51,6 @@ TagBox::coarsen (const IntVect& ratio)
     const int* clen = cbox_length.getVect();
 
     const int* lo  = b1.loVect();
-    IntVect b1_length = b1.size();
 
     int longlen;
     longlen = b1.longside();
