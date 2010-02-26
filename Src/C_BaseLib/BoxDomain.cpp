@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.22 2007-05-02 21:48:35 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.23 2010-02-26 21:14:00 lijewski Exp $
 //
 #include <iostream>
 
@@ -120,12 +120,13 @@ BoxDomain::add (const Box& b)
 
     BL_ASSERT(b.ixType() == ixType());
 
-    std::list<Box> check;
+    std::list<Box> tmp, check;
+
     check.push_back(b);
-    for (iterator bli = lbox.begin(); bli != lbox.end(); ++bli)
+
+    for (iterator bli = lbox.begin(), end = lbox.end(); bli != end; ++bli)
     {
-        std::list<Box> tmp;
-        for (iterator ci = check.begin(); ci != check.end(); )
+        for (iterator ci = check.begin(), cend = check.end(); ci != cend; )
         {
             if (ci->intersects(*bli))
             {
@@ -172,7 +173,7 @@ BoxDomain::rmBox (const Box& b)
 
     std::list<Box> tmp;
 
-    for (std::list<Box>::iterator  bli = lbox.begin(); bli != lbox.end(); )
+    for (std::list<Box>::iterator bli = lbox.begin(), end = lbox.end(); bli != end; )
     {
         if (bli->intersects(b))
         {
