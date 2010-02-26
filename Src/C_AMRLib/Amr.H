@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.38 2009-11-05 23:07:06 almgren Exp $
+// $Id: Amr.H,v 1.39 2010-02-26 21:57:04 almgren Exp $
 //
 
 #include <fstream>
@@ -12,7 +12,9 @@
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
+#ifdef USE_STATIONDATA
 #include <StationData.H>
+#endif
 
 class AmrLevel;
 class LevelBld;
@@ -346,7 +348,9 @@ protected:
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
+#ifdef USE_STATIONDATA
     StationData      station;
+#endif
     int              verbose;
     int              record_grid_info;
     int              record_run_info;

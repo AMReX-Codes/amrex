@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.109 2009-05-26 20:20:52 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.110 2010-02-26 21:57:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -16,7 +16,9 @@
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
+#ifdef USE_SLABSTAT
 SlabStatList   AmrLevel::slabstat_lst;
+#endif
 
 void
 AmrLevel::postCoarseTimeStep (Real time)
@@ -107,11 +109,13 @@ AmrLevel::get_desc_lst ()
     return desc_lst;
 }
 
+#ifdef USE_SLABSTAT
 SlabStatList&
 AmrLevel::get_slabstat_lst ()
 {
     return slabstat_lst;
 }
+#endif
 
 void
 AmrLevel::set_preferred_boundary_values (MultiFab& S,
