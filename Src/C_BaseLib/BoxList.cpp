@@ -211,9 +211,10 @@ BoxList&
 BoxList::intersect (const Box& b)
 {
     BL_ASSERT(ixType() == b.ixType());
-    for (iterator bli = begin(); bli != end(); )
+
+    for (iterator bli = begin(), End = end(); bli != End; )
     {
-        Box bx = *bli & b;
+        const Box bx = *bli & b;
 
         if (bx.ok())
         {
@@ -222,7 +223,7 @@ BoxList::intersect (const Box& b)
         }
         else
         {
-            bli = lbox.erase(bli);
+            lbox.erase(bli++);
         }
     }
     return *this;
@@ -239,7 +240,7 @@ BoxList::intersect (const BoxList& b)
     {
         for (const_iterator rhs = b.begin(), end = b.end(); rhs != end; ++rhs)
         {
-            Box bx = *lhs & *rhs;
+            const Box bx = *lhs & *rhs;
             if (bx.ok())
                 bl.push_back(bx);
         }
@@ -299,7 +300,7 @@ BoxList::complementIn (const Box&     b,
 
             if (!isects.empty())
             {
-                tmpbl.clear();
+                BL_ASSERT(tmpbl.isEmpty());
                 BoxList tm(b.ixType());
                 for (int i = 0, N = isects.size(); i < N; i++)
                     tmpbl.push_back(isects[i].second);
