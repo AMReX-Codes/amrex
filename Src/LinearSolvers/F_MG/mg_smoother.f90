@@ -296,8 +296,6 @@ contains
     real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: dd
 
-!   real(dp_t) :: uu_temp(0:256,0:256,0:256)
-
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "gs_rb_smoother_3d")
@@ -351,24 +349,32 @@ contains
 
 1234 if ( lskwd ) then
 
+       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
              if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
              if (bc_skewed(mm(i,hi(2),k),2,-1)) tb(i,k,2) = uu(i,hi(2)-2,k)
           end do
        end do
+       !$OMP END PARALLEL DO
+
+       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              if (bc_skewed(mm(lo(1),j,k),1,+1)) lr(j,k,1) = uu(lo(1)+2,j,k)
              if (bc_skewed(mm(hi(1),j,k),1,-1)) lr(j,k,2) = uu(hi(1)-2,j,k)
           end do
        end do
+       !$OMP END PARALLEL DO
+
+       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = lo(2), hi(2) 
           do i = lo(1), hi(1)
              if (bc_skewed(mm(i,j,lo(3)),3,+1)) fb(i,j,1) = uu(i,j,lo(3)+2)
              if (bc_skewed(mm(i,j,hi(3)),3,-1)) fb(i,j,2) = uu(i,j,hi(3)-2)
           end do
        end do
+       !$OMP END PARALLEL DO
 
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
@@ -417,8 +423,10 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+       !
        ! USE THIS FOR GAUSS-SEIDEL
+       !
+       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
@@ -432,28 +440,6 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
-
-       ! USE THIS FOR JACOBI
-!       do k = lo(3), hi(3)
-!          do j = lo(2), hi(2)
-!             do i = lo(1), hi(1)
-!                if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
-!                   dd = ss(i,j,k,0)*uu(i,j,k)
-!                   dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-!                   dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-!                   dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
-!                   uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-!                endif
-!             end do
-!          end do
-!       end do
-!       do k=lo(3),hi(3)
-!          do j = lo(2),hi(2)
-!             do i = lo(1), hi(1)
-!                uu(i,j,k) = uu_temp(i,j,k)
-!             end do
-!          end do
-!       enddo
 
     end if
 
