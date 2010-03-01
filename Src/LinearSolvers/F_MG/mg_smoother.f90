@@ -381,23 +381,35 @@ contains
                      ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
                      ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
 
-                if ( i == lo(1) .and. bc_skewed(mm(i,j,k),1,+1) ) then
-                   dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
+                if ( i == lo(1)) then
+                   if ( bc_skewed(mm(i,j,k),1,+1) ) then
+                      dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
+                   endif
                 end if
-                if ( i == hi(1) .and. bc_skewed(mm(i,j,k),1,-1) ) then
-                   dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
+                if ( i == hi(1)) then
+                   if ( bc_skewed(mm(i,j,k),1,-1) ) then
+                      dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
+                   end if
                 end if
-                if ( j == lo(2) .and. bc_skewed(mm(i,j,k),2,+1) ) then
-                   dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
+                if ( j == lo(2)) then
+                   if ( bc_skewed(mm(i,j,k),2,+1) ) then
+                      dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
+                   end if
                 end if
-                if ( j == hi(2) .and. bc_skewed(mm(i,j,k),2,-1) ) then
-                   dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
+                if ( j == hi(2) ) then
+                   if ( bc_skewed(mm(i,j,k),2,-1) ) then
+                      dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
+                   end if
                 end if
-                if ( k == lo(3) .and. bc_skewed(mm(i,j,k),3,+1) ) then
-                   dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
+                if ( k == lo(3)) then
+                   if ( bc_skewed(mm(i,j,k),3,+1) ) then
+                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
+                   end if
                 end if
-                if ( k == hi(3) .and. bc_skewed(mm(i,j,k),3,-1) ) then
-                   dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
+                if ( k == hi(3) ) then
+                   if ( bc_skewed(mm(i,j,k),3,-1) ) then
+                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
+                   end if
                 end if
                 uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
              end do
