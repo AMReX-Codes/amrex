@@ -2384,6 +2384,7 @@ contains
 
     ! x derivatives
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
@@ -2391,7 +2392,9 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
@@ -2418,9 +2421,11 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
 
     ! y derivatives
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
@@ -2428,7 +2433,9 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,lo(2),k) ,2,-1)
@@ -2454,9 +2461,11 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
 
     ! z derivatives
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2464,7 +2473,9 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,j,lo(3)) ,3,-1)
@@ -2490,7 +2501,9 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2498,6 +2511,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_simple_3d_cc
 
@@ -3855,6 +3869,7 @@ b1 =       0.0d0/hy2
 
           i = 1
           flux(1,:,:) = ZERO
+          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3871,6 +3886,7 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(1,:,:) = flux(1,:,:) * fac
 
           !   Hi i face
@@ -3878,6 +3894,7 @@ b1 =       0.0d0/hy2
 
           i = nx
           flux(1,:,:) = ZERO
+          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3892,16 +3909,18 @@ b1 =       0.0d0/hy2
                 else 
                    flux(1,jc,kc) = Huge(flux)
                 end if
-
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(1,:,:) = flux(1,:,:) * fac
+
        end if
        !   Lo j face
     else if ( dim == 2 ) then
        if (face == -1) then
           j = 1
           flux(:,1,:) = ZERO
+          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3918,11 +3937,14 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(:,1,:) = flux(:,1,:) * fac
+
           !   Hi j face
        else if (face ==  1) then
           j = ny
           flux(:,1,:) = ZERO
+          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3940,7 +3962,9 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(:,1,:) = flux(:,1,:) * fac
+
           !   Lo k face
        end if
     else if ( dim == 3 ) then
@@ -3948,6 +3972,7 @@ b1 =       0.0d0/hy2
 
           k = 1
           flux(:,:,1) = ZERO
+          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3964,6 +3989,7 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(:,:,1) = flux(:,:,1) * fac
 
           !   Hi k face
@@ -3971,6 +3997,7 @@ b1 =       0.0d0/hy2
 
           k = nz
           flux(:,:,1) = ZERO
+          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3987,6 +4014,7 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           flux(:,:,1) = flux(:,:,1) * fac
 
        end if
