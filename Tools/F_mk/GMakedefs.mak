@@ -320,12 +320,12 @@ ifeq ($(ARCH),Linux)
     CFLAGS   =
     FFLAGS   += -module $(mdir)
     F90FLAGS += -module $(mdir)
-    F90FLAGS += -mp
+    F90FLAGS += -mp1
     FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
     ifdef OMP
-      FFLAGS   += -openmp -fpp2
-      F90FLAGS += -openmp -fpp2
+      FFLAGS   += -openmp -openmp-report2
+      F90FLAGS += -openmp -openmp-report2
     endif
     ifeq ($(_comp),Intel11)
       ifndef NDEBUG
@@ -338,15 +338,15 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp 
-          FFLAGS += -O3 -ip -mp
-          CFLAGS += -O3 -ip -mp
+          F90FLAGS += -O3 -ip -mp1 
+          FFLAGS += -O3 -ip -mp1
+          CFLAGS += -O3 -ip -mp1
 	endif
       endif
       ifdef GPROF
         F90FLAGS += -pg
       endif
-      F90FLAGS += -stand f95
+#      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
     ifeq ($(_comp),Intel10)
@@ -364,15 +364,15 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp 
-          FFLAGS += -O3 -ip -mp
-          CFLAGS += -O3 -ip -mp
+          F90FLAGS += -O3 -ip -mp1 
+          FFLAGS += -O3 -ip -mp1
+          CFLAGS += -O3 -ip -mp1
 	endif
       endif
       ifdef GPROF
         F90FLAGS += -pg
       endif
-      F90FLAGS += -stand f95
+#      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
     ifeq ($(_comp),Intel9)
@@ -388,9 +388,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp
-          FFLAGS += -O3 -ip -mp
-          CFLAGS += -O3 -ip -mp
+          F90FLAGS += -O3 -ip -mp1
+          FFLAGS += -O3 -ip -mp1
+          CFLAGS += -O3 -ip -mp1
 #  ifndef GPROF
           F90FLAGS += #-ipo
           FFLAGS += #-ipo
@@ -401,7 +401,7 @@ ifeq ($(ARCH),Linux)
       ifdef GPROF
         F90FLAGS += -pg
       endif
-      F90FLAGS += -stand f95
+#      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
     ifeq ($(_comp),Intel8)
@@ -582,8 +582,8 @@ ifeq ($(ARCH),IRIX64)
   FFLAGS += -64
   CFLAGS += -64
   ifdef OMP
-    F90FLAGS += -mp
-    FFLAGS += -mp
+    F90FLAGS += -mp1
+    FFLAGS += -mp1
   endif
 endif
 
