@@ -3746,20 +3746,22 @@ b1 =       0.0d0/hy2
 
     else 
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
-       do j = 1,ny
-          do i = 1,nx
-             dd(i,j,k) = &
-                  ss(i,j,k,0)*uu(i,j,k)       + &
-                  ss(i,j,k,1)*uu(i+1,j  ,k  ) + &
-                  ss(i,j,k,2)*uu(i-1,j  ,k  ) + &
-                  ss(i,j,k,3)*uu(i  ,j+1,k  ) + &
-                  ss(i,j,k,4)*uu(i  ,j-1,k  ) + &
-                  ss(i,j,k,5)*uu(i  ,j  ,k+1) + &
-                  ss(i,j,k,6)*uu(i  ,j  ,k-1)
+          do j = 1,ny
+             do i = 1,nx
+                dd(i,j,k) = &
+                     ss(i,j,k,0)*uu(i,j,k)       + &
+                     ss(i,j,k,1)*uu(i+1,j  ,k  ) + &
+                     ss(i,j,k,2)*uu(i-1,j  ,k  ) + &
+                     ss(i,j,k,3)*uu(i  ,j+1,k  ) + &
+                     ss(i,j,k,4)*uu(i  ,j-1,k  ) + &
+                     ss(i,j,k,5)*uu(i  ,j  ,k+1) + &
+                     ss(i,j,k,6)*uu(i  ,j  ,k-1)
+             end do
           end do
        end do
-       end do
+       !$OMP END PARALLEL DO
 
     end if
 
@@ -3768,6 +3770,7 @@ b1 =       0.0d0/hy2
        ! Corrections for skewed stencils
        !
        if (nx > 1) then
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = 1, nz
              do j = 1, ny
                 i = 1
@@ -3781,9 +3784,11 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
        end if
 
        if (ny > 1) then
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = 1,nz
              do i = 1,nx
                 j = 1
@@ -3797,9 +3802,11 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
        end if
 
        if (nz > 1) then
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do j = 1,ny
              do i = 1,nx
                 k = 1
@@ -3813,6 +3820,7 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
        end if
     end if
   end subroutine stencil_apply_3d
