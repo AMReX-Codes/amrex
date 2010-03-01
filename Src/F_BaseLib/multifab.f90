@@ -2781,7 +2781,6 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, cpasc%l_con%ncpy
        ii   =  cpasc%l_con%cpy(i)%nd
        jj   =  cpasc%l_con%cpy(i)%ns
@@ -2791,7 +2790,6 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -2866,7 +2864,6 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -2876,7 +2873,6 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_i(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -2951,7 +2947,6 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -2961,7 +2956,6 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_l(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -3036,7 +3030,6 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, cpasc%l_con%ncpy
        ii   = cpasc%l_con%cpy(i)%nd
        jj   = cpasc%l_con%cpy(i)%ns
@@ -3046,7 +3039,6 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_z(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -3106,7 +3098,6 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
@@ -3118,7 +3109,6 @@ contains
           end if
           call cpy_d(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
     else
        if ( lng > 0 ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
@@ -3171,7 +3161,6 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
@@ -3183,7 +3172,6 @@ contains
           end if
           call cpy_i(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
     else
        if ( lng > 0 ) call bl_error('IMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_integer(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
@@ -3236,7 +3224,6 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
@@ -3248,7 +3235,6 @@ contains
           end if
           call cpy_l(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
     else
        if ( lng > 0 ) call bl_error('LMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_logical(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
@@ -3299,7 +3285,6 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, mdst%nboxes
           if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
@@ -3311,7 +3296,6 @@ contains
           end if
           call cpy_z(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
     else
        if ( lng > 0 ) call bl_error('ZMULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
        call mf_copy_fancy_z(mdst, dstcomp, msrc, srccomp, lnc, filter, lnocomm)
