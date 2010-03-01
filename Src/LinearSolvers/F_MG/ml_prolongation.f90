@@ -580,6 +580,7 @@ contains
       i  = lo(1)
       ic = loc(1)
 
+      !$OMP PARALLEL DO PRIVATE(j,k,m,n,jc,kc,yder,y2der,zder,z2der,yzder)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do jc = lo(2)/ir(2), hi(2)/ir(2)
             if (jc > loc(2) .and. jc < hic(2)) then
@@ -622,11 +623,13 @@ contains
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
     else if (side == 2 .or. side == -2) then
 
       j  = lo(2)
       jc = loc(2)
+      !$OMP PARALLEL DO PRIVATE(i,k,m,n,ic,kc,xder,x2der,zder,z2der,xzder)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (ic > loc(1) .and. ic < hic(1)) then
@@ -669,11 +672,13 @@ contains
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
     else if (side == 3 .or. side == -3) then
 
       k  = lo(3)
       kc = loc(3)
+      !$OMP PARALLEL DO PRIVATE(i,j,m,n,ic,jc,yder,y2der,xder,x2der,xyder)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (jc > loc(2) .and. jc < hic(2)) then
@@ -716,6 +721,7 @@ contains
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
     end if
 
