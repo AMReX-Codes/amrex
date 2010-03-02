@@ -803,43 +803,28 @@ contains
           hi_k_neu = .false.
 
           if (j == loflx(2)) then
-             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) &
-                  lo_j_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
           end if
-
           if (j == hiflx(2)) then
-             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) &
-                  hi_j_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
           end if
-
           if (j == loflx(2)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) &
-                  lo_j_neu = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) lo_j_neu = .true.
           end if
-
           if (j == hiflx(2)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) &
-                  hi_j_neu = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) hi_j_neu = .true.
           end if
-
           if (k == loflx(3)) then
-             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) &
-                  lo_k_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
           end if
-
           if (k == hiflx(3)) then
-             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) &
-                  hi_k_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
           end if
-
           if (k == loflx(3)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) &
-                  lo_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) lo_k_neu = .true.
           end if
-
           if (k == hiflx(3)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) &
-                  hi_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) hi_k_neu = .true.
           end if
 
           if (lo_k_not) then
@@ -936,43 +921,28 @@ contains
           hi_k_neu = .false.
 
           if (i == loflx(1)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) &
-                  lo_i_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) lo_i_not = .true.
           end if
-
           if (i == hiflx(1)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) &
-                  hi_i_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) hi_i_not = .true.
           end if
-
           if (i == loflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) &
-                  lo_i_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) lo_i_neu = .true.
           end if
-
           if (i == hiflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) &
-                  hi_i_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) hi_i_neu = .true.
           end if
-
           if (k == loflx(3)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) &
-                  lo_k_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) lo_k_not = .true.
           end if
-
           if (k == hiflx(3)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) &
-                  hi_k_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) hi_k_not = .true.
           end if
-
           if (k == loflx(3)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) &
-                  lo_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) lo_k_neu = .true.
           end if
-
           if (k == hiflx(3)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) &
-                  hi_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) hi_k_neu = .true.
           end if
 
           cell_pp =  (uc(i  ,j,k  ,1) )/dx(1) &
@@ -1082,43 +1052,28 @@ contains
           hi_j_neu = .false.
 
           if (i == loflx(1)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) &
-                  lo_i_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) lo_i_not = .true.
           end if
-
           if (i == hiflx(1)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) &
-                  hi_i_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) hi_i_not = .true.
           end if
-
           if (i == loflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) &
-                  lo_i_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) lo_i_neu = .true.
           end if
-
           if (i == hiflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) &
-                  hi_i_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) hi_i_neu = .true.
           end if
-
           if (j == loflx(2)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) &
-                  lo_j_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) lo_j_not = .true.
           end if
-
           if (j == hiflx(2)) then
-             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) &
-                  hi_j_not = .true.
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) hi_j_not = .true.
           end if
-
           if (j == loflx(2)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) &
-                  lo_j_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) lo_j_neu = .true.
           end if
-
           if (j == hiflx(2)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) &
-                  hi_j_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) hi_j_neu = .true.
           end if
 
           cell_pp =  (uc(i  ,j  ,k,1) )/dx(1) &
