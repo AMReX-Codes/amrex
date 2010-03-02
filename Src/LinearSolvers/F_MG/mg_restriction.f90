@@ -332,7 +332,6 @@ contains
                         add_lo_x = .false.
                      end if
                   end if
-
                   if (jfine == lof(2)+1) then
                      if (bc_neumann(mm_fine(ifine,jfine),2,-1)) then
                         jbot = jtop
@@ -340,7 +339,6 @@ contains
                         add_lo_y = .false.
                      end if
                   end if
-
                   if (ifine == hif(1)-1) then
                      if (bc_neumann(mm_fine(ifine,jfine),1,+1)) then
                         irght = ileft
@@ -348,7 +346,6 @@ contains
                         add_hi_x = .false.
                      end if
                   end if
-
                   if (jfine == hif(2)-1) then
                      if (bc_neumann(mm_fine(ifine,jfine),2,+1)) then
                         jtop = jbot
@@ -434,6 +431,7 @@ contains
            do m = 0, ir(1)-1
              fac = (ir(1)-m) * fac1
              if (m == 0) fac = HALF * fac
+             !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine)
              do k = lo(3),hi(3)
                kfine = k*ir(3)
                do j = lo(2),hi(2)
@@ -454,6 +452,7 @@ contains
                  end do
                end do
              end do
+             !$OMP END PARALLEL DO
            end do
          end do
        end do
@@ -473,12 +472,16 @@ contains
            do m = 0, ir(1)-1
              fac = (ir(1)-m) * fac1
              if (m == 0) fac = HALF * fac
+             !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) &
+             !$OMP PRIVATE(add_lo_x,add_lo_y,add_lo_z,add_hi_x,add_hi_y,add_hi_z) &
+             !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup)
              do k = lo(3),hi(3)
                kfine = k*ir(3)
                do j = lo(2),hi(2)
                  jfine = j*ir(2)
                  do i = lo(1),hi(1)
                    ifine = i*ir(1)
+
                    add_lo_x = .true.
                    add_lo_y = .true.
                    add_lo_z = .true.
@@ -490,10 +493,10 @@ contains
  
                     ileft = ifine-m
                     irght = ifine+m
-                    jbot = jfine-n
-                    jtop = jfine+n
-                    kdwn = kfine-l
-                    kup  = kfine+l
+                    jbot  = jfine-n
+                    jtop  = jfine+n
+                    kdwn  = kfine-l
+                    kup   = kfine+l
 
                      if (ifine == lof(1)+1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
@@ -502,7 +505,6 @@ contains
                            add_lo_x = .false. 
                         end if
                      end if
-
                      if (jfine == lof(2)+1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
                            jbot = jtop
@@ -510,7 +512,6 @@ contains
                            add_lo_y = .false.
                         end if
                      end if
-
                      if (kfine == lof(3)+1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
                            kdwn = kup
@@ -518,7 +519,6 @@ contains
                            add_lo_z = .false.
                         end if
                      end if
-
                      if (ifine == hif(1)-1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
                            irght = ileft
@@ -526,7 +526,6 @@ contains
                            add_hi_x = .false.
                         end if
                      end if
-
                      if (jfine == hif(2)-1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
                            jtop = jbot
@@ -534,7 +533,6 @@ contains
                            add_hi_y = .false.
                         end if
                      end if
-
                      if (kfine == hif(3)-1) then
                         if (bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
                            kup = kdwn
@@ -569,6 +567,7 @@ contains
                  end do
                end do
              end do
+             !$OMP END PARALLEL DO
            end do
          end do
        end do
