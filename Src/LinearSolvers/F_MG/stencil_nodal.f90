@@ -1415,7 +1415,6 @@ contains
                if (j==0) then
                   if (bc_neumann(mm(i,j),2,-1)) jbot = jtop
                end if
-
                if (j==ny) then
                   if (bc_neumann(mm(i,j),2,+1)) jtop = jbot
                end if
@@ -1426,29 +1425,24 @@ contains
                if (j==0) then
                   if (.not. bc_neumann(mm(i,j),2,-1)) llo = .true.
                end if
-
                if (j==ny) then
                   if (.not. bc_neumann(mm(i,j),2,+1)) lhi = .true.
                end if
 
                if (llo) then
-
                   if (n==0) then
                      if (.not. bc_dirichlet(mm(ioff,j),1,0)) &
                           dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
                   else
                      dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jtop)
                   end if
-
                else if (lhi) then
-
                   if (n==0) then
                      if (.not. bc_dirichlet(mm(ioff,j),1,0)) &
                           dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
                   else
                      dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jbot)
                   end if
-
                else
                   dd(ic,jc) = dd(ic,jc) + fac * ( res(ioff,jtop) + &
                                                   res(ioff,jbot) )
@@ -1484,30 +1478,22 @@ contains
             i = (ic-lod(1))*ratio(1) + n
 
             if (i == 0) then
-
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
-
             else if (i < nx) then
-
                if (ic==lod(1) .and. n>0) then
                   if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
                end if
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
-
             end if
 
             i = (ic-lod(1))*ratio(1) - n
             if (i == nx) then
-
               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
-
             else if (i > 0) then
-
                if (ic==hid(1) .and. n>0) then
                   if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
                end if
                dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
-
             end if
          end do
       end do
@@ -1534,7 +1520,6 @@ contains
                if (i==0) then
                   if (bc_neumann(mm(i,j),1,-1)) ileft = irght
                end if
-
                if (i==nx) then
                   if (bc_neumann(mm(i,j),1,+1)) irght = ileft
                end if
@@ -1545,22 +1530,18 @@ contains
                if (i==0) then
                   if (.not. bc_neumann(mm(i,j),1,-1)) llo = .true.
                end if
-
                if (i==nx) then
                   if (.not. bc_neumann(mm(i,j),1,+1)) lhi = .true.
                end if
 
                if (llo) then
-
                   if (n==0) then
                      if (.not. bc_dirichlet(mm(i,joff),1,0)) &
                           dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
                   else
                      dd(ic,jc) = dd(ic,jc) + HALF * fac * res(irght,joff)
                   end if
-
                else if (lhi) then
-
                   if (n==0) then
                      if (.not. bc_dirichlet(mm(i,joff),1,0)) &
                           dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
@@ -1627,54 +1608,56 @@ contains
 
       ic = lod(1)
       fac0 = 1.0_dp_t / (ratio(2)*ratio(3))
-
-!     First average along the coarse-fine face.
+      !
+      ! First average along the coarse-fine face.
+      !
+      !$OMP PARALLEL DO PRIVATE(jc,kc,n,fac,fac2,j,l,k)
       do kc = lod(3),hid(3)
-      do jc = lod(2),hid(2)
-         do n = 0,ratio(2)-1
-           fac2 = (ratio(2)-n)*fac0
-           if (n == 0) fac2 = HALF * fac2
+         do jc = lod(2),hid(2)
+            do n = 0,ratio(2)-1
+               fac2 = (ratio(2)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
 
-           j = (jc-lod(2))*ratio(2) + n
-           if (j < ny) then
-            do l = 0,ratio(3)-1
-               fac = (ratio(3)-l)*fac2
-               if (l == 0) fac = HALF * fac
+               j = (jc-lod(2))*ratio(2) + n
+               if (j < ny) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
 
-               k = (kc-lod(3))*ratio(3) + l
-               if (k < nz) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
 
-               k = (kc-lod(3))*ratio(3) - l
-               if (k >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+               j = (jc-lod(2))*ratio(2) - n
+               if (j > 0) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
+
             end do
-           end if
-
-           j = (jc-lod(2))*ratio(2) - n
-           if (j > 0) then
-            do l = 0,ratio(3)-1
-               fac = (ratio(3)-l)*fac2
-               if (l == 0) fac = HALF * fac
-
-               k = (kc-lod(3))*ratio(3) + l
-               if (k < nz) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-
-               k = (kc-lod(3))*ratio(3) - l
-               if (k >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-            end do
-           end if
-
          end do
-
       end do
-      end do
+      !$OMP END PARALLEL DO
 
       jc = lod(2)
       kc = lod(3)
@@ -1750,6 +1733,8 @@ contains
             ioff = i+isign*m
             fac = (ratio(1)-m) * fac1
             if (m == 0) fac = HALF * fac
+            !$OMP PARALLEL DO PRIVATE(kc,k,jc,j,jtop,jbot,kup,kdwn) &
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do jc = lod(2),hid(2)
@@ -1782,7 +1767,6 @@ contains
                 if (jc==hid(2)) then
                    if (.not. bc_neumann(mm(i,j,k),2,+1)) lh2 = .true.
                 end if
-
                 if (kc==lod(3)) then
                    if (.not. bc_neumann(mm(i,j,k),3,-1)) ll3 = .true.
                 end if
@@ -1830,6 +1814,7 @@ contains
 
               end do
             end do
+            !$OMP END PARALLEL DO
           end do
         end do
       end do
@@ -1853,54 +1838,55 @@ contains
       end if
       jc = lod(2)
       fac0 = 1.0_dp_t / (ratio(1)*ratio(3))
-
-!     First average along the coarse-fine face.
+      !
+      ! First average along the coarse-fine face.
+      !
+      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,l,fac,k)
       do kc = lod(3),hid(3)
-      do ic = lod(1),hid(1)
-         do n = 0,ratio(1)-1
-           fac2 = (ratio(1)-n)*fac0
-           if (n == 0) fac2 = HALF * fac2
+         do ic = lod(1),hid(1)
+            do n = 0,ratio(1)-1
+               fac2 = (ratio(1)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
 
-           i = (ic-lod(1))*ratio(1) + n
-           if (i < nx) then
-            do l = 0,ratio(3)-1
-               fac = (ratio(3)-l)*fac2
-               if (l == 0) fac = HALF * fac
+               i = (ic-lod(1))*ratio(1) + n
+               if (i < nx) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
 
-               k = (kc-lod(3))*ratio(3) + l
-               if (k < nz) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
 
-               k = (kc-lod(3))*ratio(3) - l
-               if (k >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+               i = (ic-lod(1))*ratio(1) - n
+               if (i > 0) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
             end do
-           end if
-
-           i = (ic-lod(1))*ratio(1) - n
-           if (i > 0) then
-            do l = 0,ratio(3)-1
-               fac = (ratio(3)-l)*fac2
-               if (l == 0) fac = HALF * fac
-
-               k = (kc-lod(3))*ratio(3) + l
-               if (k < nz) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-
-               k = (kc-lod(3))*ratio(3) - l
-               if (k >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-            end do
-           end if
-
          end do
-
       end do
-      end do
+      !$OMP END PARALLEL DO
 
       ic = lod(1)
       kc = lod(3)
@@ -1976,6 +1962,8 @@ contains
             joff = j+isign*m
             fac = (ratio(2)-m) * fac1
             if (m == 0) fac = HALF * fac
+            !$OMP PARALLEL DO PRIVATE(kc,k,ic,i,irght,ileft,kup,kdwn) &
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do ic = lod(1),hid(1)
@@ -2053,9 +2041,9 @@ contains
                         dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
                         fac*res(irght,joff,kup) 
                 end if
-
               end do
             end do
+            !$OMP END PARALLEL DO
           end do
         end do
       end do
@@ -2079,54 +2067,55 @@ contains
       end if
       kc = lod(3)
       fac0 = 1.0_dp_t / (ratio(1)*ratio(2))
-
-!     First average along the coarse-fine face.
+      !
+      ! First average along the coarse-fine face.
+      !
+      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,l,fac,j)
       do jc = lod(2),hid(2)
-      do ic = lod(1),hid(1)
-         do n = 0,ratio(1)-1
-           fac2 = (ratio(1)-n)*fac0
-           if (n == 0) fac2 = HALF * fac2
+         do ic = lod(1),hid(1)
+            do n = 0,ratio(1)-1
+               fac2 = (ratio(1)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
 
-           i = (ic-lod(1))*ratio(1) + n
-           if (i < nx) then
-            do l = 0,ratio(2)-1
-               fac = (ratio(2)-l)*fac2
-               if (l == 0) fac = HALF * fac
+               i = (ic-lod(1))*ratio(1) + n
+               if (i < nx) then
+                  do l = 0,ratio(2)-1
+                     fac = (ratio(2)-l)*fac2
+                     if (l == 0) fac = HALF * fac
 
-               j = (jc-lod(2))*ratio(2) + l
-               if (j < ny) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     j = (jc-lod(2))*ratio(2) + l
+                     if (j < ny) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     j = (jc-lod(2))*ratio(2) - l
+                     if (j >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
 
-               j = (jc-lod(2))*ratio(2) - l
-               if (j >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+               i = (ic-lod(1))*ratio(1) - n
+               if (i > 0) then
+                  do l = 0,ratio(2)-1
+                     fac = (ratio(2)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     j = (jc-lod(2))*ratio(2) + l
+                     if (j < ny) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     j = (jc-lod(2))*ratio(2) - l
+                     if (j >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
                end if
             end do
-           end if
-
-           i = (ic-lod(1))*ratio(1) - n
-           if (i > 0) then
-            do l = 0,ratio(2)-1
-               fac = (ratio(2)-l)*fac2
-               if (l == 0) fac = HALF * fac
-
-               j = (jc-lod(2))*ratio(2) + l
-               if (j < ny) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-
-               j = (jc-lod(2))*ratio(2) - l
-               if (j >  0) then
-                  dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-               end if
-            end do
-           end if
-
          end do
-
       end do
-      end do
+      !$OMP END PARALLEL DO
 
       ic = lod(1)
       jc = lod(2)
@@ -2202,6 +2191,8 @@ contains
             koff = k+isign*m
             fac = (ratio(3)-m) * fac1
             if (m == 0) fac = HALF * fac
+            !$OMP PARALLEL DO PRIVATE(jc,j,ic,i,irght,ileft,jtop,jbot) &
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do jc = lod(2),hid(2)
               j = (jc-lod(2))*ratio(2)
               do ic = lod(1),hid(1)
@@ -2282,6 +2273,7 @@ contains
 
               end do
             end do
+            !$OMP END PARALLEL DO
           end do
         end do
       end do
