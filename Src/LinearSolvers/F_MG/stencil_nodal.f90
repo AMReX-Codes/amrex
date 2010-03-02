@@ -615,6 +615,7 @@ contains
 
     ss = ZERO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
     do j = 1, ny
       do i = 1, nx
@@ -643,6 +644,7 @@ contains
       end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     ss = ss * FOURTH / (dh(1))**2
 
@@ -785,6 +787,7 @@ contains
     if (bc_neumann(mm(nx,ny,nz),2,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny-1,nz  ) 
     if (bc_neumann(mm(nx,ny,nz),3,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny  ,nz-1) 
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
     do j = 1, ny
     do i = 1, nx
@@ -812,6 +815,7 @@ contains
     end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     ss = ss * FOURTH / (dh(1))**2
 
@@ -1116,6 +1120,7 @@ contains
 
     if (size(ss,dim=4) .eq. 7) then
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -1136,9 +1141,11 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
     else if (size(ss,dim=4) .eq. 21) then
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -1162,9 +1169,11 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
     else if (size(ss,dim=4) .eq. 27) then
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -1199,6 +1208,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
     else 
       print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
@@ -1337,8 +1347,14 @@ contains
                j = (jc-lod(2))*ratio(2)
                jbot = j-n
                jtop = j+n
-               if (j==0  .and. bc_neumann(mm(i,j),2,-1)) jbot = jtop 
-               if (j==ny .and. bc_neumann(mm(i,j),2,+1)) jtop = jbot 
+
+               if (j==0) then
+                  if (bc_neumann(mm(i,j),2,-1)) jbot = jtop
+               end if
+
+               if (j==ny) then
+                  if (bc_neumann(mm(i,j),2,+1)) jtop = jbot
+               end if
      
                if (j==0 .and. .not. bc_neumann(mm(i,j),2,-1)) then
 
@@ -1439,8 +1455,14 @@ contains
                i = (ic-lod(1))*ratio(1)
                ileft = i-n
                irght = i+n
-               if (i==0  .and. bc_neumann(mm(i,j),1,-1)) ileft = irght 
-               if (i==nx .and. bc_neumann(mm(i,j),1,+1)) irght = ileft 
+
+               if (i==0) then
+                  if (bc_neumann(mm(i,j),1,-1)) ileft = irght
+               end if
+
+               if (i==nx) then
+                  if (bc_neumann(mm(i,j),1,+1)) irght = ileft
+               end if
 
                if (i==0 .and. .not. bc_neumann(mm(i,j),1,-1)) then
                   if (n==0 .and. .not.bc_dirichlet(mm(i,joff),1,0)) then
@@ -1571,33 +1593,37 @@ contains
       kc = lod(3)
       j = 0
       k = 0
-      if (.not. bc_neumann(mm(i,j,k),2,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),2,-1)) then
+          if (.not. bc_neumann(mm(i,j,k),3,-1)) &
+               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+       end if
 
       jc = hid(2)
       kc = lod(3)
       j = ny
       k = 0
-      if (.not. bc_neumann(mm(i,j,k),2,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),2,+1)) then
+         if (.not. bc_neumann(mm(i,j,k),3,-1)) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       jc = lod(2)
       kc = hid(3)
       j = 0
       k = nz
-      if (.not. bc_neumann(mm(i,j,k),2,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),2,-1)) then
+         if (.not. bc_neumann(mm(i,j,k),3,+1)) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       jc = hid(2)
       kc = hid(3)
       j = ny
       k = nz
-      if (.not. bc_neumann(mm(i,j,k),2,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),2,+1)) then
+         if (.not. bc_neumann(mm(i,j,k),3,+1)) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       j = 0
       do kc = lod(3),hid(3)
@@ -1622,8 +1648,9 @@ contains
          j = (jc-lod(2))*ratio(2)
          if (bc_neumann(mm(i,j,k),3, 1)) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
       end do
-
-!     Now average towards the interior of the grid.
+      !
+      ! Now average towards the interior of the grid.
+      !
       fac0 = fac0 / ratio(1)
       ic = lod(1)
       do l = 0, ratio(3)-1
@@ -1644,10 +1671,18 @@ contains
                 jbot = j-n
                 kup  = k+l
                 kdwn = k-l
-                if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
-                if (j==ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
-                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
-                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                if (j==0) then
+                   if (bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
+                end if
+                if (j==ny) then
+                   if (bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
+                end if
+                if (k==0) then
+                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                end if
+                if (k==nz) then
+                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                end if
 
                 if ( ( (jc==lod(2) .and. .not. bc_neumann(mm(i,j,k),2,-1)) .or. &
                        (jc==hid(2) .and. .not. bc_neumann(mm(i,j,k),2,+1)) ) .and. &
@@ -1776,33 +1811,37 @@ contains
       kc = lod(3)
       i = 0
       k = 0
-      if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if (.not. bc_neumann(mm(i,j,k),3,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = hid(1)
       kc = lod(3)
       i = nx
       k = 0
-      if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if (.not. bc_neumann(mm(i,j,k),3,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = lod(1)
       kc = hid(3)
       i = 0
       k = nz
-      if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if (.not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = hid(1)
       kc = hid(3)
       i = nx
       k = nz
-      if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),3,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if (.not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       i = 0
       do kc = lod(3),hid(3)
@@ -1827,8 +1866,9 @@ contains
          i = (ic-lod(1))*ratio(1)
          if (bc_neumann(mm(i,j,k),3, 1)) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
       end do
-
-!     Now average towards the interior of the grid.
+      !
+      ! Now average towards the interior of the grid.
+      !
       fac0 = fac0 / ratio(2)
       jc = lod(2)
       do l = 0, ratio(3)-1
@@ -1849,10 +1889,18 @@ contains
                 ileft = i-n
                 kup  = k+l
                 kdwn = k-l
-                if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
-                if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
-                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup 
-                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                if (i==0) then
+                   if (bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                end if
+                if (i==nx) then
+                   if (bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                end if
+                if (k==0) then
+                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                end if
+                if (k==nz) then
+                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                end if
 
                 if ( ( (ic==lod(1) .and. .not. bc_neumann(mm(i,j,k),1,-1)) .or. &
                        (ic==hid(1) .and. .not. bc_neumann(mm(i,j,k),1,+1)) ) .and. &
@@ -1981,33 +2029,37 @@ contains
       jc = lod(2)
       i = 0
       j = 0
-      if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),2,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if (.not. bc_neumann(mm(i,j,k),2,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = hid(1)
       jc = lod(2)
       i = nx
       j = 0
-      if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),2,-1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if (.not. bc_neumann(mm(i,j,k),2,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = lod(1)
       jc = hid(2)
       i = 0
       j = ny
-      if (.not. bc_neumann(mm(i,j,k),1,-1) .and. &
-          .not. bc_neumann(mm(i,j,k),2,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if (.not. bc_neumann(mm(i,j,k),2,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       ic = hid(1)
       jc = hid(2)
       i = nx
       j = ny
-      if (.not. bc_neumann(mm(i,j,k),1,+1) .and. &
-          .not. bc_neumann(mm(i,j,k),2,+1) ) &
-         dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if (.not. bc_neumann(mm(i,j,k),2,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
 
       i = 0
       do jc = lod(2),hid(2)
@@ -2032,8 +2084,9 @@ contains
          i = (ic-lod(1))*ratio(1)
          if (bc_neumann(mm(i,j,k),2,+1)) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
       end do
-
-!     Now average towards the interior of the grid.
+      !
+      ! Now average towards the interior of the grid.
+      !
       fac0 = fac0 / ratio(3)
       kc = lod(3)
       do l = 0, ratio(2)-1

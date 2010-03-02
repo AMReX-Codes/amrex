@@ -325,36 +325,37 @@ contains
 
                if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
 
-                 if (ifine == lof(1)+1 .and. &
-                    (.not. bc_neumann(mm_fine(ifine,jfine),1,-1) ) ) then
-                    add_lo_x = .false. 
-                 else if (ifine == lof(1)+1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine),1,-1)) then
-                    ileft = irght
-                 end if
+                  if (ifine == lof(1)+1) then
+                     if (bc_neumann(mm_fine(ifine,jfine),1,-1)) then
+                        ileft = irght
+                     else
+                        add_lo_x = .false.
+                     end if
+                  end if
 
-                 if (jfine == lof(2)+1 .and. &
-                    (.not. bc_neumann(mm_fine(ifine,jfine),2,-1) ) ) then
-                    add_lo_y = .false. 
-                 else if (jfine == lof(2)+1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine),2,-1)) then
-                    jbot = jtop
-                 end if
+                  if (jfine == lof(2)+1) then
+                     if (bc_neumann(mm_fine(ifine,jfine),2,-1)) then
+                        jbot = jtop
+                     else
+                        add_lo_y = .false.
+                     end if
+                  end if
 
-                 if (ifine == hif(1)-1 .and. &
-                    (.not. bc_neumann(mm_fine(ifine,jfine),1,+1) ) ) then
-                    add_hi_x = .false.
-                 else if (ifine == hif(1)-1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine),1,+1)) then
-                    irght = ileft
-                 end if
-                 if (jfine == hif(2)-1 .and. &
-                    (.not. bc_neumann(mm_fine(ifine,jfine),2,+1) ) ) then
-                    add_hi_y = .false.
-                 else if (jfine == hif(2)-1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine),2,+1)) then
-                    jtop = jbot
-                 end if
+                  if (ifine == hif(1)-1) then
+                     if (bc_neumann(mm_fine(ifine,jfine),1,+1)) then
+                        irght = ileft
+                     else
+                        add_hi_x = .false.
+                     end if
+                  end if
+
+                  if (jfine == hif(2)-1) then
+                     if (bc_neumann(mm_fine(ifine,jfine),2,+1)) then
+                        jtop = jbot
+                     else
+                        add_hi_y = .false.
+                     end if
+                  end if
 
                  if (add_lo_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(ileft,jbot)
                  if (add_hi_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(irght,jbot)
@@ -493,54 +494,54 @@ contains
                     jtop = jfine+n
                     kdwn = kfine-l
                     kup  = kfine+l
-                 
-                    if (ifine == lof(1)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
-                       add_lo_x = .false. 
-                    else if (ifine == lof(1)+1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
-                       ileft = irght
-                    end if
 
-                    if (jfine == lof(2)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
-                       add_lo_y = .false. 
-                    else if (jfine == lof(2)+1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
-                       jbot = jtop
-                    end if
+                     if (ifine == lof(1)+1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
+                           ileft = irght
+                        else
+                           add_lo_x = .false. 
+                        end if
+                     end if
 
-                    if (kfine == lof(3)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
-                       add_lo_z = .false. 
-                    else if (kfine == lof(3)+1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
-                       kdwn = kup
-                    end if
+                     if (jfine == lof(2)+1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
+                           jbot = jtop
+                        else
+                           add_lo_y = .false.
+                        end if
+                     end if
 
-                    if (ifine == hif(1)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
-                       add_hi_x = .false.
-                    else if (ifine == hif(1)-1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
-                       irght = ileft
-                    end if
+                     if (kfine == lof(3)+1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
+                           kdwn = kup
+                        else
+                           add_lo_z = .false.
+                        end if
+                     end if
 
-                    if (jfine == hif(2)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
-                       add_hi_y = .false.
-                    else if (jfine == hif(2)-1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
-                       jtop = jbot
-                    end if
+                     if (ifine == hif(1)-1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
+                           irght = ileft
+                        else
+                           add_hi_x = .false.
+                        end if
+                     end if
 
-                    if (kfine == hif(3)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
-                       add_hi_z = .false.
-                    else if (kfine == hif(3)-1 .and. &
-                           bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
-                       kup = kdwn
-                    end if
+                     if (jfine == hif(2)-1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
+                           jtop = jbot
+                        else
+                           add_hi_y = .false.
+                        end if
+                     end if
+
+                     if (kfine == hif(3)-1) then
+                        if (bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
+                           kup = kdwn
+                        else
+                           add_hi_z = .false.
+                        end if
+                     end if
 
                     if (add_lo_z) then
                       if (add_lo_x .and. add_lo_y) &
@@ -552,6 +553,7 @@ contains
                       if (add_hi_x .and. add_hi_y) &
                           cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jtop,kdwn)
                     end if
+
                     if (add_hi_z) then
                       if (add_lo_x .and. add_lo_y) &
                           cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jbot,kup)
