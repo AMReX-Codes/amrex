@@ -139,6 +139,7 @@ contains
 
     integer :: i, j, k
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -146,6 +147,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine nodal_zero_3d
 
@@ -401,6 +403,7 @@ contains
     integer    :: hif(3)
     real(dp_t) :: fac, fac0, fac1, fac2
     logical    :: add_lo_x, add_lo_y, add_lo_z, add_hi_x, add_hi_y, add_hi_z
+    logical    :: doit, jface, kface
 
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
@@ -423,38 +426,51 @@ contains
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
        do l = 0, ir(3)-1
-         fac2 = (ir(3)-l) * fac0
-         if (l == 0) fac2 = HALF * fac2
-         do n = 0, ir(2)-1
-           fac1 = (ir(2)-n) * fac2
-           if (n == 0) fac1 = HALF * fac1
-           do m = 0, ir(1)-1
-             fac = (ir(1)-m) * fac1
-             if (m == 0) fac = HALF * fac
-             !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine)
-             do k = lo(3),hi(3)
-               kfine = k*ir(3)
-               do j = lo(2),hi(2)
-                 jfine = j*ir(2)
-                 do i = lo(1),hi(1)
-                   ifine = i*ir(1)
-                   if (.not. bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
-                     cc(i,j,k) = cc(i,j,k) &
-                        + fac*ff(ifine-m,jfine-n,kfine-l) &
-                        + fac*ff(ifine+m,jfine-n,kfine-l) &
-                        + fac*ff(ifine-m,jfine+n,kfine-l) &
-                        + fac*ff(ifine+m,jfine+n,kfine-l) &
-                        + fac*ff(ifine-m,jfine-n,kfine+l) &
-                        + fac*ff(ifine+m,jfine-n,kfine+l) &
-                        + fac*ff(ifine-m,jfine+n,kfine+l) &
-                        + fac*ff(ifine+m,jfine+n,kfine+l)
-                   end if
-                 end do
-               end do
+          fac2 = (ir(3)-l) * fac0
+          if (l == 0) fac2 = HALF * fac2
+          do n = 0, ir(2)-1
+             fac1 = (ir(2)-n) * fac2
+             if (n == 0) fac1 = HALF * fac1
+             do m = 0, ir(1)-1
+                fac = (ir(1)-m) * fac1
+                if (m == 0) fac = HALF * fac
+                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine,jface,kface,doit)
+                do k = lo(3),hi(3)
+                   kfine = k*ir(3)
+
+                   kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+
+                   do j = lo(2),hi(2)
+                      jfine = j*ir(2)
+
+                      jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+
+                      do i = lo(1),hi(1)
+                         ifine = i*ir(1)
+
+                         doit = .true.
+
+                         if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                            if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) doit = .false.
+                         end if
+
+                         if (doit) then
+                            cc(i,j,k) = cc(i,j,k) &
+                                 + fac*ff(ifine-m,jfine-n,kfine-l) &
+                                 + fac*ff(ifine+m,jfine-n,kfine-l) &
+                                 + fac*ff(ifine-m,jfine+n,kfine-l) &
+                                 + fac*ff(ifine+m,jfine+n,kfine-l) &
+                                 + fac*ff(ifine-m,jfine-n,kfine+l) &
+                                 + fac*ff(ifine+m,jfine-n,kfine+l) &
+                                 + fac*ff(ifine-m,jfine+n,kfine+l) &
+                                 + fac*ff(ifine+m,jfine+n,kfine+l)
+                         end if
+                      end do
+                   end do
+                end do
+                !$OMP END PARALLEL DO
              end do
-             !$OMP END PARALLEL DO
-           end do
-         end do
+          end do
        end do
 
     else
@@ -464,112 +480,124 @@ contains
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
        do l = 0, ir(3)-1
-         fac2 = (ir(3)-l) * fac0
-         if (l == 0) fac2 = HALF * fac2
-         do n = 0, ir(2)-1
-           fac1 = (ir(2)-n) * fac2
-           if (n == 0) fac1 = HALF * fac1
-           do m = 0, ir(1)-1
-             fac = (ir(1)-m) * fac1
-             if (m == 0) fac = HALF * fac
-             !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) &
-             !$OMP PRIVATE(add_lo_x,add_lo_y,add_lo_z,add_hi_x,add_hi_y,add_hi_z) &
-             !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup)
-             do k = lo(3),hi(3)
-               kfine = k*ir(3)
-               do j = lo(2),hi(2)
-                 jfine = j*ir(2)
-                 do i = lo(1),hi(1)
-                   ifine = i*ir(1)
+          fac2 = (ir(3)-l) * fac0
+          if (l == 0) fac2 = HALF * fac2
+          do n = 0, ir(2)-1
+             fac1 = (ir(2)-n) * fac2
+             if (n == 0) fac1 = HALF * fac1
+             do m = 0, ir(1)-1
+                fac = (ir(1)-m) * fac1
+                if (m == 0) fac = HALF * fac
+                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) &
+                !$OMP PRIVATE(add_lo_x,add_lo_y,add_lo_z,add_hi_x,add_hi_y,add_hi_z) &
+                !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup,jface,kface,doit)
+                do k = lo(3),hi(3)
+                   kfine = k*ir(3)
 
-                   add_lo_x = .true.
-                   add_lo_y = .true.
-                   add_lo_z = .true.
-                   add_hi_x = .true.
-                   add_hi_y = .true.
-                   add_hi_z = .true.
+                   kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-                   if (.not. bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
- 
-                    ileft = ifine-m
-                    irght = ifine+m
-                    jbot  = jfine-n
-                    jtop  = jfine+n
-                    kdwn  = kfine-l
-                    kup   = kfine+l
+                   do j = lo(2),hi(2)
+                      jfine = j*ir(2)
 
-                     if (ifine == lof(1)+1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
-                           ileft = irght
-                        else
-                           add_lo_x = .false. 
-                        end if
-                     end if
-                     if (jfine == lof(2)+1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
-                           jbot = jtop
-                        else
-                           add_lo_y = .false.
-                        end if
-                     end if
-                     if (kfine == lof(3)+1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
-                           kdwn = kup
-                        else
-                           add_lo_z = .false.
-                        end if
-                     end if
-                     if (ifine == hif(1)-1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
-                           irght = ileft
-                        else
-                           add_hi_x = .false.
-                        end if
-                     end if
-                     if (jfine == hif(2)-1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
-                           jtop = jbot
-                        else
-                           add_hi_y = .false.
-                        end if
-                     end if
-                     if (kfine == hif(3)-1) then
-                        if (bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
-                           kup = kdwn
-                        else
-                           add_hi_z = .false.
-                        end if
-                     end if
+                      jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-                    if (add_lo_z) then
-                      if (add_lo_x .and. add_lo_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jbot,kdwn)
-                      if (add_hi_x .and. add_lo_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jbot,kdwn)
-                      if (add_lo_x .and. add_hi_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jtop,kdwn)
-                      if (add_hi_x .and. add_hi_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jtop,kdwn)
-                    end if
+                      do i = lo(1),hi(1)
+                         ifine = i*ir(1)
 
-                    if (add_hi_z) then
-                      if (add_lo_x .and. add_lo_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jbot,kup)
-                      if (add_hi_x .and. add_lo_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jbot,kup)
-                      if (add_lo_x .and. add_hi_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jtop,kup)
-                      if (add_hi_x .and. add_hi_y) &
-                          cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jtop,kup)
-                    end if
+                         doit = .true.
 
-                   end if
-                 end do
-               end do
+                         if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                            if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) doit = .false.
+                         end if
+
+                         add_lo_x = .true.
+                         add_lo_y = .true.
+                         add_lo_z = .true.
+                         add_hi_x = .true.
+                         add_hi_y = .true.
+                         add_hi_z = .true.
+
+                         if (doit) then
+
+                            ileft = ifine-m
+                            irght = ifine+m
+                            jbot  = jfine-n
+                            jtop  = jfine+n
+                            kdwn  = kfine-l
+                            kup   = kfine+l
+
+                            if (ifine == lof(1)+1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) then
+                                  ileft = irght
+                               else
+                                  add_lo_x = .false. 
+                               end if
+                            end if
+                            if (jfine == lof(2)+1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) then
+                                  jbot = jtop
+                               else
+                                  add_lo_y = .false.
+                               end if
+                            end if
+                            if (kfine == lof(3)+1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) then
+                                  kdwn = kup
+                               else
+                                  add_lo_z = .false.
+                               end if
+                            end if
+                            if (ifine == hif(1)-1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) then
+                                  irght = ileft
+                               else
+                                  add_hi_x = .false.
+                               end if
+                            end if
+                            if (jfine == hif(2)-1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) then
+                                  jtop = jbot
+                               else
+                                  add_hi_y = .false.
+                               end if
+                            end if
+                            if (kfine == hif(3)-1) then
+                               if (bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) then
+                                  kup = kdwn
+                               else
+                                  add_hi_z = .false.
+                               end if
+                            end if
+
+                            if (add_lo_z) then
+                               if (add_lo_x .and. add_lo_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jbot,kdwn)
+                               if (add_hi_x .and. add_lo_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jbot,kdwn)
+                               if (add_lo_x .and. add_hi_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jtop,kdwn)
+                               if (add_hi_x .and. add_hi_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jtop,kdwn)
+                            end if
+
+                            if (add_hi_z) then
+                               if (add_lo_x .and. add_lo_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jbot,kup)
+                               if (add_hi_x .and. add_lo_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jbot,kup)
+                               if (add_lo_x .and. add_hi_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(ileft,jtop,kup)
+                               if (add_hi_x .and. add_hi_y) &
+                                    cc(i,j,k) = cc(i,j,k) + fac*ff(irght,jtop,kup)
+                            end if
+
+                         end if
+                      end do
+                   end do
+                end do
+                !$OMP END PARALLEL DO
              end do
-             !$OMP END PARALLEL DO
-           end do
-         end do
+          end do
        end do
 
     end if

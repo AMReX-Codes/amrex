@@ -772,7 +772,7 @@ contains
     integer, intent(in) :: red_black
 
     integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo)), half_x, half_y
-    logical :: x_is_odd, y_is_odd, face, doit
+    logical :: x_is_odd, y_is_odd, jface, kface, doit
     real (kind = dp_t) :: dd
 
     real (kind = dp_t), allocatable :: uu_temp(:,:,:)
@@ -841,19 +841,18 @@ contains
          !
          allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,face,doit) IF((hi(3)-kstart).ge.3)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-kstart).ge.3)
          do k = kstart,hi(3)
-            face = .false.
-            if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+            kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
             do j = jstart,hi(2)
-               if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+               jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
                do i = istart,hi(1)
 
                   doit = .true.
 
-                  if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                  if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                   end if
 
@@ -885,13 +884,12 @@ contains
          !
          ! USE THIS FOR GAUSS-SEIDEL ITERATION
          !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,face,doit) IF((hi(3)-kstart).ge.3)
+         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-kstart).ge.3)
          do k = kstart,hi(3)
-            face = .false.
-            if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+            kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
             do j = jstart,hi(2)
-               if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+               jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
                ipar = MOD(j + k + red_black,2)
 
@@ -899,7 +897,7 @@ contains
 
                   doit = .true.
 
-                  if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                  if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                   end if
 
@@ -920,17 +918,16 @@ contains
     else if (size(ss,dim=4) .eq. 21) then
 
       do k = lo(3),hi(3)
-         face = .false.
-         if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+         kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
          do j = lo(2),hi(2)
-            if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
             do i = lo(1),hi(1)
 
                doit = .true.
 
-               if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+               if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                end if
 
@@ -956,17 +953,16 @@ contains
     else if (size(ss,dim=4) .eq. 27) then
 
       do k = lo(3),hi(3)
-         face = .false.
-         if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+         kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
          do j = lo(2),hi(2)
-            if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+            jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
             do i = lo(1),hi(1)
 
                doit = .true.
 
-               if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+               if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                end if
 

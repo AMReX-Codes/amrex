@@ -125,16 +125,21 @@ module nodal_mask_module
        integer, intent(inout) :: mm_fine(lof(1):,lof(2):,lof(3):)
 
        integer :: i,j,k
+       logical :: jface,kface
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface)
        do k = lo(3),hi(3)
+          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
+             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
              do i = lo(1),hi(1)
-                if (.not. bc_dirichlet(mm_fine(i*ir(1),j*ir(2),k*ir(3)),1,0) ) then
-                   mask(i,j,k) = .false.
+                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                   if (.not. bc_dirichlet(mm_fine(i*ir(1),j*ir(2),k*ir(3)),1,0) ) mask(i,j,k) = .false.
                 end if
              end do
           end do
        end do
+      !$OMP END PARALLEL DO
 
   end subroutine set_crsefine_nodal_mask_3d
 
@@ -178,6 +183,7 @@ module nodal_mask_module
 
        integer :: i,j,k
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -185,6 +191,7 @@ module nodal_mask_module
              end do
           end do
        end do
+      !$OMP END PARALLEL DO
 
      end subroutine set_crse_nodal_mask_3d
 

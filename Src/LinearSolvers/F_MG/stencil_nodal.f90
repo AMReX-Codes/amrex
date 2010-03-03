@@ -1104,11 +1104,9 @@ contains
     if (size(ss,dim=3) .eq. 5) then
 
        do j = 1,ny
-          jface = .false.
-          if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+          jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
           do i = 1,nx
-             iface = .false.
-             if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
+             iface = .false. ; if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
 
              zeroit = .false.
 
@@ -1130,11 +1128,9 @@ contains
     else if (size(ss,dim=3) .eq. 9) then
 
        do j = 1,ny
-          jface = .false.
-          if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+          jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
           do i = 1,nx
-             iface = .false.
-             if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
+             iface = .false. ; if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
 
              zeroit = .false.
 
@@ -1171,7 +1167,7 @@ contains
 
     integer i,j,k,lo(3),nx,ny,nz
 
-    logical zeroit,face
+    logical zeroit,jface,kface
 
     lo = 1
 
@@ -1183,19 +1179,18 @@ contains
 
     if (size(ss,dim=4) .eq. 7) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
        do k = 1,nz
-          face = .false.
-          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+          kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
           do j = 1,ny
-             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+             jface = .false. ; if ( (j.eq.1) .or. (j.eq.ny) ) jface = .true.
 
              do i = 1,nx
 
                 zeroit = .false.
 
-                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
+                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
@@ -1219,19 +1214,18 @@ contains
 
     else if (size(ss,dim=4) .eq. 21) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
        do k = 1,nz
-          face = .false.
-          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+          kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
           do j = 1,ny
-             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+             jface = .false. ; if ( (j.eq.1) .or. (j.eq.ny) ) jface = .true.
 
              do i = 1,nx
 
                 zeroit = .false.
 
-                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
+                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
@@ -1258,19 +1252,18 @@ contains
 
     else if (size(ss,dim=4) .eq. 27) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
        do k = 1,nz
-          face = .false.
-          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+          kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
           do j = 1,ny
-             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+             jface = .false. ; if ( (j.eq.1) .or. (j.eq.ny) ) jface = .true.
 
              do i = 1,nx
 
                 zeroit = .false.
 
-                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
+                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
@@ -1854,13 +1847,15 @@ contains
         end do
       end do
 
+      !$OMP PARALLEL DO PRIVATE(jc,kc,j,k)
       do kc = lod(3),hid(3)
-      do jc = lod(2),hid(2)
-         j = (jc-lod(2))*ratio(2)
-         k = (kc-lod(3))*ratio(3)
-         if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         do jc = lod(2),hid(2)
+            j = (jc-lod(2))*ratio(2)
+            k = (kc-lod(3))*ratio(3)
+            if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         end do
       end do
-      end do
+      !$OMP END PARALLEL DO
 
     else if (side == -2 .or. side == 2) then
 
@@ -2083,13 +2078,15 @@ contains
         end do
       end do
 
+      !$OMP PARALLEL DO PRIVATE(ic,kc,i,k)
       do kc = lod(3),hid(3)
-      do ic = lod(1),hid(1)
-         i = (ic-lod(1))*ratio(1)
-         k = (kc-lod(3))*ratio(3)
-         if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         do ic = lod(1),hid(1)
+            i = (ic-lod(1))*ratio(1)
+            k = (kc-lod(3))*ratio(3)
+            if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         end do
       end do
-      end do
+      !$OMP END PARALLEL DO
 
     else 
 
@@ -2313,13 +2310,15 @@ contains
         end do
       end do
 
+      !$OMP PARALLEL DO PRIVATE(ic,jc,i,j)
       do jc = lod(2),hid(2)
-      do ic = lod(1),hid(1)
-         i = (ic-lod(1))*ratio(1)
-         j = (jc-lod(2))*ratio(2)
-         if (.not. bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         do ic = lod(1),hid(1)
+            i = (ic-lod(1))*ratio(1)
+            j = (jc-lod(2))*ratio(2)
+            if (.not. bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+         end do
       end do
-      end do
+      !$OMP END PARALLEL DO
 
     end if
 
