@@ -876,27 +876,45 @@ contains
          ! USE THIS FOR JACOBI ITERATION
          !
          allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
+
+         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,face,doit) IF((hi(3)-kstart).ge.3)
          do k = kstart,hi(3)
+            face = .false.
+            if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+
             do j = jstart,hi(2)
+               if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+
                do i = istart,hi(1)
-                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+
+                  doit = .true.
+
+                  if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                     if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+                  end if
+
+                  if (doit) then
                      dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
                           + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
                           + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
                           + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
                      uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  else
+                     uu_temp(i,j,k) = uu(i,j,k)
                   end if
                end do
             end do
          end do
+         !$OMP END PARALLEL DO
+
          do k = kstart,hi(3)
             do j = jstart,hi(2)
                do i = istart,hi(1)
-                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
-                       uu(i,j,k) = uu_temp(i,j,k)
+                  uu(i,j,k) = uu_temp(i,j,k)
                end do
             end do
          end do
+
          deallocate(uu_temp)
 
       else
