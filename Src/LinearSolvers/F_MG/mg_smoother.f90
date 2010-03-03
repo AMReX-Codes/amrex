@@ -127,8 +127,6 @@ contains
 
     else
 
-!      ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
-!      do i = lo(1) + ioff, hi(1), 2
        do i = lo(1), hi(1)
           if (abs(ss(i,0)) .gt. 0.0_dp_t) then
             dd = ss(i,0)*uu(i) &
@@ -160,8 +158,6 @@ contains
     logical :: lskwd
     real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), 2)
     real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), 2)
-
-!   real(dp_t) :: uu_temp(0:256,0:256)
 
     type(bl_prof_timer), save :: bpt
 
@@ -211,7 +207,6 @@ contains
           if (bc_skewed(mm(hi(1),j),1,-1)) lr(j,2) = uu(hi(1)-2,j)
        end do
 
-       !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
@@ -236,10 +231,10 @@ contains
              uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end do
        end do
-       !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
+       !
        ! USE THIS FOR GAUSS-SEIDEL
+       !
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
@@ -251,24 +246,6 @@ contains
              end if
           end do
        end do
-       !$OMP END PARALLEL DO
-
-       ! USE THIS FOR JACOBI
-!      do j = lo(2),hi(2)
-!         do i = lo(1), hi(1)
-!            if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
-!              dd = ss(i,j,0)*uu(i,j) &
-!                   + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
-!                   + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
-!              uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-!            end if
-!         end do
-!      end do
-!      do j = lo(2),hi(2)
-!         do i = lo(1), hi(1)
-!              uu(i,j) = uu_temp(i,j)
-!         end do
-!      end do
 
     end if
 
@@ -376,7 +353,7 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
@@ -388,34 +365,22 @@ contains
                      ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
 
                 if ( i == lo(1)) then
-                   if ( bc_skewed(mm(i,j,k),1,+1) ) then
-                      dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
-                   endif
+                   if ( bc_skewed(mm(i,j,k),1,+1) ) dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
                 end if
                 if ( i == hi(1)) then
-                   if ( bc_skewed(mm(i,j,k),1,-1) ) then
-                      dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
-                   end if
+                   if ( bc_skewed(mm(i,j,k),1,-1) ) dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
                 end if
                 if ( j == lo(2)) then
-                   if ( bc_skewed(mm(i,j,k),2,+1) ) then
-                      dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
-                   end if
+                   if ( bc_skewed(mm(i,j,k),2,+1) ) dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
                 end if
                 if ( j == hi(2) ) then
-                   if ( bc_skewed(mm(i,j,k),2,-1) ) then
-                      dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
-                   end if
+                   if ( bc_skewed(mm(i,j,k),2,-1) ) dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
                 end if
                 if ( k == lo(3)) then
-                   if ( bc_skewed(mm(i,j,k),3,+1) ) then
-                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
-                   end if
+                   if ( bc_skewed(mm(i,j,k),3,+1) ) dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
                 end if
                 if ( k == hi(3) ) then
-                   if ( bc_skewed(mm(i,j,k),3,-1) ) then
-                      dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
-                   end if
+                   if ( bc_skewed(mm(i,j,k),3,-1) ) dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
                 end if
                 uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
              end do
@@ -426,7 +391,7 @@ contains
        !
        ! USE THIS FOR GAUSS-SEIDEL
        !
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
+       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
@@ -698,25 +663,22 @@ contains
 
     if (size(ss,dim=3) .eq. 9) then
 
-      !$OMP PARALLEL DO PRIVATE(j,i,dd)
-      do j = lo(2),hi(2)
-         do i = lo(1),hi(1)
-            if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               dd = ss(i,j,0)*uu(i,j) &
-                    + ss(i,j,1) * uu(i-1,j-1) &
-                    + ss(i,j,2) * uu(i  ,j-1) &
-                    + ss(i,j,3) * uu(i+1,j-1) &
-                    + ss(i,j,4) * uu(i-1,j  ) &
-                    + ss(i,j,5) * uu(i+1,j  ) &
-                    + ss(i,j,6) * uu(i-1,j+1) &
-                    + ss(i,j,7) * uu(i  ,j+1) &
-                    + ss(i,j,8) * uu(i+1,j+1)
-               uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-            end if
-         end do
-      end do
-
-      !$OMP END PARALLEL DO
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                dd = ss(i,j,0)*uu(i,j) &
+                     + ss(i,j,1) * uu(i-1,j-1) &
+                     + ss(i,j,2) * uu(i  ,j-1) &
+                     + ss(i,j,3) * uu(i+1,j-1) &
+                     + ss(i,j,4) * uu(i-1,j  ) &
+                     + ss(i,j,5) * uu(i+1,j  ) &
+                     + ss(i,j,6) * uu(i-1,j+1) &
+                     + ss(i,j,7) * uu(i  ,j+1) &
+                     + ss(i,j,8) * uu(i+1,j+1)
+                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             end if
+          end do
+       end do
 
     else if (size(ss,dim=3) .eq. 5) then
 
@@ -749,42 +711,44 @@ contains
       end if
 
       if (x_is_odd .and. pmask(1)) then
-
-!     USE THIS FOR JACOBI ITERATION
-        allocate(uu_temp(istart:hi(1),jstart:hi(2)))
-        do j = jstart,hi(2)
-          do i = istart,hi(1)
-             if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                dd =   ss(i,j,0) * uu(i  ,j ) &
-                     + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-                     + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-                uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-             end if
-          end do
-        end do
-        do j = jstart,hi(2)
-          do i = istart,hi(1)
-             if (.not. bc_dirichlet(mm(i,j),1,0)) &
-               uu(i,j) = uu_temp(i,j)
-          end do
-        end do
-        deallocate(uu_temp)
+         !
+         ! USE THIS FOR JACOBI ITERATION
+         !
+         allocate(uu_temp(istart:hi(1),jstart:hi(2)))
+         do j = jstart,hi(2)
+            do i = istart,hi(1)
+               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                  dd =   ss(i,j,0) * uu(i  ,j ) &
+                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+                  uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+               end if
+            end do
+         end do
+         do j = jstart,hi(2)
+            do i = istart,hi(1)
+               if (.not. bc_dirichlet(mm(i,j),1,0)) &
+                    uu(i,j) = uu_temp(i,j)
+            end do
+         end do
+         deallocate(uu_temp)
 
       else
-
-!       USE THIS FOR GAUSS-SEIDEL ITERATION
-        ipar = 1-red_black
-        do j = jstart,hi(2)
-          ipar = 1 - ipar
-          do i = istart+ipar,hi(1),2
-             if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                dd =   ss(i,j,0) * uu(i  ,j ) &
-                     + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-                     + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-             end if
-          end do
-        end do
+         !
+         ! USE THIS FOR GAUSS-SEIDEL ITERATION
+         !
+         ipar = 1-red_black
+         do j = jstart,hi(2)
+            ipar = 1 - ipar
+            do i = istart+ipar,hi(1),2
+               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                  dd =   ss(i,j,0) * uu(i  ,j ) &
+                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
+                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
+                  uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+               end if
+            end do
+         end do
 
       end if
 
@@ -1082,7 +1046,6 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP PARALLEL DO PRIVATE(j,i,dd)
     do j = 1, size(ff,dim=2)
        do i = 1, size(ff, dim=1)
           dd = &
@@ -1094,7 +1057,7 @@ contains
           uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
        end do
     end do
-    !$OMP END PARALLEL DO
+
     call destroy(bpt)
   end subroutine gs_lex_smoother_2d
 
@@ -1117,7 +1080,6 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP PARALLEL DO PRIVATE(k,j,i,dd)
     do k = 1, size(ff,dim=3)
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)
@@ -1133,7 +1095,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -1179,7 +1140,6 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP PARALLEL DO PRIVATE(j,i,dd)
     do j = 1, size(ff,dim=2)
        do i = 1, size(ff, dim=1)
           dd = &
@@ -1197,7 +1157,6 @@ contains
           uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
        end do
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -1222,7 +1181,6 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP PARALLEL DO PRIVATE(k,j,i,dd)
     do k = 1, size(ff,dim=3)
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)
@@ -1262,7 +1220,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -1341,8 +1298,6 @@ contains
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
 
-    !$OMP PARALLEL PRIVATE(j,i,dd)
-    !$OMP DO
     do j = 1, ny
        do i = 1, nx
           dd =    + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j)
@@ -1364,15 +1319,12 @@ contains
           wrk(i,j) = ff(i,j) - dd
        end do
     end do
-    !$OMP END DO
-    !$OMP DO
+
     do j = 1, ny
        do i = 1, nx
           uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(i,j,0)-uu(i,j))
        end do
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
 
     call destroy(bpt)
 
@@ -1395,8 +1347,7 @@ contains
 
     nx=size(ss,dim=1)
     ny=size(ss,dim=2)
-    !$OMP PARALLEL PRIVATE(j,i)
-    !$OMP DO
+
     do j = 1, ny
        do i = 1, nx
           wrk(i,j) = ff(i,j) - (&
@@ -1413,15 +1364,12 @@ contains
                )
        end do
     end do
-    !$OMP END DO
-    !$OMP DO
+
     do j = 1, ny
        do i = 1, nx
           uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(i,j,0)-uu(i,j))
        end do
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
 
     call destroy(bpt)
 
@@ -1448,9 +1396,10 @@ contains
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
     nz = size(ff,dim=3)
+
     allocate(wrk(nx,ny,nz))
-    !$OMP PARALLEL PRIVATE(j,i,k,dd)
-    !$OMP DO
+
+    !$OMP PARALLEL DO PRIVATE(j,i,k,dd)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1485,8 +1434,9 @@ contains
           end do
        end do
     end do
-    !$OMP END DO
-    !$OMP DO
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1494,8 +1444,7 @@ contains
           end do
        end do
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
+    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -1519,9 +1468,10 @@ contains
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
     nz = size(ff,dim=3)
+
     allocate(wrk(nx,ny,nz))
-    !$OMP PARALLEL PRIVATE(j,i,k)
-    !$OMP DO
+
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1559,8 +1509,9 @@ contains
           end do
        end do
     end do
-    !$OMP END DO
-    !$OMP DO
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1568,8 +1519,7 @@ contains
           end do
        end do
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
+    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 

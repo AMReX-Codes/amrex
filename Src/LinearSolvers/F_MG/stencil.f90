@@ -108,8 +108,6 @@ module stencil_module
        24, 25, 26  &
        /), (/3,3,3/))
 
-! private f_bc_bit
-
   interface destroy
      module procedure stencil_destroy
   end interface
@@ -174,12 +172,6 @@ contains
     integer, intent(in) :: m, dim, face
     r = btest(m,BC_BIT(BC_NEU,dim,face))
   end function bc_neumann
-
-!   elemental function bc_robin(m,dim,face) result(r)
-!     logical :: r
-!     integer, intent(in) :: m, dim, face
-!     r = btest(m,BC_BIT(BC_ROB,dim,face))
-!   end function bc_robin
 
   elemental function bc_interior(m, dim, face) result(r)
     logical :: r
@@ -414,14 +406,6 @@ contains
 
   end subroutine mask_pretty_print_fab
 
-! elemental function f_bc_bit(bc, dim, face) result(r)
-!   integer :: r
-!   integer, intent(in) :: bc
-!   integer, intent(in) :: dim
-!   integer, intent(in) :: face
-!   r = 0 + (bc-1)*2*MAX_SPACEDIM + (dim-1) + ((face+3)/2-1)*MAX_SPACEDIM
-! end function f_bc_bit
-
   subroutine stencil_destroy(st)
     type(stencil), intent(inout) :: st
     call destroy(st%ss)
@@ -491,37 +475,30 @@ contains
     call build(bpt, "st_norm")
     r1 = -Huge(r1)
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,sp,lp) REDUCTION(MAX:r1)
        do i = 1, ss%nboxes
           if ( remote(ss,i) ) cycle
           sp => dataptr(ss, i)
           lp => dataptr(mask, i)
           r1 = max(r1, maxval(sum(abs(sp),dim=4),mask=lp(:,:,:,1)))
        end do
-       !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,sp) REDUCTION(MAX:r1)
        do i = 1, ss%nboxes
           if ( multifab_remote(ss,i) ) cycle
           sp => dataptr(ss, i)
-
-!         This works for g95, and for Intel smaller than 8196x512.
-!         r1 = max(r1, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
-
-!         This is a workaround for the Intel compiler large-array case.
+          !$OMP PARALLEL DO PRIVATE(j,k,m,n,sum_comps) REDUCTION(MAX:r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
-          do j = lbound(sp,dim=2), ubound(sp,dim=2)
-          do m = lbound(sp,dim=1), ubound(sp,dim=1)
-             sum_comps = ZERO
-             do n = lbound(sp,dim=4), ubound(sp,dim=4)
-               sum_comps = sum_comps + abs(sp(m,j,k,n))
+             do j = lbound(sp,dim=2), ubound(sp,dim=2)
+                do m = lbound(sp,dim=1), ubound(sp,dim=1)
+                   sum_comps = ZERO
+                   do n = lbound(sp,dim=4), ubound(sp,dim=4)
+                      sum_comps = sum_comps + abs(sp(m,j,k,n))
+                   end do
+                   r1 = max(r1,sum_comps)
+                end do
              end do
-             r1 = max(r1,sum_comps)
           end do
-          end do
-          end do
+          !$OMP END PARALLEL DO
        end do
-       !$OMP END PARALLEL DO
     end if
 
     call parallel_reduce(r,r1,MPI_MAX)
@@ -1682,8 +1659,6 @@ contains
        r = BC_DIR
     else if ( bc_neumann  (mask,dir,face) ) then
        r = bc_NEU
-!     else if ( bc_robin    (mask,dir,face) ) then
-!        r = bc_ROB
     end if
   end function stencil_bc_type
     
@@ -3786,19 +3761,21 @@ b1 =       0.0d0/hy2
     ! This is the Minion 4th order cross stencil.
     if (size(ss,dim=4) .eq. 13) then
  
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
-       do j = 1,ny
-          do i = 1,nx
-            dd(i,j,k) = ss(i,j,k,0) * uu(i,j,k) &
-                + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
-                + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
-                + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
-                + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
-                + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
-                + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
+          do j = 1,ny
+             do i = 1,nx
+                dd(i,j,k) = ss(i,j,k,0) * uu(i,j,k) &
+                     + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
+                     + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
+                     + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
+                     + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
+                     + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
+                     + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
+             end do
           end do
        end do
-       end do
+       !$OMP END PARALLEL DO
 
     else 
 
@@ -4112,6 +4089,7 @@ b1 =       0.0d0/hy2
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -4148,6 +4126,7 @@ b1 =       0.0d0/hy2
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine stencil_dense_apply_3d
 

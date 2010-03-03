@@ -713,13 +713,11 @@ contains
       integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i)
       do j = 1, ny
          do i = 1, nx
             u(i,j) = r(i,j)/a(i,j,0)
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine jacobi_precon_2d
     subroutine jacobi_precon_3d(a, u, r, ng)
       integer, intent(in) :: ng
@@ -762,7 +760,6 @@ contains
       integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i)
       do j = 1, ny
          do i = 1, nx
             if (.not. bc_dirichlet(mm(i,j),1,0)) then
@@ -770,7 +767,6 @@ contains
             end if
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine nodal_precon_2d
     subroutine nodal_precon_3d(a, u, r, mm, ng)
       integer, intent(in) :: ng
@@ -1117,13 +1113,11 @@ contains
       integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i)
       do j = 1, ny
          do i = 1, nx
             u(i,j) = r(i,j)/a(i,j,0)
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine jacobi_precon_2d
     subroutine jacobi_precon_3d(a, u, r, ng)
       integer, intent(in) :: ng
@@ -1166,7 +1160,6 @@ contains
       integer :: i, j, nx, ny
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i)
       do j = 1, ny
          do i = 1, nx
             if (.not. bc_dirichlet(mm(i,j),1,0)) then
@@ -1174,7 +1167,6 @@ contains
             end if
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine nodal_precon_2d
     subroutine nodal_precon_3d(a, u, r, mm, ng)
       integer, intent(in) :: ng
