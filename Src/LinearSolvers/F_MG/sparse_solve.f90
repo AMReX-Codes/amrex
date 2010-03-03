@@ -2629,15 +2629,12 @@ contains
              rhs(ind(i,1,1,1)) = rp(i,1,1,1)
           end do
        case (2)
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 rhs(ind(i,j,1,1)) = rp(i,j,1,1)
              end do
           end do
-          !$OMP END PARALLEL DO
        case (3)
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -2645,7 +2642,6 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end select
     end do
 
@@ -2666,15 +2662,12 @@ contains
              rp(i,1,1,1) = soln(ind(i,1,1,1))
           end do
        case(2)
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 rp(i,j,1,1) = soln(ind(i,j,1,1))
              end do
           end do
-          !$OMP END PARALLEL DO
        case(3)
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -2682,7 +2675,6 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end select
     end do
 
@@ -2739,7 +2731,6 @@ contains
                 rhs(ind(i,1,1,1)) = rp(i,1,1,1)
           end do
        case (2)
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                if (ind(i,j,1,1) .gt. -1) then
@@ -2747,9 +2738,7 @@ contains
                end if
              end do
           end do
-          !$OMP END PARALLEL DO
        case (3)
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -2758,7 +2747,6 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end select
     end do
 
@@ -2780,7 +2768,6 @@ contains
                 rp(i,1,1,1) = soln(ind(i,1,1,1))
           end do
        case(2)
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                if (ind(i,j,1,1) > -1) then
@@ -2788,9 +2775,7 @@ contains
                end if
              end do
           end do
-          !$OMP END PARALLEL DO
        case(3)
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -2799,7 +2784,6 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end select
 
 !      Copy on intersect from the grid which owns the solution to the grid which doesn't.

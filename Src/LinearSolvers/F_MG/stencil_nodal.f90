@@ -502,43 +502,50 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-!   BEGIN STENCIL
-!
-!   Stencil applies as follows :  (i is left to right, j is down to up)
-
-!        at k-1        at k         at k+1
-!
-!                        3                 
-!          6          2  0  1          5   
-!                        4                  
-!
-!   END STENCIL
-
-
+    !
+    !   BEGIN STENCIL
+    !
+    !   Stencil applies as follows :  (i is left to right, j is down to up)
+    !
+    !        at k-1        at k         at k+1
+    !
+    !                        3                 
+    !          6          2  0  1          5   
+    !                        4                  
+    !
+    !   END STENCIL
+    !
     ! Set sg on faces at a Neumann boundary.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
-       if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
+          if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
-       if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
+          if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
-       if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
+       do j = 1,ny-1
+          if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
+          if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
+       end do
     end do
-    end do
-
+    !$OMP END PARALLEL DO
+    !
     ! Set sg on edges at a Neumann boundary.
+    !
     do i = 1,nx-1
        if (bc_neumann(mm(i, 1, 1),2,-1)) sg(i, 0, 0) = sg(i,1, 0) 
        if (bc_neumann(mm(i, 1,nz),2,-1)) sg(i, 0,nz) = sg(i,1,nz) 
@@ -617,32 +624,35 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
-    do j = 1, ny
-      do i = 1, nx
-!         Faces in x-direction
-          ss(i,j,k,2) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                        +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,1) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                        +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+       do j = 1, ny
+          do i = 1, nx
+             !
+             ! Faces in x-direction
+             !
+             ss(i,j,k,2) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                  +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+             ss(i,j,k,1) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             !
+             ! Faces in y-direction
+             !
+             ss(i,j,k,4) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                  +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+             ss(i,j,k,3) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             !
+             ! Faces in z-direction
+             !
+             ss(i,j,k,6) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                  +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+             ss(i,j,k,5) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                  +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
 
-!         Faces in y-direction
-          ss(i,j,k,4) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                        +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,3) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                        +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
-
-!         Faces in z-direction
-          ss(i,j,k,6) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                        +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,5) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                        +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
-
-          ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
-                          +ss(i,j,k,3) + ss(i,j,k,4) &
-                          +ss(i,j,k,5) + ss(i,j,k,6) )
-
-      end do
-    end do
+             ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
+                  +ss(i,j,k,3) + ss(i,j,k,4) &
+                  +ss(i,j,k,5) + ss(i,j,k,6) )
+          end do
+       end do
     end do
     !$OMP END PARALLEL DO
 
@@ -664,55 +674,63 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-!   BEGIN STENCIL
-!
-!   Stencil applies as follows :  (i is left to right, j is down to up)
-
-!        at k-1        at k         at k+1
-!
-!                        3                 
-!          6          2  0  1          5   
-!                        4                  
-!
-!   END STENCIL
-
+    !
+    !   BEGIN STENCIL
+    !
+    !   Stencil applies as follows :  (i is left to right, j is down to up)
+    !
+    !        at k-1        at k         at k+1
+    !
+    !                        3                 
+    !          6          2  0  1          5   
+    !                        4                  
+    !
+    !   END STENCIL
+    
     ss = ZERO
 
     allocate(sg_int(0:size(sg,dim=1)-1,0:size(sg,dim=2)-1,0:size(sg,dim=3)-1))
 
     sg_int = ZERO
     do k = 1, nz-1
-     do j = 1, ny-1
-      do i = 1, nx-1
-         sg_int(i,j,k) = sg(i,j,k)
-      end do
-     end do
+       do j = 1, ny-1
+          do i = 1, nx-1
+             sg_int(i,j,k) = sg(i,j,k)
+          end do
+       end do
     end do
-
+    !
     ! Set sg_int on faces at a Neumann boundary.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i,j, 1),3,-1)) sg_int(i,j, 0) = sg_int(i,j,1)
-       if (bc_neumann(mm(i,j,nz),3,+1)) sg_int(i,j,nz) = sg_int(i,j,nz-1)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i,j, 1),3,-1)) sg_int(i,j, 0) = sg_int(i,j,1)
+          if (bc_neumann(mm(i,j,nz),3,+1)) sg_int(i,j,nz) = sg_int(i,j,nz-1)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1,k),2,-1)) sg_int(i, 0,k) = sg_int(i,1,k)
-       if (bc_neumann(mm(i,ny,k),2,+1)) sg_int(i,ny,k) = sg_int(i,ny-1,k)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i, 1,k),2,-1)) sg_int(i, 0,k) = sg_int(i,1,k)
+          if (bc_neumann(mm(i,ny,k),2,+1)) sg_int(i,ny,k) = sg_int(i,ny-1,k)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j,k),1,-1)) sg_int( 0,j,k) = sg_int(   1,j,k)
-       if (bc_neumann(mm(nx,j,k),1,+1)) sg_int(nx,j,k) = sg_int(nx-1,j,k)
+       do j = 1,ny-1
+          if (bc_neumann(mm( 1,j,k),1,-1)) sg_int( 0,j,k) = sg_int(   1,j,k)
+          if (bc_neumann(mm(nx,j,k),1,+1)) sg_int(nx,j,k) = sg_int(nx-1,j,k)
+       end do
     end do
-    end do
-
+    !$OMP END PARALLEL DO
+    !
     ! Set sg_int on edges at a Neumann boundary.
+    !
     do i = 1,nx-1
        if (bc_neumann(mm(i, 1, 1),2,-1)) sg_int(i, 0, 0) = sg_int(i,1, 0) 
        if (bc_neumann(mm(i, 1,nz),2,-1)) sg_int(i, 0,nz) = sg_int(i,1,nz) 
@@ -789,31 +807,35 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
-    do j = 1, ny
-    do i = 1, nx
-!         Faces in x-direction
-          ss(i,j,k,2) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                        +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
-          ss(i,j,k,1) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
-                        +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+       do j = 1, ny
+          do i = 1, nx
+             !
+             ! Faces in x-direction
+             !
+             ss(i,j,k,2) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                  +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
+             ss(i,j,k,1) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+             !
+             ! Faces in y-direction
+             !
+             ss(i,j,k,4) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
+             ss(i,j,k,3) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+             !
+             ! Faces in z-direction
+             !
+             ss(i,j,k,6) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
+             ss(i,j,k,5) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+                  +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
 
-!         Faces in y-direction
-          ss(i,j,k,4) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                        +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
-          ss(i,j,k,3) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
-                        +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
-
-!         Faces in z-direction
-          ss(i,j,k,6) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
-                        +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
-          ss(i,j,k,5) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
-                        +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
-
-          ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
-                          +ss(i,j,k,3) + ss(i,j,k,4) &
-                          +ss(i,j,k,5) + ss(i,j,k,6) )
-    end do
-    end do
+             ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
+                  +ss(i,j,k,3) + ss(i,j,k,4) &
+                  +ss(i,j,k,5) + ss(i,j,k,6) )
+          end do
+       end do
     end do
     !$OMP END PARALLEL DO
 
@@ -836,42 +858,50 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-!   BEGIN STENCIL
-!
-!   Stencil applies as follows :  (i is left to right, j is down to up)
-!
-!        at k-1        at k         at k+1
-!
-!       6  7  8      11 24  12     18 19 20
-!       4 25  5      21  0  22     16 26 17
-!       1  2  3       9 23  10     13 14 15
-!
-!   END STENCIL
-
+    !
+    !   BEGIN STENCIL
+    !
+    !   Stencil applies as follows :  (i is left to right, j is down to up)
+    !
+    !        at k-1        at k         at k+1
+    !
+    !       6  7  8      11 24  12     18 19 20
+    !       4 25  5      21  0  22     16 26 17
+    !       1  2  3       9 23  10     13 14 15
+    !
+    !   END STENCIL
+    !
     ! Set sg on faces at a Neumann boundary.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
-       if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
+          if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
-       if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
+       do i = 1,nx-1
+          if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
+          if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
-       if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
+       do j = 1,ny-1
+          if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
+          if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
+       end do
     end do
-    end do
-
+    !$OMP END PARALLEL DO
+    !
     ! Set sg on edges at a Neumann boundary.
+    !
     do i = 1,nx-1
        if (bc_neumann(mm(i, 1, 1),2,-1)) sg(i, 0, 0) = sg(i,1, 0) 
        if (bc_neumann(mm(i, 1,nz),2,-1)) sg(i, 0,nz) = sg(i,1,nz) 
@@ -951,68 +981,76 @@ contains
     fz = ONE / (36.0_dp_t)
     f0 = FOUR * (fx + fy + fz)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
-    do j = 1, ny
-      do i = 1, nx
+       do j = 1, ny
+          do i = 1, nx
+             !
+             ! Corners
+             !
+             ss(i,j,k, 1) = (fx+fy+fz)* sg(i-1,j-1,k-1)
+             ss(i,j,k, 3) = (fx+fy+fz)* sg(i  ,j-1,k-1)
+             ss(i,j,k, 6) = (fx+fy+fz)* sg(i-1,j  ,k-1)
+             ss(i,j,k, 8) = (fx+fy+fz)* sg(i  ,j  ,k-1)
+             ss(i,j,k,13) = (fx+fy+fz)* sg(i-1,j-1,k  )
+             ss(i,j,k,15) = (fx+fy+fz)* sg(i  ,j-1,k  )
+             ss(i,j,k,18) = (fx+fy+fz)* sg(i-1,j  ,k  )
+             ss(i,j,k,20) = (fx+fy+fz)* sg(i  ,j  ,k  )
+             !
+             ! Edges in x-direction
+             !
+             ss(i,j,k, 2) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
+             ss(i,j,k, 7) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
+             ss(i,j,k,14) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
+             ss(i,j,k,19) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
+             !
+             ! Edges in y-direction
+             !
+             ss(i,j,k, 4) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
+             ss(i,j,k, 5) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+             ss(i,j,k,16) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
+             ss(i,j,k,17) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+             !
+             ! Edges in z-direction
+             !
+             ss(i,j,k, 9) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
+             ss(i,j,k,10) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+             ss(i,j,k,11) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+             ss(i,j,k,12) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
-!         Corners
-          ss(i,j,k, 1) = (fx+fy+fz)* sg(i-1,j-1,k-1)
-          ss(i,j,k, 3) = (fx+fy+fz)* sg(i  ,j-1,k-1)
-          ss(i,j,k, 6) = (fx+fy+fz)* sg(i-1,j  ,k-1)
-          ss(i,j,k, 8) = (fx+fy+fz)* sg(i  ,j  ,k-1)
-          ss(i,j,k,13) = (fx+fy+fz)* sg(i-1,j-1,k  )
-          ss(i,j,k,15) = (fx+fy+fz)* sg(i  ,j-1,k  )
-          ss(i,j,k,18) = (fx+fy+fz)* sg(i-1,j  ,k  )
-          ss(i,j,k,20) = (fx+fy+fz)* sg(i  ,j  ,k  )
+             if (size(ss,dim=4) .eq. 27) then
+                !
+                ! Faces in x-direction (only non-zero for non-uniform dx)
+                !
+                ss(i,j,k,21) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+                ss(i,j,k,22) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+                !
+                ! Faces in y-direction (only non-zero for non-uniform dx)
+                !
+                ss(i,j,k,23) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+                ss(i,j,k,24) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+                !
+                ! Faces in z-direction (only non-zero for non-uniform dx)
+                !
+                ss(i,j,k,25) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+                ss(i,j,k,26) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+             end if
 
-!         Edges in x-direction
-          ss(i,j,k, 2) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
-          ss(i,j,k, 7) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
-          ss(i,j,k,14) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
-          ss(i,j,k,19) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
+             ss(i,j,k,0) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+                  +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
+                  +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
+                  +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
 
-!         Edges in y-direction
-          ss(i,j,k, 4) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
-          ss(i,j,k, 5) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,16) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
-          ss(i,j,k,17) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
-
-!         Edges in z-direction
-          ss(i,j,k, 9) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
-          ss(i,j,k,10) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,11) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,12) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
-
-          if (size(ss,dim=4) .eq. 27) then
-
-!         Faces in x-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,21) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                                                 +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-          ss(i,j,k,22) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                                                 +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
-
-!         Faces in y-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,23) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                                                 +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-          ss(i,j,k,24) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                                                 +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
-
-!         Faces in z-direction (only non-zero for non-uniform dx)
-          ss(i,j,k,25) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                                                 +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-          ss(i,j,k,26) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                                                 +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
-
-          end if
-
-          ss(i,j,k,0) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
-                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
-                         +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                         +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
-                  
-      end do
+          end do
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
     ss = ss / (dh(1))**2 
 
@@ -2345,36 +2383,44 @@ contains
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
     hi(3) = lo(3) + size(mm,dim=3)-1
-
-!   Faces
+    !
+    ! Faces
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-      i = lo(1)
-      if (bc_neumann(mm(i,j,k),1,-1)) uu(i-1,j,k) = uu(i+1,j,k)
-      i = hi(1)
-      if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
+       do j = lo(2),hi(2)
+          i = lo(1)
+          if (bc_neumann(mm(i,j,k),1,-1)) uu(i-1,j,k) = uu(i+1,j,k)
+          i = hi(1)
+          if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
    
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
-    do i = lo(1),hi(1)
-      j = lo(2)
-      if (bc_neumann(mm(i,j,k),2,-1)) uu(i,j-1,k) = uu(i,j+1,k)
-      j = hi(2)
-      if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
+       do i = lo(1),hi(1)
+          j = lo(2)
+          if (bc_neumann(mm(i,j,k),2,-1)) uu(i,j-1,k) = uu(i,j+1,k)
+          j = hi(2)
+          if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
+       end do
     end do
-    end do
+    !$OMP END PARALLEL DO
    
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-      k = lo(3)
-      if (bc_neumann(mm(i,j,k),3,-1)) uu(i,j,k-1) = uu(i,j,k+1)
-      k = hi(3)
-      if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
+       do i = lo(1),hi(1)
+          k = lo(3)
+          if (bc_neumann(mm(i,j,k),3,-1)) uu(i,j,k-1) = uu(i,j,k+1)
+          k = hi(3)
+          if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
+       end do
     end do
-    end do
-
-!   Edges
+    !$OMP END PARALLEL DO
+    !
+    ! Edges
+    !
     do i = lo(1),hi(1)
       if (bc_neumann(mm(i,lo(2),lo(3)),2,-1)) uu(i,lo(2)-1,lo(3)-1) = uu(i,lo(2)+1,lo(3)-1)
       if (bc_neumann(mm(i,lo(2),hi(3)),2,-1)) uu(i,lo(2)-1,hi(3)+1) = uu(i,lo(2)+1,hi(3)+1)
@@ -2417,8 +2463,9 @@ contains
       if (bc_neumann(mm(hi(1),hi(2),k),2,+1)) uu(hi(1)+1,hi(2)+1,k) = uu(hi(1)+1,hi(2)-1,k)
 
     end do
-
-!   Corners
+    !
+    ! Corners
+    !
     i = lo(1)
     j = lo(2)
     k = lo(3)
