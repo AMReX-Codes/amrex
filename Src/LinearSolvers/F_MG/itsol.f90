@@ -11,11 +11,113 @@ module itsol_module
   real(dp_t), private, parameter :: ZERO = 0.0_dp_t
   real(dp_t), private, parameter :: ONE  = 1.0_dp_t
 
-  private :: itsol_defect
-  private :: itsol_precon
-  private :: itsol_precon_st
+  private :: itsol_defect, itsol_precon, itsol_precon_st
+  private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
+  private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
 
 contains
+
+    subroutine jacobi_precon_1d(a, u, r, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:)
+      real(kind=dp_t), intent(in)  :: r(:)
+      integer :: i, nx
+      nx = size(a,dim=1)
+      do i = 1, nx
+         u(i) = r(i)/a(i,0)
+      end do
+    end subroutine jacobi_precon_1d
+
+    subroutine jacobi_precon_2d(a, u, r, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)  :: r(:,:)
+      integer :: i, j, nx, ny
+      ny = size(a,dim=2)
+      nx = size(a,dim=1)
+      do j = 1, ny
+         do i = 1, nx
+            u(i,j) = r(i,j)/a(i,j,0)
+         end do
+      end do
+    end subroutine jacobi_precon_2d
+
+    subroutine jacobi_precon_3d(a, u, r, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)  :: r(:,:,:)
+      integer i, j, k, nx, ny, nz
+      nz = size(a,dim=3)
+      ny = size(a,dim=2)
+      nx = size(a,dim=1)
+      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      do k = 1, nz
+         do j = 1, ny
+            do i = 1, nx
+               u(i,j,k) = r(i,j,k)/a(i,j,k,0)
+            end do
+         end do
+      end do
+      !$OMP END PARALLEL DO
+    end subroutine jacobi_precon_3d
+
+    subroutine nodal_precon_1d(a, u, r, mm, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:)
+      real(kind=dp_t), intent(in)  :: r(0:)
+      integer, intent(in)  :: mm(:)
+      integer :: i, nx
+      nx = size(a,dim=1)
+      do i = 1, nx
+         if (.not. bc_dirichlet(mm(i),1,0)) &
+            u(i) = r(i)/a(i,0)
+      end do
+    end subroutine nodal_precon_1d
+
+    subroutine nodal_precon_2d(a, u, r, mm, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)  :: r(0:,0:)
+      integer, intent(in)  :: mm(:,:)
+      integer :: i, j, nx, ny
+      ny = size(a,dim=2)
+      nx = size(a,dim=1)
+      do j = 1, ny
+         do i = 1, nx
+            if (.not. bc_dirichlet(mm(i,j),1,0)) then
+               u(i,j) = r(i,j)/a(i,j,0)
+            end if
+         end do
+      end do
+    end subroutine nodal_precon_2d
+
+    subroutine nodal_precon_3d(a, u, r, mm, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
+      integer, intent(in)  :: mm(:,:,:)
+      integer :: i, j, k, nx, ny, nz
+      nz = size(a,dim=3)
+      ny = size(a,dim=2)
+      nx = size(a,dim=1)
+      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      do k = 1, nz
+         do j = 1, ny
+            do i = 1, nx
+               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                  u(i,j,k) = r(i,j,k)/a(i,j,k,0)
+               end if
+            end do
+         end do
+      end do
+      !$OMP END PARALLEL DO
+    end subroutine nodal_precon_3d
 
   !! ITSOL_BREAKDOWN: is supposed to detect 'bad' numbers
   !! that shouldn't be used in a CG/BICG
@@ -693,103 +795,6 @@ contains
 
     call destroy(bpt)
 
-  contains
-    subroutine jacobi_precon_1d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:)
-      integer :: i, nx
-      nx = size(a,dim=1)
-      do i = 1, nx
-         u(i) = r(i)/a(i,0)
-      end do
-    end subroutine jacobi_precon_1d
-    subroutine jacobi_precon_2d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:)
-      integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      do j = 1, ny
-         do i = 1, nx
-            u(i,j) = r(i,j)/a(i,j,0)
-         end do
-      end do
-    end subroutine jacobi_precon_2d
-    subroutine jacobi_precon_3d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:,:)
-      integer i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
-      do k = 1, nz
-         do j = 1, ny
-            do i = 1, nx
-               u(i,j,k) = r(i,j,k)/a(i,j,k,0)
-            end do
-         end do
-      end do
-      !$OMP END PARALLEL DO
-    end subroutine jacobi_precon_3d
-    subroutine nodal_precon_1d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:)
-      integer, intent(in)  :: mm(:)
-      integer :: i, nx
-      nx = size(a,dim=1)
-      do i = 1, nx
-         if (.not. bc_dirichlet(mm(i),1,0)) &
-            u(i) = r(i)/a(i,0)
-      end do
-    end subroutine nodal_precon_1d
-    subroutine nodal_precon_2d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:)
-      integer, intent(in)  :: mm(:,:)
-      integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      do j = 1, ny
-         do i = 1, nx
-            if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               u(i,j) = r(i,j)/a(i,j,0)
-            end if
-         end do
-      end do
-    end subroutine nodal_precon_2d
-    subroutine nodal_precon_3d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
-      integer, intent(in)  :: mm(:,:,:)
-      integer :: i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
-      do k = 1, nz
-         do j = 1, ny
-            do i = 1, nx
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  u(i,j,k) = r(i,j,k)/a(i,j,k,0)
-               end if
-            end do
-         end do
-      end do
-      !$OMP END PARALLEL DO
-    end subroutine nodal_precon_3d
   end subroutine itsol_precon
 
   subroutine itsol_BiCGStab_solve_st(st, uu, rh, eps, max_iter, verbose, stat)
@@ -1091,105 +1096,6 @@ contains
        end do
     end select
 
-  contains
-
-
-    subroutine jacobi_precon_1d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:)
-      integer :: i, nx
-      nx = size(a,dim=1)
-      do i = 1, nx
-         u(i) = r(i)/a(i,0)
-      end do
-    end subroutine jacobi_precon_1d
-    subroutine jacobi_precon_2d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:)
-      integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      do j = 1, ny
-         do i = 1, nx
-            u(i,j) = r(i,j)/a(i,j,0)
-         end do
-      end do
-    end subroutine jacobi_precon_2d
-    subroutine jacobi_precon_3d(a, u, r, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:,:)
-      integer :: i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
-      do k = 1, nz
-         do j = 1, ny
-            do i = 1, nx
-               u(i,j,k) = r(i,j,k)/a(i,j,k,0)
-            end do
-         end do
-      end do
-      !$OMP END PARALLEL DO
-    end subroutine jacobi_precon_3d
-    subroutine nodal_precon_1d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:)
-      integer, intent(in)  :: mm(:)
-      integer :: i, nx
-      nx = size(a,dim=1)
-      do i = 1, nx
-         if (.not. bc_dirichlet(mm(i),1,0)) &
-              u(i) = r(i)/a(i,0)
-      end do
-    end subroutine nodal_precon_1d
-    subroutine nodal_precon_2d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:)
-      integer, intent(in)  :: mm(:,:)
-      integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      do j = 1, ny
-         do i = 1, nx
-            if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               u(i,j) = r(i,j)/a(i,j,0)
-            end if
-         end do
-      end do
-    end subroutine nodal_precon_2d
-    subroutine nodal_precon_3d(a, u, r, mm, ng)
-      integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
-      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
-      integer, intent(in)  :: mm(:,:,:)
-      integer :: i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
-      do k = 1, nz
-         do j = 1, ny
-            do i = 1, nx
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  u(i,j,k) = r(i,j,k)/a(i,j,k,0)
-               end if
-            end do
-         end do
-      end do
-      !$OMP END PARALLEL DO
-    end subroutine nodal_precon_3d
   end subroutine itsol_precon_st
 
 end module itsol_module
