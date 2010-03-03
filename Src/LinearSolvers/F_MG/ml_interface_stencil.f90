@@ -1282,6 +1282,8 @@ contains
              sig_i  = 2
           end if
 
+          !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
@@ -1362,6 +1364,7 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
 
           !   Lo/Hi j side
        else if (side == -2 .or. side == 2) then
@@ -1373,6 +1376,9 @@ contains
              joff   = j-1
              sig_j  = 4
           end if
+
+          !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
@@ -1450,6 +1456,8 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
+
           !   Lo/Hi k side
        else if (side == -3 .or. side == 3) then
           k = lo(3)
@@ -1461,6 +1469,8 @@ contains
              sig_k  = 6
           end if
 
+          !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
@@ -1538,6 +1548,7 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
        end if
 
     end if
