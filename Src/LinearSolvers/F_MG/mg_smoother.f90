@@ -808,7 +808,7 @@ contains
     integer, intent(in) :: red_black
 
     integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo)), half_x, half_y
-    logical :: x_is_odd, y_is_odd
+    logical :: x_is_odd, y_is_odd, face, doit
     real (kind = dp_t) :: dd
 
     real (kind = dp_t), allocatable :: uu_temp(:,:,:)
@@ -872,43 +872,56 @@ contains
       end if
 
       if ( (x_is_odd .and. pmask(1)) .or. (y_is_odd .and. pmask(2)) ) then
-
-!       USE THIS FOR JACOBI ITERATION
-        allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
-        do k = kstart,hi(3)
-             do j = jstart,hi(2)
-                do i = istart,hi(1)
-                   if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                      dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
-                           + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-                           + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-                           + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
-                      uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-                   end if
-                end do
-             end do
-        end do
-        do k = kstart,hi(3)
-             do j = jstart,hi(2)
-                do i = istart,hi(1)
-                   if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
-                      uu(i,j,k) = uu_temp(i,j,k)
-                end do
-             end do
-        end do
-        deallocate(uu_temp)
+         !
+         ! USE THIS FOR JACOBI ITERATION
+         !
+         allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
+         do k = kstart,hi(3)
+            do j = jstart,hi(2)
+               do i = istart,hi(1)
+                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                     dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                          + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
+                          + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
+                          + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+                     uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  end if
+               end do
+            end do
+         end do
+         do k = kstart,hi(3)
+            do j = jstart,hi(2)
+               do i = istart,hi(1)
+                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+                       uu(i,j,k) = uu_temp(i,j,k)
+               end do
+            end do
+         end do
+         deallocate(uu_temp)
 
       else
+         !
+         ! USE THIS FOR GAUSS-SEIDEL ITERATION
+         !
+         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,face,doit) IF((hi(3)-kstart).ge.3)
+         do k = kstart,hi(3)
+            face = .false.
+            if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
 
-!       USE THIS FOR GAUSS-SEIDEL ITERATION
-        ipar0 = red_black
-        do k = kstart,hi(3)
-            ipar0 = 1 - ipar0
-            ipar = ipar0
             do j = jstart,hi(2)
-               ipar = 1 - ipar
+               if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+
+               ipar = MOD(j + k + red_black,2)
+
                do i = istart+ipar,hi(1),2
-                  if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+
+                  doit = .true.
+
+                  if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                     if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+                  end if
+
+                  if (doit) then
                      dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
                           + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
                           + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
@@ -917,16 +930,29 @@ contains
                   end if
                end do
             end do
-        end do
+         end do
+         !$OMP END PARALLEL DO
 
       end if
 
     else if (size(ss,dim=4) .eq. 21) then
 
       do k = lo(3),hi(3)
+         face = .false.
+         if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+
          do j = lo(2),hi(2)
+            if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+
             do i = lo(1),hi(1)
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+
+               doit = .true.
+
+               if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                  if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+               end if
+
+               if (doit) then
                   dd = ss(i,j,k,0)*uu(i,j,k) &
                        + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
                        + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
@@ -948,9 +974,21 @@ contains
     else if (size(ss,dim=4) .eq. 27) then
 
       do k = lo(3),hi(3)
+         face = .false.
+         if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) face = .true.
+
          do j = lo(2),hi(2)
+            if ( face .or. (j.eq.lo(2)) .or. (j.eq.hi(2)) ) face = .true.
+
             do i = lo(1),hi(1)
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+
+               doit = .true.
+
+               if ( face .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                  if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+               end if
+
+               if (doit) then
                   dd = ss(i,j,k,0)*uu(i,j,k) &
                        + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
                        + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
