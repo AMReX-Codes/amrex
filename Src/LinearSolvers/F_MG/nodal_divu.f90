@@ -161,6 +161,7 @@ contains
 
       rh = ZERO
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
       do j = 0,ny
       do i = 0,nx
@@ -182,6 +183,7 @@ contains
       end do
       end do
       end do
+      !$OMP END PARALLEL DO
 
       if (face_type(1,1) == BC_NEU) rh( 0,:,:) = TWO*rh( 0,:,:)
       if (face_type(1,2) == BC_NEU) rh(nx,:,:) = TWO*rh(nx,:,:)
@@ -368,6 +370,7 @@ contains
       u(:,:,-1,:) = ZERO
       u(:,:,nz,:) = ZERO
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
       do j = 0,ny
       do i = 0,nx
@@ -387,6 +390,7 @@ contains
       end do
       end do
       end do
+      !$OMP END PARALLEL DO
 
       if (face_type(1,1) == BC_NEU) rh( 0,:,:) = TWO*rh( 0,:,:)
       if (face_type(1,2) == BC_NEU) rh(nx,:,:) = TWO*rh(nx,:,:)
@@ -1264,6 +1268,7 @@ contains
       ny = size(mm,dim=2) - 1
       nz = size(mm,dim=3) - 1
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
       do j = 0,ny
       do i = 0,nx
@@ -1272,6 +1277,7 @@ contains
       end do
       end do
       end do
+      !$OMP END PARALLEL DO
 
     end subroutine subtract_divu_from_rh_3d
 
