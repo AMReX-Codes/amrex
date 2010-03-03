@@ -1133,7 +1133,7 @@ contains
 
     integer i,j,k,lo(3),nx,ny,nz
 
-    logical zeroit,iface,jface,kface
+    logical zeroit,face
 
     lo = 1
 
@@ -1145,20 +1145,19 @@ contains
 
     if (size(ss,dim=4) .eq. 7) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,iface,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
        do k = 1,nz
-          kface = .false.
-          if ( (k.eq.1).or.(k.eq.nz) ) kface = .true.
+          face = .false.
+          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+
           do j = 1,ny
-             jface = .false.
-             if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+
              do i = 1,nx
-                iface = .false.
-                if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
 
                 zeroit = .false.
 
-                if ( iface .or. jface .or. kface ) then
+                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
@@ -1182,20 +1181,19 @@ contains
 
     else if (size(ss,dim=4) .eq. 21) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,iface,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
        do k = 1,nz
-          kface = .false.
-          if ( (k.eq.1).or.(k.eq.nz) ) kface = .true.
+          face = .false.
+          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+
           do j = 1,ny
-             jface = .false.
-             if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+
              do i = 1,nx
-                iface = .false.
-                if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
 
                 zeroit = .false.
 
-                if ( iface .or. jface .or. kface ) then
+                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
@@ -1222,20 +1220,19 @@ contains
 
     else if (size(ss,dim=4) .eq. 27) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,iface,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,face)
        do k = 1,nz
-          kface = .false.
-          if ( (k.eq.1).or.(k.eq.nz) ) kface = .true.
+          face = .false.
+          if ( (k.eq.1) .or. (k.eq.nz) ) face = .true.
+
           do j = 1,ny
-             jface = .false.
-             if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+             if ( face .or. (j.eq.1) .or. (j.eq.ny) ) face = .true.
+
              do i = 1,nx
-                iface = .false.
-                if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
 
                 zeroit = .false.
 
-                if ( iface .or. jface .or. kface ) then
+                if ( face .or. (i.eq.1) .or. (i.eq.nx) ) then
                    if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
                 end if
 
