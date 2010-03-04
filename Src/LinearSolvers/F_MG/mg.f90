@@ -883,7 +883,6 @@ contains
 
           call multifab_fill_boundary(uu, cross = lcross)
 
-          !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
           ! We do these line solves as a preconditioner
           do i = 1, mgt%nboxes
              if ( remote(ff, i) ) cycle
@@ -897,7 +896,6 @@ contains
                                       mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
              end do
           end do
-          !$OMP END PARALLEL DO
 
           call multifab_fill_boundary(uu, cross = lcross)
 
@@ -929,7 +927,7 @@ contains
 
              do nn = 0, 1
                 call multifab_fill_boundary(uu, cross = lcross)
-                !$OMP PARALLEL DO PRIVATE(i,up,fp,sp,mp,lo,n)
+
                 do i = 1, mgt%nboxes
                    if ( remote(ff, i) ) cycle
                    up => dataptr(uu, i)
@@ -954,7 +952,7 @@ contains
                       end select
                    end do
                 end do
-                !$OMP END PARALLEL DO
+
              end do
 
           case ( MG_SMOOTHER_EFF_RB )
