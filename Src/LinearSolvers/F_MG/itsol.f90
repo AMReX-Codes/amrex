@@ -119,39 +119,6 @@ contains
       !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
 
-  !! ITSOL_BREAKDOWN: is supposed to detect 'bad' numbers
-  !! that shouldn't be used in a CG/BICG
-  !! Not Used
-  function itsol_breakdown(alpha, how) result(r)
-    logical :: r
-    real(dp_t), intent(in) :: alpha
-    integer, intent(out) :: how
-    real(dp_t) :: beta
-
-    r = .false.
-    how = 0
-    if ( alpha > ZERO ) then
-       beta = ONE/alpha
-       if ( beta <= ZERO ) then
-          r = .true.
-          how = 2
-       end if
-    else if ( alpha < ZERO ) then
-       beta = ONE/alpha
-       if ( beta >= ZERO ) then
-          r = .true.
-          how = 2
-       end if
-    else if ( alpha == ZERO ) then
-       r = .true.
-       how = 1
-    else
-       r = .true.
-       how = 2
-    end if
-
-  end function itsol_breakdown
-
   function itsol_converged(rr, uu, Anorm, bnorm, eps, abs_eps) result(r)
     use bl_prof_module
     type(multifab), intent(in) :: rr, uu
