@@ -182,12 +182,17 @@ module nodal_mask_module
        integer, intent(inout) :: mm_crse(lo(1):,lo(2):,lo(3):)
 
        integer :: i,j,k
+       logical :: jface,kface
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
+      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface)
        do k = lo(3),hi(3)
+          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
+             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
              do i = lo(1),hi(1)
-                if ( bc_dirichlet(mm_crse(i,j,k),1,0) ) mask(i,j,k) = .false.
+                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                   if ( bc_dirichlet(mm_crse(i,j,k),1,0) ) mask(i,j,k) = .false.
+                end if
              end do
           end do
        end do
