@@ -1242,7 +1242,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
     do n = 1, ba%nboxes
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
@@ -1255,7 +1255,7 @@ contains
           end if
        end do
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_setval_ba
   subroutine lmultifab_setval_ba(mf, val, ba, all)
     type(lmultifab), intent(inout) :: mf
@@ -1266,7 +1266,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
     do n = 1, ba%nboxes
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
@@ -1279,7 +1279,7 @@ contains
           end if
        end do
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine lmultifab_setval_ba
   subroutine imultifab_setval_ba(mf, val, ba, all)
     type(imultifab), intent(inout) :: mf
@@ -1290,7 +1290,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
     do n = 1, ba%nboxes
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
@@ -1303,7 +1303,7 @@ contains
           end if
        end do
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine imultifab_setval_ba
   subroutine zmultifab_setval_ba(mf, val, ba, all)
     type(zmultifab), intent(inout) :: mf
@@ -1314,7 +1314,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val)
     do n = 1, ba%nboxes
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
@@ -1327,7 +1327,7 @@ contains
           end if
        end do
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine zmultifab_setval_ba
 
   subroutine multifab_setval_bx_c(mf, val, bx, c, nc, all)
@@ -1341,7 +1341,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1352,7 +1352,7 @@ contains
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_setval_bx_c
   subroutine imultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(imultifab), intent(inout) :: mf
@@ -1365,7 +1365,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1376,7 +1376,7 @@ contains
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine imultifab_setval_bx_c
   subroutine lmultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(lmultifab), intent(inout) :: mf
@@ -1389,7 +1389,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1400,7 +1400,7 @@ contains
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine lmultifab_setval_bx_c
   subroutine zmultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(zmultifab), intent(inout) :: mf
@@ -1413,7 +1413,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx1) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1424,7 +1424,7 @@ contains
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine zmultifab_setval_bx_c
 
   subroutine multifab_setval_c(mf, val, c, nc, all)
@@ -1441,7 +1441,7 @@ contains
     call build(bpt, "mf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1451,7 +1451,7 @@ contains
           call setval(mf%fbs(i), val, bx, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine multifab_setval_c
   subroutine imultifab_setval_c(mf, val, c, nc, all)
@@ -1468,7 +1468,7 @@ contains
     call build(bpt, "imf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1478,7 +1478,7 @@ contains
           call setval(mf%fbs(i), val, bx, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine imultifab_setval_c
   subroutine lmultifab_setval_c(mf, val, c, nc, all)
@@ -1494,7 +1494,7 @@ contains
 
     call build(bpt, "lmf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1504,7 +1504,7 @@ contains
           call setval(mf%fbs(i), val, bx, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine lmultifab_setval_c
   subroutine zmultifab_setval_c(mf, val, c, nc, all)
@@ -1517,7 +1517,7 @@ contains
     type(box) :: bx
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
+    ! CC$OMP PARALLEL DO PRIVATE(i,bx) SHARED(val,c)
     do i = 1, mf%nboxes
        if ( remote(mf, i) ) cycle
        if ( lall ) then
@@ -1527,7 +1527,7 @@ contains
           call setval(mf%fbs(i), val, bx, c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine zmultifab_setval_c
 
   subroutine cpy_d(out, in, filter)
@@ -1901,7 +1901,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
@@ -1911,7 +1911,7 @@ contains
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
        p1  =  p2
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -1975,7 +1975,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
@@ -1985,7 +1985,7 @@ contains
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
        p1  =  p2
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -2049,7 +2049,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
@@ -2059,7 +2059,7 @@ contains
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
        p1  =  p2
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -2123,7 +2123,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
@@ -2133,7 +2133,7 @@ contains
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
        p1  =  p2
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
@@ -2295,7 +2295,7 @@ contains
 
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, snasc%l_con%ncpy
        ii   =  snasc%l_con%cpy(i)%nd
        jj   =  snasc%l_con%cpy(i)%ns
@@ -2305,7 +2305,7 @@ contains
        psrc => dataptr(mf%fbs(jj), sbx, c, nc)
        call cpy_d(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
 
     allocate(g_snd_d(nc*snasc%r_con%svol))
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
@@ -3395,7 +3395,7 @@ contains
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,lmp) REDUCTION(+:r1)
           do n = 1, mf%nboxes
              if ( remote(mf,n) ) cycle
              mp => dataptr(mf, n, get_ibox(mf, n), comp)
@@ -3403,10 +3403,10 @@ contains
              lmp => dataptr(mask, n, get_ibox(mask, n), 1)
              r1 = r1 + sum(mp*mp1, mask = lmp)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do n = 1, mf%nboxes
              if ( remote(mf,n) ) cycle
 
@@ -3416,14 +3416,14 @@ contains
 
              r1 = r1 + sum(ma*mp*mp1)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
           call destroy(tmask)
        else
           call bl_error("MULTIFAB_DOT_CC, failes when not nodal or cell-centered, can be fixed")
        end if
     else
        if ( cell_centered_q(mf) ) then
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
           do n = 1, mf%nboxes
              if ( remote(mf,n) ) cycle
              mp  => dataptr(mf , n, get_box(mf ,n), comp)
@@ -3433,10 +3433,10 @@ contains
                 r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
              end do; end do; end do
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do n = 1, mf%nboxes 
              if ( remote(mf,n) ) cycle
              mp => dataptr(mf, n, get_ibox(mf, n), comp)
@@ -3444,7 +3444,7 @@ contains
              ma => dataptr(tmask, n, get_ibox(tmask, n))
              r1 = r1 + sum(ma*mp*mp1)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
           call destroy(tmask)
        else
           call bl_error("MULTIFAB_DOT_CC, failes when not nodal or cell-centered, can be fixed")
@@ -3469,17 +3469,17 @@ contains
 
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           mp  => dataptr(mf , i, get_box(mf, i), comp)
           mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else if (nodal_q(mf) ) then
        if (present(nodal_mask)) then
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( remote(mf,i) ) cycle
              mp  => dataptr(mf        , i, get_ibox(mf, i), comp)
@@ -3487,10 +3487,10 @@ contains
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
        else
           call build_nodal_dot_mask(mask, mf)
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( remote(mf,i) ) cycle
              mp  => dataptr(mf  , i, get_ibox(mf  , i), comp)
@@ -3498,7 +3498,7 @@ contains
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
           call destroy(mask)
        end if
     else
@@ -3522,17 +3522,17 @@ contains
 
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           mp  => dataptr(mf , i, get_box(mf , i))
           mp1 => dataptr(mf1, i, get_box(mf1, i))
           r1 = r1 + sum(mp*mp1)
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else if ( nodal_q(mf) ) then
        if (present(nodal_mask)) then
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( remote(mf,i) ) cycle
              mp  => dataptr(mf        , i, get_ibox(mf  , i))
@@ -3542,7 +3542,7 @@ contains
           end do
        else
           call build_nodal_dot_mask(mask, mf)
-          !$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
+          ! CC$OMP PARALLEL DO PRIVATE(i,mp,mp1,ma) REDUCTION(+:r1)
           do i = 1, mf%nboxes
              if ( remote(mf,i) ) cycle
              mp  => dataptr(mf  , i, get_ibox(mf  , i))
@@ -3550,7 +3550,7 @@ contains
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
-          !$OMP END PARALLEL DO
+          ! CC$OMP END PARALLEL DO
           call destroy(mask)
        end if
     else
@@ -3584,7 +3584,7 @@ contains
     lxmin = 0.0_dp_t ; if ( present(xmin) ) lxmin = xmin
     lxmax = 1.0_dp_t ; if ( present(xmax) ) lxmax = xmax
     if ( lclip ) then
-       !$OMP PARALLEL DO PRIVATE(i, mp) SHARED(mf,c,lxmin,lxmax,lmin,lmax)
+       ! CC$OMP PARALLEL DO PRIVATE(i, mp) SHARED(mf,c,lxmin,lxmax,lmin,lmax)
        do i = 1, nboxes(mf)
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           where ( mp < lmin )
@@ -3595,14 +3595,14 @@ contains
              mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
           end where
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i, mp)
+       ! CC$OMP PARALLEL DO PRIVATE(i, mp)
        do i = 1, nboxes(mf)
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
   end subroutine multifab_rescale_2
 
@@ -3613,7 +3613,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    !$OMP PARALLEL DO PRIVATE(i,mp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,mp)
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i), c)
@@ -3623,7 +3623,7 @@ contains
           mp = mp*val
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_rescale_c
   subroutine multifab_rescale(mf, val, off)
     real(dp_t), intent(in) :: val
@@ -3631,7 +3631,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    !$OMP PARALLEL DO PRIVATE(i,mp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,mp)
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i))
@@ -3641,7 +3641,7 @@ contains
           mp = mp*val
        end if
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_rescale
 
   subroutine multifab_saxpy_5(a, b1, b, c1, c)
@@ -3653,7 +3653,7 @@ contains
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
@@ -3661,7 +3661,7 @@ contains
        cp => dataptr(c, i, get_ibox(c, i))
        ap = b1*bp + c1*cp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_saxpy_5
 
   subroutine multifab_saxpy_4(a, b, c1, c)
@@ -3673,7 +3673,7 @@ contains
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
@@ -3681,7 +3681,7 @@ contains
        cp => dataptr(c, i, get_ibox(c, i))
        ap = bp + c1*cp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_saxpy_4
 
   subroutine multifab_saxpy_3(a, b1, b, all)
@@ -3698,23 +3698,23 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     if (lall) then
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes
           if ( remote(a,i) ) cycle
           ap => dataptr(a,i)
           bp => dataptr(b,i)
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes
           if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i))
           bp => dataptr(b, i, get_ibox(b, i))
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
   end subroutine multifab_saxpy_3
 
@@ -3732,21 +3732,21 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     if (lall) then
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i), ia)
           bp => dataptr(b, i, get_ibox(b, i))
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
   end subroutine multifab_saxpy_3_c
   subroutine multifab_saxpy_3_cc(a, ia, b1, b, ib, nc, all)
@@ -3764,21 +3764,21 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     if (lall) then
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+       ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
        do i = 1, a%nboxes; if ( remote(a,i) ) cycle
           ap => dataptr(a, i, get_ibox(a, i), ia, nc)
           bp => dataptr(b, i, get_ibox(b, i), ib, nc)
           ap = ap + b1*bp
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
   end subroutine multifab_saxpy_3_cc
 
@@ -3798,7 +3798,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3815,9 +3815,9 @@ contains
              r1 = r1 + sum(abs(mp), mask = lp)
           end do
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3827,7 +3827,7 @@ contains
           end if
           r1 = r1 + sum(abs(mp))
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
 
@@ -3855,7 +3855,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp,lp,n) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3872,9 +3872,9 @@ contains
              r1 = r1 + sum(mp, mask=lp)
           end do
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3884,7 +3884,7 @@ contains
           end if
           r1 = r1 + sum(mp)
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_sum_c
@@ -3914,7 +3914,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3931,9 +3931,9 @@ contains
              r1 = r1 + sum(mp**2, mask=lp)
           end do
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3943,7 +3943,7 @@ contains
           end if
           r1 = r1 + sum(mp**2)
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
@@ -3972,7 +3972,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(MAX:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,n,mp,lp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -3989,9 +3989,9 @@ contains
              r1 = max(r1, maxval(abs(mp), mask = lp))
           end do
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+       ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           if ( lall ) then
@@ -4001,7 +4001,7 @@ contains
           end if
           r1 = max(r1, maxval(abs(mp)))
        end do
-       !$OMP END PARALLEL DO
+       ! CC$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_norm_inf_c
@@ -4025,7 +4025,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
        if ( lall ) then
@@ -4035,7 +4035,7 @@ contains
        end if
        r1 = max(r1, maxval(abs(mp)))
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_MAX)
   end function imultifab_norm_inf_c
   function imultifab_norm_inf(mf, all) result(r)
@@ -4057,7 +4057,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
        if ( lall ) then
@@ -4067,7 +4067,7 @@ contains
        end if
        r1 = r1 + sum(mp)
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_SUM)
   end function imultifab_sum_c
   function imultifab_sum(mf, all) result(r)
@@ -4087,7 +4087,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
        if ( lall ) then
@@ -4097,7 +4097,7 @@ contains
        end if
        r1 = r1 + count(mp)
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_SUM)
   end function lmultifab_count
 
@@ -4110,7 +4110,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4125,7 +4125,7 @@ contains
        end if
        ap = ap/bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_div_div
 
   subroutine multifab_div_div_s(a, b, ng)
@@ -4139,7 +4139,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4149,7 +4149,7 @@ contains
        end if
        ap = ap/b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_div_div_s
 
   subroutine multifab_div_div_c(a, targ, b, src, nc, ng)
@@ -4163,7 +4163,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4178,7 +4178,7 @@ contains
        end if
        ap = ap/bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_div_div_c
 
   subroutine multifab_div_div_s_c(a, targ, b, nc, ng)
@@ -4194,7 +4194,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4204,7 +4204,7 @@ contains
        end if
        ap = ap/b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_div_div_s_c
 
   subroutine multifab_div_s_c(a, ia, b, ib, val, nc, ng)
@@ -4221,7 +4221,7 @@ contains
     if ( val == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4233,7 +4233,7 @@ contains
        end if
        ap = bp/val
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_div_s_c
 
   subroutine multifab_mult_mult(a, b, ng)
@@ -4245,7 +4245,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4257,7 +4257,7 @@ contains
        end if
        ap = ap*bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_mult_mult
   subroutine multifab_mult_mult_s(a, b, ng)
     type(multifab), intent(inout) :: a
@@ -4267,7 +4267,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4277,7 +4277,7 @@ contains
        end if
        ap = ap*b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s
 
   subroutine multifab_mult_mult_c(a, targ, b, src, nc, ng)
@@ -4291,7 +4291,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4303,7 +4303,7 @@ contains
        end if
        ap = ap*bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_c
 
   subroutine multifab_mult_mult_s_c(a, targ, b, nc, ng)
@@ -4316,7 +4316,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4326,7 +4326,7 @@ contains
        end if
        ap = ap*b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s_c
 
   subroutine multifab_mult_s_c(a, ia, b, ib, val, nc, ng)
@@ -4340,7 +4340,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4352,7 +4352,7 @@ contains
        end if
        ap = bp * val
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_mult_s_c
 
   subroutine multifab_sub_sub(a, b, ng)
@@ -4364,7 +4364,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4376,7 +4376,7 @@ contains
        end if
        ap = ap - bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_sub_sub
 
   subroutine multifab_sub_sub_s(a, b, ng)
@@ -4387,7 +4387,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4397,7 +4397,7 @@ contains
        end if
        ap = ap - b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_s
 
   subroutine multifab_sub_sub_c(a, targ, b, src, nc, ng)
@@ -4411,7 +4411,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng <= ng, "not enough ghost cells in multifab_sub_sub_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4423,7 +4423,7 @@ contains
        end if
        ap = ap - bp
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_c
 
   subroutine multifab_sub_sub_s_c(a, targ, b, nc, ng)
@@ -4436,7 +4436,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4446,7 +4446,7 @@ contains
        end if
        ap = ap - b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_sub_sub_s_c
 
   subroutine multifab_plus_plus_c(a, dst, b, src, nc, ng)
@@ -4493,7 +4493,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    ! CC$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
@@ -4503,7 +4503,7 @@ contains
        end if
        ap = ap + b
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
   end subroutine multifab_plus_plus_s_c
 
   subroutine multifab_plus_plus_s(a, b, ng)
@@ -4596,11 +4596,11 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = +Huge(r1)
-    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
     do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_MIN)
   end function multifab_min
   function multifab_min_c(mf, c, nc, all) result(r)
@@ -4612,11 +4612,11 @@ contains
     real(kind=dp_t) :: r1
     integer :: i
     r1 = +Huge(r1)
-    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i) REDUCTION(MIN:r1)
     do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_MIN)
   end function multifab_min_c
   
@@ -4627,11 +4627,11 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
     do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
        r1 = max(r1, max_val(mf%fbs(i), all))
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_max
   function multifab_max_c(mf, c, nc, all) result(r)
@@ -4643,11 +4643,11 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    !$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
+    ! CC$OMP PARALLEL DO PRIVATE(i) REDUCTION(MAX:r1)
     do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
-    !$OMP END PARALLEL DO
+    ! CC$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_max_c
   
