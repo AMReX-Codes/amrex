@@ -372,7 +372,7 @@ module multifab_module
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
 
-  private :: multifab_saxpy_3_doit
+  private :: multifab_saxpy_3_doit, multifab_norm_inf_doit
 
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
@@ -3933,6 +3933,52 @@ contains
     r = multifab_norm_l2_c(mf, 1, mf%nc, mask, all)
   end function multifab_norm_l2
 
+  function multifab_norm_inf_doit(ap, lp) result(r)
+
+    real(dp_t), pointer        :: ap(:,:,:,:)
+    logical, pointer, optional :: lp(:,:,:,:)
+    real(dp_t)                 :: r,r1
+
+    integer :: i, j, k, n
+
+    ! maxval(abs(mp))
+
+    r1 = 0.0_dp_t
+
+    if ( present(lp) ) then
+       !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+                   if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
+                end do
+             end do
+          end do
+          !$OMP END DO NOWAIT
+       end do
+       !$OMP END PARALLEL
+    else
+       !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+                   r1 = max(r1,abs(ap(i,j,k,n)))
+                end do
+             end do
+          end do
+          !$OMP END DO NOWAIT
+       end do
+       !$OMP END PARALLEL
+    end if
+
+    r = r1
+
+  end function multifab_norm_inf_doit
+
   function multifab_norm_inf_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
     logical, intent(in), optional :: all
@@ -3947,10 +3993,13 @@ contains
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
+
     r1 = 0
+
     if ( present(mask) ) then
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
+
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3962,22 +4011,26 @@ contains
              else
                 mp => dataptr(mf, i, get_ibox(mf, i), n)
              end if
-             r1 = max(r1, maxval(abs(mp), mask = lp))
+             r1 = max(r1, multifab_norm_inf_doit(mp,lp))
           end do
        end do
     else
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
+
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
              mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
           end if
-          r1 = max(r1, maxval(abs(mp)))
+
+          r1 = max(r1, multifab_norm_inf_doit(mp))
        end do
     end if
+
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_norm_inf_c
+
   function multifab_norm_inf(mf, mask, all) result(r)
     real(dp_t)                            :: r
     logical, intent(in), optional         :: all
