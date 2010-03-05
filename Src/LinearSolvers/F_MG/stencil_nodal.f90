@@ -22,6 +22,8 @@ module stencil_nodal_module
   real (kind = dp_t), private, parameter :: SIXTH = 1.0_dp_t/6.0_dp_t
   real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
+  private :: set_nodal_faces_edges_corners_3d
+
 contains
 
   subroutine stencil_fill_nodal(ss, sg, dh, mask, face_type, stencil_type)
@@ -277,7 +279,7 @@ contains
   end subroutine stencil_set_bc_nodal
 
   subroutine s_simple_1d_nodal(ss, sg, mm, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:)
     integer           , intent(in   ) :: mm(:)
     real (kind = dp_t), intent(in   ) :: dh(:)
@@ -302,7 +304,7 @@ contains
   end subroutine s_simple_1d_nodal
 
   subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
@@ -352,12 +354,12 @@ contains
       end do
     end do
 
-    ss = ss * HALF / (dh(1))**2
+    ss = ss * (HALF / (dh(1))**2)
 
   end subroutine s_cross_2d_nodal
 
   subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
@@ -418,14 +420,14 @@ contains
       end do
     end do
 
-    ss = ss * HALF / (dh(1))**2
+    ss = ss * (HALF / (dh(1))**2)
 
     deallocate(sg_int)
 
   end subroutine s_simple_2d_one_sided
 
   subroutine s_dense_2d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
@@ -486,34 +488,16 @@ contains
       end do
     end do
 
-    ss = ss * THIRD / (dh(1))**2
+    ss = ss * (THIRD / (dh(1))**2)
 
   end subroutine s_dense_2d_nodal
 
-  subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
+  subroutine set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
+    integer           , intent(in   ) :: nx, ny, nz
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
-    integer           , intent(inout) :: mm(:,:,:)
-    integer, intent(in)               :: face_type(:,:)
-    real (kind = dp_t), intent(in   ) :: dh(:)
+    integer           , intent(in   ) :: mm(:,:,:)
 
-    integer :: i, j, k, nx, ny, nz
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-    !
-    !   BEGIN STENCIL
-    !
-    !   Stencil applies as follows :  (i is left to right, j is down to up)
-    !
-    !        at k-1        at k         at k+1
-    !
-    !                        3                 
-    !          6          2  0  1          5   
-    !                        4                  
-    !
-    !   END STENCIL
+    integer :: i, j, k
     !
     ! Set sg on faces at a Neumann boundary.
     !
@@ -620,7 +604,36 @@ contains
     if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
     if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
 
+  end subroutine set_nodal_faces_edges_corners_3d
+
+  subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh)
+    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
+    integer           , intent(inout) :: mm(:,:,:)
+    integer, intent(in)               :: face_type(:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+
+    integer :: i, j, k, nx, ny, nz
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+    nz = size(ss,dim=3)
+    !
+    !   BEGIN STENCIL
+    !
+    !   Stencil applies as follows :  (i is left to right, j is down to up)
+    !
+    !        at k-1        at k         at k+1
+    !
+    !                        3                 
+    !          6          2  0  1          5   
+    !                        4                  
+    !
+    !   END STENCIL
+    !
     ss = ZERO
+
+    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
@@ -656,13 +669,13 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss * FOURTH / (dh(1))**2
+    ss = ss * (FOURTH / (dh(1))**2)
 
   end subroutine s_cross_3d_nodal
 
   subroutine s_simple_3d_one_sided(ss, sg, mm, face_type, dh)
 
-    real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
@@ -692,6 +705,7 @@ contains
     allocate(sg_int(0:size(sg,dim=1)-1,0:size(sg,dim=2)-1,0:size(sg,dim=3)-1))
 
     sg_int = ZERO
+
     do k = 1, nz-1
        do j = 1, ny-1
           do i = 1, nx-1
@@ -699,111 +713,8 @@ contains
           end do
        end do
     end do
-    !
-    ! Set sg_int on faces at a Neumann boundary.
-    !
-    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
-    do j = 1,ny-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i,j, 1),3,-1)) sg_int(i,j, 0) = sg_int(i,j,1)
-          if (bc_neumann(mm(i,j,nz),3,+1)) sg_int(i,j,nz) = sg_int(i,j,nz-1)
-       end do
-    end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
-    do k = 1,nz-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i, 1,k),2,-1)) sg_int(i, 0,k) = sg_int(i,1,k)
-          if (bc_neumann(mm(i,ny,k),2,+1)) sg_int(i,ny,k) = sg_int(i,ny-1,k)
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
-    do k = 1,nz-1
-       do j = 1,ny-1
-          if (bc_neumann(mm( 1,j,k),1,-1)) sg_int( 0,j,k) = sg_int(   1,j,k)
-          if (bc_neumann(mm(nx,j,k),1,+1)) sg_int(nx,j,k) = sg_int(nx-1,j,k)
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    !
-    ! Set sg_int on edges at a Neumann boundary.
-    !
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1, 1),2,-1)) sg_int(i, 0, 0) = sg_int(i,1, 0) 
-       if (bc_neumann(mm(i, 1,nz),2,-1)) sg_int(i, 0,nz) = sg_int(i,1,nz) 
-
-       if (bc_neumann(mm(i,ny, 1),2,+1)) sg_int(i,ny, 0) = sg_int(i,ny-1, 0)
-       if (bc_neumann(mm(i,ny,nz),2,+1)) sg_int(i,ny,nz) = sg_int(i,ny-1,nz)
-
-       if (bc_neumann(mm(i, 1, 1),3,-1)) sg_int(i, 0, 0) = sg_int(i, 0,1)
-       if (bc_neumann(mm(i,ny, 1),3,-1)) sg_int(i,ny, 0) = sg_int(i,ny,1)
-
-       if (bc_neumann(mm(i, 1,nz),3,+1)) sg_int(i, 0,nz) = sg_int(i, 0,nz-1)
-       if (bc_neumann(mm(i,ny,nz),3,+1)) sg_int(i,ny,nz) = sg_int(i,ny,nz-1)
-    end do
-
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j, 1),1,-1)) sg_int( 0,j, 0) = sg_int(1,j, 0)
-       if (bc_neumann(mm( 1,j,nz),1,-1)) sg_int( 0,j,nz) = sg_int(1,j,nz)
-
-       if (bc_neumann(mm(nx,j, 1),1,+1)) sg_int(nx,j, 0) = sg_int(nx-1,j, 0)
-       if (bc_neumann(mm(nx,j,nz),1,+1)) sg_int(nx,j,nz) = sg_int(nx-1,j,nz)
-
-       if (bc_neumann(mm( 1,j, 1),3,-1)) sg_int( 0,j, 0) = sg_int( 0,j,1)
-       if (bc_neumann(mm(nx,j, 1),3,-1)) sg_int(nx,j, 0) = sg_int(nx,j,1)
-
-       if (bc_neumann(mm( 1,j,nz),3,+1)) sg_int( 0,j,nz) = sg_int( 0,j,nz-1)
-       if (bc_neumann(mm(nx,j,nz),3,+1)) sg_int(nx,j,nz) = sg_int(nx,j,nz-1)
-    end do
-
-    do k = 1,nz-1
-       if (bc_neumann(mm( 1, 1,k),1,-1)) sg_int( 0, 0,k) = sg_int(1, 0,k)
-       if (bc_neumann(mm( 1,ny,k),1,-1)) sg_int( 0,ny,k) = sg_int(1,ny,k)
-
-       if (bc_neumann(mm(nx, 1,k),1,+1)) sg_int(nx, 0,k) = sg_int(nx-1, 0,k)
-       if (bc_neumann(mm(nx,ny,k),1,+1)) sg_int(nx,ny,k) = sg_int(nx-1,ny,k)
-
-       if (bc_neumann(mm( 1, 1,k),2,-1)) sg_int( 0, 0,k) = sg_int( 0,1,k)
-       if (bc_neumann(mm(nx, 1,k),2,-1)) sg_int(nx, 0,k) = sg_int(nx,1,k)
-
-       if (bc_neumann(mm( 1,ny,k),2,+1)) sg_int( 0,ny,k) = sg_int( 0,ny-1,k)
-       if (bc_neumann(mm(nx,ny,k),2,+1)) sg_int(nx,ny,k) = sg_int(nx,ny-1,k)
-    end do
-
-    if (bc_neumann(mm( 1, 1, 1),1,-1)) sg_int( 0, 0, 0) = sg_int( 1, 0, 0) 
-    if (bc_neumann(mm( 1, 1, 1),2,-1)) sg_int( 0, 0, 0) = sg_int( 0, 1, 0) 
-    if (bc_neumann(mm( 1, 1, 1),3,-1)) sg_int( 0, 0, 0) = sg_int( 0, 0, 1) 
-
-    if (bc_neumann(mm(nx, 1, 1),1,+1)) sg_int(nx, 0, 0) = sg_int(nx-1, 0, 0) 
-    if (bc_neumann(mm(nx, 1, 1),2,-1)) sg_int(nx, 0, 0) = sg_int(nx  , 1, 0) 
-    if (bc_neumann(mm(nx, 1, 1),3,-1)) sg_int(nx, 0, 0) = sg_int(nx  , 0, 1) 
-
-    if (bc_neumann(mm( 1,ny, 1),1,-1)) sg_int( 0,ny, 0) = sg_int( 1,ny  , 0) 
-    if (bc_neumann(mm( 1,ny, 1),2,+1)) sg_int( 0,ny, 0) = sg_int( 0,ny-1, 0) 
-    if (bc_neumann(mm( 1,ny, 1),3,-1)) sg_int( 0,ny, 0) = sg_int( 0,ny  , 1) 
-
-    if (bc_neumann(mm( 1, 1,nz),1,-1)) sg_int( 0, 0,nz) = sg_int( 1, 0,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),2,-1)) sg_int( 0, 0,nz) = sg_int( 0, 1,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),3,+1)) sg_int( 0, 0,nz) = sg_int( 0, 0,nz-1) 
-
-    if (bc_neumann(mm(nx,ny, 1),1,+1)) sg_int(nx,ny, 0) = sg_int(nx-1,ny  , 0) 
-    if (bc_neumann(mm(nx,ny, 1),2,+1)) sg_int(nx,ny, 0) = sg_int(nx  ,ny-1, 0) 
-    if (bc_neumann(mm(nx,ny, 1),3,-1)) sg_int(nx,ny, 0) = sg_int(nx  ,ny  , 1) 
-
-    if (bc_neumann(mm(nx, 1,nz),1,+1)) sg_int(nx, 0,nz) = sg_int(nx-1, 0,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),2,-1)) sg_int(nx, 0,nz) = sg_int(nx  , 1,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),3,+1)) sg_int(nx, 0,nz) = sg_int(nx  , 0,nz-1) 
-
-    if (bc_neumann(mm( 1,ny,nz),1,-1)) sg_int( 0,ny,nz) = sg_int( 1,ny  ,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),2,+1)) sg_int( 0,ny,nz) = sg_int( 0,ny-1,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),3,+1)) sg_int( 0,ny,nz) = sg_int( 0,ny  ,nz-1) 
-
-    if (bc_neumann(mm(nx,ny,nz),1,+1)) sg_int(nx,ny,nz) = sg_int(nx-1,ny  ,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),2,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny-1,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),3,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny  ,nz-1) 
+    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
@@ -839,20 +750,20 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss * FOURTH / (dh(1))**2
+    ss = ss * (FOURTH / (dh(1))**2)
 
     deallocate(sg_int)
 
   end subroutine s_simple_3d_one_sided
 
   subroutine s_dense_3d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, nx, ny, nz
+    integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0
 
     nx = size(ss,dim=1)
@@ -871,110 +782,7 @@ contains
     !
     !   END STENCIL
     !
-    ! Set sg on faces at a Neumann boundary.
-    !
-    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
-    do j = 1,ny-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
-          if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
-    do k = 1,nz-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
-          if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
-    do k = 1,nz-1
-       do j = 1,ny-1
-          if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
-          if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    !
-    ! Set sg on edges at a Neumann boundary.
-    !
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1, 1),2,-1)) sg(i, 0, 0) = sg(i,1, 0) 
-       if (bc_neumann(mm(i, 1,nz),2,-1)) sg(i, 0,nz) = sg(i,1,nz) 
-
-       if (bc_neumann(mm(i,ny, 1),2,+1)) sg(i,ny, 0) = sg(i,ny-1, 0)
-       if (bc_neumann(mm(i,ny,nz),2,+1)) sg(i,ny,nz) = sg(i,ny-1,nz)
-
-       if (bc_neumann(mm(i, 1, 1),3,-1)) sg(i, 0, 0) = sg(i, 0,1)
-       if (bc_neumann(mm(i,ny, 1),3,-1)) sg(i,ny, 0) = sg(i,ny,1)
-
-       if (bc_neumann(mm(i, 1,nz),3,+1)) sg(i, 0,nz) = sg(i, 0,nz-1)
-       if (bc_neumann(mm(i,ny,nz),3,+1)) sg(i,ny,nz) = sg(i,ny,nz-1)
-    end do
-
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j, 1),1,-1)) sg( 0,j, 0) = sg(1,j, 0)
-       if (bc_neumann(mm( 1,j,nz),1,-1)) sg( 0,j,nz) = sg(1,j,nz)
-
-       if (bc_neumann(mm(nx,j, 1),1,+1)) sg(nx,j, 0) = sg(nx-1,j, 0)
-       if (bc_neumann(mm(nx,j,nz),1,+1)) sg(nx,j,nz) = sg(nx-1,j,nz)
-
-       if (bc_neumann(mm( 1,j, 1),3,-1)) sg( 0,j, 0) = sg( 0,j,1)
-       if (bc_neumann(mm(nx,j, 1),3,-1)) sg(nx,j, 0) = sg(nx,j,1)
-
-       if (bc_neumann(mm( 1,j,nz),3,+1)) sg( 0,j,nz) = sg( 0,j,nz-1)
-       if (bc_neumann(mm(nx,j,nz),3,+1)) sg(nx,j,nz) = sg(nx,j,nz-1)
-    end do
-
-    do k = 1,nz-1
-       if (bc_neumann(mm( 1, 1,k),1,-1)) sg( 0, 0,k) = sg(1, 0,k)
-       if (bc_neumann(mm( 1,ny,k),1,-1)) sg( 0,ny,k) = sg(1,ny,k)
-
-       if (bc_neumann(mm(nx, 1,k),1,+1)) sg(nx, 0,k) = sg(nx-1, 0,k)
-       if (bc_neumann(mm(nx,ny,k),1,+1)) sg(nx,ny,k) = sg(nx-1,ny,k)
-
-       if (bc_neumann(mm( 1, 1,k),2,-1)) sg( 0, 0,k) = sg( 0,1,k)
-       if (bc_neumann(mm(nx, 1,k),2,-1)) sg(nx, 0,k) = sg(nx,1,k)
-
-       if (bc_neumann(mm( 1,ny,k),2,+1)) sg( 0,ny,k) = sg( 0,ny-1,k)
-       if (bc_neumann(mm(nx,ny,k),2,+1)) sg(nx,ny,k) = sg(nx,ny-1,k)
-    end do
-
-    if (bc_neumann(mm( 1, 1, 1),1,-1)) sg( 0, 0, 0) = sg( 1, 0, 0) 
-    if (bc_neumann(mm( 1, 1, 1),2,-1)) sg( 0, 0, 0) = sg( 0, 1, 0) 
-    if (bc_neumann(mm( 1, 1, 1),3,-1)) sg( 0, 0, 0) = sg( 0, 0, 1) 
-
-    if (bc_neumann(mm(nx, 1, 1),1,+1)) sg(nx, 0, 0) = sg(nx-1, 0, 0) 
-    if (bc_neumann(mm(nx, 1, 1),2,-1)) sg(nx, 0, 0) = sg(nx  , 1, 0) 
-    if (bc_neumann(mm(nx, 1, 1),3,-1)) sg(nx, 0, 0) = sg(nx  , 0, 1) 
-
-    if (bc_neumann(mm( 1,ny, 1),1,-1)) sg( 0,ny, 0) = sg( 1,ny  , 0) 
-    if (bc_neumann(mm( 1,ny, 1),2,+1)) sg( 0,ny, 0) = sg( 0,ny-1, 0) 
-    if (bc_neumann(mm( 1,ny, 1),3,-1)) sg( 0,ny, 0) = sg( 0,ny  , 1) 
-
-    if (bc_neumann(mm( 1, 1,nz),1,-1)) sg( 0, 0,nz) = sg( 1, 0,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),2,-1)) sg( 0, 0,nz) = sg( 0, 1,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),3,+1)) sg( 0, 0,nz) = sg( 0, 0,nz-1) 
-
-    if (bc_neumann(mm(nx,ny, 1),1,+1)) sg(nx,ny, 0) = sg(nx-1,ny  , 0) 
-    if (bc_neumann(mm(nx,ny, 1),2,+1)) sg(nx,ny, 0) = sg(nx  ,ny-1, 0) 
-    if (bc_neumann(mm(nx,ny, 1),3,-1)) sg(nx,ny, 0) = sg(nx  ,ny  , 1) 
-
-    if (bc_neumann(mm(nx, 1,nz),1,+1)) sg(nx, 0,nz) = sg(nx-1, 0,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),2,-1)) sg(nx, 0,nz) = sg(nx  , 1,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),3,+1)) sg(nx, 0,nz) = sg(nx  , 0,nz-1) 
-
-    if (bc_neumann(mm( 1,ny,nz),1,-1)) sg( 0,ny,nz) = sg( 1,ny  ,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),2,+1)) sg( 0,ny,nz) = sg( 0,ny-1,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),3,+1)) sg( 0,ny,nz) = sg( 0,ny  ,nz-1) 
-
-    if (bc_neumann(mm(nx,ny,nz),1,+1)) sg(nx,ny,nz) = sg(nx-1,ny  ,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
+    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
     fx = ONE / (36.0_dp_t)
     fy = ONE / (36.0_dp_t)
@@ -1052,14 +860,14 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss / (dh(1))**2 
+    ss = ss * (ONE / ((dh(1))**2))
 
   end subroutine s_dense_3d_nodal
 
   subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in   ) :: ss(:,0:)
-    real (kind = dp_t), intent(  out) :: dd(0:)
+    real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     integer           , intent(in   ) :: mm(:)
     integer i,lo(1)
@@ -1088,7 +896,7 @@ contains
   subroutine stencil_apply_2d_nodal(ss, dd, uu, mm, ng)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(  out) :: dd(0:,0:)
+    real (kind = dp_t), intent(inout) :: dd(0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
     integer           , intent(in   ) :: mm(:,:)
 
@@ -1160,7 +968,7 @@ contains
   subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, uniform_dh)
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(  out) :: dd(0:,0:,0:)
+    real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
     integer           , intent(in   ) :: mm(:,:,:)
     logical           , intent(in   ) :: uniform_dh
