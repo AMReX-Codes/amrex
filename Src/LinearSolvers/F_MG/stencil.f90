@@ -1100,7 +1100,6 @@ contains
        end if
     end do
 
-
     if ( .not. cross ) then
        norder = min(nn, max_order+1)
        xc(:)  = (/(i+HALF, i=0, max_order)/)
@@ -2375,22 +2374,20 @@ contains
 
     f1 = ONE/dh**2
 
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             ss(i,j,k,0) = ZERO
-             ss(i,j,k,1) = -beta(i+1,j,k,1)*f1(1)
-             ss(i,j,k,2) = -beta(i  ,j,k,1)*f1(1)
-             ss(i,j,k,3) = -beta(i,j+1,k,2)*f1(2)
-             ss(i,j,k,4) = -beta(i,j  ,k,2)*f1(2)
-             ss(i,j,k,5) = -beta(i,j,k+1,3)*f1(3)
-             ss(i,j,k,6) = -beta(i,j,k  ,3)*f1(3)
-             ss(i,j,k,XBC) = ZERO
-             ss(i,j,k,YBC) = ZERO
-             ss(i,j,k,ZBC) = ZERO
-          end do
-       end do
-    end do
+    ss(:,:,:,0) = ZERO
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -beta(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,3)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  3)*f1(3)
+
+    ss(:,:,:,XBC) = ZERO
+    ss(:,:,:,YBC) = ZERO
+    ss(:,:,:,ZBC) = ZERO
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2569,7 +2566,7 @@ contains
        end do
     end do
 
-    ss = ss / (12.d0 * dh(1)**2)
+    ss = ss * (ONE / (12.d0 * dh(1)**2))
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
@@ -3427,7 +3424,7 @@ b1 =       0.0d0/hy2
     end do
     end do
 
-    ss = ss / (12.d0 * dh(1)**2)
+    ss = ss * (ONE / (12.d0 * dh(1)**2))
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do k = 1, nz
@@ -4706,11 +4703,11 @@ b1 =       0.0d0/hy2
     if ( dim ==  1 ) then
 
        do k = 0,nz-1
-       do j = 0,ny-1
-       do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,2) * (uu(i,j,k)-uu(i-1,j,k))
-       end do
-       end do
+          do j = 0,ny-1
+             do i = 0,nx-1
+                flux(i,j,k) = ss(i,j,k,2) * (uu(i,j,k)-uu(i-1,j,k))
+             end do
+          end do
        end do
 
        !   Lo i face
@@ -4755,11 +4752,11 @@ b1 =       0.0d0/hy2
     else if ( dim == 2 ) then
 
        do k = 0,nz-1
-       do j = 0,ny-1
-       do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,4) * (uu(i,j,k)-uu(i,j-1,k))
-       end do
-       end do
+          do j = 0,ny-1
+             do i = 0,nx-1
+                flux(i,j,k) = ss(i,j,k,4) * (uu(i,j,k)-uu(i,j-1,k))
+             end do
+          end do
        end do
 
        !   Lo j face
@@ -4804,11 +4801,11 @@ b1 =       0.0d0/hy2
     else if ( dim == 3 ) then
 
        do k = 0,nz-1
-       do j = 0,ny-1
-       do i = 0,nx-1
-         flux(i,j,k) = ss(i,j,k,6) * (uu(i,j,k)-uu(i,j,k-1))
-       end do
-       end do
+          do j = 0,ny-1
+             do i = 0,nx-1
+                flux(i,j,k) = ss(i,j,k,6) * (uu(i,j,k)-uu(i,j,k-1))
+             end do
+          end do
        end do
 
        !   Lo k face
