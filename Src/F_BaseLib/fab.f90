@@ -1086,9 +1086,26 @@ contains
     integer, intent(in), optional :: nc
     real(kind=dp_t), intent(in) :: val
     real(kind=dp_t), pointer :: p(:,:,:,:)
+    integer :: i, j, k, n
     p => fab_dataptr_c(fb, c, nc)
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
-    p = val
+
+    ! p = val
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(p,dim=4), ubound(p,dim=4)
+       !$OMP DO
+       do k = lbound(p,dim=3), ubound(p,dim=3)
+          do j = lbound(p,dim=2), ubound(p,dim=2)
+             do i = lbound(p,dim=1), ubound(p,dim=1)
+                p(i,j,k,n) = val
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
   end subroutine fab_setval_c
   subroutine zfab_setval_c(fb, val, c, nc)
     use bl_error_module
