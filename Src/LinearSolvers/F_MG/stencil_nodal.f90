@@ -517,26 +517,32 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
+    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
+    !$OMP END PARALLEL DO
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -680,7 +686,7 @@ contains
     !                        4                  
     !
     !   END STENCIL
-    
+    !
     ss = ZERO
 
     allocate(sg_int(0:size(sg,dim=1)-1,0:size(sg,dim=2)-1,0:size(sg,dim=3)-1))
@@ -696,26 +702,32 @@ contains
     !
     ! Set sg_int on faces at a Neumann boundary.
     !
+    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg_int(i,j, 0) = sg_int(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg_int(i,j,nz) = sg_int(i,j,nz-1)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg_int(i, 0,k) = sg_int(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg_int(i,ny,k) = sg_int(i,ny-1,k)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg_int( 0,j,k) = sg_int(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg_int(nx,j,k) = sg_int(nx-1,j,k)
        end do
     end do
+    !$OMP END PARALLEL DO
     !
     ! Set sg_int on edges at a Neumann boundary.
     !
@@ -861,26 +873,32 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
+    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
+    !$OMP END PARALLEL DO
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -2323,6 +2341,7 @@ contains
     !
     ! Faces
     !
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           i = lo(1)
@@ -2331,7 +2350,9 @@ contains
           if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           j = lo(2)
@@ -2340,7 +2361,9 @@ contains
           if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
        end do
     end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(2)-lo(2)).ge.3)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           k = lo(3)
@@ -2349,6 +2372,7 @@ contains
           if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
        end do
     end do
+    !$OMP END PARALLEL DO
     !
     ! Edges
     !
