@@ -2759,6 +2759,7 @@ contains
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
     do i = 1, cpasc%l_con%ncpy
        ii   =  cpasc%l_con%cpy(i)%nd
        jj   =  cpasc%l_con%cpy(i)%ns
@@ -2768,6 +2769,7 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
     end do
+    !$OMP END PARALLEL DO
 
     if ( lnocomm ) return
 
