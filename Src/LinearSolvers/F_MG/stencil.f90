@@ -2401,7 +2401,7 @@ contains
 
     ! x derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
@@ -2411,7 +2411,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
@@ -2442,7 +2442,7 @@ contains
 
     ! y derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
@@ -2452,7 +2452,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,lo(2),k) ,2,-1)
@@ -2482,7 +2482,7 @@ contains
 
     ! z derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.5)
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2492,7 +2492,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(2)-lo(2)).ge.3)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,j,lo(3)) ,3,-1)
@@ -2520,7 +2520,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -3761,7 +3761,7 @@ b1 =       0.0d0/hy2
     ! This is the Minion 4th order cross stencil.
     if (size(ss,dim=4) .eq. 13) then
  
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -3779,7 +3779,7 @@ b1 =       0.0d0/hy2
 
     else 
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -3803,7 +3803,6 @@ b1 =       0.0d0/hy2
        ! Corrections for skewed stencils
        !
        if (nx > 1) then
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = 1, nz
              do j = 1, ny
                 i = 1
@@ -3817,11 +3816,9 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
        end if
 
        if (ny > 1) then
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = 1,nz
              do i = 1,nx
                 j = 1
@@ -3835,11 +3832,9 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
        end if
 
        if (nz > 1) then
-          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do j = 1,ny
              do i = 1,nx
                 k = 1
@@ -3853,7 +3848,6 @@ b1 =       0.0d0/hy2
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
        end if
     end if
   end subroutine stencil_apply_3d
@@ -3888,7 +3882,7 @@ b1 =       0.0d0/hy2
 
           i = 1
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
+          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc) IF(nz.ge.4)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3913,7 +3907,7 @@ b1 =       0.0d0/hy2
 
           i = nx
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
+          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc) IF(nz.ge.4)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3939,7 +3933,7 @@ b1 =       0.0d0/hy2
        if (face == -1) then
           j = 1
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
+          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc) IF(nz.ge.4)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3963,7 +3957,7 @@ b1 =       0.0d0/hy2
        else if (face ==  1) then
           j = ny
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
+          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc) IF(nz.ge.4)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3991,7 +3985,7 @@ b1 =       0.0d0/hy2
 
           k = 1
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
+          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc) IF(ny.ge.4)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -4016,7 +4010,7 @@ b1 =       0.0d0/hy2
 
           k = nz
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
+          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc) IF(ny.ge.4)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -4089,7 +4083,7 @@ b1 =       0.0d0/hy2
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx

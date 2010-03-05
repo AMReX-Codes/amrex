@@ -75,7 +75,7 @@ contains
 
     fac = one/real(product(ir),kind=dp_t)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -137,13 +137,16 @@ contains
     integer,    intent(in)    :: lo(:), hi(:)
     integer,    intent(in)    :: ir(:)
 
-    integer :: i, j, k
+    integer :: i, j, k, ifine, jfine, kfine
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
+       kfine = ir(3)*k
        do j = lo(2),hi(2)
+          jfine = ir(2)*j
           do i = lo(1),hi(1)
-             if ( .not. bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0) ) cc(i,j,k) = ZERO
+             ifine = ir(1)*i
+             if ( .not. bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0) ) cc(i,j,k) = ZERO
           end do
        end do
     end do
@@ -434,7 +437,7 @@ contains
              do m = 0, ir(1)-1
                 fac = (ir(1)-m) * fac1
                 if (m == 0) fac = HALF * fac
-                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine,jface,kface,doit)
+                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
                 do k = lo(3),hi(3)
                    kfine = k*ir(3)
 
@@ -490,7 +493,7 @@ contains
                 if (m == 0) fac = HALF * fac
                 !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) &
                 !$OMP PRIVATE(add_lo_x,add_lo_y,add_lo_z,add_hi_x,add_hi_y,add_hi_z) &
-                !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup,jface,kface,doit)
+                !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup,jface,kface,doit)  IF((hi(3)-lo(3)).ge.3)
                 do k = lo(3),hi(3)
                    kfine = k*ir(3)
 

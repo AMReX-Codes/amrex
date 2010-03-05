@@ -53,7 +53,7 @@ contains
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -106,7 +106,7 @@ contains
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx

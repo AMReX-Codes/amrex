@@ -517,32 +517,26 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
-    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -622,7 +616,7 @@ contains
 
     ss = ZERO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -702,32 +696,26 @@ contains
     !
     ! Set sg_int on faces at a Neumann boundary.
     !
-    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg_int(i,j, 0) = sg_int(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg_int(i,j,nz) = sg_int(i,j,nz-1)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg_int(i, 0,k) = sg_int(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg_int(i,ny,k) = sg_int(i,ny-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg_int( 0,j,k) = sg_int(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg_int(nx,j,k) = sg_int(nx-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
     !
     ! Set sg_int on edges at a Neumann boundary.
     !
@@ -805,7 +793,7 @@ contains
     if (bc_neumann(mm(nx,ny,nz),2,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny-1,nz  ) 
     if (bc_neumann(mm(nx,ny,nz),3,+1)) sg_int(nx,ny,nz) = sg_int(nx  ,ny  ,nz-1) 
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -873,32 +861,26 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
-    !$OMP PARALLEL DO PRIVATE(i,j)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,k)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -981,7 +963,7 @@ contains
     fz = ONE / (36.0_dp_t)
     f0 = FOUR * (fx + fy + fz)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1179,7 +1161,7 @@ contains
 
     if (size(ss,dim=4) .eq. 7) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -1212,9 +1194,9 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-    else if (size(ss,dim=4) .eq. 21) then
+    else if ((size(ss,dim=4) .eq. 21) .or. (size(ss,dim=4) .eq. 27)) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -1243,46 +1225,8 @@ contains
                         + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
                         + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
                         + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1)
-                end if
 
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-    else if (size(ss,dim=4) .eq. 27) then
-
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
-       do k = 1,nz
-          kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
-
-          do j = 1,ny
-             jface = .false. ; if ( (j.eq.1) .or. (j.eq.ny) ) jface = .true.
-
-             do i = 1,nx
-
-                zeroit = .false.
-
-                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
-                end if
-
-                if (zeroit) then
-                   dd(i,j,k) = ZERO
-                else
-                   dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-                        + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
-                        + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
-                        + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
-                        + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
-                        + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
-                        + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
-                        + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
-                        + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
-                        + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
-                        + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
-
-                   if ( .not. uniform_dh ) then
+                   if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh)) then
                       !
                       ! Add faces (only non-zero for non-uniform dx)
                       !
@@ -1291,14 +1235,12 @@ contains
                            + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
                            + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
                    end if
-
                 end if
 
              end do
           end do
        end do
        !$OMP END PARALLEL DO
-
     else 
       print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
       call bl_error(' ')
@@ -1639,7 +1581,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(jc,kc,n,fac,fac2,j,l,k)
+      !$OMP PARALLEL DO PRIVATE(jc,kc,n,fac,fac2,j,l,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             do n = 0,ratio(2)-1
@@ -1762,7 +1704,7 @@ contains
             fac = (ratio(1)-m) * fac1
             if (m == 0) fac = HALF * fac
             !$OMP PARALLEL DO PRIVATE(kc,k,jc,j,jtop,jbot,kup,kdwn) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac) IF((hid(3)-lod(3)).ge.3)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do jc = lod(2),hid(2)
@@ -1847,7 +1789,7 @@ contains
         end do
       end do
 
-      !$OMP PARALLEL DO PRIVATE(jc,kc,j,k)
+      !$OMP PARALLEL DO PRIVATE(jc,kc,j,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             j = (jc-lod(2))*ratio(2)
@@ -1871,7 +1813,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,l,fac,k)
+      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,l,fac,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -1993,7 +1935,7 @@ contains
             fac = (ratio(2)-m) * fac1
             if (m == 0) fac = HALF * fac
             !$OMP PARALLEL DO PRIVATE(kc,k,ic,i,irght,ileft,kup,kdwn) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac) IF((hid(3)-lod(3)).ge.3)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do ic = lod(1),hid(1)
@@ -2078,7 +2020,6 @@ contains
         end do
       end do
 
-      !$OMP PARALLEL DO PRIVATE(ic,kc,i,k)
       do kc = lod(3),hid(3)
          do ic = lod(1),hid(1)
             i = (ic-lod(1))*ratio(1)
@@ -2086,7 +2027,6 @@ contains
             if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
          end do
       end do
-      !$OMP END PARALLEL DO
 
     else 
 
@@ -2102,7 +2042,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,l,fac,j)
+      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,l,fac,j) IF((hid(2)-lod(2)).ge.3)
       do jc = lod(2),hid(2)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -2224,7 +2164,7 @@ contains
             fac = (ratio(3)-m) * fac1
             if (m == 0) fac = HALF * fac
             !$OMP PARALLEL DO PRIVATE(jc,j,ic,i,irght,ileft,jtop,jbot) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
+            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)  IF((hid(2)-lod(2)).ge.3)
             do jc = lod(2),hid(2)
               j = (jc-lod(2))*ratio(2)
               do ic = lod(1),hid(1)
@@ -2310,7 +2250,6 @@ contains
         end do
       end do
 
-      !$OMP PARALLEL DO PRIVATE(ic,jc,i,j)
       do jc = lod(2),hid(2)
          do ic = lod(1),hid(1)
             i = (ic-lod(1))*ratio(1)
@@ -2318,7 +2257,6 @@ contains
             if (.not. bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
          end do
       end do
-      !$OMP END PARALLEL DO
 
     end if
 
@@ -2385,7 +2323,6 @@ contains
     !
     ! Faces
     !
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           i = lo(1)
@@ -2394,9 +2331,7 @@ contains
           if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
-   
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           j = lo(2)
@@ -2405,9 +2340,7 @@ contains
           if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
-   
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           k = lo(3)
@@ -2416,7 +2349,6 @@ contains
           if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
        end do
     end do
-    !$OMP END PARALLEL DO
     !
     ! Edges
     !
