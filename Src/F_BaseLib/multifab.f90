@@ -372,6 +372,8 @@ module multifab_module
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
 
+  private :: multifab_saxpy_3_doit
+
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
 
@@ -3615,49 +3617,95 @@ contains
   end subroutine multifab_saxpy_5
 
   subroutine multifab_saxpy_4(a, b, c1, c)
-    real(dp_t), intent(in) :: c1
+    real(dp_t),     intent(in)    :: c1
     type(multifab), intent(inout) :: a
-    type(multifab), intent(in)  :: b,c
-    real(dp_t), pointer :: ap(:,:,:,:)
-    real(dp_t), pointer :: bp(:,:,:,:)
-    real(dp_t), pointer :: cp(:,:,:,:)
-    integer :: i
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
-       ap => dataptr(a, i, get_ibox(a, i))
-       bp => dataptr(b, i, get_ibox(b, i))
-       cp => dataptr(c, i, get_ibox(c, i))
-       ap = bp + c1*cp
+    type(multifab), intent(in   ) :: b,c
+    real(dp_t), pointer           :: ap(:,:,:,:)
+    real(dp_t), pointer           :: bp(:,:,:,:)
+    real(dp_t), pointer           :: cp(:,:,:,:)
+
+    integer :: ii, i, j, k, n
+
+    do ii = 1, a%nboxes
+       if ( remote(a,ii) ) cycle
+
+       ap => dataptr(a, ii, get_ibox(a,ii))
+       bp => dataptr(b, ii, get_ibox(b,ii))
+       cp => dataptr(c, ii, get_ibox(c,ii))
+       
+       ! ap = bp + c1*cp
+
+       !$OMP PARALLEL PRIVATE(i,j,k,n)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+                   ap(i,j,k,n) = bp(i,j,k,n) + c1 * cp(i,j,k,n)
+                end do
+             end do
+          end do
+          !$OMP END DO NOWAIT
+       end do
+       !$OMP END PARALLEL
+
     end do
   end subroutine multifab_saxpy_4
 
+  subroutine multifab_saxpy_3_doit(ap, b1, bp, all)
+    real(dp_t),     intent(in   ) :: b1
+    real(dp_t), pointer           :: ap(:,:,:,:)
+    real(dp_t), pointer           :: bp(:,:,:,:)
+    logical, intent(in)           :: all
+    integer :: i, j, k, n
+
+    ! ap = ap + b1*bp
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_saxpy_3_doit
+
   subroutine multifab_saxpy_3(a, b1, b, all)
-    real(dp_t), intent(in) :: b1
+    real(dp_t),     intent(in   ) :: b1
     type(multifab), intent(inout) :: a
-    type(multifab), intent(in)  :: b
-    real(dp_t), pointer :: ap(:,:,:,:)
-    real(dp_t), pointer :: bp(:,:,:,:)
+    type(multifab), intent(in   ) :: b
+    real(dp_t), pointer           :: ap(:,:,:,:)
+    real(dp_t), pointer           :: bp(:,:,:,:)
     logical, intent(in), optional :: all
-    integer :: i
+    integer :: ii, i, j, k, n
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
 
-    if (lall) then
-       do i = 1, a%nboxes
-          if ( remote(a,i) ) cycle
-          ap => dataptr(a,i)
-          bp => dataptr(b,i)
-          ap = ap + b1*bp
-       end do
-    else
-       do i = 1, a%nboxes
-          if ( remote(a,i) ) cycle
-          ap => dataptr(a, i, get_ibox(a, i))
-          bp => dataptr(b, i, get_ibox(b, i))
-          ap = ap + b1*bp
-       end do
-    end if
+    do ii = 1, a%nboxes
+       if ( remote(a,ii) ) cycle
+
+       if (lall) then
+          ap => dataptr(a,ii)
+          bp => dataptr(b,ii)
+       else
+          ap => dataptr(a, ii, get_ibox(a,ii))
+          bp => dataptr(b, ii, get_ibox(b,ii))
+       end if
+
+       ! ap = ap + b1*bp
+
+       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+
+    end do
+
   end subroutine multifab_saxpy_3
 
   subroutine multifab_saxpy_3_c(a, ia, b1, b, all)
@@ -3673,20 +3721,24 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    if (lall) then
-       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
+    do i = 1, a%nboxes
+       if ( remote(a,i) ) cycle
+
+       if (lall) then
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
-          ap = ap + b1*bp
-       end do
-    else
-       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
+       else
           ap => dataptr(a, i, get_ibox(a, i), ia)
           bp => dataptr(b, i, get_ibox(b, i))
-          ap = ap + b1*bp
-       end do
-    end if
+       end if
+
+       ! ap = ap + b1*bp
+
+       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+
+    end do
   end subroutine multifab_saxpy_3_c
+
   subroutine multifab_saxpy_3_cc(a, ia, b1, b, ib, nc, all)
     real(dp_t), intent(in) :: b1
     type(multifab), intent(inout) :: a
@@ -3701,19 +3753,22 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    if (lall) then
-       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
+    do i = 1, a%nboxes
+       if ( remote(a,i) ) cycle
+
+       if (lall) then
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
-          ap = ap + b1*bp
-       end do
-    else
-       do i = 1, a%nboxes; if ( remote(a,i) ) cycle
+       else
           ap => dataptr(a, i, get_ibox(a, i), ia, nc)
           bp => dataptr(b, i, get_ibox(b, i), ib, nc)
-          ap = ap + b1*bp
-       end do
-    end if
+       end if
+
+       ! ap = ap + b1*bp
+
+       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+
+    end do
   end subroutine multifab_saxpy_3_cc
 
   function multifab_norm_l1_c(mf, comp, nc, mask, all) result(r)
@@ -4421,7 +4476,7 @@ contains
     if ( ncomp(mf) < cm + nc - 1 ) then
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
-    !!OMP PARALLEL DO PRIVATE(i,mp,xo) SHARED(c_1d,c_2d,c_3d)
+
     do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
@@ -4434,7 +4489,7 @@ contains
           call c_3d(fb(:,:,:,cf:cf+nc-1), lo, mp(:,:,:,cm:cm+nc-1), xo)
        end select
     end do
-    !!OMP END PARALLEL DO
+
   contains
     subroutine c_1d(f, lo, x, xo)
       integer, intent(in) :: lo(:), xo(:)
