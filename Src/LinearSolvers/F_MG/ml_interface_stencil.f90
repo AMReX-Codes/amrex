@@ -981,17 +981,13 @@ contains
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
 
-    integer :: i, j, k
+    integer :: i, j, k, ifine, jfine, kfine
     integer :: ioff, joff, koff
     integer :: sig_mm, sig_mp, sig_pm, sig_pp
     integer :: sig_i,sig_j,sig_k
     logical :: lo_i_not,lo_j_not,lo_k_not,hi_i_not,hi_j_not,hi_k_not
     real (kind = dp_t) :: crse_flux
     real (kind = dp_t) :: cell_mm, cell_mp, cell_pm, cell_pp
-
-    i = lo(1)
-    j = lo(2)
-    k = lo(3)
     !
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
@@ -1000,9 +996,12 @@ contains
        !
        ! Dense stencil
        !
-
        !   Lo/Hi i side
+       !
        if (side == -1 .or. side == 1) then
+
+          i     = lo(1)
+          ifine = ir(1)*i
 
           if (side == -1) then
              ioff   = i+1
@@ -1019,7 +1018,9 @@ contains
           end if
 
           do k = lo(3),hi(3)
+             kfine = ir(3)*k
              do j = lo(2),hi(2)
+                jfine = ir(2)*j
 
                 if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
                    if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
@@ -1030,16 +1031,16 @@ contains
                       hi_k_not = .false.
 
                       if (j == loflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) lo_j_not = .true.
                       end if
                       if (j == hiflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) hi_j_not = .true.
                       end if
                       if (k == loflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) lo_k_not = .true.
                       end if
                       if (k == hiflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1) ) hi_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,+1) ) hi_k_not = .true.
                       end if
 
                       cell_mm = ss(i,j,k,sig_mm)*(cc(ioff,j-1,k-1) + cc(ioff,j-1,k  ) &
@@ -1095,6 +1096,9 @@ contains
           !
        else if (side == -2 .or. side == 2) then
 
+          j     = lo(2)
+          jfine = ir(2)*j
+
           if (side == -2) then
              joff   = j+1
              sig_mm =  6
@@ -1108,10 +1112,13 @@ contains
              sig_mp = 13
              sig_pp = 15
           end if
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
 
-                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+          do k = lo(3),hi(3)
+             kfine = ir(3)*k
+             do i = lo(1),hi(1)
+                ifine = ir(1)*i
+
+                if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
                    if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
 
                       lo_i_not = .false.
@@ -1120,16 +1127,16 @@ contains
                       hi_k_not = .false.
 
                       if (i == loflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1)) lo_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) lo_i_not = .true.
                       end if
                       if (i == hiflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1)) hi_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) hi_i_not = .true.
                       end if
                       if (k == loflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) lo_k_not = .true.
                       end if
                       if (k == hiflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) hi_k_not = .true.
                       end if
 
                       cell_mm = ss(i,j,k,sig_mm)*(cc(i-1,joff,k-1) + cc(i-1,joff,k  ) &
@@ -1178,9 +1185,14 @@ contains
                 end if
              end do
           end do
+          !
           !   Lo/Hi k side
+          !
        else if (side == -3 .or. side == 3) then
-          k = lo(3)
+
+          k     = lo(3)
+          kfine = ir(3)*k
+
           if (side == -3) then
              koff   = k+1
              sig_mm = 13
@@ -1196,9 +1208,11 @@ contains
           end if
 
           do j = lo(2),hi(2)
+             jfine = ir(2)*j
              do i = lo(1),hi(1)
+                ifine = ir(1)*i
 
-                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+                if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
                    if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
 
                       lo_i_not = .false.
@@ -1207,16 +1221,16 @@ contains
                       hi_j_not = .false.
 
                       if (i == loflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1)) lo_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) lo_i_not = .true.
                       end if
                       if (i == hiflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1)) hi_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) hi_i_not = .true.
                       end if
                       if (j == loflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) lo_j_not = .true.
                       end if
                       if (j == hiflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) hi_j_not = .true.
                       end if
 
                       cell_mm = ss(i,j,k,sig_mm)*(cc(i-1,j-1,koff) + cc(i-1,j  ,koff) &
@@ -1272,7 +1286,11 @@ contains
        ! Cross stencil
        !
        !   Lo/Hi i side
+       !
        if (side == -1 .or. side == 1) then
+
+          i     = lo(1)
+          ifine = ir(1)*i
 
           if (side == -1) then
              ioff   = i+1
@@ -1283,11 +1301,14 @@ contains
           end if
 
           !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
-          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(jfine,kfine) IF((hi(3)-lo(3)).ge.3)
           do k = lo(3),hi(3)
+             kfine = ir(3)*k
              do j = lo(2),hi(2)
+                jfine = ir(2)*j
 
-                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+                if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
                    if (.not. bc_dirichlet(mm_crse(i,j,k),1,0)) then
 
                       lo_j_not = .false.
@@ -1296,16 +1317,16 @@ contains
                       hi_k_not = .false.
 
                       if (j == loflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) lo_j_not = .true.
                       end if
                       if (j == hiflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) hi_j_not = .true.
                       end if
                       if (k == loflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) lo_k_not = .true.
                       end if
                       if (k == hiflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) hi_k_not = .true.
                       end if
 
                       cell_mm = FOURTH*ss(i,j,k,sig_i)*(cc(ioff,j,k)-cc(i,j,k)) &
@@ -1365,9 +1386,13 @@ contains
              end do
           end do
           !$OMP END PARALLEL DO
-
+          !
           !   Lo/Hi j side
+          !
        else if (side == -2 .or. side == 2) then
+
+          j     = lo(2)
+          jfine = ir(2)*j
 
           if (side == -2) then
              joff   = j+1
@@ -1378,11 +1403,14 @@ contains
           end if
 
           !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
-          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(ifine,kfine) IF((hi(3)-lo(3)).ge.3)
           do k = lo(3),hi(3)
+             kfine = ir(3)*k
              do i = lo(1),hi(1)
+                ifine = ir(1)*i
 
-                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+                if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
                    if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
 
                       lo_i_not = .false.
@@ -1391,16 +1419,16 @@ contains
                       hi_k_not = .false.
 
                       if (i == loflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1)) lo_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) lo_i_not = .true.
                       end if
                       if (i == hiflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1)) hi_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) hi_i_not = .true.
                       end if
                       if (k == loflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,-1)) lo_k_not = .true.
                       end if
                       if (k == hiflux(3)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),3,+1)) hi_k_not = .true.
                       end if
 
                       cell_mm = FOURTH*ss(i,j,k,sig_j)*(cc(i,joff,k)-cc(i,j,k)) &
@@ -1457,10 +1485,14 @@ contains
              end do
           end do
           !$OMP END PARALLEL DO
-
+          !
           !   Lo/Hi k side
+          !
        else if (side == -3 .or. side == 3) then
-          k = lo(3)
+
+          k     = lo(3)
+          kfine = ir(3)*k
+
           if (side == -3) then
              koff   = k+1
              sig_k  = 5
@@ -1470,11 +1502,14 @@ contains
           end if
 
           !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
-          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(ifine,jfine) IF((hi(2)-lo(2)).ge.3)
           do j = lo(2),hi(2)
+             jfine = ir(2)*j
              do i = lo(1),hi(1)
+                ifine = ir(1)*i
 
-                if (bc_dirichlet(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,0)) then
+                if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) then
                    if (.not.bc_dirichlet(mm_crse(i,j,k),1,0)) then
 
                       lo_i_not = .false.
@@ -1483,16 +1518,16 @@ contains
                       hi_j_not = .false.
 
                       if (i == loflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,-1)) lo_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,-1)) lo_i_not = .true.
                       end if
                       if (i == hiflux(1)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),1,+1)) hi_i_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),1,+1)) hi_i_not = .true.
                       end if
                       if (j == loflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,-1)) lo_j_not = .true.
                       end if
                       if (j == hiflux(2)) then
-                         if (.not. bc_neumann(mm_fine(ir(1)*i,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+                         if (.not. bc_neumann(mm_fine(ifine,jfine,kfine),2,+1)) hi_j_not = .true.
                       end if
 
                       cell_mm = FOURTH*ss(i,j,k,sig_k)*(cc(i,j,koff)-cc(i,j,k)) &

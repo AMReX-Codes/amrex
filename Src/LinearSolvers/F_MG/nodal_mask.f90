@@ -127,7 +127,7 @@ module nodal_mask_module
        integer :: i,j,k
        logical :: jface,kface
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface)
+      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
           kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
@@ -184,7 +184,7 @@ module nodal_mask_module
        integer :: i,j,k
        logical :: jface,kface
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface)
+      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
           kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
