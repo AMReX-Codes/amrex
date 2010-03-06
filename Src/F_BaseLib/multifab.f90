@@ -3686,7 +3686,7 @@ contains
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
     logical, intent(in), optional :: all
-    integer :: ii, i, j, k, n
+    integer :: ii
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
