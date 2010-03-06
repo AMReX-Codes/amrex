@@ -650,7 +650,7 @@ contains
        call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
-       m1p = m2p
+       call cpy_d(m1p,m2p)
     end do
     call mem_stats_alloc(multifab_ms, volume(m1, all = .TRUE.))
   end subroutine multifab_build_copy
@@ -675,7 +675,7 @@ contains
        call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
-       m1p = m2p
+       call cpy_i(m1p,m2p)
     end do
     call mem_stats_alloc(imultifab_ms, volume(m1, all = .TRUE.))
   end subroutine imultifab_build_copy
@@ -700,7 +700,7 @@ contains
        call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
-       m1p = m2p
+       call cpy_l(m1p,m2p)
     end do
     call mem_stats_alloc(lmultifab_ms, volume(m1, all = .TRUE.))
   end subroutine lmultifab_build_copy
@@ -725,7 +725,7 @@ contains
        call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
-       m1p = m2p
+       call cpy_z(m1p,m2p)
     end do
     call mem_stats_alloc(zmultifab_ms, volume(m1, all = .TRUE.))
   end subroutine zmultifab_build_copy
@@ -1887,7 +1887,7 @@ contains
        dbx =  bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  =  p2
+       call cpy_d(p1,p2)
     end do
     !$OMP END PARALLEL DO
 
@@ -1961,7 +1961,7 @@ contains
        dbx =  bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  =  p2
+       call cpy_i(p1,p2)
     end do
     !$OMP END PARALLEL DO
 
@@ -2035,7 +2035,7 @@ contains
        dbx =  bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  =  p2
+       call cpy_l(p1,p2)
     end do
     !$OMP END PARALLEL DO
 
@@ -2109,7 +2109,7 @@ contains
        dbx =  bxasc%l_con%cpy(i)%dbx
        p1  => dataptr(mf%fbs(ii), dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), sbx, c, nc)
-       p1  =  p2
+       call cpy_z(p1,p2)
     end do
     !$OMP END PARALLEL DO
 
