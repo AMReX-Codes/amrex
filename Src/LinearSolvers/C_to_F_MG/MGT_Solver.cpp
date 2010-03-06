@@ -39,6 +39,10 @@ typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu,
                            const double* b, 
                            const int* plo, const int* phi, 
                            const int* lo, const int* hi);
+typedef void (*mgt_set_cfn)(const int* lev, const int* n, const double* uu, 
+                            const double* b, 
+                            const int* plo, const int* phi, 
+                            const int* lo, const int* hi, const int& nc);
 typedef void (*mgt_set_c)(const int* lev, const int* n, 
 		          const int* lo, const int* hi, const Real* value);
 #if BL_SPACEDIM == 1
@@ -50,7 +54,8 @@ mgt_get_dir mgt_get_gp   = mgt_get_gp_1d;
 mgt_set mgt_set_pr   = mgt_set_pr_1d;
 mgt_set mgt_set_rh   = mgt_set_rh_1d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_1d;
-mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_1d;
+mgt_set_cf  mgt_set_cfbx  = mgt_set_cfbx_1d;
+mgt_set_cfn mgt_set_cfbnx = mgt_set_cfnbx_1d;
 mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_1d_const;
 mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
 mgt_set mgt_set_cfs  = mgt_set_cfs_1d;
@@ -65,8 +70,10 @@ mgt_get_dir mgt_get_gp   = mgt_get_gp_2d;
 mgt_set mgt_set_pr   = mgt_set_pr_2d;
 mgt_set mgt_set_rh   = mgt_set_rh_2d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_2d;
-mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_2d;
+mgt_set_cf mgt_set_cfbx  = mgt_set_cfbx_2d;
 mgt_set_cf mgt_set_cfby = mgt_set_cfby_2d;
+mgt_set_cfn mgt_set_cfbnx = mgt_set_cfbnx_2d;
+mgt_set_cfn mgt_set_cfbny = mgt_set_cfbny_2d;
 mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_2d_const;
 mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_2d_const;
 mgt_set_c mgt_set_cfby_const = mgt_set_cfby_2d_const;
@@ -82,9 +89,12 @@ mgt_set mgt_set_pr   = mgt_set_pr_3d;
 mgt_get_dir mgt_get_gp   = mgt_get_gp_3d;
 mgt_set mgt_set_rh   = mgt_set_rh_3d;
 mgt_set mgt_set_cfa  = mgt_set_cfa_3d;
-mgt_set_cf mgt_set_cfbx = mgt_set_cfbx_3d;
-mgt_set_cf mgt_set_cfby = mgt_set_cfby_3d;
-mgt_set_cf mgt_set_cfbz = mgt_set_cfbz_3d;
+mgt_set_cf mgt_set_cfbx  = mgt_set_cfbx_3d;
+mgt_set_cf mgt_set_cfby  = mgt_set_cfby_3d;
+mgt_set_cf mgt_set_cfbz  = mgt_set_cfbz_3d;
+mgt_set_cfn mgt_set_cfbnx = mgt_set_cfbnx_3d;
+mgt_set_cfn mgt_set_cfbny = mgt_set_cfbny_3d;
+mgt_set_cfn mgt_set_cfbnz = mgt_set_cfbnz_3d;
 mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_3d_const;
 mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_3d_const;
 mgt_set_c mgt_set_cfby_const = mgt_set_cfby_3d_const;
@@ -423,6 +433,70 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
            const int* bzlo = b[2]->box().loVect();
   	   const int* bzhi = b[2]->box().hiVect();
   	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
+#endif
+	}
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+    }
+  mgt_finalize_stencil();
+}
+
+void
+MGT_Solver::set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
+                                    const Real& beta, const BndryData& bd)
+{
+  int nc = (*bb[0][0]).nComp();
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      mgt_init_mc_coeffs_lev(&lev,&nc);
+      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+	{
+	  pxa[i] = pxb[i] = 0;
+	}
+
+      for (OrientationIter oitr; oitr; ++oitr)
+        {
+          int dir  = oitr().coordDir();
+          if (oitr().faceDir() == Orientation::low) {
+            xa[dir] = bd.bndryLocs(oitr())[0];
+          } else if (oitr().faceDir() == Orientation::high) {
+            xb[dir] = bd.bndryLocs(oitr())[0];
+          }
+    
+        }
+
+      for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
+	{
+	  const FArrayBox* a = &((*(aa[lev]))[amfi]);
+	  const FArrayBox* b[BL_SPACEDIM];
+	  for ( int i = 0; i < BL_SPACEDIM; ++i )
+	    {
+	      b[i] = &((*(bb[lev][i]))[amfi]);
+	    }
+ 	   int n = amfi.index();
+ 	   const int* lo = amfi.validbox().loVect();
+	   const int* hi = amfi.validbox().hiVect();
+
+	   const int* alo = a->box().loVect();
+	   const int* ahi = a->box().hiVect();
+	   mgt_set_cfa (&lev, &n, a->dataPtr(), alo, ahi, lo, hi);
+
+	   const int* bxlo = b[0]->box().loVect();
+	   const int* bxhi = b[0]->box().hiVect();
+	   mgt_set_cfbnx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi, b[0]->nComp());
+
+#if (BL_SPACEDIM >= 2)
+	   const int* bylo = b[1]->box().loVect();
+	   const int* byhi = b[1]->box().hiVect();
+	   mgt_set_cfbny(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi, b[1]->nComp());
+#endif
+
+#if (BL_SPACEDIM == 3)
+           const int* bzlo = b[2]->box().loVect();
+  	   const int* bzhi = b[2]->box().hiVect();
+  	   mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
 #endif
 	}
       mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
