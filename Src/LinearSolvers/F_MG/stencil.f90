@@ -525,7 +525,6 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
-    type(box) :: bx
     integer   :: i,lo(st%dim),hi(st%dim)
     logical   :: skwd, lcross
     type(bl_prof_timer), save :: bpt
@@ -1531,7 +1530,7 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
-    integer i,id
+    integer i,id,ncomp_coeffs
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "stencil_fill_cc")
@@ -1564,8 +1563,14 @@ contains
           call s_simple_1d_cc(sp(:,1,1,:), cp(:,1,1,:), dh, &
                               mp(:,1,1,1), bx%lo, bx%hi, lxa, lxb, order)
        case (2)
-          call s_simple_2d_cc(sp(:,:,1,:), cp(:,:,1,:), dh, &
-                              mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+          ncomp_coeffs = (multifab_ncomp(coeffs) - 1) / ss%dim
+          if (ncomp_coeffs > 1) then
+             call s_simplen_2d_cc(sp(:,:,1,:), cp(:,:,1,:), dh, &
+                                  mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+          else
+             call s_simple_2d_cc(sp(:,:,1,:), cp(:,:,1,:), dh, &
+                                 mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+          endif
        case (3)
           call s_simple_3d_cc(sp(:,:,:,:), cp(:,:,:,:), dh, &
                               mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
@@ -2355,6 +2360,152 @@ contains
 
   end subroutine s_simple_2d_cc
 
+  subroutine s_simplen_2d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
+
+    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(2), blo, bhi
+    integer            :: i, j, dm, n, bclo, bchi, nx, ny, nc
+    integer, parameter :: XBC = 5, YBC = 6
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+
+    dm = 2
+    nc = (size(beta,dim=3)-1)/dm
+
+    f1 = ONE/dh**2
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+ 
+    ss(:,:,:) = 0.d0
+
+    ! Consider the operator  (alpha - del dot beta grad)
+    ! Components beta(i,j,       0) = alpha
+    ! Components beta(i,j,   1: nc) = betax(i,j,1:nc)
+    ! Components beta(i,j,nc+1:2nc) = betay(i,j,1:nc)
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          do n = 1, nc
+             ss(i,j,1) = ss(i,j,1) - beta(i+1,j,   n)*f1(1)
+             ss(i,j,2) = ss(i,j,2) - beta(i  ,j,   n)*f1(1)
+             ss(i,j,3) = ss(i,j,3) - beta(i,j+1,nc+n)*f1(2)
+             ss(i,j,4) = ss(i,j,4) - beta(i,j  ,nc+n)*f1(2)
+          end do
+       end do
+    end do
+
+    ! x derivatives
+
+    do j = lo(2),hi(2)
+       do i = lo(1)+1,hi(1)-1
+          do n = 1, nc
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1)
+          end do
+       end do
+    end do
+
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
+ 
+       i = lo(1)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+       else
+          blo = 0.d0
+          bhi = 0.d0
+          do n = 1,nc
+            blo = blo + beta(i  ,j,n)
+            bhi = bhi + beta(i+1,j,n)
+          end do
+          call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+       end if
+
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          else
+             blo = 0.d0
+             bhi = 0.d0
+             do n = 1,nc
+                blo = blo + beta(i  ,j,n)
+                bhi = bhi + beta(i+1,j,n)
+             end do
+             call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+       end if
+    end do
+
+    ! y derivatives
+
+    do i = lo(1),hi(1)
+       do j = lo(2)+1,hi(2)-1
+          do n = 1, nc
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,nc+n)+beta(i,j+1,nc+n))*f1(2)
+          end do
+       end do
+    end do
+
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
+
+       j = lo(2)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+       else
+          blo = 0.d0
+          bhi = 0.d0
+          do n = 1,nc
+             blo = blo + beta(i  ,j,nc+n)
+             bhi = bhi + beta(i,j+1,nc+n)
+          end do
+          call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+       end if
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          else
+             blo = 0.d0
+             bhi = 0.d0
+             do n = 1,nc
+                blo = blo + beta(i  ,j,nc+n)
+                bhi = bhi + beta(i,j+1,nc+n)
+             end do
+             call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+          end if
+       end if
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+       end do
+    end do
+
+  end subroutine s_simplen_2d_cc
+
   subroutine s_simple_3d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
 
     integer           , intent(in   ) :: lo(:), hi(:), order
@@ -2586,7 +2737,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
-    integer            :: i, j, nx, ny, nn
+    integer            :: i, j, nx, ny
     real (kind = dp_t) :: fac
 
     nx = size(ss,dim=1)
@@ -2826,8 +2977,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
-    integer            :: i, j, nx, ny, nn,nsten
-    real (kind = dp_t) :: fac
+    integer            :: i, j, nx, ny, nsten
     double precision :: t1,t2,b1,b2,l1,l2,r1,r2,hx2,hy2,ss_sum
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
