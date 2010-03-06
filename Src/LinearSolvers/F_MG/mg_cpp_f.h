@@ -10,6 +10,7 @@
 #define mgt_finalize              MGT_FINALIZE
 #define mgt_nodal_finalize        MGT_NODAL_FINALIZE
 #define mgt_init_coeffs_lev       MGT_INIT_COEFFS_LEV
+#define mgt_init_mc_coeffs_lev    MGT_INIT_MC_COEFFS_LEV
 #define mgt_init_nodal_coeffs_lev MGT_INIT_NODAL_COEFFS_LEV
 #define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_nodal_stencil MGT_FINALIZE_NODAL_STENCIL
@@ -58,13 +59,19 @@
 
 #define mgt_set_cfa_1d            MGT_SET_CFA_1D
 #define mgt_set_cfbx_1d           MGT_SET_CFBX_1D
+#define mgt_set_cfbnx_1d          MGT_SET_CFBNX_1D
 #define mgt_set_cfa_2d            MGT_SET_CFA_2D
 #define mgt_set_cfbx_2d           MGT_SET_CFBX_2D
 #define mgt_set_cfby_2d           MGT_SET_CFBY_2D
+#define mgt_set_cfbnx_2d          MGT_SET_CFBNX_2D
+#define mgt_set_cfbny_2d          MGT_SET_CFBNY_2D
 #define mgt_set_cfa_3d            MGT_SET_CFA_3D
 #define mgt_set_cfbx_3d           MGT_SET_CFBX_3D
 #define mgt_set_cfby_3d           MGT_SET_CFBY_3D
 #define mgt_set_cfbz_3d           MGT_SET_CFBZ_3D
+#define mgt_set_cfbnx_3d          MGT_SET_CFBNX_3D
+#define mgt_set_cfbny_3d          MGT_SET_CFBNY_3D
+#define mgt_set_cfbnz_3d          MGT_SET_CFBNZ_3D
 
 #define mgt_set_cfa_1d_const      MGT_SET_CFA_1D_CONST
 #define mgt_set_cfbx_1d_const     MGT_SET_CFBX_1D_CONST
@@ -101,6 +108,7 @@
 #define mgt_finalize              mgt_finalize_
 #define mgt_nodal_finalize        mgt_nodal_finalize_
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev_
+#define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev_
 #define mgt_init_nodal_coeffs_lev mgt_init_nodal_coeffs_lev_
 #define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil_
@@ -149,13 +157,20 @@
 
 #define mgt_set_cfa_1d            mgt_set_cfa_1d_
 #define mgt_set_cfbx_1d           mgt_set_cfbx_1d_
+#define mgt_set_cfbnx_1d          mgt_set_cfbnx_1d_
+#define mgt_set_cfnbx_1d          mgt_set_cfbnx_1d_
 #define mgt_set_cfa_2d            mgt_set_cfa_2d_
 #define mgt_set_cfbx_2d           mgt_set_cfbx_2d_
 #define mgt_set_cfby_2d           mgt_set_cfby_2d_
+#define mgt_set_cfbnx_2d          mgt_set_cfbnx_2d_
+#define mgt_set_cfbny_2d          mgt_set_cfbny_2d_
 #define mgt_set_cfa_3d            mgt_set_cfa_3d_
 #define mgt_set_cfbx_3d           mgt_set_cfbx_3d_
 #define mgt_set_cfby_3d           mgt_set_cfby_3d_
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d_
+#define mgt_set_cfbnx_3d          mgt_set_cfbnx_3d_
+#define mgt_set_cfbny_3d          mgt_set_cfbny_3d_
+#define mgt_set_cfbnz_3d          mgt_set_cfbnz_3d_
 
 #define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const_
 #define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const_
@@ -187,6 +202,7 @@
 #define mgt_finalize              mgt_finalize__
 #define mgt_nodal_finalize        mgt_nodal_finalize__
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev__
+#define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev__
 #define mgt_init_nodal_coeffs_lev mgt_init_nodal_coeffs_lev__
 #define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil__
@@ -299,6 +315,7 @@ extern "C"
   void mgt_nodal_finalize(const Real* dx, const int* bc);
 
   void mgt_init_coeffs_lev(const int* lev);
+  void mgt_init_mc_coeffs_lev(const int* lev, const int* nc);
   void mgt_init_nodal_coeffs_lev(const int* lev);
 
   void mgt_init_nodal_coeffs_lev(const int* lev);
@@ -354,18 +371,15 @@ extern "C"
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfby_1d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
-		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi);
+  void mgt_set_cfbnx_1d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_1d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);
   
   void mgt_set_cfbx_1d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
-  
-  void mgt_set_cfby_1d_const(const int* lev, const int* n,
 		             const int* lo, const int* hi, const Real* value);
   
   void mgt_set_cfs_1d(const int* lev, const int* n, const Real* cf,
@@ -424,6 +438,16 @@ extern "C"
 		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
+  
+  void mgt_set_cfbnx_2d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
+  
+  void mgt_set_cfbny_2d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_2d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);
@@ -496,6 +520,21 @@ extern "C"
 		       const Real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
+  
+  void mgt_set_cfbnx_3d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
+  
+  void mgt_set_cfbny_3d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
+  
+  void mgt_set_cfbnz_3d(const int* lev, const int* n, const Real* cf,
+		        const Real* b,
+		        const int* plo, const int* phi, 
+		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_3d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);
