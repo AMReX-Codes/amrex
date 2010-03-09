@@ -546,11 +546,6 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2) = b * cf(lo(1):hi(1)+1, lo(2):hi(2))
-  do j = lo(2),hi(2)
-  do i = lo(1),hi(1)+1
-     print *,'CF ',cf(i,j)
-  end do
-  end do
 
 end subroutine mgt_set_cfbx_2d
 
