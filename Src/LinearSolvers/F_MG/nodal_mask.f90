@@ -111,7 +111,7 @@ module nodal_mask_module
 
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (.not.  bc_dirichlet(mm_fine(i*ir(1),j*ir(2)),1,0) ) &
+             if (.not.  bc_dirichlet(mm_fine(i*ir(1),j*ir(2)),1,0)) &
                 mask(i,j) = .false.
           end do
        end do
@@ -125,21 +125,17 @@ module nodal_mask_module
        integer, intent(inout) :: mm_fine(lof(1):,lof(2):,lof(3):)
 
        integer :: i,j,k
-       logical :: jface,kface
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF((hi(3)-lo(3)).ge.3)
+       !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
-          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
-             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
              do i = lo(1),hi(1)
-                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                   if (.not. bc_dirichlet(mm_fine(i*ir(1),j*ir(2),k*ir(3)),1,0) ) mask(i,j,k) = .false.
-                end if
+                if (.not. bc_dirichlet(mm_fine(i*ir(1),j*ir(2),k*ir(3)),1,0)) &
+                   mask(i,j,k) = .false.
              end do
           end do
        end do
-      !$OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
 
   end subroutine set_crsefine_nodal_mask_3d
 
