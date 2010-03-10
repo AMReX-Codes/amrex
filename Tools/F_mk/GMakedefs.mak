@@ -27,14 +27,11 @@ endif
 ifdef OMP
   omp_suffix 	:= .omp
 endif
-ifdef SMP
-  smp_suffix    := .smp
-endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
 
-suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(smp_suffix)$(hpc_suffix)
+suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)
 
 sources     =
 fsources    =
