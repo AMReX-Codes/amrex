@@ -47,15 +47,9 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #                          intrepid from hostname -f.  $HOST or
     #                          uname -n don't indicate intrepid
     #
-    ifdef SMP
-      CC  := mpixlc_r -qsmp
-      FC  := mpixlf95_r -qfixed=72 -qsmp
-      F90 := mpixlf95_r -qsmp
-    else
-      CC  := mpixlc
-      FC  := mpixlf95 -qfixed=72
-      F90 := mpixlf95
-    endif
+    CC  := mpixlc
+    FC  := mpixlf95 -qfixed=72
+    F90 := mpixlf95
 
     FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
     F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
@@ -87,15 +81,9 @@ ifeq ($(findstring surveyor, $(HOSTNAME)), surveyor)
     #
     # surveyor.alcf.anl.gov
     #
-    ifdef SMP
-      CC  := mpixlc_r -qsmp
-      FC  := mpixlf95_r -qfixed=72 -qsmp
-      F90 := mpixlf95_r -qsmp
-    else
-      CC  := mpixlc
-      FC  := mpixlf95 -qfixed=72
-      F90 := mpixlf95
-    endif
+    CC  := mpixlc
+    FC  := mpixlf95 -qfixed=72
+    F90 := mpixlf95
 
     FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
     F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
