@@ -2530,8 +2530,8 @@ contains
     ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -beta(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
     ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
 
     ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,3)*f1(3)
     ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  3)*f1(3)
