@@ -211,9 +211,9 @@ ifeq ($(ARCH),Linux)
     endif
 
     ifdef NDEBUG
-      FFLAGS   += -O
-      F90FLAGS += -O
-      CFLAGS   += -O
+      FFLAGS   += -fast
+      F90FLAGS += -fast
+      CFLAGS   += -fast
     else
       FFLAGS   += -g
       F90FLAGS += -g
