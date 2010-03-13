@@ -1751,7 +1751,7 @@ c sig here contains three different directions all stored on "nodes"
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
 
-!$omp parallel do private(i)
+!$omp parallel do
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -1761,7 +1761,7 @@ c sig here contains three different directions all stored on "nodes"
       end do
 !$omp end parallel do
 
-!$omp parallel do private(i)
+!$omp parallel do
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
