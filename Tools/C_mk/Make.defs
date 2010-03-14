@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.144 2010-02-02 19:15:06 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.145 2010-03-14 22:01:46 lijewski Exp $
 #
 
 #
@@ -151,6 +151,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring nid, $(UNAMEN)), nid)
     WHICHLINUX := FRANKLIN
+  endif
+  ifeq ($(findstring freedom, $(UNAMEN)), freedom)
+    WHICHLINUX := FREEDOM
   endif
   ifeq ($(findstring hopper, $(UNAMEN)), hopper)
     WHICHLINUX := HOPPER
