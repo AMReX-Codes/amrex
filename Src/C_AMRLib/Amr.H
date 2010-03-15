@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.39 2010-02-26 21:57:04 almgren Exp $
+// $Id: Amr.H,v 1.40 2010-03-15 19:56:16 lijewski Exp $
 //
 
 #include <fstream>
@@ -109,6 +109,10 @@ public:
     //@ManDoc: Number of time steps at specified level.
     //
     int levelSteps (int lev) const;
+    //
+    // Which step are we at for the specified level?
+    //
+    int levelCount (int lev) const;
     //
     //@ManDoc: Interval between regridding.
     //

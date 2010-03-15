@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.196 2010-02-26 21:57:04 almgren Exp $
+// $Id: Amr.cpp,v 1.197 2010-03-15 19:56:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -160,6 +160,12 @@ int
 Amr::levelSteps (int i) const
 {
     return level_steps[i];
+}
+
+int
+Amr::levelCount (int i) const
+{
+    return level_count[i];
 }
 
 Real
