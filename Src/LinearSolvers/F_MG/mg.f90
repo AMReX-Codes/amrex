@@ -566,7 +566,7 @@ contains
 
     call build(bpt, "do_bottom_mgt")
 
-    if (mgt%bottom_solver != 4) &
+    if (mgt%bottom_solver .ne. 4) &
        call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_solver == 4")
 
     mglev = bottom_mgt%nlevels
