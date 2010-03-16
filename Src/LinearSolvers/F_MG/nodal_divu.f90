@@ -11,14 +11,13 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine divu(nlevs,mgt,unew,rh,ref_ratio,verbose,nodal)
+    subroutine divu(nlevs,mgt,unew,rh,ref_ratio,nodal)
 
       integer        , intent(in   ) :: nlevs
       type(mg_tower) , intent(inout) :: mgt(:)
       type(multifab) , intent(inout) :: unew(:)
       type(multifab) , intent(inout) :: rh(:)
       integer        , intent(in   ) :: ref_ratio(:,:)
-      integer        , intent(in   ) :: verbose
       logical        , intent(in   ) :: nodal(:)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
@@ -473,15 +472,15 @@ contains
              select case (rh%dim)
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lof, hif, lof, hif, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, hi, ir, side, dx)
+                     fp(:,1,1,1), lof, &
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lof, hif, lof, hif, &
+                     fp(:,:,1,1), lof, lof, hif, &
                      up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx)
              case (3)
                 call ml_interface_3d_divu(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lof, hif, lof, hif,  &
+                     fp(:,:,:,1), lof, lof, hif,  &
                      up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx)
              end select
 
@@ -514,15 +513,15 @@ contains
              select case (rh%dim)
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lo, hi, lof, hif, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, hi, ir, side, dx)
+                     fp(:,1,1,1), lo, &
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lo, hi, lof, hif, &
+                     fp(:,:,1,1), lo, lof, hif, &
                      up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx)
              case (3)
                 call ml_interface_3d_divu(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lo, hi, lof, hif, &
+                     fp(:,:,:,1), lo, lof, hif, &
                      up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx)
              end select
              deallocate(fp,mp)
@@ -536,13 +535,13 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine ml_interface_1d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
-                                    mm, lom, lo, hi, ir, side, dx)
+    subroutine ml_interface_1d_divu(rh, lor, fine_flux, lof, uc, loc, &
+                                    mm, lom, lo, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
-    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
-    integer, intent(in) :: lo(:), hi(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(inout) ::        rh(lor(1):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     real (kind = dp_t), intent(in   ) ::        uc(loc(1):)
@@ -588,12 +587,13 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine ml_interface_2d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
+    subroutine ml_interface_2d_divu(rh, lor, fine_flux, lof, loflx, hiflx, uc, loc, &
                                     mm, lom, lo, hi, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
-    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: loflx(:), hiflx(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
@@ -655,12 +655,12 @@ contains
                    crse_flux =        (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
                 else
                    crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-                end if
+                end if 
              else if (j == hiflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                    crse_flux =        (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
                 else 
-                   crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
+                   crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2)) 
                 end if
              else
                 crse_flux = (HALF*(-uc(i-1,j,1)-uc(i-1,j-1,1))/dx(1)  &
@@ -737,12 +737,13 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine ml_interface_3d_divu(rh, lor, fine_flux, lof, hif, loflx, hiflx, uc, loc, &
+    subroutine ml_interface_3d_divu(rh, lor, fine_flux, lof, loflx, hiflx, uc, loc, &
                                     mm, lom, lo, hi, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
-    integer, intent(in) :: lof(:), hif(:), loflx(:), hiflx(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: loflx(:), hiflx(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):,lor(3):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)

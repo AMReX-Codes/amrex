@@ -345,7 +345,7 @@ subroutine mgt_divu()
   integer    :: n
   real(dp_t) :: r, rhmax
 
-  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%verbose,mgts%nodal)
+  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal)
 
   if (parallel_IOProcessor() .and. mgts%verbose > 0) then
      rhmax = norm_inf(mgts%rh(mgts%nlevel))
