@@ -337,12 +337,11 @@ contains
 
   end subroutine mg_tower_build
 
-  subroutine mg_tower_print(mgt, str, unit, skip)
+  subroutine mg_tower_print(mgt, unit, skip)
 
     use bl_IO_module
 
     type(mg_tower), intent(in) :: mgt
-    character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
     integer :: un, i, ii
@@ -546,16 +545,13 @@ contains
 
   end subroutine mg_tower_v_cycle
 
-  subroutine do_bottom_mgt(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+  subroutine do_bottom_mgt(mgt, uu, rh, bottom_mgt)
 
     use bl_prof_module
 
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in   ) :: rh
-    type( multifab), intent(in   ) :: ss
-    type(imultifab), intent(in   ) :: mm
-    integer        , intent(in   ) :: lev
     type( mg_tower), intent(inout) :: bottom_mgt
 
     type(bl_prof_timer), save :: bpt
@@ -613,8 +609,6 @@ contains
     integer stat
     integer i
     type(bl_prof_timer), save :: bpt
-
-    integer         :: mglev
 
     call build(bpt, "mgt_bottom_solve")
 
@@ -708,7 +702,7 @@ contains
     call destroy(bpt)
   end subroutine mg_defect
 
-  subroutine grid_res(mgt, lev, ss, dd, ff, uu, mm, face_type, uniform_dh)
+  subroutine grid_res(mgt, ss, dd, ff, uu, mm, face_type, uniform_dh)
 
     use bl_prof_module
     use mg_defect_module
@@ -717,7 +711,6 @@ contains
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
     type(mg_tower), intent(inout) :: mgt
-    integer, intent(in) :: lev
     integer, intent(in) :: face_type(:,:,:)
     logical, intent(in) :: uniform_dh
     integer :: i, n
@@ -765,7 +758,7 @@ contains
 
   end subroutine grid_res
 
-  subroutine mg_tower_restriction(mgt, lev, crse, fine, mm_fine, mm_crse)
+  subroutine mg_tower_restriction(mgt, crse, fine, mm_fine, mm_crse)
 
     use bl_prof_module
     use mg_restriction_module, only: cc_restriction_1d, nodal_restriction_1d, &
@@ -776,7 +769,6 @@ contains
     type(imultifab), intent(in)   :: mm_fine
     type(imultifab), intent(in)   :: mm_crse
     type(mg_tower), intent(inout) :: mgt
-    integer, intent(in) :: lev
     integer :: loc(mgt%dim), lof(mgt%dim)
     integer :: lom_fine(mgt%dim)
     integer :: lom_crse(mgt%dim)
@@ -1353,7 +1345,7 @@ contains
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
 
-       call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        call mg_tower_v_cycle_c(mgt, lev-1, c, mgt%ss(lev-1), mgt%uu(lev-1), &
@@ -1438,7 +1430,7 @@ contains
        end if
 
        if (present(bottom_mgt) .and. mgt%bottom_solver == 4) then
-          call do_bottom_mgt(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+          call do_bottom_mgt(mgt, uu, rh, bottom_mgt)
        else
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        end if
@@ -1473,7 +1465,7 @@ contains
               print *,'  DN: Norm after  smooth         ',nrm
        end if
 
-       call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
        ! HACK 
        if (nodal_flag) then 
@@ -1535,7 +1527,7 @@ contains
 
   end subroutine mg_tower_cycle
 
-  subroutine mini_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma)
+  subroutine mini_cycle(mgt, lev, ss, uu, rh, mm, nu1, nu2)
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(in) :: rh
@@ -1544,8 +1536,6 @@ contains
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
-    integer, intent(inout) :: gamma
-    integer, intent(in) :: cyc
     integer :: i
 
     call timer_start(mgt%tm(lev))
@@ -1561,7 +1551,7 @@ contains
        ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
 
-       call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
 
        ! HACK 
