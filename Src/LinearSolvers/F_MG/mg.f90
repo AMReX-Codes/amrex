@@ -1499,7 +1499,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
-             print *,'  UP: Norm after  interp ', nrm
+             print *,'  UP: Norm after  interp         ',nrm
           end if
        end if
 
@@ -1512,7 +1512,7 @@ contains
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
-             print *,'  UP: Norm after  smooth ', nrm
+             print *,'  UP: Norm after  smooth         ',nrm
        end if
 
        ! if at top of tower and doing an FCycle reset gamma
