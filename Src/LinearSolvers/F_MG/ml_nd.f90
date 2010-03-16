@@ -172,9 +172,8 @@ contains
 
           ! Relax ...
           if (n > 1) then
-             call mini_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  mgt(n)%gamma)
+             call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
+                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
           else 
              if (present(bottom_mgt)) then
                 call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
@@ -291,9 +290,8 @@ contains
           call setval(uu(n),ZERO,all=.true.)
 
           ! Relax ...
-          call mini_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-               mgt(n)%gamma)
+          call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
+               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
@@ -464,10 +462,10 @@ contains
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
       if (multifab_ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
-        call grid_res(mgt(n),mglev_fine,one_sided_ss,temp_res, &
+        call grid_res(mgt(n),one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       else
-        call grid_res(mgt(n),mglev_fine,mgt(n)%ss(mglev_fine),temp_res, &
+        call grid_res(mgt(n),mgt(n)%ss(mglev_fine),temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       end if
 

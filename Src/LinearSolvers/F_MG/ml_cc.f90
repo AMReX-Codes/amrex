@@ -212,10 +212,9 @@ contains
           ! Relax ...
           if (iter < mgt(nlevs)%max_iter) then
              if (n > 1) then
-                call mini_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                call mini_cycle(mgt(n), mglev, &
                                 mgt(n)%ss(mglev), uu(n), res(n), &
-                                mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                                mgt(n)%gamma)
+                                mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
              else 
                 if (present(bottom_mgt)) then
                    call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
@@ -331,9 +330,8 @@ contains
           call setval(uu(n), ZERO, all=.true.)
 
           ! Relax ...
-          call mini_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-               mgt(n)%gamma)
+          call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
+               uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
 
           ! Compute Res = Res - Lap(uu)
 
