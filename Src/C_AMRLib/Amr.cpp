@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.197 2010-03-15 19:56:16 lijewski Exp $
+// $Id: Amr.cpp,v 1.198 2010-03-16 23:44:51 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1300,7 +1300,8 @@ Amr::restart (const std::string& filename)
 
     } else {
 
-       BoxLib::Warning("Amr::restart(): max_level is lower than before");
+       if (ParallelDescriptor::IOProcessor())
+          BoxLib::Warning("Amr::restart(): max_level is lower than before");
 
        int new_finest_level = std::min(max_level,finest_level);
  
