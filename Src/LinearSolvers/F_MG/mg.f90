@@ -546,7 +546,60 @@ contains
 
   end subroutine mg_tower_v_cycle
 
-  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+  subroutine do_bottom_mgt(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+
+    use bl_prof_module
+
+    type( mg_tower), intent(inout) :: mgt
+    type( multifab), intent(inout) :: uu
+    type( multifab), intent(in   ) :: rh
+    type( multifab), intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer        , intent(in   ) :: lev
+    type( mg_tower), intent(inout) :: bottom_mgt
+
+    type(bl_prof_timer), save :: bpt
+
+    type( multifab) :: bottom_uu
+    type( multifab) :: bottom_rh
+    integer         :: mglev
+
+    call build(bpt, "do_bottom_mgt")
+
+    if (mgt%bottom_solver != 4) &
+       call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_solver == 4")
+
+    mglev = bottom_mgt%nlevels
+
+    call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
+
+    call setval(bottom_uu,0.d0,all=.true.)
+
+    if (nodal_q(rh)) then
+       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
+       call setval(bottom_rh,ZERO,all=.true.)
+    else
+       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
+    end if
+
+    call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
+
+    call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle_type, mglev, &
+                        bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
+                        bottom_mgt%mm(mglev), bottom_mgt%nu1, bottom_mgt%nu2, &
+                        bottom_mgt%gamma)
+
+    call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
+    call multifab_fill_boundary(uu)
+
+    call destroy(bottom_uu)
+    call destroy(bottom_rh)
+
+    call destroy(bpt)
+
+  end subroutine do_bottom_mgt
+
+  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
 
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
@@ -561,17 +614,9 @@ contains
     integer i
     type(bl_prof_timer), save :: bpt
 
-    type( mg_tower), intent(inout), optional :: bottom_mgt
-
-    type( multifab) :: bottom_uu
-    type( multifab) :: bottom_rh
     integer         :: mglev
 
     call build(bpt, "mgt_bottom_solve")
-
-    if (mgt%bottom_solver == 4 .and. .not. present(bottom_mgt)) then
-       call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_mgt if bottom_solver == 4")
-    end if
 
     stat = 0
     select case ( mgt%bottom_solver )
@@ -628,32 +673,6 @@ contains
        end if
        call copy(uu, mgt%uu1)
        call parallel_bcast(stat, 1)
-    case (4)
-
-       mglev = bottom_mgt%nlevels
-
-       call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
-       call setval(bottom_uu,0.d0,all=.true.)
-
-       if (nodal_q(rh)) then
-          call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
-          call setval(bottom_rh,ZERO,all=.true.)
-       else
-          call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
-       end if
-
-       call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
-
-       call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle_type, mglev, &
-                           bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
-                           bottom_mgt%mm(mglev), bottom_mgt%nu1, bottom_mgt%nu2, &
-                           bottom_mgt%gamma)
-
-       call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
-       call multifab_fill_boundary(uu)
-
-       call destroy(bottom_uu)
-       call destroy(bottom_rh)
 
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
@@ -1418,8 +1437,8 @@ contains
              print *,'  DN: Norm before bottom         ',nrm
        end if
 
-       if (present(bottom_mgt)) then
-          call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, bottom_mgt)
+       if (present(bottom_mgt) .and. mgt%bottom_solver == 4) then
+          call do_bottom_mgt(mgt, lev, ss, uu, rh, mm, bottom_mgt)
        else
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        end if
@@ -1465,6 +1484,7 @@ contains
           end if
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
+
        do i = gamma, 1, -1
           if (present(bottom_mgt)) then
              call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
@@ -1476,6 +1496,7 @@ contains
           end if
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
+
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &
