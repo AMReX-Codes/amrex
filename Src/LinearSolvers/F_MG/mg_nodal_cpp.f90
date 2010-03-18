@@ -317,7 +317,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   do i = nlev, 1, -1
 
      if (i < nlev) then
-       call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i))
+       call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i),1)
        call multifab_fill_boundary(mgts%coeffs(i))
      end if
 
@@ -702,7 +702,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
        mgts%one_sided_ss(2:), mgts%rr, &
-       do_diagnostics, tol)
+       do_diagnostics, tol, abs_tol)
 
 end subroutine mgt_nodal_solve
 
