@@ -35,6 +35,9 @@ typedef void (*mgt_get_dir)(const int* lev, const int* dir, const int* n,
 typedef void (*mgt_set)(const int* lev, const int* n, const double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
+typedef void (*mgt_setn)(const int* lev, const int* n, const double* uu, 
+		 	 const int* plo, const int* phi, 
+			 const int* lo, const int* hi, const int& nc);
 typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu, 
                            const double* b, 
                            const int* plo, const int* phi, 
@@ -46,62 +49,65 @@ typedef void (*mgt_set_cfn)(const int* lev, const int* n, const double* uu,
 typedef void (*mgt_set_c)(const int* lev, const int* n, 
 		          const int* lo, const int* hi, const Real* value);
 #if BL_SPACEDIM == 1
-mgt_get_ng mgt_get_uu   = mgt_get_uu_1d;
-mgt_set mgt_set_uu   = mgt_set_uu_1d;
-mgt_get mgt_get_pr   = mgt_get_pr_1d;
-mgt_get mgt_get_res  = mgt_get_res_1d;
-mgt_get_dir mgt_get_gp   = mgt_get_gp_1d;
-mgt_set mgt_set_pr   = mgt_set_pr_1d;
-mgt_set mgt_set_rh   = mgt_set_rh_1d;
-mgt_set mgt_set_cfa  = mgt_set_cfa_1d;
-mgt_set_cf  mgt_set_cfbx  = mgt_set_cfbx_1d;
-mgt_set_cfn mgt_set_cfbnx = mgt_set_cfnbx_1d;
-mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_1d_const;
-mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
-mgt_set mgt_set_cfs  = mgt_set_cfs_1d;
-mgt_get mgt_get_vel  = mgt_get_vel_1d;
-mgt_set mgt_set_vel  = mgt_set_vel_1d;
+mgt_get_ng  mgt_get_uu         = mgt_get_uu_1d;
+mgt_set     mgt_set_uu         = mgt_set_uu_1d;
+mgt_get     mgt_get_pr         = mgt_get_pr_1d;
+mgt_get     mgt_get_res        = mgt_get_res_1d;
+mgt_get_dir mgt_get_gp         = mgt_get_gp_1d;
+mgt_set     mgt_set_pr         = mgt_set_pr_1d;
+mgt_set     mgt_set_rh         = mgt_set_rh_1d;
+mgt_set     mgt_set_cfa        = mgt_set_cfa_1d;
+mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_1d;
+mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_1d;
+mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_1d;
+mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_1d_const;
+mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
+mgt_set mgt_set_cfs            = mgt_set_cfs_1d;
+mgt_get mgt_get_vel            = mgt_get_vel_1d;
+mgt_set mgt_set_vel            = mgt_set_vel_1d;
 #elif BL_SPACEDIM == 2
-mgt_get_ng mgt_get_uu   = mgt_get_uu_2d;
-mgt_set mgt_set_uu   = mgt_set_uu_2d;
-mgt_get mgt_get_pr   = mgt_get_pr_2d;
-mgt_get mgt_get_res  = mgt_get_res_2d;
-mgt_get_dir mgt_get_gp   = mgt_get_gp_2d;
-mgt_set mgt_set_pr   = mgt_set_pr_2d;
-mgt_set mgt_set_rh   = mgt_set_rh_2d;
-mgt_set mgt_set_cfa  = mgt_set_cfa_2d;
-mgt_set_cf mgt_set_cfbx  = mgt_set_cfbx_2d;
-mgt_set_cf mgt_set_cfby = mgt_set_cfby_2d;
-mgt_set_cfn mgt_set_cfbnx = mgt_set_cfbnx_2d;
-mgt_set_cfn mgt_set_cfbny = mgt_set_cfbny_2d;
-mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_2d_const;
-mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_2d_const;
-mgt_set_c mgt_set_cfby_const = mgt_set_cfby_2d_const;
-mgt_set mgt_set_cfs  = mgt_set_cfs_2d;
-mgt_get mgt_get_vel  = mgt_get_vel_2d;
-mgt_set mgt_set_vel  = mgt_set_vel_2d;
+mgt_get_ng  mgt_get_uu         = mgt_get_uu_2d;
+mgt_set     mgt_set_uu         = mgt_set_uu_2d;
+mgt_get     mgt_get_pr         = mgt_get_pr_2d;
+mgt_get     mgt_get_res        = mgt_get_res_2d;
+mgt_get_dir mgt_get_gp         = mgt_get_gp_2d;
+mgt_set     mgt_set_pr         = mgt_set_pr_2d;
+mgt_set     mgt_set_rh         = mgt_set_rh_2d;
+mgt_set     mgt_set_cfa        = mgt_set_cfa_2d;
+mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_2d;
+mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_2d_const;
+mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_2d;
+mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_2d;
+mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_2d_const;
+mgt_set_cf  mgt_set_cfby       = mgt_set_cfby_2d;
+mgt_set_cfn mgt_set_cfbny      = mgt_set_cfbny_2d;
+mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_2d_const;
+mgt_set mgt_set_cfs            = mgt_set_cfs_2d;
+mgt_get mgt_get_vel            = mgt_get_vel_2d;
+mgt_set mgt_set_vel            = mgt_set_vel_2d;
 #elif BL_SPACEDIM == 3
-mgt_get_ng mgt_get_uu   = mgt_get_uu_3d;
-mgt_set mgt_set_uu   = mgt_set_uu_3d;
-mgt_get mgt_get_pr   = mgt_get_pr_3d;
-mgt_get mgt_get_res  = mgt_get_res_3d;
-mgt_set mgt_set_pr   = mgt_set_pr_3d;
-mgt_get_dir mgt_get_gp   = mgt_get_gp_3d;
-mgt_set mgt_set_rh   = mgt_set_rh_3d;
-mgt_set mgt_set_cfa  = mgt_set_cfa_3d;
-mgt_set_cf mgt_set_cfbx  = mgt_set_cfbx_3d;
-mgt_set_cf mgt_set_cfby  = mgt_set_cfby_3d;
-mgt_set_cf mgt_set_cfbz  = mgt_set_cfbz_3d;
-mgt_set_cfn mgt_set_cfbnx = mgt_set_cfbnx_3d;
-mgt_set_cfn mgt_set_cfbny = mgt_set_cfbny_3d;
-mgt_set_cfn mgt_set_cfbnz = mgt_set_cfbnz_3d;
-mgt_set_c mgt_set_cfa_const  = mgt_set_cfa_3d_const;
-mgt_set_c mgt_set_cfbx_const = mgt_set_cfbx_3d_const;
-mgt_set_c mgt_set_cfby_const = mgt_set_cfby_3d_const;
-mgt_set_c mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
-mgt_set mgt_set_cfs  = mgt_set_cfs_3d;
-mgt_get mgt_get_vel  = mgt_get_vel_2d;
-mgt_set mgt_set_vel  = mgt_set_vel_3d;
+mgt_get_ng  mgt_get_uu         = mgt_get_uu_3d;
+mgt_set     mgt_set_uu         = mgt_set_uu_3d;
+mgt_get     mgt_get_pr         = mgt_get_pr_3d;
+mgt_get     mgt_get_res        = mgt_get_res_3d;
+mgt_get_dir mgt_get_gp         = mgt_get_gp_3d;
+mgt_set     mgt_set_pr         = mgt_set_pr_3d;
+mgt_set     mgt_set_rh         = mgt_set_rh_3d;
+mgt_set     mgt_set_cfa        = mgt_set_cfa_3d;
+mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_3d;
+mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_3d_const;
+mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_3d;
+mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_3d;
+mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_3d_const;
+mgt_set_cf  mgt_set_cfby       = mgt_set_cfby_3d;
+mgt_set_cfn mgt_set_cfbny      = mgt_set_cfbny_3d;
+mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_3d_const;
+mgt_set_cf  mgt_set_cfbz       = mgt_set_cfbz_3d;
+mgt_set_cfn mgt_set_cfbnz      = mgt_set_cfbnz_3d;
+mgt_set_c   mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
+mgt_set mgt_set_cfs            = mgt_set_cfs_3d;
+mgt_get mgt_get_vel            = mgt_get_vel_3d;
+mgt_set mgt_set_vel            = mgt_set_vel_3d;
 #endif
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -441,7 +447,8 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
 }
 
 void
-MGT_Solver::set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
+MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
+                                    const MultiFab* bb[][BL_SPACEDIM], 
                                     const Real& beta, const BndryData& bd)
 {
   int nc = (*bb[0][0]).nComp();
@@ -467,9 +474,10 @@ MGT_Solver::set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][B
     
         }
 
-      for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
+      for (MFIter amfi(*(a1[lev])); amfi.isValid(); ++amfi)
 	{
-	  const FArrayBox* a = &((*(aa[lev]))[amfi]);
+	  const FArrayBox* af1 = &((*(a1[lev]))[amfi]);
+	  const FArrayBox* af2 = &((*(a2[lev]))[amfi]);
 	  const FArrayBox* b[BL_SPACEDIM];
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
 	    {
@@ -479,9 +487,13 @@ MGT_Solver::set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][B
  	   const int* lo = amfi.validbox().loVect();
 	   const int* hi = amfi.validbox().hiVect();
 
-	   const int* alo = a->box().loVect();
-	   const int* ahi = a->box().hiVect();
-	   mgt_set_cfa (&lev, &n, a->dataPtr(), alo, ahi, lo, hi);
+	   const int* a1lo = af1->box().loVect();
+	   const int* a1hi = af1->box().hiVect();
+	   mgt_set_cfa (&lev, &n, af1->dataPtr(), a1lo, a1hi, lo, hi);
+
+	   const int* a2lo = af2->box().loVect();
+	   const int* a2hi = af2->box().hiVect();
+	   mgt_set_cfa2 (&lev, &n, af2->dataPtr(), a2lo, a2hi, lo, hi, a2[0]->nComp());
 
 	   const int* bxlo = b[0]->box().loVect();
 	   const int* bxhi = b[0]->box().hiVect();
@@ -499,7 +511,7 @@ MGT_Solver::set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][B
   	   mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
 #endif
 	}
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb, &nc);
     }
   mgt_finalize_stencil();
 }

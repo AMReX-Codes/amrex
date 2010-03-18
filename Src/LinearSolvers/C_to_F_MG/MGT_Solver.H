@@ -32,7 +32,8 @@ public:
   void set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                              const Real& b, const BndryData& bd);
 
-  void set_porous_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
+  void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
+                               const MultiFab* bb[][BL_SPACEDIM],
                                const Real& b, const BndryData& bd);
 
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
