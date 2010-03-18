@@ -9,7 +9,7 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps,bottom_mgt)
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps,abs_eps_in,bottom_mgt)
 
     use bl_prof_module
     use ml_util_module
@@ -26,9 +26,11 @@ contains
     integer        , intent(in   ) :: do_diagnostics 
     real(dp_t)     , intent(in   ) :: eps
 
+    real(dp_t)     , intent(in   ), optional :: abs_eps_in
     type(mg_tower) , intent(inout), optional :: bottom_mgt
 
-    integer :: nlevs
+    integer    :: nlevs
+
     type(multifab), allocatable  ::      soln(:)
     type(multifab), allocatable  ::        uu(:)
     type(multifab), allocatable  ::   uu_hold(:)
@@ -51,6 +53,7 @@ contains
     real(dp_t) :: Anorm, bnorm
     real(dp_t) :: fac
     real(dp_t) :: tres
+    real(dp_t) :: abs_eps
 
     logical, allocatable :: nodal(:)
 
@@ -63,6 +66,12 @@ contains
     nodal = .True.
 
     nlevs = mla%nlevel
+
+    if ( present(abs_eps_in) ) then
+       abs_eps = abs_eps_in
+    else
+       abs_eps = mgt(nlevs)%abs_eps
+    end if
 
     allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
     allocate(temp_res(nlevs))
@@ -145,7 +154,7 @@ contains
     do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps) ) exit
        end if
 
        ! Set: uu = 0
@@ -333,7 +342,7 @@ contains
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
 
-       if ( ml_fine_converged(res, soln, bnorm, Anorm, eps) ) then
+       if ( ml_fine_converged(res, soln, bnorm, Anorm, eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -505,29 +514,31 @@ contains
 
     end subroutine crse_fine_residual_nodal
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, eps) result(r)
+    function ml_fine_converged(res, sol, bnorm, Anorm, eps, abs_eps) result(r)
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
+      real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
       real(dp_t) :: ni_res, ni_sol
       integer    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= abs_eps .or. &
            ni_res <= epsilon(Anorm)*Anorm
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps) result(r)
       use ml_util_module
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, eps, bnorm
+      real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
       real(dp_t) :: ni_res, ni_sol
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
       r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+           ni_res <= abs_eps .or. &
            ni_res <= epsilon(Anorm)*Anorm
     end function ml_converged
 
