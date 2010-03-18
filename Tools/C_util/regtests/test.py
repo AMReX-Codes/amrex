@@ -75,8 +75,7 @@ def LoadParams(file):
     # check to see whether the file exists
     try: f = open(file, 'r')
     except IOError:
-        print 'ERROR: parameter file does not exist: ', file
-        sys.exit()
+        fail('ERROR: parameter file does not exist: ', file)
     else:
         f.close()
 
@@ -109,7 +108,7 @@ def getParam(key):
     """ return the value of the runtime parameter corresponding to key """
     
     if globalParams == {}:
-        print "WARNING: runtime parameters not yet initialized"
+        warning("WARNING: runtime parameters not yet initialized")
         LoadParams("_defaults")
         
     if key in globalParams.keys():
@@ -131,7 +130,7 @@ def keyIsValid(key):
 
     except ValueError:
         isValid = 0
-        print "   WARNING: %s not set" % (key)
+        warning("   WARNING: %s not set" % (key))
 
     return isValid
 
@@ -160,18 +159,43 @@ def PrintAllParams():
     
             
 
+
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# O U T P U T   R O U T I N E S
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# inspiration from 
+# http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python 
+# which in-turn cites the blender build scripts              
+class termColors:
+    WARNING = '\033[33m'
+    SUCCESS = '\033[32m'
+    FAIL = '\033[31m'
+    ENDC = '\033[0m'
+
+
+def fail(str):
+    new_str = termColors.FAIL + str + termColors.ENDC
+    print new_str
+    sys.exit()
+
+def testfail(str):
+    new_str = termColors.FAIL + str + termColors.ENDC
+    print new_str
+
+def warning(str):
+    new_str = termColors.WARNING + str + termColors.ENDC
+    print new_str
+
+def success(str):
+    new_str = termColors.SUCCESS + str + termColors.ENDC
+    print new_str
+
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   S U I T E   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-#==============================================================================
-# abortTests
-#==============================================================================
-def abortTests(message):
-    print message
-    sys.exit(2)
-
-    
 #==============================================================================
 # findBuildDirs
 #==============================================================================
@@ -216,7 +240,8 @@ def getValidTests(sourceTree):
                   keyIsValid("%s.probinFile" % (test)) ) and
                  keyIsValid("%s.needs_helmeos" % (test)) and
                  keyIsValid("%s.dim" % (test)) ) ):
-            print "ERROR: manditory runtime parameters for test %s not set\n" % (test)
+            warning("   WARNING: manditory runtime parameters for test %s not set" % (test))
+            warning("            skipping test")
             removeList.append(test)
             continue
 
@@ -233,7 +258,8 @@ def getValidTests(sourceTree):
 
               # make sure that the file number to restart from is defined
               if (not keyIsValid("%s.restartFileNum" % (test)) ):
-                 print "ERROR: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test)
+                 warning("WARNING: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test))
+                 warning("         skipping test\n")
                  removeList.append(test)
                  continue
       
@@ -246,7 +272,7 @@ def getValidTests(sourceTree):
 
         # useMPI
         if (not keyIsValid("%s.useMPI" % (test)) ):
-            print "   Assuming normal (not MPI) run.\n"
+            warning("   Assuming normal (not MPI) run.\n")
             globalParams["%s.useMPI" % (test)] = 0
         else:
 
@@ -254,14 +280,15 @@ def getValidTests(sourceTree):
 
               # make sure that the number of processors is defined
               if (not keyIsValid("%s.numprocs" % (test)) ):
-                 print "ERROR: test %s is a parallel test, but did not specify the numprocs parameter.\n" % (test)
+                 warning("WARNING: test %s is a parallel test, but did not specify the numprocs parameter.\n" % (test))
+                 warning("         skipping test\n")
                  removeList.append(test)
                  continue
       
 
         # doVis
         if (not keyIsValid("%s.doVis" % (test)) ):
-            print "   Assuming no visualization.\n"
+            warning("   Assuming no visualization.\n")
             globalParams["%s.doVis" % (test)] = 0
         else:
 
@@ -269,7 +296,8 @@ def getValidTests(sourceTree):
 
               # find out what variable to plot
               if (not keyIsValid("%s.visVar" % (test)) ):
-                 print "ERROR: test %s requested visualization but did not specify the visVar parameter.\n" % (test)
+                 warning("WARNING: test %s requested visualization but did not specify the visVar parameter.\n" % (test))
+                 warning("         skipping test\n")
                  removeList.append(test)
                  continue
       
@@ -324,7 +352,7 @@ def getLastPlotfile(outputDir, test):
            plotNum = max(int(file[index+len(key):]), plotNum)
 
     if (plotNum == -1):
-       print "WARNING: test did not produce any output"
+       warning("WARNING: test did not produce any output")
        compareFile = ""
     else:
        compareFile = "%s_plt%5.5d" % (test, plotNum)
@@ -364,7 +392,7 @@ def getTestCompDir(dirKey):
        directory name """
 
    if (not keyIsValid(dirKey)):
-       abortTests("ERROR: %s is not defined" % (dirKey))
+       fail("ERROR: %s is not defined" % (dirKey))
 
    else:
        dirName = getParam(dirKey)
@@ -374,7 +402,7 @@ def getTestCompDir(dirKey):
            dirName = dirName + "/"
            
        if (not os.path.isdir(dirName)):
-           abortTests("ERROR: %s is not a valid directory" % (dirName))
+           fail("ERROR: %s is not a valid directory" % (dirName))
 
        return dirName
 
@@ -399,7 +427,7 @@ def doCVSUpdate(topDir, root, outDir):
        cf = open("cvs.%s.out" % (root), 'r')
 
    except IOError:
-       abortTests("ERROR: no CVS output")
+       fail("ERROR: no CVS output")
 
    else:
        cvsLines = cf.readlines()
@@ -414,7 +442,7 @@ def doCVSUpdate(topDir, root, outDir):
        cf.close()
 
    if (cvsFailed):
-       abortTests("ERROR: cvs update was aborted. See cvs.%s.out for details" % (root) )
+       fail("ERROR: cvs update was aborted. See cvs.%s.out for details" % (root) )
         
    shutil.copy("cvs.%s.out" % (root),  outDir)
 
@@ -435,8 +463,8 @@ def makeChangeLog(topDir, root, outDir):
     
    if (not os.path.isfile("%s/cvs2cl.pl" % (root) )):
        if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
-           print "WARNING: unable to locate cvs2cl.pl script."
-           print "         no ChangeLog will be generated"
+           warning("WARNING: unable to locate cvs2cl.pl script.")
+           warning("         no ChangeLog will be generated")
        else:
            shutil.copy("fParallel/scripts/cvs2cl.pl", "%s/" % (root) )
            have_cvs2cl = 1
@@ -717,14 +745,14 @@ def test(argv):
     # these have different Makefile styles, so we'll need to do things
     # slightly differently for each.
     if (not keyIsValid("main.sourceTree")):
-        print "WARNING: sourceTree not set, assuming Parallel"
+        warning("WARNING: sourceTree not set, assuming Parallel")
         sourceTree = "Parallel"
 
     else:
         sourceTree = getParam("main.sourceTree")
 
         if (not (sourceTree == "Parallel" or sourceTree == "fParallel")):
-           abortTests("ERROR: invalid sourceTree")
+           fail("ERROR: invalid sourceTree")
            
 
     # get the name of the benchmarks directory
@@ -733,7 +761,7 @@ def test(argv):
         if (make_benchmarks):
             os.mkdir(benchDir)
         else:
-            abortTests("ERROR: benchmark directory, %s, does not exist" % (benchDir))
+            fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
 
     
     #--------------------------------------------------------------------------
@@ -759,7 +787,7 @@ def test(argv):
     #--------------------------------------------------------------------------
     if (not keyIsValid("main.FCOMP")):
 
-       print "WARNING: FCOMP not set; assuming Intel"
+       warning("   WARNING: FCOMP not set; assuming Intel")
        FCOMP = "Intel"
 
     else:
@@ -771,7 +799,7 @@ def test(argv):
     #--------------------------------------------------------------------------
     if (not keyIsValid("main.COMP")):
 
-       print "WARNING: COMP not set; assuming Intel"
+       warning("   WARNING: COMP not set; assuming Intel")
        COMP = "Intel"
 
     else:
@@ -788,7 +816,7 @@ def test(argv):
             print "running only test: %s " % (single_test)
             tests = [single_test]
         else:
-            abortTests("ERROR: %s is not a valid test" % (single_test))
+            fail("ERROR: %s is not a valid test" % (single_test))
         
     print tests
     
@@ -924,15 +952,15 @@ def test(argv):
         print "working on " + test + " test"
 
         if (getParam(test + ".restartTest") and make_benchmarks):
-            print "  WARNING: test %s is a restart test -- " % (test)
-            print "           no benchmarks are stored." 
-            print "           skipping\n"
+            warning("  WARNING: test %s is a restart test -- " % (test))
+            warning("           no benchmarks are stored.")
+            warning("           skipping\n")
             continue
      
         if (getParam(test + ".compileTest") and make_benchmarks):
-            print "  WARNING: test %s is a compile test -- " % (test)
-            print "           no benchmarks are stored."
-            print "           skipping\n"
+            warning("  WARNING: test %s is a compile test -- " % (test))
+            warning("           no benchmarks are stored.")
+            warning("           skipping\n")
             continue            
 
 
@@ -983,6 +1011,8 @@ def test(argv):
 
             print "  creating problem test report ..."
             reportSingleTest(sourceTree, test, testDir, fullWebDir)
+
+            print "\n"
 
             # skip to the next test in the loop
             continue
@@ -1146,7 +1176,7 @@ def test(argv):
             # note, with BoxLib, the plotfiles are actually directories
             
             if (not os.path.isdir(benchFile)):
-                print "WARNING: no corresponding benchmark found"
+                warning("WARNING: no corresponding benchmark found")
                 benchFile = ""
 
                 cf = open("%s.compare.out" % (test), 'w')
@@ -1169,7 +1199,7 @@ def test(argv):
                     os.system(command)
 
                 else:
-                    print "WARNING: unable to do a comparison"
+                    warning("WARNING: unable to do a comparison")
 
                     cf = open("%s.compare.out" % (test), 'w')
                     cf.write("WARNING: run did not produce any output\n")
@@ -1368,7 +1398,7 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
         cf = open(compileFile, 'r')
 
     except IOError:
-        print "WARNING: no compilation file found"
+        warning("WARNING: no compilation file found")
         compileSuccessful = 0
 
     else:
@@ -1399,7 +1429,7 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
             cf = open(compareFile, 'r')
 
         except IOError:
-            print "WARNING: no comparison file found"
+            warning("WARNING: no comparison file found")
             compareSuccessful = 0
             diffLines = ['']
 
@@ -1428,10 +1458,10 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
         (compileTest or
          (not compileTest and compareSuccessful))):
         sf.write("PASSED\n")
-        print "    %s PASSED" % (testName)
+        success("    %s PASSED" % (testName))
     else:
         sf.write("FAILED\n")
-        print "    %s FAILED" % (testName)
+        testfail("    %s FAILED" % (testName))
 
     sf.close()
 
