@@ -293,14 +293,16 @@ subroutine mgt_init_mc_coeffs_lev(lev,nc)
 
   ! If nc = 1 then the first coefficient is alpha, the next coefficient
   !   is betax, the next is betay, etc.
-  ! If nc > 1 then the first coefficient is alpha, the next nc coefficients
-  !   are betax with components 1:nc, the next nc coefficients
-  !   are betay with components 1:nc, etc.
+  ! If nc > 1 then the first coefficient is alpha, 
+  !   the next nc coefficients are cell-centered beta0 with components 1:nc
+  !   the next nc coefficients are edge-centered betax with components 1:nc,
+  !   the next nc coefficients are edge-centered betay with components 1:nc,
+  !    etc
 
-  call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1+nc*dm, 1)
+  call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1+nc*(dm+1), 1)
   call setval(mgts%coeffs(nlev), 0.0_dp_t, all=.true.)
   do i = nlev - 1, 1, -1
-     call build(mgts%coeffs(i), mgts%mgt(flev)%ss(i)%la, 1+nc*dm, 1)
+     call build(mgts%coeffs(i), mgts%mgt(flev)%ss(i)%la, 1+nc*(dm+1), 1)
      call setval(mgts%coeffs(i), 0.0_dp_t, all=.true.)
   end do
 
@@ -321,7 +323,7 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb)
   
   nlev = mgts%mgt(flev)%nlevels
   do i = nlev-1, 1, -1
-     call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i))
+     call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i), 1)
   end do
   do i = nlev, 1, -1
      pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
@@ -346,6 +348,49 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb)
   deallocate(mgts%coeffs)
 
 end subroutine mgt_finalize_stencil_lev
+
+subroutine mgt_finalize_porous_stencil_lev(lev, xa, xb, pxa, pxb, nc)
+  use cpp_mg_module
+  use coeffs_module
+  implicit none
+  integer   , intent(in) :: lev, nc
+  real(dp_t), intent(in) :: xa(*), xb(*), pxa(*), pxb(*)
+
+  integer        :: nlev, i, dm
+  integer        :: flev
+  type(boxarray) :: pdv
+
+  dm = mgts%dim
+  flev = lev + 1
+  call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
+  
+  nlev = mgts%mgt(flev)%nlevels
+  do i = nlev-1, 1, -1
+     call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i), nc)
+  end do
+  do i = nlev, 1, -1
+     pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
+     call stencil_fill_cc(mgts%mgt(flev)%ss(i), mgts%coeffs(i), mgts%mgt(flev)%dh(:,i), &
+          pdv, mgts%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), &
+          mgts%mgt(flev)%pd(i), &
+          mgts%stencil_order, mgts%bc)
+
+     if (i .eq. 1 .and. mgts%bottom_solver .eq. 3) then
+        call copy(mgts%mgt(i)%ss1, mgts%mgt(i)%ss(1))
+        call copy(mgts%mgt(i)%mm1, mgts%mgt(i)%mm(1))
+        if ( parallel_IOProcessor() ) then
+           call sparse_build(mgts%mgt(i)%sparse_object, mgts%mgt(i)%ss1, &
+                mgts%mgt(i)%mm1, mgts%mgt(i)%ss1%la, mgts%stencil_order, mgts%mgt(i)%verbose)
+        end if
+     end if
+
+     call destroy(mgts%coeffs(i))
+
+  end do
+
+  deallocate(mgts%coeffs)
+
+end subroutine mgt_finalize_porous_stencil_lev
 
 subroutine mgt_finalize_stencil()
    use cpp_mg_module
@@ -406,7 +451,7 @@ subroutine mgt_set_cfa_1d(lev, n, cf, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), *)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1),1)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev
 
@@ -419,6 +464,24 @@ subroutine mgt_set_cfa_1d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1), 1)
 
 end subroutine mgt_set_cfa_1d
+
+subroutine mgt_set_cfa2_1d(lev, n, cf, plo, phi, lo, hi, nc)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2), nc
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1),nc)
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev
+
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts%coeffs)
+  call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
+
+  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp(lo(1):hi(1), 1, 1, 2:nc+1) = cf(lo(1):hi(1), 1:nc)
+
+end subroutine mgt_set_cfa2_1d
 
 subroutine mgt_set_cfa_1d_const(lev, n, lo, hi, coeff_value)
   use cpp_mg_module
@@ -471,7 +534,7 @@ subroutine mgt_set_cfbnx_1d(lev, n, cf, b, plo, phi, lo, hi, nc)
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1)+1, 1, 1, 2:nc+1) = b * cf(lo(1):hi(1)+1,1:nc)
+  cp(lo(1):hi(1)+1, 1, 1,nc+2:2*nc+1) = b * cf(lo(1):hi(1)+1,1:nc)
 
 end subroutine mgt_set_cfbnx_1d
 
@@ -497,7 +560,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), *)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2),1)
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev
 
@@ -510,6 +573,24 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
 
 end subroutine mgt_set_cfa_2d
+
+subroutine mgt_set_cfa2_2d(lev, n, cf, plo, phi, lo, hi, nc)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2), nc
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2),1:nc)
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev
+
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts%coeffs)
+  call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
+
+  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), 1, 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), 1:nc)
+
+end subroutine mgt_set_cfa2_2d
 
 subroutine mgt_set_cfa_2d_const(lev, n, lo, hi, coeff_value)
   use cpp_mg_module
@@ -537,7 +618,6 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev
-  integer :: i,j
 
   fn = n + 1
   flev = lev+1 
@@ -557,7 +637,6 @@ subroutine mgt_set_cfbnx_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
   real(kind=dp_t), intent(in) :: b
   real(kind=dp_t), pointer :: cp(:,:,:,:)
   integer :: flev, fn, nlev
-  integer :: i,j
   fn = n + 1
   flev = lev+1 
   nlev = size(mgts%coeffs)
@@ -565,12 +644,7 @@ subroutine mgt_set_cfbnx_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   ! betax(i,j,1:nc) goes into coeffs(i,j,2:nc+1)
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 2:nc+1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2),1:nc)
-  do j = lo(2),hi(2)
-  do i = lo(1),hi(1)+1
-     print *,'CF ',cf(i,j,1)+cf(i,j,2)
-  end do
-  end do
+  cp(lo(1):hi(1)+1, lo(2):hi(2), 1, nc+2:2*nc+1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2),1:nc)
 
 end subroutine mgt_set_cfbnx_2d
 
@@ -626,10 +700,9 @@ subroutine mgt_set_cfbny_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   ! betay(i,j,1:nc) goes into coeffs(i,j,nc+2:2*nc+1)
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2)+1, 1, nc+2:2*nc+1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, 1:nc)
+  cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 2*nc+2:3*nc+1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, 1:nc)
 
 end subroutine mgt_set_cfbny_2d
-
 
 subroutine mgt_set_cfby_2d_const(lev, n, lo, hi, coeff_value)
   use cpp_mg_module
@@ -664,6 +737,23 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_cfa_3d
+
+subroutine mgt_set_cfa2_3d(lev, n, cf, plo, phi, lo, hi, nc)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3), nc
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3), nc)
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn, nlev
+  fn = n + 1
+  flev = lev+1
+  nlev = size(mgts%coeffs)
+  call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
+
+  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:nc)
+
+end subroutine mgt_set_cfa2_3d
 
 subroutine mgt_set_cfa_3d_const(lev, n, lo, hi, coeff_value)
   use cpp_mg_module
@@ -715,7 +805,7 @@ subroutine mgt_set_cfbnx_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   ! betax(i,j,k,1:nc) goes into coeffs(i,j,k,2:nc+1)
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 2:nc+1) = &
+  cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), nc+2:2*nc+1) = &
      b * cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1:nc)
 
 end subroutine mgt_set_cfbnx_3d
@@ -753,7 +843,7 @@ subroutine mgt_set_cfbny_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   ! betay(i,j,k,1:nc) goes into coeffs(i,j,k,nc+2:2*nc+1)
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), nc+2:2*nc+1) = &
+  cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 2*nc+2:3*nc+1) = &
       b * cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1:nc)
 
 end subroutine mgt_set_cfbny_3d
@@ -791,7 +881,7 @@ subroutine mgt_set_cfbnz_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   ! betaz(i,j,k,1:nc) goes into coeffs(i,j,k,2*nc+2:3*nc+1)
   cp => dataptr(mgts%coeffs(nlev), fn)
-  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 2*nc+2:3*nc+1) = &
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 3*nc+2:4*nc+1) = &
       b * cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1:nc)
 
 end subroutine mgt_set_cfbnz_3d
