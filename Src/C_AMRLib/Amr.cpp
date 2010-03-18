@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.198 2010-03-16 23:44:51 almgren Exp $
+// $Id: Amr.cpp,v 1.199 2010-03-18 21:48:00 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1304,6 +1304,8 @@ Amr::restart (const std::string& filename)
           BoxLib::Warning("Amr::restart(): max_level is lower than before");
 
        int new_finest_level = std::min(max_level,finest_level);
+
+       finest_level = new_finest_level;
  
        // These are just used to hold the extra stuff we have to read in.
        Geometry   geom_dummy;
@@ -1359,7 +1361,6 @@ Amr::restart (const std::string& filename)
        for (lev = 0; lev <= new_finest_level; lev++)
            amr_level[lev].post_restart();
 
-       finest_level = new_finest_level;
     }
    
 #ifdef USE_STATIONDATA
