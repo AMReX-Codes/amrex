@@ -1416,7 +1416,7 @@ contains
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
-              print *,'  DN: Norm after  smooth         ',nrm
+              print *,'  DN: Norm after  smooth          ',nrm
        end if
 
     else if ( lev == lbl ) then
