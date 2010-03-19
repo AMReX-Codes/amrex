@@ -107,9 +107,9 @@ ifeq ($(COMP),gfortran)
   FFLAGS   += -J$(mdir) -I $(mdir)
   CFLAGS += -Wall
   ifdef NDEBUG
-    F90FLAGS += -O -fno-range-check
-    FFLAGS += -O -fno-range-check
-    CFLAGS += -O
+    F90FLAGS += -O -fno-range-check 
+    FFLAGS += -O -fno-range-check 
+    CFLAGS += -O 
   else
     F90FLAGS += -g -fno-range-check -O
     F90FLAGS += -fbounds-check 
@@ -317,7 +317,7 @@ ifeq ($(ARCH),Linux)
     CFLAGS   =
     FFLAGS   += -module $(mdir)
     F90FLAGS += -module $(mdir)
-    F90FLAGS += -mp1
+    F90FLAGS += -mp1 -fltconsistency
     FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
     ifdef OMP
@@ -335,9 +335,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1 
-          FFLAGS += -O3 -ip -mp1
-          CFLAGS += -O3 -ip -mp1
+          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
+          FFLAGS += -O3 -ip -mp1 -fltconsistency
+          CFLAGS += -O3 -ip -mp1 -fltconsistency
 	endif
       endif
       ifdef GPROF
@@ -351,9 +351,9 @@ ifeq ($(ARCH),Linux)
         F90FLAGS += -g -traceback -O0
         FFLAGS   += -g -traceback -O0
         F90FLAGS += -check all -warn all -u 
-	# F90FLAGS += -ftrapuv
+	#F90FLAGS += -ftrapuv
         FFLAGS   += -check all -warn all -u 
-	# FFLAGS += -ftrapuv
+	#FFLAGS += -ftrapuv
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
@@ -361,9 +361,9 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1 
-          FFLAGS += -O3 -ip -mp1
-          CFLAGS += -O3 -ip -mp1
+          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
+          FFLAGS += -O3 -ip -mp1 -fltconsistency
+          CFLAGS += -O3 -ip -mp1 -fltconsistency
 	endif
       endif
       ifdef GPROF
@@ -385,7 +385,7 @@ ifeq ($(ARCH),Linux)
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1
+          F90FLAGS += -O3 -ip -mp1 
           FFLAGS += -O3 -ip -mp1
           CFLAGS += -O3 -ip -mp1
 #  ifndef GPROF
@@ -579,7 +579,7 @@ ifeq ($(ARCH),IRIX64)
   FFLAGS += -64
   CFLAGS += -64
   ifdef OMP
-    F90FLAGS += -mp1
+    F90FLAGS += -mp1 
     FFLAGS += -mp1
   endif
 endif
