@@ -37,8 +37,11 @@ ifeq ($(COMP),PGI)
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O --no_exceptions
   else
-    #CXXOPTF += -fast --no_exceptions
-    CXXOPTF += -O --no_exceptions
+    ifeq ($(findstring jaguar, $(HOST)), jaguar)
+      CXXOPTF += -O
+    else
+      CXXOPTF += -O --no_exceptions
+    endif
   endif
 
   ifneq ($(USE_MPI),TRUE)
