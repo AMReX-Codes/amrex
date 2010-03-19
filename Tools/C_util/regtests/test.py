@@ -10,7 +10,7 @@ are separated as such in this file.
 This test framework understands source based out of the Parallel/ and
 fParallel/ frameworks.
 
-2007-11-14
+2010-03-19
 """
 
 import os
@@ -102,7 +102,7 @@ def LoadParams(file):
 
 
 #==============================================================================
-# getParam
+# getParam and resetParam
 #==============================================================================
 def getParam(key):
     """ return the value of the runtime parameter corresponding to key """
@@ -113,6 +113,19 @@ def getParam(key):
         
     if key in globalParams.keys():
         return globalParams[key]
+    else:
+        raise ValueError()
+
+
+def resetParam(key, value):
+    """ reset the value of the runtime parameter corresponding to key """
+    
+    if globalParams == {}:
+        warning("WARNING: runtime parameters not yet initialized")
+        LoadParams("_defaults")
+        
+    if key in globalParams.keys():
+        globalParams[key] = value
     else:
         raise ValueError()
         
@@ -1230,24 +1243,29 @@ def test(argv):
 
         if (doVis and not make_benchmarks):
 
-           visVar = getParam(test + ".visVar")
+            if (not compareFile == ""):
+                visVar = getParam(test + ".visVar")
 
-           if (dim == 2):
-              os.system('%s/%s --palette %s/Palette -cname "%s" -p "%s"' %
-                        (compareToolDir, vis2dExecutable, compareToolDir, 
-			 visVar, compareFile) )
-           elif (dim == 3):
-              os.system('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s"' %
-                        (compareToolDir, vis3dExecutable, compareToolDir, 
-			 visVar, compareFile) )
-           else:
-              print "Visualization not supported for dim = %d" % (dim)
+                if (dim == 2):
+                    os.system('%s/%s --palette %s/Palette -cname "%s" -p "%s"' %
+                              (compareToolDir, vis2dExecutable, compareToolDir, 
+                               visVar, compareFile) )
+                elif (dim == 3):
+                    os.system('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s"' %
+                              (compareToolDir, vis3dExecutable, compareToolDir, 
+                               visVar, compareFile) )
+                else:
+                    print "Visualization not supported for dim = %d" % (dim)
+                    
 
+                # convert the .ppm files into .png files
+                ppmFile = getRecentFileName(outputDir, "", ".ppm")
 
-           # convert the .ppm files into .png files
-           ppmFile = getRecentFileName(outputDir, "", ".ppm")
-
-           os.system("convert %s `basename %s .ppm`.png" % (ppmFile, ppmFile) )
+                os.system("convert %s `basename %s .ppm`.png" % 
+                          (ppmFile, ppmFile) )
+        
+            else:
+                warning("WARNING: no output file.  Skipping visualization")
         
                        
         #----------------------------------------------------------------------
@@ -1275,7 +1293,11 @@ def test(argv):
 
             if (doVis):
                pngFile = getRecentFileName(outputDir, "", ".png")
-               shutil.copy(pngFile, fullWebDir)
+               try: shutil.copy(pngFile, fullWebDir)
+               except IOError:
+                   # visualization was not successful.  Reset doVis
+                   resetParam(test + ".doVis", 0)
+
                
         else:
             shutil.copy("%s.status" % (test), fullWebDir)
