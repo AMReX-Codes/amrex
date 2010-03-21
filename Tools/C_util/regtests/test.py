@@ -263,24 +263,40 @@ def getValidTests(sourceTree):
 
         # restartTest
         if (not keyIsValid("%s.restartTest" % (test)) ):
-            print "   Assuming normal (not restart) run.\n" 
+            warning("   Assuming test is not restart run.\n")
             globalParams["%s.restartTest" % (test)] = 0
         else:
 
-           if (getParam("%s.restartTest" % (test)) ):
+            if (getParam("%s.restartTest" % (test)) ):
 
-              # make sure that the file number to restart from is defined
-              if (not keyIsValid("%s.restartFileNum" % (test)) ):
-                 warning("WARNING: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test))
-                 warning("         skipping test\n")
-                 removeList.append(test)
-                 continue
+                # make sure that the file number to restart from is defined
+                if (not keyIsValid("%s.restartFileNum" % (test)) ):
+                    warning("WARNING: test %s is a restart test, but is missing the restartFileNum parameter.\n" % (test))
+                    warning("         skipping test\n")
+                    removeList.append(test)
+                    continue
       
 
         # compileTest
         if (not keyIsValid("%s.compileTest" % (test)) ):
-            print "   Assuming normal (not compilation test) run.\n" 
+            warning("   Assuming test is not compilation test run.\n")
             globalParams["%s.compileTest" % (test)] = 0
+
+
+        # selfTest
+        if (not keyIsValid("%s.selfTest" % (test)) ):
+            warning("   Assuming test is not a self-test.\n")
+            globalParams["%s.selfTest" % (test)] = 0
+        else:
+
+            if (getParam("%s.selfTest" % (test)) ):
+                
+                # make sure that the success string is defined
+                if (not keyIsValid("%s.stSuccessString" % (test)) ):
+                    warning("WARNING: test %s is a self-test, but is missing stSuccessString parameter.\n" % (test))
+                    warning("         skipping test\n")
+                    removeList.append(test)
+                    continue
 
 
         # useMPI
@@ -547,7 +563,11 @@ def test(argv):
             dim = < dimensionality: 1, 2, or 3 >
             useMPI = <is this a parallel job? 0 for no, 1 for yes) >
             numprocs = < # of processors to run on (if parallel job) >
-            compileTest = < 0 for normal run, 1 if we just test compilation >            
+            compileTest = < 0 for normal run, 1 if we just test compilation >
+            selfTest = < 0 for normal run, 1 if test self-diagnoses if it 
+                         succeeded >
+            stSuccessString = < string to search for in self-test output to 
+                         determine success >
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -623,6 +643,11 @@ def test(argv):
 
             compileTest is set to 0 for a normal test.  Setting to 1 will
             just test compilation, and not any subsequent output.
+
+            selfTest is set to 0 for a normal test, in which case the
+            test output will be compared to the stored benchmark.  Setting 
+            to 1 will determine success by searching for the string
+            stSuccessString in the execution output.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -1019,7 +1044,7 @@ def test(argv):
 
         if (compileTest):
             
-            # compilation tests are done now -- just make the report and 
+            # compilation tests are done now -- just make the report and ...
             shutil.copy("%s/%s.make.out"    % (outputDir, test), fullWebDir)
 
             print "  creating problem test report ..."
@@ -1027,7 +1052,7 @@ def test(argv):
 
             print "\n"
 
-            # skip to the next test in the loop
+            # ... skip to the next test in the loop
             continue
             
             
@@ -1172,68 +1197,109 @@ def test(argv):
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
-        compareFile = getLastPlotfile(outputDir, test)
-        dim = getParam(test + ".dim")
+        if (not getParam(test + ".selfTest")):
 
-        if (not make_benchmarks):
+            compareFile = getLastPlotfile(outputDir, test)
+            dim = getParam(test + ".dim")
 
-            print "  doing the comparison..."
-            print "    comparison file: ", compareFile
+            if (not make_benchmarks):
 
-            if (not restart):
-               benchFile = benchDir + compareFile
-            else:
-               benchFile = origLastFile
+                print "  doing the comparison..."
+                print "    comparison file: ", compareFile
 
-            # see if it exists
-            # note, with BoxLib, the plotfiles are actually directories
-            
-            if (not os.path.isdir(benchFile)):
-                warning("WARNING: no corresponding benchmark found")
-                benchFile = ""
-
-                cf = open("%s.compare.out" % (test), 'w')
-                cf.write("WARNING: no corresponding benchmark found\n")
-                cf.write("         unable to do a comparison\n")
-                cf.close()
-                    
-            else:
-                if (not compareFile == ""):
-
-                    print "    benchmark file: ", benchFile
-                   
-                    command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test)
-
-                    cf = open("%s.compare.out" % (test), 'w')
-                    cf.write(command)
-                    cf.write("\n")
-                    cf.close()
-                    
-                    os.system(command)
-
+                if (not restart):
+                    benchFile = benchDir + compareFile
                 else:
-                    warning("WARNING: unable to do a comparison")
+                    benchFile = origLastFile
+
+                # see if it exists
+                # note, with BoxLib, the plotfiles are actually directories
+            
+                if (not os.path.isdir(benchFile)):
+                    warning("WARNING: no corresponding benchmark found")
+                    benchFile = ""
 
                     cf = open("%s.compare.out" % (test), 'w')
-                    cf.write("WARNING: run did not produce any output\n")
+                    cf.write("WARNING: no corresponding benchmark found\n")
                     cf.write("         unable to do a comparison\n")
                     cf.close()
+                    
+                else:
+                    if (not compareFile == ""):
 
-        else:
+                        print "    benchmark file: ", benchFile
+                   
+                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test)
 
-            print "  storing output of %s as the new benchmark..." % (test)
-            print "     new benchmark file: ", compareFile
+                        cf = open("%s.compare.out" % (test), 'w')
+                        cf.write(command)
+                        cf.write("\n")
+                        cf.close()
+                    
+                        os.system(command)
 
-            if (not compareFile == ""):
-                os.system("cp -rf %s %s" % (compareFile, benchDir))
+                    else:
+                        warning("WARNING: unable to do a comparison")
 
-                cf = open("%s.status" % (test), 'w')
-                cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+                        cf = open("%s.compare.out" % (test), 'w')
+                        cf.write("WARNING: run did not produce any output\n")
+                        cf.write("         unable to do a comparison\n")
+                        cf.close()
+
+            else:   # make_benchmarks
+
+                print "  storing output of %s as the new benchmark..." % (test)
+                print "     new benchmark file: ", compareFile
+
+                if (not compareFile == ""):
+                    os.system("cp -rf %s %s" % (compareFile, benchDir))
+
+                    cf = open("%s.status" % (test), 'w')
+                    cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+                    cf.close()
+                else:
+                    cf = open("%s.status" % (test), 'w')
+                    cf.write("benchmarks failed")
+                    cf.close()
+
+        else:   # selfTest
+
+            if (not make_benchmarks):
+
+                stSuccessString = getParam("%s.stSuccessString" % (test))
+
+                print "  looking for selfTest success string: %s ..." % (stSuccessString)
+
+                try:
+                    of = open("%s.run.out" % (test), 'r')
+
+                except IOError:
+                    warning("WARNING: no output file found")
+                    compareSuccessful = 0
+                    outLines = ['']
+
+                else:
+                    outLines = of.readlines()
+
+                    # successful comparison is indicated by PLOTFILES AGREE
+                    compareSuccessful = 0
+    
+                    for line in outLines:
+                        if (string.find(line, stSuccessString) >= 0):
+                            compareSuccessful = 1
+                            break
+    
+                    of.close()
+
+                cf = open("%s.compare.out" % (test), 'w')
+
+                if (compareSuccessful):
+                    cf.write("SELF TEST SUCCESSFUL\n")
+                else:
+                    cf.write("SELF TEST FAILED\n")
+
                 cf.close()
-            else:
-                cf = open("%s.status" % (test), 'w')
-                cf.write("benchmarks failed")
-                cf.close()
+
 
                 
         #----------------------------------------------------------------------
@@ -1458,11 +1524,12 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
         else:
             diffLines = cf.readlines()
 
-        # successful comparison is indicated by PLOTFILES AGREE
+            # successful comparison is indicated by PLOTFILES AGREE
             compareSuccessful = 0
     
             for line in diffLines:
-                if (string.find(line, "PLOTFILES AGREE") >= 0):
+                if (string.find(line, "PLOTFILES AGREE") >= 0 or
+                    string.find(line, "SELF TEST SUCCESSFUL") >= 0):
                     compareSuccessful = 1
                     break
     
