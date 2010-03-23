@@ -300,7 +300,6 @@ BoxList::complementIn (const Box&     b,
 
             if (!isects.empty())
             {
-                BL_ASSERT(tmpbl.isEmpty());
                 BoxList tm(b.ixType());
                 for (int i = 0, N = isects.size(); i < N; i++)
                     tmpbl.push_back(isects[i].second);
