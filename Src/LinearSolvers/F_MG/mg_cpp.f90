@@ -1019,6 +1019,7 @@ subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi, ng)
   call mgt_verify_n("MGT_GET_UU_2D", flev, fn, lo, hi)
 
   up => dataptr(mgts%uu(flev), fn)
+
   uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng) = up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,1,1)
 
 end subroutine mgt_get_uu_2d
