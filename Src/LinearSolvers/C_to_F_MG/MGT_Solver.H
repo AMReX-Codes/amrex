@@ -44,6 +44,8 @@ public:
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
+  void applybc(MultiFab* uu[], const BndryData& bd);
+
   void compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd);
 
   void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
