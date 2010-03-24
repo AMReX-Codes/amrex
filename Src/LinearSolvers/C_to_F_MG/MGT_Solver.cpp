@@ -657,6 +657,38 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
 }
 
 void 
+MGT_Solver::applybc(MultiFab* uu[], const BndryData& bd)
+{
+  // Copy the boundary register values into the solution array to be copied into F90
+  int lev = 0;
+  for (OrientationIter oitr; oitr; ++oitr)
+  {
+      const FabSet& fs = bd.bndryValues(oitr());
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+      {
+        FArrayBox& dest = (*(uu[lev]))[umfi];
+        dest.copy(fs[umfi],fs[umfi].box());
+      }
+  }
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+  {
+    int ng = 1;
+    for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+    {
+      FArrayBox& sol = (*(uu[lev]))[umfi];
+      Real* sd = sol.dataPtr();
+      int n = umfi.index();
+      const int* lo = umfi.validbox().loVect();
+      const int* hi = umfi.validbox().hiVect();
+      const int* plo = sol.box().loVect();
+      const int* phi = sol.box().hiVect();
+      mgt_set_uu(&lev, &n, sd, plo, phi, lo, hi);
+    }
+  }
+}
+
+void 
 MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
