@@ -2402,10 +2402,10 @@ contains
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           do n = nc+1, 2*nc
-             ss(i,j,1) = ss(i,j,1) - beta(i+1,j,n)*f1(1) * beta(i,j,n-nc)
-             ss(i,j,2) = ss(i,j,2) - beta(i  ,j,n)*f1(1) * beta(i,j,n-nc)
-             ss(i,j,3) = ss(i,j,3) - beta(i,j+1,nc+n)*f1(2) * beta(i,j,n-nc)
-             ss(i,j,4) = ss(i,j,4) - beta(i,j  ,nc+n)*f1(2) * beta(i,j,n-nc)
+             ss(i,j,1) = ss(i,j,1) - beta(i+1,j,n)*f1(1) / beta(i,j,n-nc)
+             ss(i,j,2) = ss(i,j,2) - beta(i  ,j,n)*f1(1) / beta(i,j,n-nc)
+             ss(i,j,3) = ss(i,j,3) - beta(i,j+1,nc+n)*f1(2) / beta(i,j,n-nc)
+             ss(i,j,4) = ss(i,j,4) - beta(i,j  ,nc+n)*f1(2) / beta(i,j,n-nc)
           end do 
        end do
     end do
@@ -2415,7 +2415,7 @@ contains
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
           do n = nc+1, 2*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) * beta(i,j,n-nc)
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
           end do
        end do
     end do
@@ -2427,14 +2427,14 @@ contains
        i = lo(1)
        if (bclo .eq. BC_INT) then
           do n = nc+1, 2*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) * beta(i,j,n-nc)
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
           end do
        else
           blo = 0.d0
           bhi = 0.d0
           do n = nc+1,2*nc
-            blo = blo + beta(i  ,j,n) * beta(i,j,n-nc)
-            bhi = bhi + beta(i+1,j,n) * beta(i,j,n-nc)
+            blo = blo + beta(i  ,j,n) / beta(i,j,n-nc)
+            bhi = bhi + beta(i+1,j,n) / beta(i,j,n-nc)
           end do
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
@@ -2445,14 +2445,14 @@ contains
           i = hi(1)
           if (bchi .eq. BC_INT) then
              do n = nc+1, 2*nc
-                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) * beta(i,j,n-nc)
+                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
              end do
           else
              blo = 0.d0
              bhi = 0.d0
              do n = nc+1,2*nc
-                blo = blo + beta(i  ,j,n) * beta(i,j,n-nc)
-                bhi = bhi + beta(i+1,j,n) * beta(i,j,n-nc)
+                blo = blo + beta(i  ,j,n) / beta(i,j,n-nc)
+                bhi = bhi + beta(i+1,j,n) / beta(i,j,n-nc)
              end do
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
@@ -2466,7 +2466,7 @@ contains
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
           do n = 2*nc+1,3*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) * beta(i,j,n-2*nc)
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
           end do
        end do
     end do
@@ -2478,14 +2478,14 @@ contains
        j = lo(2)
        if (bclo .eq. BC_INT) then
           do n = 2*nc+1,3*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) * beta(i,j,n-2*nc)
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
           end do
        else
           blo = 0.d0
           bhi = 0.d0
           do n = 2*nc+1,3*nc
-             blo = blo + beta(i  ,j,n) * beta(i,j,n-2*nc)
-             bhi = bhi + beta(i,j+1,n) * beta(i,j,n-2*nc)
+             blo = blo + beta(i  ,j,n) / beta(i,j,n-2*nc)
+             bhi = bhi + beta(i,j+1,n) / beta(i,j,n-2*nc)
           end do
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
@@ -2496,14 +2496,14 @@ contains
           j = hi(2)
           if (bchi .eq. BC_INT) then
              do n = 2*nc+1,3*nc
-                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) * beta(i,j,n-2*nc)
+                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
              end do
           else
              blo = 0.d0
              bhi = 0.d0
              do n = 2*nc+1,3*nc
-                blo = blo + beta(i  ,j,n) * beta(i,j,n-2*nc)
-                bhi = bhi + beta(i,j+1,n) * beta(i,j,n-2*nc)
+                blo = blo + beta(i  ,j,n) / beta(i,j,n-2*nc)
+                bhi = bhi + beta(i,j+1,n) / beta(i,j,n-2*nc)
              end do
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
@@ -2514,7 +2514,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0) * beta(i,j,n-2*nc)
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0) 
        end do
     end do
 
