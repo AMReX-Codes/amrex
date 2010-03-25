@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.110 2010-02-26 21:57:04 almgren Exp $
+// $Id: AmrLevel.cpp,v 1.111 2010-03-25 21:44:46 almgren Exp $
 //
 #include <winstd.H>
 
@@ -272,7 +272,8 @@ AmrLevel::countCells () const
 void
 AmrLevel::checkPoint (const std::string& dir,
                       std::ostream&  os,
-                      VisMF::How     how)
+                      VisMF::How     how,
+                      bool dump_old)
 {
     int ndesc = desc_lst.size(), i;
     //
@@ -311,6 +312,7 @@ AmrLevel::checkPoint (const std::string& dir,
     //
     // Output state data.
     //
+
     for (i = 0; i < ndesc; i++)
     {
         //
@@ -325,7 +327,7 @@ AmrLevel::checkPoint (const std::string& dir,
         PathNameInHeader += buf;
         std::string FullPathName = FullPath;
         FullPathName += buf;
-        state[i].checkPoint(PathNameInHeader, FullPathName, os, how);
+        state[i].checkPoint(PathNameInHeader, FullPathName, os, how, dump_old);
     }
 }
 
