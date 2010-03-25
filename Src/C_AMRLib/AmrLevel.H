@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.61 2010-02-26 21:57:04 almgren Exp $
+// $Id: AmrLevel.H,v 1.62 2010-03-25 21:44:46 almgren Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -72,8 +72,9 @@ public:
     //@ManDoc: Write current state to checkpoint file.
     //
     virtual void checkPoint (const std::string& dir,
-                             std::ostream&  os,
-                             VisMF::How     how = VisMF::OneFilePerCPU);
+                             std::ostream&      os,
+                             VisMF::How         how = VisMF::OneFilePerCPU,
+                             bool               dump_old = true);
     //
     //@ManDoc: Restart from a checkpoint file.
     //
