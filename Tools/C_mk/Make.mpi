@@ -278,8 +278,10 @@ ifeq ($(MACHINE), Linux)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
           ifneq ($(WHICHLINUX), DELLA)
-            ifneq ($(HOST),davinci)
-              BL_MPI_LIBS += -lmpich
+            ifneq ($(WHICHLINUX), CARVER)
+              ifneq ($(HOST),davinci)
+                BL_MPI_LIBS += -lmpich
+              endif
             endif
           endif
         endif
