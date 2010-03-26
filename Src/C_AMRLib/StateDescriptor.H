@@ -1,7 +1,7 @@
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 //
-// $Id: StateDescriptor.H,v 1.21 2003-02-06 18:14:29 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.22 2010-03-26 21:34:23 almgren Exp $
 //
 #include <utility>
 #include <vector>
@@ -101,7 +101,8 @@ public:
                      int           nextra,
                      int           num_comp,
                      Interpolater* interp,
-                     bool          extrap = false);
+                     bool          extrap = false,
+                     bool          store_in_checkpoint = true);
     //
     //@ManDoc: The destructor.
     //
@@ -115,7 +116,8 @@ public:
                  int           nextra,
                  int           num_comp,
                  Interpolater* interp,
-                 bool          extrap = false);
+                 bool          extrap = false,
+                 bool          store_in_checkpoint = true);
     //
     //@ManDoc: Sets details of `comp' component.
     //
@@ -225,6 +227,10 @@ public:
     //@ManDoc: Can extrapolate in time.
     //
     bool extrap () const;
+    //
+    //@ManDoc: Should store this StateData in the checkpoint file
+    //
+    bool store_in_checkpoint () const;
 
     bool master (int i) const { return m_master[i]; }
 
@@ -239,6 +245,7 @@ protected:
     int                ngrow;    // Grow factor
     Interpolater*      mapper;   // Default interpolator
     bool               m_extrap; // Can extrapolate in time?
+    bool               m_store_in_checkpoint; // Should store this in the checkpoint file?
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
     PArray<BndryFunc>  bc_func;  // PArray of pointers to bndry fill functions
@@ -295,7 +302,8 @@ public:
                         int                         nextra,
                         int                         num_comp,
                         Interpolater*               interp,
-                        bool                        extrap = false);
+                        bool                        extrap = false,
+                        bool                        store_in_checkpoint = true);
     //
     //@ManDoc: Calls resetComponentBCs() on StateDescriptor at index `indx'.
     //

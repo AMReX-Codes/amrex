@@ -1,5 +1,5 @@
 //
-// $Id: StateDescriptor.cpp,v 1.19 2007-07-05 20:02:11 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.20 2010-03-26 21:34:23 almgren Exp $
 //
 #include <winstd.H>
 
@@ -128,11 +128,12 @@ DescriptorList::addDescriptor (int                         indx,
                                int                         nextra,
                                int                         num_comp, 
                                Interpolater*               interp,
-                               bool                        extrap)
+                               bool                        extrap,
+                               bool                        store_in_checkpoint)
 {
     if (indx >= desc.size())
         desc.resize(indx+1);
-    desc.set(indx,new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap));
+    desc.set(indx,new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,store_in_checkpoint));
 }  
 
 StateDescriptor::StateDescriptor ()
@@ -143,6 +144,7 @@ StateDescriptor::StateDescriptor ()
     ngrow(0),
     mapper(0),
     m_extrap(false),
+    m_store_in_checkpoint(true),
     bc_func(PArrayManage)
 {}
 
@@ -152,7 +154,8 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   int                         nextra, 
                                   int                         num_comp,
                                   Interpolater*               interp,
-                                  bool                        extrap)
+                                  bool                        extrap,
+                                  bool                        store_in_checkpoint)
     :
     type(btyp),
     t_type(ttyp),
@@ -161,6 +164,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     ngrow(nextra),
     mapper(interp),
     m_extrap(extrap),
+    m_store_in_checkpoint(store_in_checkpoint),
     bc_func(PArrayManage)
 {
     BL_ASSERT (num_comp > 0);
@@ -252,6 +256,13 @@ StateDescriptor::extrap () const
     return m_extrap;
 }
 
+bool
+StateDescriptor::store_in_checkpoint () const
+{
+    return m_store_in_checkpoint;
+}
+
+
 const StateDescriptor::BndryFunc&
 StateDescriptor::bndryFill (int i) const
 {
@@ -271,7 +282,8 @@ StateDescriptor::define (IndexType                   btyp,
                          int                         nextra,
                          int                         num_comp,
                          Interpolater*               interp,
-                         bool                        extrap) 
+                         bool                        extrap,
+                         bool                        store_in_checkpoint) 
 {
     type     = btyp;
     t_type   = ttyp;
@@ -280,6 +292,7 @@ StateDescriptor::define (IndexType                   btyp,
     ncomp    = num_comp;
     mapper   = interp;
     m_extrap = extrap;
+    m_store_in_checkpoint = store_in_checkpoint;
 
     BL_ASSERT (num_comp > 0);
    
