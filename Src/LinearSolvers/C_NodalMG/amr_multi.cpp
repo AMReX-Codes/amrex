@@ -607,6 +607,7 @@ amr_multigrid::solve (Real reltol,
 	std::cout << "HG: Initial error            = " << err << std::endl;
         if ( pcode >= 4) std::cout << " " << std::endl;
     }
+
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
     tol = (tol > abstol) ? tol : abstol;
@@ -615,19 +616,28 @@ amr_multigrid::solve (Real reltol,
     while (err > tol)
     {
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
-	if ( pcode >= 2 && ParallelDescriptor::IOProcessor())
+
+	if ( pcode >= 2 )
 	{
-	    if ( pcode >= 4) std::cout << " " << std::endl;
+	    if ( pcode >= 4 && ParallelDescriptor::IOProcessor()) std::cout << " " << std::endl;
+
             Real err = ml_residual(mglev_max, lev_max);
-	    std::cout << "HG: Iteration " << it+1 << " error/error0 = " << err/norm << std::endl;
-	    if ( pcode >= 4) std::cout << " " << std::endl;
+
+	    if ( ParallelDescriptor::IOProcessor())
+            {
+                std::cout << "HG: Iteration " << it+1 << " error/error0 = " << err/norm << std::endl;
+                
+                if ( pcode >= 4) std::cout << " " << std::endl;
+            }
 	}
+
 	if (++it > HG::multigrid_maxiter)
 	{
 	    BoxLib::Error( "amr_multigrid::solve:"
 			   "multigrid iteration failed" );
 	}
     }
+
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
 	std::cout << "HG: " << it << " cycles required" << std::endl;
