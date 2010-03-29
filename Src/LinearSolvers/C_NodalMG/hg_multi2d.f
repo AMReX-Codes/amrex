@@ -564,3 +564,111 @@ c CELL-based data only.
          end do
       end if
       end
+
+c sig here contains three different directions all stored on "nodes"
+      subroutine hgrlxu(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,
+     & mask,
+     &     regl0,regh0,regl1,regh1,irz)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
+      double precision AVGREDGE
+      integer irz
+      integer istart, iend
+      integer i, jdiff, ly
+      AVG() = (sig(i-1)        * cor(i-1) +
+     &         sig(i)          * cor(i+1) +
+     &         sig(i+ly-jdiff) * cor(i-jdiff) +
+     &         sig(i+ly)       * cor(i+jdiff))
+      AVGREDGE() = (sig(i-1)        * cor(i-1) +
+     &              sig(i)          * cor(i+1) +
+     &              sig(i+ly-jdiff) * cor(i-jdiff) * 0.5d0 +
+     &              sig(i+ly)       * cor(i+jdiff) * 0.5d0 )
+      jdiff =  resh0 - resl0 + 1
+      ly    = (resh1 - resl1 + 1) * jdiff
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+      if (irz .eq. 0 .or. regl0 .gt. 0) then
+        do i = istart + 1, iend + 1, 2
+           cor(i) = cor(i)
+     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+        end do
+        do i = istart + 2, iend + 1, 2
+           cor(i) = cor(i)
+     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+        end do
+
+      else
+
+c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
+        do i = istart + 1, iend + 1, 2
+           if (mod(i-istart-1,jdiff) .eq. 0) then
+             cor(i) = cor(i)
+     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
+           else
+             cor(i) = cor(i)
+     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+           endif
+        end do
+        do i = istart + 2, iend + 1, 2
+           if (mod(i-istart-1,jdiff) .eq. 0) then
+             cor(i) = cor(i)
+     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
+           else
+             cor(i) = cor(i)
+     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+           endif
+        end do
+      endif
+      end
+
+      subroutine hgresu(
+     & res, resl0,resh0,resl1,resh1,
+     & src, dest, signd, mask,
+     &      regl0,regh0,regl1,regh1,
+     & irz)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision res(*)
+      double precision src(*)
+      double precision dest(*)
+      double precision signd(*)
+      double precision mask(*)
+      integer irz
+      integer istart, iend
+      integer i, jdiff, ly
+      integer ilocal, jlocal
+      jdiff = resh0 - resl0 + 1
+      ly = (resh1 - resl1 + 1) * jdiff
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+
+      do i = istart+1, iend+1
+         jlocal = i / jdiff + resl1
+         ilocal = resl0 + (i-jlocal*jdiff-resl1)
+         res(i) = mask(i) * (src(i) -
+     &     (signd(i-1)        * (dest(i-1) - dest(i)) +
+     &      signd(i)          * (dest(i+1) - dest(i)) +
+     &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
+     &      signd(i+ly)       * (dest(i+jdiff) - dest(i))))
+      end do
+
+      if (irz .eq. 1 .and. regl0 .eq. 0) then
+        do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
+     &         (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, jdiff
+           res(i) = mask(i) * (src(i) -
+     &       (signd(i-1)        * (dest(i-1) - dest(i)) +
+     &        signd(i)          * (dest(i+1) - dest(i)) +
+     &        signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) * 0.5d0 +
+     &        signd(i+ly)       * (dest(i+jdiff) - dest(i)) * 0.5d0 ))
+        end do
+      endif
+
+      end
