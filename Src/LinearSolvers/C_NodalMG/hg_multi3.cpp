@@ -65,6 +65,12 @@ extern "C"
 			     const Real*, intS, const Real*, intS, intS,
 			     intS, const int*);
 #else
+    void FORT_HGRESU        (Real*, intS, const Real*, const Real*,
+                             const Real*, const Real*, intS, const int*);
+
+    void FORT_HGRLXU        (Real*, const Real*, const Real*,
+                             const Real*, intS, const Real*, intS, const int*);
+
     void FORT_HGRES_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS,
 			     const Real*, intS, intS);
