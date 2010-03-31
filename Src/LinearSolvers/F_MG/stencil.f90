@@ -1581,7 +1581,7 @@ contains
 
   end subroutine stencil_fill_cc
 
-  subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, bc_face, fnc)
+  subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, bc_face)
     use bl_prof_module
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
@@ -1590,14 +1590,7 @@ contains
     type(imultifab), intent(inout) :: mask
     integer, intent(in) :: bc_face(:,:)
     real(kind=dp_t), intent(in) :: xa(:), xb(:), pxa(:), pxb(:)
-    interface
-       function fnc(i, j, k, n) result(r)
-         integer, intent(in) :: i, j, k, n
-         integer :: r
-       end function fnc
-    end interface
 
-    optional        :: fnc
     type(box)       :: bx
     real(kind=dp_t) :: lxa(ss%dim), lxb(ss%dim)
 
@@ -1637,16 +1630,26 @@ contains
 
        select case (ss%dim)
        case (2)
-          if (ns .eq. 9) then
-             call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
+          if (ns .eq. 7) then
+             call s_minion_second_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), &
+                                          bx%lo, bx%hi, lxa, lxb)
+          else if (ns .eq. 9) then
+             call s_minion_cross_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), &
+                                         bx%lo, bx%hi, lxa, lxb)
           else if (ns .eq. 25) then
-             call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), lxa, lxb)
+             call s_minion_full_fill_2d(sp(:,:,1,:), cp(:,:,1,:), ng_c, dh, mp(:,:,1,1), &
+                                        bx%lo, bx%hi, lxa, lxb)
           end if
        case (3)
-          if (ns .eq. 13) then
-             call s_minion_cross_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), lxa, lxb)
+          if (ns .eq. 10) then
+             call s_minion_second_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), &
+                                          bx%lo, bx%hi, lxa, lxb)
+          else if (ns .eq. 13) then
+             call s_minion_cross_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), &
+                                         bx%lo, bx%hi, lxa, lxb)
 !         else if (ns .eq. 125) then
-!            call s_minion_full_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), lxa, lxb)
+!            call s_minion_full_fill_3d(sp(:,:,:,:), cp(:,:,:,:), ng_c, dh, mp(:,:,:,1), &
+!                                       bx%lo, bx%hi, lxa, lxb)
           end if
        end select
     end do
@@ -2693,8 +2696,126 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine s_minion_cross_fill_2d(ss, beta, ng_b, dh, mask, xa, xb)
+  subroutine s_minion_second_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+
     integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
+    integer           , intent(inout) :: mask(:,:)
+    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(2)
+    integer            :: i, j, bclo, bchi, nx, ny, order
+    integer, parameter :: XBC = 5, YBC = 6
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+
+    order = 2
+
+    f1 = ONE/dh**2
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ZERO
+          ss(i,j,1) = -beta(i+1,j,1)*f1(1)
+          ss(i,j,2) = -beta(i  ,j,1)*f1(1)
+          ss(i,j,3) = -beta(i,j+1,2)*f1(2)
+          ss(i,j,4) = -beta(i,j  ,2)*f1(2)
+          ss(i,j,XBC) = ZERO
+          ss(i,j,YBC) = ZERO
+       end do
+    end do
+
+    ! x derivatives
+
+    do j = lo(2),hi(2)
+       do i = lo(1)+1,hi(1)-1
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+       end do
+    end do
+
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
+ 
+       i = lo(1)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+       else
+          call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               beta(i,j,1), beta(i+1,j,1), &
+               xa(1), xb(1), dh(1), bclo, bchi)
+       end if
+
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          else
+             call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  beta(i,j,1), beta(i+1,j,1), &
+                  xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+       end if
+    end do
+
+    ! y derivatives
+
+    do i = lo(1),hi(1)
+       do j = lo(2)+1,hi(2)-1
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+       end do
+    end do
+
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
+
+       j = lo(2)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+       else
+          call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               beta(i,j,2), beta(i,j+1,2), &
+               xa(2), xb(2), dh(2), bclo, bchi)
+       end if
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          else
+             call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  beta(i,j,2), beta(i,j+1,2), &
+                  xa(2), xb(2), dh(2), bclo, bchi)
+          end if
+       end if
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+       end do
+    end do
+
+  end subroutine s_minion_second_fill_2d
+
+  subroutine s_minion_cross_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+
+    integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
@@ -2703,8 +2824,8 @@ contains
     integer nx, ny
     integer i, j
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2741,9 +2862,10 @@ contains
 
   end subroutine s_minion_cross_fill_2d
 
-  subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, xa, xb)
+  subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
 
     integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
@@ -2753,8 +2875,8 @@ contains
     integer            :: i, j, nx, ny
     real (kind = dp_t) :: fac
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2981,9 +3103,10 @@ contains
 
   end subroutine s_minion_full_old_2d
 
-  subroutine s_minion_full_fill_2d(ss, beta, ng_b, dh, mask, xa, xb)
+  subroutine s_minion_full_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
 
     integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
@@ -2992,8 +3115,9 @@ contains
 
     integer            :: i, j, nx, ny, nsten
     double precision :: t1,t2,b1,b2,l1,l2,r1,r2,hx2,hy2,ss_sum
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -3540,8 +3664,186 @@ b1 =       0.0d0/hy2
 
   end subroutine s_minion_full_fill_2d
 
-  subroutine s_minion_cross_fill_3d(ss, beta, ng_b, dh, mask, xa, xb)
+  subroutine s_minion_second_fill_3d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+
+    integer           , intent(in   ) :: lo(:), hi(:), ng_b
+    integer           , intent(inout) :: mask(lo(1)     :,lo(2)     :,lo(3)     :)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
+    real (kind = dp_t), intent(in   ) :: beta(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(3)
+    integer            :: i, j, k, bclo, bchi, nx, ny, nz, order
+    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+    nz = hi(3)-lo(3)+1
+
+    order = 2
+
+    f1 = ONE/dh**2
+
+    ss(:,:,:,0) = ZERO
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -beta(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
+
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,3)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  3)*f1(3)
+
+    ss(:,:,:,XBC) = ZERO
+    ss(:,:,:,YBC) = ZERO
+    ss(:,:,:,ZBC) = ZERO
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+
+    ! x derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1)+1,hi(1)-1
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
+          bchi = stencil_bc_type(mask(hi(1),j,k),1,+1)
+
+          i = lo(1)
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+          else
+             call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                  beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+
+          if ( hi(1) > lo(1) ) then
+             i = hi(1)
+             if (bchi .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             else
+                call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                     beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    ! y derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    do k = lo(3),hi(3)
+       do j = lo(2)+1,hi(2)-1
+          do i = lo(1),hi(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    do k = lo(3),hi(3)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,lo(2),k) ,2,-1)
+          bchi = stencil_bc_type(mask(i,hi(2),k),2,+1)
+
+          j = lo(2)
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+          else
+             call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
+                  beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+          end if
+          if ( hi(2) > lo(2) ) then
+             j = hi(2)
+             if (bchi .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             else
+                call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
+                     beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    ! z derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.5)
+    do k = lo(3)+1,hi(3)-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(2)-lo(2)).ge.3)
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,j,lo(3)) ,3,-1)
+          bchi = stencil_bc_type(mask(i,j,hi(3)),3,+1)
+
+          k = lo(3)
+          if (bclo .eq. BC_INT) then
+             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+          else
+             call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
+                  ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
+                  beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+          end if
+          if ( hi(3) > lo(3) ) then
+             k = hi(3)
+             if (bchi .eq. BC_INT) then
+                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             else
+                call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
+                     ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
+                     beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine s_minion_second_fill_3d
+
+  subroutine s_minion_cross_fill_3d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+
     integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,1-ng_b:,0:)
@@ -3550,9 +3852,9 @@ b1 =       0.0d0/hy2
     integer nx, ny, nz
     integer i, j, k
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+    nz = hi(3)-lo(3)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
