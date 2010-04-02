@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.40 2010-03-15 19:56:16 lijewski Exp $
+// $Id: Amr.H,v 1.41 2010-04-02 21:43:37 almgren Exp $
 //
 
 #include <fstream>
@@ -113,6 +113,10 @@ public:
     // Which step are we at for the specified level?
     //
     int levelCount (int lev) const;
+    //
+    //@ManDoc: Whether to regrid right after restart
+    //
+    bool RegridOnRestart () const;
     //
     //@ManDoc: Interval between regridding.
     //
@@ -235,6 +239,10 @@ public:
     //@ManDoc: More work to be done?
     //
     int okToContinue ();
+    //
+    //@ManDoc: Regrid only!
+    //
+    void RegridOnly (Real time);
     //
     //@ManDoc: Do a complete integration cycle.
     //
