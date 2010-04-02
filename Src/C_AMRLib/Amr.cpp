@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.199 2010-03-18 21:48:00 almgren Exp $
+// $Id: Amr.cpp,v 1.200 2010-04-02 21:43:37 almgren Exp $
 //
 #include <winstd.H>
 
@@ -64,6 +64,12 @@ std::ostream&
 Amr::DataLog (int i)
 {
     return datalog[i];
+}
+
+bool
+Amr::RegridOnRestart () const
+{
+    return regrid_on_restart;
 }
 
 int
@@ -1496,6 +1502,23 @@ Amr::checkPoint ()
                   << dCheckPointTime
                   << " secs." << std::endl;
     ParallelDescriptor::Barrier();
+}
+
+void
+Amr::RegridOnly (Real time)
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::RegridOnly()");
+
+    BL_ASSERT(regrid_on_restart == 1);
+
+    int lev_top = std::min(finest_level, max_level-1);
+
+    for (int i = 0; i <= lev_top; i++)
+       regrid(i,time);
+
+    if (plotfile_on_restart)
+	writePlotFile(plot_file_root,level_steps[0]);
+
 }
 
 void
