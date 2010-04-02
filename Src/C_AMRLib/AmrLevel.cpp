@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.112 2010-03-26 21:43:08 almgren Exp $
+// $Id: AmrLevel.cpp,v 1.113 2010-04-02 20:27:18 almgren Exp $
 //
 #include <winstd.H>
 
@@ -186,10 +186,6 @@ AmrLevel::restart (Amr&          papa,
                    std::istream& is,
 		   bool          bReadSpecial)
 {
-    // Must have first StateData stored in restart so we can get the time information from that
-    if (!desc_lst[0].store_in_checkpoint()) 
-        BoxLib::Error("AmrLevel::restart -- first StateData must be stored in checkpoint");
-  
     parent = &papa;
 
     is >> level;
@@ -224,22 +220,7 @@ AmrLevel::restart (Amr&          papa,
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
     {
-        if (desc_lst[i].store_in_checkpoint()) 
-        {
-           state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
-        } 
-        else 
-        {
-           if (desc_lst[0].timeType() != desc_lst[i].timeType())
-              BoxLib::Error("AmrLevel::restart -- must have same time type");
-           Real time =        state[0].curTime();
-           Real dt   = time - state[0].prevTime();
-           state[i].define(geom.Domain(),
-                           grids,
-                           desc_lst[i],
-                           time, dt);
-
-        }
+        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
     }
 
     finishConstructor();
@@ -259,7 +240,7 @@ AmrLevel::setTimeLevel (Real time,
     }
 }
 
-bool 
+bool
 AmrLevel::isStateVariable (const std::string& name,
                            int&           typ,
                            int&            n)
@@ -334,8 +315,6 @@ AmrLevel::checkPoint (const std::string& dir,
 
     for (i = 0; i < ndesc; i++)
     {
-      if (desc_lst[i].store_in_checkpoint()) 
-      {
         //
         // Now build the full relative pathname of the StateData.
         // The name is relative to the Header file containing this name.
@@ -349,7 +328,6 @@ AmrLevel::checkPoint (const std::string& dir,
         std::string FullPathName = FullPath;
         FullPathName += buf;
         state[i].checkPoint(PathNameInHeader, FullPathName, os, how, dump_old);
-      }
     }
 }
 
