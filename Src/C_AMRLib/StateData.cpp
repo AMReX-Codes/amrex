@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.42 2006-02-09 23:00:12 car Exp $
+// $Id: StateData.cpp,v 1.43 2010-04-02 20:29:13 almgren Exp $
 //
 #include <winstd.H>
 #include <iostream>
@@ -119,20 +119,37 @@ StateData::restart (std::istream&          is,
     is >> nsets;
 
     old_data = 0;
+    new_data = 0;
 
-    new_data = new MultiFab;
+    // If no data is written then we just allocate the MF instead of reading it in. 
+    // This assumes that the application will do something with it.
+    // We set it to zero in case a compiler complains about uninitialized data.
+    if (nsets == 0)
+    {
+       new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+       new_data->setVal(0.);
+    }
+
     std::string mf_name;
-    is >> mf_name;
-    //
-    // Note that mf_name is relative to the Header file.
-    // We need to prepend the name of the chkfile directory.
-    //
-    std::string FullPathName = chkfile;
-    if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
-        FullPathName += '/';
-    FullPathName += mf_name;
-    VisMF::Read(*new_data, FullPathName);
+    std::string FullPathName;
 
+    // This reads the "new" data, if it's there
+    if (nsets >= 1)
+    {
+        new_data = new MultiFab;
+        is >> mf_name;
+        //
+        // Note that mf_name is relative to the Header file.
+        // We need to prepend the name of the chkfile directory.
+        //
+        FullPathName = chkfile;
+        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
+            FullPathName += '/';
+        FullPathName += mf_name;
+        VisMF::Read(*new_data, FullPathName);
+    }
+
+    // This reads the "old" data, if it's there
     if (nsets == 2)
     {
         old_data = new MultiFab;
@@ -646,24 +663,33 @@ StateData::checkPoint (const std::string& name,
            << new_time.start << '\n'
            << new_time.stop  << '\n';
 
-        if (dump_old)
+        if (desc->store_in_checkpoint()) 
         {
-            os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
-        }
-        else
-        {
-            os << 1 << '\n' << mf_name_new << '\n';
+           if (dump_old)
+           {
+               os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
+           }
+           else
+           {
+               os << 1 << '\n' << mf_name_new << '\n';
+           }
+        } else {
+               os << 0 << '\n';
         }
     }
-    BL_ASSERT(new_data);
-    std::string mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
-    VisMF::Write(*new_data,mf_fullpath_new,how);
 
-    if (dump_old)
+    if (desc->store_in_checkpoint())
     {
-        BL_ASSERT(old_data);
-        std::string mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
-        VisMF::Write(*old_data,mf_fullpath_old,how);
+       BL_ASSERT(new_data);
+       std::string mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
+       VisMF::Write(*new_data,mf_fullpath_new,how);
+
+       if (dump_old)
+       {
+           BL_ASSERT(old_data);
+           std::string mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
+           VisMF::Write(*old_data,mf_fullpath_old,how);
+       }
     }
 }
 
