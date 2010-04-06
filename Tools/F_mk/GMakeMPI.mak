@@ -55,6 +55,12 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
     CFLAGS   := -I$(mdir) -Wp,-DBL_AIX
 
+    ifdef OMP
+      FFLAGS   += -qsmp=omp
+      F90FLAGS += -qsmp=omp
+      CFLAGS   += -qsmp=omp
+    endif
+
     ifdef NDEBUG
       FFLAGS   += -O2 -qarch=450d -qtune=450
       F90FLAGS += -O2 -qarch=450d -qtune=450
