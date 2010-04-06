@@ -126,6 +126,12 @@ ifeq ($(COMP),xlf)
   F90 := xlf95
   CC := xlc
 
+  ifdef OMP
+     F90FLAGS += -qsmp=omp
+     FFLAGS   += -qsmp=omp
+     CFLAGS   += -qsmp=omp
+  endif
+
   F90FLAGS += -I $(mdir) -qmoddir=$(mdir)
   FFLAGS   += -I $(mdir) -qmoddir=$(mdir)
   CFLAGS += 
