@@ -122,15 +122,20 @@ ifeq ($(COMP),gfortran)
 endif
 
 ifeq ($(COMP),xlf)
-  FC := xlf95
-  F90 := xlf95
-  CC := xlc
 
   ifdef OMP
-     F90FLAGS += -qsmp=noauto:omp
-     FFLAGS   += -qsmp=noauto:omp
-     CFLAGS   += -qsmp=noauto:omp
-  endif
+    FC  := xlf95_r
+    F90 := xlf95_r
+    CC  := xlc_r
+
+    F90FLAGS += -qsmp=noauto:omp
+    FFLAGS   += -qsmp=noauto:omp
+    CFLAGS   += -qsmp=noauto:omp
+  else
+    FC  := xlf95
+    F90 := xlf95
+    CC  := xlc
+  endif 
 
   F90FLAGS += -I $(mdir) -qmoddir=$(mdir)
   FFLAGS   += -I $(mdir) -qmoddir=$(mdir)
