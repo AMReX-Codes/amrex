@@ -47,19 +47,20 @@ ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     #                          intrepid from hostname -f.  $HOST or
     #                          uname -n don't indicate intrepid
     #
-    CC  := mpixlc
-    FC  := mpixlf95 -qfixed=72
-    F90 := mpixlf95
-
-    FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
-    F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
-    CFLAGS   := -I$(mdir) -Wp,-DBL_AIX
 
     ifdef OMP
-      FFLAGS   += -qsmp=noauto:omp
-      F90FLAGS += -qsmp=noauto:omp
-      CFLAGS   += -qsmp=noauto:omp
+      CC  := mpixlc_r
+      FC  := mpixlf95_r -qfixed=72
+      F90 := mpixlf95_r
+    else  
+      CC  := mpixlc
+      FC  := mpixlf95 -qfixed=72
+      F90 := mpixlf95
     endif
+
+    FFLAGS   += -qmoddir=$(mdir) -I$(mdir)
+    F90FLAGS += -qmoddir=$(mdir) -I$(mdir)
+    CFLAGS   += -I$(mdir) -Wp,-DBL_AIX
 
     ifdef NDEBUG
       FFLAGS   += -O2 -qarch=450d -qtune=450
