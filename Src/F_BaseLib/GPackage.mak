@@ -1,7 +1,6 @@
 f90sources += BoxLib.f90
 f90sources += omp.f90
 f90sources += f2kcli$(f2kcli_suf).f90
-f90sources += mt19937ar.f90
 
 f90sources += bl_constants.f90
 f90sources += bl_error.f90  
