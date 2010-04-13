@@ -72,14 +72,22 @@ foreach my $file (@ARGV) {
         $def_fixed_source = 0;
     	next;
     }
-    my $myfile;
-    foreach my $dir (@vpath) {
-      my $t = $dir . $pathsep . $file;
-      if ( -f $t ) { $myfile = $t; last; }
-    }
+    my $myfile = $file;
+
     if ( defined($myfile) ) {
       $sources{$myfile} = new Source_File($myfile);
       $sources{$myfile}->find_uses();
+    }
+    else
+    {
+        foreach my $dir (@vpath) {
+            my $t = $dir . $pathsep . $file;
+            if ( -f $t ) { $myfile = $t; last; }
+        }
+        if ( defined($myfile) ) {
+            $sources{$myfile} = new Source_File($myfile);
+            $sources{$myfile}->find_uses();
+        }
     }
 }
 
