@@ -118,6 +118,16 @@ ifeq ($(findstring surveyor, $(HOSTNAME)), surveyor)
     #    mpi_libraries += -lpthread -lrt -lSPI.cna
 endif
 
+ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
+    #
+    # carver.nersc.gov
+    #
+    ifdef MPI
+        CXX := mpiCC
+        FC  := mpif90
+        F90 := mpif90
+    endif
+endif
 ifeq ($(findstring nid, $(HOST)), nid)
     #
     # franklin.nersc.gov
