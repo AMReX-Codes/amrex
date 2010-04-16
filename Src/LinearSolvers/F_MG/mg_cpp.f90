@@ -11,8 +11,8 @@ module cpp_mg_module
      logical         :: nodal
      integer         :: dim  = 0
      integer         :: nlevel
-!    integer         :: stencil_order = 3
-!    integer         :: stencil_order = 2
+!     integer         :: stencil_order = 3
+!     integer         :: stencil_order = 2
      integer         :: stencil_order = 1
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
@@ -368,6 +368,7 @@ subroutine mgt_finalize_porous_stencil_lev(lev, xa, xb, pxa, pxb, nc)
   do i = nlev-1, 1, -1
      call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i), nc)
   end do
+
   do i = nlev, 1, -1
      pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
      call stencil_fill_cc(mgts%mgt(flev)%ss(i), mgts%coeffs(i), mgts%mgt(flev)%dh(:,i), &
@@ -1359,3 +1360,14 @@ subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   min_width       = mgts%mg_tower_default%min_width
 
 end subroutine mgt_get_defaults
+
+
+subroutine mgt_set_maxorder(max_order)
+
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: max_order
+
+  mgts%stencil_order = max_order - 1
+
+end subroutine mgt_set_maxorder

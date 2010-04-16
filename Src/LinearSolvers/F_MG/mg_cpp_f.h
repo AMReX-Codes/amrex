@@ -31,6 +31,7 @@
 #define mgt_set_nodal_defaults    MGT_SET_NODAL_DEFAULTS
 #define mgt_get_defaults          MGT_GET_DEFAULTS
 #define mgt_get_nodal_defaults    MGT_GET_NODAL_DEFAULTS
+#define mgt_set_maxorder          MGT_SET_MAXORDER
 
 #define mgt_set_rh_1d             MGT_SET_RH_1D
 #define mgt_set_rh_2d             MGT_SET_RH_2D
@@ -132,6 +133,7 @@
 #define mgt_set_nodal_defaults    mgt_set_nodal_defaults_
 #define mgt_get_defaults          mgt_get_defaults_
 #define mgt_get_nodal_defaults    mgt_get_nodal_defaults_
+#define mgt_set_maxorder          mgt_set_maxorder_
 
 #define mgt_set_rh_1d             mgt_set_rh_1d_
 #define mgt_set_rh_2d             mgt_set_rh_2d_
@@ -230,6 +232,7 @@
 #define mgt_set_nodal_defaults    mgt_set_nodal_defaults__
 #define mgt_get_defaults          mgt_get_defaults__
 #define mgt_get_nodal_defaults    mgt_get_nodal_defaults__
+#define mgt_set_maxorder          mgt_set_maxorder_
 
 #define mgt_set_rh_1d             mgt_set_rh_1d__
 #define mgt_set_rh_2d             mgt_set_rh_2d__
@@ -638,6 +641,8 @@ extern "C"
                               const int* verbose, const int* cg_verbose,
                               const int* max_nlevel, const int* min_width,
                               const int* cycle, const int* smoother);
+
+  void mgt_set_maxorder(const int* maxorder);
   
 #ifdef __cplusplus
 }
