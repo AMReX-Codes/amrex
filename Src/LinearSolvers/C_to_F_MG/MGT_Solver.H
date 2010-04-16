@@ -36,6 +36,14 @@ public:
                                const MultiFab* bb[][BL_SPACEDIM],
                                const Real& b, const BndryData& bd);
 
+  void set_porous_coefficients(MultiFab* a1[], const MultiFab* a2[], 
+			       MultiFab* bb[][BL_SPACEDIM], 
+			       const Real& beta, 
+			       Array< Array<Real> >& xa,
+			       Array< Array<Real> >& xb);
+
+  void set_maxorder(const int max_order);
+
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, Real& final_resnorm);
 
