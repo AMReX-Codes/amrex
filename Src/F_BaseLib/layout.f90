@@ -497,7 +497,7 @@ contains
           call bl_error("layout_rep_build(): mapping explicit but no explicit_mapping")
        end if
        if ( size(lap%prc) /= size(explicit_mapping) ) then
-          call bl_error("layout_rep_build(): incommesurate explicit mapping")
+          call bl_error("layout_rep_build(): incommensurate explicit mapping")
        end if
        lap%prc = explicit_mapping
     case (LA_LOCAL)
