@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.21 2010-02-23 21:38:17 lijewski Exp $
+// $Id: BndryData.cpp,v 1.22 2010-04-19 23:16:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -45,22 +45,15 @@ BndryData::init (const BndryData& src)
     {
         const Orientation face = fi();
 
-        bcond[face].resize(ngrd);
+        bcond[face] = src.bcond[face];
 
-        for (int grd = 0; grd < ngrd; ++grd)
-        {
-            bcond[face][grd].resize(ncomp);
-	    for (int n = 0; n < ncomp; ++n)
-		bcond[face][grd][n] = src.bcond[face][grd][n];
-        }
+        bcloc[face] = src.bcloc[face];
 
-        bcloc[face].resize(ngrd);
         masks[face].resize(ngrd);
 
         for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
             const int grd        = bfsi.index();
-            bcloc[face][grd]     = src.bcloc[face][grd];
             const Mask& src_mask = src.masks[face][grd];
             Mask* m = new Mask(src_mask.box(),src_mask.nComp());
             m->copy(src_mask);
