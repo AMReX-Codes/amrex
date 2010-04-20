@@ -312,7 +312,8 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
   	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
 #endif
 	}
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+      int dm = BL_SPACEDIM;
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -377,7 +378,8 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
 #endif
         }
 
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb);
+      int dm = BL_SPACEDIM;
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
     }
 
   mgt_finalize_stencil();
@@ -441,7 +443,8 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
   	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
 #endif
 	}
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb);
+      int dm = BL_SPACEDIM;
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -515,7 +518,8 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
   	   mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
 #endif
 	}
-      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb, &nc);
+      int dm = BL_SPACEDIM;
+      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb, &nc, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -577,7 +581,8 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
   	   mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
 #endif
 	}
-      mgt_finalize_porous_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &nc);
+      int dm = BL_SPACEDIM;
+      mgt_finalize_porous_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &nc, &dm);
     }
   mgt_finalize_stencil();
 }
