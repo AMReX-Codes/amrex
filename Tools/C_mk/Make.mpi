@@ -54,10 +54,17 @@ ifeq ($(MACHINE), Linux)
 
     ifeq ($(WHICHLINUX), INTREPID)
 
-      CXX := mpixlcxx
-      CC  := mpixlc
-      FC  := mpixlf95 -qfixed=72
-      F90 := mpixlf95
+      ifeq ($(USE_OMP),TRUE)
+        CXX := mpixlcxx_r
+        CC  := mpixlc_r
+        FC  := mpixlf95_r -qfixed=72
+        F90 := mpixlf95_r
+      else
+        CXX := mpixlcxx
+        CC  := mpixlc
+        FC  := mpixlf95 -qfixed=72
+        F90 := mpixlf95
+      endif
 
       CXXDEBF += -qarch=450d -qtune=450
       CXXOPTF += -qarch=450d -qtune=450
