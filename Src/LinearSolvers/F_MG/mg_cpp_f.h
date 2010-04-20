@@ -347,7 +347,7 @@ extern "C"
   void mgt_finalize_porous_stencil_lev(const int* lev,
 			               const Real* xa, const Real* xb,
            			       const Real* pxa, const Real* pxbb,
-           			       const int* nc);
+           			       const int* nc, const int* dm);
   
   void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
