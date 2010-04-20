@@ -432,7 +432,6 @@ contains
        call destroy(coeffs(i))
     end do
 
-
   end subroutine stencil_fill_cc_all_mglevels
 
   subroutine stencil_fill_cc(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, order, bc_face, fnc)
@@ -508,6 +507,127 @@ contains
     call destroy(bpt)
 
   end subroutine stencil_fill_cc
+
+  recursive subroutine stencil_fill_minion_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, pd, bc_face)
+
+    use coeffs_module
+    use mg_module
+
+    type(mg_tower) , intent(inout) :: mgt
+    type(multifab) , intent(inout) :: coeffs(:)
+    real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
+    type(box)      , intent(in   ) :: pd
+    integer        , intent(in   ) :: bc_face(:,:)
+
+    ! Local variables
+    integer         :: i, j, dm, maxlev, maxlev_bottom
+    real(dp_t)      :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
+    real(dp_t)      :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
+    type(layout)    :: old_la_grown, new_la_grown
+    type(box)       :: coarse_pd
+    type(boxarray)  :: ba_cc
+    type(multifab)  :: stored_coeffs, stored_coeffs_grown
+    type(multifab)  :: new_coeffs_grown
+    type(multifab), allocatable :: coarse_coeffs(:)
+    real(dp_t), pointer :: sc_orig(:,:,:,:), sc_grown(:,:,:,:)
+
+        dm = mgt%dim
+    maxlev = mgt%nlevels
+ 
+    ! NOTE: coeffs(maxlev) comes in built and filled, but the other levels
+    !       are not even built yet
+    do i = maxlev-1, 1, -1
+       call multifab_build(coeffs(i), mgt%ss(i)%la, 1+dm, 1)
+       call setval(coeffs(i), ZERO, 1, dm+1, all=.true.)
+       call coarsen_coeffs(coeffs(i+1),coeffs(i))
+    end do
+ 
+    do i = maxlev, 1, -1
+       call stencil_fill_minion(mgt%ss(i), coeffs(i), mgt%dh(:,i), &
+                                mgt%mm(i), xa, xb, pxa, pxb, pd, &
+                                bc_face) 
+                            
+    end do
+
+    if (associated(mgt%bottom_mgt)) then
+
+       call multifab_build(stored_coeffs, mgt%ss(1)%la, nc=1+dm, ng=1)
+       call multifab_copy_c(stored_coeffs,1,coeffs(1),1,dm+1,ng=coeffs(1)%ng)
+       call multifab_fill_boundary(stored_coeffs)
+
+       maxlev_bottom = mgt%bottom_mgt%nlevels
+
+       allocate(coarse_coeffs(maxlev_bottom))
+       call multifab_build(coarse_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la, 1+dm, 1)
+       call setval(coarse_coeffs(maxlev_bottom),ZERO,all=.true.)
+
+       do j = 1, dm
+          call boxarray_build_copy(ba_cc,get_boxarray(stored_coeffs))
+          call boxarray_grow(ba_cc,1,j, 1)
+          call layout_build_ba(old_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
+                               explicit_mapping=get_proc(mgt%ss(1)%la))
+          call destroy(ba_cc)
+          call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
+
+          ! Note that stored_coeffs_grown only has one component at a time
+          do i = 1, stored_coeffs_grown%nboxes
+             if (remote(stored_coeffs_grown,i)) cycle 
+             sc_orig  => dataptr(stored_coeffs      ,i,get_pbox(stored_coeffs_grown,i),j+1,1)
+             sc_grown => dataptr(stored_coeffs_grown,i,get_pbox(stored_coeffs_grown,i),  1,1)
+             sc_grown = sc_orig
+          end do
+
+          ! Note that new_coeffs_grown only has one component at a time
+          call boxarray_build_copy(ba_cc,get_boxarray(mgt%bottom_mgt%ss(maxlev_bottom)))
+          call boxarray_grow(ba_cc,1,j, 1)
+          call layout_build_ba(new_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
+                               explicit_mapping=get_proc(mgt%bottom_mgt%ss(maxlev_bottom)%la))
+          call destroy(ba_cc)
+          call multifab_build(new_coeffs_grown,new_la_grown,1,ng=0)
+          call multifab_copy_c(new_coeffs_grown,1,stored_coeffs_grown,1,1)
+          call destroy(stored_coeffs_grown)
+          call destroy(old_la_grown)
+
+          do i = 1, new_coeffs_grown%nboxes
+             if (remote(new_coeffs_grown,i)) cycle 
+             sc_orig  => dataptr(coarse_coeffs(maxlev_bottom),i,get_pbox(new_coeffs_grown,i),j+1,1)
+             sc_grown => dataptr(new_coeffs_grown    ,i,get_pbox(new_coeffs_grown,i),1  ,1)
+             sc_orig = sc_grown
+          end do
+
+          call destroy(new_coeffs_grown)
+          call destroy(new_la_grown)
+
+       end do
+       !   END SPECIAL COPY
+
+       do i = maxlev_bottom-1, 1, -1
+          call multifab_build(coarse_coeffs(i), mgt%bottom_mgt%ss(i)%la, 1+dm, 1)
+          call setval(coarse_coeffs(i), ZERO, 1, dm+1, all=.true.)
+          call coarsen_coeffs(coarse_coeffs(i+1),coarse_coeffs(i))
+       end do
+
+       coarse_xa = ZERO
+       coarse_xb = ZERO
+       coarse_pxa = ZERO
+       coarse_pxb = ZERO
+
+       call stencil_fill_minion_all_mglevels(mgt%bottom_mgt, coarse_coeffs, coarse_xa, coarse_xb, &
+                                             coarse_pxa, coarse_pxb, coarse_pd, bc_face)
+
+       do i = maxlev_bottom, 1, -1
+          call destroy(coarse_coeffs(i))
+       end do
+       deallocate(coarse_coeffs)
+       call destroy(stored_coeffs)
+
+    end if
+
+    do i = maxlev-1, 1, -1
+       call destroy(coeffs(i))
+    end do
+
+  end subroutine stencil_fill_minion_all_mglevels
 
   subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, bc_face)
     use bl_prof_module
