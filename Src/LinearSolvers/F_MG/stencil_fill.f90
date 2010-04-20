@@ -339,8 +339,8 @@ contains
     ! NOTE: coeffs(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(coeffs(i), mgt%ss(i)%la, 1+dm, 1)
-       call setval(coeffs(i), ZERO, 1, dm+1, all=.true.)
+       call multifab_build(coeffs(i), mgt%ss(i)%la, mgt%ss(maxlev)%nc, 1)
+       call setval(coeffs(i), ZERO, 1, mgt%ss(maxlev)%nc, all=.true.)
        call coarsen_coeffs(coeffs(i+1),coeffs(i))
     end do
  
