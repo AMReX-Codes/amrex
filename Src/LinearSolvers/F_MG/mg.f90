@@ -154,7 +154,7 @@ contains
     type(     box)  :: coarse_pd,bxs
     type(boxarray)  :: new_coarse_ba
     integer         :: bottom_box_size
-    real(kind=dp_t) :: coarse_dx(size(dh,dim=1))
+    real(kind=dp_t) :: coarse_dx(get_dim(la))
 
     call build(bpt, "mgt_build")
 
