@@ -73,7 +73,7 @@ ifeq ($(MACHINE), Linux)
       FOPTF   += -qarch=450d -qtune=450
       FDEBF   += -qarch=450d -qtune=450
 
-      BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlopt -lxl -lxlf90 -lxlmomp_ser -lxlfmath -lpthread -lrt
+      BL_MPI_LIBS += -L/opt/ibmcmp/xlf/bg/11.1/lib -lxlopt -lxl -lxlf90 -lxlomp_ser -lxlfmath -lpthread -lrt
     endif
 
     ifeq ($(WHICHLINUX), COYOTE)
