@@ -339,7 +339,8 @@ extern "C"
   
   void mgt_finalize_stencil_lev(const int* lev,
 			    const Real* xa, const Real* xb,
-			    const Real* pxa, const Real* pxbb);
+			    const Real* pxa, const Real* pxb,
+			    const int* dm);
 
   void mgt_finalize_nodal_stencil_lev(const int* lev);
   
