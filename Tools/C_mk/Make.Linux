@@ -173,19 +173,21 @@ else
 ifeq ($(FCOMP),xlf)
 
   ifeq ($(USE_OMP),TRUE)
+    CXX := xlc++_r
+    CC  := xlc_r
     FC  := xlf_r
     fC  := xlf_r
-    f90 := xlf95_r
-    CXX := xlc++_r
+    F90 := xlf90_r
 
     F90FLAGS += -qsmp=noauto:omp
     FFLAGS   += -qsmp=noauto:omp
     CFLAGS   += -qsmp=noauto:omp
   else
+    CXX := xlc++
+    CC  := xlc
     FC  := xlf
     fC  := xlf
-    f90 := xlf95
-    CXX := xlc++
+    F90 := xlf90
   endif
 
   F90FLAGS += -qsuffix=f=f90 -qfree=f90 -qmoddir=$(fmoddir) -I$(fmoddir)
