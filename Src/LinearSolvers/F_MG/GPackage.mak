@@ -1,5 +1,6 @@
 f90sources += ml_nd.f90
 f90sources += ml_cc.f90
+f90sources += impose_neumann_bcs.f90
 f90sources += itsol.f90
 ifdef USE_MG_CPP
 f90sources += mg_cpp.f90
@@ -11,6 +12,7 @@ f90sources += mg_smoother.f90
 #f90sources += mlmg.f90
 f90sources += sparse_solve.f90
 f90sources += stencil.f90
+f90sources += stencil_fill.f90
 f90sources += st_coeffs.f90
 f90sources += stencil_nodal.f90
 f90sources += mg_defect.f90
