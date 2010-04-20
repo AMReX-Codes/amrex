@@ -9,7 +9,8 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps,abs_eps_in,bottom_mgt)
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio, &
+                   do_diagnostics,eps,abs_eps_in)
 
     use bl_prof_module
     use ml_util_module
@@ -27,7 +28,6 @@ contains
     real(dp_t)     , intent(in   ) :: eps
 
     real(dp_t)     , intent(in   ), optional :: abs_eps_in
-    type(mg_tower) , intent(inout), optional :: bottom_mgt
 
     integer    :: nlevs
 
@@ -184,15 +184,9 @@ contains
              call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
           else 
-             if (present(bottom_mgt)) then
-                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     mgt(n)%gamma,bottom_mgt=bottom_mgt)
-             else
-                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     mgt(n)%gamma)
-             end if
+             call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
+                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                  mgt(n)%gamma)
           end if
 
           ! Add: soln += uu

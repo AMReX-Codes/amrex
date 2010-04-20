@@ -14,9 +14,8 @@ module ml_solve_module
 
 contains
 
-   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,bottom_mgt)
+   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics)
 
-      use ml_util_module
       use ml_cc_module
 
       type(ml_layout), intent(in   ) :: mla
@@ -26,8 +25,6 @@ contains
       type(bndry_reg), intent(inout) :: fine_flx(2:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       integer        , intent(in   ) :: do_diagnostics
-
-      type(mg_tower ), intent(inout), optional :: bottom_mgt
 
       type(boxarray)  :: bac
       type(lmultifab) :: fine_mask(mla%nlevel)
@@ -52,13 +49,8 @@ contains
 
 ! ****************************************************************************
 
-      if (present(bottom_mgt)) then
-         call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
-                    need_grad_phi_in=.true.,bottom_mgt=bottom_mgt)
-      else
-         call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
-                    need_grad_phi_in=.true.)
-      end if
+      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
+                 need_grad_phi_in=.true.)
 
 ! ****************************************************************************
 
@@ -80,7 +72,7 @@ contains
 
    end subroutine ml_cc_solve
 
-   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in,bottom_mgt)
+   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in)
 
        use ml_nd_module
 
@@ -92,8 +84,6 @@ contains
        integer        , intent(in   )           :: ref_ratio(:,:)
        integer        , intent(in   )           :: do_diagnostics 
        real(dp_t)     , intent(in   ), optional :: eps_in
-
-       type(mg_tower ), intent(inout), optional :: bottom_mgt
 
        type(lmultifab) :: fine_mask(mla%nlevel)
        integer         :: nlevs, n, dm, lo(rh(mla%nlevel)%dim), hi(rh(mla%nlevel)%dim)
@@ -120,12 +110,7 @@ contains
           endif
        end do
 
-       if (present(bottom_mgt)) then
-          call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps, &
-                     bottom_mgt=bottom_mgt)
-       else
-          call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
-       end if
+       call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
      
        do n = 1,nlevs
           call lmultifab_destroy(fine_mask(n))

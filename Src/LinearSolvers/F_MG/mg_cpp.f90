@@ -1286,9 +1286,7 @@ end subroutine mgt_compute_flux
 
 subroutine mgt_delete_flux(lev)
 
-  use cpp_mg_module
-! use ml_cc_module
-! use ml_util_module
+! use cpp_mg_module
   implicit none
 
   integer, intent(in) :: lev

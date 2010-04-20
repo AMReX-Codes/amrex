@@ -1,7 +1,7 @@
 module mg_smoother_module
 
-  use stencil_nodal_module
   use bl_constants_module
+  use stencil_module
 
   implicit none
 
@@ -630,7 +630,10 @@ contains
   end subroutine nodal_smoother_1d
 
   subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, red_black)
+
     use bl_prof_module
+    use impose_neumann_bcs_module
+
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     logical, intent(in) :: pmask(:)
@@ -755,7 +758,10 @@ contains
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, red_black)
+
     use bl_prof_module
+    use impose_neumann_bcs_module
+
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     logical, intent(in) :: pmask(:)
