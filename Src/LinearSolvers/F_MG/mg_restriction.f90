@@ -1,7 +1,7 @@
 module mg_restriction_module
 
   use bl_types
-  use stencil_nodal_module
+  use impose_neumann_bcs_module
 
   implicit none
 

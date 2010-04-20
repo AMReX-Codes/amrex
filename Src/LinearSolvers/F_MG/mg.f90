@@ -2,7 +2,6 @@ module mg_module
 
   use multifab_module
   use stencil_module
-  use stencil_nodal_module
   use sparse_solve_module
   use bl_timer_module
 
@@ -49,6 +48,7 @@ module mg_module
 
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
+     integer :: max_bottom_nlevel = 1024
      integer :: min_width  = 2
 
      ! good for many problems
@@ -87,6 +87,9 @@ module mg_module
 
      integer ::    verbose = 0
      integer :: cg_verbose = 0
+
+      type(mg_tower), pointer :: bottom_mgt => Null()
+
   end type mg_tower
 
   real(kind=dp_t), parameter, private :: zero = 0.0_dp_t
@@ -97,13 +100,13 @@ module mg_module
 
 contains
 
-  subroutine mg_tower_build(mgt, la, pd, domain_bc, &
+  recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, &
                             nu1, nu2, nuf, nub, gamma, cycle_type, &
                             smoother, omega, &
                             dh, &
                             ns, &
                             nc, ng, &
-                            max_nlevel, min_width, &
+                            max_nlevel, max_bottom_nlevel, min_width, &
                             max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             st_type, &
@@ -128,6 +131,7 @@ contains
     real(kind=dp_t), intent(in), optional :: abs_eps
     real(kind=dp_t), intent(in), optional :: bottom_solver_eps
     integer, intent(in), optional :: max_nlevel
+    integer, intent(in), optional :: max_bottom_nlevel
     integer, intent(in), optional :: min_width
     integer, intent(in), optional :: max_iter
     integer, intent(in), optional :: bottom_solver
@@ -144,6 +148,13 @@ contains
     logical :: nodal_flag
     real(kind=dp_t) :: vol
     type(bl_prof_timer), save :: bpt
+
+    ! These are added to help build the bottom_mgt
+    type(  layout)  :: old_coarse_la, new_coarse_la
+    type(     box)  :: coarse_pd,bxs
+    type(boxarray)  :: new_coarse_ba
+    integer         :: bottom_box_size
+    real(kind=dp_t) :: coarse_dx(size(dh,dim=1))
 
     call build(bpt, "mgt_build")
 
@@ -324,16 +335,73 @@ contains
     if ( mgt%nlevels == 1 ) then
        ba = get_boxarray(mgt%cc(1)%la)
        vol = boxarray_volume(ba)
-       dm  = ba%dim
-       if (vol > 4**dm) &
+       if (vol > 4**mgt%dim) &
          mgt%bottom_solver_eps = mgt%eps
     end if
 
     call destroy(bpt)
 
-    !   if ( parallel_IOProcessor() .and. mgt%verbose > 0) then
-    !     call mg_tower_print(mgt)
-    !   end if
+    if (mgt%bottom_solver == 4) then
+
+       allocate(mgt%bottom_mgt)
+
+       ! Get the old/new coarse problem domain
+       old_coarse_la = mgt%ss(1)%la
+       coarse_pd = layout_get_pd(old_coarse_la)
+
+       ! Get the new coarse boxarray and layout
+       call box_build_2(bxs,coarse_pd%lo(1:mgt%dim),coarse_pd%hi(1:mgt%dim))
+       call boxarray_build_bx(new_coarse_ba,bxs)
+
+       ! This is how many levels could be built if we made just one grid
+       n = max_mg_levels_bottom(new_coarse_ba,min_width)
+
+       ! This is the user-imposed limit
+       n = min(n,max_bottom_nlevel)
+
+       if ( n .eq. 1) then
+          call bl_error("DONT USE MG_BOTTOM_SOLVER == 4: BOTTOM GRID NOT PROPERLY DIVISIBLE")
+       end if
+
+       bottom_box_size = 2**n
+       if (parallel_IOProcessor() .and. verbose .ge. 1) then
+          print *,'TOTAL # OF LEVELS IN FANCY BOTTOM SOLVE',n
+       end if
+
+       call boxarray_maxsize(new_coarse_ba,bottom_box_size)
+       call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
+                            pmask=old_coarse_la%lap%pmask)
+
+       if (parallel_IOProcessor() .and. verbose .ge. 1) then
+          call print(layout_get_pd(old_coarse_la),"COARSE PD")
+          print *,'ORIG MG NBOXES ',old_coarse_la%lap%nboxes
+          print *,'NEW  MG NBOXES ',new_coarse_la%lap%nboxes
+       end if
+
+       coarse_dx(:) = mgt%dh(1,:)
+
+       call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
+                           domain_bc, &
+                           dh = coarse_dx, &
+                           ns = ns, &
+                           smoother = smoother, &
+                           nu1 = nu1, &
+                           nu2 = nu2, &
+                           gamma = gamma, &
+                           cycle_type = cycle_type, &
+                           omega = omega, &
+                           bottom_solver = 1, &
+                           bottom_max_iter = bottom_max_iter, &
+                           bottom_solver_eps = bottom_solver_eps, &
+                           max_iter = max_iter, &
+                           max_nlevel = max_nlevel, &
+                           min_width = min_width, &
+                           eps = eps, &
+                           abs_eps = abs_eps, &
+                           verbose = verbose, &
+                           cg_verbose = cg_verbose, &
+                           nodal = nodal)
+    end if
 
   end subroutine mg_tower_build
 
@@ -409,7 +477,7 @@ contains
 
   end subroutine mg_tower_print
 
-  subroutine mg_tower_destroy(mgt)
+  recursive subroutine mg_tower_destroy(mgt)
 
     type(mg_tower), intent(inout) :: mgt
     integer :: i
@@ -443,6 +511,11 @@ contains
     if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
 
     if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
+
+    if ( associated(mgt%bottom_mgt) ) then
+       call mg_tower_destroy(mgt%bottom_mgt)
+       deallocate(mgt%bottom_mgt)
+    end if
 
   end subroutine mg_tower_destroy
 
@@ -545,45 +618,49 @@ contains
 
   end subroutine mg_tower_v_cycle
 
-  subroutine do_bottom_mgt(mgt, uu, rh, bottom_mgt)
+  subroutine do_bottom_mgt(mgt, uu, rh, lev)
 
     use bl_prof_module
 
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in   ) :: rh
-    type( mg_tower), intent(inout) :: bottom_mgt
+    integer        , intent(in   ) :: lev
 
     type(bl_prof_timer), save :: bpt
 
     type( multifab) :: bottom_uu
     type( multifab) :: bottom_rh
     integer         :: mglev
+    logical         :: do_diag
+    real(dp_t)      :: nrm
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call build(bpt, "do_bottom_mgt")
 
     if (mgt%bottom_solver .ne. 4) &
        call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_solver == 4")
 
-    mglev = bottom_mgt%nlevels
+    mglev = mgt%bottom_mgt%nlevels
 
-    call multifab_build(bottom_uu,bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
+    call multifab_build(bottom_uu,mgt%bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
 
     call setval(bottom_uu,0.d0,all=.true.)
 
     if (nodal_q(rh)) then
-       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
+       call multifab_build(bottom_rh,mgt%bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
        call setval(bottom_rh,ZERO,all=.true.)
     else
-       call multifab_build(bottom_rh,bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
+       call multifab_build(bottom_rh,mgt%bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
     end if
 
     call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
 
-    call mg_tower_cycle(bottom_mgt, bottom_mgt%cycle_type, mglev, &
-                        bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
-                        bottom_mgt%mm(mglev), bottom_mgt%nu1, bottom_mgt%nu2, &
-                        bottom_mgt%gamma)
+    call mg_tower_cycle(mgt%bottom_mgt, mgt%bottom_mgt%cycle_type, mglev, &
+                        mgt%bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
+                        mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2, &
+                        mgt%bottom_mgt%gamma)
 
     call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
     call multifab_fill_boundary(uu)
@@ -1364,7 +1441,7 @@ contains
   end subroutine mg_tower_v_cycle_c
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level, bottom_mgt)
+                                      bottom_level)
 
     use bl_prof_module
 
@@ -1384,8 +1461,6 @@ contains
     integer :: lbl
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
-
-    type(mg_tower), intent(inout), optional :: bottom_mgt
 
     call build(bpt, "mgt_cycle")
 
@@ -1429,8 +1504,8 @@ contains
              print *,'  DN: Norm before bottom         ',nrm
        end if
 
-       if (present(bottom_mgt) .and. mgt%bottom_solver == 4) then
-          call do_bottom_mgt(mgt, uu, rh, bottom_mgt)
+       if (associated(mgt%bottom_mgt)) then
+          call do_bottom_mgt(mgt, uu, rh, lev)
        else
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        end if
@@ -1478,14 +1553,8 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
-          if (present(bottom_mgt)) then
-             call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                                 mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, &
-                                 bottom_mgt=bottom_mgt)
-          else
-             call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                                 mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
-          end if
+          call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
 
