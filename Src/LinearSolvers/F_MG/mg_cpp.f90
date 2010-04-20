@@ -270,10 +270,6 @@ subroutine mgt_init_coeffs_lev(lev)
 
   call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1+dm, 1)
   call setval(mgts%coeffs(nlev), 0.0_dp_t, all=.true.)
-  do i = nlev - 1, 1, -1
-     call build(mgts%coeffs(i), mgts%mgt(flev)%ss(i)%la, 1+dm, 1)
-     call setval(mgts%coeffs(i), 0.0_dp_t, all=.true.)
-  end do
 
 end subroutine mgt_init_coeffs_lev
 
@@ -301,94 +297,49 @@ subroutine mgt_init_mc_coeffs_lev(lev,nc)
 
   call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1+nc*(dm+1), 1)
   call setval(mgts%coeffs(nlev), 0.0_dp_t, all=.true.)
-  do i = nlev - 1, 1, -1
-     call build(mgts%coeffs(i), mgts%mgt(flev)%ss(i)%la, 1+nc*(dm+1), 1)
-     call setval(mgts%coeffs(i), 0.0_dp_t, all=.true.)
-  end do
 
 end subroutine mgt_init_mc_coeffs_lev
 
-subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb)
+subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   use cpp_mg_module
-  use coeffs_module
+  use stencil_fill_module
   implicit none
-  integer, intent(in) :: lev
-  real(dp_t), intent(in) :: xa(*), xb(*), pxa(*), pxb(*)
-  integer :: nlev, i, dm
-  integer :: flev
-  type(boxarray) :: pdv
-  dm = mgts%dim
+  integer   , intent(in) :: lev, dm
+  real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
+
+  integer        :: nlev, flev
+
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
   
   nlev = mgts%mgt(flev)%nlevels
-  do i = nlev-1, 1, -1
-     call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i), 1)
-  end do
-  do i = nlev, 1, -1
-     pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
-     call stencil_fill_cc(mgts%mgt(flev)%ss(i), mgts%coeffs(i), mgts%mgt(flev)%dh(:,i), &
-          pdv, mgts%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), &
-          mgts%mgt(flev)%pd(i), &
-          mgts%stencil_order, mgts%bc)
 
-     if (i .eq. 1 .and. mgts%bottom_solver .eq. 3) then
-        call copy(mgts%mgt(i)%ss1, mgts%mgt(i)%ss(1))
-        call copy(mgts%mgt(i)%mm1, mgts%mgt(i)%mm(1))
-        if ( parallel_IOProcessor() ) then
-           call sparse_build(mgts%mgt(i)%sparse_object, mgts%mgt(i)%ss1, &
-                mgts%mgt(i)%mm1, mgts%mgt(i)%ss1%la, mgts%stencil_order, mgts%mgt(i)%verbose)
-        end if
-     end if
+  call stencil_fill_cc_all_mglevels(mgts%mgt(flev), mgts%coeffs, xa, xb, pxa, pxb, &
+                                    mgts%stencil_order, mgts%bc)
 
-     call destroy(mgts%coeffs(i))
-
-  end do
-
+  call destroy(mgts%coeffs(nlev))
   deallocate(mgts%coeffs)
 
 end subroutine mgt_finalize_stencil_lev
 
-subroutine mgt_finalize_porous_stencil_lev(lev, xa, xb, pxa, pxb, nc)
+subroutine mgt_finalize_porous_stencil_lev(lev, xa, xb, pxa, pxb, nc, dm)
   use cpp_mg_module
-  use coeffs_module
+  use stencil_fill_module
   implicit none
-  integer   , intent(in) :: lev, nc
-  real(dp_t), intent(in) :: xa(*), xb(*), pxa(*), pxb(*)
+  integer   , intent(in) :: lev, nc, dm
+  real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
 
-  integer        :: nlev, i, dm
-  integer        :: flev
-  type(boxarray) :: pdv
+  integer        :: nlev, flev
 
-  dm = mgts%dim
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
   
   nlev = mgts%mgt(flev)%nlevels
-  do i = nlev-1, 1, -1
-     call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i), nc)
-  end do
 
-  do i = nlev, 1, -1
-     pdv = layout_boxarray(mgts%mgt(flev)%ss(i)%la)
-     call stencil_fill_cc(mgts%mgt(flev)%ss(i), mgts%coeffs(i), mgts%mgt(flev)%dh(:,i), &
-          pdv, mgts%mgt(flev)%mm(i), xa(1:dm), xb(1:dm), pxa(1:dm), pxb(1:dm), &
-          mgts%mgt(flev)%pd(i), &
-          mgts%stencil_order, mgts%bc)
+  call stencil_fill_cc_all_mglevels(mgts%mgt(flev), mgts%coeffs, xa, xb, pxa, pxb, &
+                                    mgts%stencil_order, mgts%bc)
 
-     if (i .eq. 1 .and. mgts%bottom_solver .eq. 3) then
-        call copy(mgts%mgt(i)%ss1, mgts%mgt(i)%ss(1))
-        call copy(mgts%mgt(i)%mm1, mgts%mgt(i)%mm(1))
-        if ( parallel_IOProcessor() ) then
-           call sparse_build(mgts%mgt(i)%sparse_object, mgts%mgt(i)%ss1, &
-                mgts%mgt(i)%mm1, mgts%mgt(i)%ss1%la, mgts%stencil_order, mgts%mgt(i)%verbose)
-        end if
-     end if
-
-     call destroy(mgts%coeffs(i))
-
-  end do
-
+  call destroy(mgts%coeffs(nlev))
   deallocate(mgts%coeffs)
 
 end subroutine mgt_finalize_porous_stencil_lev
@@ -1286,7 +1237,7 @@ end subroutine mgt_compute_flux
 
 subroutine mgt_delete_flux(lev)
 
-! use cpp_mg_module
+  use cpp_mg_module
   implicit none
 
   integer, intent(in) :: lev

@@ -287,11 +287,6 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
   call setval(mgts%coeffs(nlev), 0.0_dp_t, all=.true.)
 
-  do i = nlev-1, 1, -1
-     call build(mgts%coeffs(i), mgts%mgt(flev)%ss(i)%la, 1, 1)
-     call setval(mgts%coeffs(i), 0.0_dp_t, all=.true.)
-  end do
-
   ! These only exist at amr levels, not the lower multigrid levels
   call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
   call setval(mgts%amr_coeffs(flev), 0.0_dp_t, all=.true.)
@@ -300,7 +295,7 @@ end subroutine mgt_init_nodal_coeffs_lev
 
 subroutine mgt_finalize_nodal_stencil_lev(lev)
   use nodal_cpp_mg_module
-  use coeffs_module
+  use stencil_fill_module
   implicit none
   integer, intent(in) :: lev
   integer :: nlev, i
@@ -314,18 +309,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
   call multifab_fill_boundary(mgts%coeffs(nlev))
 
-  do i = nlev, 1, -1
-
-     if (i < nlev) then
-       call coarsen_coeffs(mgts%coeffs(i+1), mgts%coeffs(i),1)
-       call multifab_fill_boundary(mgts%coeffs(i))
-     end if
-
-     call stencil_fill_nodal(mgts%mgt(flev)%ss(i), mgts%coeffs(i), &
-                             mgts%mgt(flev    )%dh(:,i), &
-                             mgts%mgt(flev)%mm(i), mgts%mgt(flev)%face_type, mgts%stencil_type)
-
-  end do
+  call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%coeffs, mgts%stencil_type)
 
   if (mgts%stencil_type .eq. ST_CROSS .and. flev .gt. 1) then
      call stencil_fill_one_sided(mgts%one_sided_ss(flev), mgts%coeffs(nlev), &
