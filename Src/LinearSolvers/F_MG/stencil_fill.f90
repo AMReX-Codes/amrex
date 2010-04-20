@@ -310,7 +310,7 @@ contains
 
   end subroutine stencil_fill_one_sided
 
-  recursive subroutine stencil_fill_cc_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, pd, &
+  recursive subroutine stencil_fill_cc_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, &
                                                     stencil_order, bc_face)
 
     use coeffs_module
@@ -319,7 +319,6 @@ contains
     type(mg_tower) , intent(inout) :: mgt
     type(multifab) , intent(inout) :: coeffs(:)
     real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
-    type(box)      , intent(in   ) :: pd
     integer        , intent(in   ) :: stencil_order
     integer        , intent(in   ) :: bc_face(:,:)
 
@@ -328,7 +327,6 @@ contains
     real(dp_t)      :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
     real(dp_t)      :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
     type(layout)    :: old_la_grown, new_la_grown
-    type(box)       :: coarse_pd
     type(boxarray)  :: ba_cc
     type(multifab)  :: stored_coeffs, stored_coeffs_grown
     type(multifab)  :: new_coeffs_grown
@@ -348,7 +346,7 @@ contains
  
     do i = maxlev, 1, -1
        call stencil_fill_cc(mgt%ss(i), coeffs(i), mgt%dh(:,i), &
-                            mgt%mm(i), xa, xb, pxa, pxb, pd, &
+                            mgt%mm(i), xa, xb, pxa, pxb, &
                             stencil_order, bc_face) 
                             
     end do
@@ -417,8 +415,7 @@ contains
        coarse_pxb = ZERO
 
        call stencil_fill_cc_all_mglevels(mgt%bottom_mgt, coarse_coeffs, coarse_xa, coarse_xb, &
-                                         coarse_pxa, coarse_pxb, coarse_pd, &
-                                         stencil_order, bc_face)
+                                         coarse_pxa, coarse_pxb, stencil_order, bc_face)
 
        do i = maxlev_bottom, 1, -1
           call destroy(coarse_coeffs(i))
@@ -434,12 +431,11 @@ contains
 
   end subroutine stencil_fill_cc_all_mglevels
 
-  subroutine stencil_fill_cc(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, order, bc_face, fnc)
+  subroutine stencil_fill_cc(ss, coeffs, dh, mask, xa, xb, pxa, pxb, order, bc_face, fnc)
     use bl_prof_module
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
     real(kind=dp_t), intent(in) :: dh(:)
-    type(box), intent(in) :: pd
     type(imultifab), intent(inout) :: mask
     integer, intent(in) :: order
     integer, intent(in) :: bc_face(:,:)
@@ -451,8 +447,8 @@ contains
        end function fnc
     end interface
     optional :: fnc
-    type(box) :: bx
-    real(kind=dp_t) lxa(ss%dim), lxb(ss%dim)
+    type(box)       :: bx, pd
+    real(kind=dp_t) :: lxa(ss%dim), lxb(ss%dim)
 
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
@@ -462,7 +458,7 @@ contains
 
     call build(bpt, "stencil_fill_cc")
 
-    ! Store the incoming values.
+    pd = layout_get_pd(ss%la)
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
@@ -508,7 +504,7 @@ contains
 
   end subroutine stencil_fill_cc
 
-  recursive subroutine stencil_fill_minion_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, pd, bc_face)
+  recursive subroutine stencil_fill_minion_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, bc_face)
 
     use coeffs_module
     use mg_module
@@ -516,7 +512,6 @@ contains
     type(mg_tower) , intent(inout) :: mgt
     type(multifab) , intent(inout) :: coeffs(:)
     real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
-    type(box)      , intent(in   ) :: pd
     integer        , intent(in   ) :: bc_face(:,:)
 
     ! Local variables
@@ -524,7 +519,6 @@ contains
     real(dp_t)      :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
     real(dp_t)      :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
     type(layout)    :: old_la_grown, new_la_grown
-    type(box)       :: coarse_pd
     type(boxarray)  :: ba_cc
     type(multifab)  :: stored_coeffs, stored_coeffs_grown
     type(multifab)  :: new_coeffs_grown
@@ -544,8 +538,7 @@ contains
  
     do i = maxlev, 1, -1
        call stencil_fill_minion(mgt%ss(i), coeffs(i), mgt%dh(:,i), &
-                                mgt%mm(i), xa, xb, pxa, pxb, pd, &
-                                bc_face) 
+                                mgt%mm(i), xa, xb, pxa, pxb, bc_face) 
                             
     end do
 
@@ -613,7 +606,7 @@ contains
        coarse_pxb = ZERO
 
        call stencil_fill_minion_all_mglevels(mgt%bottom_mgt, coarse_coeffs, coarse_xa, coarse_xb, &
-                                             coarse_pxa, coarse_pxb, coarse_pd, bc_face)
+                                             coarse_pxa, coarse_pxb, bc_face)
 
        do i = maxlev_bottom, 1, -1
           call destroy(coarse_coeffs(i))
@@ -629,17 +622,16 @@ contains
 
   end subroutine stencil_fill_minion_all_mglevels
 
-  subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, pd, bc_face)
+  subroutine stencil_fill_minion(ss, coeffs, dh, mask, xa, xb, pxa, pxb, bc_face)
     use bl_prof_module
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
     real(kind=dp_t), intent(in) :: dh(:)
-    type(box), intent(in) :: pd
     type(imultifab), intent(inout) :: mask
     integer, intent(in) :: bc_face(:,:)
     real(kind=dp_t), intent(in) :: xa(:), xb(:), pxa(:), pxb(:)
 
-    type(box)       :: bx
+    type(box)       :: bx, pd
     real(kind=dp_t) :: lxa(ss%dim), lxb(ss%dim)
 
     real(kind=dp_t), pointer  :: sp(:,:,:,:)
@@ -650,7 +642,7 @@ contains
 
     call build(bpt, "stencil_fill_minion")
 
-    ! Store the incoming values.
+    pd = layout_get_pd(ss%la)
 
     ns   = multifab_ncomp(ss)
     ng_c = coeffs%ng
