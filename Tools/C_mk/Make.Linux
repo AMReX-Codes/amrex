@@ -176,6 +176,7 @@ ifeq ($(FCOMP),xlf)
     FC  := xlf_r
     fC  := xlf_r
     f90 := xlf95_r
+    CXX := xlc++_r
 
     F90FLAGS += -qsmp=noauto:omp
     FFLAGS   += -qsmp=noauto:omp
@@ -184,8 +185,8 @@ ifeq ($(FCOMP),xlf)
     FC  := xlf
     fC  := xlf
     f90 := xlf95
+    CXX := xlc++
   endif
-
 
   F90FLAGS += -qsuffix=f=f90 -qfree=f90 -qmoddir=$(fmoddir) -I$(fmoddir)
 
