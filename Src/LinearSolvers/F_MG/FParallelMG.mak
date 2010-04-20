@@ -63,6 +63,7 @@ f90EXE_sources += mg_prolongation.f90
 f90EXE_sources += st_coeffs.f90
 f90EXE_sources += ml_prolongation.f90
 f90EXE_sources += stencil.f90
+f90EXE_sources += stencil_fill.f90
 f90EXE_sources += stencil_nodal.f90
 f90EXE_sources += sparse_solve.f90
 f90EXE_sources += ml_interface_stencil.f90
