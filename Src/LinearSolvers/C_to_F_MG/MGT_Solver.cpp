@@ -254,6 +254,8 @@ MGT_Solver::initialize(bool nodal)
     } else {
       def_bottom_solver = 3;
     }
+
+    pp.query("bottom_solver", def_bottom_solver);
 }
 
 void
