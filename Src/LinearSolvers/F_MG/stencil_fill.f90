@@ -270,8 +270,6 @@ contains
     call destroy(bxa_periodic)
     call destroy(bpt)
 
-!   call mask_pretty_print(mask, "mask", nodal = .true.)
-
   end subroutine stencil_fill_nodal
 
   subroutine stencil_fill_one_sided(ss, sg, dh, mask, face_type)
@@ -401,7 +399,6 @@ contains
           call destroy(new_la_grown)
 
        end do
-       !   END SPECIAL COPY
 
        do i = maxlev_bottom-1, 1, -1
           call multifab_build(coarse_coeffs(i), mgt%bottom_mgt%ss(i)%la, 1+dm, 1)
@@ -417,9 +414,7 @@ contains
        call stencil_fill_cc_all_mglevels(mgt%bottom_mgt, coarse_coeffs, coarse_xa, coarse_xb, &
                                          coarse_pxa, coarse_pxb, stencil_order, bc_face)
 
-       do i = maxlev_bottom, 1, -1
-          call destroy(coarse_coeffs(i))
-       end do
+       call destroy(coarse_coeffs(maxlev_bottom))
        deallocate(coarse_coeffs)
        call destroy(stored_coeffs)
 
