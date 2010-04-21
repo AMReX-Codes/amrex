@@ -248,10 +248,6 @@ subroutine mgt_finalize(dx,bc)
           )
   end do
 
-! if ( parallel_IOProcessor() .and. mgts%verbose > 1) then
-!   call mg_tower_print(mgts%mgt(nlev))
-! end if
-
 end subroutine mgt_finalize
 
 subroutine mgt_init_coeffs_lev(lev)
