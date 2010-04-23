@@ -523,6 +523,19 @@ contains
     r = mf%la
   end function zmultifab_get_layout
 
+  subroutine multifab_build_edge(mf, la, nc, ng, dir)
+    type(multifab), intent(  out) :: mf
+    type(layout)  , intent(in   ) :: la
+    integer       , intent(in   ) :: nc, ng, dir
+    logical                       :: nodal(MAX_SPACEDIM)
+
+    nodal      = .false.
+    nodal(dir) = .true.
+
+    call multifab_build(mf, la, nc, ng, nodal)
+
+  end subroutine multifab_build_edge
+
   subroutine multifab_build(mf, la, nc, ng, nodal)
     type(multifab), intent(out) :: mf
     type(layout), intent(in) :: la
@@ -539,7 +552,7 @@ contains
     mf%nc = lnc
     mf%ng = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
       call build( &
