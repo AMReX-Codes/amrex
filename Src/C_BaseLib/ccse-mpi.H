@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.14 2001-12-03 22:24:54 lijewski Exp $
+// $Id: ccse-mpi.H,v 1.15 2010-04-23 20:16:46 lijewski Exp $
 //
 
 //
@@ -36,17 +36,6 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<unsigned long>::type();
     template <> MPI_Datatype Mpi_typemap<float>::type();
     template <> MPI_Datatype Mpi_typemap<double>::type();
-
-    struct Max         { static MPI_Op op(); };
-    struct Min         { static MPI_Op op(); };
-    struct Sum         { static MPI_Op op(); };
-    struct Prod        { static MPI_Op op(); };
-    struct Logical_And { static MPI_Op op(); };
-    struct Boolean_And { static MPI_Op op(); };
-    struct Logical_Or  { static MPI_Op op(); };
-    struct Boolean_Or  { static MPI_Op op(); };
-    struct Logical_XOr { static MPI_Op op(); };
-    struct Boolean_XOr { static MPI_Op op(); };
 }
 
 
