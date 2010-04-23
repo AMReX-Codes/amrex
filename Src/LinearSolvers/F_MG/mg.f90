@@ -378,7 +378,7 @@ contains
           print *,'NEW  MG NBOXES ',new_coarse_la%lap%nboxes
        end if
 
-       coarse_dx(:) = mgt%dh(1,:)
+       coarse_dx(:) = mgt%dh(:,1)
 
        call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                            domain_bc, &
