@@ -25,7 +25,7 @@ contains
 
   recursive subroutine stencil_fill_nodal_all_mglevels(mgt, sg, stencil_type)
 
-    use coeffs_module
+    use coarsen_coeffs_module
     use mg_module
 
     type(mg_tower ), intent(inout) :: mgt
@@ -311,7 +311,7 @@ contains
   recursive subroutine stencil_fill_cc_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, &
                                                     stencil_order, bc_face)
 
-    use coeffs_module
+    use coarsen_coeffs_module
     use mg_module
 
     type(mg_tower) , intent(inout) :: mgt
@@ -333,11 +333,11 @@ contains
 
         dm = mgt%dim
     maxlev = mgt%nlevels
- 
+
     ! NOTE: coeffs(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(coeffs(i), mgt%ss(i)%la, coeffs(maxlev)%nc, 1)
+       call multifab_build(coeffs(i), mgt%ss(i)%la, coeffs(maxlev)%nc, coeffs(maxlev)%ng)
        call setval(coeffs(i), ZERO, 1, coeffs(maxlev)%nc, all=.true.)
        call coarsen_coeffs(coeffs(i+1),coeffs(i))
     end do
@@ -351,25 +351,26 @@ contains
 
     if (associated(mgt%bottom_mgt)) then
 
-       call multifab_build(stored_coeffs, mgt%ss(1)%la, nc=1+dm, ng=1)
-       call multifab_copy_c(stored_coeffs,1,coeffs(1),1,dm+1,ng=coeffs(1)%ng)
+       call multifab_build (stored_coeffs,mgt%ss(1)%la, coeffs(1)%nc, ng=coeffs(1)%ng)
+       call multifab_copy_c(stored_coeffs,1,coeffs(1),1,coeffs(1)%nc, ng=coeffs(1)%ng)
        call multifab_fill_boundary(stored_coeffs)
 
        maxlev_bottom = mgt%bottom_mgt%nlevels
 
        allocate(coarse_coeffs(maxlev_bottom))
-       call multifab_build(coarse_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la, 1+dm, 1)
+       call multifab_build(coarse_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la,coeffs(1)%nc, 1)
        call setval(coarse_coeffs(maxlev_bottom),ZERO,all=.true.)
 
        do j = 1, dm
           call boxarray_build_copy(ba_cc,get_boxarray(stored_coeffs))
-          call boxarray_grow(ba_cc,1,j, 1)
+          call boxarray_grow(ba_cc,1,j,1)
           call layout_build_ba(old_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
                                explicit_mapping=get_proc(mgt%ss(1)%la))
           call destroy(ba_cc)
-          call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
 
           ! Note that stored_coeffs_grown only has one component at a time
+          call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
+
           do i = 1, stored_coeffs_grown%nboxes
              if (remote(stored_coeffs_grown,i)) cycle 
              sc_orig  => dataptr(stored_coeffs      ,i,get_pbox(stored_coeffs_grown,i),j+1,1)
@@ -379,7 +380,7 @@ contains
 
           ! Note that new_coeffs_grown only has one component at a time
           call boxarray_build_copy(ba_cc,get_boxarray(mgt%bottom_mgt%ss(maxlev_bottom)))
-          call boxarray_grow(ba_cc,1,j, 1)
+          call boxarray_grow(ba_cc,1,j,1)
           call layout_build_ba(new_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
                                explicit_mapping=get_proc(mgt%bottom_mgt%ss(maxlev_bottom)%la))
           call destroy(ba_cc)
@@ -501,7 +502,7 @@ contains
 
   recursive subroutine stencil_fill_minion_all_mglevels(mgt, coeffs, xa, xb, pxa, pxb, bc_face)
 
-    use coeffs_module
+    use coarsen_coeffs_module
     use mg_module
 
     type(mg_tower) , intent(inout) :: mgt
@@ -526,8 +527,8 @@ contains
     ! NOTE: coeffs(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(coeffs(i), mgt%ss(i)%la, 1+dm, 1)
-       call setval(coeffs(i), ZERO, 1, dm+1, all=.true.)
+       call multifab_build(coeffs(i), mgt%ss(i)%la, coeffs(maxlev)%nc, 1)
+       call setval(coeffs(i), ZERO, 1, coeffs(maxlev)%nc, all=.true.)
        call coarsen_coeffs(coeffs(i+1),coeffs(i))
     end do
  
@@ -539,14 +540,14 @@ contains
 
     if (associated(mgt%bottom_mgt)) then
 
-       call multifab_build(stored_coeffs, mgt%ss(1)%la, nc=1+dm, ng=1)
-       call multifab_copy_c(stored_coeffs,1,coeffs(1),1,dm+1,ng=coeffs(1)%ng)
+       call multifab_build(stored_coeffs, mgt%ss(1)%la ,coeffs(1)%nc,ng=coeffs(1)%ng)
+       call multifab_copy_c(stored_coeffs,1,coeffs(1),1,coeffs(1)%nc,ng=coeffs(1)%ng)
        call multifab_fill_boundary(stored_coeffs)
 
        maxlev_bottom = mgt%bottom_mgt%nlevels
 
        allocate(coarse_coeffs(maxlev_bottom))
-       call multifab_build(coarse_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la, 1+dm, 1)
+       call multifab_build(coarse_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la, coeffs(1)%nc, 1)
        call setval(coarse_coeffs(maxlev_bottom),ZERO,all=.true.)
 
        do j = 1, dm
