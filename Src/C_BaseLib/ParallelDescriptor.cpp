@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.114 2009-03-02 23:23:13 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.115 2010-04-23 20:16:46 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -901,66 +901,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
                                typ,
                                root,
                                Communicator()));
-}
-
-MPI_Op
-ParallelDescriptor::Max::op ()
-{
-    return  MPI_MAX;
-}
-
-MPI_Op
-ParallelDescriptor::Min::op ()
-{
-    return  MPI_MIN;
-}
-
-MPI_Op
-ParallelDescriptor::Sum::op ()
-{
-    return  MPI_SUM;
-}
-
-MPI_Op
-ParallelDescriptor::Prod::op ()
-{
-    return  MPI_PROD;
-}
-
-MPI_Op
-ParallelDescriptor::Logical_And::op ()
-{
-    return  MPI_LAND;
-}
-
-MPI_Op
-ParallelDescriptor::Boolean_And::op ()
-{
-    return  MPI_BAND;
-}
-
-MPI_Op
-ParallelDescriptor::Logical_Or::op ()
-{
-    return  MPI_LOR;
-}
-
-MPI_Op
-ParallelDescriptor::Boolean_Or::op ()
-{
-    return  MPI_BOR;
-}
-
-MPI_Op
-ParallelDescriptor::Logical_XOr::op ()
-{
-    return  MPI_LXOR;
-}
-
-MPI_Op
-ParallelDescriptor::Boolean_XOr::op ()
-{
-    return  MPI_BXOR;
 }
 
 template <>
