@@ -1,7 +1,6 @@
 module nodal_mask_module
 
   use stencil_module
-  use coeffs_module
   use ml_layout_module
 
   implicit none
