@@ -516,14 +516,16 @@ contains
     type(copyassoc), pointer :: cp, ncp
     integer                  :: i
 
-    if ( verbose > 0 .and. parallel_IOProcessor() ) &
+    if ( verbose > 0 .and. parallel_IOProcessor() ) then
        print*, '*** flushing copyassoc cache of size: ', the_copyassoc_cnt
+    end if
 
     i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
-       if ( verbose > 0 .and. parallel_IOProcessor() ) &
-           print*, i, ' reused: ', cp%reused
+       if ( verbose > 0 .and. parallel_IOProcessor() ) then
+          print*, i, ' reused: ', cp%reused
+       end if
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
