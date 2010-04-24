@@ -282,14 +282,13 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+  subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, ir, inject, zero_only)
     use mg_restriction_module
     type(multifab),  intent(inout)        :: crse
     type(multifab),  intent(inout)        :: fine
     type(imultifab), intent(in   )        :: mm_fine
     type(imultifab), intent(in   )        :: mm_crse
     integer,         intent(in)           :: ir(:)
-    integer,         intent(in)           :: face_type(:,:,:)
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
 
@@ -564,14 +563,13 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, ir, inject, zero_only)
     use bl_prof_module
     type(multifab),  intent(inout) :: fine
     type(multifab),  intent(inout) :: crse
     type(imultifab), intent(in   ) :: mm_fine
     type(imultifab), intent(in   ) :: mm_crse
     integer,         intent(in)    :: ir(:)
-    integer,         intent(in)    :: face_type(:,:,:)
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
     type(bl_prof_timer), save :: bpt
@@ -580,7 +578,7 @@ contains
     end if
     call build(bpt, "ml_restriction")
     if ( nodal_q(fine) ) then
-       call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject, zero_only)
+       call ml_nodal_restriction(crse, fine, mm_fine, mm_crse, ir, inject, zero_only)
     else
        call ml_cc_restriction(crse, fine, ir)
     end if
