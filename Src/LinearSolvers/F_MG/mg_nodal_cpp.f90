@@ -36,7 +36,7 @@ module nodal_cpp_mg_module
      type(multifab) , pointer ::           rh(:) => Null()
      type(multifab) , pointer ::           uu(:) => Null()
      type(multifab) , pointer ::          vel(:) => Null()
-     type(multifab) , pointer ::       coeffs(:) => Null()
+     type(multifab) , pointer ::  cell_coeffs(:) => Null()
      type(multifab) , pointer ::   amr_coeffs(:) => Null()
      type(multifab) , pointer :: one_sided_ss(:) => Null()
      type(lmultifab), pointer ::    fine_mask(:) => Null()
@@ -282,10 +282,10 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
 
   nlev = mgts%mgt(flev)%nlevels
-  allocate(mgts%coeffs(nlev))
+  allocate(mgts%cell_coeffs(nlev))
 
-  call  build(mgts%coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%coeffs(nlev), 0.0_dp_t, all=.true.)
+  call  build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
+  call setval(mgts%cell_coeffs(nlev), 0.0_dp_t, all=.true.)
 
   ! These only exist at amr levels, not the lower multigrid levels
   call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
@@ -307,17 +307,17 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   
   nlev = mgts%mgt(flev)%nlevels
 
-  call multifab_fill_boundary(mgts%coeffs(nlev))
+  call multifab_fill_boundary(mgts%cell_coeffs(nlev))
 
-  call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%coeffs, mgts%stencil_type)
+  call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs, mgts%stencil_type)
 
   if (mgts%stencil_type .eq. ST_CROSS .and. flev .gt. 1) then
-     call stencil_fill_one_sided(mgts%one_sided_ss(flev), mgts%coeffs(nlev), &
+     call stencil_fill_one_sided(mgts%one_sided_ss(flev), mgts%cell_coeffs(nlev), &
                                  mgts%mgt(flev)%dh(:,nlev), &
                                  mgts%mgt(flev)%mm(nlev), mgts%mgt(flev)%face_type)
   end if
 
-  deallocate(mgts%coeffs)
+  deallocate(mgts%cell_coeffs)
 
 end subroutine mgt_finalize_nodal_stencil_lev
 
@@ -490,10 +490,10 @@ subroutine mgt_set_cfs_1d(lev, n, cf, plo, phi, lo, hi)
   integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
-  nlev = size(mgts%coeffs)
+  nlev = size(mgts%cell_coeffs)
   call mgt_verify_n("MGT_SET_CFS_1D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1))
 
   acp => dataptr(mgts%amr_coeffs(flev), fn)
@@ -511,10 +511,10 @@ subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
   integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
-  nlev = size(mgts%coeffs)
+  nlev = size(mgts%cell_coeffs)
   call mgt_verify_n("MGT_SET_CFS_2D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2))
 
   acp => dataptr(mgts%amr_coeffs(flev), fn)
@@ -532,10 +532,10 @@ subroutine mgt_set_cfs_3d(lev, n, cf, plo, phi, lo, hi)
   integer :: flev, fn, nlev
   fn = n + 1
   flev = lev+1
-  nlev = size(mgts%coeffs)
+  nlev = size(mgts%cell_coeffs)
   call mgt_verify_n("MGT_SET_CFS_3D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
   acp => dataptr(mgts%amr_coeffs(flev), fn)
