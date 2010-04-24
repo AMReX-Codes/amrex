@@ -117,7 +117,7 @@ contains
 !      mglev      = mgt(n  )%nlevels
 !      mglev_crse = mgt(n-1)%nlevels
 !      call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-!           mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+!           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 !   end do
     bnorm = ml_norm_inf(rh,fine_mask)
 
@@ -137,7 +137,7 @@ contains
 !      mglev      = mgt(n  )%nlevels
 !      mglev_crse = mgt(n-1)%nlevels
 !      call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-!           mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+!           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 !      pdc = layout_get_pd(mla%la(n-1))
 !      call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n),temp_res(n-1), &
 !           full_soln(n-1),full_soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
@@ -222,7 +222,7 @@ contains
 
              ! Restrict FINE Res to COARSE Res
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                                 mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+                                 mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
@@ -321,8 +321,7 @@ contains
           mglev      = mgt(n)%nlevels
           mglev_crse = mgt(n-1)%nlevels
           call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, &
-               ref_ratio(n-1,:), inject = .true.)
+               mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:), inject = .true.)
        end do
 
        do n = 1,nlevs
@@ -358,7 +357,7 @@ contains
                 call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
              end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                  mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 
              !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
