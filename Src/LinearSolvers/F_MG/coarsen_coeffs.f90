@@ -248,22 +248,19 @@ contains
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,:)
     integer :: i, i2, j, j2, k, k2
 
-    ! Edge-centered betax array (if it exists)
-    if (size(cc,dim=4) > 1) then
-      do k = loc(3),hic(3)
-         do j = loc(2),hic(2)
-            do i = loc(1),hic(1)+1
-               i2 = 2*i
-               j2 = 2*j
-               k2 = 2*k
-               cc(i,j,k,:) = FOURTH * ( &
-                    + cf(i2,j2,k2  ,:) + cf(i2,j2+1,k2  ,:) &
-                    + cf(i2,j2,k2+1,:) + cf(i2,j2+1,k2+1,:) &
-                    )
-            end do
-         end do
-      end do
-    end if
+    do k = loc(3),hic(3)
+       do j = loc(2),hic(2)
+          do i = loc(1),hic(1)+1
+             i2 = 2*i
+             j2 = 2*j
+             k2 = 2*k
+             cc(i,j,k,:) = FOURTH * ( &
+                  + cf(i2,j2,k2  ,:) + cf(i2,j2+1,k2  ,:) &
+                  + cf(i2,j2,k2+1,:) + cf(i2,j2+1,k2+1,:) &
+                  )
+          end do
+       end do
+    end do
 
   end subroutine crse_xedge_coeffs_3d
 
