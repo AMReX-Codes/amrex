@@ -108,7 +108,7 @@ contains
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     end do
     bnorm = ml_norm_inf(rh,fine_mask)
 
@@ -154,7 +154,7 @@ contains
                                   ref_ratio(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     do n = 1,nlevs
@@ -253,7 +253,7 @@ contains
              !     so we overwrite anything extra which may have been defined
              !     above near fine-fine interfaces)
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 
              ! Copy u_hold = uu
              if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng=uu(n)%ng)
@@ -346,7 +346,7 @@ contains
           ! Only do this as long as tangential interp looks under fine grids
           mglev_crse = mgt(n-1)%nlevels
           call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+               mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 
        end do
 
@@ -355,8 +355,7 @@ contains
           mglev      = mgt(n)%nlevels
           mglev_crse = mgt(n-1)%nlevels
           call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, &
-               ref_ratio(n-1,:))
+               mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
        end do
 
        do n = 1,nlevs
@@ -407,7 +406,7 @@ contains
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                  mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
           end do
 
           if ( mgt(nlevs)%verbose > 1 ) then
@@ -674,7 +673,7 @@ contains
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     do n = nlevs, 1, -1
@@ -803,7 +802,7 @@ contains
                                   ref_ratio(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mgt(n)%face_type, ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
 
