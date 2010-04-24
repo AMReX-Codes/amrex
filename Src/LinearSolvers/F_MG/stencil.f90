@@ -798,7 +798,7 @@ contains
           select case ( st%dim )
           case (1)
              call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
-                  st%extrap_max_order, st%type == ST_CROSS)
+                  st%extrap_max_order)
           case (2)
              call extrap_2d(up(:,:,1,n), mp(:,:,1,1), st%xa, st%xb, st%dh, &
                   st%extrap_max_order, st%type == ST_CROSS)
@@ -816,7 +816,7 @@ contains
              select case ( st%dim )
              case (1)
                 call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
-                     st%extrap_max_order, st%type == ST_CROSS)
+                     st%extrap_max_order)
              case (2)
                 call extrap_2d(up(:,:,1,n), mp(:,:,1,1), st%xa, st%xb, st%dh, &
                      st%extrap_max_order, st%type == ST_CROSS)
@@ -832,12 +832,11 @@ contains
 
   end subroutine stencil_extrap_bc
 
-  subroutine extrap_1d(ph, mm, xa, xb, dh, max_order, cross)
+  subroutine extrap_1d(ph, mm, xa, xb, dh, max_order)
     integer, intent(in) :: mm(:)
     real(kind=dp_t), intent(inout) :: ph(0:)
     real(kind=dp_t), intent(in) :: xa(:), xb(:), dh(:)
     integer, intent(in) :: max_order
-    logical, intent(in) :: cross
     integer i, nn(1)
     integer :: norder(1)
     real(dp_t) :: xx(0:max_order,2)
@@ -1658,12 +1657,13 @@ contains
 
   end subroutine stencil_bndry_aaa
   
-  subroutine s_simple_1d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simple_1d_cc(ss, alpha, ng_a, betax, ng_b, dh, mask, lo, hi, xa, xb, order)
 
-    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1):)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,0:)
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -1679,15 +1679,15 @@ contains
 
     do i = lo(1),hi(1)
        ss(i,0) =   ZERO
-       ss(i,1) = -beta(i+1,1)*f1(1)
-       ss(i,2) = -beta(i  ,1)*f1(1)
+       ss(i,1) = -betax(i+1)*f1(1)
+       ss(i,2) = -betax(i  )*f1(1)
        ss(i,XBC) = ZERO
     end do
 
     ! x derivatives
 
     do i = lo(1)+1, hi(1)-1
-       ss(i,0) = ss(i,0) + (beta(i+1,1)+beta(i,1))*f1(1)
+       ss(i,0) = ss(i,0) + (betax(i+1)+betax(i))*f1(1)
     end do
 
     bclo = stencil_bc_type(mask(lo(1)),1,-1)
@@ -1695,36 +1695,38 @@ contains
 
     i = lo(1)
     if (bclo .eq. BC_INT) then
-       ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
+       ss(i,0) = ss(i,0) + (betax(i)+betax(i+1))*f1(1)
     else
        call stencil_bndry_aaa(order, nx, 1, -1, mask(i), &
             ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
-            beta(i,1), beta(i+1,1), xa(1), xb(1), dh(1), bclo, bchi)
+            betax(i), betax(i+1), xa(1), xb(1), dh(1), bclo, bchi)
     end if
 
     if ( hi(1) > lo(1) ) then
        i = hi(1)
        if (bchi .eq. BC_INT) then
-          ss(i,0) = ss(i,0) + (beta(i,1)+beta(i+1,1))*f1(1)
+          ss(i,0) = ss(i,0) + (betax(i)+betax(i+1))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, 1, mask(i), &
                ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
-               beta(i,1), beta(i+1,1), xa(1), xb(1), dh(1), bclo, bchi)
+               betax(i), betax(i+1), xa(1), xb(1), dh(1), bclo, bchi)
        end if
     end if
 
     do i = lo(1),hi(1)
-       ss(i,0) = ss(i,0) + beta(i,0)
+       ss(i,0) = ss(i,0) + alpha(i)
     end do
 
   end subroutine s_simple_1d_cc
 
-  subroutine s_simple_2d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simple_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
 
-    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -1745,10 +1747,10 @@ contains
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           ss(i,j,0) = ZERO
-          ss(i,j,1) = -beta(i+1,j,1)*f1(1)
-          ss(i,j,2) = -beta(i  ,j,1)*f1(1)
-          ss(i,j,3) = -beta(i,j+1,2)*f1(2)
-          ss(i,j,4) = -beta(i,j  ,2)*f1(2)
+          ss(i,j,1) = -betax(i+1,j)*f1(1)
+          ss(i,j,2) = -betax(i  ,j)*f1(1)
+          ss(i,j,3) = -betay(i,j+1)*f1(2)
+          ss(i,j,4) = -betay(i,j  )*f1(2)
           ss(i,j,XBC) = ZERO
           ss(i,j,YBC) = ZERO
        end do
@@ -1758,7 +1760,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
        end do
     end do
 
@@ -1768,24 +1770,24 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
-               beta(i,j,1), beta(i+1,j,1), &
+               betax(i,j), betax(i+1,j), &
                xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+             ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
           else
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
-                  beta(i,j,1), beta(i+1,j,1), &
-                  xa(1), xb(1), dh(1), bclo, bchi)
-          end if
+                  betax(i,j), betax(i+1,j), &
+                  xa(1), xb(1), dh(1), bclo, bchi) 
+          end if 
        end if
     end do
 
@@ -1793,7 +1795,7 @@ contains
 
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
        end do
     end do
 
@@ -1803,22 +1805,22 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
        else
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
-               beta(i,j,2), beta(i,j+1,2), &
+               betay(i,j), betay(i,j+1), &
                xa(2), xb(2), dh(2), bclo, bchi)
        end if
 
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+             ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
           else
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
-                  beta(i,j,2), beta(i,j+1,2), &
+                  betay(i,j), betay(i,j+1), &
                   xa(2), xb(2), dh(2), bclo, bchi)
           end if
        end if
@@ -1826,18 +1828,20 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
 
   end subroutine s_simple_2d_cc
 
-  subroutine s_simplen_2d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simplen_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
 
-    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -1849,7 +1853,7 @@ contains
     ny = hi(2)-lo(2)+1
 
     dm = 2
-    nc = (size(beta,dim=3)-1)/(dm + 1)
+    nc = size(betax,dim=3)-1
     f1 = ONE/dh**2
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
@@ -1859,11 +1863,11 @@ contains
  
     ss(:,:,:) = 0.d0
 
-    ! Consider the operator  ( alpha - sum_i (beta0_i del dot beta_i grad) )
-    ! Components beta(i,j,          0) = alpha
-    ! Components beta(i,j,       1:nc) = beta0(i,j,1:nc)
-    ! Components beta(i,j,  nc+1:2*nc) = betax(i,j,1:nc)
-    ! Components beta(i,j,2*nc+1:3*nc) = betay(i,j,1:nc)
+    ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
+    ! Components alpha(i,j,   0) = alpha
+    ! Components alpha(i,j,1:nc) = beta0_n
+    ! Components betax(i,j,1:nc) = betax_n
+    ! Components betay(i,j,1:nc) = betay_n
 
     ! ss(i,j,1) is the coefficient of phi(i+1,j  )
     ! ss(i,j,2) is the coefficient of phi(i-1,j  )
@@ -1873,11 +1877,11 @@ contains
     
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          do n = nc+1, 2*nc
-             ss(i,j,1) = ss(i,j,1) - beta(i+1,j,n)*f1(1) / beta(i,j,n-nc)
-             ss(i,j,2) = ss(i,j,2) - beta(i  ,j,n)*f1(1) / beta(i,j,n-nc)
-             ss(i,j,3) = ss(i,j,3) - beta(i,j+1,nc+n)*f1(2) / beta(i,j,n-nc)
-             ss(i,j,4) = ss(i,j,4) - beta(i,j  ,nc+n)*f1(2) / beta(i,j,n-nc)
+          do n = 1,nc
+             ss(i,j,1) = ss(i,j,1) - betax(i+1,j,n)*f1(1) / alpha(i,j,n)
+             ss(i,j,2) = ss(i,j,2) - betax(i  ,j,n)*f1(1) / alpha(i,j,n)
+             ss(i,j,3) = ss(i,j,3) - betay(i,j+1,n)*f1(2) / alpha(i,j,n)
+             ss(i,j,4) = ss(i,j,4) - betay(i,j  ,n)*f1(2) / alpha(i,j,n)
           end do 
        end do
     end do
@@ -1886,8 +1890,8 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-          do n = nc+1, 2*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
+          do n = 1, nc
+             ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
           end do
        end do
     end do
@@ -1898,15 +1902,15 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          do n = nc+1, 2*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
+          do n = 1, nc
+             ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
           end do
        else
           blo = 0.d0
           bhi = 0.d0
-          do n = nc+1,2*nc
-            blo = blo + beta(i  ,j,n) / beta(i,j,n-nc)
-            bhi = bhi + beta(i+1,j,n) / beta(i,j,n-nc)
+          do n = 1,nc
+            blo = blo + betax(i  ,j,n) / alpha(i,j,n)
+            bhi = bhi + betax(i+1,j,n) / alpha(i,j,n)
           end do
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
@@ -1916,15 +1920,15 @@ contains
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             do n = nc+1, 2*nc
-                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i+1,j,n))*f1(1) / beta(i,j,n-nc)
+             do n = 1, nc
+                ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
              end do
           else
              blo = 0.d0
              bhi = 0.d0
-             do n = nc+1,2*nc
-                blo = blo + beta(i  ,j,n) / beta(i,j,n-nc)
-                bhi = bhi + beta(i+1,j,n) / beta(i,j,n-nc)
+             do n = 1,nc
+                blo = blo + betax(i  ,j,n) / alpha(i,j,n)
+                bhi = bhi + betax(i+1,j,n) / alpha(i,j,n)
              end do
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
@@ -1937,8 +1941,8 @@ contains
 
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-          do n = 2*nc+1,3*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
+          do n = 1,nc
+             ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
           end do
        end do
     end do
@@ -1949,15 +1953,15 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          do n = 2*nc+1,3*nc
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
+          do n = 1,nc
+             ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
           end do
        else
           blo = 0.d0
           bhi = 0.d0
-          do n = 2*nc+1,3*nc
-             blo = blo + beta(i  ,j,n) / beta(i,j,n-2*nc)
-             bhi = bhi + beta(i,j+1,n) / beta(i,j,n-2*nc)
+          do n = 1,nc
+             blo = blo + betay(i  ,j,n) / alpha(i,j,n) 
+             bhi = bhi + betay(i,j+1,n) / alpha(i,j,n) 
           end do
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
@@ -1967,15 +1971,15 @@ contains
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             do n = 2*nc+1,3*nc
-                ss(i,j,0) = ss(i,j,0) + (beta(i,j,n)+beta(i,j+1,n))*f1(2) / beta(i,j,n-2*nc)
+             do n = 1,nc
+                ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
              end do
           else
              blo = 0.d0
              bhi = 0.d0
-             do n = 2*nc+1,3*nc
-                blo = blo + beta(i  ,j,n) / beta(i,j,n-2*nc)
-                bhi = bhi + beta(i,j+1,n) / beta(i,j,n-2*nc)
+             do n = 1,nc
+                blo = blo + betay(i  ,j,n) / alpha(i,j,n) 
+                bhi = bhi + betay(i,j+1,n) / alpha(i,j,n) 
              end do
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
@@ -1986,18 +1990,21 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0) 
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
        end do
     end do
 
   end subroutine s_simplen_2d_cc
 
-  subroutine s_simple_3d_cc(ss, beta, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simple_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb, order)
 
-    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,lo(3)  :,0:)
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-1:,lo(2)-1:,lo(3)-1:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2012,14 +2019,14 @@ contains
 
     ss(:,:,:,0) = ZERO
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -beta(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -betax(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -betax(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -betay(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3)  )*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -betay(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(2)
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,3)*f1(3)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  3)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(3)
 
     ss(:,:,:,XBC) = ZERO
     ss(:,:,:,YBC) = ZERO
@@ -2038,7 +2045,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           end do
        end do
     end do
@@ -2052,21 +2059,21 @@ contains
 
           i = lo(1)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           else
              call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
-                  beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+                  betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
           end if
 
           if ( hi(1) > lo(1) ) then
              i = hi(1)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
              else
                 call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
-                     beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+                     betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
              end if
           end if
        end do
@@ -2079,7 +2086,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           end do
        end do
     end do
@@ -2093,20 +2100,20 @@ contains
 
           j = lo(2)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           else
              call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
-                  beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+                  betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
           end if
           if ( hi(2) > lo(2) ) then
              j = hi(2)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
              else
                 call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
-                     beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+                     betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
              end if
           end if
        end do
@@ -2119,7 +2126,7 @@ contains
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           end do
        end do
     end do
@@ -2133,20 +2140,20 @@ contains
 
           k = lo(3)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           else
              call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
-                  beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+                  betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
           end if
           if ( hi(3) > lo(3) ) then
              k = hi(3)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
              else
                 call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
-                     beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+                     betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
              end if
           end if
        end do
@@ -2157,7 +2164,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
+             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
           end do
        end do
     end do
@@ -2165,13 +2172,15 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine s_minion_second_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_second_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb)
 
-    integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2194,10 +2203,10 @@ contains
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           ss(i,j,0) = ZERO
-          ss(i,j,1) = -beta(i+1,j,1)*f1(1)
-          ss(i,j,2) = -beta(i  ,j,1)*f1(1)
-          ss(i,j,3) = -beta(i,j+1,2)*f1(2)
-          ss(i,j,4) = -beta(i,j  ,2)*f1(2)
+          ss(i,j,1) = -betax(i+1,j)*f1(1)
+          ss(i,j,2) = -betax(i  ,j)*f1(1)
+          ss(i,j,3) = -betay(i,j+1)*f1(2)
+          ss(i,j,4) = -betay(i,j  )*f1(2)
           ss(i,j,XBC) = ZERO
           ss(i,j,YBC) = ZERO
        end do
@@ -2207,7 +2216,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
        end do
     end do
 
@@ -2217,22 +2226,21 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
-               beta(i,j,1), beta(i+1,j,1), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), & betax(i,j), betax(i+1,j), &
                xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,1)+beta(i+1,j,1))*f1(1)
+             ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
           else
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
-                  beta(i,j,1), beta(i+1,j,1), &
+                  betax(i,j), betax(i+1,j), &
                   xa(1), xb(1), dh(1), bclo, bchi)
           end if
        end if
@@ -2242,7 +2250,7 @@ contains
 
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
        end do
     end do
 
@@ -2252,22 +2260,22 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
        else
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
                ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
-               beta(i,j,2), beta(i,j+1,2), &
+               betay(i,j), betay(i,j+1), &
                xa(2), xb(2), dh(2), bclo, bchi)
        end if
 
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (beta(i,j,2)+beta(i,j+1,2))*f1(2)
+             ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
           else
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
                   ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
-                  beta(i,j,2), beta(i,j+1,2), &
+                  betay(i,j), betay(i,j+1), &
                   xa(2), xb(2), dh(2), bclo, bchi)
           end if
        end if
@@ -2275,19 +2283,21 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
 
   end subroutine s_minion_second_fill_2d
 
-  subroutine s_minion_cross_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_cross_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb)
 
-    integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer nx, ny
@@ -2307,14 +2317,14 @@ contains
     ! The projection has beta == 1.
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,1) =   1.d0 * beta(i  ,j,1)
-          ss(i,j,2) = -16.d0 * beta(i  ,j,1)
-          ss(i,j,3) = -16.d0 * beta(i+1,j,1)
-          ss(i,j,4) =   1.d0 * beta(i+1,j,1)
-          ss(i,j,5) =   1.d0 * beta(i,j  ,2)
-          ss(i,j,6) = -16.d0 * beta(i,j  ,2)
-          ss(i,j,7) = -16.d0 * beta(i,j+1,2)
-          ss(i,j,8) =   1.d0 * beta(i,j+1,2)
+          ss(i,j,1) =   1.d0 * betax(i  ,j)
+          ss(i,j,2) = -16.d0 * betax(i  ,j)
+          ss(i,j,3) = -16.d0 * betax(i+1,j)
+          ss(i,j,4) =   1.d0 * betax(i+1,j)
+          ss(i,j,5) =   1.d0 * betay(i,j  )
+          ss(i,j,6) = -16.d0 * betay(i,j  )
+          ss(i,j,7) = -16.d0 * betay(i,j+1)
+          ss(i,j,8) =   1.d0 * betay(i,j+1)
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
                        +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) )
        end do
@@ -2325,7 +2335,7 @@ contains
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
 
@@ -2572,13 +2582,15 @@ contains
 
   end subroutine s_minion_full_old_2d
 
-  subroutine s_minion_full_fill_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_full_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb)
 
-    integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2606,14 +2618,14 @@ contains
     !  The stencil is the has two parts, the regular stencil and the correction
 
     !  We do the correction first which looks like
-    !  ss(i,j,nsten)  =   r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-    !                  +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) &
-    !                  +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-    !                  +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) &
-    !                  +  t2*(beta(i-2,j+1,2)-beta(i-2,j+1,2)) & 
-    !                  +  t1*(beta(i-1,j+1,2)-beta(i-1,j+1,2)) &
-    !                  +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-    !                  +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2)) &
+    !  ss(i,j,nsten)  =   r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+    !                  +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) &
+    !                  +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+    !                  +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) &
+    !                  +  t2*(betay(i-2,j+1)-betay(i-2,j+1)) & 
+    !                  +  t1*(betay(i-1,j+1)-betay(i-1,j+1)) &
+    !                  +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+    !                  +  b1*(betay(i-1,j  )-betay(i+1,j  )) &
 
     !  start with zero
     ss=0.0d0
@@ -2634,14 +2646,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =     -25.0d0/hy2
 b1 =     170.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1          -2
  nsten =            2
@@ -2653,14 +2665,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =     170.0d0/hy2
 b1 =   -1156.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0          -2
  nsten =            3
@@ -2672,14 +2684,14 @@ t2 =       0.0d0/hy2
 t1 =      -0.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1          -2
  nsten =            4
@@ -2691,14 +2703,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =    -170.0d0/hy2
 b1 =    1156.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2          -2
  nsten =            5
@@ -2710,14 +2722,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =      25.0d0/hy2
 b1 =    -170.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2          -1
  nsten =            6
@@ -2729,14 +2741,14 @@ t2 =      25.0d0/hy2
 t1 =    -170.0d0/hy2
 b2 =     375.0d0/hy2
 b1 =   -2550.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1          -1
  nsten =            7
@@ -2748,14 +2760,14 @@ t2 =    -170.0d0/hy2
 t1 =    1156.0d0/hy2
 b2 =   -2550.0d0/hy2
 b1 =   17340.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0          -1
  nsten =            8
@@ -2767,14 +2779,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1          -1
  nsten =            9
@@ -2786,14 +2798,14 @@ t2 =     170.0d0/hy2
 t1 =   -1156.0d0/hy2
 b2 =    2550.0d0/hy2
 b1 =  -17340.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2          -1
  nsten =           10
@@ -2805,14 +2817,14 @@ t2 =     -25.0d0/hy2
 t1 =     170.0d0/hy2
 b2 =    -375.0d0/hy2
 b1 =    2550.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           0
  nsten =           11
@@ -2824,14 +2836,14 @@ t2 =    -375.0d0/hy2
 t1 =    2550.0d0/hy2
 b2 =    -375.0d0/hy2
 b1 =    2550.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           0
  nsten =           12
@@ -2843,14 +2855,14 @@ t2 =    2550.0d0/hy2
 t1 =  -17340.0d0/hy2
 b2 =    2550.0d0/hy2
 b1 =  -17340.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           0
  nsten =            0
@@ -2862,14 +2874,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           0
  nsten =           13
@@ -2881,14 +2893,14 @@ t2 =   -2550.0d0/hy2
 t1 =   17340.0d0/hy2
 b2 =   -2550.0d0/hy2
 b1 =   17340.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           0
  nsten =           14
@@ -2900,14 +2912,14 @@ t2 =     375.0d0/hy2
 t1 =   -2550.0d0/hy2
 b2 =     375.0d0/hy2
 b1 =   -2550.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           1
  nsten =           15
@@ -2919,14 +2931,14 @@ t2 =     375.0d0/hy2
 t1 =   -2550.0d0/hy2
 b2 =      25.0d0/hy2
 b1 =    -170.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           1
  nsten =           16
@@ -2938,14 +2950,14 @@ t2 =   -2550.0d0/hy2
 t1 =   17340.0d0/hy2
 b2 =    -170.0d0/hy2
 b1 =    1156.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           1
  nsten =           17
@@ -2957,14 +2969,14 @@ t2 =       0.0d0/hy2
 t1 =      -0.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           1
  nsten =           18
@@ -2976,14 +2988,14 @@ t2 =    2550.0d0/hy2
 t1 =  -17340.0d0/hy2
 b2 =     170.0d0/hy2
 b1 =   -1156.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           1
  nsten =           19
@@ -2995,14 +3007,14 @@ t2 =    -375.0d0/hy2
 t1 =    2550.0d0/hy2
 b2 =     -25.0d0/hy2
 b1 =     170.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -2           2
  nsten =           20
@@ -3014,14 +3026,14 @@ t2 =     -25.0d0/hy2
 t1 =     170.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT           -1           2
  nsten =           21
@@ -3033,14 +3045,14 @@ t2 =     170.0d0/hy2
 t1 =   -1156.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            0           2
  nsten =           22
@@ -3052,14 +3064,14 @@ t2 =       0.0d0/hy2
 t1 =       0.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            1           2
  nsten =           23
@@ -3071,14 +3083,14 @@ t2 =    -170.0d0/hy2
 t1 =    1156.0d0/hy2
 b2 =      -0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
  ! DOING CONTRIB AT            2           2
  nsten =           24
@@ -3090,16 +3102,15 @@ t2 =      25.0d0/hy2
 t1 =    -170.0d0/hy2
 b2 =       0.0d0/hy2
 b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(beta(i+1,j-2,1)-beta(i+1,j+2,1)) & 
-                +  r1*(beta(i+1,j-1,1)-beta(i+1,j+1,1)) & 
-                +  l2*(beta(i  ,j-2,1)-beta(i  ,j+2,1)) & 
-                +  l1*(beta(i  ,j-1,1)-beta(i  ,j+1,1)) & 
-                +  t2*(beta(i-2,j+1,2)-beta(i+2,j+1,2)) & 
-                +  t1*(beta(i-1,j+1,2)-beta(i+1,j+1,2)) & 
-                +  b2*(beta(i-2,j  ,2)-beta(i+2,j  ,2)) & 
-                +  b1*(beta(i-1,j  ,2)-beta(i+1,j  ,2))   
+   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
+                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
+                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
+                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
+                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
+                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
+                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
+                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
    ss_sum = ss_sum+ss(i,j,nsten)
-!         print *, i,j,'ss_sum',ss_sum
        end do
     end do
 
@@ -3109,17 +3120,17 @@ b1 =       0.0d0/hy2
     hy2 = -1.d0 / (12.d0 * dh(2)**2 )
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,11) = ss(i,j,11) + (                             - beta(i,j,1))*hx2 
-          ss(i,j,12) = ss(i,j,12) + (        beta(i+1,j,1) + 15.0d0*beta(i,j,1))*hx2 
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*beta(i+1,j,1) - 15.0d0*beta(i,j,1))*hx2 
-          ss(i,j,13) = ss(i,j,13) + ( 15.0d0*beta(i+1,j,1) +        beta(i,j,1))*hx2 
-          ss(i,j,14) = ss(i,j,14) + (       -beta(i+1,j,1)                     )*hx2 
+          ss(i,j,11) = ss(i,j,11) + (                            - betax(i,j))*hx2 
+          ss(i,j,12) = ss(i,j,12) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx2 
+          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx2 
+          ss(i,j,13) = ss(i,j,13) + ( 15.0d0*betax(i+1,j) +        betax(i,j))*hx2 
+          ss(i,j,14) = ss(i,j,14) + (       -betax(i+1,j)                    )*hx2 
 
-          ss(i,j,3) = ss(i,j,3)   + (                             - beta(i,j,2))*hy2 
-          ss(i,j,8) = ss(i,j,8)   + (        beta(i,j+1,2) + 15.0d0*beta(i,j,2))*hy2 
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*beta(i,j+1,2) - 15.0d0*beta(i,j,2))*hy2 
-          ss(i,j,17) = ss(i,j,17) + ( 15.0d0*beta(i,j+1,2) +        beta(i,j,2))*hy2 
-          ss(i,j,22) = ss(i,j,22) + (       -beta(i,j+1,2)                     )*hy2 
+          ss(i,j,3) = ss(i,j,3)   + (                            - betay(i,j))*hy2 
+          ss(i,j,8) = ss(i,j,8)   + (        betay(i,j+1) + 15.0d0*betay(i,j))*hy2 
+          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betay(i,j+1) - 15.0d0*betay(i,j))*hy2 
+          ss(i,j,17) = ss(i,j,17) + ( 15.0d0*betay(i,j+1) +        betay(i,j))*hy2 
+          ss(i,j,22) = ss(i,j,22) + (       -betay(i,j+1)                    )*hy2 
        end do
     end do
 
@@ -3127,18 +3138,21 @@ b1 =       0.0d0/hy2
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
 
   end subroutine s_minion_full_fill_2d
 
-  subroutine s_minion_second_fill_3d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_second_fill_3d(ss, alpha, ng_a, betax, betay, betaz ,ng_b, dh, mask, lo, hi, xa, xb)
 
-    integer           , intent(in   ) :: lo(:), hi(:), ng_b
+    integer           , intent(in   ) :: lo(:), hi(:), ng_a, ng_b
     integer           , intent(inout) :: mask(lo(1)     :,lo(2)     :,lo(3)     :)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
-    real (kind = dp_t), intent(in   ) :: beta(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -3156,14 +3170,14 @@ b1 =       0.0d0/hy2
 
     ss(:,:,:,0) = ZERO
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -beta(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  1)*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -betax(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -betax(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -beta(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3),  2)*f1(2)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  2)*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -betay(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3)  )*f1(2)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -betay(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(2)
 
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,3)*f1(3)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -beta(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3),  3)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1)*f1(3)
+    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(3)
 
     ss(:,:,:,XBC) = ZERO
     ss(:,:,:,YBC) = ZERO
@@ -3182,7 +3196,7 @@ b1 =       0.0d0/hy2
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           end do
        end do
     end do
@@ -3196,21 +3210,21 @@ b1 =       0.0d0/hy2
 
           i = lo(1)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           else
              call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
-                  beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+                  betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
           end if
 
           if ( hi(1) > lo(1) ) then
              i = hi(1)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,1)+beta(i+1,j,k,1))*f1(1)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
              else
                 call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
-                     beta(i,j,k,1), beta(i+1,j,k,1), xa(1), xb(1), dh(1), bclo, bchi)
+                     betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
              end if
           end if
        end do
@@ -3223,7 +3237,7 @@ b1 =       0.0d0/hy2
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           end do
        end do
     end do
@@ -3237,20 +3251,20 @@ b1 =       0.0d0/hy2
 
           j = lo(2)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           else
              call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
-                  beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+                  betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
           end if
           if ( hi(2) > lo(2) ) then
              j = hi(2)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,2)+beta(i,j+1,k,2))*f1(2)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
              else
                 call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
-                     beta(i,j,k,2), beta(i,j+1,k,2), xa(2), xb(2), dh(2), bclo, bchi)
+                     betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
              end if
           end if
        end do
@@ -3263,7 +3277,7 @@ b1 =       0.0d0/hy2
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           end do
        end do
     end do
@@ -3277,20 +3291,20 @@ b1 =       0.0d0/hy2
 
           k = lo(3)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           else
              call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
-                  beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+                  betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
           end if
           if ( hi(3) > lo(3) ) then
              k = hi(3)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (beta(i,j,k,3)+beta(i,j,k+1,3))*f1(3)
+                ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
              else
                 call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
-                     beta(i,j,k,3), beta(i,j,k+1,3), xa(3), xb(3), dh(3), bclo, bchi)
+                     betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
              end if
           end if
        end do
@@ -3301,7 +3315,7 @@ b1 =       0.0d0/hy2
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
+             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
           end do
        end do
     end do
@@ -3309,13 +3323,16 @@ b1 =       0.0d0/hy2
 
   end subroutine s_minion_second_fill_3d
 
-  subroutine s_minion_cross_fill_3d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_cross_fill_3d(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb)
 
-    integer           , intent(in   ) :: ng_b
+    integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:,:)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
-    real (kind = dp_t), intent(in   ) :: beta(1-ng_b:,1-ng_b:,1-ng_b:,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer nx, ny, nz
@@ -3339,18 +3356,18 @@ b1 =       0.0d0/hy2
     do k = 1, nz
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,k, 1) =   1.d0 * beta(i  ,j,k,1)
-          ss(i,j,k, 2) = -16.d0 * beta(i  ,j,k,1)
-          ss(i,j,k, 3) = -16.d0 * beta(i+1,j,k,1)
-          ss(i,j,k, 4) =   1.d0 * beta(i+1,j,k,1)
-          ss(i,j,k, 5) =   1.d0 * beta(i,j  ,k,2)
-          ss(i,j,k, 6) = -16.d0 * beta(i,j  ,k,2)
-          ss(i,j,k, 7) = -16.d0 * beta(i,j+1,k,2)
-          ss(i,j,k, 8) =   1.d0 * beta(i,j+1,k,2)
-          ss(i,j,k, 9) =   1.d0 * beta(i,j,k  ,3)
-          ss(i,j,k,10) = -16.d0 * beta(i,j,k  ,3)
-          ss(i,j,k,11) = -16.d0 * beta(i,j,k+1,3)
-          ss(i,j,k,12) =   1.d0 * beta(i,j,k+1,3)
+          ss(i,j,k, 1) =   1.d0 * betax(i  ,j,k)
+          ss(i,j,k, 2) = -16.d0 * betax(i  ,j,k)
+          ss(i,j,k, 3) = -16.d0 * betax(i+1,j,k)
+          ss(i,j,k, 4) =   1.d0 * betax(i+1,j,k)
+          ss(i,j,k, 5) =   1.d0 * betay(i,j  ,k)
+          ss(i,j,k, 6) = -16.d0 * betay(i,j  ,k)
+          ss(i,j,k, 7) = -16.d0 * betay(i,j+1,k)
+          ss(i,j,k, 8) =   1.d0 * betay(i,j+1,k)
+          ss(i,j,k, 9) =   1.d0 * betaz(i,j,k  )
+          ss(i,j,k,10) = -16.d0 * betaz(i,j,k  )
+          ss(i,j,k,11) = -16.d0 * betaz(i,j,k+1)
+          ss(i,j,k,12) =   1.d0 * betaz(i,j,k+1)
           ss(i,j,k,0) = -(ss(i,j,k,1) + ss(i,j,k, 2) + ss(i,j,k, 3) + ss(i,j,k, 4) &
                          +ss(i,j,k,5) + ss(i,j,k, 6) + ss(i,j,k, 7) + ss(i,j,k, 8) &
                          +ss(i,j,k,9) + ss(i,j,k,10) + ss(i,j,k,11) + ss(i,j,k,12) )
@@ -3364,7 +3381,7 @@ b1 =       0.0d0/hy2
     do k = 1, nz
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,k,0) = ss(i,j,k,0) + beta(i,j,k,0)
+          ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
        end do
     end do
     end do
