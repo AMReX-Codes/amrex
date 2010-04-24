@@ -40,7 +40,7 @@ contains
        case (2)
           call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,hi,ng,dx,lev)
        case  (3)
-          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,hi,ng,ex,lev)
+          call tag_boxes_3d(tp(:,:,:,1),sp(:,:,:,1),lo,hi,ng,dx,lev)
        end select
     end do
 
