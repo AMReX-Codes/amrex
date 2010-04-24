@@ -501,7 +501,6 @@ contains
     if (cell_coeffs%ng .eq. 2) then
 
        minion_stencil = .true.
-       print *,'MINION STENCIL '
 
     endif 
 
