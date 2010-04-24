@@ -453,7 +453,7 @@ contains
     real(kind=dp_t), dimension(:,:,:,:), allocatable :: flxpt
     integer,         dimension(:,:,:,:), allocatable :: mmfpt
 
-    integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1), vol(1)
+    integer                 :: fsh(MAX_SPACEDIM+1), msh(MAX_SPACEDIM+1)
     integer,    allocatable :: rcnt(:), rdsp(:), scnt(:), sdsp(:)
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     integer,    allocatable :: g_snd_i(:), g_rcv_i(:)
