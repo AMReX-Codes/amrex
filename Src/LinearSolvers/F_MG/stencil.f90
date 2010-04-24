@@ -2229,7 +2229,8 @@ contains
           ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), & betax(i,j), betax(i+1,j), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), & 
+               betax(i,j), betax(i+1,j), &
                xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
