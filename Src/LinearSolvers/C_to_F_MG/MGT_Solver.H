@@ -19,6 +19,14 @@ public:
 	     const std::vector<DistributionMapping>& dmap,
 	     bool nodal);
 
+  MGT_Solver(const std::vector<Geometry>& geom,
+             int *bc, 
+	     const std::vector<BoxArray>& grids, 
+	     const std::vector<DistributionMapping>& dmap,
+	     bool nodal,
+	     int nc, 
+	     int ncomp);
+
   static void initialize(bool nodal);
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
