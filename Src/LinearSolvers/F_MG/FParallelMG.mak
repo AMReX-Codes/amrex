@@ -43,6 +43,7 @@ f90EXE_sources += bl_timer.f90
 f90EXE_sources += bl_stream.f90
 f90EXE_sources += bl_mem_stat.f90
 f90EXE_sources += box.f90
+f90EXE_sources += coarsen_coeffs.f90
 f90EXE_sources += sort_box.f90
 f90EXE_sources += list_box.f90
 f90EXE_sources += fab.f90
@@ -60,7 +61,6 @@ f90EXE_sources += bl_prof_stubs.f90
 f90EXE_sources += impose_neumann_bcs.f90
 
 f90EXE_sources += mg_prolongation.f90
-f90EXE_sources += st_coeffs.f90
 f90EXE_sources += ml_prolongation.f90
 f90EXE_sources += stencil.f90
 f90EXE_sources += stencil_fill.f90
