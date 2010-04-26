@@ -39,7 +39,7 @@ module cpp_mg_module
      type(multifab), pointer :: uu(:) => Null()
      type(multifab), pointer :: gp(:,:) => Null()
      type(multifab), pointer :: cell_coeffs(:) => Null()
-     type(multifab), pointer :: edge_coeffs(:) => Null()
+     type(multifab), pointer :: edge_coeffs(:,:) => Null()
   end type mg_server
 
   type(mg_server), save   :: mgts
