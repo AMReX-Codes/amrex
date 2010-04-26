@@ -262,7 +262,7 @@ subroutine mgt_init_coeffs_lev(lev)
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
 
   dm = mgts%dim
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
   allocate(mgts%cell_coeffs(nlev))
   allocate(mgts%edge_coeffs(nlev,dm))
 
@@ -279,7 +279,7 @@ end subroutine mgt_init_coeffs_lev
 subroutine mgt_init_mc_coeffs_lev(lev,nccomp)
   use cpp_mg_module
   implicit none
-  integer, intent(in) :: lev,ncomp
+  integer, intent(in) :: lev,nccomp
 
   integer :: nlev, dm, i
   integer :: flev
@@ -287,21 +287,21 @@ subroutine mgt_init_mc_coeffs_lev(lev,nccomp)
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
 
   dm = mgts%dim
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
   allocate(mgts%cell_coeffs(nlev))
   allocate(mgts%edge_coeffs(nlev,dm))
 
   ! The first coefficient is alpha, 
-  !   the next ncomp coefficients are cell-centered beta0 with components 1:ncomp
-  !   the next ncomp coefficients are edge-centered betax with components 1:ncomp,
-  !   the next ncomp coefficients are edge-centered betay with components 1:ncomp,
+  !   the next nccomp coefficients are cell-centered beta0 with components 1:nccomp
+  !   the next nccomp coefficients are edge-centered betax with components 1:nccomp
+  !   the next nccomp coefficients are edge-centered betay with components 1:nccomp
   !    etc
 
-  call  multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, nc=1+ncomp, 1)
+  call  multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, nc=1+nccomp, ng=1)
   call setval(mgts% cell_coeffs(nlev), 0.0_dp_t, all=.true.)
 
   do i = 1,dm
-    call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=ncomp,ng=0,dir=i)
+    call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=nccomp,ng=0,dir=i)
     call setval(mgts%edge_coeffs(nlev,i), 0.0_dp_t, all=.true.)
   end do
 
@@ -314,7 +314,7 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   integer   , intent(in) :: lev, dm
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
 
-  integer        :: nlev, flev
+  integer        :: i, nlev, flev
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
@@ -322,7 +322,7 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   call stencil_fill_cc_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs,  &
                                     mgts%edge_coeffs, xa, xb, pxa, pxb, mgts%stencil_order, mgts%bc)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
   call destroy(mgts%cell_coeffs(nlev))
   do i = 1,dm
      call destroy(mgts%edge_coeffs(nlev,i))
@@ -400,7 +400,7 @@ subroutine mgt_set_cfa_1d(lev, n, cf, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1), 1)
@@ -419,7 +419,7 @@ subroutine mgt_set_cfa2_1d(lev, n, cf, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), 1, 1, 2:nc+1) = cf(lo(1):hi(1), 1:nc)
@@ -437,7 +437,7 @@ subroutine mgt_set_cfa_1d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_1D_CONST", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), 1, 1, 1) = coeff_value
@@ -457,7 +457,7 @@ subroutine mgt_set_cfbx_1d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, 1, 1, 1) = b * cf(lo(1):hi(1)+1)
@@ -477,7 +477,7 @@ subroutine mgt_set_cfbnx_1d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, 1, 1, 1:nc) = b * cf(lo(1):hi(1)+1,1:nc)
@@ -496,7 +496,7 @@ subroutine mgt_set_cfbx_1d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBX_1D_CONST", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, 1, 1, 1) = coeff_value
@@ -515,7 +515,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
@@ -534,7 +534,7 @@ subroutine mgt_set_cfa2_2d(lev, n, cf, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), 1:nc)
@@ -553,7 +553,7 @@ subroutine mgt_set_cfa_2d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFA_2D_CONST", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = coeff_value
@@ -573,7 +573,7 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1 
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2))
@@ -592,7 +592,7 @@ subroutine mgt_set_cfbnx_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1 
   call mgt_verify_n("MGT_SET_CFBX_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1:nc) = b * cf(lo(1):hi(1)+1, lo(2):hi(2),1:nc)
@@ -611,7 +611,7 @@ subroutine mgt_set_cfbx_2d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBX_2D_CONST", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1) = coeff_value
@@ -630,7 +630,7 @@ subroutine mgt_set_cfby_2d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBY_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1)
@@ -650,7 +650,7 @@ subroutine mgt_set_cfbny_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBY_2D", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1:nc) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, 1:nc)
@@ -668,7 +668,7 @@ subroutine mgt_set_cfby_2d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CFBY_2D_CONST", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1) = coeff_value
@@ -686,7 +686,7 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
@@ -704,7 +704,7 @@ subroutine mgt_set_cfa2_3d(lev, n, cf, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:nc)
@@ -722,7 +722,7 @@ subroutine mgt_set_cfa_3d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = coeff_value
@@ -741,7 +741,7 @@ subroutine mgt_set_cfbx_3d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3))
@@ -760,7 +760,7 @@ subroutine mgt_set_cfbnx_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1:nc) = &
@@ -780,7 +780,7 @@ subroutine mgt_set_cfby_3d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3))
@@ -799,7 +799,7 @@ subroutine mgt_set_cfbny_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1:nc) = &
@@ -819,7 +819,7 @@ subroutine mgt_set_cfbz_3d(lev, n, cf, b, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1) = b * cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
@@ -838,7 +838,7 @@ subroutine mgt_set_cfbnz_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1:nc) = &
@@ -857,7 +857,7 @@ subroutine mgt_set_cfbx_3d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1) = coeff_value
@@ -875,7 +875,7 @@ subroutine mgt_set_cfby_3d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1) = coeff_value
@@ -893,7 +893,7 @@ subroutine mgt_set_cfbz_3d_const(lev, n, lo, hi, coeff_value)
   flev = lev+1
   call mgt_verify_n("MGT_SET_CF", flev, fn, lo, hi)
 
-  nlev = mgts%mgt(flev)%nlevel
+  nlev = mgts%mgt(flev)%nlevels
 
   cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1) = coeff_value
