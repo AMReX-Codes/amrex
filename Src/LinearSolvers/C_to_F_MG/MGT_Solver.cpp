@@ -190,6 +190,96 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   }
 }
 
+
+//
+// Constructing a solver for the following operator: 
+//    (\alpha I - \beta \sum_i (1/b_i) \nabla a_i \nabla) \phi
+//
+
+MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
+                       int* bc, 
+		       const std::vector<BoxArray>& grids,
+		       const std::vector<DistributionMapping>& dmap,
+		       bool nodal,
+		       int nc, 
+		       int ncomp)
+  :
+  m_dmap(dmap), m_grids(grids), m_nodal(nodal)
+{
+
+   if (!initialized)
+        initialize(nodal);
+
+  BL_ASSERT( m_grids.size() == dmap.size() );
+  m_nlevel = grids.size();
+  int dm = BL_SPACEDIM;
+  int i_nodal = (m_nodal)?1:0;
+
+  if (nodal) {
+    mgt_nodal_alloc(&dm, &m_nlevel, &i_nodal, &stencil_type);
+    mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
+                           &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                           &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                           &def_min_width,&def_cycle,&def_smoother,&stencil_type);
+  } else {
+    mgt_alloc(&dm, &m_nlevel, &i_nodal);
+    mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
+                     &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                     &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                     &def_min_width,&def_cycle,&def_smoother,&stencil_type);
+  }
+
+  Array<int> pm(dm);
+  for ( int i = 0; i < dm; ++i ) 
+    {
+      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
+    }
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      const Array<int>& pmap = dmap[lev].ProcessorMap();
+      Box domain = geom[lev].Domain();
+
+      int nb = grids[lev].size();
+      std::vector<int> lo(nb*dm);
+      std::vector<int> hi(nb*dm);
+
+      for ( int i = 0; i < nb; ++i )
+      {
+        for ( int j = 0; j < dm; ++j )
+	{
+	  lo[i + j*nb] = m_grids[lev][i].smallEnd(j);
+	  hi[i + j*nb] = m_grids[lev][i].bigEnd(j);
+	}
+      }
+
+      if (nodal) {
+        mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
+  		            domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
+      } else {
+        mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
+  		      domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
+      }
+    }
+
+  std::vector<Real> dx(m_nlevel*dm);
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for ( int j = 0; j < dm; ++j )
+	{
+	  dx[lev + j*m_nlevel] = geom[lev].CellSize()[j];
+	}
+    }
+
+  if (nodal) {
+    mgt_nodal_finalize(&dx[0],&bc[0]);
+  } else {
+    //mgt_finalize_n(&dx[0],&bc[0],&nc,&ncomp);
+    mgt_finalize(&dx[0],&bc[0]);
+  }
+}
+
+
 void
 MGT_Solver::initialize(bool nodal)
 {
@@ -257,6 +347,7 @@ MGT_Solver::initialize(bool nodal)
 
     pp.query("bottom_solver", def_bottom_solver);
 }
+
 
 void
 MGT_Solver::set_mac_coefficients(const MultiFab* aa[], 
@@ -521,7 +612,9 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
 #endif
 	}
       int dm = BL_SPACEDIM;
-      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb, &nc, &dm);
+      //      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb,
+      //      &nc, &dm);
+      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -584,10 +677,12 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
 #endif
 	}
       int dm = BL_SPACEDIM;
-      mgt_finalize_porous_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &nc, &dm);
+      //      mgt_finalize_porous_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &nc, &dm);
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
+
 
 void
 MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
@@ -745,7 +840,6 @@ MGT_Solver::applybc(MultiFab* uu[], const BndryData& bd)
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
-    int ng = 1;
     for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
     {
       FArrayBox& sol = (*(uu[lev]))[umfi];
