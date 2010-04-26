@@ -420,24 +420,6 @@ contains
 
        end do
 
-       do i = maxlev_bottom-1, 1, -1
-          call multifab_build(coarse_cell_coeffs(i),mgt%bottom_mgt%ss(i)%la,cell_coeffs(1)%nc,cell_coeffs(1)%ng)
-          call setval(coarse_cell_coeffs(i),ZERO,1,cell_coeffs(1)%nc,all=.true.)
-          call coarsen_cell_coeffs(coarse_cell_coeffs(i+1),coarse_cell_coeffs(i))
-          call multifab_fill_boundary(coarse_cell_coeffs(i))
-       end do
-
-       do i = maxlev_bottom-1, 1, -1
-          do d = 1,dm
-             call multifab_build(coarse_edge_coeffs(i,d),mgt%bottom_mgt%ss(i)%la,edge_coeffs(1,d)%nc,edge_coeffs(1,d)%ng)
-             call setval(coarse_edge_coeffs(i,d),ZERO,1,edge_coeffs(1,d)%nc,all=.true.)
-          end do
-             call coarsen_edge_coeffs(coarse_edge_coeffs(i+1,:),coarse_edge_coeffs(i,:))
-          do d = 1,dm
-             call multifab_fill_boundary(coarse_edge_coeffs(i,d))
-          end do
-       end do
-
        coarse_xa = ZERO
        coarse_xb = ZERO
        coarse_pxa = ZERO
