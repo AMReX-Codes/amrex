@@ -372,6 +372,8 @@ contains
        call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
                             pmask=old_coarse_la%lap%pmask)
 
+       call boxarray_destroy(new_coarse_ba)
+
        if (parallel_IOProcessor() .and. verbose .ge. 1) then
           call print(layout_get_pd(old_coarse_la),"COARSE PD")
           print *,'ORIG MG NBOXES ',old_coarse_la%lap%nboxes
@@ -477,10 +479,20 @@ contains
 
   end subroutine mg_tower_print
 
-  recursive subroutine mg_tower_destroy(mgt)
+  recursive subroutine mg_tower_destroy(mgt,destroy_la)
 
     type(mg_tower), intent(inout) :: mgt
+    logical, intent(in), optional :: destroy_la
+
+    logical :: ldestroy_la
+
+    type(layout) :: la
+
     integer :: i
+
+    ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
+
+    la = mgt%cc(mgt%nlevels)%la
 
     do i = 1, mgt%nlevels
        call destroy(mgt%cc(i))
@@ -512,8 +524,10 @@ contains
 
     if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
 
+    if (ldestroy_la) call layout_destroy(la)
+
     if ( associated(mgt%bottom_mgt) ) then
-       call mg_tower_destroy(mgt%bottom_mgt)
+       call mg_tower_destroy(mgt%bottom_mgt, .true.)
        deallocate(mgt%bottom_mgt)
     end if
 
