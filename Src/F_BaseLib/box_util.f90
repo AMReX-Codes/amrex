@@ -89,6 +89,32 @@ contains
 
   end subroutine read_a_hgproj_grid
 
+  subroutine write_a_hgproj_grid(mba, str)
+    use bl_IO_module
+    use bl_error_module
+    type(ml_boxarray), intent(in) :: mba
+    character(len=*), intent(in) :: str
+    integer :: un, n, nl
+    integer :: i, j
+    un = unit_new()
+    open(unit=un, file=str, status = 'unknown', action = 'write', err = 100)
+    go to 101
+100 call bl_error("WRITE_A_HGPROJ_GRID: failed to open: ", str)
+101 continue
+
+    write(unit=un,fmt=*) mba%nlevel
+    do i = 1, mba%nlevel
+       call box_print(mba%pd(i), legacy=.true., advance="NO", unit=un)
+       write(unit=un,fmt=*) nboxes(mba, i)
+       do j = 1, nboxes(mba, i)
+          call box_print(get_box(mba, i, j), legacy=.true., unit=un)        
+       enddo
+    enddo
+    close(unit=un)
+
+  end subroutine write_a_hgproj_grid
+
+
   !! Reads a multilevel boxarray in the following format
   !! Record 1: dimension
   !! Record 2: Number of Levels
