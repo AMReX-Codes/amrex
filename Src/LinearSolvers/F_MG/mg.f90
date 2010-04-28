@@ -327,11 +327,12 @@ contains
        end do
     end do
 
-    !   if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
+    ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
     if ( mgt%cycle_type == MG_WCycle ) mgt%gamma = 2
 
-    ! if only the bottom solver is 'solving' make sure that its eps is in effect
+    ! if only the bottom solver is 'solving' make sure that its eps is
+    ! in effect
     if ( mgt%nlevels == 1 ) then
        ba = get_boxarray(mgt%cc(1)%la)
        vol = boxarray_volume(ba)
@@ -341,9 +342,10 @@ contains
 
     call destroy(bpt)
 
-    ! If we're at a higher AMR level that coarsens to another mg_tower instead of
-    !   coarsening within this one then don't bother creating the special bottom solver stuff
-    if (mgt%nlevels == 1) mgt_bottom_solver = 1
+    ! If we're at a higher AMR level that coarsens to another mg_tower
+    ! instead of coarsening within this one then don't bother
+    ! creating the special bottom solver stuff
+    if (mgt%nlevels == 1) mgt%bottom_solver = 1
 
     if (mgt%bottom_solver == 4) then
 
