@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.200 2010-04-02 21:43:37 almgren Exp $
+// $Id: Amr.cpp,v 1.201 2010-04-28 00:01:43 almgren Exp $
 //
 #include <winstd.H>
 
@@ -949,6 +949,13 @@ Amr::init (Real strt_time,
         if (plot_int > 0 || plot_per > 0)
             writePlotFile(plot_file_root,level_steps[0]);
     }
+#ifdef HAS_XGRAPH
+    if (first_plotfile)
+    {
+        first_plotfile = false;
+        amr_level[0].setPlotVariables();
+    }
+#endif
 }
 
 void
