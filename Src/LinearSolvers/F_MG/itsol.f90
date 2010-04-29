@@ -674,7 +674,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
-    type(multifab) :: aa_local, rr_local
+    type(multifab) :: aa_local, rh_local
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
     type(layout) :: la
     integer :: i, ng_for_res
