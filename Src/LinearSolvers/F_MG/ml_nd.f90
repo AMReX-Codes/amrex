@@ -52,7 +52,7 @@ contains
 
     real(dp_t) :: Anorm, bnorm
     real(dp_t) :: fac
-    real(dp_t) :: tres
+    real(dp_t) :: tres,tres0
     real(dp_t) :: abs_eps
 
     logical, allocatable :: nodal(:)
@@ -146,6 +146,14 @@ contains
     do n = 1,nlevs
        call multifab_copy(rh(n),res(n),ng=rh(n)%ng)
     end do
+
+    tres0 = ml_norm_inf(rh,fine_mask)
+    if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
+       write(unit=*, &
+             fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
+       write(unit=*, &
+             fmt='("F90mg: Initial error (error0)       = ",g15.8)') tres0
+    end if
 
     ! ****************************************************************************
 
@@ -516,9 +524,15 @@ contains
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
-      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= abs_eps .or. &
-           ni_res <= epsilon(Anorm)*Anorm
+!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
+      r =  ni_res <= eps*(bnorm) .or. &
+           ni_res <= abs_eps 
+!     if (ni_res <= eps*(               bnorm) ) print *,'CONVERGED: res < eps*bnorm'
+!     if (ni_res <= eps*(Anorm*ni_sol        ) ) print *,'CONVERGED: res < eps*Anorm*ni_sol'
+!     if (ni_res <= abs_eps                    ) print *,'CONVERGED: res < abs_eps'
+!     if (ni_res <= epsilon(Anorm)*Anorm       ) print *,'CONVERGED: res < epsilon(Anorm)*Anorm'
     end function ml_fine_converged
 
     function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps) result(r)
@@ -530,9 +544,11 @@ contains
       real(dp_t) :: ni_res, ni_sol
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
-      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-           ni_res <= abs_eps .or. &
-           ni_res <= epsilon(Anorm)*Anorm
+!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
+      r =  ni_res <= eps*(bnorm) .or. &
+           ni_res <= abs_eps 
     end function ml_converged
 
   end subroutine ml_nd
