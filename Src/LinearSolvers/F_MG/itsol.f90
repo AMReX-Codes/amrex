@@ -119,6 +119,152 @@ contains
       !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
 
+    subroutine diag_init_cc_1d(a, ng_a, r, ng_r, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:   )
+
+      integer         :: i, nc
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=2)-1
+
+      do i = lo(1),hi(1)
+         denom = 1.d0 / a(i,0)
+         r(i     ) = r(i     ) * denom
+         a(i,1:nc) = a(i,1:nc) * denom
+         a(i,0   ) = 1.d0
+      end do
+
+    end subroutine diag_init_cc_1d
+
+    subroutine diag_init_cc_2d(a, ng_a, r, ng_r, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
+
+      integer         :: i, j, nc
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=3)-1
+
+      do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
+            denom = 1.d0 / a(i,j,0)
+            r(i,j     ) = r(i,j     ) * denom
+            a(i,j,1:nc) = a(i,j,1:nc) * denom
+            a(i,j,0   ) = 1.d0
+         end do
+      end do
+
+    end subroutine diag_init_cc_2d
+
+    subroutine diag_init_cc_3d(a, ng_a, r, ng_r, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
+
+      integer         :: i, j, k, nc
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=4)-1
+
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+      do k = lo(3),hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               denom = 1.d0 / a(i,j,k,0)
+               r(i,j,k     ) = r(i,j,k     ) * denom
+               a(i,j,k,1:nc) = a(i,j,k,1:nc) * denom
+               a(i,j,k,0   ) = 1.d0
+            end do
+         end do
+      end do
+
+      !$OMP END PARALLEL DO
+    end subroutine diag_init_cc_3d
+
+    subroutine diag_init_nd_1d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r, ng_m
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:   )
+      integer        , intent(inout)  :: mm(lo(1)-ng_m:   )
+
+      integer         :: i, nc
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=2)-1
+
+      do i = lo(1),hi(1)+1
+         if (.not. bc_dirichlet(mm(i),1,0)) then
+            denom = 1.d0 / a(i,0)
+            r(i     ) = r(i     ) * denom
+            a(i,1:nc) = a(i,1:nc) * denom
+            a(i,0   ) = 1.d0
+         end if
+      end do
+
+    end subroutine diag_init_nd_1d
+
+    subroutine diag_init_nd_2d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r, ng_m
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
+      integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:   )
+
+      integer         :: i, j, nc
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=3)-1
+
+      do j = lo(2),hi(2)+1
+         do i = lo(1),hi(1)+1
+            if (.not. bc_dirichlet(mm(i,j),1,0)) then
+               denom = 1.d0 / a(i,j,0)
+               r(i,j     ) = r(i,j     ) * denom
+               a(i,j,1:nc) = a(i,j,1:nc) * denom
+               a(i,j,0   ) = 1.d0
+            end if
+         end do
+      end do
+
+    end subroutine diag_init_nd_2d
+
+    subroutine diag_init_nd_3d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
+      integer        , intent(in   )  :: ng_a, ng_r, ng_m
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
+      integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:,lo(3)-ng_m:   )
+
+      integer         :: i, j, k, nc, nz
+      real(kind=dp_t) :: denom
+
+      nc = size(a,dim=4)-1
+      nz = size(a,dim=3)
+
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+      do k = lo(3),hi(3)+1
+         do j = lo(2),hi(2)+1
+            do i = lo(1),hi(1)+1
+               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                  denom = 1.d0 / a(i,j,k,0)
+                  r(i,j,k     ) = r(i,j,k     ) * denom
+                  a(i,j,k,1:nc) = a(i,j,k,1:nc) * denom
+                  a(i,j,k,0   ) = 1.d0
+               end if
+            end do
+         end do
+      end do
+
+      !$OMP END PARALLEL DO
+    end subroutine diag_init_nd_3d
+
   function itsol_converged(rr, uu, Anorm, bnorm, eps, abs_eps) result(r)
     use bl_prof_module
     type(multifab), intent(in) :: rr, uu
@@ -133,12 +279,15 @@ contains
     norm_rr = norm_inf(rr)
     norm_uu = norm_inf(uu)
     if (present(abs_eps)) then
-      r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
-          (norm_rr <= epsilon(Anorm)*Anorm) .or. &
+!     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
+!         (norm_rr <= epsilon(Anorm)*Anorm) .or. &
+!         (norm_rr <= abs_eps)
+      r = (norm_rr <= eps*(bnorm)) .or. &
           (norm_rr <= abs_eps)
     else
-      r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
-          (norm_rr <= epsilon(Anorm)*Anorm)
+!     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
+!         (norm_rr <= epsilon(Anorm)*Anorm)
+      r = (norm_rr <= eps*(bnorm)) 
     endif
     call destroy(bpt)
   end function itsol_converged
@@ -252,6 +401,8 @@ contains
     logical :: singular
     type(bl_prof_timer), save :: bpt
 
+    type(multifab) :: rh_local, aa_local
+
     call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
@@ -281,12 +432,21 @@ contains
        call setval(ss, ZERO, all=.true.)
     end if
 
+    ! Use these for local preconditioning
+    call multifab_build(rh_local, la, rh%nc, rh%ng, rh%nodal)
+    call multifab_build(aa_local, la, aa%nc, aa%ng, aa%nodal)
+
+    call copy(rh_local, 1, rh, 1, nc = rh%nc, ng = rh%ng)
+    call copy(aa_local, 1, aa, 1, nc = aa%nc, ng = aa%ng)
+
+    call diag_initialize(aa_local,rh_local,mm)
+
     call copy(ph, uu, ng = ph%ng)
     call copy(sh, uu, ng = sh%ng)
 
     cnt = 0
     ! compute rr = aa * uu - rh
-    call itsol_defect(aa, rr, rh, uu, mm, uniform_dh); cnt = cnt + 1
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh); cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
       call setval(ss,ONE)
@@ -312,9 +472,9 @@ contains
     rho_orig = rho
 
     tres0 = norm_inf(rr)
-    Anorm = stencil_norm(aa)
+    Anorm = stencil_norm(aa_local)
     small = epsilon(Anorm)
-    bnorm = norm_inf(rh)
+    bnorm = norm_inf(rh_local)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
@@ -370,8 +530,8 @@ contains
           call saxpy(pp, -omega, vv)
           call saxpy(pp, rr, beta, pp)
        end if
-       call itsol_precon(aa, ph, pp, mm, 0)
-       call itsol_stencil_apply(aa, vv, ph, mm, uniform_dh); cnt = cnt + 1
+       call itsol_precon(aa_local, ph, pp, mm, 0)
+       call itsol_stencil_apply(aa_local, vv, ph, mm, uniform_dh); cnt = cnt + 1
        if (present(nodal_mask)) then
           den = dot(rt, vv, nodal_mask)
        else
@@ -394,8 +554,8 @@ contains
                              rnorm  /  (bnorm)
        end if
        if ( itsol_converged(ss, uu, Anorm, bnorm, eps) ) exit
-       call itsol_precon(aa, sh, ss, mm,0)
-       call itsol_stencil_apply(aa, tt, sh, mm, uniform_dh); cnt = cnt + 1
+       call itsol_precon(aa_local, sh, ss, mm,0)
+       call itsol_stencil_apply(aa_local, tt, sh, mm, uniform_dh); cnt = cnt + 1
 
        if (present(nodal_mask)) then
           den = dot(tt, tt, nodal_mask)
@@ -422,9 +582,9 @@ contains
           write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
                              rnorm /  (bnorm)
        end if
-       if ( .true. .and. nodal_solve ) then
+       if ( .false. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
-          call itsol_precon(aa, sh, rr, mm, 0)
+          call itsol_precon(aa_local, sh, rr, mm, 0)
           if (present(nodal_mask)) then
              rho_hg = dot(rr, sh, nodal_mask)
           else
@@ -479,6 +639,9 @@ contains
           call bl_error("BiCGSolve: failed to converge");
        end if
     end if
+
+    call destroy(rh_local)
+    call destroy(aa_local)
 
 100 continue
 
@@ -763,6 +926,58 @@ contains
     call destroy(bpt)
 
   end subroutine itsol_precon
+
+  subroutine diag_initialize(aa, rh, mm)
+    use bl_prof_module
+    type( multifab), intent(in) :: aa
+    type( multifab), intent(in) :: rh
+    type(imultifab), intent(in) :: mm
+
+    real(kind=dp_t), pointer, dimension(:,:,:,:) :: ap, rp
+    integer        , pointer, dimension(:,:,:,:) :: mp
+    integer                                      :: i
+    integer                                      :: ng_a, ng_r, ng_m
+    integer                                      :: lo(rh%dim),hi(rh%dim)
+    type(bl_prof_timer), save                    :: bpt
+
+    call build(bpt, "diag_initialize")
+
+    ng_a = aa%ng
+    ng_r = rh%ng
+    ng_m = mm%ng
+
+    do i = 1, rh%nboxes
+       if ( multifab_remote(rh, i) ) cycle
+       rp => dataptr(rh, i)
+       ap => dataptr(aa, i)
+       mp => dataptr(mm, i)
+       lo = lwb(get_box(rh,i))
+       hi = upb(get_box(rh,i))
+       select case(rh%dim)
+          case (1)
+             if ( cell_centered_q(rh) ) then
+                call diag_init_cc_1d(ap(:,1,1,:), ng_a, rp(:,1,1,1), ng_r, lo, hi)
+             else
+                call diag_init_nd_1d(ap(:,1,1,:), ng_a, rp(:,1,1,1), ng_r, mp(:,1,1,1), ng_m, lo, hi)
+             end if
+          case (2)
+             if ( cell_centered_q(rh) ) then
+                call diag_init_cc_2d(ap(:,:,1,:), ng_a, rp(:,:,1,1), ng_r, lo, hi)
+             else
+                call diag_init_nd_2d(ap(:,:,1,:), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, lo, hi)
+             end if
+          case (3)
+             if ( cell_centered_q(rh) ) then
+                call diag_init_cc_3d(ap(:,:,:,:), ng_a, rp(:,:,:,1), ng_r, lo, hi)
+             else
+                call diag_init_nd_3d(ap(:,:,:,:), ng_a, rp(:,:,:,1), ng_r, mp(:,:,:,1), ng_m, lo, hi)
+             end if
+       end select
+    end do
+
+    call destroy(bpt)
+
+  end subroutine diag_initialize
 
 end module itsol_module
 
