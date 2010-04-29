@@ -1739,7 +1739,7 @@ contains
     if ( mg_tower_converged(mgt, mgt%nlevels, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) then
        if ( present(stat) ) stat = 0
        if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-          write(unit=*, fmt='("MG finished at on input")') 
+          write(unit=*, fmt='("F90mg: MG finished at on input")') 
        end  if
        return
     end if
@@ -1766,7 +1766,7 @@ contains
        if ( mg_tower_converged(mgt, mgt%nlevels, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) exit
     end do
     if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-       write(unit=*, fmt='("MG finished at ", i3, " iterations")') it
+       write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it
     end  if
 
     if ( it > mgt%max_iter ) then
