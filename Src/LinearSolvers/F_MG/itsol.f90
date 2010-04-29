@@ -674,6 +674,7 @@ contains
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
+    type(multifab) :: aa_local, rr_local
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
     type(layout) :: la
     integer :: i, ng_for_res
@@ -707,9 +708,18 @@ contains
     end if
     call setval(pp, ZERO, all=.true.)
 
+    ! Use these for local preconditioning
+    call multifab_build(rh_local, la, rh%nc, rh%ng, rh%nodal)
+    call multifab_build(aa_local, la, aa%nc, aa%ng, aa%nodal)
+
+    call copy(rh_local, 1, rh, 1, nc = rh%nc, ng = rh%ng)
+    call copy(aa_local, 1, aa, 1, nc = aa%nc, ng = aa%ng)
+
+    call diag_initialize(aa_local,rh_local,mm)
+
     cnt = 0
-    ! compute rr = aa * uu - rh
-    call itsol_defect(aa, rr, rh, uu, mm, uniform_dh)  
+    ! compute rr = aa * uu - rh_local
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh)  
     cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
@@ -727,9 +737,9 @@ contains
       call setval(zz,ZERO,all=.true.)
     end if
 
-    Anorm = stencil_norm(aa)
+    Anorm = stencil_norm(aa_local)
     small = epsilon(Anorm)
-    bnorm = norm_inf(rh)
+    bnorm = norm_inf(rh_local)
     tres0 = norm_inf(rr)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
@@ -752,7 +762,7 @@ contains
 
     do i = 1, max_iter
 
-       call itsol_precon(aa, zz, rr, mm, 0)
+       call itsol_precon(aa_local, zz, rr, mm, 0)
        if (present(nodal_mask)) then
           rho = dot(rr, zz, nodal_mask)
        else
@@ -762,7 +772,7 @@ contains
           call copy(pp, zz)
           rho_orig = rho
 
-          call itsol_precon(aa, zz, rr, mm)
+          call itsol_precon(aa_local, zz, rr, mm)
           if (present(nodal_mask)) then
              rho_hg_orig = dot(rr, zz, nodal_mask)
           else
@@ -781,7 +791,7 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call itsol_stencil_apply(aa, qq, pp, mm, uniform_dh); cnt = cnt + 1
+       call itsol_stencil_apply(aa_local, qq, pp, mm, uniform_dh); cnt = cnt + 1
        if (present(nodal_mask)) then
           den = dot(pp, qq, nodal_mask)
        else
@@ -805,7 +815,7 @@ contains
        end if
        if ( .true. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
-          call itsol_precon(aa, zz, rr, mm)
+          call itsol_precon(aa_local, zz, rr, mm)
           if (present(nodal_mask)) then
              rho_hg = dot(rr, zz, nodal_mask)
           else
@@ -865,6 +875,9 @@ contains
     call destroy(qq)
 
     call destroy(bpt)
+
+    call destroy(aa_local)
+    call destroy(rh_local)
 
   end subroutine itsol_CG_Solve
 
