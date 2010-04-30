@@ -286,9 +286,8 @@ contains
        end if
 
        bottom_box_size = 2**n
-       if (parallel_IOProcessor() .and. verbose .ge. 1) then
-          print *,'TOTAL # OF LEVELS IN FANCY BOTTOM SOLVE',n
-       end if
+       if (parallel_IOProcessor() .and. verbose .ge. 1) &
+          print *,'F90mg: New levels in bottom_solver = 4: ',n
 
        call boxarray_maxsize(new_coarse_ba,bottom_box_size)
        call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
@@ -297,9 +296,10 @@ contains
        call boxarray_destroy(new_coarse_ba)
 
        if (parallel_IOProcessor() .and. verbose .ge. 1) then
-          call print(layout_get_pd(old_coarse_la),"COARSE PD")
-          print *,'ORIG MG NBOXES ',old_coarse_la%lap%nboxes
-          print *,'NEW  MG NBOXES ',new_coarse_la%lap%nboxes
+          print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
+          call print(layout_get_pd(old_coarse_la))
+          print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
+          print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
        end if
 
        coarse_dx(:) = mgt%dh(:,1)
