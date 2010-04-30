@@ -9,6 +9,7 @@ f90sources += mg_nodal_cpp.f90
 f90sources += nodal_newu.f90
 endif
 f90sources += mg.f90
+f90sources += mg_tower.f90
 f90sources += mg_smoother.f90
 #f90sources += mlmg.f90
 f90sources += sparse_solve.f90
