@@ -274,6 +274,12 @@ ifeq ($(findstring nan, $(UNAMEN)), nan)
   CXX = mpicxx
 endif
 
+ifeq ($(findstring nan, $(UNAMEN)), inf)
+  MPIHOME=/usr/local/mpich2/
+  F90 = mpif90
+  CXX = mpicxx
+endif
+
 ifeq ($(HOST),lookfar)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
