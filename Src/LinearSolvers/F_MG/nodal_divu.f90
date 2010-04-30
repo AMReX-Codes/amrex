@@ -2,7 +2,7 @@ module nodal_divu_module
 
   use bl_constants_module
   use bndry_reg_module
-  use mg_module
+  use mg_tower_module
   use ml_restriction_module
 
   implicit none

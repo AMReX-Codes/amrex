@@ -26,7 +26,7 @@ contains
   recursive subroutine stencil_fill_nodal_all_mglevels(mgt, sg, stencil_type)
 
     use coarsen_coeffs_module
-    use mg_module
+    use mg_tower_module
 
     type(mg_tower ), intent(inout) :: mgt
     type(multifab ), intent(inout) :: sg(:)
@@ -313,7 +313,7 @@ contains
                                                     stencil_order, bc_face)
 
     use coarsen_coeffs_module
-    use mg_module
+    use mg_tower_module
 
     type(mg_tower) , intent(inout) :: mgt
     type(multifab) , intent(inout) :: cell_coeffs(:)
