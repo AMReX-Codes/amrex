@@ -77,6 +77,7 @@ f90EXE_sources += nodal_mask.f90
 f90EXE_sources += nodal_divu.f90
 f90EXE_sources += nodal_newu.f90
 f90EXE_sources += mg.f90
+f90EXE_sources += mg_tower.f90
 f90EXE_sources += mlmg.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_cc.f90
