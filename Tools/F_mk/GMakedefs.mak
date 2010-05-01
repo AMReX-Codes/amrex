@@ -40,6 +40,7 @@ sf90sources  =
 csources    =
 libraries   =
 xtr_libraries =
+hypre_libraries =
 mpi_libraries =
 mpi_include_dir =
 mpi_lib_dir =
@@ -638,7 +639,7 @@ F90DOC  :=  $(FPARALLEL)/scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags) $(f_includes)
 LDFLAGS  += $(fld_flags)
-libraries += $(mpi_libraries) $(xtr_libraries)
+libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
 CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
