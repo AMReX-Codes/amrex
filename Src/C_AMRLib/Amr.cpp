@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.202 2010-05-05 20:17:25 lijewski Exp $
+// $Id: Amr.cpp,v 1.203 2010-05-05 21:38:24 almgren Exp $
 //
 #include <winstd.H>
 
@@ -56,6 +56,7 @@ namespace
   const std::string CheckPointVersion = "CheckPointVersion_1.0";
   int regrid_on_restart               = 0;
   int plotfile_on_restart             = 0;
+  int compute_new_dt_on_regrid        = 0;
 }
 
 bool Amr::Plot_Files_Output () { return plot_files_output; }
@@ -318,6 +319,8 @@ Amr::Amr ()
 
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+
+    pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
     pp.query("checkpoint_files_output", checkpoint_files_output);
     pp.query("plot_files_output", plot_files_output);
@@ -1532,7 +1535,8 @@ void
 Amr::timeStep (int  level,
                Real time,
                int  iteration,
-               int  niter)
+               int  niter,
+               Real stop_time)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::timeStep()");
     //
@@ -1580,6 +1584,22 @@ Amr::timeStep (int  level,
             if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
             {
                 regrid(i,time);
+
+                //
+                // Compute new dt after regrid if at level 0 and compute_new_dt_on_regrid.
+                //
+                if ( compute_new_dt_on_regrid && (i == 0) )
+                {
+                    int post_regrid_flag = 1;
+                    amr_level[0].computeNewDt(finest_level,
+                                              sub_cycle,
+                                              n_cycle,
+                                              ref_ratio,
+                                              dt_min,
+                                              dt_level,
+                                              stop_time, 
+                                              post_regrid_flag);
+                }
 
                 for (int k = i; k <= finest_level; k++)
                     level_count[k] = 0;
@@ -1657,11 +1677,11 @@ Amr::timeStep (int  level,
             const int ncycle = n_cycle[lev_fine];
 
             for (int i = 1; i <= ncycle; i++)
-                timeStep(lev_fine,time+(i-1)*dt_level[lev_fine],i,ncycle);
+                timeStep(lev_fine,time+(i-1)*dt_level[lev_fine],i,ncycle,stop_time);
         }
         else
         {
-            timeStep(lev_fine,time,1,1);
+            timeStep(lev_fine,time,1,1,stop_time);
         }
     }
 
@@ -1678,14 +1698,18 @@ Amr::coarseTimeStep (Real stop_time)
     // Compute new dt.
     //
     if (level_steps[0] > 0)
+    {
+        int post_regrid_flag = 0;
         amr_level[0].computeNewDt(finest_level,
                                   sub_cycle,
                                   n_cycle,
                                   ref_ratio,
                                   dt_min,
                                   dt_level,
-                                  stop_time);
-    timeStep(0,cumtime,1,1);
+                                  stop_time,
+                                  post_regrid_flag);
+    }
+    timeStep(0,cumtime,1,1,stop_time);
 
     cumtime += dt_level[0];
 
