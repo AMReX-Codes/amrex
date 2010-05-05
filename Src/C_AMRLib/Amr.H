@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.41 2010-04-02 21:43:37 almgren Exp $
+// $Id: Amr.H,v 1.42 2010-05-05 21:36:11 almgren Exp $
 //
 
 #include <fstream>
@@ -316,7 +316,8 @@ protected:
     void timeStep (int  level,
                    Real dt,
                    int  iter,
-                   int  ncycle);
+                   int  ncycle,
+                   Real stop_time);
 
     void printGridInfo (std::ostream& os,
                         int           min_lev,
