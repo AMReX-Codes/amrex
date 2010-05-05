@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.201 2010-04-28 00:01:43 almgren Exp $
+// $Id: Amr.cpp,v 1.202 2010-05-05 20:17:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1935,43 +1935,9 @@ Amr::regrid (int  lbase,
     //
     // Report creation of new grids.
     //
-    if ((verbose || record_run_info) && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor())
     {
-        for (int lev = start; lev <= finest_level; lev++)
-        {
-            const int  numgrids = amr_level[lev].numGrids();
-            const long ncells   = amr_level[lev].countCells();
-            Real frac = 100.0*Real(ncells);
-            for (int d=0; d<BL_SPACEDIM; ++d)
-                frac /= geom[lev].Domain().length(d);
-
-            if (verbose)
-            {
-                std::cout << "   level "
-                          << lev
-                          << ": "
-                          << numgrids
-                          << " grids, "
-                          << ncells
-                          << " cells  = "
-                          << frac
-                          << " % of domain"
-                          << std::endl;
-            }
-            if (record_run_info)
-            {
-                runlog << "   level "
-                       << lev
-                       << ": "
-                       << numgrids
-                       << " grids, "
-                       << ncells
-                       << " cells  = "
-                       << frac
-                       << " % of domain"
-                       << std::endl;
-            }
-        }
+        printGridInfo(runlog,start,finest_level);
     }
     if (record_grid_info && ParallelDescriptor::IOProcessor())
     {
