@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.62 2010-03-25 21:44:46 almgren Exp $
+// $Id: AmrLevel.H,v 1.63 2010-05-05 21:38:45 almgren Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -109,7 +109,8 @@ public:
                                const Array<IntVect>& ref_ratio,
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
-                               Real                  stop_time) = 0;
+                               Real                  stop_time,
+                               int                   post_regrid_flag) = 0;
 
     /*@ManDoc: Do an integration step on this level.  Returns maximum safe
                time step.  This is a pure virtual function and hence MUST
