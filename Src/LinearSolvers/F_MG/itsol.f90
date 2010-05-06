@@ -448,7 +448,7 @@ contains
     ! compute rr = aa * uu - rh
     call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh); cnt = cnt + 1
 
-    if (singular .and. nodal_solve) then
+    if (singular) then
       call setval(ss,ONE)
       if (present(nodal_mask)) then
             rho = dot(rr, ss, nodal_mask)
@@ -625,12 +625,12 @@ contains
        end if
     end if
 
-!    if (rnorm > bnorm) then
-!       call setval(uu,ZERO,all=.true.)
-!       if ( present(stat) ) stat = 1
-!       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-!          print *,'   BiCGStab: solution reset to zero'
-!    end if
+     if (rnorm > bnorm) then
+        call setval(uu,ZERO,all=.true.)
+        if ( present(stat) ) stat = 1
+        if ( verbose > 0 .and.  parallel_IOProcessor() ) &
+           print *,'   BiCGStab: solution reset to zero'
+     end if
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
