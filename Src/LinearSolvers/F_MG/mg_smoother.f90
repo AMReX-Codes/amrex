@@ -22,7 +22,7 @@ contains
     integer :: ilen, i, hi(size(lo))
     integer, parameter ::  XBC = 3
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     ilen = hi(1)-lo(1)+1
     allocate(a_ls(0:hi(1)-lo(1)))
@@ -79,7 +79,7 @@ contains
 
     call build(bpt, "gs_rb_smoother_1d")
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     if (present(skwd) ) then
        lskwd = skwd
@@ -163,7 +163,7 @@ contains
 
     call build(bpt, "gs_rb_smoother_2d")
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     if (present(skwd) ) then
        lskwd = skwd
@@ -277,7 +277,7 @@ contains
 
     call build(bpt, "gs_rb_smoother_3d")
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
@@ -426,7 +426,7 @@ contains
 
     call build(bpt, "minion_smoother_2d")
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     if (is_cross) then
 
@@ -478,14 +478,14 @@ contains
 
   subroutine minion_smoother_3d(omega, ss, uu, ff, mm, lo, ng, is_cross)
     use bl_prof_module
-    integer           , intent(in) :: ng
-    integer           , intent(in) :: lo(:)
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):, lo(3):)
+    integer           , intent(in   ) :: ng
+    integer           , intent(in   ) :: lo(:)
+    real (kind = dp_t), intent(in   ) :: omega
+    real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
-    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
-    logical            ,intent(in) :: is_cross
+    real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    integer            ,intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
+    logical            ,intent(in   ) :: is_cross
 
     integer            :: i, j, k, hi(size(lo))
     real (kind = dp_t) :: dd
@@ -494,7 +494,7 @@ contains
 
     call build(bpt, "minion_smoother_3d")
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     if (is_cross) then
 
@@ -502,7 +502,7 @@ contains
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
              if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
-               dd =   ss(i,j,k,0) * uu(i,j,k) &
+               dd =   ss(i,j,k, 0) * uu(i,j,k) &
                     + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
                     + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
                     + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
@@ -1499,7 +1499,7 @@ contains
     real (kind = dp_t) :: wrk(size(ff,dim=1),4)
     integer :: i, j, hi(size(lo))
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -1521,7 +1521,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
     integer :: i, j, hi(size(lo))
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
     do i = lo(1), hi(1)
        do j = lo(2), hi(2)
           wrk(j,1:3) = ss(i,j,(/0,4,3/))
@@ -1543,7 +1543,7 @@ contains
     real (kind = dp_t) :: wrk(size(ff,dim=1),4)
     integer :: i, j, hi(size(lo))
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
 
     ! Note: it is wasteful to use the 4 component of wrk
 
@@ -1579,7 +1579,7 @@ contains
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
     integer :: i, j, hi(size(lo))
 
-    hi = ubound(uu)-ng
+    hi = ubound(ff)
     do i = lo(1), hi(1), 2
        do j = lo(2), hi(2)
           wrk(j,1:3) = ss(i,j,(/0,4,3/))
