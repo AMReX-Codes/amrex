@@ -78,6 +78,7 @@ contains
     mgt%dim = get_dim(la)
 
     ! Paste in optional arguments
+    if ( present(st_type)           ) mgt%st_type           = st_type
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
@@ -301,6 +302,8 @@ contains
                            domain_bc, &
                            dh = coarse_dx, &
                            ns = ns, &
+                           nc = mgt%nc, &
+                           ng = mgt%ng, &
                            smoother = smoother, &
                            nu1 = nu1, &
                            nu2 = nu2, &
@@ -419,12 +422,7 @@ contains
           call destroy(mgt%uu(i))
        end if
     end do
-    if ( associated(mgt%st) ) then
-       do i = 1, mgt%nlevels
-          call stencil_destroy(mgt%st(i))
-       end do
-       deallocate(mgt%st)
-    end if
+
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
     deallocate(mgt%tm)
@@ -562,7 +560,6 @@ contains
     type( multifab) :: bottom_rh
     integer         :: mglev
     logical         :: do_diag
-    real(dp_t)      :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
