@@ -58,7 +58,7 @@ contains
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
-    integer :: n, i, id, dm
+    integer :: n, i, id
     type(layout) :: la1, la2
     type(boxarray) :: ba
     logical :: nodal_flag
@@ -162,7 +162,8 @@ contains
     end if
 
     la1 = la
-    do i = mgt%nlevels, 1, -1
+
+    do i = n, 1, -1
        call  multifab_build(mgt%cc(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%ff(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%dd(i), la1, mgt%nc, ng_for_res, nodal)
@@ -174,15 +175,15 @@ contains
        call setval(mgt%ss(i), zero, all = .TRUE.)
 
        call imultifab_build(mgt%mm(i), la1, 1, 0, nodal)
-       if ( i /= mgt%nlevels ) then
+       if ( i /= n ) &
           call multifab_build(mgt%uu(i), la1, mgt%nc, mgt%ng, nodal)
-       end if
-       mgt%pd(i) = coarsen(pd, 2**(mgt%nlevels-i))
+       
+       mgt%pd(i) = coarsen(pd, 2**(n-i))
        if ( i > 1 ) call layout_build_coarse(la2, la1, (/(2,i=1,mgt%dim)/))
        la1 = la2
     end do
 
-    if ( mgt%bottom_solver == 3 ) then
+    if ( n > 1 .and. mgt%bottom_solver == 3 ) then
        la2 = mgt%cc(1)%la
        call layout_build_derived(la1, la2)
        call build(mgt%rh1, la1, mgt%nc, 0, nodal)
@@ -211,14 +212,6 @@ contains
     do i = mgt%nlevels-1, 1, -1
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do
-
-    if ( present(st_type) ) then
-       allocate(mgt%st(mgt%nlevels))
-       do i = mgt%nlevels, 1, -1
-          call stencil_build(mgt%st(i), la1, mgt%dh(:,i), &
-                             type = st_type, nc = ns, nodal = nodal)
-       end do
-    end if
 
     !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
     mgt%face_type = BC_INT

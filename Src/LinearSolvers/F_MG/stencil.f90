@@ -399,45 +399,6 @@ contains
     st%ns = -1
   end subroutine stencil_destroy
 
-  subroutine stencil_build(st, la, dh, type, nc, nodal)
-    type(stencil), intent(out) :: st
-    type(layout), intent(in) :: la
-    real(kind=dp_t), intent(in) :: dh(:)
-    integer, intent(in) :: type
-    integer, intent(in), optional :: nc
-    logical, intent(in), optional :: nodal(:)
-    st%dim = get_dim(la)
-    st%type = type
-    if ( present(nc) ) then
-       st%ns = nc
-    else
-       select case ( type )
-       case (ST_CROSS)
-          st%ns = 1 + 2*st%dim
-       case (ST_DENSE)
-          st%ns = 3**st%dim
-       case (ST_MINION_CROSS)
-          print *,'SETTING NS = 9'
-          st%ns = 9
-       case (ST_MINION_FULL)
-          print *,'SETTING NS = 25'
-          st%ns = 25
-       case default
-          call bl_error("STENCIL_BUILD: TYPE not known: ", type)
-       end select
-    end if
-    call multifab_build(st%ss, la, st%ns, 0, nodal = nodal)
-    call imultifab_build(st%mm, la,     1, 0, nodal = nodal)
-    allocate(st%skewed(nboxes(la)))
-    allocate(st%diag_0(nboxes(la)))
-    allocate(st%xa(st%dim), st%xb(st%dim), st%dh(st%dim),st%pxa(st%dim),st%pxb(st%dim))
-    st%xa = ZERO
-    st%xb = ZERO
-    st%pxa = ZERO
-    st%pxb = ZERO
-    st%dh = dh
-  end subroutine stencil_build
-
   function stencil_norm_st(st, mask) result(r)
     type(stencil), intent(in) :: st
     type(lmultifab), intent(in), optional :: mask
@@ -489,246 +450,12 @@ contains
     call destroy(bpt)
   end function stencil_norm
 
-  subroutine stencil_defect_st(st, rr, ff, uu)
-    type(stencil), intent(in) :: st
-    type(multifab), intent(inout) :: uu, rr
-    type(multifab), intent(in) :: ff
-    call stencil_apply_st(st, rr, uu)
-    call saxpy(rr, ff, -ONE, rr)
-  end subroutine stencil_defect_st
-
-  subroutine stencil_apply_st_c(st, rr, cr, uu, cu)
-    use bl_prof_module
-    type(stencil), intent(in) :: st
-    type(multifab), intent(inout) :: rr
-    type(multifab), intent(inout) :: uu
-    integer, intent(in) :: cr, cu
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: upn(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-
-    integer   :: i,lo(st%dim),hi(st%dim)
-    logical   :: skwd, lcross
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "stencil_ap_st_c")
-
-    if ( uu%ng    /= 1 ) call bl_error("STENCIL_APPLY_ST_C: uu%ng /= 1",    uu%ng)
-    if ( st%ss%ng /= 0 ) call bl_error("STENCIL_APPLY_ST_C: st%ss%ng /= 0", st%ss%ng)
-
-    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
-
-    call multifab_fill_boundary_c(uu, cu, 1, cross = lcross)
-
-    if ( st%extrap_bc) then
-       call stencil_extrap_bc(st, uu, cu)
-    end if
-
-    do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
-       rp => dataptr(rr, i, cr)
-       up => dataptr(uu, i, cu)
-       sp => dataptr(st%ss, i)
-       mp => dataptr(st%mm, i)
-       lo = lwb(get_box(uu,i))
-       hi = upb(get_box(uu,i))
-       select case ( st%type )
-       case (ST_DIAG)
-          upn => dataptr(uu, i, get_ibox(uu,i), cu)
-          rp = sp*upn
-       case (ST_CROSS)
-          skwd = st%skewed(i)
-          select case( st%dim )
-          case (1)
-             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
-                                   lo, hi, skwd)
-          case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                   lo, hi, skwd)
-          case (3)
-             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
-          end select
-       case (ST_DENSE)
-          select case( st%dim )
-          case (1)
-             call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
-          case (2)
-             call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
-          case (3)
-             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
-          end select
-       case (ST_MINION_CROSS)
-          select case( st%dim )
-          case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                   lo, hi, skwd)
-          case (3)
-             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
-          end select
-       case (ST_MINION_FULL)
-          select case( st%dim )
-          case (2)
-             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                   lo, hi, skwd)
-          case (3)
-             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
-          end select
-       end select
-    end do
-    call destroy(bpt)
-  end subroutine stencil_apply_st_c
-
-  subroutine stencil_apply_st(st, rr, uu, c, mask)
-    use bl_prof_module
-    type(stencil), intent(in) :: st
-    type(multifab), intent(inout) :: rr
-    type(multifab), intent(inout) :: uu
-    integer, intent(in), optional :: c
-    logical, intent(in), optional :: mask(:)
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: upn(:,:,:,:) 
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-
-    integer :: i, n, lo(st%dim), hi(st%dim)
-    logical :: skwd, lcross
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "stencil_ap_st")
-
-    lcross = ((ncomp(st%ss) == 5) .or. (ncomp(st%ss) == 7))
-
-    call multifab_fill_boundary(uu, cross = lcross)
-    if ( st%extrap_bc) then
-       call stencil_extrap_bc(st, uu)
-    end if
-
-    if ( present(c) ) then
-       n = c
-       if ( present(mask) ) then
-          if ( .not. mask(n) ) return
-       end if
-       do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
-          rp => dataptr(rr, i)
-          up => dataptr(uu, i, n)
-          sp => dataptr(st%ss, i)
-          mp => dataptr(st%mm, i)
-          lo = lwb(get_box(uu,i))
-          hi = upb(get_box(uu,i))
-          select case ( st%type )
-          case (ST_DIAG)
-            upn => dataptr(uu, i, get_ibox(uu,i), n)
-             rp = sp*upn
-          case (ST_CROSS)
-             skwd = st%skewed(i)
-             select case( st%dim )
-             case (1)
-                call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
-                                   lo, hi, skwd)
-             case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                   lo, hi, skwd)
-             case (3)
-                call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
-             end select
-          case (ST_DENSE)
-             select case( st%dim )
-             case (1)
-                call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
-             case (2)
-                call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
-             case (3)
-                call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
-             end select
-          case (ST_MINION_CROSS)
-             select case( st%dim )
-             case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                      lo, hi, skwd)
-             end select
-          case (ST_MINION_FULL)
-             select case( st%dim )
-             case (2)
-                call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                      lo, hi, skwd)
-             end select
-          end select
-       end do
-    else
-       do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
-          sp => dataptr(st%ss, i)
-          mp => dataptr(st%mm, i)
-          do n = 1, rr%nc
-             if ( present(mask) ) then
-                if ( .not. mask(n) ) cycle
-             end if
-             rp => dataptr(rr, i, get_ibox(rr,i), n)
-             up => dataptr(uu, i, n)
-             select case ( st%type )
-             case (ST_DIAG)
-               upn => dataptr(uu, i, get_ibox(uu,i), n)
-                rp = sp*upn
-             case (ST_CROSS)
-                skwd = st%skewed(i)
-                select case( st%dim )
-                case (1)
-                   call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1), &
-                                      lo, hi, skwd)
-                case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                      lo, hi, skwd)
-                case (3)
-                   call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng, mp(:,:,:,1), skwd)
-                end select
-             case (ST_DENSE)
-                select case( st%dim )
-                case (1)
-                   call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), rr%ng, up(:,1,1,1), uu%ng, mp(:,1,1,1))
-                case (2)
-                   call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1))
-                case (3)
-                   call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), rr%ng, up(:,:,:,1), uu%ng)
-                end select
-             case (ST_MINION_CROSS)
-                select case( st%dim )
-                case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                         lo, hi, skwd)
-                end select
-             case (ST_MINION_FULL)
-                select case( st%dim )
-                case (2)
-                   call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), rr%ng, up(:,:,1,1), uu%ng, mp(:,:,1,1), &
-                                         lo, hi, skwd)
-                end select
-             end select
-          end do
-       end do
-    end if
-    call destroy(bpt)
-  end subroutine stencil_apply_st
-
   subroutine stencil_set_extrap_bc(st, max_order)
     type(stencil), intent(inout) :: st
     integer, intent(in) :: max_order
     st%extrap_bc = .true.
     st%extrap_max_order = max_order
   end subroutine stencil_set_extrap_bc
-
-  subroutine stencil_set_bc_st(st, bc_face)
-    type(stencil), intent(inout) :: st
-    integer,       intent(in)    :: bc_face(:,:)
-    integer,       pointer       :: mp(:,:,:,:)
-    integer                      :: i
-    do i = 1, st%ss%nboxes
-       if ( multifab_remote(st%ss,i) ) cycle
-       mp => dataptr(st%mm, i)
-       call stencil_set_bc(st%ss, i, st%mm%fbs(i), bc_face)
-       st%skewed(i) = skewed_q(mp)
-    end do
-  end subroutine stencil_set_bc_st
 
   subroutine stencil_print(st, str, unit, skip)
     use bl_IO_module
@@ -2176,11 +1903,11 @@ contains
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
-    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
-    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
+    integer           , intent(inout) :: mask(lo(1):,lo(2):)
+    real (kind = dp_t), intent(  out) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2294,11 +2021,11 @@ contains
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
-    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
-    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
+    integer           , intent(inout) :: mask(lo(1):,lo(2):)
+    real (kind = dp_t), intent(  out) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer nx, ny
@@ -2316,8 +2043,8 @@ contains
 
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           ss(i,j,1) =   1.d0 * betax(i  ,j)
           ss(i,j,2) = -16.d0 * betax(i  ,j)
           ss(i,j,3) = -16.d0 * betax(i+1,j)
@@ -2334,8 +2061,8 @@ contains
     ss = ss * (ONE / (12.d0 * dh(1)**2))
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
@@ -2587,11 +2314,11 @@ contains
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
-    real (kind = dp_t), intent(in   ) :: alpha(1-ng_a:,1-ng_a:)
-    real (kind = dp_t), intent(in   ) :: betax(1-ng_b:,1-ng_b:)
-    real (kind = dp_t), intent(in   ) :: betay(1-ng_b:,1-ng_b:)
+    integer           , intent(inout) :: mask(lo(1):,lo(2):)
+    real (kind = dp_t), intent(  out) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
@@ -2634,8 +2361,8 @@ contains
     !  The coefficients hx2 and hy2 are defined by
     hx2 = -( 12.d0**2 * 48.d0**2 * dh(1)**2 )
     hy2 = -( 12.d0**2 * 48.d0**2 * dh(2)**2 )
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           ss_sum=0.0d0
  ! DOING CONTRIB AT           -2          -2
  nsten =            1
@@ -3137,8 +2864,8 @@ b1 =       0.0d0/hy2
 
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           ss(i,j,0) = ss(i,j,0) + alpha(i,j)
        end do
     end do
@@ -3328,20 +3055,15 @@ b1 =       0.0d0/hy2
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(:,:,:)
-    real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
+    integer           , intent(inout) :: mask(lo(1)      :,lo(2)     :,lo(3)     :)
+    real (kind = dp_t), intent(  out) ::    ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
-    integer nx, ny, nz
     integer i, j, k
-
-    nx = hi(1)-lo(1)+1
-    ny = hi(2)-lo(2)+1
-    nz = hi(3)-lo(3)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -3354,9 +3076,9 @@ b1 =       0.0d0/hy2
 
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
-    do k = 1, nz
-    do j = 1, ny
-       do i = 1, nx
+    do k = lo(3),hi(3)
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
           ss(i,j,k, 1) =   1.d0 * betax(i  ,j,k)
           ss(i,j,k, 2) = -16.d0 * betax(i  ,j,k)
           ss(i,j,k, 3) = -16.d0 * betax(i+1,j,k)
@@ -3379,9 +3101,9 @@ b1 =       0.0d0/hy2
     ss = ss * (ONE / (12.d0 * dh(1)**2))
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do k = 1, nz
-    do j = 1, ny
-       do i = 1, nx
+    do k = lo(3),hi(3)
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
           ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
        end do
     end do
