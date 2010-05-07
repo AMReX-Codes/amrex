@@ -280,6 +280,13 @@ ifeq ($(MACHINE), Linux)
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lpthread
     endif
+    ifeq ($(WHICHLINUX),EUCLID)
+      mpihome=/usr/common/usg/openmpi/1.4.1/pgi
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread -lmpi
+    endif
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
     endif
@@ -289,7 +296,9 @@ ifeq ($(MACHINE), Linux)
           ifneq ($(WHICHLINUX), DELLA)
             ifneq ($(WHICHLINUX), CARVER)
               ifneq ($(HOST),davinci)
-                BL_MPI_LIBS += -lmpich
+                ifneq ($(WHICHLINUX), EUCLID)
+                  BL_MPI_LIBS += -lmpich
+                endif
               endif
             endif
           endif
