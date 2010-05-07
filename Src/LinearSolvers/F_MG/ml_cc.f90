@@ -166,7 +166,7 @@ contains
        write(unit=*, &
              fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
        write(unit=*, &
-             fmt='("F90mg: Initial error (error0)       = ",g15.8)') tres0
+             fmt='("F90mg: Initial residual (resid0)    = ",g15.8)') tres0
     end if
 
     ! ************************************************************************
@@ -415,7 +415,7 @@ contains
                 if ( parallel_ioprocessor() ) then
 !                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
 !                       iter,n,tres
-                   write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," error/error0 = ",g15.8)') &
+                   write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                         iter,n,tres/tres0
                 end if
              end do
@@ -432,7 +432,7 @@ contains
              tres = norm_inf(res(nlevs))
              if ( parallel_IOProcessor() ) then
 !               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
-                write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  error/error0 = ",g15.8)') iter,tres/tres0
+                write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
              end if
           end if
 
@@ -449,10 +449,10 @@ contains
           tres = ml_norm_inf(res,fine_mask)
           if ( parallel_IOProcessor() ) then
              if (tres0 .gt. 0.0_dp_t) then
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,tres/tres0
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
                write(unit=*, fmt='("")') 
              else
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," error/error0 = ",g15.8)') iter,0.0_dp_t
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
                write(unit=*, fmt='("")') 
              end if
           end if

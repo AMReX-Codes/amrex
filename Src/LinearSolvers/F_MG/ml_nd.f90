@@ -152,7 +152,7 @@ contains
        write(unit=*, &
              fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
        write(unit=*, &
-             fmt='("F90mg: Initial error (error0)       = ",g15.8)') tres0
+             fmt='("F90mg: Initial residual (resid0)    = ",g15.8)') tres0
     end if
 
     ! ****************************************************************************
@@ -162,7 +162,7 @@ contains
     do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -385,13 +385,15 @@ contains
              do n = 1,nlevs
                 tres = norm_inf(res(n))
                 if ( parallel_IOProcessor() ) then
-                   write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,tres
+!                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,tres
+                   write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
+                        iter,n,tres/tres0
                 end if
              end do
-             tres = ml_norm_inf(res,fine_mask)
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
-             end if
+!            tres = ml_norm_inf(res,fine_mask)
+!            if ( parallel_IOProcessor() ) then
+!               write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
+!            end if
           end if
 
        else
@@ -400,7 +402,8 @@ contains
           if ( mgt(nlevs)%verbose > 1 ) then
              tres = norm_inf(res(nlevs))
              if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+!               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+                write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
              end if
           end if
 
@@ -535,9 +538,10 @@ contains
 !     if (ni_res <= epsilon(Anorm)*Anorm       ) print *,'CONVERGED: res < epsilon(Anorm)*Anorm'
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps, verbose) result(r)
       use ml_util_module
       logical :: r
+      integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
       real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
@@ -549,6 +553,17 @@ contains
 !          ni_res <= epsilon(Anorm)*Anorm
       r =  ni_res <= eps*(bnorm) .or. &
            ni_res <= abs_eps 
+      if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
+         if (ni_res <= eps*Anorm*ni_sol) then
+            print *,'Converged res < eps*Anorm*sol'
+         else if (ni_res <= abs_eps) then
+            print *,'Converged res < abs_eps '
+         else if (ni_res <= eps*bnorm) then
+            print *,'Converged res < eps*bnorm '
+         else
+            print *,'Converged res < epsilon(Anorm)*Anorm'
+         end if
+      end if
     end function ml_converged
 
   end subroutine ml_nd
