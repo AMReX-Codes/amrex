@@ -530,6 +530,14 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic()) return;
 
+#ifndef NDEBUG
+        //
+        // Don't let folks ask for more grow cells than they have valid region.
+        //
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (geom.isPeriodic(n))
+                BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
+#endif
         FabArrayCopyDescriptor<FAB> mfcd;
 
         Geometry::FPB TheFPB(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
