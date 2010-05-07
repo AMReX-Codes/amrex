@@ -252,9 +252,10 @@ contains
 
     call destroy(bpt)
 
-    ! If we're at a higher AMR level that coarsens to another mg_tower
-    ! instead of coarsening within this one then don't bother
-    ! creating the special bottom solver stuff
+    ! If we're at a higher AMR level that coarsens to another mg_tower,
+    !   or if you're here as part of a mac_applyop instead of a solve
+    !   instead of coarsening within this one then don't bother
+    !   creating the special bottom solver stuff
     if (mgt%nlevels == 1) mgt%bottom_solver = 1
 
     if (mgt%bottom_solver == 4) then
