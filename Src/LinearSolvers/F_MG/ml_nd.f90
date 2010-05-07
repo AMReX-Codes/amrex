@@ -554,14 +554,10 @@ contains
       r =  ni_res <= eps*(bnorm) .or. &
            ni_res <= abs_eps 
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= eps*Anorm*ni_sol) then
-            print *,'Converged res < eps*Anorm*sol'
+         if (ni_res <= eps*bnorm) then
+            print *,'Converged res < eps*bnorm '
          else if (ni_res <= abs_eps) then
             print *,'Converged res < abs_eps '
-         else if (ni_res <= eps*bnorm) then
-            print *,'Converged res < eps*bnorm '
-         else
-            print *,'Converged res < epsilon(Anorm)*Anorm'
          end if
       end if
     end function ml_converged
