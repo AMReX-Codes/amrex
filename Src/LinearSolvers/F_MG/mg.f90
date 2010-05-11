@@ -688,7 +688,7 @@ contains
 
   end subroutine mg_tower_bottom_solve
 
-  ! computes dd = ss * uu - ff
+  ! computes dd = ff - ss * uu
   subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
 
     use bl_prof_module
