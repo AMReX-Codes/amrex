@@ -1,5 +1,4 @@
 f90sources += BoxLib.f90
-f90sources += omp.f90
 f90sources += f2kcli$(f2kcli_suf).f90
 
 f90sources += bl_constants.f90
@@ -64,48 +63,7 @@ csources += timer_c.c
 csources += ppm_util_c.c
 csources += system_util_c.c
 
-ifeq ($(ARCH),Darwin)
-  ifeq ($(COMP),g95)
-    ifndef OMP
-      f90sources += omp_stubs.f90
-    endif
-  endif
-endif
-
-ifeq ($(ARCH),Linux)
-  ifeq ($(COMP),g95)
-    ifndef OMP
-      f90sources += omp_stubs.f90
-    endif
-  endif
-  ifeq ($(COMP),PathScale)
-    ifndef OMP
-      f90sources += omp_stubs.f90
-    endif
-  endif
-  ifeq ($(COMP),Intel)
-    ifndef OMP
-      f90sources += omp_stubs.f90
-    endif
-  endif
-  ifeq ($(COMP),NAG)
-    f90sources += omp_stubs.f90
-    f2kcli_suf := _nag
-  endif
-  ifeq ($(COMP),Lahey)
-    ifndef OMP
-      f90sources += omp_stubs.f90
-    endif
-  endif
-endif
-
 ifeq ($(ARCH),AIX)
-endif
-
-ifeq ($(ARCH),IRIX64)
-  ifndef OMP
-    f90sources += omp_stubs.f90
-  endif
 endif
 
 ifeq ($(ARCH),OSF1)

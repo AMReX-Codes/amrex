@@ -1,9 +1,6 @@
 f90sources = $(f90sources) $(boxlib_dir)\BoxLib.f90
 f90objects = $(f90objects) $(obj_dir)\BoxLib.obj
 
-f90sources = $(f90sources) $(boxlib_dir)\omp.f90
-f90objects = $(f90objects) $(obj_dir)\omp.obj
-
 f90sources = $(f90sources) $(boxlib_dir)\f2kcli_win32.f90
 f90objects = $(f90objects) $(obj_dir)\f2kcli_win32.obj
 
@@ -99,9 +96,6 @@ f90objects = $(f90objects) $(obj_dir)\ppm_util.obj
 
 f90sources = $(f90sources) $(boxlib_dir)\parallel_stubs.f90
 f90objects = $(f90objects) $(obj_dir)\parallel_stubs.obj
-
-f90sources = $(f90sources) $(boxlib_dir)\omp_stubs.f90
-f90objects = $(f90objects) $(obj_dir)\omp_stubs.obj
 
 csources = $(csources) $(boxlib_dir)\fabio_c.c
 cobjects = $(cobjects) $(obj_dir)\fabio_c.obj
