@@ -20,7 +20,7 @@ module layout_module
 
   integer, private :: verbose = 0
 
-  integer, private :: sfc_threshold = 5
+  integer, private :: sfc_threshold = 4
 
   integer, private :: def_mapping = LA_KNAPSACK
 
@@ -128,28 +128,6 @@ module layout_module
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
   !
-  ! Used by MAESTRO/average.f90.
-  !
-  type ave_t
-     !
-     ! v(:,1) contains the unique indexes.
-     ! v(:,2) contains the counts corresponding to the indexes.
-     !
-     integer, pointer, dimension(:,:) :: v => Null()
-  end type ave_t
-
-  type avefab
-     type(box)                              :: bx
-     type(ave_t), pointer, dimension(:,:,:) :: p => Null()
-  end type avefab
-
-  type aveassoc
-     integer                 :: nsub     =  0
-     logical,        pointer :: nodal(:) => Null()
-     type(avefab),   pointer :: fbs(:)   => Null()
-     type(aveassoc), pointer :: next     => Null()
-  end type aveassoc
-  !
   ! Used by layout_get_box_intersector().
   !
   type box_intersector
@@ -187,7 +165,6 @@ module layout_module
      integer, pointer, dimension(:)  :: prc         => Null()
      type(boxarray)                  :: bxa
      type(boxassoc), pointer         :: bxasc       => Null()
-     type(aveassoc), pointer         :: avasc       => Null()
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
@@ -231,7 +208,6 @@ module layout_module
   interface built_q
      module procedure layout_built_q
      module procedure boxassoc_built_q
-     module procedure aveassoc_built_q
      module procedure fgassoc_built_q
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
@@ -359,10 +335,6 @@ contains
     type(mem_stats), intent(in) :: ms
     bxa_ms = ms
   end subroutine boxassoc_set_mem_stats
-  subroutine aveassoc_set_mem_stats(ms)
-    type(mem_stats), intent(in) :: ms
-    avx_ms = ms
-  end subroutine aveassoc_set_mem_stats
   subroutine fgassoc_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
     fgx_ms = ms
@@ -388,10 +360,6 @@ contains
     type(mem_stats) :: r
     r = bxa_ms
   end function boxassoc_mem_stats
-  function aveassoc_mem_stats() result(r)
-    type(mem_stats) :: r
-    r = avx_ms
-  end function aveassoc_mem_stats
   function fgassoc_mem_stats() result(r)
     type(mem_stats) :: r
     r = fgx_ms
@@ -543,7 +511,6 @@ contains
     type(pn_layout), pointer :: pnp, opnp
     type(derived_layout), pointer :: dla, odla
     type(boxassoc),  pointer :: bxa, obxa
-    type(aveassoc),  pointer :: avxa, oavxa
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
@@ -589,16 +556,6 @@ contains
        call boxassoc_destroy(bxa)
        deallocate(bxa)
        bxa => obxa
-    end do
-    !
-    ! Get rid of aveassocs.
-    !
-    avxa => lap%avasc
-    do while ( associated(avxa) )
-       oavxa => avxa%next
-       call aveassoc_destroy(avxa)
-       deallocate(avxa)
-       avxa => oavxa
     end do
     !
     ! Get rid of fgassocs.
@@ -1020,14 +977,6 @@ contains
     r = (bxa%grwth == ng) .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
   end function boxassoc_check
 
-  function aveassoc_check(ava, nsub, nodal) result(r)
-    type(aveassoc), intent(in) :: ava
-    integer,        intent(in) :: nsub
-    logical,        intent(in) :: nodal(:)
-    logical                    :: r
-    r = (ava%nsub == nsub) .and. all(ava%nodal .eqv. nodal)
-  end function aveassoc_check
-
   function fgassoc_check(fgxa, ng) result(r)
     type(fgassoc), intent(in) :: fgxa
     integer,       intent(in) :: ng
@@ -1070,35 +1019,6 @@ contains
     la%lap%bxasc => bp
     r = bp
   end function layout_boxassoc
-
-  function layout_aveassoc(la, nsub, nodal, dx, center, dr) result(r)
-    type(aveassoc)               :: r
-    type(layout) , intent(inout) :: la
-    integer,       intent(in   ) :: nsub
-    logical,       intent(in   ) :: nodal(:)
-    real(dp_t),    intent(in   ) :: dx(:)
-    real(dp_t),    intent(in   ) :: center(:)
-    real(dp_t),    intent(in   ) :: dr
-
-    type(aveassoc), pointer :: ap
-
-    ap => la%lap%avasc
-    do while ( associated(ap) )
-       if ( aveassoc_check(ap, nsub, nodal) ) then
-          r = ap
-          return
-       end if
-       ap => ap%next
-    end do
-    !
-    ! Have to build one.
-    !
-    allocate (ap)
-    call aveassoc_build(ap, la%lap, nsub, nodal, dx, center, dr)
-    ap%next      => la%lap%avasc
-    la%lap%avasc => ap
-    r = ap
-  end function layout_aveassoc
 
   function layout_fgassoc(la, ng) result(r)
     type(fgassoc)                :: r
@@ -1156,12 +1076,6 @@ contains
     type(boxassoc), intent(in) :: bxasc
     r = bxasc%dim /= 0
   end function boxassoc_built_q
-
-  function aveassoc_built_q(avasc) result(r)
-    logical :: r
-    type(aveassoc), intent(in) :: avasc
-    r = avasc%nsub > 0
-  end function aveassoc_built_q
 
   function fgassoc_built_q(fgasc) result(r)
     logical :: r
@@ -1455,127 +1369,6 @@ contains
     call destroy(bpt)
 
   end subroutine boxassoc_build
-
-  subroutine aveassoc_build(avasc, lap, nsub, nodal, dx, center, dr)
-    use sort_i_module
-    use bl_prof_module
-    use bl_error_module
-    use vector_i_module
-    use bl_constants_module
-
-    integer,          intent(in)         :: nsub
-    logical,          intent(in)         :: nodal(:)
-    real(dp_t),       intent(in)         :: dx(:)
-    real(dp_t),       intent(in)         :: center(:)
-    real(dp_t),       intent(in)         :: dr
-    type(layout_rep), intent(in), target :: lap
-    type(aveassoc),   intent(inout)      :: avasc
-
-    integer                        :: i, j, k, n, ii, jj, kk, lo(3), hi(3)
-    integer                        :: index, l, cnt, val, itotal
-    real(dp_t)                     :: xmin, ymin, zmin, xx, yy, zz
-    type(box)                      :: bx
-    type(layout)                   :: la
-    type(vector_i)                 :: imap, vals, cnts
-    integer, pointer, dimension(:) :: iptr
-    type(bl_prof_timer), save      :: bpt
-    !
-    ! Note that dx, center & dr are part of the geometry of the
-    ! problem and hence don't need to be saved in aveassoc.
-    !
-    if ( built_q(avasc) ) call bl_error('aveassoc_build(): already built')
-    if ( nsub < 1       ) call bl_error('aveassoc_build(): nsub must be >= 1')
-    if ( lap%dim /= 3   ) call bl_error('aveassoc_build(): this should only be needed in 3-D')
-
-    call build(bpt, "aveassoc_build")
-
-    allocate(avasc%nodal(lap%dim))
-
-    la%lap      => lap
-    avasc%nsub  =  nsub
-    avasc%nodal =  nodal
-
-    allocate(avasc%fbs(nboxes(la)))
-
-    itotal = 0   ! A count of total # of integers in the aveassoc on this CPU.
-
-    do n = 1, nboxes(la)
-       if ( remote(la,n) ) cycle
-
-       bx = box_nodalize(get_box(la,n), nodal)
-       lo = lwb(bx)
-       hi = upb(bx)
-
-       avasc%fbs(n)%bx = bx
-
-       allocate(avasc%fbs(n)%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
-
-       do k = lo(3), hi(3)
-          zmin = dble(k)*dx(3) - center(3)
-          do j = lo(2), hi(2)
-             ymin = dble(j)*dx(2) - center(2)
-             do i = lo(1), hi(1)
-                xmin = dble(i)*dx(1) - center(1)
-
-                call build(imap)
-                call build(vals)
-                call build(cnts)
-
-                do kk = 0, nsub-1
-                   zz = zmin + (dble(kk) + HALF)*dx(3)/nsub
-                   do jj = 0, nsub-1
-                      yy = ymin + (dble(jj) + HALF)*dx(2)/nsub
-                      do ii = 0, nsub-1
-                         xx = xmin + (dble(ii) + HALF)*dx(1)/nsub
-                         index = sqrt(xx**2 + yy**2 + zz**2) / dr
-                         call push_back(imap, index)
-                      end do
-                   end do
-                end do
-
-                iptr => dataptr(imap, 1, size(imap))
-
-                call sort(iptr(:))
-
-                cnt = 1
-                val = at(imap,1)
-
-                do l = 2, size(imap)
-                   if ( at(imap,l-1) /= at(imap,l) ) then
-                      call push_back(vals, val)
-                      call push_back(cnts, cnt)
-                      cnt = 1
-                      val = at(imap,l)
-                   else
-                      cnt = cnt + 1
-                   end if
-                end do
-
-                call push_back(vals, val)
-                call push_back(cnts, cnt)
-
-                allocate(avasc%fbs(n)%p(i,j,k)%v(size(vals),2))
-
-                avasc%fbs(n)%p(i,j,k)%v(:,1) = dataptr(vals,1,size(vals))
-                avasc%fbs(n)%p(i,j,k)%v(:,2) = dataptr(cnts,1,size(cnts))
-
-                itotal = itotal + 2 * size(vals)
-
-                call destroy(imap)
-                call destroy(vals)
-                call destroy(cnts)
-
-             end do
-          end do
-       end do
-       
-    end do
-
-    call mem_stats_alloc(avx_ms, itotal)
-
-    call destroy(bpt)
-
-  end subroutine aveassoc_build
 
   subroutine fgassoc_build(fgasc, la, ng)
     use bl_prof_module
@@ -1958,33 +1751,6 @@ contains
     deallocate(bxasc%r_con%str)
     deallocate(bxasc%r_con%rtr)
   end subroutine boxassoc_destroy
-
-  subroutine aveassoc_destroy(avasc)
-    use bl_error_module
-    type(aveassoc), intent(inout) :: avasc
-    integer :: i, j, k, n, lo(3), hi(3), itotal
-    if ( .not. built_q(avasc) ) call bl_error("aveassoc_destroy(): not built")
-    deallocate(avasc%nodal)
-    itotal = 0
-    do n = 1, size(avasc%fbs)
-       if (associated(avasc%fbs(n)%p)) then
-          lo = lwb(avasc%fbs(n)%bx)
-          hi = upb(avasc%fbs(n)%bx)
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   itotal = itotal + 2 * size(avasc%fbs(n)%p(i,j,k)%v,dim=1)
-                   deallocate(avasc%fbs(n)%p(i,j,k)%v)
-                end do
-             end do
-          end do
-          deallocate(avasc%fbs(n)%p)
-       end if
-    end do
-    call mem_stats_dealloc(avx_ms, itotal)
-    deallocate(avasc%fbs)
-    avasc%nsub = 0
-  end subroutine aveassoc_destroy
 
   subroutine fgassoc_destroy(fgasc)
     use bl_error_module
