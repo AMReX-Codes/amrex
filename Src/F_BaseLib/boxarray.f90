@@ -514,42 +514,6 @@ contains
     call boxarray_simplify(ba)
   end subroutine boxarray_intersection_bx
 
-  subroutine boxarray_box_boundary_v_f(bao, bx, nv, face)
-    type(boxarray), intent(out) :: bao
-    type(box), intent(in)  :: bx
-    integer, intent(in) :: nv(:), face
-    type(boxarray) :: baa
-    call boxarray_build_bx(baa, bx)
-    call boxarray_boundary_v_f(bao, baa, nv, face)
-    call boxarray_destroy(baa)
-  end subroutine boxarray_box_boundary_v_f
-  subroutine boxarray_box_boundary_v(bao, bx, nv)
-    type(boxarray), intent(out) :: bao
-    type(box), intent(in)  :: bx
-    integer, intent(in) :: nv(:)
-    type(boxarray) :: baa
-    call boxarray_build_bx(baa, bx)
-    call boxarray_boundary_v(bao, baa, nv)
-    call boxarray_destroy(baa)
-  end subroutine boxarray_box_boundary_v
-  subroutine boxarray_box_boundary_n_f(bao, bx, n, face)
-    type(boxarray), intent(out) :: bao
-    type(box), intent(in)  :: bx
-    integer, intent(in) :: n, face
-    type(boxarray) :: baa
-    call boxarray_build_bx(baa, bx)
-    call boxarray_boundary_n_f(bao, baa, n, face)
-    call boxarray_destroy(baa)
-  end subroutine boxarray_box_boundary_n_f
-  subroutine boxarray_box_boundary_n_d_f(bao, bx, n, dim, face)
-    type(boxarray), intent(out) :: bao
-    type(box), intent(in)  :: bx
-    integer, intent(in) :: n, face, dim
-    type(boxarray) :: baa
-    call boxarray_build_bx(baa, bx)
-    call boxarray_boundary_n_d_f(bao, baa, n, dim, face)
-    call boxarray_destroy(baa)
-  end subroutine boxarray_box_boundary_n_d_f
   subroutine boxarray_box_boundary_n(bao, bx, n)
     type(boxarray), intent(out) :: bao
     type(box), intent(in)  :: bx
@@ -560,22 +524,6 @@ contains
     call boxarray_destroy(baa)
   end subroutine boxarray_box_boundary_n
 
-  subroutine boxarray_boundary_v_f(bao, ba, nv, face)
-    type(boxarray), intent(out) :: bao
-    type(boxarray), intent(in)  :: ba
-    integer, intent(in) :: nv(:), face
-    call boxarray_build_copy(bao, ba)
-    call boxarray_grow(bao, nv, face)
-    call boxarray_diff(bao, ba)
-  end subroutine boxarray_boundary_v_f
-  subroutine boxarray_boundary_v(bao, ba, nv)
-    type(boxarray), intent(out) :: bao
-    type(boxarray), intent(in)  :: ba
-    integer, intent(in) :: nv(:)
-    call boxarray_build_copy(bao, ba)
-    call boxarray_grow(bao, nv)
-    call boxarray_diff(bao, ba)
-  end subroutine boxarray_boundary_v
   subroutine boxarray_boundary_n_d_f(bao, ba, n, dim, face)
     type(boxarray), intent(out) :: bao
     type(boxarray), intent(in)  :: ba
@@ -584,14 +532,6 @@ contains
     call boxarray_grow(bao, n, dim, face)
     call boxarray_diff(bao, ba)
   end subroutine boxarray_boundary_n_d_f
-  subroutine boxarray_boundary_n_f(bao, ba, n, face)
-    type(boxarray), intent(out) :: bao
-    type(boxarray), intent(in)  :: ba
-    integer, intent(in) :: n, face
-    call boxarray_build_copy(bao, ba)
-    call boxarray_grow(bao, n, face)
-    call boxarray_diff(bao, ba)
-  end subroutine boxarray_boundary_n_f
   subroutine boxarray_boundary_n(bao, ba, n)
     type(boxarray), intent(out) :: bao
     type(boxarray), intent(in)  :: ba
@@ -600,6 +540,7 @@ contains
     call boxarray_grow(bao, n)
     call boxarray_diff(bao, ba)
   end subroutine boxarray_boundary_n
+
   function boxarray_nboxes(ba) result(r)
     type(boxarray), intent(in) :: ba
     integer :: r
@@ -919,29 +860,6 @@ contains
     call boxarray_destroy(ba)
     ba = ba1
   end subroutine boxarray_to_domain
-
-  subroutine boxarray_box_corners(ba, bx, ng)
-    use bl_error_module
-
-    type(boxarray), intent(out) :: ba
-    type(box),      intent(in)  :: bx
-    integer,        intent(in)  :: ng
-    integer                     :: i, len(1:bx%dim)
-    type(boxarray)              :: tba
-
-    if (ng < 0) call bl_error("BOXARRAY_BOX_CORNERS: ng must be >= 0!")
-
-    call boxarray_build_bx(ba, grow(bx, ng))
-
-    len = 0
-    do i = 1, bx%dim
-       len(i) = ng
-       call boxarray_build_bx(tba, grow(bx, len))
-       call boxarray_diff(ba, tba)
-       call destroy(tba)
-       len(i) = 0
-    end do
-  end subroutine boxarray_box_corners
 
   function boxarray_box_contains(ba, bx) result(r)
     use bl_error_module
