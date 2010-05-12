@@ -3,7 +3,8 @@ module sfc_module
   use box_module
   !
   ! This is more than a bit of a hack.  We're going to store a few values here
-  ! while inside the sfc_i() routine, so that they're accessible via sfc_greater_i().
+  ! while inside the sfc_i() routine, so that they're accessible via
+  ! sfc_greater_i().
   !
   integer            :: dm, mpower
   type(box), pointer :: pbxs(:)
@@ -15,13 +16,11 @@ module knapsack_module
 
   implicit none
 
-  logical, private :: do_mcc = .false.
-
   logical, private :: knapsack_verbose = .false.
 
   real(kind=dp_t), private :: knapsack_threshold = 0.9_dp_t
 
-  private :: greater_d, mcc
+  private :: greater_d
 
 contains
 
@@ -30,220 +29,11 @@ contains
     knapsack_verbose = yesorno
   end subroutine knapsack_set_verbose
 
-  subroutine knapsack_set_mcc(yesorno)
-    logical, intent(in) :: yesorno
-    do_mcc = yesorno
-  end subroutine knapsack_set_mcc
-
   function greater_d(a,b) result(r)
     logical :: r
     real(kind=dp_t), intent(in) :: a, b
     r = a > b
   end function greater_d
-  !
-  ! Attempt to minimize the communication costs of knapsack.
-  !
-  subroutine mcc(prc, ibxs, bxs, np, verbose)
-
-    use parallel
-    use box_module
-    use sort_i_module
-    use vector_i_module
-    use boxarray_module
-    use bl_error_module
-
-    integer,   intent(inout) :: prc(:)
-    integer,   intent(in   ) :: ibxs(:)
-    type(box), intent(in   ) :: bxs(:)
-    integer,   intent(in   ) :: np
-    logical,   intent(in   ) :: verbose
-
-    integer                     :: i, j, k, val
-    integer,        parameter   :: swap_and_test_count = 1
-    integer(ll_t)               :: icc
-    integer,        allocatable :: idx(:)
-    integer(ll_t),  allocatable :: percpu(:)
-    type(vector_i), allocatable :: nbrs(:), samesize(:)
-    type(vector_i)              :: uniq
-
-    if ( size(ibxs) /= size(bxs) ) call bl_error('mcc: how did this happen?')
-
-    allocate(nbrs(size(bxs)))
-
-    do i = 1, size(nbrs)
-       call build(nbrs(i))
-    end do
-
-    call calculate_neighbors()
-    !
-    ! Want vectors of box IDs containing same size boxes.
-    !
-    allocate(idx(size(ibxs)))
-
-    call sort(ibxs, idx)
-
-    val = ibxs(idx(1))
-
-    call build(uniq)
-
-    call push_back(uniq, val)
-
-    do i = 2, size(ibxs)
-       if ( ibxs(idx(i-1)) /= ibxs(idx(i)) ) call push_back(uniq, ibxs(idx(i)))
-    end do
-
-    allocate(samesize(size(uniq)))
-
-    do i = 1, size(samesize)
-       call build(samesize(i))
-    end do
- 
-    do i = 1, size(idx)
-       do j = 1, size(uniq)
-          if ( at(uniq,j) == ibxs(idx(i)) ) then
-             call push_back(samesize(j), idx(i))
-             exit
-          end if
-       end do
-    end do
-
-    deallocate(idx)
-    !
-    ! Build a data structure to maintain the latency count on a per-CPU basis.
-    !
-    allocate(percpu(0:np-1))
-
-    percpu = 0_ll_t
-
-    do i = 1, size(nbrs)
-       do j = 1, size(nbrs(i))
-          k = prc(at(nbrs(i),j))
-          if ( prc(i) /= k ) percpu(k) = percpu(k) + 1
-       end do
-    end do
-
-    icc = sum(percpu)
-
-    do i = 1, swap_and_test_count
-       call swap_and_test()
-    end do
-
-    if ( verbose .and. parallel_ioprocessor() ) then
-       print*, 'MCC: initial off-CPU connection count: ', icc
-       print*, 'MCC:   final off-CPU connection count: ', sum(percpu)
-    end if
-
-    call destroy(uniq)
-
-    do i = 1, size(samesize)
-       call destroy(samesize(i))
-    end do
-
-    do i = 1, size(nbrs)
-       call destroy(nbrs(i))
-    end do
-
-  contains
-
-    subroutine calculate_neighbors()
-
-      type(boxarray) :: ba
-
-      call build(ba, bxs, sort = .false.)
-
-      call boxarray_grow(ba, 1)   ! Use a "grow" factor of 1.
-
-      do i = 1, nboxes(ba)
-         do j = 1, nboxes(ba)
-            if ( j == i ) cycle
-            if ( intersects(ba%bxs(i), ba%bxs(j)) ) then
-               call push_back(nbrs(i), j)
-            end if
-         end do
-      end do
-
-      call destroy(ba)
-
-    end subroutine calculate_neighbors
-
-    subroutine swap_and_test()
-
-    integer       :: ival1, ival2, pmap1, pmap2, pmapstar, m
-    integer(ll_t) :: percpu_val1, percpu_val2, cost_old, cost_new, tmp
-
-    do i = 1, size(samesize)
-       do j = 1, size(samesize(i))
-          ival1 = at(samesize(i),j)
-          do k = j+1, size(samesize(i))
-             ival2 = at(samesize(i),k)
-             !
-             ! Do not consider boxes on the same CPU.
-             !
-             if ( prc(ival1) == prc(ival2) ) cycle
-             !
-             ! Will swapping these boxes decrease latency?
-             !
-             percpu_val1 = percpu(prc(ival1))
-             percpu_val2 = percpu(prc(ival2))
-             !
-             ! Change prc & redo necessary calculations ...
-             !
-             tmp        = prc(ival1)
-             prc(ival1) = prc(ival2)
-             prc(ival2) = tmp
-             pmap1      = prc(ival1)
-             pmap2      = prc(ival2)
-             !
-             ! Update percpu in place.
-             !
-             do m = 1, size(nbrs(ival1))
-                pmapstar = prc(at(nbrs(ival1),m))
-                if ( pmapstar == pmap2 ) then
-                   percpu(pmap1) = percpu(pmap1) + 1;
-                   percpu(pmap2) = percpu(pmap2) + 1;
-                else if ( pmapstar == pmap1 ) then
-                   percpu(pmap1) = percpu(pmap1) - 1;
-                   percpu(pmap2) = percpu(pmap2) - 1;
-                else
-                   percpu(pmap1) = percpu(pmap1) + 1;
-                   percpu(pmap2) = percpu(pmap2) - 1;
-                end if
-             end do
-
-             do m = 1, size(nbrs(ival2))
-                pmapstar = prc(at(nbrs(ival2),m))
-                if ( pmapstar == pmap1 ) then
-                   percpu(pmap1) = percpu(pmap1) + 1;
-                   percpu(pmap2) = percpu(pmap2) + 1;
-                else if ( pmapstar == pmap2 ) then
-                   percpu(pmap1) = percpu(pmap1) - 1;
-                   percpu(pmap2) = percpu(pmap2) - 1;
-                else
-                   percpu(pmap1) = percpu(pmap1) - 1;
-                   percpu(pmap2) = percpu(pmap2) + 1;
-                end if
-             end do
-
-             cost_old = percpu_val1   + percpu_val2
-             cost_new = percpu(pmap1) + percpu(pmap2)
-
-             if (cost_new >= cost_old) then
-                !
-                ! Undo our changes ...
-                !
-                tmp                = prc(ival1)
-                prc(ival1)         = prc(ival2)
-                prc(ival2)         = tmp
-                percpu(prc(ival1)) = percpu_val1;
-                percpu(prc(ival2)) = percpu_val2;
-             end if
-          end do
-       end do
-    end do
-
-    end subroutine swap_and_test
-
-  end subroutine mcc
 
   subroutine knapsack_i(prc, ibxs, bxs, np, verbose, threshold)
 
@@ -374,8 +164,6 @@ contains
     do i = 1, size(procs)
        call destroy(procs(i))
     end do
-
-    if ( np > 1 .and. do_mcc ) call mcc(prc, ibxs, bxs, np, lverb)
 
     call cpu_time(t2)
 
