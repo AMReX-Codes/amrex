@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.203 2010-05-05 21:38:24 almgren Exp $
+// $Id: Amr.cpp,v 1.204 2010-05-12 18:05:46 almgren Exp $
 //
 #include <winstd.H>
 
@@ -985,6 +985,9 @@ Amr::initialInit (Real strt_time,
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
+    if (verbose && ParallelDescriptor::IOProcessor())
+       std::cout << "Starting to read probin ... " << std::endl;
+
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
@@ -1028,6 +1031,9 @@ Amr::initialInit (Real strt_time,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
 #endif
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+       std::cout << "Successfully read probin ... " << std::endl;
 
 #ifdef BL_SYNC_RANTABLES
     int iGet(0), iSet(1);
@@ -1146,6 +1152,9 @@ Amr::restart (const std::string& filename)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
+    if (verbose && ParallelDescriptor::IOProcessor())
+       std::cout << "Starting to read probin ... " << std::endl;
+
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
@@ -1189,6 +1198,10 @@ Amr::restart (const std::string& filename)
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
 #endif
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+       std::cout << "Successfully read probin ... " << std::endl;
+
     //
     // Start calculation from given restart file.
     //
