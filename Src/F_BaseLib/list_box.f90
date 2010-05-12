@@ -108,17 +108,9 @@ module list_box_module
      module procedure list_splice_box
   end interface splice
 
-  interface unique
-     module procedure list_unique_box
-  end interface unique
-
   interface remove
      module procedure list_remove_box
   end interface remove
-
-  interface remove_if
-     module procedure list_remove_if_box
-  end interface remove_if
 
   interface reverse
      module procedure list_reverse_box
@@ -127,11 +119,6 @@ module list_box_module
   interface swap
      module procedure list_swap_box
   end interface swap
-
-  interface boxlist_intersection
-     module procedure boxlist_intersection_bx
-     module procedure boxlist_intersection_bl
-  end interface
 
   interface print
      module procedure boxlist_print
@@ -489,69 +476,6 @@ contains
 
   end subroutine list_clear_box
 
-  subroutine list_unique_box(l, tst)
-    interface
-       function tst(p,q) result(r)
-         use box_module  
-         implicit none
-         logical :: r
-         type(box), intent(in) :: p, q
-       end function tst
-    end interface
-    optional tst
-    type(list_box), intent(inout) :: l
-
-    if ( present(tst) ) then
-       call un(tst)
-    else
-       call un(box_equal)
-    end if
-
-  contains
-
-    subroutine un(tst)
-      use bl_error_module
-      interface
-         function tst(p,q) result(r)
-           use box_module  
-           implicit none
-           logical :: r
-           type(box), intent(in) :: p, q
-         end function tst
-      end interface
-      type(list_box_node), pointer :: head, tail, e, p
-      integer :: ierr
-
-      if ( size(l) <= 1 ) return
-      l%size = 1
-      head => l%head
-      tail => head
-      e => head%next
-      do while ( associated(e) )
-         if ( tst(tail%v, e%v) ) then
-            p => e
-            e => e%next
-            deallocate(p, stat=ierr)
-            if ( Ierr /= 0 ) then
-               call bl_error("list_unique_op_box: failed to deallocated memory")
-            end if
-            cycle
-         end if
-         tail%next => e
-         e%prev => tail
-         tail => e
-         e => tail%next
-         l%size = l%size + 1
-      end do
-      l%head => head
-      l%head%prev => Null()
-      l%tail => tail
-      l%tail%next => Null()
-
-    end subroutine un
-
-  end subroutine list_unique_box
-
   subroutine list_splice_box(l1, l2)
     type(list_box), intent(inout) :: l1, l2
 
@@ -599,29 +523,6 @@ contains
     end do
 
   end subroutine list_remove_box
-
-  subroutine list_remove_if_box(l, tst)
-    type(list_box), intent(inout) :: l
-    interface
-       function tst(p) result(r)
-         use box_module  
-         implicit none
-         logical :: r
-         type(box), intent(in) :: p
-       end function tst
-    end interface
-    type(list_box_node), pointer :: p
-
-    p => begin(l)
-    do while ( associated(p) )
-       if ( tst(value(p)) ) then
-          p => erase(l, p)
-       else
-          p => next(p)
-       end if
-    end do
-
-  end subroutine list_remove_if_box
 
   subroutine list_swap_box(l1,l2)
     type(list_box), intent(inout) :: l1, l2
@@ -699,54 +600,6 @@ contains
     call destroy(bpt)
 
   end function boxlist_boxlist_diff
-
-  subroutine boxlist_intersection_bx(bl, bx)
-    type(list_box), intent(inout) :: bl
-    type(box),      intent(in   ) :: bx
-
-    type(box)                    :: tbx
-    type(list_box)               :: tbl
-    type(list_box_node), pointer :: b
-
-    b => begin(bl)
-    do while ( associated(b) )
-       tbx = intersection(bx, value(b))
-       if ( .not. empty(tbx) ) call push_back(tbl, tbx)
-       b => next(b)
-    end do
-
-    call boxlist_simplify(tbl)
-
-    call destroy(bl)
-
-    bl = tbl
-
-  end subroutine boxlist_intersection_bx
-  !
-  ! This is a very naive N^2 implementation.
-  !
-  subroutine boxlist_intersection_bl(bl1, bl2)
-    type(list_box), intent(inout) :: bl1
-    type(list_box), intent(in   ) :: bl2
-
-    type(list_box)               :: cpbl1, tbl
-    type(list_box_node), pointer :: b
-
-    b => begin(bl2)
-    do while ( associated(b) )
-       call list_copy_box(cpbl1, bl1)
-       call boxlist_intersection_bx(cpbl1, value(b))
-       call splice(tbl, cpbl1)
-       b => next(b)
-    end do
-
-    call boxlist_simplify(tbl)
-
-    call destroy(bl1)
-
-    bl1 = tbl
-
-  end subroutine boxlist_intersection_bl
 
   subroutine boxlist_simplify(bxl)
 
