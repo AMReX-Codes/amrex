@@ -782,67 +782,6 @@ contains
     call build(r, l1, h1)
   end function box_mod
 
-  subroutine box_decompose_mod(boxes, n, bx, bxi, pd, pmask)
-    type(box), intent(in) :: bx
-    type(box), intent(in) :: bxi
-    type(box), intent(in) :: pd
-    type(box), intent(out) :: boxes(:,:)
-    logical, intent(in) :: pmask(:)
-    integer, intent(out) :: n
-    integer :: i
-    call box_decompose(boxes(:,1), n, bx, bxi)
-    do i = 1, n
-       boxes(i,2) = box_mod(boxes(i,1), pd, pmask)
-    end do
-  end subroutine box_decompose_mod
-  
-  !! Box_decompose decomposes a box, bx1, into boxes that are
-  !! either completely inside, or completely outside the regions of
-  !! index spaces delineated by bx2.  Up to 3**dim boxes are returned;
-  !! and failure results if not enough space is passed.
-
-  subroutine box_decompose(boxes, n, bx1, bx2)
-
-    use bl_error_module
-
-    type(box), intent(in) :: bx1
-    type(box), intent(in) :: bx2
-    type(box), intent(out) :: boxes(:)
-    integer, intent(out) :: n
-    type(box) :: r(27)
-    type(box) :: bxl, bxr
-    integer :: dm, i
-
-    dm = bx1%dim
-    bxl = bx1
-    call box_chop(bxl, r(1), bxr,  1, lwb(bx2,1))
-    call box_chop(bxr, r(2), r(3), 1, upb(bx2,1)+1)
-    if ( dm >= 2 ) then
-       r(1:9:3) = r(1:3)
-       do i = 1, 9, 3
-          bxl = r(i)
-          call box_chop(bxl, r(i  ), bxr,    2, lwb(bx2,2))
-          call box_chop(bxr, r(i+1), r(i+2), 2, upb(bx2,2)+1)
-       end do
-    end if
-    if ( dm >= 3 ) then
-       r(1:27:3) = r(1:9)
-       do i = 1, 27, 3
-          bxl = r(i)
-          call box_chop(bxl, r(i  ), bxr,    3, lwb(bx2,3))
-          call box_chop(bxr, r(i+1), r(i+2), 3, upb(bx2,3)+1)
-       end do
-    end if
-    n = 0
-    do i = 1, 3**dm
-       if ( empty(r(i)) ) cycle
-       n = n + 1
-       if ( n > size(boxes) ) call bl_error("BOX_DECOMPOSE: no room")
-       boxes(n) = r(i)
-    end do
-
-  end subroutine box_decompose
-
   !! Box_chop chops a box into two boxes in the coordinate direction
   !! dir at the cell ichop.  The resulting boxes are  bxl and bxr where
   !! bxl is to the left of the chop line and bxr is to the right.  If
@@ -863,23 +802,6 @@ contains
        bxr%lo(dim) = ichop
     end if
   end subroutine box_chop
-
-  subroutine box_peel(bx, dim, face, thk, bx1)
-    use bl_error_module
-    type(box), intent(inout) :: bx
-    integer, intent(in) :: dim, thk, face
-    type(box), intent(out) :: bx1
-    bx1 = bx
-    if ( face == -1 ) then
-       bx%lo(dim)  = bx%lo(dim)  +  thk
-       bx1%hi(dim) = bx1%lo(dim) + (thk-1)
-    else if ( face == 1 ) then
-       bx%hi(dim)  = bx%hi(dim)  -  thk
-       bx1%lo(dim) = bx1%hi(dim) - (thk-1)
-    else
-       call bl_error("BOX_PEEL: called with face /= {-1,+1}: ", face)
-    end if
-  end subroutine box_peel
 
   function box_volume(bx) result(r)
     use bl_error_module
@@ -925,77 +847,6 @@ contains
     r%hi(:dim-1) = bx%hi(:dim-1)
     r%hi(dim:r%dim)   = bx%hi(dim+1:bx%dim)
   end function box_reduce
-
-  function box_touch_d(a, b, dim, face) result(r)
-    type(box), intent(in) :: a, b
-    integer, intent(in) :: dim, face
-    logical :: r
-    if ( face == -1 ) then
-       r = a%lo(dim) == b%hi(dim) + 1
-    else if ( face == 1 ) then
-       r = a%hi(dim) + 1 == b%lo(dim)
-    end if
-    if ( a%dim > 1 ) then
-       r = r .and. intersects(reduce(a,dim), reduce(b,dim))
-    end if
-  end function box_touch_d
-
-  function box_touch(a, b, dim) result(r)
-    type(box), intent(in) :: a, b
-    integer, intent(in) :: dim
-    logical :: r
-    r = a%hi(dim) + 1 == b%lo(dim) .or. a%lo(dim) == b%hi(dim) + 1
-    if ( a%dim > 1 ) then
-       r = r .and. intersects(reduce(a,dim), reduce(b,dim))
-    end if
-  end function box_touch
-
-  function box_abut_d(a, b, dim, face) result(r)
-    type(box), intent(in) :: a, b
-    integer, intent(in) :: dim, face
-    logical :: r
-    if ( face == -1 ) then
-       r = a%lo(dim) == b%hi(dim) + 1
-    else if ( face == 1 ) then
-       r = a%hi(dim) + 1 == b%lo(dim)
-    end if
-    if ( a%dim > 1 ) then
-       r = r .and. reduce(a,dim) == reduce(b,dim)
-    end if
-  end function box_abut_d
-
-  function box_merge(bb, b1, b2, dim) result(r)
-    logical :: r
-    type(box), intent(out) :: bb
-    type(box), intent(in)  :: b1, b2
-    integer, intent(in) :: dim
-    integer :: lo(b1%dim), hi(b1%dim)
-    if ( b1 == b2 ) then
-       bb = b1
-       r = .true.
-       return
-    end if
-    r = box_abut(b1, b2, dim)
-    if ( r ) then
-       lo = lwb(b1); hi = upb(b1)
-       if ( lwb(b1, dim) < lwb(b2, dim) ) then
-          hi(dim) = upb(b2, dim)
-       else
-          lo(dim) = lwb(b2, dim)
-       end if
-       bb = make_box(lo, hi)
-    end if
-  end function box_merge
-
-  function box_abut(a, b, dim) result(r)
-    type(box), intent(in) :: a, b
-    integer, intent(in) :: dim
-    logical :: r
-    r = a%hi(dim) + 1 == b%lo(dim) .or. a%lo(dim) == b%hi(dim) + 1
-    if ( a%dim > 1 ) then
-       r = r .and. reduce(a,dim) == reduce(b,dim)
-    end if
-  end function box_abut
 
   subroutine box_print(bx, str, unit, advance, legacy, nodal, skip)
     use bl_IO_module
