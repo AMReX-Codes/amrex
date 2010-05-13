@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.204 2010-05-12 18:05:46 almgren Exp $
+// $Id: Amr.cpp,v 1.205 2010-05-13 17:00:07 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -435,10 +435,6 @@ Amr::Amr ()
     {
         BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
     }
-    else if (got_check_per == 1 && ParallelDescriptor::IOProcessor())
-    {
-        BoxLib::Warning("Specifying amr.check_per will change the time step");
-    }
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
@@ -452,10 +448,6 @@ Amr::Amr ()
     if (got_plot_int == 1 && got_plot_per == 1)
     {
         BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
-    }
-    else if (got_plot_per == 1 && ParallelDescriptor::IOProcessor())
-    {
-        BoxLib::Warning("Specifying amr.plot_per will change the time step");
     }
 
     pp.query("n_proper",n_proper);
@@ -1779,10 +1771,13 @@ Amr::coarseTimeStep (Real stop_time)
     int check_test = 0;
     if (check_per > 0.0)
     {
-        const int num_per = int((cumtime+.001*dt_level[0]) / check_per);
-        const Real resid  = cumtime - num_per * check_per;
+      const int num_per_old = cumtime / check_per;
+      const int num_per_new = (cumtime+dt_level[0]) / check_per;
 
-        if (resid < .001*dt_level[0]) check_test = 1;
+      if (num_per_old != num_per_new)
+	{
+	 check_test = 1;
+	}
     }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1)
@@ -1794,10 +1789,13 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-        const int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
-        const Real resid  = cumtime - num_per * plot_per;
+      const int num_per_old = cumtime / plot_per;
+      const int num_per_new = (cumtime+dt_level[0]) / plot_per;
 
-        if (resid < .001*dt_level[0]) plot_test = 1;
+      if (num_per_old != num_per_new)
+	{
+	  plot_test = 1;
+	}
     }
 
     if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1)
