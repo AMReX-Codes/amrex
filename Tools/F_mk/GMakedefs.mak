@@ -349,7 +349,7 @@ ifeq ($(ARCH),Linux)
 	else
           F90FLAGS += -O3 -ip -mp1 -fltconsistency 
           FFLAGS += -O3 -ip -mp1 -fltconsistency
-          CFLAGS += -O3 -ip -mp1 -fltconsistency
+          CFLAGS += -O3 -ip -mp1
 	endif
       endif
       ifdef GPROF
