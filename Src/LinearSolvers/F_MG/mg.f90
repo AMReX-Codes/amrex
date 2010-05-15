@@ -82,6 +82,7 @@ contains
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
+    if ( present(max_bottom_nlevel) ) mgt%max_bottom_nlevel = max_bottom_nlevel
     if ( present(max_iter)          ) mgt%max_iter          = max_iter
     if ( present(eps)               ) mgt%eps               = eps
     if ( present(abs_eps)           ) mgt%abs_eps           = abs_eps
@@ -274,7 +275,7 @@ contains
        n = max_mg_levels_bottom(new_coarse_ba,min_width)
 
        ! This is the user-imposed limit
-       n = min(n,max_bottom_nlevel)
+       n = min(n,mgt%max_bottom_nlevel)
 
        if ( n .eq. 1) then
           call bl_error("DONT USE MG_BOTTOM_SOLVER == 4: BOTTOM GRID NOT PROPERLY DIVISIBLE")
