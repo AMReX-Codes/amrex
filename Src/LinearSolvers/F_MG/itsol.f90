@@ -167,12 +167,12 @@ contains
       real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
 
-      integer         :: i, j, k, nc
+      integer         :: i, j, k, nc, nz
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=4)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF((hi(3)-lo(3)).ge.3)
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
@@ -242,13 +242,12 @@ contains
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
       integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:,lo(3)-ng_m:   )
 
-      integer         :: i, j, k, nc, nz
+      integer         :: i, j, k, nc
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=4)-1
-      nz = size(a,dim=3)
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF((hi(3)-lo(3)).ge.2)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
