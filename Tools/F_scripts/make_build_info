@@ -24,16 +24,16 @@ subroutine build_info(build_date, build_dir, build_machine, module_list)
   character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine, module_list
 
   build_date    = &
-   "$BUILD_DATE"
+"$BUILD_DATE"
 
   build_dir     = &
-    "$BUILD_DIR"
+"$BUILD_DIR"
 
   build_machine = &
-    "$BUILD_MACHINE"
+"$BUILD_MACHINE"
 
   module_list   = &
-    "$MODULES"
+"$MODULES"
 
   return
 end subroutine build_info
