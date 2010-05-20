@@ -11,17 +11,17 @@ rm -f build_info.f90
 BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
-
+MODULES=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
 
 cat > build_info.f90 << EOF
-subroutine build_info(build_date, build_dir, build_machine)
+subroutine build_info(build_date, build_dir, build_machine, module_list)
 
   implicit none
 
 ! the size of the strings is set to be the same as the size used in the
 ! cut in the shell script, so we don't go out of bounds
 
-  character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine
+  character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine, module_list
 
   build_date    = &
    "$BUILD_DATE"
@@ -31,6 +31,9 @@ subroutine build_info(build_date, build_dir, build_machine)
 
   build_machine = &
     "$BUILD_MACHINE"
+
+  module_list   = &
+    "$MODULES"
 
   return
 end subroutine build_info
