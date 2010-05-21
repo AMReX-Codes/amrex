@@ -88,8 +88,8 @@ cEXE_headers   += mg_cpp_f.h
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
 
-fEXE_sources += daxpy.f
-fEXE_sources += ddot.f
+#fEXE_sources += daxpy.f
+#fEXE_sources += ddot.f
 fEXE_sources += dnrm2.f
 fEXE_sources += ilut.f
 fEXE_sources += iters.f
