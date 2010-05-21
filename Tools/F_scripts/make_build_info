@@ -14,29 +14,26 @@ BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 MODULES=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
 
 cat > build_info.f90 << EOF
-subroutine build_info(build_date, build_dir, build_machine, module_list)
+module build_info_module
 
   implicit none
 
 ! the size of the strings is set to be the same as the size used in the
 ! cut in the shell script, so we don't go out of bounds
 
-  character (len=$MAX_STRING_LENGTH) :: build_date, build_dir, build_machine, module_list
-
-  build_date    = &
+  character (len=$MAX_STRING_LENGTH), save :: build_date = &
 "$BUILD_DATE"
 
-  build_dir     = &
+  character (len=$MAX_STRING_LENGTH), save :: build_dir = &
 "$BUILD_DIR"
 
-  build_machine = &
+  character (len=$MAX_STRING_LENGTH), save :: build_machine = &
 "$BUILD_MACHINE"
 
-  module_list   = &
+  character (len=$MAX_STRING_LENGTH), save :: module_list = &
 "$MODULES"
 
-  return
-end subroutine build_info
+end module build_info_module
 
 EOF
 
