@@ -276,7 +276,7 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev
-  integer :: nlev, i
+  integer :: nlev
   integer :: flev
   flev = lev + 1
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
@@ -298,7 +298,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   use stencil_fill_module
   implicit none
   integer, intent(in) :: lev
-  integer :: nlev, i
+  integer :: nlev
   integer :: flev
 
   flev = lev + 1
