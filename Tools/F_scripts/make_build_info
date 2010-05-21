@@ -1,7 +1,10 @@
 #!/bin/sh -f
 
-# NOTE: the calling function (e.g. MAESTRO/write_job_info.f90) needs
-# to allocate its strings to be the same size as those here.
+# This script writes an F90 module containing strings with the
+# build date, directory, machine, and the list of modules that
+# were compiled into the executable.  This information can
+# then be written to the plotfiles (in MAESTRO this is done
+# in write_job_info.f90).
 
 # script to some information about the build environment
 MAX_STRING_LENGTH=128
@@ -17,9 +20,6 @@ cat > build_info.f90 << EOF
 module build_info_module
 
   implicit none
-
-! the size of the strings is set to be the same as the size used in the
-! cut in the shell script, so we don't go out of bounds
 
   character (len=$MAX_STRING_LENGTH), save :: build_date = &
 "$BUILD_DATE"
