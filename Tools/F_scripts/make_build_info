@@ -6,15 +6,25 @@
 # then be written to the plotfiles (in MAESTRO this is done
 # in write_job_info.f90).
 
-# script to some information about the build environment
+# the basic build strings will be MAX_STRING_LENGTH long
 MAX_STRING_LENGTH=128
+
+# the list of modules will carry over to a second line.  We
+# set the length of a single line 
+MOD_STRING_LINE_LENGTH=125
+
 rm -f build_info.f90
 
 
 BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
-MODULES=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+
+MODULES1=`echo $1 | cut -c 1-$MOD_STRING_LINE_LENGTH`
+s2=`expr $MOD_STRING_LINE_LENGTH + 1`
+f2=`expr $MOD_STRING_LINE_LENGTH + $MOD_STRING_LINE_LENGTH`
+MODULES2=`echo $1 | cut -c $s2-$f2`
+MOD_STRING_LENGTH=$f2
 
 cat > build_info.f90 << EOF
 module build_info_module
@@ -30,8 +40,9 @@ module build_info_module
   character (len=$MAX_STRING_LENGTH), save :: build_machine = &
 "$BUILD_MACHINE"
 
-  character (len=$MAX_STRING_LENGTH), save :: module_list = &
-"$MODULES"
+  character (len=$MOD_STRING_LENGTH), save :: module_list = &
+"$MODULES1" //&
+"$MODULES2"
 
 end module build_info_module
 
