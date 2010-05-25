@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameDomainRefined.cpp,v 1.5 2010-05-25 21:47:45 almgren Exp $
+// $Id: DiffSameDomainRefined.cpp,v 1.6 2010-05-25 21:56:21 almgren Exp $
 //
 
 #include <new>
@@ -168,12 +168,6 @@ main (int   argc,
            std::cout << "Warning: BoxArray lengths are not the same at level " << iLevel << std::endl;
 
         //
-        // Construct MultiFab for errors
-        //
-	error[iLevel] = new MultiFab(ba1, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
-
-        //
         // Construct refinement ratio, build the coarsened boxarray
         // (amrData2 is the refined plotfile)
         //
@@ -192,6 +186,12 @@ main (int   argc,
 
         // Define new_data1 in case the boxarrays are not the same
         MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
+
+        //
+        // Construct MultiFab for errors
+        //
+	error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
+	error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, average the fine fields down and calculate
