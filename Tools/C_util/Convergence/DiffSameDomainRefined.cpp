@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameDomainRefined.cpp,v 1.4 2010-05-25 21:39:24 almgren Exp $
+// $Id: DiffSameDomainRefined.cpp,v 1.5 2010-05-25 21:47:45 almgren Exp $
 //
 
 #include <new>
@@ -206,6 +206,7 @@ main (int   argc,
             MultiFab& data1     = amrData1.GetGrids(iLevel, iComp);
             MultiFab& data2Fine = amrData2.GetGrids(iLevel, iComp);
 
+            // Copy the data at the coarse level one component at a time
             new_data1.copy(data1,0,0,1);
 
             //
@@ -219,15 +220,15 @@ main (int   argc,
                 int index = mfi.index();
 
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
-                int ncCoarse = data2Coarse.nComp();
+                int ncCoarse = 1;
 
                 FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                  ARLIM(data2Coarse.loVect()),
-                                  ARLIM(data2Coarse.hiVect()),
+                                ARLIM(data2Coarse.loVect()),
+                                ARLIM(data2Coarse.hiVect()),
                                 &ncCoarse,
                                 data2Fine[mfi].dataPtr(),
-                                  ARLIM(data2Fine[mfi].loVect()),
-                                  ARLIM(data2Fine[mfi].hiVect()), 
+                                ARLIM(data2Fine[mfi].loVect()),
+                                ARLIM(data2Fine[mfi].hiVect()), 
                                 ba2Coarse[index].loVect(), 
                                 ba2Coarse[index].hiVect(),
                                 refine_ratio.getVect());
@@ -237,8 +238,8 @@ main (int   argc,
                 // Calculate the errors on this FAB for this component
                 //
 
-                (*error[iLevel])[mfi].copy(new_data1[mfi], 0, 0, 1);
-                (*error[iLevel])[mfi].minus(data2Coarse, 0, iComp, 1);
+                (*error[iLevel])[mfi].copy(new_data1[mfi], 0, iComp, 1);
+                (*error[iLevel])[mfi].minus(data2Coarse  , 0, iComp, 1);
 
                 Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
 
