@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffUniform.cpp,v 1.11 2010-02-19 23:40:10 almgren Exp $
+// $Id: DiffUniform.cpp,v 1.12 2010-05-25 19:09:52 almgren Exp $
 //
 
 #include <new>
@@ -216,7 +216,7 @@ getRefRatio(const Box& crse,
     // IntVect if there is none suitable
     ParmParse pp("");
     Array<int> rr_in(BL_SPACEDIM,-1);
-    int Nrr = pp.countval("ref_ratio",Nrr);
+    int Nrr = pp.countval("ref_ratio");
     BL_ASSERT(Nrr==0 || Nrr==BL_SPACEDIM || Nrr==1);
     if (Nrr>0) 
     {
