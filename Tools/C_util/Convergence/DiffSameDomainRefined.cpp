@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameDomainRefined.cpp,v 1.1 2010-05-25 19:08:24 almgren Exp $
+// $Id: DiffSameDomainRefined.cpp,v 1.2 2010-05-25 21:12:18 almgren Exp $
 //
 
 #include <new>
@@ -132,7 +132,11 @@ main (int   argc,
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
         BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
-    int nComp       = amrData1.NComp();
+    int nComp1      = amrData1.NComp();
+    int nComp2      = amrData2.NComp();
+
+    int nComp = std::min(nComp1,nComp2);
+
     int finestLevel = amrData1.FinestLevel();
     const Array<std::string>& derives = amrData1.PlotVarNames();
     Array<int> destComps(nComp);
