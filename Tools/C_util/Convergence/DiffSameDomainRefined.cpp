@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameDomainRefined.cpp,v 1.3 2010-05-25 21:24:14 almgren Exp $
+// $Id: DiffSameDomainRefined.cpp,v 1.4 2010-05-25 21:39:24 almgren Exp $
 //
 
 #include <new>
@@ -129,16 +129,16 @@ main (int   argc,
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
         BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
-    if (!amrDatasHaveSameDerives(amrData1,amrData2))
-    {
-        std::cout << "Warning: Plotfiles do not have the same state variables" << std::endl;
-        std::cout << "         Setting nComp to be the minimum number of variables " << std::endl;
-    }
-
     int nComp1      = amrData1.NComp();
     int nComp2      = amrData2.NComp();
 
     int nComp = std::min(nComp1,nComp2);
+
+    if (!amrDatasHaveSameDerives(amrData1,amrData2))
+    {
+        std::cout << "Warning: Plotfiles do not have the same state variables" << std::endl;
+        std::cout << "         Setting nComp to be the minimum number of variables: " << nComp << std::endl;
+    }
 
     int finestLevel = amrData1.FinestLevel();
     const Array<std::string>& derives = amrData1.PlotVarNames();
@@ -165,10 +165,7 @@ main (int   argc,
         const BoxArray& ba2 = amrData2.boxArray(iLevel);
 
         if (ba1.size() != ba2.size())
-        {
-            std::cout << "Warning: BoxArray lengths are not the same at level " << iLevel << std::endl;
-//          ParallelDescriptor::Abort();
-        }
+           std::cout << "Warning: BoxArray lengths are not the same at level " << iLevel << std::endl;
 
         //
         // Construct MultiFab for errors
@@ -194,9 +191,7 @@ main (int   argc,
         ba2Coarse.coarsen(refine_ratio);
 
         // Define new_data1 in case the boxarrays are not the same
-        MultiFab new_data1;
-        if (ba1 != ba2Coarse)  
-           new_data1.define(ba2Coarse,1,0,Fab_allocate);
+        MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
 
         //
         // For each component, average the fine fields down and calculate
@@ -208,16 +203,15 @@ main (int   argc,
 
         for (int iComp = 0; iComp < nComp; ++iComp)
         {
-            MultiFab& data1 = amrData1.GetGrids(iLevel, iComp);
+            MultiFab& data1     = amrData1.GetGrids(iLevel, iComp);
             MultiFab& data2Fine = amrData2.GetGrids(iLevel, iComp);
 
-            if (ba1 != ba2Coarse) 
-               new_data1.copy(data1,iComp,1,1);
+            new_data1.copy(data1,0,0,1);
 
             //
             // Calculate the errors  for each FAB in the MultiFab
             //
-            for (MFIter mfi(data1); mfi.isValid(); ++mfi)
+            for (MFIter mfi(new_data1); mfi.isValid(); ++mfi)
             {
                 //
                 // Create the Coarsened version of data2
@@ -243,15 +237,7 @@ main (int   argc,
                 // Calculate the errors on this FAB for this component
                 //
 
-                // If the boxarrays are the same then we can use the original data
-                if (ba2Coarse == ba1) {
-                   (*error[iLevel])[mfi].copy(data1[mfi], 0, iComp, 1);
-
-                // If the boxarrays are different then we must use the copied version
-                } else {
-                   (*error[iLevel])[mfi].copy(new_data1[mfi], 0, 0, 1);
-                } 
-
+                (*error[iLevel])[mfi].copy(new_data1[mfi], 0, 0, 1);
                 (*error[iLevel])[mfi].minus(data2Coarse, 0, iComp, 1);
 
                 Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
