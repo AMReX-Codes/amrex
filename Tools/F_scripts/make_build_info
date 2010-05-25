@@ -1,17 +1,26 @@
 #!/bin/sh -f
 
-# This script writes an F90 module containing strings with the
-# build date, directory, machine, and the list of modules that
-# were compiled into the executable.  This information can
-# then be written to the plotfiles (in MAESTRO this is done
-# in write_job_info.f90).
+# This script writes an F90 module containing strings with the build
+# date, directory, machine, the list of modules that were compiled
+# into the executable, and compilation lines.  This information can
+# then be written to the plotfiles (in MAESTRO this is done in
+# write_job_info.f90).
 
 # the basic build strings will be MAX_STRING_LENGTH long
 MAX_STRING_LENGTH=128
 
-# the list of modules will carry over to a second line.  We
-# set the length of a single line 
-MOD_STRING_LINE_LENGTH=125
+# long strings will carry over to a second line.  Set the length of a
+# single line
+DBL_STRING_LINE_LENGTH=125
+
+# also set the starting and ending character positions for the second
+# line
+s2=`expr $DBL_STRING_LINE_LENGTH + 1`
+f2=`expr $DBL_STRING_LINE_LENGTH + $DBL_STRING_LINE_LENGTH`
+
+# finally set the total length of a long string
+DBL_STRING_LENGTH=$f2
+
 
 rm -f build_info.f90
 
@@ -20,11 +29,24 @@ BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 
-MODULES1=`echo $1 | cut -c 1-$MOD_STRING_LINE_LENGTH`
-s2=`expr $MOD_STRING_LINE_LENGTH + 1`
-f2=`expr $MOD_STRING_LINE_LENGTH + $MOD_STRING_LINE_LENGTH`
+MODULES1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
 MODULES2=`echo $1 | cut -c $s2-$f2`
-MOD_STRING_LENGTH=$f2
+
+F90COMPILE1=`echo $2 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+F90COMPILE2=`echo $2 | cut -c $s2-$f2`
+
+FCOMPILE1=`echo $3 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+FCOMPILE2=`echo $3 | cut -c $s2-$f2`
+
+CCOMPILE1=`echo $4 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+CCOMPILE2=`echo $4 | cut -c $s2-$f2`
+
+LINK1=`echo $5 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+LINK2=`echo $5 | cut -c $s2-$f2`
+
+
+
+
 
 cat > build_info.f90 << EOF
 module build_info_module
@@ -40,9 +62,26 @@ module build_info_module
   character (len=$MAX_STRING_LENGTH), save :: build_machine = &
 "$BUILD_MACHINE"
 
-  character (len=$MOD_STRING_LENGTH), save :: module_list = &
+  character (len=$DBL_STRING_LENGTH), save :: module_list = &
 "$MODULES1" //&
 "$MODULES2"
+
+  character (len=$DBL_STRING_LENGTH), save :: f90_compile_line = &
+"$F90COMPILE1" //&
+"$F90COMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: f_compile_line = &
+"$FCOMPILE1" //&
+"$FCOMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: C_compile_line = &
+"$CCOMPILE1" //&
+"$CCOMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: link_line = &
+"$LINK1" //&
+"$LINK2"
+
 
 end module build_info_module
 
