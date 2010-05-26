@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameDomainRefined.cpp,v 1.6 2010-05-25 21:56:21 almgren Exp $
+// $Id: DiffSameDomainRefined.cpp,v 1.7 2010-05-26 00:47:58 almgren Exp $
 //
 
 #include <new>
@@ -263,7 +263,7 @@ main (int   argc,
 
 
 #ifdef BL_USE_MPI
-        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type(),
+        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
         if (ParallelDescriptor::IOProcessor())
         {
             Array<Real> tmp(nComp);
