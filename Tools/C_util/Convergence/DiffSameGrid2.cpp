@@ -215,7 +215,7 @@ main (int   argc,
         }
 
 #ifdef BL_USE_MPI
-        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type(),
+        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
 
         if (ParallelDescriptor::IOProcessor())
         {
