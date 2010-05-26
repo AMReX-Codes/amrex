@@ -29,3 +29,6 @@ f90sources += nodal_divu.f90
  
 include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
+ 
+include $(FPARALLEL)/extern/BLAS/GPackage.mak
+VPATH_LOCATIONS += $(FPARALLEL)/extern/BLAS
