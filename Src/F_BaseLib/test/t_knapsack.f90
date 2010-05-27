@@ -7,7 +7,7 @@ subroutine t_knapsack
   use list_box_module
   integer :: un, np, n, idm
   real(kind=dp_t) :: thresh
-  integer :: verbose
+  logical :: verbose
   integer, allocatable :: iweights(:), prc(:)
   real(kind=dp_t) :: maxprc, minprc, xmean, stddev
   real(kind=dp_t), allocatable :: weights(:)
@@ -49,7 +49,7 @@ subroutine t_knapsack
 
   allocate(prc(n))
 
-  verbose = 1; thresh = 1.0_dp_t
+  verbose = .true.; thresh = 1.0_dp_t
 
   call knapsack_i(prc, iweights, ba%bxs, np, verbose, thresh)
 

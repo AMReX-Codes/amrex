@@ -106,7 +106,9 @@ subroutine t_cls_mf(buf_wid, minwidth, min_eff)
   call setval_mask(mf, tagbox, ONE, ZERO)
   call fabio_multifab_write_d(mf, "tdir1", "tags1")
 
-  call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
+!  call cluster(boxes, tagbox, minwidth, buf_wid, min_eff, overall_eff)
+
+  call cluster(boxes, tagbox, buf_wid, overall_eff)
 
   print *, 'number of boxes ', nboxes(boxes)
   do i = 1, nboxes(boxes)

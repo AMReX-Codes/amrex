@@ -39,8 +39,6 @@ subroutine t_boxassoc_1
 
   call boxassoc_build(bxasc, la%lap, ng, nodal = nodal(1:dm), cross = .false.)
 
-  call boxassoc_print(bxasc)
-
   call boxassoc_destroy(bxasc)
   call destroy(la)
   call boxarray_destroy(ba)

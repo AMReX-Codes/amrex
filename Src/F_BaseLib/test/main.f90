@@ -6,6 +6,7 @@ program main
   integer log2
 
   call boxlib_initialize()
+
   call bl_prof_initialize(on = .true.)
 
 ! call t_box_read()
@@ -13,7 +14,7 @@ program main
 ! call t_plotfile
 ! call t_ba
 ! call t_bx
-! call t_cluster
+ call t_cluster
 ! call t_mf_fabio
 ! call t_mf
 ! call t_fabio
@@ -30,9 +31,11 @@ program main
 ! call t_ml_mf_read()
 ! call t_bl_prof()
 ! call t_ba_self_intersection
-  call t_knapsack
+!  call t_knapsack
+
   call bl_prof_glean("bl_prof_res")
   call bl_prof_finalize()
+
   call boxlib_finalize()
 
 end program main
