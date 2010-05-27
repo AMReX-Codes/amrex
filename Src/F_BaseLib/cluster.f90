@@ -30,6 +30,8 @@ module cluster_module
   public :: cluster_set_min_eff
   public :: cluster
 
+  public :: tagboxes_coarsen
+
   interface cluster
      module procedure cls_3d_mf
   end interface
@@ -688,5 +690,76 @@ contains
     end subroutine inflection
 
   end subroutine find_split
+
+  subroutine tagboxes_coarsen(tagboxes,ctagboxes,ratio)
+
+    type(lmultifab), intent(in   ) :: tagboxes
+    type(lmultifab), intent(inout) :: ctagboxes
+    integer,         intent(in   ) :: ratio
+
+    integer          :: ii, i, j, k, ic, jc, kc
+    integer          :: flo(tagboxes%dim), fhi(tagboxes%dim)
+    type(layout)     :: cla
+    type(boxarray)   :: cba
+    logical, pointer :: fp(:,:,:,:), cp(:,:,:,:)
+
+    call bl_assert(ncomp(tagboxes) == 1, 'tagboxes should only have one component')
+    !
+    ! ctagboxes should be an lmultifab on which build() has not been called.
+    ! ctagboxes will be built on the appropriately grown & coarsen'd boxarray
+    ! and will have no grow cells itself.  We want all the coarsen'd values
+    ! to be in ctagboxes valid region.  Callers of this routine need to
+    ! destroy both ctagboxes and its layout.
+    !
+    call boxarray_build_copy(cba, get_boxarray(tagboxes))
+
+    call boxarray_grow(cba, nghost(tagboxes))
+
+    call boxarray_coarsen(cba, ratio)
+    !
+    ! I'm playing a little fast & loose here.
+    ! I'm assuming all we really need to get right is the mapping.
+    !
+    call build(cla, cba, explicit_mapping = get_proc(tagboxes%la))
+
+    call destroy(cba)
+
+    call build(ctagboxes, cla, 1, 0)
+
+    call setval(ctagboxes, .false., all = .true.)
+
+    do ii = 1, tagboxes%nboxes
+       if ( remote(tagboxes, ii) ) cycle
+
+       fp  => dataptr(tagboxes,  ii)
+       cp  => dataptr(ctagboxes, ii)
+
+       flo = lwb(get_pbox(tagboxes, ii))
+       fhi = upb(get_pbox(tagboxes, ii))
+
+       select case (tagboxes%dim)
+       case (2)
+          do j = flo(2), fhi(2)
+             jc = int_coarsen(j,ratio)
+             do i = flo(1), fhi(1)
+                ic = int_coarsen(i,ratio)
+                if ( fp(i,j,1,1) ) cp(ic,jc,1,1) = .true.
+             end do
+          end do
+       case  (3)
+          do k = flo(3), fhi(3)
+             kc = int_coarsen(k,ratio)
+             do j = flo(2), fhi(2)
+                jc = int_coarsen(j,ratio)
+                do i = flo(1), fhi(1)
+                   ic = int_coarsen(i,ratio)
+                   if ( fp(i,j,k,1) ) cp(ic,jc,kc,1) = .true.
+                end do
+             end do
+          end do
+       end select
+    end do
+
+  end subroutine tagboxes_coarsen
 
 end module cluster_module
