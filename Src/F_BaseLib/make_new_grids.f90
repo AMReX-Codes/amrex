@@ -91,11 +91,10 @@ module make_new_grids_module
   
     end subroutine make_boxes
 
-    subroutine buffer(lev,la_np1,la_n,la_nm1,ba_new,ref_ratio,buff)
+    subroutine buffer(lev,la_np1,la_nm1,ba_new,ref_ratio,buff)
 
       integer          , intent(in   ) :: lev
       type(layout)     , intent(in   ) :: la_np1
-      type(layout)     , intent(in   ) :: la_n
       type(layout)     , intent(in   ) :: la_nm1
       type(boxarray)   , intent(inout) :: ba_new
       integer          , intent(in   ) :: buff
@@ -178,7 +177,7 @@ module make_new_grids_module
                
                 ! Buffer returns a boxarray "ba_new" that contains everything at level nl 
                 !  that the level nl+1 level will need for proper nesting
-                call buffer(nl,la_array(nl+1),la_array(nl),la_array(nl-1), &
+                call buffer(nl,la_array(nl+1),la_array(nl-1), &
                             ba_new,ref_ratio(1),ng_buffer)
 
                 ! Merge the new boxarray "ba_new" with the existing box_array 
