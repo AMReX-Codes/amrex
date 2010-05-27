@@ -146,7 +146,7 @@ contains
 
     type(lmultifab), intent(in   ) :: tagboxes
     type(lmultifab), intent(inout) :: ctagboxes
-    integer,         intent(in   ) :: ratio(tagboxes%dim)
+    integer,         intent(in   ) :: ratio
 
     integer          :: ii, i, j, k, ic, jc, kc
     integer          :: flo(tagboxes%dim), fhi(tagboxes%dim)
@@ -172,7 +172,7 @@ contains
     ! I'm assuming we don't really care about the domain or the periodicity.
     ! All we really need to get right is the mapping.
     !
-    call build(cla, cba, get_pd(tagboxes%la), get_pmask(tagboxes%la), explicit_mapping = get_proc(ctagboxes%la))
+    call build(cla, cba, get_pd(tagboxes%la), get_pmask(tagboxes%la), explicit_mapping = get_proc(tagboxes%la))
 
     call destroy(cba)
 
@@ -192,19 +192,19 @@ contains
        select case (tagboxes%dim)
        case (2)
           do j = flo(2), fhi(2)
-             jc = int_coarsen(j,ratio(2))
+             jc = int_coarsen(j,ratio)
              do i = flo(1), fhi(1)
-                ic = int_coarsen(i,ratio(1))
+                ic = int_coarsen(i,ratio)
                 if ( fp(i,j,1,1) ) cp(ic,jc,1,1) = .true.
              end do
           end do
        case  (3)
           do k = flo(3), fhi(3)
-             kc = int_coarsen(k,ratio(3))
+             kc = int_coarsen(k,ratio)
              do j = flo(2), fhi(2)
-                jc = int_coarsen(j,ratio(2))
+                jc = int_coarsen(j,ratio)
                 do i = flo(1), fhi(1)
-                   ic = int_coarsen(i,ratio(1))
+                   ic = int_coarsen(i,ratio)
                    if ( fp(i,j,k,1) ) cp(ic,jc,kc,1) = .true.
                 end do
              end do
