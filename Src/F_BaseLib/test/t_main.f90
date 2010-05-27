@@ -340,7 +340,6 @@ subroutine t_mf_fabio
   call boxarray_print(ba, "BOXARRAY")
   call build(la, ba)
   bxasc = layout_boxassoc(la, 1, nodal = nodal, cross = .false.)
-  call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
 !   do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
@@ -423,7 +422,6 @@ subroutine t_nodal_mf_fabio_1
   call boxarray_print(ba, "BOXARRAY")
   call build(la, ba)
   bxasc = layout_boxassoc(la, 1, nodal = nodal, cross = .false.)
-  call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1, nodal = nodal)
   call multifab_build(mfc, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
@@ -510,20 +508,6 @@ subroutine t_box_mod
      bx = get_box(ba, m)
      print *, 'm = ', m
      call print(bx, "bx")
-     call box_decompose(r(:,1), n, bx, bxi)
-     print *, 'BOX DECOMPOSE'
-     do i = 1, n
-        print *, 'i = ', i
-        call print(r(i,1))
-     end do
-     
-     call box_decompose_mod(r, n, bx, bxi, pd, pmask)
-     
-     print *, 'BOX DECOMPOSE'
-     do i = 1, n
-        print *, 'i = ', i
-        call print(r(i,1), advance ='no'); write(*,fmt='("-->")', advance='no'); call print(r(i,2))
-     end do
   end do
   call destroy(ba)
 
