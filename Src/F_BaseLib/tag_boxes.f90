@@ -169,10 +169,9 @@ contains
     call boxarray_coarsen(cba, ratio)
     !
     ! I'm playing a little fast & loose here.
-    ! I'm assuming we don't really care about the domain or the periodicity.
-    ! All we really need to get right is the mapping.
+    ! I'm assuming all we really need to get right is the mapping.
     !
-    call build(cla, cba, get_pd(tagboxes%la), get_pmask(tagboxes%la), explicit_mapping = get_proc(tagboxes%la))
+    call build(cla, cba, explicit_mapping = get_proc(tagboxes%la))
 
     call destroy(cba)
 
