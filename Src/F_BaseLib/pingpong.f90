@@ -154,8 +154,7 @@ subroutine my_pingpong(sync)
   implicit none
   integer :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024
-  integer :: istatus(MPI_STATUS_SIZE)
-  integer :: ierr, npes, ipe
+  integer :: npes, ipe
 
   real(kind=dp_t) :: sec, secmin, secmax, secavg, tar,      &
        ratemin, ratemax, rateavg, fmegabytes
