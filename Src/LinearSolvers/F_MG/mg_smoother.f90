@@ -9,14 +9,13 @@ module mg_smoother_module
 
 contains
 
-  subroutine gs_line_solve_1d(ss, uu, ff, mm, lo, ng, skwd)
+  subroutine gs_line_solve_1d(ss, uu, ff, mm, lo, ng)
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)    :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     real (kind = dp_t), intent(in)    :: ss(lo(1):,0:)
     integer            ,intent(in)    :: mm(lo(1):)
-    logical, intent(in), optional :: skwd
 
     real (kind = dp_t), allocatable :: a_ls(:), b_ls(:), c_ls(:), r_ls(:), u_ls(:)
     integer :: ilen, i, hi(size(lo))
@@ -408,7 +407,7 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine minion_smoother_2d(omega, ss, uu, ff, mm, lo, ng, is_cross)
+  subroutine minion_smoother_2d(omega, ss, uu, ff, lo, ng, is_cross)
     use bl_prof_module
     integer           , intent(in) :: ng
     integer           , intent(in) :: lo(:)
@@ -416,7 +415,6 @@ contains
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
-    integer            ,intent(in) :: mm(lo(1):,lo(2):)
     logical            ,intent(in) :: is_cross
 
     integer            :: j, i, hi(size(lo))
@@ -476,7 +474,7 @@ contains
 
   end subroutine minion_smoother_2d
 
-  subroutine minion_smoother_3d(omega, ss, uu, ff, mm, lo, ng, is_cross)
+  subroutine minion_smoother_3d(omega, ss, uu, ff, lo, ng, is_cross)
     use bl_prof_module
     integer           , intent(in   ) :: ng
     integer           , intent(in   ) :: lo(:)
@@ -484,7 +482,6 @@ contains
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
-    integer            ,intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
     logical            ,intent(in   ) :: is_cross
 
     integer            :: i, j, k, hi(size(lo))
@@ -773,7 +770,7 @@ contains
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
 
-    integer :: i, j, k, ipar, ipar0, istart, jstart, kstart, hi(size(lo)), half_x, half_y
+    integer :: i, j, k, ipar, istart, jstart, kstart, hi(size(lo)), half_x, half_y
     logical :: x_is_odd, y_is_odd, jface, kface, doit
     real (kind = dp_t) :: dd
 
@@ -971,13 +968,12 @@ contains
 
   end subroutine nodal_smoother_3d
 
-  subroutine gs_lex_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_smoother_1d(omega, ss, uu, ff, ng, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     real (kind = dp_t), intent(in)    :: ss(:,0:)
-    integer            ,intent(in)    :: mm(:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
     integer :: i
@@ -991,14 +987,13 @@ contains
 
   end subroutine gs_lex_smoother_1d
 
-  subroutine gs_lex_smoother_2d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_smoother_2d(omega, ss, uu, ff, ng, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
     real (kind = dp_t), intent(in) :: ss(:, :, 0:)
-    integer            ,intent(in) :: mm(:,:)
     logical, intent(in), optional :: skwd
     integer :: j, i
     real (kind = dp_t) :: dd
@@ -1025,14 +1020,13 @@ contains
     call destroy(bpt)
   end subroutine gs_lex_smoother_2d
 
-  subroutine gs_lex_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_smoother_3d(omega, ss, uu, ff, ng, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
-    integer            ,intent(in) :: mm(:,:,:)
     logical, intent(in), optional :: skwd
     integer :: i, j, k
     real (kind = dp_t) :: dd
@@ -1064,13 +1058,12 @@ contains
 
   end subroutine gs_lex_smoother_3d
 
-  subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, ng, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     real (kind = dp_t), intent(in)    :: ss(:,0:)
-    integer            ,intent(in)    :: mm(:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
     integer :: i
@@ -1085,14 +1078,13 @@ contains
 
   end subroutine gs_lex_dense_smoother_1d
 
-  subroutine gs_lex_dense_smoother_2d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_dense_smoother_2d(omega, ss, uu, ff, ng, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
     real (kind = dp_t), intent(in) :: ss(:, :, 0:)
-    integer            ,intent(in) :: mm(:,:)
     logical, intent(in), optional :: skwd
     integer :: j, i
     real (kind = dp_t) :: dd
@@ -1126,14 +1118,13 @@ contains
 
   end subroutine gs_lex_dense_smoother_2d
 
-  subroutine gs_lex_dense_smoother_3d(omega, ss, uu, ff, mm, ng, skwd)
+  subroutine gs_lex_dense_smoother_3d(omega, ss, uu, ff, ng, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
-    integer            ,intent(in) :: mm(:,:,:)
     logical, intent(in), optional :: skwd
     integer :: i, j, k
     real (kind = dp_t) :: dd

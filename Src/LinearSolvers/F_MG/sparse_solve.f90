@@ -1548,13 +1548,12 @@ contains
 
   end subroutine sparse_build
 
-  subroutine sparse_nodal_build(spo, ss, mm, la, face_type, verbose)
+  subroutine sparse_nodal_build(spo, ss, mm, la, verbose)
     use sort_box_module
     type(   layout), intent(in) :: la
     type(imultifab), intent(in) :: mm
     type(multifab) , intent(in) :: ss
     type(sparse)                :: spo
-    integer, intent(in)         :: face_type(:,:,:)
     integer, intent(in)         :: verbose
 
     integer        , pointer :: mp(:,:,:,:)
