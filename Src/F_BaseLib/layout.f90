@@ -901,7 +901,7 @@ contains
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
        !
-       call knapsack_i(tprc, ibxs, bxs, parallel_nprocs())
+       call knapsack_i(tprc, ibxs, parallel_nprocs())
     end if
 
     luc => least_used_cpus()

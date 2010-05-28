@@ -454,10 +454,9 @@ contains
     end do
   end function ml_multifab_sum
 
-  function ml_multifab_norm_l2(x, all) result(r)
+  function ml_multifab_norm_l2(x) result(r)
     real(kind=dp_t) :: r
     type(ml_multifab) :: x
-    logical, intent(in), optional :: all
     integer :: n
     n = x%nlevel
     r = norm_l2(x%mf(n))**2
@@ -467,11 +466,10 @@ contains
     end do
     r = sqrt(r)
   end function ml_multifab_norm_l2
-  function ml_multifab_norm_l2_c(x, c, all) result(r)
+  function ml_multifab_norm_l2_c(x, c) result(r)
     real(kind=dp_t) :: r
     type(ml_multifab) :: x
     integer, intent(in) :: c
-    logical, intent(in), optional :: all
     integer :: n
     n = x%nlevel
     r = norm_l2(x%mf(n), c)**2
@@ -482,10 +480,9 @@ contains
     r = sqrt(r)
   end function ml_multifab_norm_l2_c
 
-  function ml_multifab_norm_inf(x, all) result(r)
+  function ml_multifab_norm_inf(x) result(r)
     real(kind=dp_t) :: r
     type(ml_multifab) :: x
-    logical, intent(in), optional :: all
     integer :: n
     n = x%nlevel
     r = norm_inf(x%mf(n))
@@ -493,11 +490,10 @@ contains
        r = max(r, norm_inf(x%mf(n), mask = x%mla%mask(n)))
     end do
   end function ml_multifab_norm_inf
-  function ml_multifab_norm_inf_c(x, c, all) result(r)
+  function ml_multifab_norm_inf_c(x, c) result(r)
     real(kind=dp_t) :: r
     type(ml_multifab) :: x
     integer, intent(in) :: c
-    logical, intent(in), optional :: all
     integer :: n
     n = x%nlevel
     r = norm_inf(x%mf(n))

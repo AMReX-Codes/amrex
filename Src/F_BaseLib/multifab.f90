@@ -3667,11 +3667,10 @@ contains
     end do
   end subroutine multifab_saxpy_4
 
-  subroutine multifab_saxpy_3_doit(ap, b1, bp, all)
+  subroutine multifab_saxpy_3_doit(ap, b1, bp)
     real(dp_t),     intent(in   ) :: b1
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
-    logical, intent(in)           :: all
     integer :: i, j, k, n
 
     ! ap = ap + b1*bp
@@ -3717,7 +3716,7 @@ contains
 
        ! ap = ap + b1*bp
 
-       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+       call multifab_saxpy_3_doit(ap,b1,bp)
 
     end do
 
@@ -3749,7 +3748,7 @@ contains
 
        ! ap = ap + b1*bp
 
-       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+       call multifab_saxpy_3_doit(ap,b1,bp)
 
     end do
   end subroutine multifab_saxpy_3_c
@@ -3781,7 +3780,7 @@ contains
 
        ! ap = ap + b1*bp
 
-       call multifab_saxpy_3_doit(ap,b1,bp,lall)
+       call multifab_saxpy_3_doit(ap,b1,bp)
 
     end do
   end subroutine multifab_saxpy_3_cc

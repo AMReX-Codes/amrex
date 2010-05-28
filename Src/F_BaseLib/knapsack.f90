@@ -35,7 +35,7 @@ contains
     r = a > b
   end function greater_d
 
-  subroutine knapsack_i(prc, ibxs, bxs, np, verbose, threshold)
+  subroutine knapsack_i(prc, ibxs, np, verbose, threshold)
 
     use parallel
     use box_module
@@ -46,7 +46,6 @@ contains
 
     integer,         intent(out), dimension(:) :: prc
     integer,         intent(in ), dimension(:) :: ibxs
-    type(box),       intent(in ), dimension(:) :: bxs
     integer,         intent(in )               :: np
     real(kind=dp_t), intent(in ), optional     :: threshold
     logical,         intent(in ), optional     :: verbose
