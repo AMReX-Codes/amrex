@@ -94,7 +94,7 @@ contains
     use bl_error_module
     type(ml_boxarray), intent(in) :: mba
     character(len=*), intent(in) :: str
-    integer :: un, n, nl
+    integer :: un
     integer :: i, j
     un = unit_new()
     open(unit=un, file=str, status = 'unknown', action = 'write', err = 100)

@@ -5,12 +5,10 @@ subroutine t_knapsack
   use box_util_module
   use knapsack_module
   use list_box_module
-  integer :: un, np, n, idm
+  integer :: np, n
   real(kind=dp_t) :: thresh
   logical :: verbose
   integer, allocatable :: iweights(:), prc(:)
-  real(kind=dp_t) :: maxprc, minprc, xmean, stddev
-  real(kind=dp_t), allocatable :: weights(:)
   integer :: i
   character(len=128) fname
   type(boxarray) :: ba
@@ -51,7 +49,7 @@ subroutine t_knapsack
 
   verbose = .true.; thresh = 1.0_dp_t
 
-  call knapsack_i(prc, iweights, ba%bxs, np, verbose, thresh)
+  call knapsack_i(prc, iweights, np, verbose, thresh)
 
   call destroy(ba)
 

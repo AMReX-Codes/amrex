@@ -487,7 +487,7 @@ subroutine t_box_mod
   type(boxarray) :: ba
   integer, parameter :: dm = 2
   integer :: lo(dm), hi(dm), hi1(dm)
-  integer :: i, n, m
+  integer :: m
   logical :: pmask(dm)
 
   allocate(r(3**dm,2))

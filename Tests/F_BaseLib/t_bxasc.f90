@@ -54,10 +54,7 @@ subroutine t_boxassoc
   type(boxarray) :: ba
   integer :: dm
   integer :: ng
-  integer :: pd_xyz(MAX_SPACEDIM)
-  integer :: ba_maxsize
   type(layout) :: la
-  type(box) :: bxs(4)
   logical pmask(MAX_SPACEDIM)
   type(box) :: pd
   type(ml_boxarray) :: mba

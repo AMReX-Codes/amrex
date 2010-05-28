@@ -34,13 +34,13 @@ subroutine t_ba_self_intersection
   integer, allocatable, dimension(:) :: ext, plo, phi, vsz, crsn, vrng
   type(ml_boxarray) :: mba
   character(len=64) :: test_set
-  integer :: i, f, n, j, k, sz
+  integer :: i, n, j, k, sz
   type(box) :: bx, cbx
   type(bl_prof_timer), save :: bpt, bpt_r, bpt_s, bpt_b
   integer :: cnt, cnt1, cnt2, cnt3
   integer(ll_t) :: vol, vol1, vol2, vol3
   integer, pointer :: ipv(:)
-  integer :: tsz, mxsz
+  integer :: mxsz
   logical :: verbose
   type(layout) :: la
 
