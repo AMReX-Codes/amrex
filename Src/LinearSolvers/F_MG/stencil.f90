@@ -2017,7 +2017,7 @@ contains
 
   end subroutine s_minion_second_fill_2d
 
-  subroutine s_minion_cross_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_cross_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
@@ -2027,7 +2027,6 @@ contains
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer nx, ny
     integer i, j
 
@@ -2069,7 +2068,7 @@ contains
 
   end subroutine s_minion_cross_fill_2d
 
-  subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
@@ -2077,7 +2076,6 @@ contains
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
     integer            :: i, j, nx, ny
     real (kind = dp_t) :: fac
@@ -2310,7 +2308,7 @@ contains
 
   end subroutine s_minion_full_old_2d
 
-  subroutine s_minion_full_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_full_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
@@ -2320,9 +2318,8 @@ contains
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
-    integer            :: i, j, nx, ny, nsten
+    integer          :: i, j, nx, ny, nsten
     double precision :: t1,t2,b1,b2,l1,l2,r1,r2,hx2,hy2,ss_sum
 
     nx = hi(1)-lo(1)+1
@@ -3051,7 +3048,7 @@ b1 =       0.0d0/hy2
 
   end subroutine s_minion_second_fill_3d
 
-  subroutine s_minion_cross_fill_3d(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb)
+  subroutine s_minion_cross_fill_3d(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
@@ -3062,7 +3059,6 @@ b1 =       0.0d0/hy2
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
     integer i, j, k
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
@@ -3706,12 +3702,11 @@ b1 =       0.0d0/hy2
 
   end subroutine stencil_flux_3d
 
-  subroutine stencil_dense_apply_1d(ss, dd, ng_d, uu, ng_u, mm)
+  subroutine stencil_dense_apply_1d(ss, dd, ng_d, uu, ng_u)
     integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,0:)
     real (kind = dp_t), intent(  out) :: dd(1-ng_d:)
     real (kind = dp_t), intent(in   ) :: uu(1-ng_u:)
-    integer           , intent(in   ) :: mm(:)
     integer i, nx
    
     nx = size(ss,dim=1)
@@ -3721,12 +3716,11 @@ b1 =       0.0d0/hy2
 
   end subroutine stencil_dense_apply_1d
 
-  subroutine stencil_dense_apply_2d(ss, dd, ng_d, uu, ng_u, mm)
+  subroutine stencil_dense_apply_2d(ss, dd, ng_d, uu, ng_u)
     integer, intent(in) :: ng_d, ng_u
     real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
     real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:)
-    integer           , intent(in   ) :: mm(:,:)
     integer i, j, nx, ny
 
     nx = size(ss,dim=1)
@@ -3935,14 +3929,13 @@ b1 =       0.0d0/hy2
 
   end subroutine stencil_fine_flux_1d
 
-  subroutine stencil_all_flux_1d(ss, flux, uu, mm, ngu, ngf, dim, skwd)
+  subroutine stencil_all_flux_1d(ss, flux, uu, mm, ngu, ngf, skwd)
     integer, intent(in) :: ngu, ngf
     real (kind = dp_t), intent(in ) ::   uu(-ngu:)
     real (kind = dp_t), intent(out) :: flux(-ngf:)
     real (kind = dp_t), intent(in ) :: ss(0:,0:)
     integer           , intent(in)  :: mm(0:)
     logical, intent(in), optional :: skwd
-    integer, intent(in) :: dim
     integer nx
     integer i
     integer, parameter :: XBC = 3, YBC = 4

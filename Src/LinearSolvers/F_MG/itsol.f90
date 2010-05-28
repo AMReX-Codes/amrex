@@ -167,7 +167,7 @@ contains
       real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
 
-      integer         :: i, j, k, nc, nz
+      integer         :: i, j, k, nc
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=4)-1
@@ -264,10 +264,10 @@ contains
       !$OMP END PARALLEL DO
     end subroutine diag_init_nd_3d
 
-  function itsol_converged(rr, uu, Anorm, bnorm, eps, abs_eps) result(r)
+  function itsol_converged(rr, uu, bnorm, eps, abs_eps) result(r)
     use bl_prof_module
     type(multifab), intent(in) :: rr, uu
-    real(dp_t), intent(in) :: Anorm, bnorm, eps
+    real(dp_t), intent(in) :: bnorm, eps
     real(dp_t), intent(in), optional :: abs_eps
 
     real(dp_t)             :: norm_rr, norm_uu
