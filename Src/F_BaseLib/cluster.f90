@@ -14,10 +14,14 @@ module cluster_module
   integer, private, save :: cut_threshold = 2
   real(dp_t), private, save :: beta = 1.05_dp_t
 
-  integer        , parameter, private :: minwidth_default = 4
+  integer        , parameter, private :: minwidth_default        = 4
+  integer        , parameter, private :: blocking_factor_default = 8
+  integer        , parameter, private :: ref_ratio_default       = 2
   real(kind=dp_t), parameter, private :: min_eff_default  = .7
 
-  integer        , save :: minwidth = minwidth_default
+  integer        , save :: minwidth  = minwidth_default
+  integer        , save :: ref_ratio = ref_ratio_default
+  integer        , save :: blocking_factor = blocking_factor_default
   real(kind=dp_t), save :: min_eff = min_eff_default
 
   public :: cluster_set_verbose
@@ -81,32 +85,30 @@ contains
     out = out .or. in
   end subroutine filter_lor
 
-  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff, blocking_factor)
+  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff)
     use bl_error_module
     use bl_prof_module
-    type(boxarray), intent(out) :: boxes
-    type(lmultifab), intent(in) :: tagboxes
-    integer, intent(in) :: buf_wid
-    real(dp_t), intent(out), optional :: overall_eff
-    integer, intent(in), optional :: blocking_factor
 
-    type(layout) :: la, lag, la_buf
-    type(list_box) :: lboxes
-    type(lmultifab) :: buf, lbuf, bufg
-    type(boxarray) :: bag
-    logical, pointer :: mt(:,:,:,:), mb(:,:,:,:)
-    integer :: b, dm, num_flag, i, k, bxcnt, lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
-    integer, allocatable :: iprocs(:), bxs(:)
-    integer(kind=ll_t) :: bboxinte
-    type(box) :: bx
-    real(dp_t) :: bx_eff
+    type(boxarray),  intent(out)           :: boxes
+    type(lmultifab), intent(in )           :: tagboxes
+    integer,         intent(in )           :: buf_wid
+    real(dp_t),      intent(out), optional :: overall_eff
+
+    type(layout)                 :: la, cla, la_buf
+    type(list_box)               :: lboxes
+    type(lmultifab)              :: cbuf, buf, lbuf
+    logical, pointer             :: mt(:,:,:,:), mb(:,:,:,:)
+    integer                      :: b, dm, num_flag, i, k, bxcnt
+    integer                      :: ratio, lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
+    integer, allocatable         :: iprocs(:), bxs(:)
+    integer(kind=ll_t)           :: bboxinte
+    type(box)                    :: bx,buf_pd
+    real(dp_t)                   :: bx_eff
     type(list_box_node), pointer :: bln
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "cluster")
-
-    if ( present(blocking_factor) ) &
-       call bl_error("CLUSTER: blocking factor not implemented yet")
 
     if ( nghost(tagboxes) /= 0 ) &
        call bl_error("CLUSTER: tagboxes must have NG = 0")
@@ -124,7 +126,6 @@ contains
     num_flag = lmultifab_count(tagboxes)
 
     if ( num_flag == 0 ) then
-!      call bl_warn("No cells are flagged/No boxes returned")
        if ( present(overall_eff) ) overall_eff = 0
        call destroy(bpt)
        return
@@ -156,51 +157,58 @@ contains
     !
     ! Remove any tags outside the problem domain.
     !
-    call pd_mask(buf)
+    buf_pd = get_pd(la_buf)
+    call pd_mask(buf,buf_pd)
     !
     ! Make sure that all tagged cells in are properly replicated in the high indexed boxes.
     !
     call internal_sync(buf, all = .true., filter = filter_lor)
 
-    bx = get_pd(la_buf)
+    ratio = max(blocking_factor / ref_ratio, 1)
+
+    call tagboxes_coarsen(buf, cbuf, ratio)
+
+    !
+    ! Remove any coarsened tags outside the problem domain.
+    !
+    call pd_mask(cbuf,coarsen(buf_pd,ratio))
+
+    call destroy(buf)
+
+    cla = get_layout(cbuf)
+
+    bx = coarsen(get_pd(la_buf),ratio)
 
     if ( parallel_nprocs() > 1 ) then
        !
        ! The cluster algorithm is inherently serial.
        ! We'll set up the problem to do on the IO processor.
        !
-       call boxarray_build_copy(bag, get_boxarray(buf))
-       call boxarray_grow(bag, buf_wid)
-       call build(lag, bag, bx, get_pmask(la_buf), explicit_mapping = get_proc(la_buf))
-       call destroy(bag)
-       call build(bufg, lag, nc = 1, ng = 0)
-
-       do i = 1, bufg%nboxes
-          if ( remote(bufg, i) ) cycle
-          mt => dataptr(buf,  i)
-          mb => dataptr(bufg, i)
-          mb = mt
-       end do
-
-       call destroy(buf)
-
-       allocate(iprocs(nboxes(get_layout(buf))))
+       allocate(iprocs(nboxes(cla)))
 
        iprocs = parallel_IOProcessorNode()
 
-       call build(la, get_boxarray(buf%la), bx, get_pmask(buf%la), explicit_mapping = iprocs)
+       call build(la, get_boxarray(cla), bx, get_pmask(cla), explicit_mapping = iprocs)
 
        call build(lbuf, la, nc = 1)
 
-       call copy(lbuf, bufg)  ! This is a parallel copy.
+       call copy(lbuf, cbuf)  ! This is a parallel copy.
 
-       call destroy(bufg)
-       call destroy(lag)
+       call destroy(cbuf)
+       call destroy(cla)
 
        if ( parallel_IOProcessor() ) then
           call owner_mask(lbuf)
           call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf)
           bxcnt = size(lboxes)
+
+          if (ratio > 1) then
+             bln => begin(lboxes)
+             do while ( associated(bln) )
+                bln = refine(value(bln),ratio)
+                bln => next(bln)
+             end do
+          end if
        end if
 
        call destroy(lbuf)
@@ -243,20 +251,25 @@ contains
        end if
 
     else
-       call owner_mask(buf)
-       call cluster_mf_private_recursive(lboxes, bx, bx_eff, buf)
-       call destroy(buf)
+
+       call owner_mask(cbuf)
+
+       call cluster_mf_private_recursive(lboxes, bx, bx_eff, cbuf)
+
+       if (ratio > 1) then
+          bln => begin(lboxes)
+          do while ( associated(bln) )
+             bln = refine(value(bln),ratio)
+             bln => next(bln)
+          end do
+       end if
+
+       call destroy(cbuf)
     end if
 
     call build(boxes, lboxes)
 
     call destroy(lboxes)
-    !
-    ! TODO - remove this check after it's clear the parallel implementation is OK.
-    !
-    if ( .not. boxarray_clean(boxes%bxs) ) then
-       call bl_error('cls_3d_mf: boxes are NOT disjoint')
-    end if
 
     if ( present(overall_eff) ) then
        bboxinte    = volume(boxes)
@@ -267,13 +280,14 @@ contains
 
   contains
 
-    subroutine pd_mask(mask)
+    subroutine pd_mask(mask,pd)
+
       type(lmultifab), intent(inout) :: mask
+      type(box)      , intent(in   ) :: pd
       integer :: i, j
-      type(box) :: bxi, pd
+      type(box) :: bxi
       type(boxarray) :: ba
 
-      pd = get_pd(get_layout(mask))
       do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
          bxi = get_pbox(mask, i)
          call boxarray_box_diff(ba, bxi, pd)
