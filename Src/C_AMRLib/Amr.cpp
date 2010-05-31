@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.207 2010-05-31 03:38:54 almgren Exp $
+// $Id: Amr.cpp,v 1.208 2010-05-31 18:33:06 almgren Exp $
 //
 #include <winstd.H>
 
@@ -799,7 +799,7 @@ Amr::writePlotFile (const std::string& root,
 
     const std::string pltfile = BoxLib::Concatenate(root,num,file_name_digits);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << std::endl;
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
@@ -979,7 +979,7 @@ Amr::initialInit (Real strt_time,
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Starting to read probin ... " << std::endl;
 
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
@@ -1026,7 +1026,7 @@ Amr::initialInit (Real strt_time,
                   Geometry::ProbHi());
 #endif
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read probin ... " << std::endl;
 
 #ifdef BL_SYNC_RANTABLES
@@ -1093,7 +1093,7 @@ Amr::initialInit (Real strt_time,
         level_steps[lev] = 0;
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
     {
         std::cout << "INITIAL GRIDS \n";
         printGridInfo(std::cout,0,finest_level);
@@ -1127,7 +1127,7 @@ Amr::restart (const std::string& filename)
 
     int i;
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
         std::cout << "restarting calculation from file: " << filename << std::endl;
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
@@ -1146,7 +1146,7 @@ Amr::restart (const std::string& filename)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Starting to read probin ... " << std::endl;
 
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
@@ -1193,7 +1193,7 @@ Amr::restart (const std::string& filename)
                   Geometry::ProbHi());
 #endif
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read probin ... " << std::endl;
 
     //
@@ -1424,7 +1424,7 @@ Amr::checkPoint ()
 
     const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
@@ -1577,7 +1577,7 @@ Amr::timeStep (int  level,
         amr_level.clear(0);
         amr_level.set(0,a);
 
-        if (verbose && ParallelDescriptor::IOProcessor())
+        if ((verbose > 1) && ParallelDescriptor::IOProcessor())
             printGridInfo(std::cout,0,finest_level);
 
         if (record_grid_info && ParallelDescriptor::IOProcessor())
@@ -1644,7 +1644,7 @@ Amr::timeStep (int  level,
     //
     // Advance grids at this level.
     //
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
     {
         std::cout << "ADVANCE grids at level "
                   << level
@@ -1659,7 +1659,7 @@ Amr::timeStep (int  level,
     level_steps[level]++;
     level_count[level]++;
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Advanced "
                   << amr_level[level].countCells()
@@ -1725,7 +1725,7 @@ Amr::coarseTimeStep (Real stop_time)
 
     amr_level[0].postCoarseTimeStep(cumtime);
 
-    if (verbose)
+    if (verbose > 0)
     {
         Real run_stop = ParallelDescriptor::second() - run_strt;
 
@@ -1749,7 +1749,7 @@ Amr::coarseTimeStep (Real stop_time)
                       << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nSTEP = "
                  << level_steps[0]
@@ -1857,7 +1857,7 @@ Amr::regrid (int  lbase,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::regrid()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
         std::cout << "REGRID: at level lbase = " << lbase << std::endl;
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
@@ -1992,7 +1992,7 @@ Amr::regrid (int  lbase,
 
         printGridInfo(gridlog,start,finest_level);
     }
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
     {
         if (lbase == 0)
             std::cout << "STEP = " << level_steps[0] << ' ';
@@ -2464,7 +2464,7 @@ Amr::grid_places (int              lbase,
 
     }
 
-    if (verbose)
+    if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      stoptime = ParallelDescriptor::second() - strttime;
