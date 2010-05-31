@@ -167,7 +167,6 @@ contains
     ratio = max(blocking_factor / ref_ratio, 1)
 
     call tagboxes_coarsen(buf, cbuf, ratio)
-
     !
     ! Remove any coarsened tags outside the problem domain.
     !
@@ -265,6 +264,7 @@ contains
        end if
 
        call destroy(cbuf)
+       call destroy(cla)
     end if
 
     call build(boxes, lboxes)
