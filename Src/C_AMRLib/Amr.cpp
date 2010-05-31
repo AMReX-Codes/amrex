@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.206 2010-05-31 03:29:16 almgren Exp $
+// $Id: Amr.cpp,v 1.207 2010-05-31 03:38:54 almgren Exp $
 //
 #include <winstd.H>
 
@@ -56,6 +56,7 @@ namespace
   const std::string CheckPointVersion = "CheckPointVersion_1.0";
   int regrid_on_restart               = 0;
   int plotfile_on_restart             = 0;
+  int checkpoint_on_restart           = 0;
   int compute_new_dt_on_regrid        = 0;
 }
 
@@ -319,6 +320,7 @@ Amr::Amr ()
 
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+    pp.query("checkpoint_on_restart",checkpoint_on_restart);
 
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
@@ -1533,6 +1535,9 @@ Amr::RegridOnly (Real time)
 
     if (plotfile_on_restart)
 	writePlotFile(plot_file_root,level_steps[0]);
+
+    if (checkpoint_on_restart)
+       checkPoint();
 
 }
 
