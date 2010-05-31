@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.205 2010-05-13 17:00:07 ajnonaka Exp $
+// $Id: Amr.cpp,v 1.206 2010-05-31 03:29:16 almgren Exp $
 //
 #include <winstd.H>
 
@@ -1395,7 +1395,7 @@ Amr::restart (const std::string& filename)
     Real dRestartTime  = dRestartTime1 - dRestartTime0;
 
     ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
-if (ParallelDescriptor::IOProcessor())
+    if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "Restart time = " << dRestartTime << " seconds." << std::endl;
 
