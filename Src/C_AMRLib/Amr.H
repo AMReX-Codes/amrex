@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.42 2010-05-05 21:36:11 almgren Exp $
+// $Id: Amr.H,v 1.43 2010-05-31 19:40:23 almgren Exp $
 //
 
 #include <fstream>
@@ -322,6 +322,10 @@ protected:
     void printGridInfo (std::ostream& os,
                         int           min_lev,
                         int           max_lev);
+
+    void printGridSummary (std::ostream& os,
+                           int           min_lev,
+                           int           max_lev);
 
     void setRecordGridInfo (const std::string&);
 
