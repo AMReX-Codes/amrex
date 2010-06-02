@@ -286,7 +286,7 @@ contains
           mglev = mgt(n)%nlevels
 
           ! Interpolate uu from coarser level
-          call ml_prolongation(uu(n), uu(n-1), pd, ref_ratio(n-1,:))
+          call ml_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
 
           ! Add: soln += uu
           call saxpy(soln(n), ONE, uu(n), .true.)
