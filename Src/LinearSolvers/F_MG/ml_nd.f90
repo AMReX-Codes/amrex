@@ -273,7 +273,7 @@ contains
 
           ! Interpolate uu from coarser level
           if (iter == 1) call saxpy(uu(n-1),  ONE, full_soln(n-1))
-          call ml_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
+          call ml_prolongation(uu(n), uu(n-1), pd, ref_ratio(n-1,:))
           if (iter == 1) call saxpy(uu(n-1), -ONE, full_soln(n-1))
 
           ! Subtract: uu -= full_soln

@@ -17,10 +17,11 @@ module ml_prolongation_module
 
 contains
 
-  subroutine ml_prolongation(fine, crse, ir)
+  subroutine ml_prolongation(fine, crse, fine_domain, ir)
     use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
+    type(box),      intent(in   ) :: fine_domain
     integer,        intent(in   ) :: ir(:)
 
     integer             :: lo (fine%dim), hi (fine%dim)
@@ -344,7 +345,7 @@ contains
           select case (dm)
           case (1)
              if ( cell_centered_q(crse) ) then
-                call ml_interp_bcs_1d(fp(:,1,1,cf+n), lof, cp(:,1,1,cc+n), loc, lo, ir)
+                call ml_interp_bcs_1d(fp(:,1,1,cf+n), lof, cp(:,1,1,cc+n), loc, hic, lo, hi, ir, side)
              else if ( nodal_q(crse) ) then
                 call bl_error("ML_INTERP_BCS: nodal 1d not provided")
              else
@@ -354,7 +355,7 @@ contains
              if ( cell_centered_q(crse) ) then
                 call ml_interp_bcs_2d(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
              else if ( nodal_q(crse) ) then
-                call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, lo, hi, ir, side)
+                call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
              else
                 call bl_error("ML_INTERP_BCS: nodal or cell centered only")
              end if
@@ -362,7 +363,7 @@ contains
              if ( cell_centered_q(crse) ) then
                 call ml_interp_bcs_3d(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
              else if ( nodal_q(crse) )  then
-                call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, lo, hi, ir, side)
+                call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
              else
                 call bl_error("ML_INTERP_BCS: nodal or cell centered only")
              end if
@@ -388,12 +389,13 @@ contains
     call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, fine%nc)
   end subroutine ml_interp_bcs
 
-  subroutine ml_interp_bcs_1d(ff, lof, cc, loc, lo, ir)
-    integer, intent(in) :: loc(:)
+  subroutine ml_interp_bcs_1d(ff, lof, cc, loc, hic, lo, hi, ir, side)
+    integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:)
+    integer, intent(in) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):)
     real (dp_t), intent(in) :: cc(loc(1):)
+    integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, ic
     i     = lo(1)
@@ -498,8 +500,8 @@ contains
 
   end subroutine ml_interp_bcs_2d
 
-  subroutine ml_interp_bcs_2d_nodal(ff, lof, cc, loc, lo, hi, ir, side)
-    integer, intent(in) :: loc(:)
+  subroutine ml_interp_bcs_2d_nodal(ff, lof, cc, loc, hic, lo, hi, ir, side)
+    integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
@@ -725,8 +727,8 @@ contains
 
   end subroutine ml_interp_bcs_3d
 
-  subroutine ml_interp_bcs_3d_nodal(ff, lof, cc, loc, lo, hi, ir, side)
-    integer, intent(in) :: loc(:)
+  subroutine ml_interp_bcs_3d_nodal(ff, lof, cc, loc, hic, lo, hi, ir, side)
+    integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
