@@ -908,7 +908,7 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 call gs_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                                      mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
+                                      mp(:,1,1,1), lo, mgt%ng)
              end do
           end do
 
@@ -1021,10 +1021,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                              fp(:,:,1,1), mp(:,:,1,1), lo, mgt%ng, .true.)
+                                              fp(:,:,1,1), lo, mgt%ng, .true.)
                    case (3)
                       call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                              fp(:,:,:,1), mp(:,:,:,1), lo, mgt%ng, .true.)
+                                              fp(:,:,:,1), lo, mgt%ng, .true.)
                    end select
                 end do
              end do
@@ -1043,10 +1043,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                              fp(:,:,1,1), mp(:,:,1,1), lo, mgt%ng, .false.)
+                                              fp(:,:,1,1), lo, mgt%ng, .false.)
                    case (3)
                       call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                              fp(:,:,:,1), mp(:,:,:,1), lo, mgt%ng, .false.)
+                                              fp(:,:,:,1), lo, mgt%ng, .false.)
                    end select
                 end do
              end do
@@ -1084,10 +1084,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
-                                              fp(:,:,1,n), mp(:,:,1,1), mgt%ng)
+                                              fp(:,:,1,n), mgt%ng)
                    case (3)
                       call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                              fp(:,:,:,n), mp(:,:,:,1), mgt%ng)
+                                              fp(:,:,:,n), mgt%ng)
                    end select
                 end do
              end do
