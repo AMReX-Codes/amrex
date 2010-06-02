@@ -747,13 +747,13 @@ contains
           select case(dm)
           case (1)
              call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
-                                  mp(:,1,1,1), mgt%ng, nodal_ng)
+                                  mgt%ng, nodal_ng)
           case (2)
              call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), mgt%ng, nodal_ng, face_type(i,:,:))
+                                  mp(:,:,1,1), mgt%ng, face_type(i,:,:))
           case (3)
              call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:), uniform_dh)
+                                  mp(:,:,:,1), mgt%ng, face_type(i,:,:), uniform_dh)
           end select
        end do
     end do
