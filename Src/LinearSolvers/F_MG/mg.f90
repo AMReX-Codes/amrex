@@ -1312,16 +1312,16 @@ contains
 
   end subroutine mg_tower_prolongation
 
-  function mg_tower_converged(mgt, dd, uu, Anorm, Ynorm) result(r)
+  function mg_tower_converged(mgt, dd, uu, Ynorm) result(r)
 
     use itsol_module
 
     logical :: r
     type(mg_tower), intent(inout) :: mgt
-    real(dp_t), intent(in) :: Anorm, Ynorm
+    real(dp_t), intent(in) :: Ynorm
     type(multifab), intent(in) :: dd
     type(multifab), intent(in) :: uu
-    r = itsol_converged(dd, uu, Anorm, Ynorm, mgt%eps, mgt%abs_eps)
+    r = itsol_converged(dd, uu, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
@@ -1600,7 +1600,7 @@ contains
                0, nrm, Anorm
        end if
     end if
-    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) then
+    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) then
        if ( present(stat) ) stat = 0
        if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
           write(unit=*, fmt='("F90mg: MG finished at on input")') 
@@ -1627,7 +1627,7 @@ contains
           write(unit = defbase,fmt='("def",I3.3)') it
           call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
        end if
-       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) exit
+       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) exit
     end do
     if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
        write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it
