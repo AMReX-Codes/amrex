@@ -420,11 +420,10 @@ contains
 
   end subroutine set_nodal_faces_edges_corners_3d
 
-  subroutine s_cross_3d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_cross_3d_nodal(ss, sg, mm, dh)
     real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
-    integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer :: i, j, k, nx, ny, nz
@@ -487,12 +486,11 @@ contains
 
   end subroutine s_cross_3d_nodal
 
-  subroutine s_simple_3d_one_sided(ss, sg, mm, face_type, dh)
+  subroutine s_simple_3d_one_sided(ss, sg, mm, dh)
 
     real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
-    integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer :: i, j, k, nx, ny, nz
@@ -570,11 +568,10 @@ contains
 
   end subroutine s_simple_3d_one_sided
 
-  subroutine s_dense_3d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_dense_3d_nodal(ss, sg, mm, dh)
     real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
-    integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, k, nx, ny, nz
