@@ -525,12 +525,12 @@ contains
                 call s_minion_cross_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
                                             xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
                                             dh, mp(:,:,1,1), &
-                                            bx%lo, bx%hi, lxa, lxb)
+                                            bx%lo, bx%hi)
              else if (ns .eq. 25) then
                 call s_minion_full_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
                                            xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
                                            dh, mp(:,:,1,1), &
-                                           bx%lo, bx%hi, lxa, lxb)
+                                           bx%lo, bx%hi)
              end if
           case (3)
              zcp => dataptr(edge_coeffs(3), i)
@@ -543,7 +543,7 @@ contains
                 call s_minion_cross_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
                                             xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
                                             dh, mp(:,:,:,1), &
-                                            bx%lo, bx%hi, lxa, lxb)
+                                            bx%lo, bx%hi)
 !            else if (ns .eq. 125) then
 !               call s_minion_full_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
 !                                          xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
