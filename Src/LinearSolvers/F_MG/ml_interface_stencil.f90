@@ -94,7 +94,7 @@ contains
 
           select case (res%dim)
           case (1)
-             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, face, efactor)
+             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, hi, face, dim, efactor)
           case (2)
              call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,1,:), los, lo, hi, face, dim, efactor)
           case (3)
@@ -194,7 +194,7 @@ contains
 
        select case (res%dim)
        case (1)
-          call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
+          call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, hi, efactor)
        case (2)
           call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
        case (3)
@@ -213,15 +213,15 @@ contains
   end subroutine ml_interface_c
 
   subroutine ml_interface_1d_crse(res, lor, cc, loc, &
-       ss , los, lo, face, efactor)
+       ss , los, lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lo(:)
+    integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
-    integer, intent(in) :: face
+    integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
     integer :: i
@@ -242,11 +242,11 @@ contains
 
   end subroutine ml_interface_1d_crse
 
-  subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, efactor)
+  subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
 
     integer, intent(in) :: lor(:)
     integer, intent(in) :: lof(:) 
-    integer, intent(in) :: lo(:)
+    integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     real (kind = dp_t), intent(in   ) :: efactor
@@ -488,15 +488,15 @@ contains
        select case (res%dim)
        case (1)
           call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
-               fp(:,1,1,1), lof, cp(:,1,1,1), loc, &
-               sp(:,1,1,:), los, lo, side)
+               fp(:,1,1,1), lof, hif, cp(:,1,1,1), loc, &
+               sp(:,1,1,:), los, lo, hi, ir, side, lof, hif)
        case (2)
           call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
-               fp(:,:,1,1), lof , cp(:,:,1,1), loc , sp(:,:,1,:), los , &
+               fp(:,:,1,1), lof , hif, cp(:,:,1,1), loc , sp(:,:,1,:), los , &
                mp(:,:,1,1), lomf, mcp(:,:,1,1), lomc, lo, hi, ir, side, lof, hif)
        case (3)
           call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
-               fp(:,:,:,1), lof , cp(:,:,:,1), loc , sp(:,:,:,:), los , &
+               fp(:,:,:,1), lof , hif, cp(:,:,:,1), loc , sp(:,:,:,:), los , &
                mp(:,:,:,1), lomf, mcp(:,:,:,1), lomc, lo, hi, ir, side, lof, hif)
        end select
     end do
@@ -595,15 +595,15 @@ contains
        select case (res%dim)
        case (1)
           call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
-               flxpt(:,1,1,1), lof, cp(:,1,1,1), loc, &
-               sp(:,1,1,:), los, lof, side)
+               flxpt(:,1,1,1), lof, hif, cp(:,1,1,1), loc, &
+               sp(:,1,1,:), los, lof, hif, ir, side, loflux, hiflux)
        case (2)
           call ml_interface_2d_nodal(rp(:,:,1,1), lor, &
-               flxpt(:,:,1,1), lof , cp(:,:,1,1), loc , sp(:,:,1,:), los , &
+               flxpt(:,:,1,1), lof , hif, cp(:,:,1,1), loc , sp(:,:,1,:), los , &
                mmfpt(:,:,1,1), lomf, mcp(:,:,1,1), lomc, lof, hif, ir, side, loflux, hiflux)
        case (3)
           call ml_interface_3d_nodal(rp(:,:,:,1), lor, &
-               flxpt(:,:,:,1), lof , cp(:,:,:,1), loc , sp(:,:,:,:), los , &
+               flxpt(:,:,:,1), lof , hif, cp(:,:,:,1), loc , sp(:,:,:,:), los , &
                mmfpt(:,:,:,1), lomf, mcp(:,:,:,1), lomc, lof, hif, ir, side, loflux, hiflux)
        end select
 
@@ -630,18 +630,19 @@ contains
     call destroy(bpt)
   end subroutine ml_crse_contrib
 
-  subroutine ml_interface_1d_nodal(res, lor, fine_flux, lof, cc, loc, &
-       ss , los, lo, side)
+  subroutine ml_interface_1d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
+       ss , los, lo, hi, ir, side, loflux, hiflux)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:)
+    integer, intent(in) :: lof(:), hif(:), loflux(:), hiflux(:)
+    integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
     integer, intent(in) :: side
+    integer, intent(in) :: ir(:)
 
     integer :: i
     real (kind = dp_t) :: crse_flux
@@ -660,7 +661,7 @@ contains
 
   end subroutine ml_interface_1d_nodal
 
-  subroutine ml_interface_2d_nodal(res, lor, fine_flux, lof, cc, loc, &
+  subroutine ml_interface_2d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
        ss , los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
     use stencil_module
     integer, intent(in) :: lor(:)
@@ -668,7 +669,7 @@ contains
     integer, intent(in) :: los(:)
     integer, intent(in) :: lomf(:)
     integer, intent(in) :: lomc(:)
-    integer, intent(in) :: lof(:), loflux(:), hiflux(:)
+    integer, intent(in) :: lof(:), hif(:), loflux(:), hiflux(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
@@ -961,13 +962,13 @@ contains
 
   end subroutine ml_interface_2d_nodal
 
-  subroutine ml_interface_3d_nodal(res, lor, fine_flux, lof, cc, loc, &
+  subroutine ml_interface_3d_nodal(res, lor, fine_flux, lof, hif, cc, loc, &
        ss, los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
     use stencil_module
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
-    integer, intent(in) :: lof(:), loflux(:), hiflux(:)
+    integer, intent(in) :: lof(:), hif(:), loflux(:), hiflux(:)
     integer, intent(in) :: lomf(:)
     integer, intent(in) :: lomc(:)
     integer, intent(in) :: lo(:), hi(:)

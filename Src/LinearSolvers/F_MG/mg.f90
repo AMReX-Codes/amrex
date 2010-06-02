@@ -547,13 +547,14 @@ contains
 
   end subroutine mg_tower_v_cycle
 
-  subroutine do_bottom_mgt(mgt, uu, rh)
+  subroutine do_bottom_mgt(mgt, uu, rh, lev)
 
     use bl_prof_module
 
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in   ) :: rh
+    integer        , intent(in   ) :: lev
 
     type(bl_prof_timer), save :: bpt
 
@@ -747,13 +748,13 @@ contains
           select case(dm)
           case (1)
              call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
-                                  mgt%ng, nodal_ng)
+                                  mp(:,1,1,1), mgt%ng, nodal_ng)
           case (2)
              call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), mgt%ng, face_type(i,:,:))
+                                  mp(:,:,1,1), mgt%ng, nodal_ng, face_type(i,:,:))
           case (3)
              call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), mgt%ng, face_type(i,:,:), uniform_dh)
+                                  mp(:,:,:,1), mgt%ng, nodal_ng, face_type(i,:,:), uniform_dh)
           end select
        end do
     end do
@@ -908,7 +909,7 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 call gs_line_solve_1d(sp(:,1,1,:), up(:,1,1,n), fp(:,1,1,n), &
-                                      mp(:,1,1,1), lo, mgt%ng)
+                                      mp(:,1,1,1), lo, mgt%ng, mgt%skewed(lev,i))
              end do
           end do
 
@@ -1021,10 +1022,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                              fp(:,:,1,1), lo, mgt%ng, .true.)
+                                              fp(:,:,1,1), mp(:,:,1,1), lo, mgt%ng, .true.)
                    case (3)
                       call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                              fp(:,:,:,1), lo, mgt%ng, .true.)
+                                              fp(:,:,:,1), mp(:,:,:,1), lo, mgt%ng, .true.)
                    end select
                 end do
              end do
@@ -1043,10 +1044,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                              fp(:,:,1,1), lo, mgt%ng, .false.)
+                                              fp(:,:,1,1), mp(:,:,1,1), lo, mgt%ng, .false.)
                    case (3)
                       call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                              fp(:,:,:,1), lo, mgt%ng, .false.)
+                                              fp(:,:,:,1), mp(:,:,:,1), lo, mgt%ng, .false.)
                    end select
                 end do
              end do
@@ -1084,10 +1085,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call gs_lex_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,n), &
-                                              fp(:,:,1,n), mgt%ng)
+                                              fp(:,:,1,n), mp(:,:,1,1), mgt%ng)
                    case (3)
                       call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                              fp(:,:,:,n), mgt%ng)
+                                              fp(:,:,:,n), mp(:,:,:,1), mgt%ng)
                    end select
                 end do
              end do
@@ -1312,16 +1313,17 @@ contains
 
   end subroutine mg_tower_prolongation
 
-  function mg_tower_converged(mgt, dd, uu, Ynorm) result(r)
+  function mg_tower_converged(mgt, lev, dd, uu, Anorm, Ynorm) result(r)
 
     use itsol_module
 
     logical :: r
     type(mg_tower), intent(inout) :: mgt
-    real(dp_t), intent(in) :: Ynorm
+    integer, intent(in) :: lev
+    real(dp_t), intent(in) :: Anorm, Ynorm
     type(multifab), intent(in) :: dd
     type(multifab), intent(in) :: uu
-    r = itsol_converged(dd, uu, Ynorm, mgt%eps, mgt%abs_eps)
+    r = itsol_converged(dd, uu, Anorm, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
@@ -1389,7 +1391,7 @@ contains
        end if
 
        if (associated(mgt%bottom_mgt)) then
-          call do_bottom_mgt(mgt, uu, rh)
+          call do_bottom_mgt(mgt, uu, rh, lev)
        else
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        end if
@@ -1600,7 +1602,7 @@ contains
                0, nrm, Anorm
        end if
     end if
-    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) then
+    if ( mg_tower_converged(mgt, mgt%nlevels, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) then
        if ( present(stat) ) stat = 0
        if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
           write(unit=*, fmt='("F90mg: MG finished at on input")') 
@@ -1627,7 +1629,7 @@ contains
           write(unit = defbase,fmt='("def",I3.3)') it
           call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
        end if
-       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) exit
+       if ( mg_tower_converged(mgt, mgt%nlevels, mgt%dd(mgt%nlevels), uu, Anorm, Ynorm) ) exit
     end do
     if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
        write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it
