@@ -76,6 +76,13 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -L/soft/apps/ibmcmp-jan2010/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlopt -lxlsmp -lxl -lxlomp_ser -lpthread -lrt
     endif
 
+    ifeq ($(WHICHLINUX), ORANGE)
+      MPI_HOME:=/usr/lib64/openmpi/1.4-gcc
+      BL_MPI_LIBS += -lmpi -lmpi_f77
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+    endif
+
     ifeq ($(WHICHLINUX), COYOTE)
       MPI_HOME:=/opt/OpenMPI/openmpi-1.2.4-intel/ib
       BL_MPI_LIBS += -lmpi  -lmpi_f77
