@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.209 2010-05-31 19:40:23 almgren Exp $
+// $Id: Amr.cpp,v 1.210 2010-06-03 20:22:07 almgren Exp $
 //
 #include <winstd.H>
 
@@ -455,6 +455,7 @@ Amr::Amr ()
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
+
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
@@ -513,8 +514,7 @@ Amr::Amr ()
         {
             max_grid_size[i] = the_max_grid_size;
         }
-    }
-    else
+    } else
     {
         //
         // Otherwise we expect a vector of max_grid_size values.
@@ -546,6 +546,32 @@ Amr::Amr ()
         //
         pp.queryarr("blocking_factor",blocking_factor,0,max_level);
     }
+
+    //
+    // Read in the regrid interval.
+    //
+    if (pp.countval("regrid_int") == 1)
+    {
+        //
+        // Set all values to the single available value.
+        //
+        int the_regrid_int = 0;
+
+        pp.query("regrid_int",the_regrid_int);
+
+        for (i = 0; i <= max_level; i++)
+        {
+            regrid_int[i] = the_regrid_int;
+        }
+    }
+    else
+    {
+        //
+        // Otherwise we expect a vector of blocking factors.
+        //
+        pp.queryarr("regrid_int",regrid_int,0,max_level);
+    }
+
     //
     // Read computational domain and set geometry.
     //
@@ -571,14 +597,6 @@ Amr::Amr ()
         offset[i]        = Geometry::ProbLo(i) + delta*lo[i];
     }
     CoordSys::SetOffset(offset);
-    //
-    // Set regrid interval.
-    //
-    int ri;
-    pp.get("regrid_int",ri);
-
-    for (int k = 0; k <= max_level; k++)
-        regrid_int[k] = ri;
 }
 
 bool
