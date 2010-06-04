@@ -30,7 +30,7 @@
 \section{BoxLib Data Structures}
 
 BoxLib contains the most fundamental objects used by applications written
-in the Parallel directory; the objects in BoxLib support structured
+in the Parallel directory. The objects in BoxLib support structured
 grid adaptive mesh refinement (AMR), i.e. in a single calculation
 different regions of the domain can have different spatial resolutions.  
 At each level of refinement, the region covered by that level is broken
@@ -86,13 +86,13 @@ dimension-independent code at compile-time.)
 
 \subsection{\IVtype}
 
-\IVtype\s are n-tuples of integers that are used to define
+\IVtype\ s are n-tuples of integers that are used to define
 indices in space.    An example of an \IVtype\ in 2D would
 be (3,5).
 
 \subsection{\Boxtype}
 
-A \Boxtype\ is simply a rectangular domain in space.  Note that \Boxtype\s
+A \Boxtype\ is simply a rectangular domain in space.  Note that \Boxtype\ s
 do not hold any data themselves. A box basically contains
 only the indices of its low end and high end as well as a type 
 (cell-centered, edge-centered, or nodal).
@@ -113,60 +113,36 @@ refinement.  The position of the boxes is with respect to a global
 index space at that level.  For example, box 1 in the figure has 
 {\tt lo} = (3,7) and {\tt hi} = (9,12).  
 
-\subsubsection{Common Operations on a \Boxtype}
-
-For a \Boxtype\ declared as:
-\begin{verbatim}
-  type(box) :: mybox
-\end{verbatim}
-
-You can access the indices of the boxes using the 
+For a \Boxtype\ {\bf bx},
+you can access the indices {\bf bx} using the 
 
 \begin{itemize}
-
-\item {\tt smallEnd} 
-
-\item {\tt hi = upb(mybox)} returns an array, {\tt hi(dm)}, with
-     the box upper bounds
-
+\item {\tt smallEnd}  -- for box 1 above this would return the \IVtype\ (3,7)
+\item {\tt bigEnd} -- for box 1 above this would return the \IVtype\ (9,12)
 \end{itemize}
 
-\subsection{\FAB}
+\subsection{\BoxArray}
 
-A \FAB\ is a ``Fortran Array Box''.  It contains the state data in a
-multidimensional array and several \Boxtype-types to describe where in
-index-space it lives.  The datatype of a \FAB\ is
-\begin{verbatim}
-  type fab
-     integer   :: dim = 0
-     type(box) :: bx
-     type(box) :: pbx
-     type(box) :: ibx
-     integer   :: nc = 1
-     real(kind = dp_t), pointer, dimension(:,:,:,:) :: p => Null()
-  end type fab
-\end{verbatim}
+A \BoxArray\ is an array of boxes.   The size of the array is the 
+number of boxes in the \BoxArray\ .
+
+\subsection{{\tt FArrayBox}}
+
+A \FAB\ (or {\tt FArrayBox}) is a ``Fortran Array Box'' that holds data.  It contains the
+\Boxtype\ that it is built on as well as a pointer to the data 
+that can be sent to a Fortran routine.
  
-\noindent Here:
-\begin{itemize}
-\item {\tt dim} is the dimensionality of the data
-\item {\tt bx} is a \Boxtype\ describing the index space for which this \FAB\ is defined
-\item {\tt ibx} is a \Boxtype\ that describes the index range of the valid data
-  for the \FAB.  This differes from {\tt bx} when the box is nodal in one or more 
-  directions.
-\item {\tt pbx} is a \Boxtype\ that extends {\tt ibx} to include
-  any ghostcells, or equivalently, the physical box for the \FAB\
-\item {\tt nc} is the number of components (how many variables at  
-  each grid location)
-\item {\tt p} is a pointer to the data, in this case double precision
-  ({\tt kind=dp\_t}).  Other \FAB\ types exists for other Fortran
-  data types.
-\end{itemize}
+To build a \FAB\ you must specify the \Boxtype\ and the number of components.
+For example, the section of code below builds a \FAB\ called {\tt myfab}
+that has two components of data defined on the box from (0,0) to (31,15).
 
-
-Note that all state data is stored in a four-dimensional array,
-{\tt (nx,ny,nz,nc)} in size, regardless of the dimensionality of the
-problem.  For 2D problems, {\tt nz=1}.
+\begin{verbatim}
+IntVect iv_lo(0,0);
+IntVect iv_hi(31,15);
+Box bx(iv_lo,iv_hi);
+FArrayBox myfab;
+myfab.define(bx,2);
+\end{verbatim}
 
 In Parallel, we don't usually deal with \FAB s alone, but rather
 through \MultiFab s, described next.
@@ -174,29 +150,21 @@ through \MultiFab s, described next.
 \subsection{\MultiFab}
 
 A \MultiFab\ is a collection of \FAB s at the same level of
-refinement.  The data type of a \MultiFab\ is:
+refinement.  A \MultiFab\ is defined using a \BoxArray\ ,
+number of components, and number of ``ghost'' calls that each box
+will have.  Note that a \FAB\ has no concept of ghost cells, it
+merely has a single box that identifies it.  A \MultiFab\ has
+a "valid" region that is defined by the \BoxArray\ .  In addition,
+each \FAB\ in the \MultiFab\ is built large enough to hold data
+on the box associated with it {\it grown by ngrow ghost cells.}
+
+If we had a \BoxArray\ , {\tt myba}, then we could define a \MultiFab\
+as"
+
 \begin{verbatim}
-  type multifab
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
-     type(layout) :: la
-     type(fab), pointer :: fbs(:) => Null()
-  end type multifab
+MultiFab mymf(myba,2,1);;
 \end{verbatim}
 
-\subsection{\BoxArray}
+This \MultiFab\ has two components of data and each \FAB\ in the \MultiFab\
+contains ghost cells one row wide in all directions outside the box from the \BoxArray\ .
 
-A \BoxArray\ is an array of boxes.  
-
-\subsection{\layout}
-
-A \layout\ is basically a \BoxArray\ that knows information about other
-boxes, or box ``connectivity.''  It contains additional information
-that is used in filling ghost cells from other fine grids or from
-coarser grids.  This information is stored as long as the layout
-exists so that we don't have to recompute intersections every time we
-do some operation with two MultiFabs that have that layout, for
-example.
