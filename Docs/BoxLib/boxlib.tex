@@ -1,5 +1,9 @@
 \section{Parallel Directory Structure}
 
+Parallel is the base directory in a hierarchy of subdirectories that
+support AMR applications.  The code in {\tt BoxLib} and most of the
+other directories is written almost in entirely in C++ 
+
 \begin{itemize}
 \item {\tt BoxLib/} 
 
@@ -128,7 +132,7 @@ number of boxes in the \BoxArray\ .
 
 \subsection{{\tt FArrayBox}}
 
-A \FAB\ (or {\tt FArrayBox}) is a ``Fortran Array Box'' that holds data.  It contains the
+A \FAB\ (or {\tt FAB}) is a ``Fortran Array Box'' that holds data.  It contains the
 \Boxtype\ that it is built on as well as a pointer to the data 
 that can be sent to a Fortran routine.
  
@@ -162,7 +166,7 @@ If we had a \BoxArray\ , {\tt myba}, then we could define a \MultiFab\
 as"
 
 \begin{verbatim}
-MultiFab mymf(myba,2,1);;
+MultiFab mymf(myba,2,1);
 \end{verbatim}
 
 This \MultiFab\ has two components of data and each \FAB\ in the \MultiFab\
