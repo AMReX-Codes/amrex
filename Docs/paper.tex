@@ -1,0 +1,153 @@
+\documentclass[11pt]{book} 
+
+\tolerance=600
+
+\usepackage{color,longtable,epsfig,epsf,amsmath}
+%\usepackage{hyperref}
+%\usepackage[T1]{fontenc}
+
+
+
+% Margins
+\usepackage{fullpage}
+
+\newcommand{\rhozero}{\rho_0}
+\newcommand{\pizero}{\pi_0}
+\newcommand{\pizeroone}{\pi_0^{(1)}}
+\newcommand{\pizerotwo}{\pi_0^{(2)}}
+\newcommand{\gammabar}{\overline{\Gamma}_1}
+
+\newcommand{\boxlibfigpath}{./BoxLib}
+
+\newcommand{\apj}{ApJ}
+\newcommand{\apjs}{ApJS}
+
+\def\ptl   {\partial}
+
+\def\eb    {{\bf e}}
+\def\fb    {{\bf f}}
+\def\ib    {{\bf i}}
+\def\Ub    {{\bf U}}
+\def\Vb    {{\bf V}}
+\def\xb    {{\bf x}}
+\def\ut    {\tilde{u}}
+\def\vt    {\tilde{v}}
+\def\wt    {\tilde{w}}
+
+\newcommand{\Ubt}{\widetilde{\Ub}}
+
+\def\edge  {\rm EDGE}
+\def\mac   {\rm MAC}
+\def\trans {\rm TRANS}
+
+\newcommand{\nablab}{\mathbf{\nabla}}
+\newcommand{\cdotb}{\mathbf{\cdot}}
+
+\newcommand{\sfrac}[2]{\mathchoice
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptscriptfont0 #1}\kern-.2em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptscriptfont0 #2}}
+  {#1\!/#2}}
+
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\myhalf}{\sfrac{1}{2}}
+\newcommand{\nph}{{n + \myhalf}}
+\newcommand{\nmh}{{n - \myhalf}}
+
+\newcommand{\Hext}{{H_{\rm ext}}}
+\newcommand{\Hnuc}{{H_{\rm nuc}}}
+\newcommand{\kth}{k_{\rm th}}
+\def\init  {\rm init}
+\def\model {\rm model}
+\def\raw   {\rm raw}
+
+\newcommand{\pred}{{\rm pred}}
+\newcommand{\Sbar}{\overline{S}}
+
+\newcommand{\inp}{\mathrm{in}}
+\newcommand{\initp}{\mathrm{init}}
+\newcommand{\outp}{\mathrm{out}}
+
+\newcommand{\uadv}{\widetilde{\mathbf{U}}^{\mathrm{ADV}}}
+\newcommand{\uadvone}{\widetilde{\mathbf{U}}^{\mathrm{ADV},\star}}
+\newcommand{\uadvonedag}{\Ubt^{\mathrm{ADV},\dagger,\star}}
+\newcommand{\uadvtwo}{\widetilde{\mathbf{U}}^{\mathrm{ADV}}}
+\newcommand{\uadvtwodag}{\Ubt^{\mathrm{ADV},\dagger}}
+
+\newcommand{\dt}{\Delta t}
+\newcommand{\dr}{\Delta r}
+
+\newcommand{\etarho}{\eta_{\rho}}
+\def\etarhoec   {\etarho^{\rm ec}}
+\def\etarhocc   {\etarho^{\rm cc}}
+\def\etarhoflux {\etarho^{\rm flux}}
+\def\divetarho  {\nabla\cdot(\etarho\eb_r)}
+
+\newcommand{\ow}{\overline{w}_0}
+\newcommand{\dw}{\delta w_0}
+\newcommand{\thalf}{\sfrac{3}{2}}
+
+\newcommand{\rhop}{{\rho^{\prime}}}
+
+\newcommand{\omegadot}{\dot{\omega}}
+\newcommand{\er}{\mathbf{e}_r}
+
+\def\Omegab{{\bf \Omega}}
+\def\rb    {{\bf r}}
+
+
+\newcommand{\IVtype}{{\tt IntVect\/}}
+\newcommand{\Boxtype}{{\tt Box\/}}
+\newcommand{\FAB}{{\tt FAB\/}}
+\newcommand{\MultiFab}{{\tt MultiFab\/}}
+\newcommand{\BoxArray}{{\tt BoxArray\/}}
+\newcommand{\layout}{{\tt layout\/}}
+
+\setlength{\marginparwidth}{0.8in}
+\newcommand{\MarginPar}[1]{\marginpar{%
+\vskip-\baselineskip %raise the marginpar a bit
+\raggedright\tiny\sffamily
+\hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
+
+\title{\Huge \bf Parallel User's Guide}
+
+\begin{document}
+
+\frontmatter
+
+\maketitle
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+
+\addcontentsline{toc}{part}{list of figures}
+\listoffigures
+
+
+\cleardoublepage
+
+\chapter*{Preface}
+\addcontentsline{toc}{part}{preface}
+\input preface/preface
+
+\mainmatter
+
+%-----------------------------------------------------------------------------
+\part{Using Parallel}
+
+\chapter{BoxLib}
+\input BoxLib/boxlib
+
+\backmatter
+
+%-----------------------------------------------------------------------------
+%\part{References}
+
+%\renewcommand\bibname{References}
+%\addcontentsline{toc}{chapter}{References}
+\bibliographystyle{plain}
+
+\end{document}
