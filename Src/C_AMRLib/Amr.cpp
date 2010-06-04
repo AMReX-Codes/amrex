@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.210 2010-06-03 20:22:07 almgren Exp $
+// $Id: Amr.cpp,v 1.211 2010-06-04 17:14:31 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -569,7 +569,7 @@ Amr::Amr ()
         //
         // Otherwise we expect a vector of blocking factors.
         //
-        pp.queryarr("regrid_int",regrid_int,0,max_level);
+        pp.queryarr("regrid_int",regrid_int,0,max_level+1);
     }
 
     //
