@@ -233,6 +233,12 @@ ifeq ($(HOST),gimantis)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
+ifeq ($(HOST),angilas)
+  MPIHOME=/usr/local
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lmpichf90 -lpthread
+endif
 
 ifeq ($(HOST),harmonic)
   MPIHOME=/usr/local/mpich_gm
