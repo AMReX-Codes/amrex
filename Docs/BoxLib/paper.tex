@@ -1,0 +1,103 @@
+\documentclass[11pt]{article} 
+
+\tolerance=600
+
+\usepackage{amsmath,color,longtable,epsfig}
+
+\newcommand{\archfigpath}{.}
+
+% Margins
+\usepackage[lmargin=0.5in,rmargin=1.5in,tmargin=1.0in,bmargin=1.0in]{geometry}
+
+\newcommand{\rhozero}{\rho_0}
+\newcommand{\pizero}{\pi_0}
+\newcommand{\pizeroone}{\pi_0^{(1)}}
+\newcommand{\pizerotwo}{\pi_0^{(2)}}
+\newcommand{\gammabar}{\overline{\Gamma}_1}
+
+\newcommand{\nablab}{\mathbf{\nabla}}
+\newcommand{\cdotb}{\mathbf{\cdot}}
+
+\newcommand{\boxtype}{{\tt box\/}}
+\newcommand{\fab}{{\tt fab\/}}
+\newcommand{\multifab}{{\tt multifab\/}}
+\newcommand{\boxarray}{{\tt boxarray\/}}
+\newcommand{\mlboxarray}{{\tt ml\_boxarray\/}}
+\newcommand{\layout}{{\tt layout\/}}
+\newcommand{\mllayout}{{\tt ml\_layout\/}}
+\newcommand{\bctower}{{\tt bc\_tower\/}}
+
+\newcommand{\apj}{ApJ}
+\newcommand{\apjs}{ApJS}
+
+\def\eb    {{\bf e}}
+
+\newcommand{\sfrac}[2]{\mathchoice
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptscriptfont0 #1}\kern-.2em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptscriptfont0 #2}}
+  {#1\!/#2}}
+
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\myhalf}{\sfrac{1}{2}}
+\newcommand{\nph}{{n + \myhalf}}
+\newcommand{\nmh}{{n - \myhalf}}
+
+\newcommand{\Hext}{{H_{\rm ext}}}
+\newcommand{\Hnuc}{{H_{\rm nuc}}}
+\newcommand{\kth}{k_{\rm th}}
+
+\newcommand{\Sbar}{\overline{S}}
+
+\newcommand{\inp}{\mathrm{in}}
+\newcommand{\initp}{\mathrm{init}}
+\newcommand{\outp}{\mathrm{out}}
+
+\newcommand{\uadv}{\widetilde{\mathbf{U}}^{\mathrm{ADV}}}
+\newcommand{\uadvone}{\widetilde{\mathbf{U}}^{\mathrm{ADV},\star}}
+\newcommand{\uadvtwo}{\widetilde{\mathbf{U}}^{\mathrm{ADV}}}
+\newcommand{\dt}{\Delta t}
+\newcommand{\dr}{\Delta r}
+
+\newcommand{\ow}{\overline{w}_0}
+\newcommand{\dw}{\delta w_0}
+\newcommand{\thalf}{\sfrac{3}{2}}
+
+\newcommand{\etarho}{\eta_{\rho}}
+
+\def\Ub    {{\bf U}}
+\def\Vb    {{\bf V}}
+
+\newcommand{\Ubt}{\widetilde{\Ub}}
+
+\newcommand{\omegadot}{\dot{\omega}}
+\newcommand{\er}{\mathbf{e}_r}
+
+\setlength{\marginparwidth}{1.0in}
+\newcommand{\MarginPar}[1]{\marginpar{%
+\vskip-\baselineskip %raise the marginpar a bit
+\raggedright\tiny\sffamily
+\hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
+
+\title{MAESTRO Architecture}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\cleardoublepage
+
+
+\input architecture
+
+%\renewcommand\bibname{References}
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{plain}
+\bibliography{../maestro_doc}
+
+
+
+\end{document}
