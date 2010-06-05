@@ -42,13 +42,15 @@ public:
 
   void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                const MultiFab* bb[][BL_SPACEDIM],
-                               const Real& b, const BndryData& bd);
+                               const Real& b, const BndryData& bd,
+			       int nc_opt = 0);
 
   void set_porous_coefficients(MultiFab* a1[], const MultiFab* a2[], 
 			       MultiFab* bb[][BL_SPACEDIM], 
 			       const Real& beta, 
 			       Array< Array<Real> >& xa,
-			       Array< Array<Real> >& xb);
+			       Array< Array<Real> >& xb,
+			       int nc_opt = 0);
 
   void set_maxorder(const int max_order);
 
@@ -65,6 +67,10 @@ public:
   void compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd);
 
   void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
+
+  void get_fluxes(int lev, 
+		  MultiFab* const* flux, 
+		  const Real* dx);
 
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
