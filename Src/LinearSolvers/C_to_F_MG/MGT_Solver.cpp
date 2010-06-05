@@ -550,12 +550,12 @@ void MGT_Solver::set_maxorder(const int max_order)
 void
 MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                     const MultiFab* bb[][BL_SPACEDIM], 
-                                    const Real& beta, const BndryData& bd)
+                                    const Real& beta, const BndryData& bd, int nc_opt)
 {
   int nc = (*bb[0][0]).nComp();
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_mc_coeffs_lev(&lev,&nc);
+      mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
       double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
@@ -577,44 +577,47 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
       for (MFIter amfi(*(a1[lev])); amfi.isValid(); ++amfi)
 	{
 	  const FArrayBox* af1 = &((*(a1[lev]))[amfi]);
-	  const FArrayBox* af2 = &((*(a2[lev]))[amfi]);
 	  const FArrayBox* b[BL_SPACEDIM];
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
-	    {
-	      b[i] = &((*(bb[lev][i]))[amfi]);
-	    }
- 	   int n = amfi.index();
- 	   const int* lo = amfi.validbox().loVect();
-	   const int* hi = amfi.validbox().hiVect();
+	  {
+	    b[i] = &((*(bb[lev][i]))[amfi]);
+	  }
 
-	   const int* a1lo = af1->box().loVect();
-	   const int* a1hi = af1->box().hiVect();
-	   mgt_set_cfa (&lev, &n, af1->dataPtr(), a1lo, a1hi, lo, hi);
+	  int n = amfi.index();
+	  const int* lo = amfi.validbox().loVect();
+	  const int* hi = amfi.validbox().hiVect();
+	  
+	  const int* a1lo = af1->box().loVect();
+	  const int* a1hi = af1->box().hiVect();
+	  mgt_set_cfa (&lev, &n, af1->dataPtr(), a1lo, a1hi, lo, hi);
+	  
+	  if (nc_opt == 0)
+	  {
+	    const FArrayBox* af2 = &((*(a2[lev]))[amfi]);
+	    const int* a2lo = af2->box().loVect();
+	    const int* a2hi = af2->box().hiVect();
+	    mgt_set_cfa2 (&lev, &n, af2->dataPtr(), a2lo, a2hi, lo, hi, a2[0]->nComp());
+	  }
 
-	   const int* a2lo = af2->box().loVect();
-	   const int* a2hi = af2->box().hiVect();
-	   mgt_set_cfa2 (&lev, &n, af2->dataPtr(), a2lo, a2hi, lo, hi, a2[0]->nComp());
-
-	   const int* bxlo = b[0]->box().loVect();
-	   const int* bxhi = b[0]->box().hiVect();
-	   mgt_set_cfbnx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi, b[0]->nComp());
+	  const int* bxlo = b[0]->box().loVect();
+	  const int* bxhi = b[0]->box().hiVect();
+	  mgt_set_cfbnx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi, b[0]->nComp());
 
 #if (BL_SPACEDIM >= 2)
-	   const int* bylo = b[1]->box().loVect();
-	   const int* byhi = b[1]->box().hiVect();
-	   mgt_set_cfbny(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi, b[1]->nComp());
+	  const int* bylo = b[1]->box().loVect();
+	  const int* byhi = b[1]->box().hiVect();
+	  mgt_set_cfbny(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi, b[1]->nComp());
 #endif
 
 #if (BL_SPACEDIM == 3)
-           const int* bzlo = b[2]->box().loVect();
-  	   const int* bzhi = b[2]->box().hiVect();
-  	   mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
+	  const int* bzlo = b[2]->box().loVect();
+	  const int* bzhi = b[2]->box().hiVect();
+	  mgt_set_cfbnz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi, b[2]->nComp());
 #endif
 	}
       int dm = BL_SPACEDIM;
-      //      mgt_finalize_porous_stencil_lev(&lev, xa, xb, pxa, pxb,
-      //      &nc, &dm);
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
+      
+      mgt_mc_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm, &nc_opt);
     }
   mgt_finalize_stencil();
 }
@@ -624,12 +627,13 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
                                     MultiFab* bb[][BL_SPACEDIM], 
                                     const Real& beta, 
 				    Array< Array<Real> >& xa,
-				    Array< Array<Real> >& xb)
+				    Array< Array<Real> >& xb,
+				    int nc_opt)
 {
   int nc = (*bb[0][0]).nComp();
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_mc_coeffs_lev(&lev,&nc);
+      mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
@@ -640,7 +644,7 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
       for (MFIter amfi(*(a1[lev])); amfi.isValid(); ++amfi)
 	{
 	  const FArrayBox* af1 = &((*(a1[lev]))[amfi]);
-	  const FArrayBox* af2 = &((*(a2[lev]))[amfi]);
+	  
 	  const FArrayBox* b[BL_SPACEDIM];
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
 	    {
@@ -655,9 +659,13 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
 	   const int* a1hi = af1->box().hiVect();
 	   mgt_set_cfa (&lev, &n, af1->dataPtr(), a1lo, a1hi, lo, hi);
 
-	   const int* a2lo = af2->box().loVect();
-	   const int* a2hi = af2->box().hiVect();
-	   mgt_set_cfa2 (&lev, &n, af2->dataPtr(), a2lo, a2hi, lo, hi, a2[0]->nComp());
+	   if (nc_opt == 0)
+	   {
+	     const FArrayBox* af2 = &((*(a2[lev]))[amfi]);
+	     const int* a2lo = af2->box().loVect();
+	     const int* a2hi = af2->box().hiVect();
+	     mgt_set_cfa2 (&lev, &n, af2->dataPtr(), a2lo, a2hi, lo, hi, a2[0]->nComp());
+	   }
 
 	   const int* bxlo = b[0]->box().loVect();
 	   const int* bxhi = b[0]->box().hiVect();
@@ -677,8 +685,8 @@ MGT_Solver::set_porous_coefficients(MultiFab* a1[], const  MultiFab* a2[],
 #endif
 	}
       int dm = BL_SPACEDIM;
-      //      mgt_finalize_porous_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &nc, &dm);
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+      mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				  pxa, pxb, &dm, &nc_opt);
     }
   mgt_finalize_stencil();
 }
@@ -920,6 +928,34 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
       for (MFIter mfi(flux[dir]); mfi.isValid(); ++mfi)
         {
           FArrayBox& gp = flux[dir][mfi];
+          Real* gpd = gp.dataPtr();
+
+          int n = mfi.index();
+          const int* lo = mfi.validbox().loVect();
+          const int* hi = mfi.validbox().hiVect();
+          const int* gplo = gp.box().loVect();
+          const int* gphi = gp.box().hiVect();
+
+          mgt_get_gp(&lev, &dir, &n, gpd, gplo, gphi, lo, hi);
+          gp.mult(dx[dir]);
+        }
+    }
+
+  mgt_delete_flux(lev);
+}
+
+void 
+MGT_Solver::get_fluxes(int lev, 
+		       MultiFab* const* flux, 
+		       const Real* dx)
+{
+  mgt_compute_flux(lev);
+
+  for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+    {
+      for (MFIter mfi(*flux[dir]); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& gp = (*flux[dir])[mfi];
           Real* gpd = gp.dataPtr();
 
           int n = mfi.index();
