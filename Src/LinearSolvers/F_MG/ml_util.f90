@@ -12,7 +12,7 @@ module ml_util_module
   real (kind = dp_t), parameter ::  ONE = 1.0_dp_t
   real (kind = dp_t), parameter ::  TWO = 2.0_dp_t
 
-  public :: ml_fill_fluxes, ml_fill_fluxes_c, ml_fill_fine_fluxes, ml_fill_all_fluxes
+  public :: ml_fill_fluxes, ml_fill_n_fluxes, ml_fill_fluxes_c, ml_fill_fine_fluxes, ml_fill_all_fluxes
   public :: ml_fine_contrib, ml_norm_inf, ml_norm_l2
 
 contains
@@ -63,6 +63,54 @@ contains
     end do
     call destroy(bpt)
   end subroutine ml_fill_fluxes
+
+  subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, face, dim)
+    use bl_prof_module
+    type(multifab), intent(inout) :: flux
+    type(multifab), intent(in) :: ss
+    type(multifab), intent(inout) :: uu
+    type(imultifab), intent(in) :: mm
+    integer :: ratio
+    integer :: face, dim
+    integer :: i, n
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: ng
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fill_fluxes")
+
+    ng = uu%ng
+
+    do i = 1, flux%nboxes
+       if ( remote(flux, i) ) cycle
+       fp => dataptr(flux, i)
+       up => dataptr(uu, i)
+       sp => dataptr(ss, i)
+       mp => dataptr(mm, i)
+       do n = 1, uu%nc
+          select case(ss%dim)
+          case (1)
+             call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+                  mp(:,1,1,1), ng, ratio, face, dim)
+          case (2)
+             if (flux%nc > 1) then
+                call stencil_flux_n_2d(sp(:,:,1,:), fp(:,:,1,:), up(:,:,1,n), &
+                     mp(:,:,1,1), ng, ratio, face, dim)
+             else
+                call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+                     mp(:,:,1,1), ng, ratio, face, dim)
+             end if
+          case (3)
+             call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
+                  mp(:,:,:,1), ng, ratio, face, dim)
+          end select
+       end do
+    end do
+    call destroy(bpt)
+  end subroutine ml_fill_n_fluxes
 
   subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
     use bl_prof_module

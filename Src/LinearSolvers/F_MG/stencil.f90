@@ -1580,7 +1580,7 @@ contains
     ny = hi(2)-lo(2)+1
 
     dm = 2
-    nc = size(betax,dim=3)-1
+    nc = size(betax,dim=3)
     f1 = ONE/dh**2
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
@@ -1723,7 +1723,308 @@ contains
 
   end subroutine s_simplen_2d_cc
 
+ subroutine s_simplem_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
+
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
+    real (kind = dp_t), intent(  out) :: ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(2), blo, bhi
+    integer            :: i, j, dm, n, bclo, bchi, nx, ny, nc
+    integer, parameter :: XBC = 5, YBC = 6
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+
+    dm = 2
+    nc = size(betax,dim=3)
+    f1 = ONE/dh**2
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+ 
+    ss(:,:,:) = 0.d0
+
+    ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
+    ! Components alpha(i,j,   0) = alpha
+    ! Components alpha(i,j,1:nc) = beta0_n
+    ! Components betax(i,j,1:nc) = betax_n
+    ! Components betay(i,j,1:nc) = betay_n
+
+    ! ss(i,j,1) is the coefficient of phi(i+1,j  )
+    ! ss(i,j,2) is the coefficient of phi(i-1,j  )
+    ! ss(i,j,3) is the coefficient of phi(i  ,j+1)
+    ! ss(i,j,4) is the coefficient of phi(i  ,j-1)
+    ! ss(i,j,0) is the coefficient of phi(i  ,j  )
+    
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,1) = ss(i,j,1) - (betax(i+1,j,1)+betax(i+1,j,2))*f1(1) 
+          ss(i,j,2) = ss(i,j,2) - (betax(i  ,j,1)-betax(i,  j,2))*f1(1) 
+          ss(i,j,3) = ss(i,j,3) - (betay(i,j+1,1)+betay(i,j+1,2))*f1(2) 
+          ss(i,j,4) = ss(i,j,4) - (betay(i,j  ,1)-betay(i,j  ,2))*f1(2) 
+       end do
+    end do
+
+    ! x derivatives
+
+    do j = lo(2),hi(2)
+       do i = lo(1)+1,hi(1)-1
+            ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2) 
+       end do
+    end do
+
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
+ 
+       i = lo(1)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2)
+       else
+          blo = -ss(i,j,2)/f1(1)  
+          bhi = -ss(i,j,1)/f1(1)
+          call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+       end if
+
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2) 
+          else
+             blo = -ss(i,j,2)/f1(1)  
+             bhi = -ss(i,j,1)/f1(1)
+             call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+       end if
+    end do
+
+    ! y derivatives
+
+    do i = lo(1),hi(1)
+       do j = lo(2)+1,hi(2)-1
+             ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+       end do
+    end do
+
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
+
+       j = lo(2)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+       else
+          blo = -ss(i,j,4)/f1(2)  
+          bhi = -ss(i,j,3)/f1(2)         
+          call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
+               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+       end if
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+          else
+             blo = -ss(i,j,4)/f1(2)  
+             bhi = -ss(i,j,3)/f1(2)
+             call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
+                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+          end if
+       end if
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+       end do
+    end do
+
+  end subroutine s_simplem_2d_cc
+
+  subroutine s_simple_sum_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
+
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
+    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(2), blo, bhi
+    integer            :: i, j, dm, n, bclo, bchi, nx, ny, nc, nedge, nset, nm1
+    integer, parameter :: XBC = 6, YBC = 7
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+
+    dm = 2
+    nc = size(betax,dim=3)
+    f1 = ONE/dh**2
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+ 
+    ss(:,:,:) = 0.d0
+
+    ! Consider the operator  ( alpha - sum_i (beta0_i del dot beta_i grad) )
+    ! Components beta(i,j,          0) = alpha
+    ! Components beta(i,j,       1:nc) = beta0(i,j,1:nc)
+    ! Components beta(i,j,  nc+1:2*nc) = betax(i,j,1:nc)
+    ! Components beta(i,j,2*nc+1:3*nc) = betay(i,j,1:nc)
+
+    ! ss(i,j,2) is the coefficient of phi(i+1,j  )
+    ! ss(i,j,3) is the coefficient of phi(i-1,j  )
+    ! ss(i,j,4) is the coefficient of phi(i  ,j+1)
+    ! ss(i,j,5) is the coefficient of phi(i  ,j-1)
+    ! ss(i,j,1) is the coefficient of phi(i  ,j  )
+    
+    nset  = 1+3*dm
+    nedge = nc*(1+3*dm)
+
+    do n = 1,nc
+       nm1  = (n-1)*nset
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,2+nm1)   = - betax(i+1,j,n)*f1(1) 
+             ss(i,j,3+nm1)   = - betax(i  ,j,n)*f1(1) 
+             ss(i,j,4+nm1)   = - betay(i,j+1,n)*f1(2) 
+             ss(i,j,5+nm1)   = - betay(i,j  ,n)*f1(2)
+             ss(i,j,n+nedge) = alpha(i,j,n)
+          end do 
+       end do
+    end do
+
+    ! x derivatives
+    do n = 1,nc
+       nm1 = (n-1)*nset
+       do j = lo(2),hi(2)
+          do i = lo(1)+1,hi(1)-1
+             ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) 
+          end do
+       end do
+    end do
+
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
+ 
+       i = lo(1)
+       if (bclo .eq. BC_INT) then
+          do n = 1,nc
+             nm1  = (n-1)*nset
+             ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) 
+          end do
+       else
+          do n = 1,nc
+             nm1  = (n-1)*nset
+             blo  = betax(i  ,j,n) 
+             bhi  = betax(i+1,j,n) 
+             call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
+                  ss(i,j,1+nm1), ss(i,j,2+nm1), ss(i,j,3+nm1), ss(i,j,XBC+nm1), &
+                  blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+          end do
+       end if
+
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
+          if (bchi .eq. BC_INT) then
+             do n = 1,nc
+                nm1  = (n-1)*nset
+                ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) 
+             end do
+          else
+             do n = 1,nc
+                nm1  = (n-1)*nset
+                blo  = betax(i  ,j,n) 
+                bhi  = betax(i+1,j,n) 
+                call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
+                     ss(i,j,1+nm1), ss(i,j,2+nm1), ss(i,j,3+nm1), ss(i,j,XBC+nm1), &
+                     blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
+             end do
+          end if
+       end if
+    end do
+
+    ! y derivatives
+
+    do n = 1,nc
+       do i = lo(1),hi(1)
+          do j = lo(2)+1,hi(2)-1
+             nm1  = (n-1)*nset
+             ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) 
+          end do
+       end do
+    end do
+
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
+
+       j = lo(2)
+       if (bclo .eq. BC_INT) then
+          do n = 1,nc
+             nm1  = (n-1)*nset
+             ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) 
+          end do
+       else
+          do n = 1,nc
+             nm1  = (n-1)*nset
+             blo  = betay(i  ,j,n) 
+             bhi  = betay(i,j+1,n) 
+             call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
+                  ss(i,j,1+nm1), ss(i,j,4+nm1), ss(i,j,5+nm1),ss(i,j,YBC+nm1), &
+                  blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+          end do
+       end if
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
+          if (bchi .eq. BC_INT) then
+             do n = 1,nc
+                nm1  = (n-1)*nset
+                ss(i,j,1+nm1) = ss(i,j,1+nm1) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) 
+             end do
+          else
+             do n = 1,nc
+                nm1  = (n-1)*nset
+                blo = betay(i  ,j,n) 
+                bhi = betay(i,j+1,n) 
+                call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
+                     ss(i,j,1+nm1), ss(i,j,4+nm1), ss(i,j,5+nm1), ss(i,j,YBC+nm1), &
+                     blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
+             end do
+          end if
+       end if
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+       end do
+    end do
+
+  end subroutine s_simple_sum_2d_cc
+
   subroutine s_simple_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb, order)
+
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
@@ -3296,6 +3597,81 @@ b1 =       0.0d0/hy2
 
   end subroutine stencil_apply_2d
 
+subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+    integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
+    real (kind = dp_t), intent(in   ) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
+    integer           , intent(in   )  :: mm(lo(1):,lo(2):)
+    logical           , intent(in   ), optional :: skwd
+
+    integer i,j,n,nc,dm,nm1,nedge,nset
+    
+    integer, parameter :: XBC = 6, YBC = 7
+
+    logical :: lskwd
+
+    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
+    
+    dm    = 2
+    nset  = 1+3*dm
+    nc    = (size(ss,dim=3)-1)/(nset+1)
+    nedge = nc*nset
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          dd(i,j) = ss(i,j,0)*uu(i,j)
+       end do
+    end do
+
+    do n = 1,nc
+       nm1 = (n-1)*nset
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             dd(i,j) = dd(i,j) + &
+                  (ss(i,j,1+nm1)*uu(i,j) &
+                  + ss(i,j,2+nm1)*uu(i+1,j  ) + ss(i,j,3+nm1)*uu(i-1,j  ) &
+                  + ss(i,j,4+nm1)*uu(i  ,j+1) + ss(i,j,5+nm1)*uu(i  ,j-1) &
+                  )/ss(i,j,nedge+n)
+          end do
+       end do
+
+       if ( lskwd ) then
+       ! Corrections for skewed stencils
+       if (hi(1) > lo(1)) then
+          do j = lo(2),hi(2)
+
+             i = lo(1)
+             if (bc_skewed(mm(i,j),1,+1)) then
+                dd(i,j) = dd(i,j) + ss(i,j,XBC+nm1)*uu(i+2,j)
+             end if
+
+             i = hi(1)
+             if (bc_skewed(mm(i,j),1,-1)) then
+                dd(i,j) = dd(i,j) + ss(i,j,XBC+nm1)*uu(i-2,j)
+             end if
+          end do
+       end if
+
+       if (hi(2) > lo(2)) then
+          do i = lo(1),hi(1)
+
+             j = lo(2)
+             if (bc_skewed(mm(i,j),2,+1)) then
+                dd(i,j) = dd(i,j) + ss(i,j,YBC+nm1)*uu(i,j+2)
+             end if
+
+             j = hi(2)
+             if (bc_skewed(mm(i,j),2,-1)) then
+                dd(i,j) = dd(i,j) + ss(i,j,YBC+nm1)*uu(i,j-2)
+             end if
+          end do
+       end if
+       end if
+    end do
+
+  end subroutine stencil_apply_n_2d
+
   subroutine stencil_flux_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
@@ -3405,6 +3781,132 @@ b1 =       0.0d0/hy2
     end if
 
   end subroutine stencil_flux_2d
+
+  subroutine stencil_flux_n_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
+    real (kind = dp_t), intent(out) :: flux(:,:,1:)
+    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
+    integer           , intent(in)  :: mm(:,:)
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: ratio, face, dim
+    integer nx,ny,dm,nc,nedge,nm1,nset
+    integer i,j,ic,jc,n
+    real (kind = dp_t) :: fac
+    integer, parameter :: XBC = 6, YBC = 7
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+    dm    = 2
+    nset  = 1+3*dm
+    nc    = (size(ss,dim=3)-1)/(nset+1)
+    nedge = nc*nset
+
+    !   Note that one factor of ratio is the tangential averaging, while the
+    !     other is the normal factor
+    fac = ONE/real(ratio*ratio, kind=dp_t)
+
+!   Lo i face
+    if ( dim == 1 ) then
+       if (face == -1) then
+
+          i = 1
+          flux(1,:,:) = ZERO
+          do n = 1,nc
+             nm1  = (n-1)*nset
+             do j = 1,ny
+                jc = (j-1)/ratio+1
+                if (bc_dirichlet(mm(i,j),1,-1)) then
+                   flux(1,jc,n) = flux(1,jc,n)  &
+                     + ss(i,j,2+nm1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,3+nm1)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,3+nm1)*(uu(i+1,j)-uu(i,j))
+                   if (bc_skewed(mm(i,j),1,+1)) &
+                        flux(1,jc,n) = flux(1,jc,n) + ss(i,j,XBC+nm1)*(uu(i+2,j)-uu(i,j)) 
+                else   
+                   flux(1,jc,n) = Huge(flux(:,:,n))
+                end if
+             end do
+             flux(1,:,n) = fac * flux(1,:,n)
+          end do
+
+!      Hi i face
+       else if (face == 1) then
+
+          i = nx
+          flux(1,:,:) = ZERO
+          do n = 1,nc
+             nm1 = (n-1)*nset
+             do j = 1,ny
+                jc = (j-1)/ratio+1
+                if (bc_dirichlet(mm(i,j),1,+1)) then
+                   flux(1,jc,n) = flux(1,jc,n) &
+                     + ss(i,j,2+nm1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,3+nm1)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,2+nm1)*(uu(i-1,j)-uu(i,j))
+                   if (bc_skewed(mm(i,j),1,-1)) &
+                     flux(1,jc,n) = flux(1,jc,n) + ss(i,j,XBC+nm1)*(uu(i-2,j)-uu(i,j))
+                else 
+                   flux(1,jc,n) = Huge(flux(:,:,n))
+                end if
+             end do
+             flux(1,:,n) = fac * flux(1,:,n)
+          end do
+
+       end if
+
+!   Lo j face
+    else if ( dim == 2 ) then
+       if (face == -1) then
+
+          j = 1
+          flux(:,1,:) = ZERO
+          do n = 1,nc
+             nm1 = (n-1)*nset
+             do i = 1,nx
+                ic = (i-1)/ratio+1
+                if (bc_dirichlet(mm(i,j),2,-1)) then
+                   flux(ic,1,n) = flux(ic,1,n)  &
+                        + ss(i,j,4+nm1)*(uu(i,j+1)-uu(i,j)) &
+                        + ss(i,j,5+nm1)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,5+nm1)*(uu(i,j+1)-uu(i,j))
+                   if (bc_skewed(mm(i,j),2,+1)) &
+                        flux(ic,1,n) =  flux(ic,1,n) + ss(i,j,YBC+nm1)*(uu(i,j+2)-uu(i,j))
+                else 
+                   flux(ic,1,n) = Huge(flux(:,:,n))
+                end if
+             end do
+             flux(:,1,n) = fac * flux(:,1,n)
+          end do
+
+
+!      Hi j face
+       else if (face == 1) then
+
+          j = ny
+          flux(:,1,:) = ZERO
+          do n = 1,nc
+             nm1 = (n-1)*nset
+             do i = 1,nx
+                ic = (i-1)/ratio+1
+                if (bc_dirichlet(mm(i,j),2,+1)) then
+                   flux(ic,1,n) = flux(ic,1,n)  &
+                     + ss(i,j,4+nm1)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,5+nm1)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,4+nm1)*(uu(i,j-1)-uu(i,j))
+                   if (bc_skewed(mm(i,j),2,-1)) &
+                     flux(ic,1,n) = flux(ic,1,n) + ss(i,j,YBC+nm1)*(uu(i,j-2)-uu(i,j))
+                else
+                   flux(ic,1,n) = Huge(flux(:,:,n))
+                end if
+             end do
+             flux(:,1,n) = fac * flux(:,1,n)
+          end do
+
+       end if
+    end if
+
+  end subroutine stencil_flux_n_2d
 
   subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
 

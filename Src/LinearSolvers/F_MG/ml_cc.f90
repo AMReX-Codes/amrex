@@ -43,7 +43,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm
+    integer :: i, n, dm, nccomp
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
@@ -79,7 +79,7 @@ contains
        call build(uu_hold(n),la,1,1)
        call setval( uu_hold(n), ZERO,all=.true.)
     end do
-
+    
     do n = nlevs, 1, -1
 
        la = mla%la(n)
@@ -99,8 +99,10 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
+            width = 0)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
+            width = 2, other = .false.)
 
     end do
 
@@ -520,9 +522,9 @@ contains
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
-!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
+!      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!           ni_res <= abs_eps .or. &
+!           ni_res <= epsilon(Anorm)*Anorm
       r =  ni_res <= eps*(bnorm) .or. &
            ni_res <= abs_eps
     end function ml_fine_converged
@@ -541,9 +543,9 @@ contains
 
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
-!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
+!      r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!           ni_res <= abs_eps .or. &
+!           ni_res <= epsilon(Anorm)*Anorm
       r =  ni_res <= eps*(bnorm) .or. &
            ni_res <= abs_eps 
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
@@ -600,6 +602,42 @@ contains
       end do
 
   end subroutine crse_fine_residual_cc
+
+ subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
+
+      use ml_util_module
+      use ml_interface_stencil_module
+
+      integer        , intent(in   ) :: n
+      type(mg_tower) , intent(inout) :: mgt(:)
+      type(bndry_reg), intent(inout) :: brs_flx
+      type(multifab) , intent(inout) :: uu(:)
+      type(multifab) , intent(inout) :: crse_res
+      type(box)      , intent(in   ) :: pdc
+      integer        , intent(in   ) :: ref_ratio(:)
+
+      integer :: i, dm, mglev
+
+      dm = brs_flx%dim
+      mglev = mgt(n)%nlevels
+
+      call multifab_fill_boundary(uu(n))
+
+      do i = 1, dm
+         call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i)
+         call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,1), &
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i)
+      end do
+      call bndry_reg_copy_to_other(brs_flx)
+      do i = 1, dm
+         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
+              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, -1, i, ONE)
+         call ml_interface(crse_res, brs_flx%obmf(i,1), uu(n-1), &
+              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, +1, i, ONE)
+      end do
+
+  end subroutine crse_fine_residual_n_cc
 
 !
 ! ******************************************************************************************
@@ -847,6 +885,164 @@ contains
     call destroy(bpt)
 
   end subroutine ml_cc_applyop
+
+ subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
+
+    use bl_prof_module
+    use ml_util_module
+    use ml_restriction_module, only: ml_restriction
+    use ml_prolongation_module, only: ml_prolongation, ml_interp_bcs
+
+    type(ml_layout), intent(in)    :: mla
+    type(mg_tower) , intent(inout) :: mgt(:)
+    type( multifab), intent(inout) :: res(:)
+    type( multifab), intent(inout) :: full_soln(:)
+    integer        , intent(in   ) :: ref_ratio(:,:)
+
+    integer :: nlevs
+    type(multifab), allocatable  ::      soln(:)
+    type(multifab), allocatable  ::        uu(:)
+    type(multifab), allocatable  ::   uu_hold(:)
+    type(multifab), allocatable  ::        rh(:) ! this will be set to zero
+    type(multifab), allocatable  ::  temp_res(:)
+
+    type(bndry_reg), allocatable :: brs_flx(:)
+    type(bndry_reg), allocatable :: brs_bcs(:)
+
+    type(box) :: pd, pdc
+    type(layout) :: la, lac
+    integer :: i, n, dm, nComp
+    integer :: mglev, mglev_crse
+
+    type(bl_prof_timer), save :: bpt
+    integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
+    real(kind=dp_t),  pointer :: resp(:,:,:,:)
+
+    call build(bpt, "ml_cc_applyop")
+
+    nlevs = mla%nlevel
+
+    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
+    allocate(uu_hold(2:nlevs-1))
+
+    allocate(brs_flx(2:nlevs))
+    allocate(brs_bcs(2:nlevs))
+
+    do n = 2,nlevs-1
+       la = mla%la(n)
+       call build(uu_hold(n),la,1,1)
+       call setval( uu_hold(n), ZERO,all=.true.)
+    end do
+
+    dm    = 2
+    nComp = 2
+
+    do n = nlevs, 1, -1
+
+       la = mla%la(n)
+       call build(    soln(n), la, 1, 1)
+       call build(      uu(n), la, 1, 1)
+       call build(      rh(n), la, 1, 0)
+       call build(temp_res(n), la, 1, 0)
+       call setval(    soln(n), ZERO,all=.true.)
+       call setval(      uu(n), ZERO,all=.true.)
+       call setval(      rh(n), ZERO,all=.true.)
+       call setval(temp_res(n), ZERO,all=.true.)
+
+       ! zero residual just to be safe
+       call setval(     res(n), ZERO,all=.true.)
+
+       if ( n == 1 ) exit
+
+       ! Build the (coarse resolution) flux registers to be used in computing
+       !  the residual at a non-finest AMR level.
+
+       pdc = layout_get_pd(mla%la(n-1))
+       lac = mla%la(n-1)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nc = nComp, width = 0)
+
+    end do
+
+    dm = rh(1)%dim
+
+    !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
+    !  its ghost cells before we evaluate the initial residual  
+    do n = 2,nlevs
+       pd = layout_get_pd(mla%la(n))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       do i = 1, dm
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
+                             ref_ratio(n-1,:), -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
+                             ref_ratio(n-1,:), +i)
+       end do
+       call multifab_fill_boundary(full_soln(n))
+    end do
+
+    !   Make sure all periodic and internal boundaries are filled as well
+    do n = 1,nlevs   
+       call multifab_fill_boundary(full_soln(n))
+    end do
+
+
+    do n = 1,nlevs,1
+       mglev = mgt(n)%nlevels
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
+                      mgt(n)%mm(mglev))
+    end do
+
+    ! Make sure to correct the coarse cells immediately next to fine grids
+    !   using the averaged fine grid fluxes
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
+                                    ref_ratio(n-1,:))
+       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+    enddo
+
+
+    ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
+    do n=1,nlevs
+       ng = res(n)%ng
+       
+       do i=1,res(n)%nboxes
+          if (multifab_remote(res(n),i)) cycle
+          resp  => dataptr(res(n),i)
+          lo =  lwb(get_box(res(n), i))
+          hi =  upb(get_box(res(n), i))
+          select case (dm)
+          case (1)
+             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
+          case (2)
+             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
+          case (3)
+             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
+          end select
+       end do
+    enddo
+
+    do n = 2,nlevs-1
+       call destroy(uu_hold(n))
+    end do
+
+    do n = nlevs, 1, -1
+       call destroy(soln(n))
+       call destroy(uu(n))
+       call destroy(rh(n))
+       call destroy(temp_res(n))
+       if ( n == 1 ) exit
+       call bndry_reg_destroy(brs_bcs(n))
+       call bndry_reg_destroy(brs_flx(n))
+    end do
+
+    call destroy(bpt)
+
+  end subroutine ml_cc_n_applyop
 
 !
 ! ******************************************************************************************
