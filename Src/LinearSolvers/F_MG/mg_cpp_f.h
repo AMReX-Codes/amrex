@@ -8,6 +8,7 @@
 #define mgt_set_level             MGT_SET_LEVEL
 #define mgt_set_nodal_level       MGET_SET_NODAL_LEVEL
 #define mgt_finalize              MGT_FINALIZE
+#define mgt_finalize_n            MGT_FINALIZE_N
 #define mgt_nodal_finalize        MGT_NODAL_FINALIZE
 #define mgt_init_coeffs_lev       MGT_INIT_COEFFS_LEV
 #define mgt_init_mc_coeffs_lev    MGT_INIT_MC_COEFFS_LEV
@@ -15,8 +16,8 @@
 #define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_nodal_stencil MGT_FINALIZE_NODAL_STENCIL
 #define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
+#define mgt_mc_finalize_stencil_lev  MGT_MC_FINALIZE_STENCIL_LEV
 #define mgt_finalize_nodal_stencil_lev  MGT_FINALIZE_NODAL_STENCIL_LEV
-#define mgt_finalize_porous_stencil_lev  MGT_FINALIZE_POROUS_STENCIL_LEV
 #define mgt_dealloc               MGT_DEALLOC
 #define mgt_nodal_dealloc         MGT_NODAL_DEALLOC
 #define mgt_applyop               MGT_APPLYOP
@@ -110,6 +111,7 @@
 #define mgt_set_level             mgt_set_level_
 #define mgt_set_nodal_level       mgt_set_nodal_level_
 #define mgt_finalize              mgt_finalize_
+#define mgt_finalize_n            mgt_finalize_n_
 #define mgt_nodal_finalize        mgt_nodal_finalize_
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev_
 #define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev_
@@ -117,8 +119,8 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil_
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
+#define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev_
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev_
-#define mgt_finalize_porous_stencil_lev  mgt_finalize_porous_stencil_lev_
 #define mgt_dealloc               mgt_dealloc_
 #define mgt_nodal_dealloc         mgt_nodal_dealloc_
 #define mgt_solve                 mgt_solve_
@@ -209,6 +211,7 @@
 #define mgt_set_level             mgt_set_level__
 #define mgt_set_nodal_level       mgt_set_nodal_level__
 #define mgt_finalize              mgt_finalize__
+#define mgt_finalize_n            mgt_finalize_n__
 #define mgt_nodal_finalize        mgt_nodal_finalize__
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev__
 #define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev__
@@ -216,8 +219,8 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil__
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
+#define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev__
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev__
-#define mgt_finalize_porous_stencil_lev  mgt_finalize_porous_stencil_lev__
 #define mgt_dealloc               mgt_dealloc__
 #define mgt_nodal_dealloc         mgt_nodal_dealloc__
 #define mgt_solve                 mgt_solve__
@@ -326,10 +329,11 @@ extern "C"
 		           const int* pmap);
 
   void mgt_finalize(const Real* dx, const int* bc);
+  void mgt_finalize_n(const Real* dx, const int* bc, const int* nc_in, const int* ns_in);
   void mgt_nodal_finalize(const Real* dx, const int* bc);
 
   void mgt_init_coeffs_lev(const int* lev);
-  void mgt_init_mc_coeffs_lev(const int* lev, const int* nc);
+  void mgt_init_mc_coeffs_lev(const int* lev, const int* nc, int* nc_opt);
   void mgt_init_nodal_coeffs_lev(const int* lev);
 
   void mgt_init_nodal_coeffs_lev(const int* lev);
@@ -342,13 +346,14 @@ extern "C"
 			    const Real* pxa, const Real* pxb,
 			    const int* dm);
 
+  void mgt_mc_finalize_stencil_lev(const int* lev,
+				   const Real* xa, const Real* xb,
+				   const Real* pxa, const Real* pxb,
+				   const int* dm,
+			    	   const int* nc_opt);
+
   void mgt_finalize_nodal_stencil_lev(const int* lev);
-  
-  void mgt_finalize_porous_stencil_lev(const int* lev,
-			               const Real* xa, const Real* xb,
-           			       const Real* pxa, const Real* pxbb,
-           			       const int* nc, const int* dm);
-  
+    
   void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);

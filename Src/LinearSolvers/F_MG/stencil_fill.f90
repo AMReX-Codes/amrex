@@ -307,7 +307,7 @@ contains
 
   recursive subroutine stencil_fill_cc_all_mglevels(mgt, cell_coeffs, edge_coeffs, &
                                                     xa, xb, pxa, pxb, &
-                                                    stencil_order, bc_face)
+                                                    stencil_order, bc_face, nc_opt)
 
     use coarsen_coeffs_module
     use mg_tower_module
@@ -318,6 +318,7 @@ contains
     real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
     integer        , intent(in   ) :: stencil_order
     integer        , intent(in   ) :: bc_face(:,:)
+    integer        , intent(in   ), optional :: nc_opt
 
     ! Local variables
     integer                     :: i, d, dm, maxlev, maxlev_bottom
@@ -356,7 +357,7 @@ contains
 
     do i = maxlev, 1, -1
        call stencil_fill_cc(mgt%ss(i), cell_coeffs(i), edge_coeffs(i,:), &
-                            mgt%dh(:,i), mgt%mm(i), xa, xb, pxa, pxb, stencil_order, bc_face) 
+                            mgt%dh(:,i), mgt%mm(i), xa, xb, pxa, pxb, stencil_order, bc_face, nc_opt) 
     end do
 
     if (associated(mgt%bottom_mgt)) then
@@ -423,7 +424,7 @@ contains
        coarse_pxb = ZERO
 
        call stencil_fill_cc_all_mglevels(mgt%bottom_mgt, coarse_cell_coeffs, coarse_edge_coeffs, &
-                                         coarse_xa, coarse_xb, coarse_pxa, coarse_pxb, stencil_order, bc_face)
+                                         coarse_xa, coarse_xb, coarse_pxa, coarse_pxb, stencil_order, bc_face, nc_opt)
 
        call destroy(coarse_cell_coeffs(maxlev_bottom))
        deallocate(coarse_cell_coeffs)
@@ -445,7 +446,7 @@ contains
   end subroutine stencil_fill_cc_all_mglevels
 
   subroutine stencil_fill_cc(ss, cell_coeffs, edge_coeffs, &
-                             dh, mask, xa, xb, pxa, pxb, order, bc_face)
+                             dh, mask, xa, xb, pxa, pxb, order, bc_face, nc_opt)
 
     use bl_prof_module
 
@@ -457,6 +458,7 @@ contains
     integer        , intent(in   ) :: order
     integer        , intent(in   ) :: bc_face(:,:)
     real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
+    integer        , intent(in   ), optional :: nc_opt
 
     type(box)                 :: bx, pd
     real(kind=dp_t)           :: lxa(ss%dim), lxb(ss%dim)
@@ -468,10 +470,16 @@ contains
     real(kind=dp_t), pointer  :: zcp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
     integer                   :: i,ns,ng_b,ng_c,id,ncomp_coeffs
+    integer                   :: lnc_opt
     logical                   :: minion_stencil
+
     type(bl_prof_timer), save :: bpt
 
+
     call build(bpt, "stencil_fill_cc")
+
+    lnc_opt = 0
+    if (present (nc_opt)) lnc_opt = nc_opt
 
     pd = layout_get_pd(ss%la)
 
@@ -563,8 +571,13 @@ contains
           case (2)
              ycp => dataptr(edge_coeffs(2), i)
              if (ncomp_coeffs > 1) then
-                call s_simplen_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
-                                     mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+                if (lnc_opt .eq. 0) then
+                   call s_simplen_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                        mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+                elseif (lnc_opt .eq. 1) then
+                   call s_simplem_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                        mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)                   
+                end if
              else
                 call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
                                     mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)

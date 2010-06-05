@@ -251,6 +251,98 @@ subroutine mgt_finalize(dx,bc)
 
 end subroutine mgt_finalize
 
+subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
+  use cpp_mg_module
+  implicit none
+  real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
+  integer   , intent(in) :: bc(2,mgts%dim)
+  integer   , intent(in) :: ns_in
+  integer   , intent(in) :: nc_in
+  integer :: i, dm, nlev, n
+  integer :: ns, nc
+  logical, allocatable :: nodal(:)
+
+  integer :: max_nlevel_in
+  integer :: bottom_solver_in
+
+  type(boxarray) :: bac
+
+  integer :: bottom_max_iter_in
+
+  call mgt_verify("MGT_FINALIZE")
+
+  dm = mgts%dim
+  nc   = nc_in
+  nlev = mgts%nlevel
+
+  mgts%bc = transpose(bc)
+
+  do i = 1, nlev-1
+     mgts%rr(i,:) = mgts%mla%mba%rr(i,:)
+  end do
+
+  do i = 1, nlev
+     call build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
+     call build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
+     call build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
+  end do
+
+  do i = nlev-1, 1, -1
+     call build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
+     call setval(mgts%mla%mask(i), val = .TRUE.)
+     call copy(bac, mgts%mla%mba%bas(i+1))
+     call boxarray_coarsen(bac, mgts%rr(i,:))
+     call setval(mgts%mla%mask(i), .false., bac)
+     call destroy(bac)
+  end do
+
+  allocate(nodal(1:dm))
+  nodal = mgts%nodal
+  ns = 1 + dm*3
+
+  ! There are ns_in components
+  ns = 1 + ns_in*(1 + ns)
+
+  do n = nlev, 1, -1
+     if ( n == 1 ) then
+        max_nlevel_in = mgts%max_nlevel
+        bottom_solver_in = mgts%bottom_solver
+        bottom_max_iter_in = mgts%bottom_max_iter
+     else
+        if ( all(mgts%rr == 2) ) then
+           max_nlevel_in = 1
+        else if ( all(mgts%rr == 4) ) then
+           max_nlevel_in = 2
+        else
+           call bl_error("MGT_FINALIZE: confused about ref_ratio")
+        end if
+        bottom_solver_in = 0
+        bottom_max_iter_in = mgts%nu1
+     end if
+     call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, &
+          dh                = dx(n,:), &
+          ns                = ns, &
+          smoother          = mgts%smoother, &
+          nu1               = mgts%nu1, &
+          nu2               = mgts%nu2, &
+          nuf               = mgts%nuf, &
+          nub               = mgts%nub, &
+          gamma             = mgts%gamma, &
+          cycle_type        = mgts%cycle_type, &
+          bottom_solver     = bottom_solver_in, &
+          bottom_max_iter   = bottom_max_iter_in, &
+          bottom_solver_eps = mgts%bottom_solver_eps, &
+          max_iter          = mgts%max_iter, &
+          max_nlevel        = max_nlevel_in, &
+          min_width         = mgts%min_width, &
+          verbose           = mgts%verbose, &
+          cg_verbose        = mgts%cg_verbose, &
+          nodal             = nodal &
+          )
+  end do
+
+end subroutine mgt_finalize_n
+
 subroutine mgt_init_coeffs_lev(lev)
   use cpp_mg_module
   implicit none
@@ -276,13 +368,24 @@ subroutine mgt_init_coeffs_lev(lev)
 
 end subroutine mgt_init_coeffs_lev
 
-subroutine mgt_init_mc_coeffs_lev(lev,nccomp)
+subroutine mgt_init_mc_coeffs_lev(lev,nccomp,nc_opt)
   use cpp_mg_module
   implicit none
   integer, intent(in) :: lev,nccomp
+  integer, intent(in) :: nc_opt
 
   integer :: nlev, dm, i
   integer :: flev
+  integer :: nc_cell, nc_edge
+
+  if (nc_opt .eq. 0) then
+     nc_cell = 1+nccomp
+     nc_edge = nccomp
+  else if (nc_opt .eq. 1) then
+     nc_cell = 1
+     nc_edge = 2*nccomp
+  end if
+
   flev = lev + 1
   call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
 
@@ -297,11 +400,11 @@ subroutine mgt_init_mc_coeffs_lev(lev,nccomp)
   !   the next nccomp coefficients are edge-centered betay with components 1:nccomp
   !    etc
 
-  call  multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, nc=1+nccomp, ng=1)
+  call  multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, nc=nc_cell, ng=1)
   call setval(mgts% cell_coeffs(nlev), 0.0_dp_t, all=.true.)
 
   do i = 1,dm
-    call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=nccomp,ng=0,dir=i)
+    call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=nc_edge,ng=0,dir=i)
     call setval(mgts%edge_coeffs(nlev,i), 0.0_dp_t, all=.true.)
   end do
 
@@ -313,14 +416,15 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   implicit none
   integer   , intent(in) :: lev, dm
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
-
+    
   integer        :: i, nlev, flev
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
 
   call stencil_fill_cc_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs,  &
-                                    mgts%edge_coeffs, xa, xb, pxa, pxb, mgts%stencil_order, mgts%bc)
+                                    mgts%edge_coeffs, xa, xb, pxa, pxb, & 
+                                    mgts%stencil_order, mgts%bc)
 
   nlev = mgts%mgt(flev)%nlevels
   call destroy(mgts%cell_coeffs(nlev))
@@ -332,6 +436,34 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   deallocate(mgts%edge_coeffs)
 
 end subroutine mgt_finalize_stencil_lev
+
+subroutine mgt_mc_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm, nc_opt)
+  use cpp_mg_module
+  use stencil_fill_module
+  implicit none
+  integer   , intent(in) :: lev, dm
+  real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
+  integer   , intent(in) :: nc_opt
+    
+  integer        :: i, nlev, flev
+
+  flev = lev + 1
+  call mgt_verify_lev("MGT_SET_COEFS_LEV", flev)
+
+  call stencil_fill_cc_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs,  &
+                                    mgts%edge_coeffs, xa, xb, pxa, pxb, & 
+                                    mgts%stencil_order, mgts%bc, nc_opt)
+
+  nlev = mgts%mgt(flev)%nlevels
+  call destroy(mgts%cell_coeffs(nlev))
+  do i = 1,dm
+     call destroy(mgts%edge_coeffs(nlev,i))
+  end do
+
+  deallocate(mgts%cell_coeffs)
+  deallocate(mgts%edge_coeffs)
+
+end subroutine mgt_mc_finalize_stencil_lev
 
 subroutine mgt_finalize_stencil()
    use cpp_mg_module
