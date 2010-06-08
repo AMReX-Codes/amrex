@@ -268,9 +268,15 @@ ifeq ($(ARCH),Linux)
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      F90FLAGS += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      FFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      CFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      ifdef OMP
+        F90FLAGS += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        FFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        CFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      else
+        F90FLAGS += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        FFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        CFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      endif
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
