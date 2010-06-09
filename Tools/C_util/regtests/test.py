@@ -917,10 +917,10 @@ def test(argv):
 
        # Parallel
        if (sourceTree == "Parallel"):
-          doCVSUpdate(testTopDir, "Parallel", fullWebDir)
+          doCVSUpdate(sourceDir, "Parallel", fullWebDir)
 
        # fParallel
-       doCVSUpdate(testTopDir, "fParallel", fullWebDir)
+       doCVSUpdate(sourceDir, "fParallel", fullWebDir)
     
 
     #--------------------------------------------------------------------------
@@ -930,10 +930,10 @@ def test(argv):
 
        # Parallel
        if (sourceTree == "Parallel"):
-          makeChangeLog(testTopDir, "Parallel", fullWebDir)
+          makeChangeLog(sourceDir, "Parallel", fullWebDir)
 
        # fParallel
-       makeChangeLog(testTopDir, "fParallel", fullWebDir)
+       makeChangeLog(sourceDir, "fParallel", fullWebDir)
     
 
     #--------------------------------------------------------------------------
