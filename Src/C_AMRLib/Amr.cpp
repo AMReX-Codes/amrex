@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.211 2010-06-04 17:14:31 ajnonaka Exp $
+// $Id: Amr.cpp,v 1.212 2010-06-09 19:59:36 almgren Exp $
 //
 #include <winstd.H>
 
@@ -396,7 +396,6 @@ Amr::Amr ()
     dt_level.resize(nlev);
     level_steps.resize(nlev);
     level_count.resize(nlev);
-    regrid_int.resize(nlev);
     n_cycle.resize(nlev);
     dt_min.resize(nlev);
     blocking_factor.resize(nlev);
@@ -411,13 +410,20 @@ Amr::Amr ()
         dt_level[i]    = 1.e200; // Something nonzero so old & new will differ
         level_steps[i] = 0;
         level_count[i] = 0;
-        regrid_int[i]  = 0;
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
         blocking_factor[i] = 2;
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
+
+    if (max_level > 0) 
+    {
+       regrid_int.resize(max_level);
+       for (i = 0; i < max_level; i++)
+           regrid_int[i]  = 0;
+    }
+
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
         ref_ratio[i] = IntVect::TheZeroVector();
@@ -548,28 +554,34 @@ Amr::Amr ()
     }
 
     //
-    // Read in the regrid interval.
+    // Read in the regrid interval if max_level > 0.
     //
-    if (pp.countval("regrid_int") == 1)
+    if (max_level > 0) 
     {
+       int numvals = pp.countval("regrid_int");
+       if (numvals == 1)
+       {
+           //
+           // Set all values to the single available value.
+           //
+           int the_regrid_int = 0;
+           pp.query("regrid_int",the_regrid_int);
+           for (i = 0; i < max_level; i++)
+           {
+               regrid_int[i] = the_regrid_int;
+           }
+       }
+       else if (numvals < max_level)
+       {
+           BoxLib::Error("You did not specify enough values of regrid_int");
+       }
+       else 
+       {
+           //
+           // Otherwise we expect a vector of max_level values
         //
-        // Set all values to the single available value.
-        //
-        int the_regrid_int = 0;
-
-        pp.query("regrid_int",the_regrid_int);
-
-        for (i = 0; i <= max_level; i++)
-        {
-            regrid_int[i] = the_regrid_int;
-        }
-    }
-    else
-    {
-        //
-        // Otherwise we expect a vector of blocking factors.
-        //
-        pp.queryarr("regrid_int",regrid_int,0,max_level+1);
+           pp.queryarr("regrid_int",regrid_int,0,max_level);
+       }
     }
 
     //
@@ -944,8 +956,12 @@ Amr::checkInput ()
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
 
-    if (regrid_int[0] <= 0)
-        BoxLib::Error("checkinput: regrid_int not defined");
+    if (max_level > 0) 
+       if (regrid_int[0] <= 0)
+          BoxLib::Error("checkinput: regrid_int not defined and max_level > 0");
+
+    if ((verbose > 0) && ParallelDescriptor::IOProcessor())
+       std::cout << "Successfully read inputs file ... " << std::endl;
 }
 
 void
@@ -1323,7 +1339,7 @@ Amr::restart (const std::string& filename)
            }
        }
 
-       if (regrid_on_restart)
+       if (regrid_on_restart and max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
@@ -1385,7 +1401,7 @@ Amr::restart (const std::string& filename)
        for (i = 0          ; i <= max_level; i++) is >> level_count[i];
        for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
 
-       if (regrid_on_restart)
+       if (regrid_on_restart and max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
