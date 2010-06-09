@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.101 2010-02-23 21:37:42 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.102 2010-06-09 16:56:26 gpau Exp $
 //
 #include <winstd.H>
 
@@ -177,7 +177,8 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             src_comp,
                       int             dest_comp,
                       int             num_comp, 
-                      const Geometry& geom)
+                      const Geometry& geom,
+		      const Real*     multf)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Reflux(MultiFab&,...)");
 
@@ -319,7 +320,12 @@ FluxRegister::Reflux (MultiFab&       S,
         const int*       shi        = fab_S.hiVect();
         const Real*      vol_dat    = fab_volume.dataPtr();
         Box              fine_face  = BoxLib::adjCell(grids[rf.m_fridx],rf.m_face);
-        Real             mult       = rf.m_face.isLow() ? -scale : scale;
+	Real mult;
+	if (multf == 0)
+	  mult = rf.m_face.isLow() ? -scale : scale;
+	else
+	  mult = (*multf)*scale;
+	  
         const int*       rlo        = fine_face.loVect();
         const int*       rhi        = fine_face.hiVect();
 

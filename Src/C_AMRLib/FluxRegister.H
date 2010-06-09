@@ -1,7 +1,7 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 //
-// $Id: FluxRegister.H,v 1.15 2010-01-20 19:21:49 nazgul Exp $
+// $Id: FluxRegister.H,v 1.16 2010-06-09 16:56:26 gpau Exp $
 //
 #include <BndryRegister.H>
 
@@ -187,7 +187,8 @@ public:
                  int             srccomp,
                  int             destcomp,
                  int             numcomp,
-                 const Geometry& crse_geom);
+                 const Geometry& crse_geom,
+		 const Real*     multf = 0);
     //
     //@ManDoc: Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     //
