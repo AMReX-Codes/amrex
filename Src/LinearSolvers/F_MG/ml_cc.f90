@@ -43,7 +43,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm, nccomp
+    integer :: i, n, dm
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
