@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.36 2010-02-08 19:01:38 almgren Exp $
+// $Id: BoxArray.H,v 1.37 2010-06-16 20:17:55 lijewski Exp $
 //
 #include <cstddef>
 
@@ -138,9 +138,11 @@ public:
     //
     bool operator!= (const BoxArray& rhs) const;
     //
-    //@ManDoc: Forces each Box in BoxArray to have sides <= block\_size.
+    //@ManDoc: Forces each Box in BoxArray to have sides <= block_size.
     //
     BoxArray& maxSize (int block_size);
+
+    BoxArray& maxSize (const IntVect& block_size);
     //
     //@ManDoc: Refine each Box in the BoxArray to the specified ratio.
     //
