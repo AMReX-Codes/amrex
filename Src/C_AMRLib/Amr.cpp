@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.212 2010-06-09 19:59:36 almgren Exp $
+// $Id: Amr.cpp,v 1.213 2010-06-16 20:49:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2507,35 +2507,34 @@ Amr::grid_places (int              lbase,
         delete [] pts;
     }
 
-    if (ParallelDescriptor::NProcs() > 1 && refine_grid_layout)
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs > 1 && refine_grid_layout)
     {
         //
         // Chop up grids if fewer grids at level than CPUs.
         // The idea here is to make more grids on a given level
-        // to spread the work around.  
+        // to spread the work around.
         //
-        for (int i = lbase; i <= new_finest; i++)
+        for (int cnt = 1; cnt <= 2; cnt++)
         {
-            int new_max_size = max_grid_size[i]/2;
-            if ( (new_grids[i].size() < ParallelDescriptor::NProcs()) &&
-                 (new_max_size%blocking_factor[i] == 0) )
+            for (int i = lbase; i <= new_finest; i++)
             {
-                new_grids[i].maxSize(new_max_size);
+                const int chunksize = max_grid_size[i]/cnt;
+
+                IntVect chunk(D_DECL(chunksize,chunksize,chunksize));
+
+                for (int j = 0; j < BL_SPACEDIM; j++)
+                {
+                    chunk[j] /= 2;
+
+                    if ((new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0))
+                    {
+                        new_grids[i].maxSize(chunk);
+                    }
+                }
             }
         }
-
-        // Do this one more time just in case we still have too few grids
-        for (int i = lbase; i <= new_finest; i++)
-        {
-            int new_max_size = max_grid_size[i]/4;
-            if ( (new_grids[i].size() < ParallelDescriptor::NProcs()) &&
-                 (new_max_size%blocking_factor[i] == 0) &&
-                 (max_grid_size[i]%4 == 0) )
-            {
-                new_grids[i].maxSize(new_max_size);
-            }
-        }
-
     }
 
     if (verbose > 0)
