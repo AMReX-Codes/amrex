@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.68 2010-02-23 21:39:25 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.69 2010-06-16 20:17:55 lijewski Exp $
 //
 #include <iostream>
 
@@ -492,8 +492,9 @@ BoxArray::d_numPts () const
     return result;
 }
 
+
 BoxArray&
-BoxArray::maxSize (int block_size)
+BoxArray::maxSize (const IntVect& block_size)
 {
     BoxList blst(*this);
     blst.maxSize(block_size);
@@ -503,6 +504,12 @@ BoxArray::maxSize (int block_size)
     for (int i = 0; bli != end; ++bli)
         set(i++, *bli);
     return *this;
+}
+
+BoxArray&
+BoxArray::maxSize (int block_size)
+{
+    return maxSize(IntVect(D_DECL(block_size,block_size,block_size)));
 }
 
 std::ostream&
