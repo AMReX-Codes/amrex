@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.213 2010-06-16 20:49:27 lijewski Exp $
+// $Id: Amr.cpp,v 1.214 2010-06-18 22:22:05 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2516,13 +2516,13 @@ Amr::grid_places (int              lbase,
         // The idea here is to make more grids on a given level
         // to spread the work around.
         //
-        for (int cnt = 1; cnt <= 2; cnt++)
+        for (int cnt = 1; cnt <= 4; cnt *= 2)
         {
             for (int i = lbase; i <= new_finest; i++)
             {
-                const int chunksize = max_grid_size[i]/cnt;
+                const int ChunkSize = max_grid_size[i]/cnt;
 
-                IntVect chunk(D_DECL(chunksize,chunksize,chunksize));
+                IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
 
                 for (int j = 0; j < BL_SPACEDIM; j++)
                 {
