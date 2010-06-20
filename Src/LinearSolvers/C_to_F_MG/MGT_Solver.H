@@ -30,19 +30,25 @@ public:
   static void initialize(bool nodal);
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
-                            const BndryData& bd);
+                            Array< Array<Real> >& xa,
+                            Array< Array<Real> >& xb);
 
   void set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
                                 Array< Array<Real> >& xa,
                                 Array< Array<Real> >& xb,
                                 int is_constant);
 
-  void set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
-                             const Real& b, const BndryData& bd);
+  void set_visc_coefficients(const MultiFab* aa[], 
+                             const MultiFab* bb[][BL_SPACEDIM],
+                             const Real& b, 
+                             Array< Array<Real> >& xa,
+                             Array< Array<Real> >& xb);
 
   void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                const MultiFab* bb[][BL_SPACEDIM],
-                               const Real& b, const BndryData& bd,
+                               const Real& b, 
+                               Array< Array<Real> >& xa,
+                               Array< Array<Real> >& xb,
 			       int nc_opt = 0);
 
   void set_porous_coefficients(MultiFab* a1[], const MultiFab* a2[], 
