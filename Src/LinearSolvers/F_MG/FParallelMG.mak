@@ -92,7 +92,5 @@ cEXE_sources   += timer_c.c
 fEXE_sources += ilut.f
 fEXE_sources += iters.f
 fEXE_sources += sk_sup.f
-fEXE_sources += daxpy.f
 fEXE_sources += dnrm2.f
-fEXE_sources += ddot.f
 
