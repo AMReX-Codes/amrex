@@ -351,12 +351,13 @@ MGT_Solver::initialize(bool nodal)
 
 void
 MGT_Solver::set_mac_coefficients(const MultiFab* aa[], 
-                                 const MultiFab* bb[][BL_SPACEDIM], const BndryData& bd)
+                                 const MultiFab* bb[][BL_SPACEDIM], 
+                                 Array< Array<Real> >& xa,
+                                 Array< Array<Real> >& xb)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_coeffs_lev(&lev);
-      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
@@ -364,17 +365,6 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 	  pxa[i] = pxb[i] = 0;
 	}
 
-      for (OrientationIter oitr; oitr; ++oitr)
-        {
-          int dir  = oitr().coordDir();
-          if (oitr().faceDir() == Orientation::low) {
-            xa[dir] = bd.bndryLocs(oitr())[0];
-          } else if (oitr().faceDir() == Orientation::high) {
-            xb[dir] = bd.bndryLocs(oitr())[0];
-          }
-    
-        }
- 
       Real beta = 1.0;
 
 //    NOTE: we only pass in aa here in order to get the validbox.
@@ -406,7 +396,7 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
 #endif
 	}
       int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -480,29 +470,19 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
 
 void
 MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
-                                  const Real& beta, const BndryData& bd)
+                                  const Real& beta, 
+                                  Array< Array<Real> >& xa,
+                                  Array< Array<Real> >& xb)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_coeffs_lev(&lev);
-      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
 	{
 	  pxa[i] = pxb[i] = 0;
 	}
-
-      for (OrientationIter oitr; oitr; ++oitr)
-        {
-          int dir  = oitr().coordDir();
-          if (oitr().faceDir() == Orientation::low) {
-            xa[dir] = bd.bndryLocs(oitr())[0];
-          } else if (oitr().faceDir() == Orientation::high) {
-            xb[dir] = bd.bndryLocs(oitr())[0];
-          }
-    
-        }
 
       for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
 	{
@@ -537,7 +517,7 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
 #endif
 	}
       int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm);
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
     }
   mgt_finalize_stencil();
 }
@@ -550,29 +530,20 @@ void MGT_Solver::set_maxorder(const int max_order)
 void
 MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                     const MultiFab* bb[][BL_SPACEDIM], 
-                                    const Real& beta, const BndryData& bd, int nc_opt)
+                                    const Real& beta, 
+                                    Array< Array<Real> >& xa, Array< Array<Real> >& xb,
+                                    int nc_opt)
 {
   int nc = (*bb[0][0]).nComp();
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
-      double xa[BL_SPACEDIM], xb[BL_SPACEDIM];
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
 	{
 	  pxa[i] = pxb[i] = 0;
 	}
-
-      for (OrientationIter oitr; oitr; ++oitr)
-        {
-          int dir  = oitr().coordDir();
-          if (oitr().faceDir() == Orientation::low) {
-            xa[dir] = bd.bndryLocs(oitr())[0];
-          } else if (oitr().faceDir() == Orientation::high) {
-            xb[dir] = bd.bndryLocs(oitr())[0];
-          }
-        }
 
       for (MFIter amfi(*(a1[lev])); amfi.isValid(); ++amfi)
 	{
@@ -617,7 +588,7 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
 	}
       int dm = BL_SPACEDIM;
       
-      mgt_mc_finalize_stencil_lev(&lev, xa, xb, pxa, pxb, &dm, &nc_opt);
+      mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm, &nc_opt);
     }
   mgt_finalize_stencil();
 }
