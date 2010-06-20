@@ -81,9 +81,18 @@ f90EXE_sources += mg_tower.f90
 f90EXE_sources += mlmg.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_cc.f90
+#f90EXE_sources += mg_hypre_solve.f90
 f90EXE_sources += mg_cpp.f90
 f90EXE_sources += mg_nodal_cpp.f90
 cEXE_headers   += mg_cpp_f.h
 
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
+
+fEXE_sources += ilut.f
+fEXE_sources += iters.f
+fEXE_sources += sk_sup.f
+fEXE_sources += daxpy.f
+fEXE_sources += dnrm2.f
+fEXE_sources += ddot.f
+
