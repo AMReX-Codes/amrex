@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.52 2009-04-30 17:34:34 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.53 2010-06-23 22:02:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -816,7 +816,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real mn   = f.min(k+comp);
         const Real mx   = f.max(k+comp);
         const Real* dat = f.dataPtr(k+comp);
-        Real rng = std::abs(mx-mn);
+        Real rng = std::fabs(mx-mn);
         rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
         for (long i = 0; i < siz; i++)
         {
