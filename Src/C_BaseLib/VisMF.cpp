@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.115 2010-01-29 20:42:04 lijewski Exp $
+// $Id: VisMF.cpp,v 1.116 2010-06-25 22:36:07 vince Exp $
 //
 
 #include <winstd.H>
@@ -902,6 +902,33 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
+  }
+
+#ifdef BL_VISMF_MSGCHECK
+  ParallelDescriptor::Barrier();
+  {
+      MPI_Status mwstatus;
+      int mwflag(0);
+      bool bextra(false);
+      ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
+      while(mwflag) {
+        bextra = true;
+        std::cout << "### ### ### :  EXTRA MESSAGE BEFORE:  myproc = "
+	          << ParallelDescriptor::MyProc() << std::endl << std::flush;
+        ParallelDescriptor::Message rmess;
+        std::vector<int> cread(mwstatus.count);
+        rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);
+        ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
+      }
+      if(bextra) {
+        //BoxLib::Abort("EXTRA MESSAGES BEFORE");
+      }
+  }
+  ParallelDescriptor::Barrier();
+#endif
+
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Real hStartTime, hEndTime;
 #endif
@@ -1071,6 +1098,7 @@ VisMF::Read (MultiFab&          mf,
 
 	if(reqsPending > 0) {
           rmess = ParallelDescriptor::Recv(iDone, MPI_ANY_SOURCE, MPI_ANY_TAG);
+
 	  int index(iDone[iDoneIndex]);
 	  int procDone(rmess.pid());
 	  totalIOReqs -= iDone[iDoneCount];
@@ -1097,6 +1125,30 @@ VisMF::Read (MultiFab&          mf,
         ParallelDescriptor::Send(iDone, ioProcNum, recReads[0]);
       }
     }
+
+
+#ifdef BL_VISMF_MSGCHECK
+  ParallelDescriptor::Barrier();
+  {
+      MPI_Status mwstatus;
+      int mwflag(0);
+      bool bextra(false);
+      ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
+      while(mwflag) {
+        bextra = true;
+        std::cout << "### ### ### :  EXTRA MESSAGE AFTER:  myproc = "
+	          << ParallelDescriptor::MyProc() << std::endl << std::flush;
+        ParallelDescriptor::Message rmess;
+        std::vector<int> cread(mwstatus.count);
+        rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);
+        ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
+      }
+      if(bextra) {
+        //BoxLib::Abort("EXTRA MESSAGES AFTER");
+      }
+  }
+#endif
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor() && false)
     {
