@@ -505,24 +505,22 @@ namespace
 }
 
 int
-BoxList::simplify ()
+BoxList::simplify (bool best)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
 
     lbox.sort(BoxCmp());
 
-    return simplify_doit();
+    return simplify_doit(best);
 }
 
 int
-BoxList::simplify_doit ()
+BoxList::simplify_doit (bool best)
 {
     //
     // Try to merge adjacent boxes.
     //
-    int count = 0;
-    int lo[BL_SPACEDIM];
-    int hi[BL_SPACEDIM];
+    int count = 0, lo[BL_SPACEDIM], hi[BL_SPACEDIM];
 
     for (iterator bla = begin(), End = end(); bla != End; )
     {
@@ -532,16 +530,19 @@ BoxList::simplify_doit ()
         iterator blb = bla;
         ++blb;
         //
-        // Limit how far afield we look for abutting boxes.
-        // This greatly speeds up this routine for large numbers of boxes.
-        // It does not do quite as good a job though as full brute force.
+        // If we're not looking for the "best" we can do in one pass, we
+        // limit how far afield we look for abutting boxes.  This greatly
+        // speeds up this routine for large numbers of boxes.  It does not
+        // do quite as good a job though as full brute force.
         //
-        for (int cnt = 0; blb != end() && cnt < 100; cnt++)
+        const int MaxCnt = (best ? size() : 100);
+
+        for (int cnt = 0; blb != end() && cnt < MaxCnt; cnt++)
         {
             const int* blo = blb->loVect();
             const int* bhi = blb->hiVect();
             //
-            // Determine of a and b can be coalasced.
+            // Determine if a and b can be coalesced.
             // They must have equal extents in all index direciton
             // except possibly one and must abutt in that direction.
             //
@@ -606,7 +607,7 @@ BoxList::minimize ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::minimize()");
     int cnt = 0;
-    for (int n; (n=simplify()) > 0; )
+    for (int n; (n=simplify(true)) > 0; )
         cnt += n;
     return cnt;
 }

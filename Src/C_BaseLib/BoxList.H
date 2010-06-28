@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.35 2010-02-19 18:18:34 lijewski Exp $
+// $Id: BoxList.H,v 1.36 2010-06-28 17:33:48 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -236,9 +236,14 @@ public:
     BoxList& shiftHalf (const IntVect& iv);
 
     /*@ManDoc: Merge adjacent Boxes in this BoxList. Return the number
-               of Boxes merged.
+               of Boxes merged.  If "best" is specified we do a single
+               bruteforce pass over the list checking each Box against
+               all Boxes after it in the list to see if they can be
+               merged.  If "best" is not specified we limit how fair
+               afield we look for possible matches.  The "best" algorithm
+               is O(N-squared) while the other algorithm is O(N).
     */
-    int simplify ();
+    int simplify (bool best = false);
 
     /*@ManDoc: Merges all possible adjacent Boxes.  Returns the total
                number of Boxes merged.
@@ -315,7 +320,7 @@ private:
     //
     // Core simplify routine.
     //
-    int simplify_doit ();
+    int simplify_doit (bool best);
 };
 
 inline
