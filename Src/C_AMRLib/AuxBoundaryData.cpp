@@ -96,22 +96,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     if (nba.size() > 0)
     {
-        std::vector<long> wgts;
-
-        wgts.reserve(nba.size());
-
-        for (int i = 0; i < nba.size(); i++)
-            wgts.push_back(nba[i].numPts());
-
-        DistributionMapping dm;
-        //
-        // This call doesn't invoke the MinimizeCommCosts() stuff.
-        // There's very little to gain with this type of covering.
-        // This also guarantees that this DM won't be put into the cache.
-        //
-        dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
-
-        m_fabs.define(nba, n_comp, 0, dm, Fab_allocate);
+        m_fabs.define(nba, n_comp, 0, Fab_allocate);
     }
     else
     {
