@@ -531,7 +531,12 @@ BoxList::simplify_doit ()
         bool       match = false;
         iterator blb = bla;
         ++blb;
-        while ( blb != end() )
+        //
+        // Limit how far afield we look for abutting boxes.
+        // This greatly speeds up this routine for large numbers of boxes.
+        // It does not do quite as good a job though as full brute force.
+        //
+        for (int cnt = 0; blb != end() && cnt < 100; cnt++)
         {
             const int* blo = blb->loVect();
             const int* bhi = blb->hiVect();
