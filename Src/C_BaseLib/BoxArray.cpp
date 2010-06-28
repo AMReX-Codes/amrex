@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.69 2010-06-16 20:17:55 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.70 2010-06-28 17:43:50 lijewski Exp $
 //
 #include <iostream>
 
@@ -642,6 +642,8 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     gcells.clear();
     gcells = BoxLib::removeOverlap(bcells);
     bcells.clear();
+
+    gcells.simplify();
 
     return gcells;
 }
