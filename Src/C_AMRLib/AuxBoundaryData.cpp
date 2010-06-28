@@ -65,45 +65,12 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     //
     // First get list of all ghost cells.
     //
-    BoxList gcells, bcells;
-
-    for (int i = 0; i < ba.size(); ++i)
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],n_grow),ba[i]));
+    BoxList gcells = BoxLib::GetBndryCells(ba,n_grow), bcells;
     //
-    // Now strip out intersections with original BoxArray.
+    // Remove any intersections with periodically shifted valid region.
     //
-    for (BoxList::const_iterator it = gcells.begin(), end = gcells.end(); it != end; ++it)
-    {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
-
-        if (isects.empty())
-        {
-            bcells.push_back(*it);
-        }
-        else
-        {
-            //
-            // Collect all the intersection pieces.
-            //
-            BoxList pieces;
-            for (int i = 0, N = isects.size(); i < N; i++)
-                pieces.push_back(isects[i].second);
-            BoxList leftover = BoxLib::complementIn(*it,pieces);
-            bcells.catenate(leftover);
-        }
-    }
-    //
-    // Now strip out overlaps.
-    //
-    gcells.clear();
-    gcells = BoxLib::removeOverlap(bcells);
-    bcells.clear();
-
     if (geom.isAnyPeriodic())
     {
-        //
-        // Remove any intersections with periodically shifted valid region.
-        //
         Box dmn = geom.Domain();
 
         for (int d = 0; d < BL_SPACEDIM; d++)
@@ -121,9 +88,13 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         }
     }
 
+    gcells.simplify();
+
     BoxArray nba(gcells);
 
-    if (gcells.size() > 0)
+    gcells.clear();
+
+    if (nba.size() > 0)
     {
         std::vector<long> wgts;
 
@@ -155,7 +126,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "AuxBoundaryData::initialize() size = " << gcells.size() << ", time = " << run_time << '\n';
+            std::cout << "AuxBoundaryData::initialize() size = " << nba.size() << ", time = " << run_time << '\n';
     }
 
     m_initialized = true;
