@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.70 2010-06-28 17:43:50 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.71 2010-06-28 18:24:45 lijewski Exp $
 //
 #include <iostream>
 
@@ -609,16 +609,24 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     //
     // First get list of all ghost cells.
     //
-    BoxList gcells, bcells;
+    BoxList gcells, bcells = ba.boxList();
 
-    for (int i = 0; i < ba.size(); ++i)
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+    bcells.simplify();
+
+    BoxArray tba(bcells);
+
+    bcells.clear();
+
+    for (int i = 0; i < tba.size(); ++i)
+    {
+	gcells.join(BoxLib::boxDiff(BoxLib::grow(tba[i],ngrow),tba[i]));
+    }
     //
     // Now strip out intersections with original BoxArray.
     //
     for (BoxList::const_iterator it = gcells.begin(), end = gcells.end(); it != end; ++it)
     {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(*it);
+        std::vector< std::pair<int,Box> > isects = tba.intersections(*it);
 
         if (isects.empty())
         {
@@ -640,7 +648,9 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     // Now strip out overlaps.
     //
     gcells.clear();
+
     gcells = BoxLib::removeOverlap(bcells);
+
     bcells.clear();
 
     gcells.simplify();
