@@ -601,24 +601,31 @@ contains
 
   end function boxlist_boxlist_diff
 
-  subroutine boxlist_simplify(bxl)
+  subroutine boxlist_simplify(bxl, minimize)
 
     use bl_prof_module
 
     type(list_box), intent(inout) :: bxl
-    integer :: dm
+    integer                       :: dm, merged
+    logical, optional             :: minimize
+    logical                       :: lminimize
+
     type(bl_prof_timer), save :: bpt
 
     if ( size(bxl) == 0 ) return
 
     call build(bpt, "boxlist_simplify")
 
+    lminimize = .false. ; if ( present(minimize) ) lminimize = minimize
+
     dm = box_dim(front(bxl))
-    !
-    ! TODO -- limit number of simp() calls to 1, 2 or 3?
-    !
-    do while ( simp() > 0 )
-    end do
+
+    if ( lminimize ) then
+       do while ( simp() > 0 )
+       end do
+    else
+       merged = simp()
+    end if
 
     call destroy(bpt)
 
@@ -632,7 +639,8 @@ contains
       type(list_box_node), pointer :: ba, bb
       type(box) :: bx
       logical match, canjoin
-      integer :: i
+      integer :: i, tries
+      integer, parameter :: MaxTries = 100
 
       if ( size(bxl) == 0 ) return
       cnt = 0
@@ -642,6 +650,7 @@ contains
          alo = lwb(value(ba)); ahi = upb(value(ba))
          match = .FALSE.
          bb => next(ba)
+         tries = 1
          do while ( associated(bb) )
             blo = lwb(value(bb)); bhi = upb(value(bb))
             canjoin = .TRUE.
@@ -675,6 +684,8 @@ contains
                ! No match found, try next element.
                bb => next(bb)
             end if
+            tries = tries + 1
+            if (tries > MaxTries) exit
          end do
          ! If a match was found, a was already advanced in the list.
          if ( .not. match ) then
