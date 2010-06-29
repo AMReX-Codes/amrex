@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.214 2010-06-18 22:22:05 lijewski Exp $
+// $Id: Amr.cpp,v 1.215 2010-06-29 15:25:44 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -1835,8 +1835,8 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      const int num_per_old = cumtime / plot_per;
-      const int num_per_new = (cumtime+dt_level[0]) / plot_per;
+      const int num_per_old = (cumtime-dt_level[0]) / plot_per;
+      const int num_per_new = (cumtime            ) / plot_per;
 
       if (num_per_old != num_per_new)
 	{
