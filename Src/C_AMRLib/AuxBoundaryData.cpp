@@ -57,8 +57,8 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 {
     BL_ASSERT(!m_initialized);
 
-    const bool verbose = true;
-
+    const bool verbose   = true;
+    const int  NProcs    = ParallelDescriptor::NProcs();
     const Real strt_time = ParallelDescriptor::second();
 
     m_ngrow = n_grow;
@@ -92,7 +92,10 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     gcells.simplify();
 
-    gcells.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
+    if (gcells.size() < NProcs)
+    {
+        gcells.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
+    }
 
     BoxArray nba(gcells);
 
@@ -113,7 +116,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
         // There's very little to gain with this type of covering.
         // This also guarantees that this DM won't be put into the cache.
         //
-        dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
+        dm.KnapSackProcessorMap(wgts,NProcs);
 
         m_fabs.define(nba, n_comp, 0, dm, Fab_allocate);
     }
