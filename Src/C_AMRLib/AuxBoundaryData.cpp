@@ -82,13 +82,19 @@ AuxBoundaryData::initialize (const BoxArray& ba,
             const Box isect = *it & dmn;
 
             if (isect.ok())
+            {
                 *it++ = isect;
+            }
             else
+            {
                 gcells.remove(it++);
+            }
         }
     }
 
     gcells.simplify();
+
+    gcells.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
 
     BoxArray nba(gcells);
 
