@@ -52,7 +52,6 @@ ifndef MPI
   f90sources += parallel_stubs.f90
 else
   f90sources += parallel.f90
-  f90sources += pingpong.f90
   ifeq ($(ARCH),Darwin)
     include $(FPARALLEL)/extern/MacMPI/GPackage.mak
   endif
