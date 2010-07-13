@@ -9,6 +9,7 @@ module bl_stream_module
   implicit none
 
   type bl_stream
+     private
      integer   :: unit = -1
      character ::  pb
      logical   :: lpb  = .False.
