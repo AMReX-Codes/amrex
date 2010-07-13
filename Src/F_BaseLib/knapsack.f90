@@ -20,7 +20,7 @@ module knapsack_module
 
   real(kind=dp_t), private :: knapsack_threshold = 0.9_dp_t
 
-  private :: greater_d
+  private :: greater_d, sfc_greater_i
 
 contains
 
