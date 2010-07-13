@@ -22,8 +22,6 @@ module box_module
      integer :: hi(MAX_SPACEDIM) = -Huge(1)
   end type box
 
-  integer :: box_print_fixed_width = 5
-
   !! Builds a box
   interface build
      module procedure box_build_2
