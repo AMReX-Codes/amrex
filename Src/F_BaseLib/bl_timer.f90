@@ -5,7 +5,7 @@ module bl_timer_module
 
   implicit none
 
-  integer, parameter :: TIMER_NAME_MAX_LEN = 20
+  integer,         private, parameter :: TIMER_NAME_MAX_LEN = 20
   real(kind=dp_t), private, parameter :: zero = 0.0_dp_t
   real(kind=dp_t), private, parameter :: MIL_SEC = 1.0e3_dp_t
 
