@@ -2,27 +2,19 @@ module bl_IO_module
 
   implicit none
 
-  ! Values returned to IOSTAT for end of record and end of file
-
-  integer, parameter :: IO_EOR = -2
-  integer, parameter :: IO_EOF = -1
-
   ! Default input and output units:
 
-  integer, parameter :: IO_STDIN  = 5
-  integer, parameter :: IO_STDOUT = 6
+  integer, private, parameter :: IO_STDIN  = 5
+  integer, private, parameter :: IO_STDOUT = 6
 
   ! Number and value of pre-connected units
 
-  integer, parameter :: IO_NUM_PRECON = 3
-  integer, parameter :: IO_PRECON_UNITS(IO_NUM_PRECON) = &
-       (/ 0, 5, 6 /)
+  integer, private, parameter :: IO_NUM_PRECON = 3
+  integer, private, parameter :: IO_PRECON_UNITS(IO_NUM_PRECON) = (/ 0, 5, 6 /)
 
   ! Largest allowed unit number (or a large number, if none)
 
-  integer, parameter :: IO_MAX_UNIT = 1000
-
-  integer, parameter :: IO_MAX_RECL = 1024
+  integer, private, parameter :: IO_MAX_UNIT = 1000
 
   ! Note that the constants defined in this module are not portable,
   ! and may have to be changed for any given processor.
