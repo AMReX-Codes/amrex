@@ -140,7 +140,7 @@ module make_new_grids_module
       integer                        :: ref_ratio(mba%dim)
       logical                        :: pmask(mba%dim)
       logical                        :: all_properly_nested
-      type(box)                      :: pd
+      type(box)                      :: pd, bx
       type(list_box)                 :: bl
       type(box_intersector), pointer :: bi(:)
       type(boxarray)                 :: ba_new
@@ -187,8 +187,8 @@ module make_new_grids_module
                 ! LA_LOCAL ==> bypass processor distribution calculation.
 
                 ! Start to load bl with the boxes we had before in ba_old (aka mba%bas(nl)).
-                do i = 1, mba%bas(nl)%nboxes
-                   call push_back(bl,  mba%bas(nl)%bxs(i))
+                do i = 1, nboxes(mba%bas(nl))
+                   call push_back(bl, get_box(mba%bas(nl),i))
                 end do
 
                 ! split up ba_new so the number of intersections per
@@ -197,8 +197,8 @@ module make_new_grids_module
 
                 ! Now load with the new boxes that are the intersection of 
                 !  ba_new with the complement of ba_old (aka mba%bas(nl))
-                do j = 1, ba_new%nboxes
-                   bi => layout_get_box_intersector(la_old_comp, ba_new%bxs(j))
+                do j = 1, nboxes(ba_new)
+                   bi => layout_get_box_intersector(la_old_comp, get_box(ba_new,j))
                    do i = 1, size(bi)
                       call push_back(bl, bi(i)%bx)
                    end do
@@ -269,8 +269,19 @@ module make_new_grids_module
             do j = 1,mba%dim
                if (.not. pmask(j)) then
                   do i = 1, nboxes(mba,n)
-                     if ( (mba%bas(n)%bxs(i)%lo(j) - pd%lo(j)) .le. 2) mba%bas(n)%bxs(i)%lo(j) = pd%lo(j) 
-                     if ( (pd%hi(j) - mba%bas(n)%bxs(i)%hi(j)) .le. 2) mba%bas(n)%bxs(i)%hi(j) = pd%hi(j) 
+
+                     if ( (  lwb(get_box(mba%bas(n),i),j) - lwb(pd,j)) .le. 2) then
+                        bx = get_box(mba%bas(n),i)
+                        call set_lwb(bx,j,lwb(pd,j))
+                        call set_box(mba%bas(n),i,bx)
+                     end if
+
+                     if ( (upb(pd,j) - upb(get_box(mba%bas(n),i),j)) .le. 2) then
+                        bx = get_box(mba%bas(n),i)
+                        call set_upb(bx,j,upb(pd,j))
+                        call set_box(mba%bas(n),i,bx)
+                     end if
+
                   end do
                end if
             end do

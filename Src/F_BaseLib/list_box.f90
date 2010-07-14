@@ -137,7 +137,7 @@ contains
 
   ! Node accessors.
 
-  function list_node_value_box(n) result(r)
+  pure function list_node_value_box(n) result(r)
     type(list_box_node), intent(in) :: n
     type(box) :: r
 
@@ -230,7 +230,7 @@ contains
 
   end subroutine list_copy_box
 
-  function list_size_box(l) result (r)
+  pure function list_size_box(l) result (r)
     type(list_box), intent(in) :: l
     integer :: r
 
@@ -254,7 +254,7 @@ contains
 
   end function list_end_box
 
-  function list_empty_box(l) result (r)
+  pure function list_empty_box(l) result (r)
     type(list_box), intent(in) :: l
     logical:: r
 

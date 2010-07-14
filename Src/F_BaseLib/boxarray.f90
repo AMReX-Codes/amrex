@@ -11,10 +11,15 @@ module boxarray_module
   implicit none
 
   type boxarray
+     private
      integer :: dim = 0
      integer :: nboxes = 0
      type(box), pointer :: bxs(:) => Null()
   end type boxarray
+
+  interface dataptr
+     module procedure boxarray_dataptr
+  end interface
 
   interface get_dim
      module procedure boxarray_dim
@@ -131,20 +136,26 @@ module boxarray_module
   type(mem_stats), private, save :: boxarray_ms
 
 contains
+
+  function boxarray_dataptr(ba) result(r)
+    type(boxarray), intent(in) :: ba
+    type(box), pointer :: r(:)
+    r => ba%bxs
+  end function boxarray_dataptr
   
-  function boxarray_equal(ba1, ba2) result(r)
+  pure function boxarray_equal(ba1, ba2) result(r)
     type(boxarray), intent(in) :: ba1, ba2
     logical :: r
     r = associated(ba1%bxs, ba2%bxs)
   end function boxarray_equal
 
-  function boxarray_not_equal(ba1, ba2) result(r)
+  pure function boxarray_not_equal(ba1, ba2) result(r)
     type(boxarray), intent(in) :: ba1, ba2
     logical :: r
     r = .not. associated(ba1%bxs, ba2%bxs)
   end function boxarray_not_equal
 
-  function boxarray_same_q(ba1, ba2) result(r)
+  pure function boxarray_same_q(ba1, ba2) result(r)
     type(boxarray), intent(in) :: ba1, ba2
     logical :: r
     integer :: i
@@ -173,19 +184,19 @@ contains
     r = boxarray_ms
   end function boxarray_mem_stats
 
-  function boxarray_empty(ba) result(r)
+  pure function boxarray_empty(ba) result(r)
     logical :: r
     type(boxarray), intent(in) :: ba
     r = ba%nboxes == 0
   end function boxarray_empty
 
-  function boxarray_built_q(ba) result(r)
+  pure function boxarray_built_q(ba) result(r)
     logical :: r
     type(boxarray), intent(in) :: ba
     r = ba%dim /= 0
   end function boxarray_built_q
 
-  function boxarray_dim(ba) result(r)
+  pure function boxarray_dim(ba) result(r)
     type(boxarray), intent(in) :: ba
     integer :: r
     r = ba%dim
@@ -198,7 +209,7 @@ contains
     ba%bxs(i) = bx
   end subroutine boxarray_set_box
 
-  function boxarray_get_box(ba, i) result(r)
+  pure function boxarray_get_box(ba, i) result(r)
     type(boxarray), intent(in) :: ba
     integer, intent(in) :: i
     type(box) :: r
@@ -419,7 +430,7 @@ contains
     end do
   end subroutine boxarray_nodalize
 
-  function boxarray_projectable(ba, rr) result(r)
+  pure function boxarray_projectable(ba, rr) result(r)
     logical :: r
     type(boxarray), intent(in) :: ba
     integer, intent(in) :: rr(:)
@@ -541,13 +552,13 @@ contains
     call boxarray_diff(bao, ba)
   end subroutine boxarray_boundary_n
 
-  function boxarray_nboxes(ba) result(r)
+  pure function boxarray_nboxes(ba) result(r)
     type(boxarray), intent(in) :: ba
     integer :: r
     r = ba%nboxes
   end function boxarray_nboxes
 
-  function boxlist_nboxes(bl) result(r)
+  pure function boxlist_nboxes(bl) result(r)
     type(list_box), intent(in) :: bl
     integer :: r
     r = size(bl)
@@ -563,7 +574,7 @@ contains
     end do
   end function boxarray_volume
 
-  function boxarray_dvolume(ba) result(r)
+  pure function boxarray_dvolume(ba) result(r)
     type(boxarray), intent(in) :: ba
     real(dp_t) :: r
     integer :: i
@@ -573,7 +584,7 @@ contains
     end do
   end function boxarray_dvolume
 
-  function boxarray_bbox(ba) result(r)
+  pure function boxarray_bbox(ba) result(r)
     type(boxarray), intent(in) :: ba
     type(box) :: r
     integer :: i

@@ -1257,7 +1257,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do n = 1, ba%nboxes
+    do n = 1, nboxes(ba)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
@@ -1279,7 +1279,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do n = 1, ba%nboxes
+    do n = 1, nboxes(ba)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
@@ -1301,7 +1301,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do n = 1, ba%nboxes
+    do n = 1, nboxes(ba)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
@@ -1323,7 +1323,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do n = 1, ba%nboxes
+    do n = 1, nboxes(ba)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then

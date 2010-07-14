@@ -207,7 +207,7 @@ contains
 
   !! Returns a box defined on the entire index domain [-Inf,+Inf] of
   !! dimension _dim_.
-  function box_allbox(dim) result(r)
+  pure function box_allbox(dim) result(r)
     integer, intent(in) :: dim
     type(box) :: r
     r%dim = dim
@@ -217,7 +217,7 @@ contains
 
   !! Returns a completely empty box [+Inf,-Inf]; this box is also
   !! the default box of dimension _dim_.
-  function box_nobox(dim) result(r)
+  pure function box_nobox(dim) result(r)
     integer, intent(in) :: dim
     type(box) :: r
     r%dim = dim
@@ -226,7 +226,7 @@ contains
   end function box_nobox
 
   !! Returns a unit_box at the origin of index space of dimension _dim_.
-  function unit_box(dim) result(r)
+  pure function unit_box(dim) result(r)
     type(box) :: r
     integer, intent(in) :: dim
     r%dim = dim
@@ -236,7 +236,7 @@ contains
 
   !! Returns .TRUE. if the box _bx_ contains no cells, or if it is of dimension
   !! zero.
-  function box_empty(bx) result(r)
+  pure function box_empty(bx) result(r)
     logical :: r
     type(box), intent(in) :: bx
     if ( bx%dim == 3 ) then
@@ -281,7 +281,7 @@ contains
 
   !! Returns a coarsened version of the box _bx_, coarsened by the vector
   !! _cv_, but only on those components with mask true
-  function box_coarsen_v_m(bx, cv, mask) result(r)
+  pure function box_coarsen_v_m(bx, cv, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: cv(:)
     logical, intent(in) :: mask(:)
@@ -297,7 +297,7 @@ contains
   end function box_coarsen_v_m
   !! Returns a coarsened version of the box _bx_, coarsened by the vector
   !! _cv_.
-  function box_coarsen_v(bx, cv) result(r)
+  pure function box_coarsen_v(bx, cv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: cv(:)
     type(box) :: r
@@ -307,7 +307,7 @@ contains
   end function box_coarsen_v
   !! Returns a coarsened version of the box _bx_, coarsened by the integer
   !! _ci_, but only on components with mask true
-  function box_coarsen_i_m(bx, ci, mask) result(r)
+  pure function box_coarsen_i_m(bx, ci, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ci
     logical, intent(in) :: mask(:)
@@ -323,7 +323,7 @@ contains
   end function box_coarsen_i_m
   !! Returns a coarsened version of the box _bx_, coarsened by the integer
   !! _ci_.
-  function box_coarsen_i(bx, ci) result(r)
+  pure function box_coarsen_i(bx, ci) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ci
     type(box) :: r
@@ -332,7 +332,7 @@ contains
     r%hi(1:r%dim) = int_coarsen(bx%hi(1:bx%dim), ci)
   end function box_coarsen_i
 
-  function box_refine_v_m(bx, rv, mask) result(r)
+  pure function box_refine_v_m(bx, rv, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
     logical, intent(in) :: mask(:)
@@ -346,7 +346,7 @@ contains
        end if
     end do
   end function box_refine_v_m
-  function box_refine_v(bx, rv) result(r)
+  pure function box_refine_v(bx, rv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
     type(box) :: r
@@ -354,7 +354,7 @@ contains
     r%lo(1:r%dim) =  bx%lo(1:bx%dim)*rv
     r%hi(1:r%dim) = (bx%hi(1:bx%dim)+1)*rv-1
   end function box_refine_v
-  function box_refine_i_m(bx, ri, mask) result(r)
+  pure function box_refine_i_m(bx, ri, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
     logical, intent(in) :: mask(:)
@@ -368,7 +368,7 @@ contains
        end if
     end do
   end function box_refine_i_m
-  function box_refine_i(bx, ri) result(r)
+  pure function box_refine_i(bx, ri) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
     type(box) :: r
@@ -399,7 +399,7 @@ contains
   !! nodal are true, or else not at all if nodal is not present.
   !! this last because by default fabs, multifabs, and etc, are cell-
   !! centered.
-  function box_denodalize(bx, nodal) result(r)
+  pure function box_denodalize(bx, nodal) result(r)
     type(box) :: r
     type(box), intent(in) :: bx
     logical, intent(in), optional :: nodal(:)
@@ -457,7 +457,7 @@ contains
        call bl_error("BOX_GROW_N_F: unexpected face: ", face)
     end if
   end function box_grow_n_f
-  function box_grow_v_m(bx, rv, mask) result(r)
+  pure function box_grow_v_m(bx, rv, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
     logical, intent(in) :: mask(:)
@@ -472,7 +472,7 @@ contains
     end do
   end function box_grow_v_m
 
-  function box_grow_v(bx, rv) result(r)
+  pure function box_grow_v(bx, rv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: rv(:)
     type(box) :: r
@@ -481,7 +481,7 @@ contains
     r%hi(1:r%dim) =  bx%hi(1:bx%dim) + rv
   end function box_grow_v
 
-  function box_grow_n_m(bx, ri, mask) result(r)
+  pure function box_grow_n_m(bx, ri, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
     logical, intent(in) :: mask(:)
@@ -496,7 +496,7 @@ contains
     end do
   end function box_grow_n_m
 
-  function box_grow_n(bx, ri) result(r)
+  pure function box_grow_n(bx, ri) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: ri
     type(box) :: r
@@ -507,7 +507,7 @@ contains
 
   
   !! lexigraphic ordering in the lower-bound
-  function box_less(bx1, bx2) result(r)
+  pure function box_less(bx1, bx2) result(r)
     logical :: r
     type(box), intent(in) :: bx1, bx2
     integer :: i
@@ -520,12 +520,12 @@ contains
     r = .FALSE.
   end function box_less
 
-  function box_equal(bx1, bx2) result(r)
+  pure function box_equal(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
     r = all(bx1%lo == bx2%lo .and. bx1%hi == bx2%hi)
   end function box_equal
-  function box_not_equal(bx1, bx2) result(r)
+  pure function box_not_equal(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
     r = .NOT. box_equal(bx1, bx2)
@@ -595,7 +595,7 @@ contains
     end if
   end function box_intersection
 
-  function box_intersects(bx1, bx2) result(r)
+  pure function box_intersects(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
     integer :: dm
@@ -604,7 +604,7 @@ contains
          - max(bx1%lo(1:dm),bx2%lo(1:dm))) >= 0 )
   end function box_intersects
 
-  function box_contains(bx1, bx2, strict) result(r)
+  pure function box_contains(bx1, bx2, strict) result(r)
     logical :: r
     type(box), intent(in) :: bx1, bx2
     logical, intent(in), optional :: strict
@@ -623,7 +623,7 @@ contains
     end if
   end function box_contains
 
-  function box_contains_strict(bx1, bx2) result(r)
+  pure function box_contains_strict(bx1, bx2) result(r)
     type(box), intent(in) :: bx1, bx2
     logical :: r
     r = all(bx1%lo(1:bx1%dim) < bx2%lo(1:bx2%dim)) .and. &
@@ -632,7 +632,7 @@ contains
         all(bx1%hi(1:bx1%dim) > bx2%hi(1:bx2%dim))
   end function box_contains_strict
 
-  function box_contains_iv(bx1, iv, strict) result(r)
+  pure function box_contains_iv(bx1, iv, strict) result(r)
     logical :: r
     type(box), intent(in) :: bx1
     integer, intent(in) :: iv(:)
@@ -646,7 +646,7 @@ contains
     end if
   end function box_contains_iv
 
-  function box_shift_v_m(bx, iv, mask) result(r)
+  pure function box_shift_v_m(bx, iv, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: iv(:)
     logical, intent(in) :: mask(:)
@@ -660,7 +660,7 @@ contains
        end if
     end do
   end function box_shift_v_m
-  function box_shift_v(bx, iv) result(r)
+  pure function box_shift_v(bx, iv) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: iv(:)
     type(box) :: r
@@ -668,7 +668,7 @@ contains
     r%lo(1:r%dim) = bx%lo(1:r%dim) + iv(1:r%dim)
     r%hi(1:r%dim) = bx%hi(1:r%dim) + iv(1:r%dim)
   end function box_shift_v
-  function box_shift_i_m(bx, i, mask) result(r)
+  pure function box_shift_i_m(bx, i, mask) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: i
     logical, intent(in) :: mask(:)
@@ -682,7 +682,7 @@ contains
        end if
     end do
   end function box_shift_i_m
-  function box_shift_i(bx, i) result(r)
+  pure function box_shift_i(bx, i) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: i
     type(box) :: r
@@ -690,7 +690,7 @@ contains
     r%lo(1:r%dim) = bx%lo(1:r%dim) + i
     r%hi(1:r%dim) = bx%hi(1:r%dim) + i
   end function box_shift_i
-  function box_shift_d(bx, i, dim) result(r)
+  pure function box_shift_d(bx, i, dim) result(r)
     type(box), intent(in) :: bx
     integer, intent(in) :: i
     integer, intent(in) :: dim
@@ -700,26 +700,26 @@ contains
     r%hi(dim) = bx%hi(dim) + i
   end function box_shift_d
 
-  function box_extent(bx) result(r)
+  pure function box_extent(bx) result(r)
     type (box), intent(in) :: bx
     integer, dimension(bx%dim) :: r
     r = bx%hi(1:bx%dim) - bx%lo(1:bx%dim) + 1
   end function box_extent
 
-  function box_extent_d(bx, dim) result(r)
+  pure function box_extent_d(bx, dim) result(r)
     type (box), intent(in) :: bx
     integer, intent(in) :: dim
     integer :: r
     r = bx%hi(dim)-bx%lo(dim)+1
   end function box_extent_d
 
-  function box_lwb(bx) result(r)
+  pure function box_lwb(bx) result(r)
     type (box), intent(in) :: bx
     integer, dimension(bx%dim) :: r
     r = Huge(1)
     r(1:bx%dim) = bx%lo(1:bx%dim)
   end function box_lwb
-  function box_lwb_d(bx, dim) result(r)
+  pure function box_lwb_d(bx, dim) result(r)
     type (box), intent(in) :: bx
     integer, intent(in) :: dim
     integer :: r
@@ -737,13 +737,13 @@ contains
     bx%lo(dim) = v
   end subroutine box_set_lwb_d
 
-  function box_upb(bx) result(r)
+  pure function box_upb(bx) result(r)
     type (box), intent(in) :: bx
     integer, dimension(bx%dim) :: r
     r = -Huge(1)
     r(1:bx%dim) = bx%hi(1:bx%dim)
   end function box_upb
-  function box_upb_d(bx, dim) result(r)
+  pure function box_upb_d(bx, dim) result(r)
     type (box), intent(in) :: bx
     integer, intent(in) :: dim
     integer :: r
@@ -827,7 +827,7 @@ contains
     end do
   end function box_dvolume
 
-  function box_bbox(b1, b2) result(r)
+  pure function box_bbox(b1, b2) result(r)
     type(box), intent(in) :: b1, b2
     type(box) :: r
     r%dim = b1%dim
@@ -1109,7 +1109,7 @@ contains
     call box_periodic_shift(dmn,bx,nodal,pmask,0,shft,cnt,sync_shift = .true.)
   end subroutine box_internal_sync_shift
 
-  function box_projectable(bx, rr) result(r)
+  pure function box_projectable(bx, rr) result(r)
     logical :: r
     type(box), intent(in) :: bx
     integer, intent(in) :: rr(:)

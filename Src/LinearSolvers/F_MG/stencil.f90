@@ -999,8 +999,8 @@ contains
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
              !
              call boxarray_boxarray_diff(ba, bx1, st%la%lap%bxa)
-             do ii = 1, ba%nboxes
-                bx1 = shift(ba%bxs(ii), -j, i)
+             do ii = 1, nboxes(ba)
+                bx1 = shift(get_box(ba,ii), -j, i)
                 mp => dataptr(mask, bx1)
                 mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
              end do
@@ -1014,8 +1014,8 @@ contains
                 ! We're not periodic in that direction -- use physical BCs.
                 !
                 call boxarray_box_diff(ba, bx1, st%la%lap%pd)
-                do ii = 1, ba%nboxes
-                   bx1 = shift(ba%bxs(ii), -j, i)
+                do ii = 1, nboxes(ba)
+                   bx1 = shift(get_box(ba,ii), -j, i)
                    mp => dataptr(mask, bx1)
                    mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
                 end do
@@ -1037,8 +1037,8 @@ contains
                 !
                 ! Set any remaining boxes to C-F.
                 !
-                do ii = 1, ba%nboxes
-                   bx1 = shift(ba%bxs(ii), -j, i)
+                do ii = 1, nboxes(ba)
+                   bx1 = shift(get_box(ba,ii), -j, i)
                    mp => dataptr(mask, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
                 end do
