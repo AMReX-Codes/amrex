@@ -273,7 +273,7 @@ contains
   end subroutine box_build_1
 
   !! Returns the dimensionality of the box _bx_.
-  function box_dim(bx) result(r)
+  pure function box_dim(bx) result(r)
     type(box), intent(in) :: bx
     integer :: r
     r = bx%dim
