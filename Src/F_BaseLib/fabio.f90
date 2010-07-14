@@ -424,7 +424,7 @@ contains
       call bl_stream_expect(strm, ')')
       call build(ba, bxs)
       call build(la, ba)
-      dm = ba%dim
+      dm = get_dim(ba)
       call build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
       read(unit=lun, fmt=*) idummy
       do j = 1, nboxes

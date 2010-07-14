@@ -135,7 +135,7 @@ contains
     type(box), intent(in), optional :: pd
 
     mba%nlevel = 1
-    mba%dim = ba%dim
+    mba%dim = get_dim(ba)
     allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
     call boxarray_build_copy(mba%bas(1), ba)
     if ( present(pd) ) then
@@ -229,9 +229,11 @@ contains
   function ml_boxarray_clean(mba) result(r)
     logical :: r
     type(ml_boxarray), intent(in) :: mba
+    type(box), pointer :: pbxs(:)
     integer i
     do i = 1, mba%nlevel
-       if ( .not. boxarray_clean(mba%bas(i)%bxs) ) then
+       pbxs => dataptr(mba%bas(i))
+       if ( .not. boxarray_clean(pbxs) ) then
           r = .false.
           return
        end if

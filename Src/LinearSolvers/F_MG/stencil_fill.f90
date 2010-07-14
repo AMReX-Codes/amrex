@@ -201,8 +201,8 @@ contains
 
                 call boxarray_shift(bxa_temp,shift_vect)
 
-                do i = 1, bxa_temp%nboxes
-                   bx1 = intersection(bxa_temp%bxs(i),pd_periodic)
+                do i = 1, nboxes(bxa_temp)
+                   bx1 = intersection(get_box(bxa_temp,i),pd_periodic)
                    if ( .not. empty(bx1) ) then
                       call push_back(nbxs, bx1)
                    end if

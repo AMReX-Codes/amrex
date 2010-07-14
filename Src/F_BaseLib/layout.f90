@@ -451,8 +451,8 @@ contains
        lmapping = LA_EXPLICIT
     end if
     call boxarray_build_copy(lap%bxa, ba)
-    lap%dim    = lap%bxa%dim
-    lap%nboxes = lap%bxa%nboxes
+    lap%dim    = get_dim(lap%bxa)
+    lap%nboxes = nboxes(lap%bxa)
     lap%id     = layout_next_id()
     lap%pd     = pd
     allocate(lap%pmask(lap%dim))
@@ -471,9 +471,9 @@ contains
     case (LA_LOCAL)
        lap%prc = parallel_myproc()
     case (LA_ROUNDROBIN)
-       call layout_roundrobin(lap%prc, ba%bxs)
+       call layout_roundrobin(lap%prc, ba)
     case (LA_KNAPSACK)
-       call layout_knapsack(lap%prc, ba%bxs)
+       call layout_knapsack(lap%prc, ba)
     case default
        call bl_error("layout_rep_build(): unknown mapping:", lmapping)
     end select
@@ -626,7 +626,7 @@ contains
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
     type(box) :: lpd
-    logical :: lpmask(ba%dim)
+    logical :: lpmask(get_dim(ba))
     lpmask = .false.; if ( present(pmask) ) lpmask = pmask
     if ( present(pd) ) then
        lpd = pd
@@ -792,7 +792,7 @@ contains
 
     cla%la%lap%prc => la%lap%prc
 
-    call boxarray_build_v(cla%la%lap%bxa, la%lap%bxa%bxs)
+    call boxarray_build_copy(cla%la%lap%bxa, la%lap%bxa)
 
     call boxarray_coarsen(cla%la%lap%bxa, cla%crse)
 
@@ -846,19 +846,19 @@ contains
     use fab_module
     use sort_i_module
     use bl_error_module
-    integer,   intent(out), dimension(:) :: prc
-    type(box), intent(in ), dimension(:) :: bxs
+    integer,        intent(out), dimension(:) :: prc
+    type(boxarray), intent(in )               :: bxs
 
     integer          :: i
     integer, pointer :: luc(:)
     integer, allocatable :: ibxs(:), idx(:)
 
-    if ( size(bxs) /= size(prc) ) call bl_error('layout_roundrobin: how did this happen?')
+    if ( nboxes(bxs) /= size(prc) ) call bl_error('layout_roundrobin: how did this happen?')
 
-    allocate(ibxs(size(bxs)), idx(size(bxs)))
+    allocate(ibxs(nboxes(bxs)), idx(nboxes(bxs)))
 
     do i = 1, size(ibxs,1)
-       ibxs(i) = volume(bxs(i))
+       ibxs(i) = volume(get_box(bxs,i))
     end do
 
     call sort(ibxs, idx, greater_i)
@@ -877,26 +877,28 @@ contains
     use fab_module
     use bl_error_module
     use knapsack_module
-    integer,   intent(out), dimension(:) :: prc
-    type(box), intent(in ), dimension(:) :: bxs
+    integer,        intent(out), dimension(:) :: prc
+    type(boxarray), intent(in )               :: bxs
 
     integer              :: i
     integer, pointer     :: luc(:)
     integer, allocatable :: ibxs(:), tprc(:)
+    type(box), pointer   :: pbxs(:)
 
-    if ( size(bxs) /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
+    if ( nboxes(bxs) /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
 
-    allocate(ibxs(size(bxs)), tprc(size(bxs)))
+    allocate(ibxs(nboxes(bxs)), tprc(nboxes(bxs)))
 
     do i = 1, size(ibxs,1)
-       ibxs(i) = volume(bxs(i))
+       ibxs(i) = volume(get_box(bxs,i))
     end do
 
-    if ( (size(bxs)/parallel_nprocs()) > sfc_threshold ) then
+    if ( (nboxes(bxs)/parallel_nprocs()) > sfc_threshold ) then
        !
        ! Use Morton space-filling-curve distribution if we have "enough" grids.
        !
-       call sfc_i(tprc, ibxs, bxs, parallel_nprocs())
+       pbxs => dataptr(bxs)
+       call sfc_i(tprc, ibxs, pbxs, parallel_nprocs())
     else
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
@@ -922,7 +924,9 @@ contains
     real(kind=dp_t) :: p_max_weight
     integer :: i, lnp
     lnp = parallel_nprocs(); if ( present(np) ) lnp = np
-    weights = box_dvolume(la%lap%bxa%bxs)
+    do i = 1, nboxes(la%lap%bxa)
+       weights(i) = dvolume(get_box(la%lap%bxa,i))
+    end do
     p_max_weight = -Huge(p_max_weight)
     do i = 0, lnp-1
        p_max_weight = max(p_max_weight, sum(weights, mask = la%lap%prc==i))
@@ -1098,9 +1102,10 @@ contains
     logical,        intent(in)  :: cross
 
     integer               :: i, cnt
-    type(box)             :: bxs(3**b%dim), gbx
+    type(box)             :: bxs(3**get_dim(b)), gbx
     type(box),allocatable :: bv(:)
-    integer               :: shft(3**b%dim,b%dim), upbx(1:b%dim), lwbx(1:b%dim)
+    integer               :: shft(3**get_dim(b),get_dim(b))
+    integer               :: upbx(1:get_dim(b)), lwbx(1:get_dim(b))
     type(boxarray)        :: tba
     type(list_box)        :: bl
 
@@ -1135,10 +1140,12 @@ contains
     call box_periodic_shift(dmn, b, nodal, pmask, ng, shft, cnt, bxs)
 
     if ( cnt > 0 ) then
-       allocate(bv(tba%nboxes+cnt))
-       bv(1:tba%nboxes) = tba%bxs(1:tba%nboxes)
-       bv(tba%nboxes+1:tba%nboxes+cnt) = bxs(1:cnt)
-       shfts(tba%nboxes+1:tba%nboxes+cnt,:) = shft(1:cnt,:)
+       allocate(bv(nboxes(tba)+cnt))
+       do i = 1, nboxes(tba)
+          bv(i) = get_box(tba,i)
+       end do
+       bv(nboxes(tba)+1:nboxes(tba)+cnt) = bxs(1:cnt)
+       shfts(nboxes(tba)+1:nboxes(tba)+cnt,:) = shft(1:cnt,:)
        call destroy(tba)
        call boxarray_build_v(tba, bv, sort = .false.)
     end if
@@ -1179,9 +1186,9 @@ contains
 
     la%lap       => lap
     bxa          =  get_boxarray(la)
-    bxasc%dim    =  bxa%dim
+    bxasc%dim    =  get_dim(bxa)
     bxasc%grwth  =  ng
-    bxasc%nboxes =  bxa%nboxes
+    bxasc%nboxes =  nboxes(bxa)
     bxasc%cross  =  cross
     np           =  parallel_nprocs()
 
@@ -1209,10 +1216,10 @@ contains
     !
     ! Consider all copies I <- J.
     !
-    do i = 1, bxa%nboxes
-       call boxarray_bndry_periodic(bxai, lap%pd, bxa%bxs(i), bxasc%nodal, lap%pmask, ng, shft, cross)
-       do ii = 1, bxai%nboxes
-          bi => layout_get_box_intersector(latmp, bxai%bxs(ii))
+    do i = 1, nboxes(bxa)
+       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross)
+       do ii = 1, nboxes(bxai)
+          bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1465,7 +1472,7 @@ contains
     ! Build a temporary layout to be used in intersection tests below.
     !
     do i = 1, nboxes(la)
-       jbx = box_nodalize(bxa%bxs(i), nodal)
+       jbx = box_nodalize(get_box(bxa,i), nodal)
        if ( lall ) jbx = grow(jbx,ng)
        call push_back(bltmp, jbx)
     end do
@@ -1474,13 +1481,13 @@ contains
     call build(latmp, batmp, explicit_mapping = get_proc(la))
     call destroy(batmp)
 
-    allocate(filled(bxa%nboxes))
-    do i = 1, bxa%nboxes
+    allocate(filled(nboxes(bxa)))
+    do i = 1, nboxes(bxa)
        filled(i)%ncpy = 0
        allocate(filled(i)%cpy(ChunkSize))
     end do
 
-    do j = 1, bxa%nboxes
+    do j = 1, nboxes(bxa)
        jbx = get_box(latmp, j)
        call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
        do jj = 1, cnt
@@ -1558,9 +1565,9 @@ contains
 
     la%lap       => lap
     bxa          =  get_boxarray(la)
-    snasc%dim    =  bxa%dim
+    snasc%dim    =  get_dim(bxa)
     snasc%grwth  =  ng
-    snasc%nboxes =  bxa%nboxes
+    snasc%nboxes =  nboxes(bxa)
     np           =  parallel_nprocs()
 
     allocate(snasc%nodal(snasc%dim))
@@ -1578,7 +1585,7 @@ contains
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
-    do jj = 1, bxa%nboxes
+    do jj = 1, nboxes(bxa)
        if ( filled(jj)%ncpy > 0 ) then
           do ii = 1, filled(jj)%ncpy
              i   = filled(jj)%cpy(ii)%nd
@@ -1638,7 +1645,7 @@ contains
        end if
     end do
 
-    do i = 1, bxa%nboxes
+    do i = 1, nboxes(bxa)
        deallocate(filled(i)%cpy)
     end do
     deallocate(filled)
@@ -1804,7 +1811,7 @@ contains
     call boxarray_build_copy(cpasc%ba_src, get_boxarray(la_src))
     call boxarray_build_copy(cpasc%ba_dst, get_boxarray(la_dst))
 
-    cpasc%dim  = cpasc%ba_src%dim
+    cpasc%dim  = get_dim(cpasc%ba_src)
     cpasc%hash = layout_boxarray_hash(cpasc%ba_src) + layout_boxarray_hash(cpasc%ba_dst)
 
     allocate(cpasc%prc_src(la_src%lap%nboxes))
@@ -1838,7 +1845,7 @@ contains
     !
     ! Consider all copies I <- J.
     !
-    do i = 1, cpasc%ba_dst%nboxes
+    do i = 1, nboxes(cpasc%ba_dst)
        bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst))
        do jj = 1, size(bi)
           j = bi(jj)%i
@@ -2072,7 +2079,7 @@ contains
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
-    do j = 1, bxa_dst%nboxes
+    do j = 1, nboxes(bxa_dst)
        bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
        do ii = 1, size(bi)
           i = bi(ii)%i
@@ -2366,7 +2373,7 @@ contains
     integer                    :: r, i
     r = 0
     do i = 1, nboxes(ba)
-       r = r + lwb(ba%bxs(i),1) + upb(ba%bxs(i),1)
+       r = r + lwb(get_box(ba,i),1) + upb(get_box(ba,i),1)
     end do
   end function layout_boxarray_hash
 
@@ -2589,7 +2596,7 @@ contains
           do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
              do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
                 do n = 1, size(bins(i,j,k)%iv)
-                   bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+                   bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
 
@@ -2611,7 +2618,7 @@ contains
        do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
           do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
              do n = 1, size(bins(i,j,k)%iv)
-                bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+                bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
 
@@ -2632,7 +2639,7 @@ contains
        j = 0
        do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
           do n = 1, size(bins(i,j,k)%iv)
-             bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
+             bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
              if ( empty(bx1) ) cycle
              cnt = cnt + 1
 

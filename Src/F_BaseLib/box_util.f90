@@ -41,7 +41,7 @@ contains
 
     call build(mba, 1)
     call read_a_mglib_grid_ba(mba%bas(1), mba%pd(1), str)
-    call ml_boxarray_alloc_rr(mba, mba%bas(1)%dim)
+    call ml_boxarray_alloc_rr(mba, get_dim(mba%bas(1)))
 
   end subroutine read_a_mglib_grid
 

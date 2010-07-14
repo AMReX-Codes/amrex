@@ -462,13 +462,13 @@ contains
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
-    dm = ba%dim
+    dm = get_dim(ba)
     call copy(ba1,ba)
     do
        call boxarray_coarsen(ba1,rrr)
        vol = boxarray_volume(ba1)
-       do i = 1, size(ba%bxs)
-          bx = ba%bxs(i)
+       do i = 1, nboxes(ba)
+          bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
           if ( any(extent(bx1) < lmn) ) then
              call destroy(ba1)
@@ -511,13 +511,13 @@ contains
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
-    dm = ba%dim
+    dm = get_dim(ba)
     call copy(ba1,ba)
     do
        call boxarray_coarsen(ba1,rrr)
        vol = boxarray_volume(ba1)
-       do i = 1, size(ba%bxs)
-          bx = ba%bxs(i)
+       do i = 1, nboxes(ba)
+          bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
           if ( any(extent(bx1) < lmn) .or. any(mod(extent(bx1),2) .eq. 1)) then
              call destroy(ba1)

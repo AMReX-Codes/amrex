@@ -79,8 +79,8 @@ contains
              bx1 = intersection(bx1, pd_periodic)
              if ( empty(bx1) ) cycle
              call boxarray_boxarray_diff(ba, bx1, bxa_periodic)
-             do ii = 1, ba%nboxes
-                bx1 = intersection(box_nodalize(ba%bxs(ii),nodal), nbx)
+             do ii = 1, nboxes(ba)
+                bx1 = intersection(box_nodalize(get_box(ba,ii),nodal), nbx)
                 if ( empty(bx1) ) cycle
                 mp => dataptr(mask%fbs(idx), bx1)
                 mp = ibset(mp, BC_BIT(BC_DIR,1,0))
