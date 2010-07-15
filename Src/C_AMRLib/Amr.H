@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.43 2010-05-31 19:40:23 almgren Exp $
+// $Id: Amr.H,v 1.44 2010-07-15 04:01:29 almgren Exp $
 //
 
 #include <fstream>
@@ -57,6 +57,10 @@ public:
     //@ManDoc: Set the cycle count on each level.
     //
     void setNCycle (const Array<int>& mss);
+    //
+    //@ManDoc: return blocking_factor
+    //
+    int blockingFactor (int lev) const;
     //
     //@ManDoc: Largest allowable grid.
     //

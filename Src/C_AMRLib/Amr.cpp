@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.215 2010-06-29 15:25:44 ajnonaka Exp $
+// $Id: Amr.cpp,v 1.216 2010-07-15 04:01:29 almgren Exp $
 //
 #include <winstd.H>
 
@@ -109,6 +109,13 @@ Amr::derivePlotVars ()
 {
     return derive_plot_vars;
 }
+
+int
+Amr::blockingFactor (int lev) const
+{
+    return blocking_factor[lev];
+}
+
 
 int
 Amr::maxGridSize (int lev) const
