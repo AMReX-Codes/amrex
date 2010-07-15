@@ -26,6 +26,7 @@ module fab_module
   !! NY = 1, NZ = 1, when DIM =1, NZ = 1, when DIM = 2.
 
   type fab
+     private
      integer   :: dim = 0
      type(box) :: bx
      type(box) :: pbx
@@ -35,6 +36,7 @@ module fab_module
   end type fab
 
   type zfab
+     private
      integer   :: dim = 0
      type(box) :: bx
      type(box) :: pbx
@@ -44,6 +46,7 @@ module fab_module
   end type zfab
 
   type ifab
+     private
      integer   :: dim = 0
      type(box) :: bx
      type(box) :: pbx
@@ -53,6 +56,7 @@ module fab_module
   end type ifab
 
   type lfab
+     private
      integer   :: dim = 0
      type(box) :: bx
      type(box) :: pbx
@@ -375,7 +379,7 @@ contains
   function fab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(fab), intent(in) :: fb
-    logical, optional :: all
+    logical, intent(in), optional :: all
     if ( all ) then
        r = volume(get_pbox(fb))
     else
@@ -386,7 +390,7 @@ contains
   function zfab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(zfab), intent(in) :: fb
-    logical, optional :: all
+    logical, intent(in), optional :: all
     if ( all ) then
        r = volume(get_pbox(fb))
     else
@@ -397,7 +401,7 @@ contains
   function ifab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(ifab), intent(in) :: fb
-    logical, optional :: all
+    logical, intent(in), optional :: all
     if ( all ) then
        r = volume(get_pbox(fb))
     else
@@ -408,7 +412,7 @@ contains
   function lfab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(lfab), intent(in) :: fb
-    logical, optional :: all
+    logical, intent(in), optional :: all
     if ( all ) then
        r = volume(get_pbox(fb))
     else
@@ -417,208 +421,208 @@ contains
     r = r * fb%nc
   end function lfab_volume
 
-  function fab_lwb(fb) result(r)
+  pure function fab_lwb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%bx)
   end function fab_lwb
-  function fab_lwb_n(fb,dim) result(r)
+  pure function fab_lwb_n(fb,dim) result(r)
     type(fab), intent(in) :: fb
     integer, intent(in) :: dim
     integer :: r
     r = lwb(fb%bx,dim)
   end function fab_lwb_n
-  function ifab_lwb(fb) result(r)
+  pure function ifab_lwb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%bx)
   end function ifab_lwb
 
-  function zfab_lwb(fb) result(r)
+  pure function zfab_lwb(fb) result(r)
     type(zfab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%bx)
   end function zfab_lwb
-  function zfab_lwb_n(fb,dim) result(r)
+  pure function zfab_lwb_n(fb,dim) result(r)
     type(zfab), intent(in) :: fb
     integer, intent(in) :: dim
     integer :: r
     r = lwb(fb%bx,dim)
   end function zfab_lwb_n
 
-  function fab_ilwb(fb) result(r)
+  pure function fab_ilwb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%ibx)
   end function fab_ilwb
-  function fab_ilwb_n(fb,dim) result(r)
+  pure function fab_ilwb_n(fb,dim) result(r)
     type(fab), intent(in) :: fb
     integer, intent(in) :: dim
     integer :: r
     r = lwb(fb%ibx,dim)
   end function fab_ilwb_n
-  function ifab_ilwb(fb) result(r)
+  pure function ifab_ilwb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%ibx)
   end function ifab_ilwb
 
-  function fab_upb(fb) result(r)
+  pure function fab_upb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%bx)
   end function fab_upb
-  function fab_upb_n(fb,dim) result(r)
+  pure function fab_upb_n(fb,dim) result(r)
     type(fab), intent(in) :: fb
     integer, intent(in) :: dim
     integer :: r
     r = upb(fb%bx, dim)
   end function fab_upb_n
-  function ifab_upb(fb) result(r)
+  pure function ifab_upb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%bx)
   end function ifab_upb
 
-  function fab_iupb(fb) result(r)
+  pure function fab_iupb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%ibx)
   end function fab_iupb
-  function fab_iupb_n(fb,dim) result(r)
+  pure function fab_iupb_n(fb,dim) result(r)
     type(fab), intent(in) :: fb
     integer, intent(in) :: dim
     integer :: r
     r = upb(fb%ibx, dim)
   end function fab_iupb_n
-  function ifab_iupb(fb) result(r)
+  pure function ifab_iupb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%ibx)
   end function ifab_iupb
 
-  function fab_plwb(fb) result(r)
+  pure function fab_plwb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%pbx)
   end function fab_plwb
-  function ifab_plwb(fb) result(r)
+  pure function ifab_plwb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = lwb(fb%pbx)
   end function ifab_plwb
 
-  function fab_pupb(fb) result(r)
+  pure function fab_pupb(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%pbx)
   end function fab_pupb
-  function ifab_pupb(fb) result(r)
+  pure function ifab_pupb(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r(fb%dim)
     r = upb(fb%pbx)
   end function ifab_pupb
 
-  function fab_ncomp(fb) result(r)
+  pure function fab_ncomp(fb) result(r)
     integer :: r
     type(fab), intent(in) :: fb
     r = fb%nc
   end function fab_ncomp
-  function zfab_ncomp(fb) result(r)
+  pure function zfab_ncomp(fb) result(r)
     integer :: r
     type(zfab), intent(in) :: fb
     r = fb%nc
   end function zfab_ncomp
-  function ifab_ncomp(fb) result(r)
+  pure function ifab_ncomp(fb) result(r)
     integer :: r
     type(ifab), intent(in) :: fb
     r = fb%nc
   end function ifab_ncomp
-  function lfab_ncomp(fb) result(r)
+  pure function lfab_ncomp(fb) result(r)
     integer :: r
     type(lfab), intent(in) :: fb
     r = fb%nc
   end function lfab_ncomp
 
-  function fab_get_box(fb) result(r)
+  pure function fab_get_box(fb) result(r)
     type(fab), intent(in) :: fb
     type(box) :: r
     r = fb%bx
   end function fab_get_box
-  function zfab_get_box(fb) result(r)
+  pure function zfab_get_box(fb) result(r)
     type(zfab), intent(in) :: fb
     type(box) :: r
     r = fb%bx
   end function zfab_get_box
-  function ifab_get_box(fb) result(r)
+  pure function ifab_get_box(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
     r = fb%bx
   end function ifab_get_box
-  function lfab_get_box(fb) result(r)
+  pure function lfab_get_box(fb) result(r)
     type(lfab), intent(in) :: fb
     type(box) :: r
     r = fb%bx
   end function lfab_get_box
 
-  function fab_get_pbox(fb) result(r)
+  pure function fab_get_pbox(fb) result(r)
     type(fab), intent(in) :: fb
     type(box) :: r
     r = fb%pbx
   end function fab_get_pbox
-  function zfab_get_pbox(fb) result(r)
+  pure function zfab_get_pbox(fb) result(r)
     type(zfab), intent(in) :: fb
     type(box) :: r
     r = fb%pbx
   end function zfab_get_pbox
-  function ifab_get_pbox(fb) result(r)
+  pure function ifab_get_pbox(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
     r = fb%pbx
   end function ifab_get_pbox
-  function lfab_get_pbox(fb) result(r)
+  pure function lfab_get_pbox(fb) result(r)
     type(lfab), intent(in) :: fb
     type(box) :: r
     r = fb%pbx
   end function lfab_get_pbox
 
-  function fab_get_ibox(fb) result(r)
+  pure function fab_get_ibox(fb) result(r)
     type(fab), intent(in) :: fb
     type(box) :: r
     r = fb%ibx
   end function fab_get_ibox
-  function zfab_get_ibox(fb) result(r)
+  pure function zfab_get_ibox(fb) result(r)
     type(zfab), intent(in) :: fb
     type(box) :: r
     r = fb%ibx
   end function zfab_get_ibox
-  function ifab_get_ibox(fb) result(r)
+  pure function ifab_get_ibox(fb) result(r)
     type(ifab), intent(in) :: fb
     type(box) :: r
     r = fb%ibx
   end function ifab_get_ibox
-  function lfab_get_ibox(fb) result(r)
+  pure function lfab_get_ibox(fb) result(r)
     type(lfab), intent(in) :: fb
     type(box) :: r
     r = fb%ibx
   end function lfab_get_ibox
   
-  function fab_built_q(fb) result(r)
+  pure function fab_built_q(fb) result(r)
     type(fab), intent(in) :: fb
     logical :: r
     r = fb%dim /= 0
   end function fab_built_q
-  function zfab_built_q(fb) result(r)
+  pure function zfab_built_q(fb) result(r)
     type(zfab), intent(in) :: fb
     logical :: r
     r = fb%dim /= 0
   end function zfab_built_q
-  function ifab_built_q(fb) result(r)
+  pure function ifab_built_q(fb) result(r)
     type(ifab), intent(in) :: fb
     logical :: r
     r = fb%dim /= 0
   end function ifab_built_q
-  function lfab_built_q(fb) result(r)
+  pure function lfab_built_q(fb) result(r)
     type(lfab), intent(in) :: fb
     logical :: r
     r = fb%dim /= 0
@@ -780,22 +784,22 @@ contains
     fb%nc  = 0
   end subroutine lfab_destroy
 
-  function fab_dim(fb) result(r)
+  pure function fab_dim(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r
     r = fb%dim
   end function fab_dim
-  function ifab_dim(fb) result(r)
+  pure function ifab_dim(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r
     r = fb%dim
   end function ifab_dim
-  function lfab_dim(fb) result(r)
+  pure function lfab_dim(fb) result(r)
     type(lfab), intent(in) :: fb
     integer :: r
     r = fb%dim
   end function lfab_dim
-  function zfab_dim(fb) result(r)
+  pure function zfab_dim(fb) result(r)
     type(zfab), intent(in) :: fb
     integer :: r
     r = fb%dim

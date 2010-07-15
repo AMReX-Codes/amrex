@@ -1032,75 +1032,75 @@ contains
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%ibx
+    r = get_ibox(mf%fbs(i))
   end function multifab_get_ibox
   function imultifab_get_ibox(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%ibx
+    r = get_ibox(mf%fbs(i))
   end function imultifab_get_ibox
   function lmultifab_get_ibox(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%ibx
+    r = get_ibox(mf%fbs(i))
   end function lmultifab_get_ibox
   function zmultifab_get_ibox(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%ibx
+    r = get_ibox(mf%fbs(i))
   end function zmultifab_get_ibox
 
   function multifab_get_pbox(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%pbx
+    r = get_pbox(mf%fbs(i))
   end function multifab_get_pbox
   function imultifab_get_pbox(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%pbx
+    r = get_pbox(mf%fbs(i))
   end function imultifab_get_pbox
   function lmultifab_get_pbox(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%pbx
+    r = get_pbox(mf%fbs(i))
   end function lmultifab_get_pbox
   function zmultifab_get_pbox(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = mf%fbs(i)%pbx
+    r = get_pbox(mf%fbs(i))
   end function zmultifab_get_pbox
 
   function multifab_dataptr(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     real(dp_t), pointer :: r(:,:,:,:)
-    r => mf%fbs(i)%p
+    r => dataptr(mf%fbs(i))
   end function multifab_dataptr
   function imultifab_dataptr(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     integer, pointer :: r(:,:,:,:)
-    r => mf%fbs(i)%p
+    r => dataptr(mf%fbs(i))
   end function imultifab_dataptr
   function lmultifab_dataptr(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical, pointer :: r(:,:,:,:)
-    r => mf%fbs(i)%p
+    r => dataptr(mf%fbs(i))
   end function lmultifab_dataptr
   function zmultifab_dataptr(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     complex(dp_t), pointer :: r(:,:,:,:)
-    r => mf%fbs(i)%p
+    r => dataptr(mf%fbs(i))
   end function zmultifab_dataptr
 
   function multifab_dataptr_c(mf, i, c, nc) result(r)

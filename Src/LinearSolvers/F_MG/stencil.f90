@@ -227,8 +227,9 @@ contains
     type(box), intent(in), optional :: bx
     integer :: un
     logical :: lall, ldata, lnodal
+    integer, pointer :: p(:,:,:,:)
     type(box) :: lbx
-    lbx  = box_allbox(fb%dim); if ( present(bx) ) lbx  = bx
+    lbx  = box_allbox(get_dim(fb)); if ( present(bx) ) lbx  = bx
     lall = .TRUE.; if ( present(all) ) lall = all
     ldata = .TRUE.; if ( present(data) ) ldata = data
     lnodal = .FALSE.; if ( present(nodal) ) lnodal = nodal
@@ -241,29 +242,30 @@ contains
        write(unit=un, fmt='()')
     end if
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
+    write(unit=un, fmt='(" DIM     = ",i2)') get_dim(fb)
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') fb%nc
+    write(unit=un, fmt='(" NC      = ",i2)') ncomp(fb)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
-    call print(fb%ibx, unit = un)
+    call print(get_ibox(fb), unit = un)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
-    call print(fb%pbx, unit = un)
+    call print(get_pbox(fb), unit = un)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
-    call print(fb%bx, unit = un)
-    if ( .not. associated(fb%p) ) then
+    call print(get_box(fb), unit = un)
+    p => dataptr(fb)
+    if ( .not. associated(p) ) then
        call unit_skip(un, skip)
        write(unit=un) 'NOT ASSOCIATED'
     else
-       select case (fb%dim)
+       select case (get_dim(fb))
        case (1)
-          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
+          call print_1d(p(:,1,1,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
        case (2)
-          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
+          call print_2d(p(:,:,1,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
        case (3)
-          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx), lnodal)
+          call print_3d(p(:,:,:,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
        end select
     end if
 

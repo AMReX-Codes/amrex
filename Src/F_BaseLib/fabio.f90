@@ -140,7 +140,7 @@ contains
 
     real(kind=sp_t), allocatable :: sbp(:)
 
-    integer :: count, lo(fb%dim), hi(fb%dim), nd(fb%dim), nc, lprec
+    integer :: count, lo(get_dim(fb)), hi(get_dim(fb)), nd(get_dim(fb)), nc, lprec
 
     integer :: i,j,k,l,m
 
@@ -164,7 +164,7 @@ contains
        where ( nodal ) nd = 1
     end if
     if ( lprec == FABIO_DOUBLE ) then
-       call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc)
+       call fabio_write_raw_d(fd, offset, fbp, count, get_dim(fb), lo, hi, nd, nc)
     else
        allocate(sbp(nc*count))
        m = 1
@@ -178,7 +178,7 @@ contains
              end do
           end do
        end do
-       call fabio_write_raw_s(fd, offset, sbp, count, fb%dim, lo, hi, nd, nc)
+       call fabio_write_raw_s(fd, offset, sbp, count, get_dim(fb), lo, hi, nd, nc)
     end if
 
   end subroutine fabio_fab_write_d
