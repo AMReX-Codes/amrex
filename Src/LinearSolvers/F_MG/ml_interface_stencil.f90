@@ -38,9 +38,9 @@ contains
     real(kind=dp_t),intent(in   ) :: efactor
 
     type(box)      :: fbox, cbox, isect
-    integer        :: lor(res%dim), los(res%dim), i, j, k, shft
-    integer        :: lo (res%dim), hi (res%dim), loc(res%dim), proc
-    logical        :: pmask(res%dim)
+    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, k, shft, dm
+    integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res)), proc
+    logical        :: pmask(get_dim(res))
     type(multifab) :: tflux
     type(list_box) :: bl
     type(boxarray) :: ba
@@ -55,13 +55,13 @@ contains
 
     call build(bpt, "ml_interf_c")
 
-    pmask = layout_get_pmask(res%la)
+    pmask = get_pmask(get_layout(res))
     !
     ! Build layout used in intersection test for below loop.
     !
     call copy(ba, get_boxarray(flux))
 
-    do i = 1, flux%nboxes
+    do i = 1, nboxes(flux)
        fbox = get_ibox(flux,i)
        if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
           if ( face .eq. -1 ) then
@@ -75,7 +75,9 @@ contains
     call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
 
-    do j = 1, crse%nboxes
+    dm = get_dim(res)
+
+    do j = 1, nboxes(crse)
        if ( remote(crse,j) ) cycle
 
        cbox =  get_ibox(crse,j)
@@ -92,7 +94,7 @@ contains
           lo    = lwb(isect)
           hi    = upb(isect)
 
-          select case (res%dim)
+          select case (dm)
           case (1)
              call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, face, efactor)
           case (2)
@@ -112,9 +114,9 @@ contains
     call build(indxmap)
     call build(shftmap)
 
-    do j = 1, crse%nboxes
+    do j = 1, nboxes(crse)
        cbox =  get_ibox(crse,   j)
-       proc =  get_proc(crse%la,j)
+       proc =  get_proc(get_layout(crse),j)
        bi   => layout_get_box_intersector(la, cbox)
 
        do k = 1, size(bi)
@@ -192,7 +194,7 @@ contains
        hi  =  upb(fbox)
        fp  => dataptr(tflux, i, 1)
 
-       select case (res%dim)
+       select case (dm)
        case (1)
           call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
        case (2)
@@ -440,11 +442,11 @@ contains
     integer                       :: side
 
     type(box) :: fbox, mbox, isect
-    integer   :: lo (res%dim), hi (res%dim), loc(res%dim)
-    integer   :: lof(res%dim), hif(res%dim), lor(res%dim), los(res%dim)
-    integer   :: lomf(res%dim), lomc(res%dim)
-    integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM), loflux(res%dim), hiflux(res%dim)
-    integer   :: i, j, ii, np, av
+    integer   :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res))
+    integer   :: lof(get_dim(res)), hif(get_dim(res)), lor(get_dim(res)), los(get_dim(res))
+    integer   :: lomf(get_dim(res)), lomc(get_dim(res))
+    integer   :: lod(MAX_SPACEDIM), hid(MAX_SPACEDIM), loflux(get_dim(res)), hiflux(get_dim(res))
+    integer   :: i, j, ii, np, av, dm
 
     real(kind=dp_t), pointer   :: rp(:,:,:,:),fp(:,:,:,:),cp(:,:,:,:),sp(:,:,:,:)
     integer,         pointer   :: mp(:,:,:,:),mcp(:,:,:,:)
@@ -459,8 +461,9 @@ contains
     integer,    allocatable :: g_snd_i(:), g_rcv_i(:)
     type(fluxassoc)         :: fa
 
+    dm = get_dim(res)
     np = parallel_nprocs()
-    fa = layout_fluxassoc(crse%la, flux%la, crse%nodal, flux%nodal, side, crse_domain, ir)
+    fa = layout_fluxassoc(get_layout(crse), get_layout(flux), nodal_flags(crse), nodal_flags(flux), side, crse_domain, ir)
     !
     ! Do all the local work.
     !
@@ -485,7 +488,7 @@ contains
        sp    => dataptr(ss,          j)
        mcp   => dataptr(mm_crse,     j)
 
-       select case (res%dim)
+       select case (dm)
        case (1)
           call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
                fp(:,1,1,1), lof, cp(:,1,1,1), loc, &
@@ -579,20 +582,20 @@ contains
        mcp    => dataptr(mm_crse,     j)
 
        lod = 1;                     hid = 1
-       lod(1:res%dim) = lwb(isect); hid(1:res%dim) = upb(isect)
+       lod(1:dm) = lwb(isect); hid(1:dm) = upb(isect)
        allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
        !av = fa%flux%r_con%rcv(i)%pv + volume(isect)
        !flxpt = reshape(g_rcv_d(1 + fa%flux%r_con%rcv(i)%pv:av), fsh)
        call reshape_d_1_4(flxpt, g_rcv_d, 1 + fa%flux%r_con%rcv(i)%pv, fsh)
 
        mbox = fa%mask%r_con%rcv(i)%sbx
-       lod(1:res%dim) = lwb(mbox); hid(1:res%dim) = upb(mbox)
+       lod(1:dm) = lwb(mbox); hid(1:dm) = upb(mbox)
        allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
        av = fa%mask%r_con%rcv(i)%pv + volume(mbox)
        !mmfpt = reshape(g_rcv_i(1 + fa%mask%r_con%rcv(i)%pv:av), msh)
        call reshape_i_1_4(mmfpt, g_rcv_i, 1 + fa%mask%r_con%rcv(i)%pv, msh)
 
-       select case (res%dim)
+       select case (dm)
        case (1)
           call ml_interface_1d_nodal(rp(:,1,1,1), lor, &
                flxpt(:,1,1,1), lof, cp(:,1,1,1), loc, &

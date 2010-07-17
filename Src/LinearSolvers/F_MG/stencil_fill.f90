@@ -45,7 +45,7 @@ contains
     ! NOTE: sg(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(sg(i), mgt%ss(i)%la, 1, 1)
+       call multifab_build(sg(i), get_layout(mgt%ss(i)), 1, 1)
        call setval(sg(i), ZERO, 1, 1, all=.true.)
        call coarsen_cell_coeffs(sg(i+1),sg(i))
        call multifab_fill_boundary(sg(i))
@@ -58,24 +58,24 @@ contains
 
     if (associated(mgt%bottom_mgt)) then
 
-       call multifab_build(stored_coeffs, mgt%ss(1)%la, 1, 1)
-       call multifab_copy_c(stored_coeffs,1,sg(1),1,1,ng=sg(1)%ng)
+       call multifab_build(stored_coeffs, get_layout(mgt%ss(1)), 1, 1)
+       call multifab_copy_c(stored_coeffs,1,sg(1),1,1,ng = nghost(sg(1)))
        call multifab_fill_boundary(stored_coeffs)
 
        maxlev_bottom = mgt%bottom_mgt%nlevels
        allocate(coarse_coeffs(maxlev_bottom))
-       call multifab_build(coarse_coeffs(maxlev_bottom),mgt%bottom_mgt%cc(maxlev_bottom)%la,1,1)
+       call multifab_build(coarse_coeffs(maxlev_bottom),get_layout(mgt%bottom_mgt%cc(maxlev_bottom)),1,1)
        call setval(coarse_coeffs(maxlev_bottom),ZERO,all=.true.)
 
        ! Grow the stored coefficients
        call boxarray_build_copy(ba_cc,get_boxarray(stored_coeffs))
        call boxarray_grow(ba_cc,1)
-       call layout_build_ba(old_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
-                            explicit_mapping=get_proc(mgt%ss(1)%la))
+       call layout_build_ba(old_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+                            explicit_mapping=get_proc(get_layout(mgt%ss(1))))
        call destroy(ba_cc)
        call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
 
-       do i = 1, stored_coeffs_grown%nboxes
+       do i = 1, nboxes(stored_coeffs_grown)
           if (remote(stored_coeffs_grown,i)) cycle
           sc_orig  => dataptr(stored_coeffs      ,i,get_pbox(stored_coeffs_grown,i),1,1)
           sc_grown => dataptr(stored_coeffs_grown,i,get_pbox(stored_coeffs_grown,i),1,1)
@@ -84,13 +84,13 @@ contains
 
        call boxarray_build_copy(ba_cc,get_boxarray(mgt%bottom_mgt%ss(maxlev_bottom)))
        call boxarray_grow(ba_cc,1)
-       call layout_build_ba(new_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
-                            explicit_mapping=get_proc(mgt%bottom_mgt%ss(maxlev_bottom)%la))
+       call layout_build_ba(new_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+            explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
        call destroy(ba_cc)
        call multifab_build(new_coeffs_grown,new_la_grown,1,ng=0)
        call multifab_copy_c(new_coeffs_grown,1,stored_coeffs_grown,1,1)
 
-       do i = 1, new_coeffs_grown%nboxes
+       do i = 1, nboxes(new_coeffs_grown)
           if (remote(new_coeffs_grown,i)) cycle
           sc_orig  => dataptr(coarse_coeffs(maxlev_bottom),i,get_pbox(new_coeffs_grown,i),1,1)
           sc_grown => dataptr(new_coeffs_grown    ,i,get_pbox(new_coeffs_grown,i),1,1)
@@ -132,12 +132,13 @@ contains
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
-    type(box)                :: pd_periodic, bx, nbx, bx1
+    type(box)                :: pd_periodic, bx, nbx, bx1, pd
     type(boxarray)           :: bxa_periodic, bxa_temp
-    integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo
-    integer                  :: shift_vect(ss%dim)
+    integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo, dm
+    integer                  :: shift_vect(get_dim(ss))
     type(list_box)           :: lb,nbxs
     type(box), allocatable   :: bxs(:)
+    logical                  :: pmask(get_dim(ss))
 
     type(bl_prof_timer), save :: bpt
 
@@ -150,11 +151,15 @@ contains
     ! Construct a new boxarray that has periodically translated boxes as well
     ! as the original boxes.
     !
-    pd_periodic = ss%la%lap%pd
+    pd_periodic = get_pd(get_layout(ss))
 
-    call boxarray_build_copy(bxa_periodic,ss%la%lap%bxa)
+    call boxarray_build_copy(bxa_periodic, get_boxarray(ss))
 
-    if ( any(ss%la%lap%pmask) ) then
+    pmask = get_pmask(get_layout(ss))
+
+    dm = get_dim(ss)
+
+    if ( any(pmask) ) then
        !
        ! First trim out all boxes that can't effect periodicity.
        !
@@ -164,24 +169,26 @@ contains
           end if
        end do
 
-       do i = 1,ss%dim
-          if (ss%la%lap%pmask(i)) then
+       do i = 1,dm
+          if ( pmask(i) ) then
              pd_periodic = grow(grow(pd_periodic,1,i,-1),1,i,1)
           end if
        end do
 
        ib_lo = 1
-       if ( ss%la%lap%pmask(1) )    ib_lo = -1
+       if ( pmask(1) )    ib_lo = -1
 
        jb_lo = 1
-       if ( ss%dim .ge. 2) then
-          if ( ss%la%lap%pmask(2) ) jb_lo = -1
+       if ( dm > 1 ) then
+          if ( pmask(2) ) jb_lo = -1
        end if
 
        kb_lo = 1
-       if ( ss%dim .ge. 3) then
-          if ( ss%la%lap%pmask(3) ) kb_lo = -1
+       if ( dm > 2 ) then
+          if ( pmask(3) ) kb_lo = -1
        end if
+
+       pd = get_pd(get_layout(ss))
 
        do kb = kb_lo, 1
           do jb = jb_lo, 1
@@ -190,13 +197,14 @@ contains
 
                 shift_vect = 0
 
-                if ( ss%la%lap%pmask(1) )    shift_vect(1) = ib * extent(ss%la%lap%pd,1)
+                if (    pmask(1) ) shift_vect(1) = ib * extent(pd,1)
 
-                if ( ss%dim > 1 ) then
-                   if ( ss%la%lap%pmask(2) ) shift_vect(2) = jb * extent(ss%la%lap%pd,2)
+                if ( dm > 1 ) then
+                   if ( pmask(2) ) shift_vect(2) = jb * extent(pd,2)
                 end if
-                if ( ss%dim > 2 ) then
-                   if ( ss%la%lap%pmask(3) ) shift_vect(3) = kb * extent(ss%la%lap%pd,3)
+
+                if ( dm > 2 ) then
+                   if ( pmask(3) ) shift_vect(3) = kb * extent(pd,3)
                 end if
 
                 call boxarray_shift(bxa_temp,shift_vect)
@@ -228,7 +236,7 @@ contains
 
     end if
 
-    do i = 1, ss%nboxes
+    do i = 1, nboxes(ss)
        if ( multifab_remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
@@ -237,9 +245,9 @@ contains
 
        bx  = get_box(ss,i)
        nbx = get_ibox(ss, i)
-       call stencil_set_bc_nodal(ss%dim, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
+       call stencil_set_bc_nodal(dm, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
 
-       select case (ss%dim)
+       select case (dm)
        case (1)
           call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
@@ -283,16 +291,18 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer                  :: i
+    integer                  :: i, dm
 
-    do i = 1, ss%nboxes
+    dm = get_dim(ss)
+
+    do i = 1, nboxes(ss)
        if ( multifab_remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)
        mp => dataptr(mask, i)
 
-       select case (ss%dim)
+       select case (dm)
        case (1)
 !         call s_simple_1d_one_sided(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
@@ -338,16 +348,17 @@ contains
     ! NOTE: coeffs(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(cell_coeffs(i), mgt%ss(i)%la, cell_coeffs(maxlev)%nc, cell_coeffs(maxlev)%ng)
-       call setval(cell_coeffs(i), ZERO, 1, cell_coeffs(maxlev)%nc, all=.true.)
+       call multifab_build(cell_coeffs(i), get_layout(mgt%ss(i)), ncomp(cell_coeffs(maxlev)), nghost(cell_coeffs(maxlev)))
+       call setval(cell_coeffs(i), ZERO, 1, ncomp(cell_coeffs(maxlev)), all=.true.)
        call coarsen_cell_coeffs ( cell_coeffs(i+1), cell_coeffs(i))
        call multifab_fill_boundary(cell_coeffs(i))
     end do
 
     do i = maxlev-1, 1, -1
        do d = 1,dm
-          call multifab_build_edge(edge_coeffs(i,d), mgt%ss(i)%la, edge_coeffs(maxlev,d)%nc, edge_coeffs(maxlev,d)%ng, d)
-          call setval(edge_coeffs(i,d), ZERO, 1, edge_coeffs(maxlev,d)%nc, all=.true.)
+          call multifab_build_edge(edge_coeffs(i,d), get_layout(mgt%ss(i)), ncomp(edge_coeffs(maxlev,d)), &
+               nghost(edge_coeffs(maxlev,d)), d)
+          call setval(edge_coeffs(i,d), ZERO, 1, ncomp(edge_coeffs(maxlev,d)), all=.true.)
        end do
        call coarsen_edge_coeffs(edge_coeffs(i+1,:),edge_coeffs(i,:))
        do d = 1,dm
@@ -366,50 +377,50 @@ contains
 
        ! First we copy just the cell-centered component -- which does not need ghost cells copied (I think)
        allocate(coarse_cell_coeffs(maxlev_bottom))
-       call multifab_build(coarse_cell_coeffs(maxlev_bottom), mgt%bottom_mgt%cc(maxlev_bottom)%la, &
-                           cell_coeffs(1)%nc,cell_coeffs(1)%ng)
+       call multifab_build(coarse_cell_coeffs(maxlev_bottom), get_layout(mgt%bottom_mgt%cc(maxlev_bottom)), &
+            ncomp(cell_coeffs(1)), nghost(cell_coeffs(1)))
        call setval(coarse_cell_coeffs(maxlev_bottom),ZERO,all=.true.)
-       call multifab_copy_c(coarse_cell_coeffs(maxlev_bottom),1,cell_coeffs(1),1,cell_coeffs(1)%nc,ng=0)
+       call multifab_copy_c(coarse_cell_coeffs(maxlev_bottom),1,cell_coeffs(1),1,ncomp(cell_coeffs(1)),ng=0)
        call multifab_fill_boundary(coarse_cell_coeffs(maxlev_bottom))
 
        ! Make space for the coarsened edge coefficients but don't copy directly
        allocate(coarse_edge_coeffs(maxlev_bottom,dm))
        do d = 1, dm 
-          call multifab_build_edge(coarse_edge_coeffs(maxlev_bottom,d), mgt%bottom_mgt%cc(maxlev_bottom)%la, &
-                                   edge_coeffs(1,d)%nc,edge_coeffs(1,d)%ng,d)
+          call multifab_build_edge(coarse_edge_coeffs(maxlev_bottom,d), get_layout(mgt%bottom_mgt%cc(maxlev_bottom)), &
+               ncomp(edge_coeffs(1,d)), nghost(edge_coeffs(1,d)), d)
           call setval(coarse_edge_coeffs(maxlev_bottom,d),ZERO,all=.true.)
        end do
 
        do d = 1, dm
           call boxarray_build_copy(ba_cc,get_boxarray(edge_coeffs(1,d)))
-          call boxarray_grow(ba_cc,edge_coeffs(1,d)%ng)
-          call layout_build_ba(old_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
-                               explicit_mapping=get_proc(mgt%ss(1)%la))
+          call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
+          call layout_build_ba(old_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+               explicit_mapping = get_proc(get_layout(mgt%ss(1))))
           call destroy(ba_cc)
-          call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,edge_coeffs(1,d)%nc,0,d)
+          call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,ncomp(edge_coeffs(1,d)),0,d)
 
-          do i = 1, old_edge_coeffs_grown%nboxes
+          do i = 1, nboxes(old_edge_coeffs_grown)
              if (remote(old_edge_coeffs_grown,i)) cycle
-             sc_orig  => dataptr(edge_coeffs(1,d)     ,i,get_pbox(old_edge_coeffs_grown,i),1,edge_coeffs(1,d)%nc)
-             sc_grown => dataptr(old_edge_coeffs_grown,i,get_pbox(old_edge_coeffs_grown,i),1,edge_coeffs(1,d)%nc)
+             sc_orig  => dataptr(edge_coeffs(1,d)     ,i,get_pbox(old_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
+             sc_grown => dataptr(old_edge_coeffs_grown,i,get_pbox(old_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_grown = sc_orig
           end do
 
           call boxarray_build_copy(ba_cc,get_boxarray(mgt%bottom_mgt%ss(maxlev_bottom)))
-          call boxarray_grow(ba_cc,edge_coeffs(1,d)%ng)
-          call layout_build_ba(new_la_grown,ba_cc,pmask=mgt%ss(1)%la%lap%pmask, &
-                               explicit_mapping=get_proc(mgt%bottom_mgt%ss(maxlev_bottom)%la))
+          call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
+          call layout_build_ba(new_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+               explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
           call destroy(ba_cc)
-          call multifab_build_edge(new_edge_coeffs_grown,new_la_grown,edge_coeffs(1,d)%nc,0,d)
-          call multifab_copy_c(new_edge_coeffs_grown,1,old_edge_coeffs_grown,1,nc=edge_coeffs(1,d)%nc)
+          call multifab_build_edge(new_edge_coeffs_grown,new_la_grown,ncomp(edge_coeffs(1,d)),0,d)
+          call multifab_copy_c(new_edge_coeffs_grown,1,old_edge_coeffs_grown,1,nc=ncomp(edge_coeffs(1,d)))
 
           call destroy(old_edge_coeffs_grown)
           call destroy(old_la_grown)
 
-          do i = 1, new_edge_coeffs_grown%nboxes
+          do i = 1, nboxes(new_edge_coeffs_grown)
              if (remote(new_edge_coeffs_grown,i)) cycle
-             sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,edge_coeffs(1,d)%nc)
-             sc_grown => dataptr(new_edge_coeffs_grown              ,i,get_pbox(new_edge_coeffs_grown,i),1,edge_coeffs(1,d)%nc)
+             sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
+             sc_grown => dataptr(new_edge_coeffs_grown              ,i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_orig = sc_grown
           end do
 
@@ -461,7 +472,7 @@ contains
     integer        , intent(in   ), optional :: nc_opt
 
     type(box)                 :: bx, pd
-    real(kind=dp_t)           :: lxa(ss%dim), lxb(ss%dim)
+    real(kind=dp_t)           :: lxa(get_dim(ss)), lxb(get_dim(ss))
 
     real(kind=dp_t), pointer  ::  sp(:,:,:,:)
     real(kind=dp_t), pointer  :: ccp(:,:,:,:)
@@ -469,36 +480,39 @@ contains
     real(kind=dp_t), pointer  :: ycp(:,:,:,:)
     real(kind=dp_t), pointer  :: zcp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
-    integer                   :: i,ns,ng_b,ng_c,id,ncomp_coeffs
+    integer                   :: i,ns,ng_b,ng_c,id,ncomp_coeffs,dm
     integer                   :: lnc_opt
-    logical                   :: minion_stencil
+    logical                   :: minion_stencil, pmask(get_dim(ss))
 
     type(bl_prof_timer), save :: bpt
-
 
     call build(bpt, "stencil_fill_cc")
 
     lnc_opt = 0
     if (present (nc_opt)) lnc_opt = nc_opt
 
-    pd = layout_get_pd(ss%la)
+    pd = get_pd(get_layout(ss))
 
     minion_stencil = .false.
 
-    if (cell_coeffs%ng .eq. 2) then
+    if ( nghost(cell_coeffs) .eq. 2 ) then
 
        minion_stencil = .true.
 
     endif 
 
-    do i = 1, ss%nboxes
+    pmask = get_pmask(get_layout(ss))
+
+    dm = get_dim(ss)
+
+    do i = 1, nboxes(ss)
        if ( multifab_remote(ss,i) ) cycle
        bx = get_box(ss,i)
-       call stencil_set_bc(ss, i, mask%fbs(i), bc_face)
+       call stencil_set_bc(ss, i, mask, bc_face)
        lxa = xa
        lxb = xb
        do id = 1,pd%dim
-          if ( .not. ss%la%lap%pmask(id) ) then
+          if ( .not. pmask(id) ) then
              if ( bx%lo(id) == pd%lo(id) ) then
                 lxa(id) = pxa(id)
              end if
@@ -513,16 +527,16 @@ contains
        xcp => dataptr(edge_coeffs(1), i)
        mp => dataptr(mask, i)
 
-       ng_c = cell_coeffs%ng
-       ng_b = edge_coeffs(1)%ng
+       ng_c = nghost(cell_coeffs)
+       ng_b = nghost(edge_coeffs(1))
 
        if (minion_stencil) then
 
-          ns   = ss%nc
+          ns   = ncomp(ss)
 
           ycp => dataptr(edge_coeffs(2), i)
 
-          select case (ss%dim)
+          select case (dm)
           case (2)
              if (ns .eq. 7) then
                 call s_minion_second_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
@@ -564,7 +578,7 @@ contains
 
           ncomp_coeffs = multifab_ncomp(edge_coeffs(1)) 
 
-          select case (ss%dim)
+          select case (dm)
           case (1)
              call s_simple_1d_cc(sp(:,1,1,:), ccp(:,1,1,1), ng_c, xcp(:,1,1,1), ng_b, dh, &
                                  mp(:,1,1,1), bx%lo, bx%hi, lxa, lxb, order)

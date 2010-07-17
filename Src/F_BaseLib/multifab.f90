@@ -13,6 +13,7 @@ module multifab_module
   logical, private :: Do_AllToAllV = .false.
 
   type multifab
+     !private
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -23,6 +24,7 @@ module multifab_module
   end type multifab
 
   type zmultifab
+     !private
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -33,6 +35,7 @@ module multifab_module
   end type zmultifab
 
   type imultifab
+     !private
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -43,6 +46,7 @@ module multifab_module
   end type imultifab
 
   type lmultifab
+     !private
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -57,6 +61,13 @@ module multifab_module
      module procedure imultifab_cell_centered_q
      module procedure lmultifab_cell_centered_q
      module procedure zmultifab_cell_centered_q
+  end interface
+
+  interface nodal_flags
+     module procedure multifab_nodal_flags
+     module procedure imultifab_nodal_flags
+     module procedure lmultifab_nodal_flags
+     module procedure zmultifab_nodal_flags
   end interface
 
   interface nodal_q
@@ -379,27 +390,48 @@ module multifab_module
 
 contains
 
+  pure function multifab_nodal_flags(mf) result(r)
+    type(multifab), intent(in) :: mf
+    logical :: r(mf%dim)
+    r = mf%nodal(1:mf%dim)
+  end function multifab_nodal_flags
+  pure function imultifab_nodal_flags(mf) result(r)
+    type(imultifab), intent(in) :: mf
+    logical :: r(mf%dim)
+    r = mf%nodal(1:mf%dim)
+  end function imultifab_nodal_flags
+  pure function zmultifab_nodal_flags(mf) result(r)
+    type(zmultifab), intent(in) :: mf
+    logical :: r(mf%dim)
+    r = mf%nodal(1:mf%dim)
+  end function zmultifab_nodal_flags
+  pure function lmultifab_nodal_flags(mf) result(r)
+    type(lmultifab), intent(in) :: mf
+    logical :: r(mf%dim)
+    r = mf%nodal(1:mf%dim)
+  end function lmultifab_nodal_flags
+
   subroutine multifab_set_alltoallv(val)
     logical val
     Do_AllToAllV = val
   end subroutine multifab_set_alltoallv
 
-  function multifab_ncomp(mf) result(r)
+  pure function multifab_ncomp(mf) result(r)
     integer :: r
     type(multifab), intent(in) :: mf
     r = mf%nc
   end function multifab_ncomp
-  function imultifab_ncomp(mf) result(r)
+  pure function imultifab_ncomp(mf) result(r)
     integer :: r
     type(imultifab), intent(in) :: mf
     r = mf%nc
   end function imultifab_ncomp
-  function lmultifab_ncomp(mf) result(r)
+  pure function lmultifab_ncomp(mf) result(r)
     integer :: r
     type(lmultifab), intent(in) :: mf
     r = mf%nc
   end function lmultifab_ncomp
-  function zmultifab_ncomp(mf) result(r)
+  pure function zmultifab_ncomp(mf) result(r)
     integer :: r
     type(zmultifab), intent(in) :: mf
     r = mf%nc
@@ -439,64 +471,64 @@ contains
     r = zmultifab_ms
   end function zmultifab_mem_stats
 
-  function multifab_cell_centered_q(mf) result(r)
+  pure function multifab_cell_centered_q(mf) result(r)
     logical :: r
     type(multifab), intent(in) :: mf
     r = .not. any(mf%nodal)
   end function multifab_cell_centered_q
-  function imultifab_cell_centered_q(mf) result(r)
+  pure function imultifab_cell_centered_q(mf) result(r)
     logical :: r
     type(imultifab), intent(in) :: mf
     r = .not. any(mf%nodal)
   end function imultifab_cell_centered_q
-  function lmultifab_cell_centered_q(mf) result(r)
+  pure function lmultifab_cell_centered_q(mf) result(r)
     logical :: r
     type(lmultifab), intent(in) :: mf
     r = .not. any(mf%nodal)
   end function lmultifab_cell_centered_q
-  function zmultifab_cell_centered_q(mf) result(r)
+  pure function zmultifab_cell_centered_q(mf) result(r)
     logical :: r
     type(zmultifab), intent(in) :: mf
     r = .not. any(mf%nodal)
   end function zmultifab_cell_centered_q
   
-  function multifab_nodal_q(mf) result(r)
+  pure function multifab_nodal_q(mf) result(r)
     logical :: r
     type(multifab), intent(in) :: mf
     r = all(mf%nodal)
   end function multifab_nodal_q
-  function imultifab_nodal_q(mf) result(r)
+  pure function imultifab_nodal_q(mf) result(r)
     logical :: r
     type(imultifab), intent(in) :: mf
     r = all(mf%nodal)
   end function imultifab_nodal_q
-  function lmultifab_nodal_q(mf) result(r)
+  pure function lmultifab_nodal_q(mf) result(r)
     logical :: r
     type(lmultifab), intent(in) :: mf
     r = all(mf%nodal)
   end function lmultifab_nodal_q
-  function zmultifab_nodal_q(mf) result(r)
+  pure function zmultifab_nodal_q(mf) result(r)
     logical :: r
     type(zmultifab), intent(in) :: mf
-    r = mf%dim /= 0
+    r = all(mf%nodal)
   end function zmultifab_nodal_q
   
-  function multifab_built_q(mf) result(r)
+  pure function multifab_built_q(mf) result(r)
     logical :: r
     type(multifab), intent(in) :: mf
     r = mf%dim /= 0
   end function multifab_built_q
-  function imultifab_built_q(mf) result(r)
+  pure function imultifab_built_q(mf) result(r)
     logical :: r
     type(imultifab), intent(in) :: mf
     r = mf%dim /= 0
   end function imultifab_built_q
-  function lmultifab_built_q(mf) result(r)
+  pure function lmultifab_built_q(mf) result(r)
     logical :: r
     type(lmultifab), intent(in) :: mf
     r = mf%dim /= 0
   end function lmultifab_built_q
-  function zmultifab_built_q(mf) result(r)
+  pure function zmultifab_built_q(mf) result(r)
     logical :: r
     type(zmultifab), intent(in) :: mf
     r = mf%dim /= 0
@@ -869,209 +901,209 @@ contains
      r = r * mf%nc
   end function zmultifab_volume
 
-  function multifab_get_dim(mf) result(r)
+  pure function multifab_get_dim(mf) result(r)
     type(multifab), intent(in) :: mf
     integer :: r
     r = mf%dim
   end function multifab_get_dim
-  function imultifab_get_dim(mf) result(r)
+  pure function imultifab_get_dim(mf) result(r)
     type(imultifab), intent(in) :: mf
     integer :: r
     r = mf%dim
   end function imultifab_get_dim
-  function lmultifab_get_dim(mf) result(r)
+  pure function lmultifab_get_dim(mf) result(r)
     type(lmultifab), intent(in) :: mf
     integer :: r
     r = mf%dim
   end function lmultifab_get_dim
-  function zmultifab_get_dim(mf) result(r)
+  pure function zmultifab_get_dim(mf) result(r)
     type(zmultifab), intent(in) :: mf
     integer :: r
     r = mf%dim
   end function zmultifab_get_dim
 
-  function multifab_nboxes(mf) result(r)
+  pure function multifab_nboxes(mf) result(r)
     type(multifab), intent(in) :: mf
     integer :: r
     r = mf%nboxes
   end function multifab_nboxes
-  function imultifab_nboxes(mf) result(r)
+  pure function imultifab_nboxes(mf) result(r)
     type(imultifab), intent(in) :: mf
     integer :: r
     r = mf%nboxes
   end function imultifab_nboxes
-  function lmultifab_nboxes(mf) result(r)
+  pure function lmultifab_nboxes(mf) result(r)
     type(lmultifab), intent(in) :: mf
     integer :: r
     r = mf%nboxes
   end function lmultifab_nboxes
-  function zmultifab_nboxes(mf) result(r)
+  pure function zmultifab_nboxes(mf) result(r)
     type(zmultifab), intent(in) :: mf
     integer :: r
     r = mf%nboxes
   end function zmultifab_nboxes
 
-  function multifab_nghost(mf) result(r)
+  pure function multifab_nghost(mf) result(r)
     type(multifab), intent(in) :: mf
     integer :: r
     r = mf%ng
   end function multifab_nghost
-  function imultifab_nghost(mf) result(r)
+  pure function imultifab_nghost(mf) result(r)
     type(imultifab), intent(in) :: mf
     integer :: r
     r = mf%ng
   end function imultifab_nghost
-  function lmultifab_nghost(mf) result(r)
+  pure function lmultifab_nghost(mf) result(r)
     type(lmultifab), intent(in) :: mf
     integer :: r
     r = mf%ng
   end function lmultifab_nghost
-  function zmultifab_nghost(mf) result(r)
+  pure function zmultifab_nghost(mf) result(r)
     type(zmultifab), intent(in) :: mf
     integer :: r
     r = mf%ng
   end function zmultifab_nghost
 
-  function multifab_remote(mf, i) result(r)
+  pure function multifab_remote(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_remote(mf%la, i)
   end function multifab_remote
-  function imultifab_remote(mf, i) result(r)
+  pure function imultifab_remote(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_remote(mf%la, i)
   end function imultifab_remote
-  function lmultifab_remote(mf, i) result(r)
+  pure function lmultifab_remote(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_remote(mf%la, i)
   end function lmultifab_remote
-  function zmultifab_remote(mf, i) result(r)
+  pure function zmultifab_remote(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_remote(mf%la, i)
   end function zmultifab_remote
 
-  function multifab_local(mf, i) result(r)
+  pure function multifab_local(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_local(mf%la, i)
   end function multifab_local
-  function imultifab_local(mf, i) result(r)
+  pure function imultifab_local(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_local(mf%la, i)
   end function imultifab_local
-  function lmultifab_local(mf, i) result(r)
+  pure function lmultifab_local(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_local(mf%la, i)
   end function lmultifab_local
-  function zmultifab_local(mf, i) result(r)
+  pure function zmultifab_local(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     logical :: r
     r = layout_local(mf%la, i)
   end function zmultifab_local
 
-  function multifab_get_boxarray(mf) result(r)
+  pure function multifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(multifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function multifab_get_boxarray
-  function imultifab_get_boxarray(mf) result(r)
+  pure function imultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(imultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function imultifab_get_boxarray
-  function lmultifab_get_boxarray(mf) result(r)
+  pure function lmultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(lmultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function lmultifab_get_boxarray
-  function zmultifab_get_boxarray(mf) result(r)
+  pure function zmultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(zmultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function zmultifab_get_boxarray
 
-  function multifab_get_box(mf, i) result(r)
+  pure function multifab_get_box(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_box(mf%la, i)
   end function multifab_get_box
-  function imultifab_get_box(mf, i) result(r)
+  pure function imultifab_get_box(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_box(mf%la, i)
   end function imultifab_get_box
-  function lmultifab_get_box(mf, i) result(r)
+  pure function lmultifab_get_box(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_box(mf%la, i)
   end function lmultifab_get_box
-  function zmultifab_get_box(mf, i) result(r)
+  pure function zmultifab_get_box(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_box(mf%la, i)
   end function zmultifab_get_box
 
-  function multifab_get_ibox(mf, i) result(r)
+  pure function multifab_get_ibox(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_ibox(mf%fbs(i))
   end function multifab_get_ibox
-  function imultifab_get_ibox(mf, i) result(r)
+  pure function imultifab_get_ibox(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_ibox(mf%fbs(i))
   end function imultifab_get_ibox
-  function lmultifab_get_ibox(mf, i) result(r)
+  pure function lmultifab_get_ibox(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_ibox(mf%fbs(i))
   end function lmultifab_get_ibox
-  function zmultifab_get_ibox(mf, i) result(r)
+  pure function zmultifab_get_ibox(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_ibox(mf%fbs(i))
   end function zmultifab_get_ibox
 
-  function multifab_get_pbox(mf, i) result(r)
+  pure function multifab_get_pbox(mf, i) result(r)
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_pbox(mf%fbs(i))
   end function multifab_get_pbox
-  function imultifab_get_pbox(mf, i) result(r)
+  pure function imultifab_get_pbox(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_pbox(mf%fbs(i))
   end function imultifab_get_pbox
-  function lmultifab_get_pbox(mf, i) result(r)
+  pure function lmultifab_get_pbox(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
     r = get_pbox(mf%fbs(i))
   end function lmultifab_get_pbox
-  function zmultifab_get_pbox(mf, i) result(r)
+  pure function zmultifab_get_pbox(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r

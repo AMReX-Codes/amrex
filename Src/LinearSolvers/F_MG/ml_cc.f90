@@ -54,7 +54,7 @@ contains
 
     call build(bpt, "ml_cc")
 
-    dm = rh(1)%dim
+    dm = get_dim(rh(1))
     nlevs = mla%nlevel
 
     if ( present(abs_eps_in) ) then
@@ -83,8 +83,8 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, full_soln(1)%ng)
-       call build(      uu(n), la, 1, full_soln(1)%ng)
+       call build(    soln(n), la, 1, nghost(full_soln(1)))
+       call build(      uu(n), la, 1, nghost(full_soln(1)))
        call build(     res(n), la, 1, 0)
        call build(temp_res(n), la, 1, 0)
        call setval(    soln(n), ZERO,all=.true.)
@@ -160,7 +160,7 @@ contains
     enddo
 
     do n = 1,nlevs
-       call multifab_copy(rh(n),res(n),ng=rh(n)%ng)
+       call multifab_copy(rh(n),res(n),ng = nghost(rh(n)))
     end do
 
     tres0 = ml_norm_inf(rh,fine_mask)
@@ -237,7 +237,7 @@ contains
              ! Compute FINE Res = Res - Lap(uu)
              call mg_defect(mgt(n)%ss(mglev),temp_res(n), &
                   res(n),uu(n),mgt(n)%mm(mglev))
-             call multifab_copy(res(n), temp_res(n), ng=res(n)%ng)
+             call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
                 tres = norm_inf(res(n))
@@ -258,7 +258,7 @@ contains
                   mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
 
              ! Copy u_hold = uu
-             if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng=uu(n)%ng)
+             if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng = nghost(uu(n)))
 
              ! Set: uu = 0
              call setval(uu(n), ZERO, all=.true.)
@@ -310,7 +310,7 @@ contains
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                          mgt(n)%mm(mglev))
-          call multifab_copy(res(n), temp_res(n), ng=res(n)%ng)
+          call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
           if (do_diagnostics == 1 ) then
              tres = norm_inf(temp_res(n))
@@ -331,7 +331,7 @@ contains
           if (do_diagnostics == 1 ) then
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                             mgt(n)%mm(mglev))
-             call multifab_copy(res(n), temp_res(n), ng=res(n)%ng)
+             call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
              tres = norm_inf(res(n))
              if ( parallel_ioprocessor() ) then
                 print *,'UP : RES AFTER  GSRB AT LEVEL ',n, tres
@@ -662,7 +662,7 @@ contains
     type(layout) :: la, lac
     integer      :: i, n, dm, nlevs, mglev, mglev_crse
 
-    dm = rh(1)%dim
+    dm = get_dim(rh(1))
 
     nlevs = mla%nlevel
 
@@ -759,7 +759,7 @@ contains
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
-    integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
+    integer                   :: lo(get_dim(res(1))),hi(get_dim(res(1))),ng
     real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
     call build(bpt, "ml_cc_applyop")
@@ -805,7 +805,7 @@ contains
 
     end do
 
-    dm = rh(1)%dim
+    dm = get_dim(rh(1))
 
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
@@ -850,9 +850,9 @@ contains
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = res(n)%ng
+       ng = nghost(res(n))
        
-       do i=1,res(n)%nboxes
+       do i=1, nboxes(res(n))
           if (multifab_remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
           lo =  lwb(get_box(res(n), i))
@@ -915,7 +915,7 @@ contains
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
-    integer                   :: lo(res(1)%dim),hi(res(1)%dim),ng
+    integer                   :: lo(get_dim(res(1))),hi(get_dim(res(1))),ng
     real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
     call build(bpt, "ml_cc_applyop")
@@ -964,7 +964,7 @@ contains
 
     end do
 
-    dm = rh(1)%dim
+    dm = get_dim(rh(1))
 
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
@@ -1008,9 +1008,9 @@ contains
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = res(n)%ng
+       ng = nghost(res(n))
        
-       do i=1,res(n)%nboxes
+       do i=1, nboxes(res(n))
           if (multifab_remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
           lo =  lwb(get_box(res(n), i))

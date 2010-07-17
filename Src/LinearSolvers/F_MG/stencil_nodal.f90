@@ -52,7 +52,7 @@ contains
        !
        bx1 = nbx
        bx1%hi(dm) = bx1%lo(dm)
-       mp => dataptr(mask%fbs(idx), bx1)
+       mp => dataptr(mask, idx, bx1)
        if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
        if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
        !
@@ -60,7 +60,7 @@ contains
        !
        bx1 = nbx
        bx1%lo(dm) = bx1%hi(dm)
-       mp => dataptr(mask%fbs(idx), bx1)
+       mp => dataptr(mask, idx, bx1)
        if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
        if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
     end do
@@ -82,7 +82,7 @@ contains
              do ii = 1, nboxes(ba)
                 bx1 = intersection(box_nodalize(get_box(ba,ii),nodal), nbx)
                 if ( empty(bx1) ) cycle
-                mp => dataptr(mask%fbs(idx), bx1)
+                mp => dataptr(mask, idx, bx1)
                 mp = ibset(mp, BC_BIT(BC_DIR,1,0))
              end do
              call destroy(ba)

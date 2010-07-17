@@ -195,20 +195,20 @@ contains
        write(unit=un, fmt='()')
     end if
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+    write(unit=un, fmt='(" DIM     = ",i2)') get_dim(mf)
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+    write(unit=un, fmt='(" NC      = ",i2)') ncomp(mf)
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+    write(unit=un, fmt='(" NG      = ",i2)') nghost(mf)
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') nodal_flags(mf)
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+    write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf)
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+          do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
              write(unit=fn, fmt='(i5)') i
-             call mask_pretty_print_fab(mf%fbs(i), str = fn, unit = unit, &
+             call mask_pretty_print_fab(mf, i, str = fn, unit = unit, &
                   all = all, data = data, skip = unit_get_skip(skip) + 2, &
                   nodal = nodal)
           end do
@@ -217,9 +217,10 @@ contains
     end do
   end subroutine mask_pretty_print
 
-  subroutine mask_pretty_print_fab(fb, str, unit, all, data, bx, skip, nodal)
+  subroutine mask_pretty_print_fab(fb, idx, str, unit, all, data, bx, skip, nodal)
     use bl_IO_module
-    type(ifab), intent(in) :: fb
+    type(imultifab), intent(in) :: fb
+    integer, intent(in) :: idx
     character(len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: all, data, nodal
@@ -247,25 +248,25 @@ contains
     write(unit=un, fmt='(" NC      = ",i2)') ncomp(fb)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
-    call print(get_ibox(fb), unit = un)
+    call print(get_ibox(fb,idx), unit = un)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
-    call print(get_pbox(fb), unit = un)
+    call print(get_pbox(fb,idx), unit = un)
     call unit_skip(un, skip)
     write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
-    call print(get_box(fb), unit = un)
-    p => dataptr(fb)
+    call print(get_box(fb,idx), unit = un)
+    p => dataptr(fb,idx)
     if ( .not. associated(p) ) then
        call unit_skip(un, skip)
        write(unit=un) 'NOT ASSOCIATED'
     else
        select case (get_dim(fb))
        case (1)
-          call print_1d(p(:,1,1,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
+          call print_1d(p(:,1,1,:), lbound(p), intersection(get_ibox(fb,idx),lbx), lnodal)
        case (2)
-          call print_2d(p(:,:,1,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
+          call print_2d(p(:,:,1,:), lbound(p), intersection(get_ibox(fb,idx),lbx), lnodal)
        case (3)
-          call print_3d(p(:,:,:,:), lbound(p), intersection(get_ibox(fb),lbx), lnodal)
+          call print_3d(p(:,:,:,:), lbound(p), intersection(get_ibox(fb,idx),lbx), lnodal)
        end select
     end if
 
@@ -422,14 +423,14 @@ contains
     call build(bpt, "st_norm")
     r1 = -Huge(r1)
     if ( present(mask) ) then
-       do i = 1, ss%nboxes
+       do i = 1, nboxes(ss)
           if ( remote(ss,i) ) cycle
           sp => dataptr(ss, i)
           lp => dataptr(mask, i)
           r1 = max(r1, maxval(sum(abs(sp),dim=4),mask=lp(:,:,:,1)))
        end do
     else
-       do i = 1, ss%nboxes
+       do i = 1, nboxes(ss)
           if ( multifab_remote(ss,i) ) cycle
           sp => dataptr(ss, i)
           !$OMP PARALLEL DO PRIVATE(j,k,m,n,sum_comps) REDUCTION(MAX:r1)
@@ -519,7 +520,7 @@ contains
     end if
 
     if ( present(c) ) then
-       do i = 1, uu%nboxes
+       do i = 1, nboxes(uu)
           if ( multifab_remote(uu, i) ) cycle
           up => dataptr(uu, i)
           mp => dataptr(st%mm, i)
@@ -537,11 +538,11 @@ contains
           end select
        end do
     else
-       do i = 1, uu%nboxes
+       do i = 1, nboxes(uu)
           if ( multifab_remote(uu, i) ) cycle
           up => dataptr(uu, i)
           mp => dataptr(st%mm, i)
-          do n = 1, uu%nc
+          do n = 1, ncomp(uu)
              select case ( st%dim )
              case (1)
                 call extrap_1d(up(:,1,1,n), mp(:,1,1,1), st%xa, st%xb, st%dh, &
@@ -969,17 +970,18 @@ contains
   end subroutine extrap_3d
 
   subroutine stencil_set_bc(st, idx, mask, bc_face, cf_face)
-    type(multifab), intent(in)           :: st
-    integer,        intent(in)           :: idx
-    type(ifab),     intent(inout)        :: mask
-    integer,        intent(in)           :: bc_face(:,:)
-    integer,        intent(in), optional :: cf_face(:,:)
+    type(multifab),  intent(in)           :: st
+    integer,         intent(in)           :: idx
+    type(imultifab), intent(inout)        :: mask
+    integer,         intent(in)           :: bc_face(:,:)
+    integer,         intent(in), optional :: cf_face(:,:)
 
-    type(box)        :: bx1, src
+    type(box)        :: bx1, src, pd
     type(boxarray)   :: ba, sba
     integer          :: i, j, ii, jj, k, ldom
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
+    logical          :: pmask(get_dim(st))
     !
     ! The Coarse-Fine boundary is Dirichlet unless specified.
     !
@@ -987,23 +989,28 @@ contains
     !
     ! Initialize every border to Fine-Fine (Interior).
     !
-    call setval(mask, BC_INT)
+    mp => dataptr(mask, idx)
 
-    do i = 1, st%dim
+    mp = BC_INT
+
+    pd    = get_pd(get_layout(st))
+    pmask = get_pmask(get_layout(st))
+
+    do i = 1, get_dim(st)
        if ( bc_face(i,1) == BC_PER .and. ( bc_face(i,1) /= bc_face(i,2) )) then
           call bl_error("STENCIL_SET_BC: confusion in bc_face")
        end if
        do j = -1, 1, 2
           bx1 = shift(get_box(st, idx), j, i)
           jj = (3 + j)/2
-          if ( contains(st%la%lap%pd, bx1) ) then
+          if ( contains(pd, bx1) ) then
              !
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
              !
-             call boxarray_boxarray_diff(ba, bx1, st%la%lap%bxa)
+             call boxarray_boxarray_diff(ba, bx1, get_boxarray(st))
              do ii = 1, nboxes(ba)
                 bx1 = shift(get_box(ba,ii), -j, i)
-                mp => dataptr(mask, bx1)
+                mp => dataptr(mask, idx, bx1)
                 mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
              end do
              call destroy(ba)
@@ -1011,14 +1018,14 @@ contains
              !
              ! We touch a physical boundary in that direction.
              !
-             if ( .not. st%la%lap%pmask(i) ) then
+             if ( .not. pmask(i) ) then
                 !
                 ! We're not periodic in that direction -- use physical BCs.
                 !
-                call boxarray_box_diff(ba, bx1, st%la%lap%pd)
+                call boxarray_box_diff(ba, bx1, pd)
                 do ii = 1, nboxes(ba)
                    bx1 = shift(get_box(ba,ii), -j, i)
-                   mp => dataptr(mask, bx1)
+                   mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
                 end do
                 call destroy(ba)
@@ -1026,9 +1033,9 @@ contains
                 !
                 ! Remove any/all Fine-Fine intersections.
                 !
-                ldom = extent(st%la%lap%pd, i)
+                ldom = extent(pd, i)
                 call boxarray_build_bx(ba, bx1)
-                do k = 1, st%nboxes
+                do k = 1, nboxes(st)
                    src = shift(get_box(st, k), j*ldom, i)
                    if ( intersects(bx1, src) ) then
                       call boxarray_build_bx(sba, src)
@@ -1041,7 +1048,7 @@ contains
                 !
                 do ii = 1, nboxes(ba)
                    bx1 = shift(get_box(ba,ii), -j, i)
-                   mp => dataptr(mask, bx1)
+                   mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
                 end do
                 call destroy(ba)

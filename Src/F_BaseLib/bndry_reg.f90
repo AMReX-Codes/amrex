@@ -276,7 +276,7 @@ contains
     type(multifab)  :: tmf
     type(boxarray)  :: ba
     type(box)       :: domain
-    type(layout)    :: la
+    type(layout)    :: la,mf_la
     logical         :: doit
     real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
@@ -285,8 +285,10 @@ contains
 
     doit = .false.
 
-    if ( any(layout_get_pmask(mf%la)) ) then
-       domain = grow(get_pd(mf%la), nghost(mf), .not. layout_get_pmask(mf%la))
+    mf_la = get_layout(mf)
+
+    if ( any(get_pmask(mf_la)) ) then
+       domain = grow(get_pd(mf_la), nghost(mf), .not. get_pmask(mf_la))
        loop: do i = 1, br%dim
           do f = 0, 1
              do j = 1, nboxes(br%bmf(i,f))
@@ -299,7 +301,7 @@ contains
        end do loop
     end if
 
-    if ( doit) then
+    if ( doit ) then
        !
        ! We're periodic & have boxes that extend outside the domain in periodic direction.
        ! In order to fill those boxes we do the usual trick of copy()ing from a multifab
@@ -311,7 +313,7 @@ contains
 
        call build(ba, bl, sort = .false.)
        call destroy(bl)
-       call build(la, ba, get_pd(mf%la), get_pmask(mf%la), explicit_mapping = get_proc(mf%la))
+       call build(la, ba, get_pd(mf_la), get_pmask(mf_la), explicit_mapping = get_proc(mf_la))
        call destroy(ba)
        call build(tmf, la, nc = ncomp(mf), ng = 0)
 

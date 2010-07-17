@@ -86,14 +86,14 @@ contains
        real(dp_t)     , intent(in   ), optional :: eps_in
 
        type(lmultifab) :: fine_mask(mla%nlevel)
-       integer         :: nlevs, n, dm, lo(rh(mla%nlevel)%dim), hi(rh(mla%nlevel)%dim)
-       logical         :: nodal(rh(mla%nlevel)%dim)
+       integer         :: nlevs, n, dm, lo(get_dim(rh(mla%nlevel))), hi(get_dim(rh(mla%nlevel)))
+       logical         :: nodal(get_dim(rh(mla%nlevel)))
        real(dp_t)      :: eps
 
        eps = 1.d-12; if ( present(eps_in) ) eps = eps_in
 
        nlevs = mla%nlevel
-       dm    = rh(nlevs)%dim
+       dm    = get_dim(rh(nlevs))
        nodal = .true.
 
 !      We are only considering the dense stencils here (3 in 1d, 9 in 2d, 27 in 3d)
@@ -131,7 +131,7 @@ contains
        type(boxarray)                   :: ba
        type(layout)                     :: la
        logical,               pointer   :: mkp(:,:,:,:)
-       integer                          :: loc(mask%dim), lof(mask%dim), i, j, k, dims(4), proc
+       integer                          :: loc(get_dim(mask)), lof(get_dim(mask)), i, j, k, dims(4), proc
        integer,               pointer   :: cmp(:,:,:,:), fmp(:,:,:,:)
        integer,               parameter :: tag = 1071
        type(box_intersector), pointer   :: bi(:)
@@ -145,8 +145,8 @@ contains
        !
        ! Need to build temporary layout with nodal boxarray for the intersection tests below.
        !
-       call copy(ba, get_boxarray(mask%la))
-       call boxarray_nodalize(ba, mask%nodal)
+       call copy(ba, get_boxarray(get_layout(mask)))
+       call boxarray_nodalize(ba, nodal_flags(mask))
        call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call destroy(ba)
        !
@@ -155,7 +155,7 @@ contains
        !
        dims = 1
 
-       do i = 1,mm_fine%nboxes
+       do i = 1, nboxes(mm_fine)
 
           fbox =  get_ibox(mm_fine,i)
           bi   => layout_get_box_intersector(la, coarsen(fbox,ir))
@@ -191,7 +191,7 @@ contains
                 !
                 isect =  intersection(refine(isect,ir),get_ibox(mm_fine,i))
                 fmp   => dataptr(mm_fine, i, isect)
-                proc  =  get_proc(mask%la, j)
+                proc  =  get_proc(get_layout(mask), j)
                 call parallel_send(fmp, proc, tag)
              else if ( local(mask,j) ) then
                 !
@@ -201,7 +201,7 @@ contains
                 lof   =  lwb(isect)
                 mkp   => dataptr(mask,j)
                 cmp   => dataptr(mm_crse,j)
-                proc  =  get_proc(mm_fine%la,i)
+                proc  =  get_proc(get_layout(mm_fine),i)
 
                 dims(1:dm) = extent(isect)
                 allocate(fmp(dims(1),dims(2),dims(3),dims(4)))

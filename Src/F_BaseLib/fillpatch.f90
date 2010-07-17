@@ -30,17 +30,17 @@ contains
     logical       , intent(in   ), optional :: fill_crse_input
 
 
-    integer         :: i, j, dm, local_bc(fine%dim,2,nc), shft(3**fine%dim,fine%dim), cnt
+    integer         :: i, j, dm, local_bc(get_dim(fine),2,nc), shft(3**get_dim(fine),get_dim(fine)), cnt
     integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
     integer         :: n_extra_valid_regions, np
-    type(layout)    :: la, fla, tmpla
+    type(layout)    :: la, fla, tmpla, fine_la
     type(multifab)  :: cfine, tmpcrse, tmpfine
-    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**fine%dim)
+    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
-    logical         :: lim_slope, lin_limit, pmask(fine%dim), have_periodic_gcells
-    logical         :: no_final_physbc, fill_crse
+    logical         :: lim_slope, lin_limit, pmask(get_dim(fine)), have_periodic_gcells
+    logical         :: no_final_physbc, fill_crse, nodalflags(get_dim(fine))
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -56,14 +56,14 @@ contains
 
     call build(bpt, "fillpatch")
 
-    if (nghost(fine) < ng) call bl_error('fillpatch: fine does NOT have enough ghost cells')
-    if (nghost(crse) < ng) call bl_error('fillpatch: crse does NOT have enough ghost cells')
+    if ( nghost(fine) < ng ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
+    if ( nghost(crse) < ng ) call bl_error('fillpatch: crse does NOT have enough ghost cells')
 
     if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
     if ( .not. cell_centered_q(crse) ) call bl_error('fillpatch: crse is NOT cell centered')
 
     dx                   = ONE
-    dm                   = crse%dim
+    dm                   = get_dim(crse)
     lim_slope            = .true.
     lin_limit            = .false.
     have_periodic_gcells = .false.
@@ -78,14 +78,15 @@ contains
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
     !
-    if (fill_crse) call fill_boundary(crse, icomp_crse, nc, ng)
+    if ( fill_crse ) call fill_boundary(crse, icomp_crse, nc, ng)
 
     call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
     ! We don't try to directly fill anything at fine level outside of the domain.
     !
-    fdomain = get_pd(fine%la)
+    fine_la = get_layout(fine)
+    fdomain = get_pd(fine_la)
 
     do i = 1, nboxes(fine)
        !
@@ -98,15 +99,17 @@ contains
        call push_back(bl, bx)
     end do
 
-    pmask(1:dm) = layout_get_pmask(fine%la)
+    pmask(1:dm) = get_pmask(fine_la)
 
     if ( any(pmask) ) then
        !
        ! Collect additional boxes that contribute to periodically filling fine ghost cells.
        !
+       nodalflags = nodal_flags(fine)
+
        do i = 1, nboxes(fine)
           bx = get_ibox(fine,i)
-          call box_periodic_shift(fdomain, bx, fine%nodal, pmask, ng, shft, cnt, bxs)
+          call box_periodic_shift(fdomain, bx, nodalflags, pmask, ng, shft, cnt, bxs)
           if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
              call push_back(pbl, bxs(j))
@@ -114,7 +117,7 @@ contains
           bln => begin(pbl)
           do while (associated(bln))
              bx =  value(bln)
-             bi => layout_get_box_intersector(fine%la, bx)
+             bi => layout_get_box_intersector(fine_la, bx)
              do j = 1, size(bi)
                 call push_back(pieces, bi(j)%bx)
              end do
@@ -140,7 +143,7 @@ contains
     !
     allocate(procmap(1:nboxes(fine)+n_extra_valid_regions))
 
-    procmap(1:nboxes(fine)) = get_proc(fine%la)
+    procmap(1:nboxes(fine)) = get_proc(fine_la)
 
     if ( n_extra_valid_regions > 0 ) then
        np = parallel_nprocs()
@@ -190,7 +193,7 @@ contains
     ! If ng==0, got to build and use a version of crse that has a grow cell.
     !
     if (ng .eq. 0) then
-       call build(gcrse, crse%la, nc = nc, ng = 1)
+       call build(gcrse, get_layout(crse), nc = nc, ng = 1)
        call copy(gcrse, crse)
        call fill_boundary(gcrse, icomp_crse, nc)
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
@@ -205,7 +208,7 @@ contains
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, explicit_mapping = get_proc(pcrse%la))
+    call build(tmpla, tmpba, explicit_mapping = get_proc(get_layout(pcrse)))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
@@ -224,7 +227,7 @@ contains
     call destroy(tmpcrse)
     call destroy(tmpla)
 
-    cdomain = get_pd(crse%la)
+    cdomain = get_pd(get_layout(crse))
 
     do i = 1, nboxes(cfine)
        if ( remote(cfine, i) ) cycle

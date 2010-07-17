@@ -21,18 +21,22 @@ contains
     integer, intent(in)           :: cc, cf, ir(:)
     integer, intent(in), optional :: nc
 
-    integer             :: i, n, lnc, lo(fine%dim), hi(fine%dim), lof(fine%dim)
+    integer             :: i, n, lnc, dm, lo(get_dim(fine)), hi(get_dim(fine)), lof(get_dim(fine))
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine
+    type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
-    call layout_build_coarse(lacfine, fine%la, ir)
+    laf = get_layout(fine)
+
+    call layout_build_coarse(lacfine, laf, ir)
 
     call build(cfine, lacfine, nc = lnc, ng = 0)
 
-    do i = 1, fine%nboxes
+    dm = get_dim(cfine)
+
+    do i = 1, nboxes(fine)
        if ( remote(fine, i) ) cycle
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(cfine,i))
@@ -40,7 +44,7 @@ contains
        do n = 1, lnc
           fp => dataptr(fine,  i, n+cf-1, 1)
           cp => dataptr(cfine, i, n,      1)
-          select case (cfine%dim)
+          select case (dm)
           case (1)
              call cc_restriction_1d(cp(:,1,1,1), lo, fp(:,1,1,1), lof, lo, hi, ir)
           case (2)
@@ -65,10 +69,10 @@ contains
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: ir(:)
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_cc_restriction: crse & fine must have same # of components')
     end if
-    call ml_cc_restriction_c(crse, 1, fine, 1, ir, crse%nc)
+    call ml_cc_restriction_c(crse, 1, fine, 1, ir, ncomp(crse))
   end subroutine ml_cc_restriction
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -82,25 +86,27 @@ contains
     integer, intent(in), optional :: nc
 
     integer             :: i, n, lnc, dm, len
-    integer             :: lo(fine%dim), hi(fine%dim), loc(fine%dim), lof(fine%dim)
+    integer             :: lo(get_dim(fine)), hi(get_dim(fine)), loc(get_dim(fine)), lof(get_dim(fine))
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(box)           :: bx,fine_domain,crse_domain
     type(layout)        :: lacfine, lacfine_lo, lacfine_hi 
-    type(layout)        :: la_lo,la_hi
+    type(layout)        :: la_lo,la_hi,laf
     type(multifab)      :: cfine, fine_lo, fine_hi
     type(list_box)      :: bxs_lo,bxs_hi
     type(boxarray)      :: ba_lo,ba_hi
-    logical             :: nodal(fine%dim)
+    logical             :: nodal(get_dim(fine)), pmask(get_dim(fine))
 
-    dm = crse%dim
+    dm = get_dim(crse)
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
-    call layout_build_coarse(lacfine, fine%la, ir)
+    laf = get_layout(fine)
 
-    call multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
+    call layout_build_coarse(lacfine, laf, ir)
 
-    do i = 1, fine%nboxes
+    call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
+
+    do i = 1, nboxes(fine)
        if ( remote(fine,i) ) cycle
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
@@ -109,7 +115,7 @@ contains
        do n = 1, lnc
           fp  => dataptr(fine,  i, n+cf-1, 1)
           cp  => dataptr(cfine, i, n,      1)
-          select case (crse%dim)
+          select case (dm)
           case (1)
              call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
           case (2)
@@ -126,17 +132,19 @@ contains
     !
     ! Now do periodic fix-up if necessary.
     !
-    if (crse%la%lap%pmask(face)) then
+    pmask = get_pmask(get_layout(crse))
 
-       fine_domain = fine%la%lap%pd
-       crse_domain = crse%la%lap%pd
+    if (pmask(face)) then
+
+       fine_domain = get_pd(get_layout(fine))
+       crse_domain = get_pd(get_layout(crse))
        nodal(:)    = .false.
        nodal(face) = .true.
        len         = box_extent_d(fine_domain,face)
        !
        ! First copy from lo edges to hi edges.
        !
-       do i = 1, fine%nboxes
+       do i = 1, nboxes(fine)
           bx = get_box(fine,i)
           if (bx%lo(face) == fine_domain%lo(face)) then
              bx = shift(bx, len, face)
@@ -149,16 +157,16 @@ contains
 
           call build(ba_lo,bxs_lo,sort=.false.)
           call destroy(bxs_lo)
-          call build(la_lo,ba_lo,fine_domain,fine%la%lap%pmask)
+          call build(la_lo,ba_lo,fine_domain,pmask)
           call destroy(ba_lo)
-          call multifab_build(fine_lo, la_lo, nc = fine%nc, ng = 0, nodal = nodal)
+          call multifab_build(fine_lo, la_lo, nc = ncomp(fine), ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_lo, 1, fine, cf, lnc, len, face)
 
-          call layout_build_coarse(lacfine_lo, fine_lo%la, ir)
-          call multifab_build(cfine, lacfine_lo, nc = crse%nc, ng = 0, nodal = crse%nodal)
+          call layout_build_coarse(lacfine_lo, la_lo, ir)
+          call multifab_build(cfine, lacfine_lo, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
    
-          do i = 1, fine_lo%nboxes
+          do i = 1, nboxes(fine_lo)
              if ( remote(fine_lo,i) ) cycle
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
@@ -168,7 +176,7 @@ contains
              do n = 1, lnc
                 fp  => dataptr(fine_lo, i, n, 1)
                 cp  => dataptr(cfine     , i, n, 1)
-                select case (crse%dim)
+                select case (dm)
                 case (1)
                    call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
                 case (2)
@@ -189,7 +197,7 @@ contains
        !
        ! Next copy from hi edges to lo edges.
        !
-       do i = 1, fine%nboxes
+       do i = 1, nboxes(fine)
           bx = get_box(fine,i)
           if (bx%hi(face) == fine_domain%hi(face)) then
              bx = shift(bx, -len, face)
@@ -202,16 +210,16 @@ contains
 
           call build(ba_hi,bxs_hi,sort=.false.)
           call destroy(bxs_hi)
-          call build(la_hi,ba_hi,fine_domain,fine%la%lap%pmask)
+          call build(la_hi,ba_hi,fine_domain,pmask)
           call destroy(ba_hi)
-          call multifab_build(fine_hi, la_hi, nc = fine%nc, ng = 0, nodal = nodal)
+          call multifab_build(fine_hi, la_hi, nc = ncomp(fine), ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_hi, 1, fine, cf, lnc, -len, face)
 
-          call layout_build_coarse(lacfine_hi, fine_hi%la, ir)
-          call multifab_build(cfine, lacfine_hi, nc = crse%nc, ng = 0, nodal = crse%nodal)
+          call layout_build_coarse(lacfine_hi, la_hi, ir)
+          call multifab_build(cfine, lacfine_hi, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-          do i = 1, fine_hi%nboxes
+          do i = 1, nboxes(fine_hi)
              if ( remote(fine_hi,i) ) cycle
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
@@ -221,7 +229,7 @@ contains
              do n = 1, lnc
                 fp  => dataptr(fine_hi, i, n, 1)
                 cp  => dataptr(cfine     , i, n, 1)
-                select case (crse%dim)
+                select case (dm)
                 case (1)
                    call edge_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
                 case (2)
@@ -252,10 +260,10 @@ contains
     integer,        intent(in)    :: ir(:)
     integer,        intent(in)    :: face
 
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_edge_restriction: crse & fine must have same # of components')
     end if
-    call ml_edge_restriction_c(crse, 1, fine, 1, ir, face, crse%nc)
+    call ml_edge_restriction_c(crse, 1, fine, 1, ir, face, ncomp(crse))
 
   end subroutine ml_edge_restriction
 
@@ -292,19 +300,19 @@ contains
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
 
-    integer             :: i, n, rmode
-    integer             :: lo (fine%dim), hi (fine%dim), loc(fine%dim), lof(fine%dim)
-    integer             :: lom_fine(fine%dim), lom_crse(fine%dim)
+    integer             :: i, n, rmode, dm
+    integer             :: lo (get_dim(fine)), hi (get_dim(fine)), loc(get_dim(fine)), lof(get_dim(fine))
+    integer             :: lom_fine(get_dim(fine)), lom_crse(get_dim(fine))
     logical             :: linject, lzero_only
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     integer,    pointer :: mp_fine(:,:,:,:), mp_crse(:,:,:,:)
-    type(layout)        :: lacfine
+    type(layout)        :: lacfine, laf
     type(multifab)      :: cfine
     type(imultifab)     :: mm_cfine
 
     type(bl_prof_timer), save :: bpt
 
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_nodal_restriction: crse & fine must have same # of components')
     end if
 
@@ -313,21 +321,25 @@ contains
     linject    = .false. ; if ( present(inject   ) ) linject    = inject
     lzero_only = .false. ; if ( present(zero_only) ) lzero_only = zero_only
 
-    call layout_build_coarse(lacfine, fine%la, ir)
-    call multifab_build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = crse%nodal)
+    laf = get_layout(fine)
+
+    call layout_build_coarse(lacfine, laf, ir)
+    call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
     call copy(cfine, crse)
 
+    dm = get_dim(fine)
+
     if ( .not. linject ) then
-       do i = 1, fine%nboxes
+       do i = 1, nboxes(fine)
           if ( remote(fine, i) ) cycle
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
           loc      = lwb(get_pbox(cfine,   i))
           lom_fine = lwb(get_pbox(mm_fine, i))
-          do n = 1, fine%nc
+          do n = 1, ncomp(fine)
              cp      => dataptr(cfine,   i, n, 1)
              mp_fine => dataptr(mm_fine, i, n, 1)
-             select case (fine%dim)
+             select case (dm)
              case (1)
                 call nodal_zero_1d(cp(:,1,1,1), loc, mp_fine(:,1,1,1), lom_fine, lo, hi, ir)
              case (2)
@@ -343,9 +355,9 @@ contains
 
     if ( .not. lzero_only ) then
        rmode = 0
-       call imultifab_build(mm_cfine, lacfine, nc = mm_crse%nc, ng = 0, nodal = mm_crse%nodal)
+       call imultifab_build(mm_cfine, lacfine, nc = ncomp(mm_crse), ng = 0, nodal = nodal_flags(mm_crse))
        call copy(mm_cfine, mm_crse)
-       do i = 1, fine%nboxes
+       do i = 1, nboxes(fine)
           if ( remote(fine, i) ) cycle
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
@@ -353,12 +365,12 @@ contains
           loc      = lwb(get_pbox(cfine,   i))
           lom_crse = lwb(get_pbox(mm_cfine,i))
           lom_fine = lwb(get_pbox(mm_fine, i))
-          do n = 1, fine%nc
+          do n = 1, ncomp(fine)
              cp      => dataptr(cfine,   i, n, 1)
              fp      => dataptr(fine,    i, n, 1)
              mp_crse => dataptr(mm_cfine,i, n, 1)
              mp_fine => dataptr(mm_fine, i, n, 1)
-             select case (fine%dim)
+             select case (dm)
              case (1)
                 call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
                      mp_fine(:,1,1,1), lom_fine, &
@@ -427,9 +439,10 @@ contains
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
     integer               :: i,j,ii,jj,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
-    logical               :: nodal(dst%dim)
+    logical               :: nodal(get_dim(dst))
     integer               :: shift_vector(3)
     integer,  parameter   :: tag = 1111
+    logical               :: pmask(get_dim(dst))
 
     type(box_intersector), pointer :: bisrc(:), bidst(:)
 
@@ -437,52 +450,54 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    if ( dst%nc .ne. src%nc ) then
+    if ( ncomp(dst) .ne. ncomp(src) ) then
        call bl_error('periodic_add_copy: src & dst must have same # of components')
     end if
 
-    if ( all(dst%la%lap%pmask .eqv. .false.) ) return
+    if ( cell_centered_q(dst) ) return
 
     if ( .not. nodal_q(dst) ) call bl_error('periodic_add_copy(): dst NOT nodal')
     if ( .not. nodal_q(src) ) call bl_error('periodic_add_copy(): src NOT nodal')
 
     call build(bpt, "periodic_add_copy")
 
-    dm     = dst%dim
+    dm     = get_dim(dst)
     lo     = 1
     hi     = 1
     nodal  = .true.
-    domain = box_nodalize(dst%la%lap%pd,nodal)
+    domain = box_nodalize(get_pd(get_layout(dst)),nodal)
 
-    if ( synced ) call multifab_build(temp_dst,dst%la,dst%nc,dst%ng,nodal)
+    if ( synced ) call multifab_build(temp_dst,get_layout(dst),ncomp(dst),nghost(dst),nodal)
     !
     ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
     !
-    call copy(ba, get_boxarray(dst%la))
+    call copy(ba, get_boxarray(get_layout(dst)))
     call boxarray_nodalize(ba, nodal)
     call build(dstla, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
-    call copy(ba, get_boxarray(src%la))
+    call copy(ba, get_boxarray(get_layout(src)))
     call boxarray_nodalize(ba, nodal)
     call build(srcla, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
 
+    pmask = get_pmask(get_layout(dst))
+
     do kdir = -1,1
 
-       if ( dm < 3  .and. kdir /= 0                                    ) cycle
-       if ( dm == 3 .and. (.not. dst%la%lap%pmask(dm)) .and. kdir /= 0 ) cycle
+       if ( dm < 3  .and. kdir /= 0                         ) cycle
+       if ( dm == 3 .and. (.not. pmask(dm)) .and. kdir /= 0 ) cycle
 
        if ( dm == 3 ) shift_vector(3) = kdir * (extent(domain,dm) - 1)
 
        do jdir = -1,1
 
-          if ( .not. dst%la%lap%pmask(2) .and. jdir /= 0 ) cycle
+          if ( .not. pmask(2) .and. jdir /= 0 ) cycle
 
           shift_vector(2) = jdir * (extent(domain,2) - 1)
 
           do idir = -1,1
 
-             if ( .not. dst%la%lap%pmask(1) .and. idir /= 0                 ) cycle
+             if ( .not. pmask(1) .and. idir /= 0                            ) cycle
              if ( dm == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
              if ( dm == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
 
@@ -524,15 +539,15 @@ contains
                       ! We own src.  Got to send it to processor owning dst.
                       !
                       bp   => dataptr(src,i,bx_from)
-                      proc =  get_proc(dst%la,j)
+                      proc =  get_proc(get_layout(dst),j)
                       call parallel_send(bp, proc, tag)
                    else
                       !
                       ! We own dst.  Got to get src from processor owning it.
                       !
-                      lo(1:src%dim) = lwb(bx_from); hi(1:src%dim) = upb(bx_from)
-                      proc = get_proc(src%la,i)
-                      allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:dst%nc))
+                      lo(1:dm) = lwb(bx_from); hi(1:dm) = upb(bx_from)
+                      proc = get_proc(get_layout(src),i)
+                      allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:ncomp(dst)))
                       call parallel_recv(pt, proc, tag)
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
@@ -573,7 +588,7 @@ contains
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
     type(bl_prof_timer), save :: bpt
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_restriction: crse & fine must have same # of components')
     end if
     call build(bpt, "ml_restriction")

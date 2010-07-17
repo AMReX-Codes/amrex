@@ -16,18 +16,18 @@ module nodal_mask_module
   type(ml_layout), intent(in   ) :: mla
 
   integer   :: dm
-  integer   :: ir(mask%dim),hi_fine(mask%dim),hi_crse(mask%dim)
+  integer   :: ir(get_dim(mask)),hi_fine(get_dim(mask)),hi_crse(get_dim(mask))
   type(box) :: cbox
 
   logical, pointer :: mkp(:,:,:,:)
   integer, pointer :: cmp(:,:,:,:),fmp(:,:,:,:)
 
-  type(layout)     :: lacfine
+  type(layout)     :: lacfine, mm_fine_la
   type(lmultifab)  :: cfmask
 
-  integer :: lo(mask%dim),hi(mask%dim),lof(mask%dim),j
+  integer :: lo(get_dim(mask)),hi(get_dim(mask)),lof(get_dim(mask)),j
 
-  dm = mask%dim
+  dm = get_dim(mask)
 
 ! Note :          mm_fine is  in fine space
 ! Note : mask and mm_crse are in crse space
@@ -37,14 +37,16 @@ module nodal_mask_module
 
   ir = hi_fine / hi_crse
 
-  call layout_build_coarse(lacfine, mm_fine%la, ir)
+  mm_fine_la = get_layout(mm_fine)
 
-  call build(cfmask, lacfine, mask%nc, mask%ng, mask%nodal)
+  call layout_build_coarse(lacfine, mm_fine_la, ir)
+
+  call build(cfmask, lacfine, ncomp(mask), nghost(mask), nodal_flags(mask))
 
   call setval(  mask,.true.)
   call setval(cfmask,.true.)
 
-  do j = 1,cfmask%nboxes
+  do j = 1,nboxes(cfmask)
      if ( remote(cfmask,j) ) cycle
      cbox = get_ibox(cfmask,j)
      lo   = lwb(cbox)
@@ -62,11 +64,11 @@ module nodal_mask_module
      end select
   end do
 
-  call copy(mask, 1, cfmask, 1, mask%nc)
+  call copy(mask, 1, cfmask, 1, ncomp(mask))
 
   call lmultifab_destroy(cfmask)
 
-  do j = 1,mask%nboxes
+  do j = 1,nboxes(mask)
      if ( remote(mask,j) ) cycle
      cbox =  get_ibox(mask,j)
      lo   =  lwb(cbox)

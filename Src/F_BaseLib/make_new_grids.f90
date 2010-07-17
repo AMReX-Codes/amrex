@@ -72,7 +72,7 @@ module make_new_grids_module
 
       llev = 1; if (present(lev)) llev = lev
 
-      call lmultifab_build(tagboxes,mf%la,1,0) 
+      call lmultifab_build(tagboxes,get_layout(mf),1,0) 
       call setval(tagboxes, .false.)
 
       call tag_boxes(mf,tagboxes,dx_crse,llev)
