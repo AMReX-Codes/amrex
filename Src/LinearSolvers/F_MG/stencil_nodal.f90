@@ -23,7 +23,7 @@ module stencil_nodal_module
   real (kind = dp_t), private, parameter :: SIXTH = 1.0_dp_t/6.0_dp_t
   real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
-  private :: set_nodal_faces_edges_corners_3d
+  private :: set_faces_edges_corners_3d
 
 contains
 
@@ -306,7 +306,7 @@ contains
 
   end subroutine s_dense_2d_nodal
 
-  subroutine set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
+  subroutine set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
     integer           , intent(in   ) :: nx, ny, nz
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(in   ) :: mm(:,:,:)
@@ -418,7 +418,7 @@ contains
     if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
     if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
 
-  end subroutine set_nodal_faces_edges_corners_3d
+  end subroutine set_faces_edges_corners_3d
 
   subroutine s_cross_3d_nodal(ss, sg, mm, dh)
     real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
@@ -446,7 +446,7 @@ contains
     !
     ss = ZERO
 
-    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
+    call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
@@ -526,7 +526,7 @@ contains
        end do
     end do
 
-    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
+    call set_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
@@ -593,7 +593,7 @@ contains
     !
     !   END STENCIL
     !
-    call set_nodal_faces_edges_corners_3d(nx, ny, nz, sg, mm)
+    call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
     fx = ONE / (36.0_dp_t)
     fy = ONE / (36.0_dp_t)

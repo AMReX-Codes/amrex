@@ -1,5 +1,5 @@
 /* 
-   $Id: ppm_util_c.c,v 1.3 2005-03-12 19:43:51 car Exp $ 
+   $Id: ppm_util_c.c,v 1.4 2010-07-17 00:51:01 lijewski Exp $ 
    Contains architecture specific PPM writing routines used by ppm_util.f90
 */
 #include <stdlib.h>
@@ -159,24 +159,41 @@ LOAD_PALETTE_STR (const int ifilename[], int r[], int g[], int b[], int a[])
       exit(1);
     }
 
-  fread(c, 1, NCOLOR, pal_fp);
+  if (fread(c, 1, NCOLOR, pal_fp) != NCOLOR)
+    {
+      fprintf(stderr, "LOAD_PALETTE_STR: fread() failed!\n");
+      exit(1);
+    }
+
   for ( i = 0; i < NCOLOR; ++i )
     {
       r[i] = c[i];
     }
-  fread(c, 1, NCOLOR, pal_fp);
+  if (fread(c, 1, NCOLOR, pal_fp) != NCOLOR)
+    {
+      fprintf(stderr, "LOAD_PALETTE_STR: fread() failed!\n");
+      exit(1);
+    }
   for ( i = 0; i < NCOLOR; ++i )
     {
       g[i] = c[i];
     }
-  fread(c, 1, NCOLOR, pal_fp);
+  if (fread(c, 1, NCOLOR, pal_fp) != NCOLOR)
+    {
+      fprintf(stderr, "LOAD_PALETTE_STR: fread() failed!\n");
+      exit(1);
+    }
   for ( i = 0; i < NCOLOR; ++i )
     {
       b[i] = c[i];
     }
   if ( num_elements == 4 ) 
     {
-      fread(c, 1, NCOLOR, pal_fp);
+      if (fread(c, 1, NCOLOR, pal_fp) != NCOLOR)
+        {
+          fprintf(stderr, "LOAD_PALETTE_STR: fread() failed!\n");
+          exit(1);
+        }
       for ( i = 0; i < NCOLOR; ++i )
 	{
 	  a[i] = c[i];

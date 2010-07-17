@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.12 2009-01-09 23:41:34 ajnonaka Exp $ 
+   $Id: fabio_c.c,v 1.13 2010-07-17 00:51:01 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -516,7 +516,13 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
       fprintf(stderr, "FABIO_WRITE_RAW_D: strange dimension = %d\n", dm);
       exit(1);
     }
-  write(fd, buffer, strlen(buffer));
+  ilen = write(fd, buffer, strlen(buffer));
+
+  if ( ilen !=  strlen(buffer) )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW_D: write of buffer failed\n");
+      exit(1);
+    }
   
   ilen = nc*count*sizeof(double);
   if ( ilen != write(fd, dp, ilen) )
@@ -576,8 +582,14 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
       fprintf(stderr, "FABIO_WRITE_RAW_S: strange dimension = %d\n", dm);
       exit(1);
     }
-  write(fd, buffer, strlen(buffer));
-  
+
+  ilen = write(fd, buffer, strlen(buffer));
+  if ( ilen !=  strlen(buffer) )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW_S: write of buffer failed\n");
+      exit(1);
+    }
+
   ilen = nc*count*sizeof(float);
   if ( ilen != write(fd, sp, ilen) )
     {

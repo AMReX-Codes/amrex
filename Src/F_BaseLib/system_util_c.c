@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +23,11 @@ void GET_PRESENT_DIR (int* icwd, const int *size) {
 
   cwd = (char *) malloc( (*size)*sizeof(char));
   
-  getcwd(cwd, *size);  
+  if (getcwd(cwd, *size) == 0)
+    {
+      fprintf(stderr, "GET_PRESENT_DIR: getcwd() returned NULL\n");
+      exit(1);
+    }
 
   /* fill the remainder of the string with ' ', so the boxlib int2str 
      routines result in a nice string */
