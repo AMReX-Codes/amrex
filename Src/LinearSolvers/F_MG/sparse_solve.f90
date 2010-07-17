@@ -147,10 +147,10 @@ contains
 
     integer    , pointer :: ind(:,:,:,:)
 
-    ns = ss%nc
-    dm = ss%dim
+    ns = ncomp(ss)
+    dm = get_dim(ss)
 
-    ngrids = ss%nboxes
+    ngrids = nboxes(ss)
 
     spo%Anorm = my_stencil_norm(ss)
 
@@ -536,7 +536,7 @@ contains
       type(multifab), intent(in) :: ss
 
       r = -Huge(r)
-      do i = 1, ss%nboxes
+      do i = 1, nboxes(ss)
          sp => dataptr(ss, i)
          r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
       end do
@@ -552,7 +552,7 @@ contains
       integer j_lbnd
       integer j_ubnd
       integer ir
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       r = 0
       do igrid = 1,ngrids
@@ -583,25 +583,25 @@ contains
       type(multifab), intent(in) :: rh
       type(box) :: ibx,jbx
       integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
+      integer i_lbnd(get_dim(rh))
+      integer i_ubnd(get_dim(rh))
+      integer j_lbnd(get_dim(rh))
+      integer j_ubnd(get_dim(rh))
       integer ir
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       r = 0
       do igrid = 1, ngrids
          ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
+         i_lbnd = ibx%lo(1:get_dim(rh))
+         i_ubnd = ibx%hi(1:get_dim(rh))
 
          ir = 0
          do jgrid = 1,ngrids
             if (jgrid == igrid) cycle
             jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
+            j_lbnd = jbx%lo(1:get_dim(rh))
+            j_ubnd = jbx%hi(1:get_dim(rh))
             if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
                  j_ubnd(2) >= i_lbnd(2)   .and. &
                  j_lbnd(2) <= i_ubnd(2)   ) then
@@ -633,25 +633,25 @@ contains
       type(multifab), intent(in) :: rh
       type(box) :: ibx,jbx
       integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
+      integer i_lbnd(get_dim(rh))
+      integer i_ubnd(get_dim(rh))
+      integer j_lbnd(get_dim(rh))
+      integer j_ubnd(get_dim(rh))
       integer ir
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       r = 0
       do igrid = 1,ngrids
          ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
+         i_lbnd = ibx%lo(1:get_dim(rh))
+         i_ubnd = ibx%hi(1:get_dim(rh))
 
          ir = 0
          do jgrid = 1,ngrids
             if (jgrid == igrid) cycle
             jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
+            j_lbnd = jbx%lo(1:get_dim(rh))
+            j_ubnd = jbx%hi(1:get_dim(rh))
             if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
                  j_ubnd(2) >= i_lbnd(2)   .and. &
                  j_lbnd(2) <= i_ubnd(2)   .and. &
@@ -716,7 +716,7 @@ contains
 
       integer inbr 
 
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       do igrid = 1,ngrids
          ibx = get_box(rh, igrid)
@@ -750,10 +750,10 @@ contains
       type(multifab), intent(in) :: rh
       type(box) :: ibx,jbx
       integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
+      integer i_lbnd(get_dim(rh))
+      integer i_ubnd(get_dim(rh))
+      integer j_lbnd(get_dim(rh))
+      integer j_ubnd(get_dim(rh))
 
       integer :: neighbors(:,:)
       integer :: sides(:,:)
@@ -761,19 +761,19 @@ contains
 
       integer inbr 
 
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       do igrid = 1,ngrids
          ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
+         i_lbnd = ibx%lo(1:get_dim(rh))
+         i_ubnd = ibx%hi(1:get_dim(rh))
 
          inbr = 1
          do jgrid = 1,ngrids
             if (jgrid == igrid) cycle
             jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
+            j_lbnd = jbx%lo(1:get_dim(rh))
+            j_ubnd = jbx%hi(1:get_dim(rh))
             if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
                  j_ubnd(2) >= i_lbnd(2)   .and. &
                  j_lbnd(2) <= i_ubnd(2)   ) then
@@ -813,10 +813,10 @@ contains
       type(multifab), intent(in) :: rh
       type(box) :: ibx,jbx
       integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
+      integer i_lbnd(get_dim(rh))
+      integer i_ubnd(get_dim(rh))
+      integer j_lbnd(get_dim(rh))
+      integer j_ubnd(get_dim(rh))
 
       integer :: neighbors(:,:)
       integer :: sides(:,:)
@@ -824,19 +824,19 @@ contains
 
       integer inbr 
 
-      ngrids = rh%nboxes
+      ngrids = nboxes(rh)
 
       do igrid = 1,ngrids
          ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
+         i_lbnd = ibx%lo(1:get_dim(rh))
+         i_ubnd = ibx%hi(1:get_dim(rh))
 
          inbr = 1
          do jgrid = 1,ngrids
             if (jgrid == igrid) cycle
             jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
+            j_lbnd = jbx%lo(1:get_dim(rh))
+            j_ubnd = jbx%hi(1:get_dim(rh))
             if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
                  j_ubnd(2) >= i_lbnd(2)   .and. &
                  j_lbnd(2) <= i_ubnd(2)   .and. &
@@ -1584,15 +1584,15 @@ contains
 
     integer    , pointer :: ind(:,:,:,:)
 
-    ns = ss%nc
-    dm = ss%dim
+    ns = ncomp(ss)
+    dm = get_dim(ss)
 
-    ngrids = ss%nboxes
+    ngrids = nboxes(ss)
 
     spo%Anorm = my_stencil_norm(ss)
 
 !   Build a mask with one ghost cell for use in creating aa
-    call imultifab_build(mm_grown,la,1,1,mm%nodal)
+    call imultifab_build(mm_grown,la,1,1,nodal_flags(mm))
     do igrid = 1, ngrids
        mp => dataptr(mm_grown,igrid)
        mp(:,:,:,:) = ibset(mp(:,:,:,:), BC_BIT(BC_DIR,1,0))
@@ -1601,7 +1601,7 @@ contains
     call imultifab_fill_boundary(mm_grown, nocomm=.true.)
 
 !   Build the ia array.
-    call imultifab_build(spo%index_into_aa,la,1,1,ss%nodal)
+    call imultifab_build(spo%index_into_aa,la,1,1,nodal_flags(ss))
     call setval(spo%index_into_aa,-1,all=.true.)
 
     numpts = 0
@@ -1956,7 +1956,7 @@ contains
       type(multifab), intent(in) :: ss
 
       r = -Huge(r)
-      do i = 1, ss%nboxes
+      do i = 1, nboxes(ss)
          sp => dataptr(ss, i)
          r = max(r, maxval(sum(abs(sp(:,:,:,:)),dim=4)))
       end do
@@ -2519,15 +2519,15 @@ contains
     integer        , pointer :: ind_i(:,:,:,:)
     integer        , pointer :: ind_j(:,:,:,:)
 
-    integer :: lo_i(ind%dim)
-    integer :: hi_j(ind%dim)
-    integer :: lo_a(ind%dim),hi_a(ind%dim)
+    integer :: lo_i(get_dim(ind))
+    integer :: hi_j(get_dim(ind))
+    integer :: lo_a(get_dim(ind)),hi_a(get_dim(ind))
     integer :: i,j,igrid,jgrid,ngrids,idm
     logical :: do_copy
 
     type(box) :: ibx, jbx, abx
 
-    ngrids = ind%nboxes
+    ngrids = nboxes(ind)
 
 !   Copy on intersect from the grid which owns ind() to the grid which doesn't.
     if (ngrids > 1) then
@@ -2545,11 +2545,11 @@ contains
                 lo_a = lwb(abx)
                 hi_a = upb(abx)
                 do_copy = .false.
-                do idm = 1,ind%dim
+                do idm = 1,get_dim(ind)
                    if (lo_i(idm) == hi_j(idm)) do_copy = .true.
                 end do
                 if (do_copy) then
-                   select case(ind%dim)
+                   select case(get_dim(ind))
                    case(1)
                       if (ind_i(lo_a(1),1,1,1) .gt. -1) ind_j(i,1,1,1) = ind_i(i,1,1,1)
                    case(2)
@@ -2599,13 +2599,13 @@ contains
 
     type(box) ibx
 
-    integer lo(rh%dim)
-    integer hi(rh%dim)
+    integer lo(get_dim(rh))
+    integer hi(get_dim(rh))
     integer i,j,k
     integer igrid,ngrids
     integer numpts
 
-    ngrids = rh%nboxes
+    ngrids = nboxes(rh)
 
     numpts = spo%smt%nrow
 
@@ -2622,7 +2622,7 @@ contains
        lo = lwb(ibx)
        hi = upb(ibx)
 
-       select case(rh%dim)
+       select case(get_dim(rh))
        case(1)
           do i = lo(1),hi(1)
              rhs(ind(i,1,1,1)) = rp(i,1,1,1)
@@ -2655,7 +2655,7 @@ contains
        lo = lwb(ibx)
        hi = upb(ibx)
 
-       select case(rh%dim)
+       select case(get_dim(rh))
        case(1)
           do i = lo(1),hi(1)
              rp(i,1,1,1) = soln(ind(i,1,1,1))
@@ -2700,13 +2700,13 @@ contains
     type(box) :: ibx,jbx,abx
     logical   :: do_copy
 
-    integer lo(rh%dim),lo_a(rh%dim)
-    integer hi(rh%dim),hi_j(rh%dim),hi_a(rh%dim)
+    integer lo(get_dim(rh)),lo_a(get_dim(rh))
+    integer hi(get_dim(rh)),hi_j(get_dim(rh)),hi_a(get_dim(rh))
     integer i,j,k,idm
     integer igrid,jgrid,ngrids
     integer numpts
 
-    ngrids = rh%nboxes
+    ngrids = nboxes(rh)
 
     numpts = spo%smt%nrow
 
@@ -2723,7 +2723,7 @@ contains
        lo = lwb(ibx)
        hi = upb(ibx)
 
-       select case(rh%dim)
+       select case(get_dim(rh))
        case(1)
           do i = lo(1),hi(1)
              if (ind(i,1,1,1) .gt. -1) &
@@ -2760,7 +2760,7 @@ contains
        lo = lwb(ibx)
        hi = upb(ibx)
 
-       select case(rh%dim)
+       select case(get_dim(rh))
        case(1)
           do i = lo(1),hi(1)
              if (ind(i,1,1,1) .gt. -1) &
@@ -2796,11 +2796,11 @@ contains
              lo_a = lwb(abx)
              hi_a = upb(abx)
              do_copy = .false.
-             do idm = 1,rh%dim
+             do idm = 1,get_dim(rh)
                 if (lo(idm) == hi_j(idm)) do_copy = .true.
              end do
              if (do_copy) then
-                select case(rh%dim)
+                select case(get_dim(rh))
                 case(1)
                    if (ind(lo_a(1),1,1,1) .gt. -1) rp_j(i,1,1,1) = rp(i,1,1,1)
                 case(2)

@@ -146,7 +146,7 @@ contains
     integer :: r
     type(ml_multifab), intent(in) :: mmf
     integer, intent(in) :: lev
-    r = mmf%mf(lev)%nboxes
+    r = nboxes(mmf%mf(lev))
   end function ml_multifab_nboxes
 
   function ml_multifab_nlevels(mmf) result(r)
@@ -253,7 +253,7 @@ contains
     real(kind=dp_t), intent(in)  :: b
     integer :: n
     do n = 1, a%nlevel
-       call mult_mult(a%mf(n), ia, b, a%mf(n)%nc, a%mf(n)%ng)
+       call mult_mult(a%mf(n), ia, b, ncomp(a%mf(n)), nghost(a%mf(n)))
     end do
   end subroutine ml_multifab_mult_mult_c_s
   
@@ -264,7 +264,7 @@ contains
     integer, intent(in) :: ia, ib
     integer :: n
     do n = 1, a%nlevel
-       call mult(a%mf(n), ia, b%mf(n), ib, val, a%mf(n)%nc, a%mf(n)%ng)
+       call mult(a%mf(n), ia, b%mf(n), ib, val, ncomp(a%mf(n)), nghost(a%mf(n)))
     end do
   end subroutine ml_multifab_mult_s_c
 
@@ -292,7 +292,7 @@ contains
     real(kind=dp_t), intent(in)  :: b
     integer :: n
     do n = 1, a%nlevel
-       call div_div(a%mf(n), ia, b, a%mf(n)%nc, a%mf(n)%ng)
+       call div_div(a%mf(n), ia, b, ncomp(a%mf(n)), nghost(a%mf(n)))
     end do
   end subroutine ml_multifab_div_div_c_s
 
@@ -303,7 +303,7 @@ contains
     integer, intent(in) :: ia, ib
     integer :: n
     do n = 1, a%nlevel
-       call div(a%mf(n), ia, b%mf(n), ib, val, a%mf(n)%nc, a%mf(n)%ng)
+       call div(a%mf(n), ia, b%mf(n), ib, val, ncomp(a%mf(n)), nghost(a%mf(n)))
     end do
   end subroutine ml_multifab_div_s_c
 

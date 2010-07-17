@@ -122,7 +122,7 @@ contains
     if ( buf_wid < 0 ) &
        call bl_error("CLUSTER: buf_wid must be >= 0: ", buf_wid)
 
-    dm       = tagboxes%dim
+    dm       = get_dim(tagboxes)
     num_flag = lmultifab_count(tagboxes)
 
     if ( num_flag == 0 ) then
@@ -138,10 +138,10 @@ contains
     !
     ! Buffer the cells.
     !
-    do b = 1, buf%nboxes; if ( remote(buf, b) ) cycle
+    do b = 1, nboxes(buf); if ( remote(buf, b) ) cycle
        mt => dataptr(tagboxes, b, get_box(tagboxes,b))
        mb => dataptr(buf, b)
-       select case (tagboxes%dim)
+       select case (dm)
        case (1)
           call buffer_1d(mb(:,1,1,1), mt(:,1,1,:), buf_wid)
        case (2)
@@ -287,12 +287,14 @@ contains
       integer :: i, j
       type(box) :: bxi
       type(boxarray) :: ba
+      logical, pointer :: lp(:,:,:,:)
 
-      do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
+      do i = 1, nboxes(mask); if ( remote(mask, i) ) cycle
          bxi = get_pbox(mask, i)
          call boxarray_box_diff(ba, bxi, pd)
          do j = 1, nboxes(ba)
-            call setval(mask%fbs(i), .false., get_box(ba,j))
+            lp => dataptr(mask, i, get_box(ba,j))
+            lp = .false.
          end do
          call destroy(ba)
       end do
@@ -302,14 +304,16 @@ contains
       type(lmultifab), intent(inout) :: mask
       integer :: i, j
       type(box) :: bxi, bxj, bxij
+      logical, pointer :: lp(:,:,:,:)
 
-      do i = 1, mask%nboxes; if ( remote(mask, i) ) cycle
+      do i = 1, nboxes(mask); if ( remote(mask, i) ) cycle
          bxi = get_pbox(mask, i)
          do j = 1, i-1
             bxj = get_pbox(mask, j)
             bxij = intersection(bxi, bxj)
             if ( empty(bxij) ) cycle
-            call setval(mask%fbs(j), .false., bxij)
+            lp => dataptr(mask, j, bxij)
+            lp = .false.
          end do
       end do
     end subroutine owner_mask
@@ -350,19 +354,21 @@ contains
 
     type(lmultifab), intent(inout) :: mask
 
-    integer                        :: i, j, ii, jj, cnt, shft(3**mask%dim,mask%dim)
-    type(box)                      :: pd, bxs(3**mask%dim), bx_from, bx_to
-    logical                        :: pmask(mask%dim)
+    integer                        :: i, j, ii, jj, cnt, shft(3**get_dim(mask), get_dim(mask))
+    type(box)                      :: pd, bxs(3**get_dim(mask)), bx_from, bx_to
+    logical                        :: pmask(get_dim(mask))
     logical, pointer               :: ap(:,:,:,:), bp(:,:,:,:)
     logical, allocatable           :: pt(:,:,:,:)
     integer, parameter             :: tag = 2121
     type(box_intersector), pointer :: bi(:)
+    type(layout)                   :: la
     type(bl_prof_timer),   save    :: bpt
 
     call build(bpt, "map_periodic")
 
-    pd    = get_pd(mask%la)
-    pmask = layout_get_pmask(mask%la)
+    la    = get_layout(mask)
+    pd    = get_pd(la)
+    pmask = get_pmask(la)
 
     if ( .not. any(pmask) ) then
        call destroy(bpt)
@@ -370,10 +376,10 @@ contains
     end if
 
     do i = 1, nboxes(mask)
-       call box_periodic_shift(pd, get_ibox(mask,i), mask%nodal, pmask, mask%ng, shft, cnt, bxs)
+       call box_periodic_shift(pd, get_ibox(mask,i), nodal_flags(mask), pmask, nghost(mask), shft, cnt, bxs)
 
        do jj = 1, cnt
-          bi => layout_get_box_intersector(mask%la, bxs(jj))
+          bi => layout_get_box_intersector(la, bxs(jj))
 
           do ii = 1, size(bi)
              j = bi(ii)%i
@@ -392,14 +398,14 @@ contains
                 ! We own index i.  Got to send it to processor owning index j.
                 !
                 bp => dataptr(mask,i,bx_from)
-                call parallel_send(bp, get_proc(mask%la,j), tag)
+                call parallel_send(bp, get_proc(get_layout(mask),j), tag)
              else
                 !
                 ! We own index j.  Got to get index i data from processor owning it.
                 !
                 ap => dataptr(mask,j,bx_to)
                 allocate(pt(1:size(ap,1),1:size(ap,2),1:size(ap,3),1))
-                call parallel_recv(pt, get_proc(mask%la,i), tag)
+                call parallel_recv(pt, get_proc(get_layout(mask),i), tag)
                 ap = ap .or. pt
                 deallocate(pt)
              end if
@@ -426,13 +432,13 @@ contains
     type(box) :: bx1
     integer :: llo(3), hho(3)
 
-    dm = tagboxes%dim
+    dm = get_dim(tagboxes)
 
     tx = 0
     ty = 0
     tz = 0
 
-    do n = 1, tagboxes%nboxes; if ( remote(tagboxes, n) ) cycle
+    do n = 1, nboxes(tagboxes); if ( remote(tagboxes, n) ) cycle
        bx1 = intersection(get_pbox(tagboxes, n), bx)
        if ( empty(bx1) ) cycle
        tp => dataptr(tagboxes, n, bx1)
@@ -498,7 +504,7 @@ contains
     integer :: ll(3), hh(3)
     integer :: dm
 
-    dm  = tagboxes%dim
+    dm  = get_dim(tagboxes)
 
     if ( verbose ) call print(bx, 'in bx')
 
@@ -575,7 +581,7 @@ contains
         integer :: n
         type(box) :: bx1
         r = 0
-        do n = 1, tagboxes%nboxes;
+        do n = 1, nboxes(tagboxes)
            bx1 = intersection(get_pbox(tagboxes, n), bx)
            if ( empty(bx1) ) cycle
            tp => dataptr(tagboxes, n, bx1)
@@ -711,8 +717,8 @@ contains
     type(lmultifab), intent(inout) :: ctagboxes
     integer,         intent(in   ) :: ratio
 
-    integer          :: ii, i, j, k, ic, jc, kc
-    integer          :: flo(tagboxes%dim), fhi(tagboxes%dim)
+    integer          :: ii, i, j, k, ic, jc, kc, dm
+    integer          :: flo(get_dim(tagboxes)), fhi(get_dim(tagboxes))
     type(layout)     :: cla
     type(boxarray)   :: cba
     logical, pointer :: fp(:,:,:,:), cp(:,:,:,:)
@@ -730,11 +736,13 @@ contains
     call boxarray_grow(cba, nghost(tagboxes))
 
     call boxarray_coarsen(cba, ratio)
+
+    dm = get_dim(tagboxes)
     !
     ! I'm playing a little fast & loose here.
     ! I'm assuming all we really need to get right is the mapping.
     !
-    call build(cla, cba, explicit_mapping = get_proc(tagboxes%la))
+    call build(cla, cba, explicit_mapping = get_proc(get_layout(tagboxes)))
 
     call destroy(cba)
 
@@ -742,7 +750,7 @@ contains
 
     call setval(ctagboxes, .false., all = .true.)
 
-    do ii = 1, tagboxes%nboxes
+    do ii = 1, nboxes(tagboxes)
        if ( remote(tagboxes, ii) ) cycle
 
        fp  => dataptr(tagboxes,  ii)
@@ -751,7 +759,7 @@ contains
        flo = lwb(get_pbox(tagboxes, ii))
        fhi = upb(get_pbox(tagboxes, ii))
 
-       select case (tagboxes%dim)
+       select case (dm)
        case (2)
           do j = flo(2), fhi(2)
              jc = int_coarsen(j,ratio)

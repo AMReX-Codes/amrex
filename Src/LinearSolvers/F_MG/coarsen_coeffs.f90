@@ -23,21 +23,21 @@ contains
     real(kind=dp_t), pointer :: cfp(:,:,:,:)
     real(kind=dp_t), pointer :: ccp(:,:,:,:)
     integer :: i,ng,dm
-    integer :: lof(cf%dim)
-    integer :: loc(cc%dim),hic(cc%dim)
+    integer :: lof(get_dim(cf))
+    integer :: loc(get_dim(cc)),hic(get_dim(cc))
 
-    dm = cf%dim
+    dm = get_dim(cf)
 
-    if (cf%nc .ne. cc%nc) then
+    if ( ncomp(cf) .ne. ncomp(cc) ) then
        print *,'ncomp_fine not equal to ncomp_crse in coarsen_cell_coeffs'
-       print *,'ncomp_fine = ',cf%nc
-       print *,'ncomp_crse = ',cc%nc
+       print *,'ncomp_fine = ',ncomp(cf)
+       print *,'ncomp_crse = ',ncomp(cc)
        call bl_error("coarsen_coeffs.f90 :: coarsen_cell_coeffs")
     end if
 
-    ng = cc%ng
+    ng = nghost(cc)
 
-    do i = 1, cf%nboxes
+    do i = 1, nboxes(cf)
        if ( multifab_remote(cf,i) ) cycle
        cfp => dataptr(cf, i)
        ccp => dataptr(cc, i)
@@ -47,7 +47,7 @@ contains
 
        lof =  lwb(get_box(cf, i))
 
-       select case (cf%dim)
+       select case (dm)
        case (1)
           call crse_cell_coeffs_1d(ccp(:,1,1,:), cfp(:,1,1,:), ng, loc, hic, lof)
        case (2)
@@ -72,24 +72,24 @@ contains
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
     integer :: i,ng,dm
-    integer :: lof(cf(1)%dim)
-    integer :: loc(cc(1)%dim),hic(cc(1)%dim)
+    integer :: lof(get_dim(cf(1)))
+    integer :: loc(get_dim(cc(1))), hic(get_dim(cc(1)))
 
-    dm = cf(1)%dim
+    dm = get_dim(cf(1))
 
-    if (cf(1)%nc .ne. cc(1)%nc) then
+    if ( ncomp(cf(1)) .ne. ncomp(cc(1)) ) then
        print *,'ncomp_fine not equal to ncomp_crse in coarsen_edge_coeffs'
-       print *,'ncomp_fine = ',cf(1)%nc
-       print *,'ncomp_crse = ',cc(1)%nc
+       print *,'ncomp_fine = ',ncomp(cf(1))
+       print *,'ncomp_crse = ',ncomp(cc(1))
        call bl_error("coarsen_coeffs.f90 :: coarsen_edge_coeffs")
     end if
 
-    ng = cc(1)%ng
+    ng = nghost(cc(1))
 
-    do i = 1, cf(1)%nboxes
+    do i = 1, nboxes(cf(1))
        if ( multifab_remote(cf(1),i) ) cycle
 
-       select case (cf(1)%dim)
+       select case (dm)
        case (1)
           loc =  lwb(get_box(cc(1), i))
           hic =  upb(get_box(cc(1), i))

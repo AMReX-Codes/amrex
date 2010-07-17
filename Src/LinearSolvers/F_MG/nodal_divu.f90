@@ -30,14 +30,14 @@ contains
       type(   layout) :: la_crse,la_fine
       type(bndry_reg) :: brs_flx
 
-      dm = unew(nlevs)%dim
-      ng = unew(nlevs)%ng
+      dm = get_dim(unew(nlevs))
+      ng = nghost(unew(nlevs))
 
 !     Create the regular single-level divergence.
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
-         do i = 1, unew(n)%nboxes
+         do i = 1, nboxes(unew(n))
             if ( multifab_remote(unew(n), i) ) cycle
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
@@ -62,11 +62,11 @@ contains
 !     Modify the divu above at coarse-fine interfaces.
       do n = nlevs,2,-1
 
-         la_fine = unew(n  )%la
+         la_fine = get_layout(unew(n))
          mglev_fine = mgt(n)%nlevels
 
-         la_crse = unew(n-1)%la
-         pdc = layout_get_pd(la_crse)
+         la_crse = get_layout(unew(n-1))
+         pdc = get_pd(la_crse)
 
          call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
                                  pdc, nodal = nodal, other = .false.)
@@ -214,16 +214,16 @@ contains
       type(     box) :: pdc
       integer :: i,dm,n_crse,ng
       integer :: mglev_fine, mglev_crse
-      logical :: nodal(u(n_fine)%dim)
+      logical :: nodal(get_dim(u(n_fine)))
 
-      dm = u(n_fine)%dim
+      dm     = get_dim(u(n_fine))
       n_crse = n_fine-1
 
-      ng = u(nlevs)%ng
+      ng    = nghost(u(nlevs))
       nodal = .true.
 
-      la_crse = u(n_crse)%la
-      la_fine = u(n_fine)%la
+      la_crse = get_layout(u(n_crse))
+      la_fine = get_layout(u(n_fine))
 
       mglev_crse = mgt(n_crse)%nlevels
       mglev_fine = mgt(n_fine)%nlevels
@@ -238,7 +238,7 @@ contains
 
 !     First compute a residual which only takes contributions from the
 !        grid on which it is calculated.
-       do i = 1, u(n_fine)%nboxes
+       do i = 1, nboxes(u(n_fine))
           if ( multifab_remote(u(n_fine), i) ) cycle
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
@@ -255,7 +255,7 @@ contains
           end select
       end do
 
-      pdc = layout_get_pd(la_crse)
+      pdc = get_pd(la_crse)
 
       do i = 1,dm
          call ml_fine_contrib(brs_flx%bmf(i,0), &
@@ -416,11 +416,14 @@ contains
      integer        ,intent(in   ) :: side
 
      type(box) :: fbox, ubox, mbox, isect
-     integer   :: lo (rh%dim), hi (rh%dim), lou(rh%dim), dims(4)
-     integer   :: lof(rh%dim), hif(rh%dim), lor(rh%dim), lom(rh%dim)
-     integer   :: lodom(rh%dim), hidom(rh%dim), dir, i, j, k, proc
-     logical   :: nodal(rh%dim)
-     logical   :: pmask(rh%dim)
+
+     integer   :: lo (get_dim(rh)), hi (get_dim(rh)), lou(get_dim(rh)), dims(4), dm
+     integer   :: lof(get_dim(rh)), hif(get_dim(rh)), lor(get_dim(rh)), lom(get_dim(rh))
+     integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc
+     logical   :: nodal(get_dim(rh))
+     logical   :: pmask(get_dim(rh))
+
+     type(layout) :: flux_la
 
      integer,               parameter :: tag = 1371
      real(kind=dp_t),       pointer   :: rp(:,:,:,:), fp(:,:,:,:), up(:,:,:,:)
@@ -432,19 +435,21 @@ contains
 
      if ( .not. cell_centered_q(flux) ) call bl_error('ml_crse_divu_contrib(): flux NOT cell centered')
 
-     dims   = 1;
-     nodal  = .true.
-     dir    = iabs(side)
-     lodom  = lwb(crse_domain)
-     hidom  = upb(crse_domain)+1
+     dims    = 1;
+     nodal   = .true.
+     dir     = iabs(side)
+     lodom   = lwb(crse_domain)
+     hidom   = upb(crse_domain)+1
+     flux_la = get_layout(flux)
+     dm      = get_dim(rh)
+     pmask   = get_pmask(get_layout(rh))
 
-     do j = 1, u%nboxes
+     do j = 1, nboxes(u)
        ubox = box_nodalize(get_ibox(u,j),nodal)
        lou  = lwb(get_pbox(u,j))
        lor  = lwb(get_pbox(rh,j))
 
-       bi => layout_get_box_intersector(flux%la, ubox)
-       pmask = layout_get_pmask(rh%la)
+       bi => layout_get_box_intersector(flux_la, ubox)
 
        do k = 1, size(bi)
 
@@ -469,7 +474,7 @@ contains
              mp   => dataptr(mm  ,i)
              up   => dataptr(u   ,j)
              rp   => dataptr(rh  ,j)
-             select case (rh%dim)
+             select case (dm)
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
                      fp(:,1,1,1), lof, &
@@ -491,7 +496,7 @@ contains
              mbox =  intersection(refine(isect,ir), get_pbox(mm,i))
              fp   => dataptr(flux, i, isect, 1, ncomp(flux))
              mp   => dataptr(mm,   i, mbox,  1, ncomp(mm))
-             proc =  get_proc(u%la, j)
+             proc =  get_proc(get_layout(u), j)
              call parallel_send(fp, proc, tag)
              call parallel_send(mp, proc, tag)
 
@@ -499,18 +504,18 @@ contains
              !
              ! Must receive flux & mm.
              !
-             proc = get_proc(flux%la, i)
+             proc = get_proc(flux_la, i)
              mbox = intersection(refine(isect,ir), get_pbox(mm,i))
              lom  = lwb(mbox)
-             dims(1:rh%dim) = extent(isect)
+             dims(1:dm) = extent(isect)
              allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
-             dims(1:rh%dim) = extent(mbox)
+             dims(1:dm) = extent(mbox)
              allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
              call parallel_recv(fp, proc, tag)
              call parallel_recv(mp, proc, tag)
              up => dataptr(u  ,j)
              rp => dataptr(rh ,j)
-             select case (rh%dim)
+             select case (dm)
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
                      fp(:,1,1,1), lo, &
@@ -1180,14 +1185,14 @@ contains
       integer :: i,n,dm,ng_r,ng_d
       integer :: mglev_fine
 
-      dm = rh(nlevs)%dim
-      ng_r = rh(nlevs)%ng
-      ng_d = divu_rhs(nlevs)%ng
+      dm   = get_dim(rh(nlevs))
+      ng_r = nghost(rh(nlevs))
+      ng_d = nghost(divu_rhs(nlevs))
 
 !     Create the regular single-level divergence.
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
-         do i = 1, rh(n)%nboxes
+         do i = 1, nboxes(rh(n))
             if ( multifab_remote(rh(n), i) ) cycle
             rp => dataptr(rh(n)      , i)
             dp => dataptr(divu_rhs(n), i)

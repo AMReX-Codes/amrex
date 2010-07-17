@@ -186,14 +186,14 @@ contains
     end do
 
     if ( n > 1 .and. mgt%bottom_solver == 3 ) then
-       la2 = mgt%cc(1)%la
+       la2 = get_layout(mgt%cc(1))
        call layout_build_derived(la1, la2)
        call build(mgt%rh1, la1, mgt%nc, 0, nodal)
        call build(mgt%uu1, la1, mgt%nc, 0, nodal)
        call build(mgt%ss1, la1, ns,     0, nodal)
        call build(mgt%mm1, la1, 1,      0, nodal)
     else if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
-       la2 = mgt%cc(1)%la
+       la2 = get_layout(mgt%cc(1))
        call layout_build_derived(la1, la2)
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
     end if
@@ -245,7 +245,7 @@ contains
     ! if only the bottom solver is 'solving' make sure that its eps is
     ! in effect
     if ( mgt%nlevels == 1 ) then
-       ba = get_boxarray(mgt%cc(1)%la)
+       ba = get_boxarray(get_layout(mgt%cc(1)))
        vol = boxarray_volume(ba)
        if (vol > 4**mgt%dim) &
          mgt%bottom_solver_eps = mgt%eps
@@ -264,7 +264,7 @@ contains
        allocate(mgt%bottom_mgt)
 
        ! Get the old/new coarse problem domain
-       old_coarse_la = mgt%ss(1)%la
+       old_coarse_la = get_layout(mgt%ss(1))
        coarse_pd = layout_get_pd(old_coarse_la)
 
        ! Get the new coarse boxarray and layout
@@ -381,8 +381,8 @@ contains
        print *,'F90MG: ',mgt%nlevels,' levels created for this solve'
        do i = mgt%nlevels,1,-1
           write(unit=un,fmt= '(" Level",i2)') i
-          do ii = 1,nboxes(mgt%cc(i)%la)
-             bb = get_box(mgt%cc(i)%la,ii)
+          do ii = 1,nboxes(mgt%cc(i))
+             bb = get_box(mgt%cc(i),ii)
              if (mgt%dim == 2) then
                 write(unit=un,fmt= '("  [",i4,"]: (",i4,",",i4,") (",i4,",",i4,")",i4,i4 )') &
                      ii,bb%lo(1),bb%lo(2),bb%hi(1),bb%hi(2), &
@@ -412,7 +412,7 @@ contains
 
     ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
 
-    la = mgt%cc(mgt%nlevels)%la
+    la = get_layout(mgt%cc(mgt%nlevels))
 
     do i = 1, mgt%nlevels
        call destroy(mgt%cc(i))
@@ -557,10 +557,11 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    type( multifab) :: bottom_uu
-    type( multifab) :: bottom_rh
-    integer         :: mglev
-    logical         :: do_diag
+    type( multifab ) :: bottom_uu
+    type( multifab ) :: bottom_rh
+    type( layout   ) :: la
+    integer          :: mglev
+    logical          :: do_diag
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
@@ -571,15 +572,17 @@ contains
 
     mglev = mgt%bottom_mgt%nlevels
 
-    call multifab_build(bottom_uu,mgt%bottom_mgt%ss(mglev)%la,1,uu%ng,uu%nodal)
+    la = get_layout(mgt%bottom_mgt%ss(mglev))
+
+    call multifab_build(bottom_uu,la,1,nghost(uu),nodal_flags(uu))
 
     call setval(bottom_uu,0.d0,all=.true.)
 
     if (nodal_q(rh)) then
-       call multifab_build(bottom_rh,mgt%bottom_mgt%ss(mglev)%la,1,1,rh%nodal)
+       call multifab_build(bottom_rh,la,1,1,nodal_flags(rh))
        call setval(bottom_rh,ZERO,all=.true.)
     else
-       call multifab_build(bottom_rh,mgt%bottom_mgt%ss(mglev)%la,1,0,rh%nodal)
+       call multifab_build(bottom_rh,la,1,0,nodal_flags(rh))
     end if
 
     call multifab_copy_c(bottom_rh,1,rh,1,1,ng=0)
@@ -877,7 +880,7 @@ contains
     logical :: lcross, pmask(mgt%dim)
     real(kind=dp_t) :: local_eps
 
-    pmask = layout_get_pmask(uu%la)
+    pmask = get_pmask(get_layout(uu))
 
     call build(bpt, "mgt_smoother")
 
@@ -1100,7 +1103,7 @@ contains
     else 
        if (lcross) then
 
-        if (ff%dim == 1) then
+        if ( get_dim(ff) == 1 ) then
 
              call multifab_fill_boundary(uu, cross = lcross)
              do i = 1, mgt%nboxes
@@ -1359,7 +1362,7 @@ contains
     if ( parallel_IOProcessor() .and. do_diag) &
        write(6,1000) lev
 
-    if ( rh%dim == 1 ) then
+    if ( get_dim(rh) == 1 ) then
 
        if (do_diag) then
           nrm = norm_inf(rh)
@@ -1428,10 +1431,10 @@ contains
                                  mgt%mm(lev),mgt%mm(lev-1))
        ! HACK 
        if (nodal_flag) then 
-          if (rh%dim .eq. 3) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
-          else if (rh%dim .eq. 2) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
+          if ( get_dim(rh) .eq. 3 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+          else if ( get_dim(rh) .eq. 2 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
@@ -1508,11 +1511,11 @@ contains
                                  mgt%mm(lev),mgt%mm(lev-1))
 
        ! HACK 
-       if (nodal_q(mgt%dd(lev-1))) then
-          if (ss%dim .eq. 3) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,mgt%dd(lev-1)%ng)
-          else if (ss%dim .eq. 2) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,mgt%dd(lev-1)%ng)
+       if ( nodal_q(mgt%dd(lev-1)) ) then
+          if ( get_dim(ss) .eq. 3 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+          else if ( get_dim(ss) .eq. 2 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
 

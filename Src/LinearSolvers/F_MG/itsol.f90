@@ -306,7 +306,7 @@ contains
     real(kind=dp_t), pointer :: ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
-    integer :: i, n, lo(rr%dim), hi(rr%dim)
+    integer :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
     logical :: nodal_flag, lcross
     type(bl_prof_timer), save :: bpt
 
@@ -314,13 +314,15 @@ contains
 
     luniform_dh = .false. ; if ( present(uniform_dh) ) luniform_dh = uniform_dh
 
-    lcross = ((ncomp(aa) == 5) .or. (ncomp(aa) == 7))
+    lcross = ( (ncomp(aa) == 5) .or. (ncomp(aa) == 7) )
 
     call multifab_fill_boundary(uu, cross = lcross)
 
+    dm = get_dim(rr)
+
     nodal_flag = nodal_q(uu)
 
-    do i = 1, rr%nboxes
+    do i = 1, nboxes(rr)
        if ( multifab_remote(rr, i) ) cycle
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
@@ -328,31 +330,31 @@ contains
        mp => dataptr(mm, i)
        lo = lwb(get_box(uu,i))
        hi = upb(get_box(uu,i))
-       do n = 1, rr%nc
-          select case(rr%dim)
+       do n = 1, ncomp(rr)
+          select case(dm)
           case (1)
              if ( .not. nodal_flag) then
-                call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), rr%ng, up(:,1,1,n), uu%ng,  &
+                call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
                                       mp(:,1,1,1), lo, hi)
              else
                 call stencil_apply_1d_nodal(ap(:,1,1,:), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), uu%ng)
+                     mp(:,1,1,1), nghost(uu))
              end if
           case (2)
              if ( .not. nodal_flag) then
-                call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), rr%ng, up(:,:,1,n), uu%ng,  &
+                call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
                      mp(:,:,1,1), lo, hi)
              else
                 call stencil_apply_2d_nodal(ap(:,:,1,:), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), uu%ng)
+                     mp(:,:,1,1), nghost(uu))
              end if
           case (3)
              if ( .not. nodal_flag) then
-                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), rr%ng, up(:,:,:,n), uu%ng,  &
+                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
                      mp(:,:,:,1))
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), uu%ng, luniform_dh)
+                     mp(:,:,:,1), nghost(uu), luniform_dh)
              end if
           end select
        end do
@@ -397,7 +399,7 @@ contains
     integer :: i
     integer :: cnt, ng_for_res
     logical :: nodal_solve
-    logical :: singular
+    logical :: singular, nodal(get_dim(rh))
     type(bl_prof_timer), save :: bpt
 
     type(multifab) :: rh_local, aa_local
@@ -412,15 +414,17 @@ contains
     ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
     nodal_solve = .False.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
 
-    la = aa%la
-    call multifab_build(rr, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(rt, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(pp, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(ph, la, 1, uu%ng     , rh%nodal)
-    call multifab_build(vv, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(tt, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(sh, la, 1, uu%ng     , rh%nodal)
-    call multifab_build(ss, la, 1, ng_for_res, rh%nodal)
+    nodal = nodal_flags(rh)
+
+    la = get_layout(aa)
+    call multifab_build(rr, la, 1, ng_for_res, nodal)
+    call multifab_build(rt, la, 1, ng_for_res, nodal)
+    call multifab_build(pp, la, 1, ng_for_res, nodal)
+    call multifab_build(ph, la, 1, nghost(uu), nodal)
+    call multifab_build(vv, la, 1, ng_for_res, nodal)
+    call multifab_build(tt, la, 1, ng_for_res, nodal)
+    call multifab_build(sh, la, 1, nghost(uu), nodal)
+    call multifab_build(ss, la, 1, ng_for_res, nodal)
 
     if ( nodal_solve ) then
        call setval(rr, ZERO, all=.true.)
@@ -432,16 +436,16 @@ contains
     end if
 
     ! Use these for local preconditioning
-    call multifab_build(rh_local, la, rh%nc, rh%ng, rh%nodal)
-    call multifab_build(aa_local, la, aa%nc, aa%ng, aa%nodal)
+    call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa))
 
-    call copy(rh_local, 1, rh, 1, nc = rh%nc, ng = rh%ng)
-    call copy(aa_local, 1, aa, 1, nc = aa%nc, ng = aa%ng)
+    call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
+    call copy(aa_local, 1, aa, 1, nc = ncomp(aa), ng = nghost(aa))
 
     call diag_initialize(aa_local,rh_local,mm)
 
-    call copy(ph, uu, ng = ph%ng)
-    call copy(sh, uu, ng = sh%ng)
+    call copy(ph, uu, ng = nghost(ph))
+    call copy(sh, uu, ng = nghost(sh))
 
     cnt = 0
     ! compute rr = aa * uu - rh
@@ -677,7 +681,7 @@ contains
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
     type(layout) :: la
     integer :: i, ng_for_res
-    logical :: nodal_solve
+    logical :: nodal_solve, nodal(get_dim(rh))
     logical :: singular 
     integer :: cnt
 
@@ -694,11 +698,13 @@ contains
     ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
     nodal_solve = .FALSE.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
 
-    la = aa%la
-    call multifab_build(rr, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(zz, la, 1, ng_for_res, rh%nodal)
-    call multifab_build(pp, la, 1, uu%ng     , rh%nodal)
-    call multifab_build(qq, la, 1, ng_for_res, rh%nodal)
+    nodal = nodal_flags(rh)
+
+    la = get_layout(aa)
+    call multifab_build(rr, la, 1, ng_for_res, nodal)
+    call multifab_build(zz, la, 1, ng_for_res, nodal)
+    call multifab_build(pp, la, 1, nghost(uu), nodal)
+    call multifab_build(qq, la, 1, ng_for_res, nodal)
 
     if ( nodal_solve ) then
        call setval(rr,ZERO,all=.true.)
@@ -708,11 +714,11 @@ contains
     call setval(pp, ZERO, all=.true.)
 
     ! Use these for local preconditioning
-    call multifab_build(rh_local, la, rh%nc, rh%ng, rh%nodal)
-    call multifab_build(aa_local, la, aa%nc, aa%ng, aa%nodal)
+    call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa))
 
-    call copy(rh_local, 1, rh, 1, nc = rh%nc, ng = rh%ng)
-    call copy(aa_local, 1, aa, 1, nc = aa%nc, ng = aa%ng)
+    call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
+    call copy(aa_local, 1, aa, 1, nc = ncomp(aa), ng = nghost(aa))
 
     call diag_initialize(aa_local,rh_local,mm)
 
@@ -888,7 +894,7 @@ contains
     type(imultifab), intent(in) :: mm
     real(kind=dp_t), pointer, dimension(:,:,:,:) :: ap, up, rp
     integer, pointer, dimension(:,:,:,:) :: mp
-    integer :: i, n
+    integer :: i, n, dm
     integer, intent(in), optional :: method
     integer :: lm
     type(bl_prof_timer), save :: bpt
@@ -897,38 +903,40 @@ contains
 
     lm = 1; if ( present(method) ) lm = method
 
+    dm = get_dim(uu)
+
     select case (lm)
     case (0)
        call copy(uu, rh)
     case (1)
-       do i = 1, rh%nboxes
+       do i = 1, nboxes(rh)
           if ( multifab_remote(uu, i) ) cycle
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
           mp => dataptr(mm, i)
-          do n = 1, uu%nc
-             select case(uu%dim)
+          do n = 1, ncomp(uu)
+             select case(dm)
              case (1)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_1d(ap(:,1,1,:), up(:,1,1,n), rp(:,1,1,n), uu%ng)
+                   call jacobi_precon_1d(ap(:,1,1,:), up(:,1,1,n), rp(:,1,1,n), nghost(uu))
                 else
                    call nodal_precon_1d(ap(:,1,1,:), up(:,1,1,n), rp(:,1,1,n), &
-                                        mp(:,1,1,1),uu%ng)
+                                        mp(:,1,1,1),nghost(uu))
                 end if
              case (2)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_2d(ap(:,:,1,:), up(:,:,1,n), rp(:,:,1,n), uu%ng)
+                   call jacobi_precon_2d(ap(:,:,1,:), up(:,:,1,n), rp(:,:,1,n), nghost(uu))
                 else
                    call nodal_precon_2d(ap(:,:,1,:), up(:,:,1,n), rp(:,:,1,n), &
-                                        mp(:,:,1,1),uu%ng)
+                                        mp(:,:,1,1),nghost(uu))
                 end if
              case (3)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), uu%ng)
+                   call jacobi_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), nghost(uu))
                 else
                    call nodal_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), &
-                                        mp(:,:,:,1),uu%ng)
+                                        mp(:,:,:,1),nghost(uu))
                 end if
              end select
           end do
@@ -947,25 +955,27 @@ contains
 
     real(kind=dp_t), pointer, dimension(:,:,:,:) :: ap, rp
     integer        , pointer, dimension(:,:,:,:) :: mp
-    integer                                      :: i
+    integer                                      :: i,dm
     integer                                      :: ng_a, ng_r, ng_m
-    integer                                      :: lo(rh%dim),hi(rh%dim)
+    integer                                      :: lo(get_dim(rh)),hi(get_dim(rh))
     type(bl_prof_timer), save                    :: bpt
 
     call build(bpt, "diag_initialize")
 
-    ng_a = aa%ng
-    ng_r = rh%ng
-    ng_m = mm%ng
+    ng_a = nghost(aa)
+    ng_r = nghost(rh)
+    ng_m = nghost(mm)
 
-    do i = 1, rh%nboxes
+    dm = get_dim(rh)
+
+    do i = 1, nboxes(rh)
        if ( multifab_remote(rh, i) ) cycle
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)
        lo = lwb(get_box(rh,i))
        hi = upb(get_box(rh,i))
-       select case(rh%dim)
+       select case(dm)
           case (1)
              if ( cell_centered_q(rh) ) then
                 call diag_init_cc_1d(ap(:,1,1,:), ng_a, rp(:,1,1,1), ng_r, lo, hi)

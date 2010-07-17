@@ -25,7 +25,7 @@ contains
     type(imultifab), intent(in) :: mm
     integer :: ratio
     integer :: face, dim
-    integer :: i, n
+    integer :: i, n, dm
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
@@ -35,20 +35,22 @@ contains
 
     call build(bpt, "ml_fill_fluxes")
 
-    ng = uu%ng
+    ng = nghost(uu)
 
-    if ( uu%nc /= flux%nc ) then
+    if ( ncomp(uu) /= ncomp(flux) ) then
        call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
     end if
 
-    do i = 1, flux%nboxes
+    dm = get_dim(ss)
+
+    do i = 1, nboxes(flux)
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
-       do n = 1, uu%nc
-          select case(ss%dim)
+       do n = 1, ncomp(uu)
+          select case(dm)
           case (1)
              call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
                   mp(:,1,1,1), ng, ratio, face, dim)
@@ -82,21 +84,21 @@ contains
 
     call build(bpt, "ml_fill_fluxes")
 
-    ng = uu%ng
+    ng = nghost(uu)
 
-    do i = 1, flux%nboxes
+    do i = 1, nboxes(flux)
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
-       do n = 1, uu%nc
-          select case(ss%dim)
+       do n = 1, ncomp(uu)
+          select case(get_dim(ss))
           case (1)
              call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
                   mp(:,1,1,1), ng, ratio, face, dim)
           case (2)
-             if (flux%nc > 1) then
+             if ( ncomp(flux) > 1 ) then
                 call stencil_flux_n_2d(sp(:,:,1,:), fp(:,:,1,:), up(:,:,1,n), &
                      mp(:,:,1,1), ng, ratio, face, dim)
              else
@@ -132,18 +134,19 @@ contains
 
     call build(bpt, "ml_fill_fluxes_c")
 
-    ng = uu%ng
+    ng = nghost(uu)
 
-    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+    lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
 
     call multifab_fill_boundary(uu, cross = lcross)
-    do i = 1, flux%nboxes
+
+    do i = 1, nboxes(flux)
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i, cf)
        up => dataptr(uu, i, cu)
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
-       select case(ss%dim)
+       select case(get_dim(ss))
        case (1)
           call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
                mp(:,1,1,1), ng, ratio, face, dim)
@@ -176,24 +179,24 @@ contains
 
     call build(bpt, "ml_fill_fine_fluxes")
 
-    ng = uu%ng
+    ng = nghost(uu)
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
-    if ( uu%nc /= flux%nc ) then
+    if ( ncomp(uu) /= ncomp(flux) ) then
        call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
     end if
 
     call multifab_fill_boundary(uu, cross = lcross)
 
-    do i = 1, flux%nboxes
+    do i = 1, nboxes(flux)
        if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
-       do n = 1, uu%nc
-          select case(ss%dim)
+       do n = 1, ncomp(uu)
+          select case(get_dim(ss))
           case (1)
              call stencil_fine_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
                   mp(:,1,1,1), ng, face, dim)
@@ -229,25 +232,25 @@ contains
     type(bl_prof_timer), save :: bpt
     call build(bpt, "ml_fill_all_fluxes")
 
-    ngu = uu%ng
+    ngu = nghost(uu)
 
     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
 
-    if ( uu%nc /= flux(1)%nc ) then
+    if ( ncomp(uu) /= ncomp(flux(1)) ) then
        call bl_error("ML_FILL_ALL_FLUXES: uu%nc /= flux%nc")
     end if
 
     call multifab_fill_boundary(uu, cross = lcross)
 
-    do dim = 1, uu%dim
-     do i = 1, flux(dim)%nboxes
+    do dim = 1, get_dim(uu)
+     do i = 1, nboxes(flux(dim))
        if ( remote(flux(dim), i) ) cycle
-       ngf = flux(dim)%ng
+       ngf = nghost(flux(dim))
        fp => dataptr(flux(dim), i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
        mp => dataptr(mm, i)
-       select case(ss%dim)
+       select case(get_dim(ss))
        case (1)
           call stencil_all_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
                mp(:,1,1,1), ngu, ngf)
@@ -274,29 +277,34 @@ contains
     type(box) :: fbox
     integer :: side
     integer :: ratio(:)
-    integer :: lof(flux%dim)
-    integer :: lo_dom(flux%dim), hi_dom(flux%dim)
+    integer :: lof(get_dim(flux)), dm
+    integer :: lo_dom(get_dim(flux)), hi_dom(get_dim(flux))
     integer :: i, n, dir
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: rp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: nc
+    logical :: pmask(get_dim(res))
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fine_contrib")
 
-    nc = res%nc
+    nc = ncomp(res)
 
-    if ( res%nc /= flux%nc ) then
+    if ( ncomp(res) /= ncomp(flux) ) then
        call bl_error("ML_FILL_FLUXES: res%nc /= flux%nc")
     end if
 
     lo_dom = lwb(crse_domain)
     hi_dom = upb(crse_domain)
-    if ( nodal_q(res) ) hi_dom = hi_dom + 1
-    dir = iabs(side)
 
-    do i = 1, flux%nboxes
+    if ( nodal_q(res) ) hi_dom = hi_dom + 1
+
+    dir   = iabs(side)
+    pmask = get_pmask(get_layout(res))
+    dm    = get_dim(flux)
+
+    do i = 1, nboxes(flux)
        if ( remote(flux, i) ) cycle
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
@@ -304,9 +312,9 @@ contains
        rp => dataptr(res, i)
        mp => dataptr(mm, i)
        do n = 1, nc
-          if ( (res%la%lap%pmask(dir)) .or. &
+          if ( pmask(dir) .or. &
                (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
-             select case(flux%dim)
+             select case(dm)
              case (1)
                 call fine_edge_resid_1d(fp(:,1,1,n), rp(:,1,1,1), mp(:,1,1,1), ratio, side, lof)
              case (2)

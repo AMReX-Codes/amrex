@@ -126,11 +126,11 @@ contains
 
   end subroutine fabio_open
 
-  subroutine fabio_fab_write_d(fd, offset, fb, nodal, all, prec)
+  subroutine fabio_fab_write_d(fd, offset, fb, idx, nodal, all, prec)
     use bl_error_module
-    integer, intent(in) :: fd
+    integer, intent(in) :: fd, idx
     integer, intent(out) :: offset
-    type(fab), intent(in) :: fb
+    type(multifab), intent(in) :: fb
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: all
     integer, intent(in), optional :: prec
@@ -150,12 +150,12 @@ contains
     end if
     lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
-       bx = get_pbox(fb)
+       bx = get_pbox(fb,idx)
     else
-       bx = get_ibox(fb)
+       bx = get_ibox(fb,idx)
     end if
     count = volume(bx)
-    fbp => dataptr(fb, bx)
+    fbp => dataptr(fb, idx, bx)
     nc = ncomp(fb)
     lo = lwb(bx)
     hi = upb(bx)
@@ -195,6 +195,7 @@ contains
     integer,          intent(in), optional :: nOutFiles
     logical,          intent(in), optional :: lUsingNFiles
 
+    type(layout) :: mf_la
     character(len=128) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j, ng
@@ -202,11 +203,22 @@ contains
     type(box) :: bx
     real(kind=dp_t), allocatable :: mx(:,:), mn(:,:)
     real(kind=dp_t), allocatable :: mxl(:),  mnl(:)
+
+    real(kind=dp_t), pointer :: dp(:,:,:,:)
+
     integer, parameter :: MSG_TAG = 1010
 
     integer :: nSets, mySet, iSet, wakeUpPID, waitForPID, tag, iBuff(2)
     integer :: nOutFilesLoc
     logical :: lUsingNFilesLoc
+
+    logical :: lall, nodalflags(get_dim(mf))
+
+    lall = .false. ; if ( present(all) ) lall = all
+
+    nodalflags = nodal_flags(mf)
+
+    mf_la = get_layout(mf)
 
     nOutFilesLoc = 64        ; if (present(nOutFiles))    nOutFilesLoc    = nOutFiles
     lUsingNFilesLoc = .true. ; if (present(lUsingNFiles)) lUsingNFilesLoc = lUsingNFiles
@@ -216,9 +228,7 @@ contains
     nc = multifab_ncomp(mf)
     nb = nboxes(mf)
     ng = 0
-    if ( present(all) ) then
-       if ( all ) ng = mf%ng
-    end if
+    if ( lall ) ng = nghost(mf)
     allocate(offset(nb),loffset(nb))
     allocate(mnl(nc), mxl(nc))
     if ( parallel_IOProcessor() ) then
@@ -233,7 +243,7 @@ contains
        write(unit=un, fmt='("(",i0," 0")') nb
        do i = 1, nb
           bx = get_box(mf, i)
-          call box_print(bx, unit = un, legacy = .True., nodal = mf%nodal)
+          call box_print(bx, unit = un, legacy = .True., nodal = nodalflags)
        end do
        write(unit=un, fmt='(")")')
     end if
@@ -257,7 +267,7 @@ contains
 
           do i = 1, nb
              if ( remote(mf, i) ) cycle
-             call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
+             call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
           end do
 
           call fabio_close(fd)
@@ -282,7 +292,7 @@ contains
       write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
       call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
       do i = 1, nb; if ( remote(mf, i) ) cycle
-         call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
+         call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
       end do
       call fabio_close(fd)
     end if
@@ -292,14 +302,19 @@ contains
     do i = 1, nb
        if ( local(mf, i) ) then
           do j = 1, nc
-             mnl(j) = min_val(mf%fbs(i), j, all = all)
-             mxl(j) = max_val(mf%fbs(i), j, all = all)
+             if ( lall ) then
+                dp => dataptr(mf, i, get_pbox(mf,i), j, 1)
+             else
+                dp => dataptr(mf, i, get_ibox(mf,i), j, 1)
+             end if
+             mnl(j) = minval(dp)
+             mxl(j) = maxval(dp)
           end do
        end if
        if ( parallel_IOProcessor() ) then
           if ( remote(mf, i) ) then
-             call parallel_recv(mn(:,i), get_proc(mf%la,i), MSG_TAG)
-             call parallel_recv(mx(:,i), get_proc(mf%la,i), MSG_TAG + 1)
+             call parallel_recv(mn(:,i), get_proc(mf_la,i), MSG_TAG)
+             call parallel_recv(mx(:,i), get_proc(mf_la,i), MSG_TAG + 1)
           else
              mx(:,i) = mxl
              mn(:,i) = mnl
@@ -316,12 +331,12 @@ contains
        write(unit=un, fmt='(i0)') nb
        if ( lUsingNFilesLoc ) then
          do i = 1, nb
-            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), mod(get_proc(mf%la, i), nOutFilesLoc)
+            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), mod(get_proc(mf_la, i), nOutFilesLoc)
             write(unit=un, fmt='("FabOnDisk: ", a, " ", i0)') trim(fname), loffset(i)
          end do
        else
          do i = 1, nb
-            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), get_proc(mf%la, i)
+            write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), get_proc(mf_la, i)
             write(unit=un, fmt='("FabOnDisk: ", a, " ", i0)') trim(fname), loffset(i)
          end do
        end if
@@ -488,7 +503,7 @@ contains
        end if
        return
     end if
-    dm = mfs(1)%dim
+    dm = get_dim(mfs(1))
     allocate(plo(dm),phi(dm),ldx(dm),ldxlev(dm),lo(dm),hi(dm),gridlo(dm),gridhi(dm))
     if ( present(bounding_box) ) then
        lbbox = bounding_box

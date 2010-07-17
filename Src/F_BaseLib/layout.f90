@@ -293,7 +293,7 @@ contains
     integer, intent(in) :: v
     sfc_threshold = v
   end subroutine layout_set_sfc_threshold
-  function layout_get_sfc_threshold() result(r)
+  pure function layout_get_sfc_threshold() result(r)
     integer :: r
     r = sfc_threshold
   end function layout_get_sfc_threshold
@@ -304,7 +304,7 @@ contains
     call bl_assert(the_copyassoc_max .gt. 0, "the_copyassoc_max must be positive")
     the_copyassoc_max = v
   end subroutine layout_set_copyassoc_max
-  function layout_get_copyassoc_max() result(r)
+  pure function layout_get_copyassoc_max() result(r)
     integer :: r
     r = the_copyassoc_max
   end function layout_get_copyassoc_max
@@ -313,7 +313,7 @@ contains
     integer, intent(in) :: v
     verbose = v
   end subroutine layout_set_verbosity
-  function layout_get_verbosity() result(r)
+  pure function layout_get_verbosity() result(r)
     integer :: r
     r = verbose
   end function layout_get_verbosity
@@ -322,7 +322,7 @@ contains
     integer, intent(in) :: mapping
     def_mapping = mapping
   end subroutine layout_set_mapping
-  function layout_get_mapping() result(r)
+  pure function layout_get_mapping() result(r)
     integer :: r
     r = def_mapping
   end function layout_get_mapping
@@ -383,49 +383,49 @@ contains
     r = g_layout_next_id
   end function layout_next_id
 
-  function layout_not_equal(a,b) result(r)
+  pure function layout_not_equal(a,b) result(r)
     type(layout), intent(in) :: a, b
     logical :: r
     r = .not. associated(a%lap, b%lap)
   end function layout_not_equal
 
-  function layout_equal(a,b) result(r)
+  pure function layout_equal(a,b) result(r)
     type(layout), intent(in) :: a, b
     logical :: r
     r = associated(a%lap, b%lap)
   end function layout_equal
 
-  function layout_built_q(la) result(r)
+  pure function layout_built_q(la) result(r)
     logical :: r
     type(layout), intent(in) :: la
     r = associated(la%lap)
   end function layout_built_q
 
-  function layout_dim(la) result(r)
+  pure function layout_dim(la) result(r)
     integer :: r
     type(layout), intent(in) :: la
     r = la%lap%dim
   end function layout_dim
 
-  function layout_nboxes(la) result(r)
+  pure function layout_nboxes(la) result(r)
     integer :: r
     type(layout), intent(in) :: la
     r = la%lap%nboxes
   end function layout_nboxes
 
-  function layout_get_pd(la) result(r)
+  pure function layout_get_pd(la) result(r)
     type(box) :: r
     type(layout), intent(in) :: la
     r = la%lap%pd
   end function layout_get_pd
 
-  function layout_boxarray(la) result(r)
+  pure function layout_boxarray(la) result(r)
     type(layout), intent(in) :: la
     type(boxarray) :: r
     r = la%lap%bxa
   end function layout_boxarray
 
-  function layout_get_pmask(la) result(r)
+  pure function layout_get_pmask(la) result(r)
     type(layout), intent(in) :: la
     logical :: r(la%lap%dim)
     r = la%lap%pmask
@@ -802,35 +802,35 @@ contains
     lac = cla%la
   end subroutine layout_build_coarse
 
-  function layout_remote(la, i) result(r)
+  pure function layout_remote(la, i) result(r)
     type(layout), intent(in) :: la
     integer, intent(in) :: i
     logical :: r
     r = la%lap%prc(i) /= parallel_myproc()
   end function layout_remote
 
-  function layout_local(la, i) result(r)
+  pure function layout_local(la, i) result(r)
     type(layout), intent(in) :: la
     integer, intent(in) :: i
     logical :: r
     r = la%lap%prc(i) == parallel_myproc()
   end function layout_local
 
-  function layout_get_box(la, i) result(r)
+  pure function layout_get_box(la, i) result(r)
     type(layout), intent(in) :: la
     integer, intent(in) :: i
     type(box) :: r
     r = get_box(la%lap%bxa, i)
   end function layout_get_box
 
-  function layout_get_proc(la, i) result(r)
+  pure function layout_get_proc(la, i) result(r)
     type(layout), intent(in) :: la
     integer, intent(in) :: i
     integer :: r
     r = la%lap%prc(i)
   end function layout_get_proc
 
-  function layout_get_proc_v(la) result(r)
+  pure function layout_get_proc_v(la) result(r)
     type(layout), intent(in) :: la
     integer :: r(size(la%lap%prc))
     r = la%lap%prc
@@ -972,7 +972,7 @@ contains
     end if
   end subroutine layout_print
 
-  function boxassoc_check(bxa, ng, nodal, cross) result(r)
+  pure function boxassoc_check(bxa, ng, nodal, cross) result(r)
     type(boxassoc), intent(in) :: bxa
     integer,        intent(in) :: ng
     logical,        intent(in) :: nodal(:)
@@ -981,14 +981,14 @@ contains
     r = (bxa%grwth == ng) .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
   end function boxassoc_check
 
-  function fgassoc_check(fgxa, ng) result(r)
+  pure function fgassoc_check(fgxa, ng) result(r)
     type(fgassoc), intent(in) :: fgxa
     integer,       intent(in) :: ng
     logical                   :: r
     r = (fgxa%grwth == ng)
   end function fgassoc_check
 
-  function syncassoc_check(snxa, ng, nodal, lall) result(r)
+  pure function syncassoc_check(snxa, ng, nodal, lall) result(r)
     type(syncassoc), intent(in) :: snxa
     integer,         intent(in) :: ng
     logical,         intent(in) :: nodal(:)
@@ -1075,19 +1075,19 @@ contains
     r = sp
   end function layout_syncassoc
 
-  function boxassoc_built_q(bxasc) result(r)
+  pure function boxassoc_built_q(bxasc) result(r)
     logical :: r
     type(boxassoc), intent(in) :: bxasc
     r = bxasc%dim /= 0
   end function boxassoc_built_q
 
-  function fgassoc_built_q(fgasc) result(r)
+  pure function fgassoc_built_q(fgasc) result(r)
     logical :: r
     type(fgassoc), intent(in) :: fgasc
     r = fgasc%dim /= 0
   end function fgassoc_built_q
 
-  function syncassoc_built_q(snasc) result(r)
+  pure function syncassoc_built_q(snasc) result(r)
     logical :: r
     type(syncassoc), intent(in) :: snasc
     r = snasc%dim /= 0
@@ -2368,7 +2368,7 @@ contains
     flasc%dim = 0
   end subroutine fluxassoc_destroy
 
-  function layout_boxarray_hash(ba) result(r)
+  pure function layout_boxarray_hash(ba) result(r)
     type(boxarray), intent(in) :: ba
     integer                    :: r, i
     r = 0
@@ -2377,7 +2377,7 @@ contains
     end do
   end function layout_boxarray_hash
 
-  function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
+  pure function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
     type(copyassoc), intent(in) :: cpasc
     type(layout),    intent(in) :: la_src, la_dst
     logical,         intent(in) :: nd_dst(:), nd_src(:)
@@ -2395,7 +2395,7 @@ contains
     r =  all(cpasc%prc_src == la_src%lap%prc) .and. all(cpasc%prc_dst == la_dst%lap%prc)
   end function copyassoc_check
 
-  function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
+  pure function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
     logical                     :: r
     type(fluxassoc), intent(in) :: flasc
     type(layout),    intent(in) :: la_src, la_dst
@@ -2495,13 +2495,13 @@ contains
     r = fl
   end function layout_fluxassoc
 
-  function copyassoc_built_q(cpasc) result(r)
+  pure function copyassoc_built_q(cpasc) result(r)
     logical :: r
     type(copyassoc), intent(in) :: cpasc
     r = cpasc%dim /= 0
   end function copyassoc_built_q
 
-  function fluxassoc_built_q(flasc) result(r)
+  pure function fluxassoc_built_q(flasc) result(r)
     logical :: r
     type(fluxassoc), intent(in) :: flasc
     r = flasc%dim /= 0

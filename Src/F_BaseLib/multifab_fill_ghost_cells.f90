@@ -27,7 +27,7 @@ contains
     type(box)       :: bx
     type(boxarray)  :: ba
     type(list_box)  :: bl
-    type(layout)    :: la, tmpla
+    type(layout)    :: la, tmpla, fine_la
     real(kind=dp_t) :: dx(3)
     type(fgassoc)   :: fgasc
     logical         :: fill_crse
@@ -49,16 +49,18 @@ contains
 
     if ( .not. cell_centered_q(fine) ) &
          call bl_error('fillpatch: fine is NOT cell centered')
+
+    fine_la = get_layout(fine)
     !
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     !
-    fgasc = layout_fgassoc(fine%la, ng)
+    fgasc = layout_fgassoc(fine_la, ng)
     !
     ! Now fillpatch a temporary multifab on those ghost cells.
     !
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
-    call build(la, fgasc%ba, get_pd(fine%la), get_pmask(fine%la))
+    call build(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la))
 
     call build(ghost, la, nc, ng = 1)
 
@@ -75,8 +77,7 @@ contains
 
     call build(ba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, ba, get_pd(fine%la), get_pmask(fine%la), &
-               explicit_mapping = get_proc(fine%la))
+    call build(tmpla, ba, get_pd(fine_la), get_pmask(fine_la), explicit_mapping = get_proc(fine_la))
     call destroy(ba)
     call build(tmpfine, tmpla, nc = nc, ng = 0)
     call setval(tmpfine, 0.0_dp_t, all = .true. )

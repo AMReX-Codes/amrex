@@ -23,16 +23,16 @@ contains
     type(multifab), intent(in   ) :: crse
     integer,        intent(in   ) :: ir(:)
 
-    integer             :: lo (fine%dim), hi (fine%dim)
-    integer             :: loc(fine%dim), lof(fine%dim)
-    integer             :: i, n
+    integer             :: lo (get_dim(fine)), hi (get_dim(fine))
+    integer             :: loc(get_dim(fine)), lof(get_dim(fine))
+    integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine
+    type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
     logical             :: lnodal
     type(bl_prof_timer), save :: bpt
 
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_prolongation: crse & fine must have same # of components')
     end if
 
@@ -40,22 +40,26 @@ contains
 
     lnodal = nodal_q(fine)
 
-    call layout_build_coarse(lacfine, fine%la, ir)
+    laf = get_layout(fine)
 
-    call build(cfine, lacfine, nc = crse%nc, ng = 0, nodal = fine%nodal)
+    call layout_build_coarse(lacfine, laf, ir)
 
-    call copy(cfine, 1, crse, 1, crse%nc)
+    call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
 
-    do i = 1, fine%nboxes
+    call copy(cfine, 1, crse, 1, ncomp(crse))
+
+    dm = get_dim(crse)
+
+    do i = 1, nboxes(fine)
        if ( remote(fine, i) ) cycle
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(fine, i))
        hi  = upb(get_ibox(fine, i))
-       do n = 1, crse%nc
+       do n = 1, ncomp(crse)
           fp => dataptr(fine,  i, n, 1)
           cp => dataptr(cfine, i, n, 1)
-          select case (crse%dim)
+          select case (dm)
           case (1)
              if ( lnodal ) then
                 call ml_prolongation_1d_nodal(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
@@ -296,11 +300,11 @@ contains
     integer,        intent(in), optional :: nc
 
     type(box) :: fbox, fbox_grown, cbox_refined, isect
-    integer   :: lo (fine%dim), hi (fine%dim)
-    integer   :: loc(fine%dim), hic(fine%dim)
-    integer   :: lof(fine%dim)
+    integer   :: lo (get_dim(fine)), hi (get_dim(fine))
+    integer   :: loc(get_dim(fine)), hic(get_dim(fine))
+    integer   :: lof(get_dim(fine))
     integer   :: dm, i, n, lnc, dir, face
-    logical   :: pmask(1:fine%dim)
+    logical   :: pmask(get_dim(fine))
 
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(bl_prof_timer), save :: bpt
@@ -309,13 +313,13 @@ contains
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
-    dm   = fine%dim
+    dm   = get_dim(fine)
     dir  = abs(side)
     face = sign(1, side)
 
-    pmask = layout_get_pmask(fine%la)
+    pmask = get_pmask(get_layout(fine))
 
-    do i = 1, fine%nboxes
+    do i = 1, nboxes(fine)
        if ( remote(fine,i) ) cycle
 
        loc          = lwb(get_pbox(crse, i))
@@ -382,10 +386,10 @@ contains
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:), side
-    if ( crse%nc .ne. fine%nc ) then
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_interp_bcs: crse & fine must have same # of components')
     end if
-    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, fine%nc)
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, ncomp(fine))
   end subroutine ml_interp_bcs
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, lo, ir)
