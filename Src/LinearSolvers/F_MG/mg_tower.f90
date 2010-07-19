@@ -46,13 +46,16 @@ module mg_tower_module
      integer :: nboxes =  0
      integer :: nlevels =  0
 
+     ! use hypre instead of mg_tower's multigrid for the solve itself
+     integer :: use_hypre =  0
+
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
      integer :: max_bottom_nlevel = 1024
      integer :: min_width  = 2
 
      ! good for many problems
-     integer :: max_iter = 20
+     integer :: max_iter = 50
      real(kind=dp_t) ::     eps = 1.0e-10_dp_t
      real(kind=dp_t) :: abs_eps = -1.0_dp_t
 
