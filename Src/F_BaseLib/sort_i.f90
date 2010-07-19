@@ -13,7 +13,7 @@ module sort_i_module
 
 contains
 
-  function less_i(a,b) result(r)
+  pure function less_i(a,b) result(r)
     logical :: r
     integer, intent(in) :: a, b
     r = a < b

@@ -222,8 +222,6 @@ contains
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
-!    allocate(br%obmf(dm,0:1))
-!    allocate(br%olaf(dm,0:1))
 
     br%dim   = dm
     br%nc    = lnc
@@ -257,9 +255,7 @@ contains
 
           call build(baa, bxs, sort = .false.)
           call build(br%laf(i,f), baa, explicit_mapping = get_proc(la))
-!          call build(br%olaf(i,f), baa, explicit_mapping = get_proc(la))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
-!          call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
 
        end do

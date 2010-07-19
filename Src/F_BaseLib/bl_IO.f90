@@ -50,7 +50,7 @@ contains
 
   !! Returns the stdin unit number if no argument is passed, or else
   !! unit if it is passed.
-  function unit_stdin(unit)  result (r)
+  pure function unit_stdin(unit)  result (r)
     integer :: r
     integer, intent(in), optional :: unit
     if ( present(unit) ) then
@@ -62,7 +62,7 @@ contains
 
   !! Returns the stdout unit number if no argument is passed, or else
   !! unit if it is passed.
-  function unit_stdout(unit) result(r)
+  pure function unit_stdout(unit) result(r)
     integer :: r
     integer, intent(in), optional :: unit
     if ( present(unit) ) then
@@ -74,7 +74,7 @@ contains
 
   !! Returns the string 'YES' if no argument is passed other wise
   !! returns the argument advance
-  function unit_advance(advance) result(r)
+  pure function unit_advance(advance) result(r)
     character(len=3) :: r
     character(len=*), intent(in), optional :: advance
     if ( present(advance) ) then
@@ -96,7 +96,7 @@ contains
 
   !! A convenience function that returns 0 if SKIP is not present, otherwise
   !! it returns SKIP
-  function unit_get_skip(skip) result(r)
+  pure function unit_get_skip(skip) result(r)
     integer :: r
     integer, intent(in), optional :: skip
     r = 0; if ( present(skip) ) r = skip
