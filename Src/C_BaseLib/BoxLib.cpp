@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.36 2009-05-15 16:51:34 gpau Exp $
+// $Id: BoxLib.cpp,v 1.37 2010-07-19 20:46:04 almgren Exp $
 //
 #include <winstd.H>
 
@@ -228,7 +228,7 @@ BoxLib::Initialize (int& argc, char**& argv)
     {
         std::cout << "MPI initialized with "
                   << ParallelDescriptor::NProcs()
-                  << " CPUs\n";
+                  << " MPI Processes\n";
     }
 
     if (argc == 1)
