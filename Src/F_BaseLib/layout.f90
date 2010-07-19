@@ -419,7 +419,7 @@ contains
     r = la%lap%pd
   end function layout_get_pd
 
-  pure function layout_boxarray(la) result(r)
+  function layout_boxarray(la) result(r)
     type(layout), intent(in) :: la
     type(boxarray) :: r
     r = la%lap%bxa
@@ -2377,7 +2377,7 @@ contains
     end do
   end function layout_boxarray_hash
 
-  pure function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
+  function copyassoc_check(cpasc, la_dst, la_src, nd_dst, nd_src) result(r)
     type(copyassoc), intent(in) :: cpasc
     type(layout),    intent(in) :: la_src, la_dst
     logical,         intent(in) :: nd_dst(:), nd_src(:)
