@@ -1014,22 +1014,22 @@ contains
     r = layout_local(mf%la, i)
   end function zmultifab_local
 
-  pure function multifab_get_boxarray(mf) result(r)
+  function multifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(multifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function multifab_get_boxarray
-  pure function imultifab_get_boxarray(mf) result(r)
+  function imultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(imultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function imultifab_get_boxarray
-  pure function lmultifab_get_boxarray(mf) result(r)
+  function lmultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(lmultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
   end function lmultifab_get_boxarray
-  pure function zmultifab_get_boxarray(mf) result(r)
+  function zmultifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
     type(zmultifab), intent(in) :: mf
     r = get_boxarray(mf%la)
