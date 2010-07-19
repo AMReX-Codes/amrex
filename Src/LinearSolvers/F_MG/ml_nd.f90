@@ -55,14 +55,14 @@ contains
     real(dp_t) :: tres,tres0
     real(dp_t) :: abs_eps
 
-    logical, allocatable :: nodal(:)
+    logical nodal(get_dim(rh(1)))
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_nd")
 
-    dm = rh(1)%dim
-    allocate(nodal(dm))
+    dm = get_dim(rh(1))
+
     nodal = .True.
 
     nlevs = mla%nlevel
@@ -81,23 +81,23 @@ contains
 
     do n = 2,nlevs-1
        la = mla%la(n)
-       call multifab_build( uu_hold(n), la, 1, 1, rh(nlevs)%nodal)
+       call multifab_build( uu_hold(n), la, 1, 1, nodal)
        call setval( uu_hold(n), ZERO,all=.true.)
     end do
 
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call multifab_build(    soln(n), la, 1, 1, rh(nlevs)%nodal)
-       call multifab_build(      uu(n), la, 1, 1, rh(nlevs)%nodal)
-       call multifab_build(     res(n), la, 1, 1, rh(nlevs)%nodal)
-       call multifab_build(temp_res(n), la, 1, 1, rh(nlevs)%nodal)
+       call multifab_build(    soln(n), la, 1, 1, nodal)
+       call multifab_build(      uu(n), la, 1, 1, nodal)
+       call multifab_build(     res(n), la, 1, 1, nodal)
+       call multifab_build(temp_res(n), la, 1, 1, nodal)
        call setval(    soln(n), ZERO,all=.true.)
        call setval(      uu(n), ZERO,all=.true.)
        call setval(     res(n), ZERO,all=.true.)
        call setval(temp_res(n), ZERO,all=.true.)
 
-       call multifab_build(zero_rh(n), la, 1, rh(n)%ng, rh(nlevs)%nodal)
+       call multifab_build(zero_rh(n), la, 1, nghost(rh(n)), nodal)
        call setval(zero_rh(n), ZERO,all=.true.)
 
        if ( n == 1 ) exit
@@ -144,7 +144,7 @@ contains
 !   enddo
 
     do n = 1,nlevs
-       call multifab_copy(rh(n),res(n),ng=rh(n)%ng)
+       call multifab_copy(rh(n),res(n),ng=nghost(rh(n)))
     end do
 
     tres0 = ml_norm_inf(rh,fine_mask)
@@ -207,19 +207,19 @@ contains
              call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
                   rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse),mgt(n-1)%uniform_dh)
 
-             if (mgt(n)%ss(mglev)%dim .eq. 3) then
+             if ( dm .eq. 3 ) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
-             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+             else if ( dm .eq. 2 ) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
              ! Compute FINE Res = Res - Lap(uu)
              mglev = mgt(n)%nlevels
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
                   res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-             call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
+             call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
              if ( do_diagnostics == 1 ) then
                 tres = norm_inf(res(n))
@@ -238,17 +238,17 @@ contains
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
 
              ! Copy u_hold = uu
-             if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),ng=uu(n)%ng)
+             if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),ng=nghost(uu(n)))
 
              ! Set: uu = 0
              call setval(uu(n),ZERO,all=.true.)
 
-             if (mgt(n)%ss(mglev)%dim .eq. 3) then
+             if ( dm .eq. 3 ) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
-             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+             else if ( dm .eq. 2 ) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
           else
@@ -288,7 +288,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-          call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
+          call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))
@@ -306,7 +306,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
-          call multifab_copy(res(n),temp_res(n),ng=res(n)%ng)
+          call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))
@@ -357,12 +357,12 @@ contains
              !  Restrict the finer residual onto the coarser grid
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
-             if (mgt(n)%ss(mglev)%dim .eq. 3) then
+             if ( dm .eq. 3 ) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
-             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+             else if ( dm .eq. 2 ) then
                 fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
@@ -372,12 +372,12 @@ contains
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   zero_rh(n),temp_res(n),temp_res(n-1), &
                   soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
-             if (mgt(n)%ss(mglev)%dim .eq. 3) then
+             if ( dm .eq. 3 ) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
-             else if (mgt(n)%ss(mglev)%dim .eq. 2) then
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+             else if ( dm .eq. 2 ) then
                 fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
-                call multifab_mult_mult_s(res(n-1),fac,res(n-1)%ng)
+                call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
           end do
 
@@ -468,7 +468,7 @@ contains
 
       mglev_crse = mgt(n-1)%nlevels
       mglev_fine = mgt(n  )%nlevels
-      dm = temp_res%dim
+      dm        = get_dim(temp_res)
 
       !    Compute the fine contributions at faces, edges and corners.
 
