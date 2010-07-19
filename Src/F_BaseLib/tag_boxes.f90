@@ -25,17 +25,17 @@ contains
 
     real(kind = dp_t), pointer :: sp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
-    integer           :: i, lo(mf%dim), hi(mf%dim), ng
+    integer           :: i, lo(get_dim(mf)), hi(get_dim(mf)), ng
 
-    ng = mf%ng
+    ng = nghost(mf)
 
-    do i = 1, mf%nboxes
+    do i = 1, nboxes(mf)
        if ( multifab_remote(mf, i) ) cycle
        sp => dataptr(mf, i)
        tp => dataptr(tagboxes, i)
        lo =  lwb(get_box(tagboxes, i))
        hi =  upb(get_box(tagboxes, i))
-       select case (mf%dim)
+       select case (get_dim(mf))
        case (2)
           call tag_boxes_2d(tp(:,:,1,1),sp(:,:,1,1),lo,hi,ng,dx,lev)
        case  (3)

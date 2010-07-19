@@ -141,7 +141,7 @@ contains
 
   end subroutine vector_destroy_i
 
-  function vector_empty_i(d) result(r)
+  pure function vector_empty_i(d) result(r)
     logical :: r
     type(vector_i), intent(in) :: d
 
@@ -149,7 +149,7 @@ contains
 
   end function vector_empty_i
 
-  function vector_size_i(d) result(r)
+  pure function vector_size_i(d) result(r)
     integer :: r
     type(vector_i), intent(in) :: d
 
@@ -157,7 +157,7 @@ contains
 
   end function vector_size_i
 
-  function vector_capacity_i(d) result(r)
+  pure function vector_capacity_i(d) result(r)
     integer :: r
     type(vector_i), intent(in) :: d
 
@@ -165,7 +165,7 @@ contains
 
   end function vector_capacity_i
 
-  function vector_at_i(d, i) result(r)
+  pure function vector_at_i(d, i) result(r)
     integer :: r
     integer, intent(in) :: i
     type(vector_i), intent(in) :: d
@@ -286,7 +286,7 @@ contains
 
   end subroutine vector_pop_back_i
 
-  function vector_front_i(d) result(r)
+  pure function vector_front_i(d) result(r)
     type(vector_i), intent(in) :: d
 
     integer :: r
@@ -294,7 +294,7 @@ contains
 
   end function vector_front_i
 
-  function vector_back_i(d) result(r)
+  pure function vector_back_i(d) result(r)
     type(vector_i), intent(in) :: d
 
     integer :: r
@@ -380,7 +380,7 @@ contains
 
   end subroutine vector_clear_i
 
-  function vector_equal_i(d1, d2) result(r)
+  pure function vector_equal_i(d1, d2) result(r)
     logical :: r
     type(vector_i), intent(in) :: d1, d2
     integer :: i
@@ -397,7 +397,7 @@ contains
        end if
     end do
   end function vector_equal_i
-  function vector_not_equal_i(d1, d2) result(r)
+  pure function vector_not_equal_i(d1, d2) result(r)
     logical :: r
     type(vector_i), intent(in) :: d1, d2
     r = .not. equal(d1,d2)

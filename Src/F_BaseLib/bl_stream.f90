@@ -50,7 +50,7 @@ contains
     strm%lpb  = .False.
   end subroutine bl_stream_destroy
 
-  function bl_stream_the_unit(strm) result(r)
+  pure function bl_stream_the_unit(strm) result(r)
     integer :: r
     type(bl_stream), intent(in) :: strm
     r = strm%unit
