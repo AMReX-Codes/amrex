@@ -216,6 +216,16 @@ endif
 #
 # Overrides for specific machines.
 #
+ifeq ($(WHICHLINUX), RANGER)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpicxx
+    FC  := mpif90
+    F90 := mpif90
+    fC  := mpif90 
+  endif
+endif
+
 ifeq ($(WHICHLINUX), FRANKLIN)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
