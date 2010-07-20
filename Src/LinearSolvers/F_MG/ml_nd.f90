@@ -620,12 +620,14 @@ contains
 
   subroutine grid_laplace_1d(ss, dd, ff, uu, mm, ng)
 
+    use impose_neumann_bcs_module
+
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(in   ) :: ss(:,0:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(in   ) :: ff(0:)
     integer,            intent(in   ) :: mm(:)
-    real (kind = dp_t), intent(in   ) :: uu(1-ng:)
+    real (kind = dp_t), intent(inout) :: uu(1-ng:)
 
     integer :: i,nx,lo(1)
     nx = size(ss,dim=1)-1
