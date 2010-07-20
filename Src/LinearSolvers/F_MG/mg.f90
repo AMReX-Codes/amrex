@@ -709,62 +709,6 @@ contains
     call destroy(bpt)
   end subroutine mg_defect
 
-  subroutine grid_res(mgt, ss, dd, ff, uu, mm, face_type, uniform_dh)
-
-    use bl_prof_module
-    use mg_defect_module
-
-    type(multifab), intent(in)    :: ff, ss
-    type(multifab), intent(inout) :: dd, uu
-    type(imultifab), intent(in)   :: mm
-    type(mg_tower), intent(inout) :: mgt
-    integer, intent(in) :: face_type(:,:,:)
-    logical, intent(in) :: uniform_dh
-    integer :: i, n
-    real(kind=dp_t), pointer :: dp(:,:,:,:)
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer :: dm,nodal_ng
-    logical :: lcross
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "grid_res")
-
-    nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
-
-    dm = mgt%dim
-    lcross = (ncomp(ss) == (2*dm+1))
-
-    call multifab_fill_boundary(uu, cross = lcross)
-
-    do i = 1, mgt%nboxes
-       if ( multifab_remote(dd, i) ) cycle
-       dp => dataptr(dd, i)
-       fp => dataptr(ff, i)
-       up => dataptr(uu, i)
-       sp => dataptr(ss, i)
-       mp => dataptr(mm, i)
-       do n = 1, mgt%nc
-          select case(dm)
-          case (1)
-             call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
-                                  mgt%ng, nodal_ng)
-          case (2)
-             call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), mgt%ng, face_type(i,:,:))
-          case (3)
-             call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), mgt%ng, face_type(i,:,:), uniform_dh)
-          end select
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine grid_res
-
   subroutine mg_tower_restriction(mgt, crse, fine, mm_fine, mm_crse)
 
     use bl_prof_module
