@@ -477,10 +477,10 @@ contains
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
       if (multifab_ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
-        call grid_res(mgt(n),one_sided_ss,temp_res, &
+        call grid_res(one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       else
-        call grid_res(mgt(n),mgt(n)%ss(mglev_fine),temp_res, &
+        call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       end if
 
@@ -603,7 +603,7 @@ contains
           select case(dm)
           case (1)
              call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
-                                  mm(:,1,1,1),nghost(uu))
+                                  mp(:,1,1,1),nghost(uu))
           case (2)
              call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
                                   mp(:,:,1,1), nghost(uu), face_type(i,:,:))
