@@ -2971,6 +2971,7 @@ contains
       integer, intent(in) :: n
       real(kind = dp_t) :: rhs(:), sol(:), fpar(16), wk(*)
       real(kind = dp_t), intent(in) :: Anorm, bnorm, eps
+      real(kind = dp_t) :: nrm2
       integer :: ipar(16)
       external solver
       integer, intent(in) ::  verbose
@@ -2982,9 +2983,8 @@ contains
       !     the ILU* routines in ilut.f.
       !
       integer i, its
-      real(kind = dp_t) res, dnrm2
+      real(kind = dp_t) res
       real(kind = dp_t), allocatable :: rr(:)
-      external dnrm2
       !
       !     ipar(2) can be 0, 1, 2, please don't use 3
       !
@@ -3089,7 +3089,14 @@ contains
          do i = 1, n
             wk(i) = wk(i) - rhs(i)
          end do
-         write (*, *) '# the actual residual norm is', dnrm2(n,wk,1)
+
+!        Local version of dnrm2 so we don't have to include LAPACK
+!        write (*, *) '# the actual residual norm is', dnrm2(n,wk,1)
+         nrm2 = 0.d0
+         do i = 1, n
+            nrm2 = nrm2 + wk(i)*wk(i)
+         end do
+         write (*, *) '# the actual residual norm is', sqrt(nrm2)
 
       end if
 
