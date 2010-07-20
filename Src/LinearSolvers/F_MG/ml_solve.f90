@@ -2,8 +2,8 @@ module ml_solve_module
 
    use bl_types
    use mg_module
-   use ml_layout_module
    use bndry_reg_module
+   use ml_layout_module
    use multifab_module
 
    implicit none
@@ -14,7 +14,7 @@ contains
 
    subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,eps_in)
 
-      use ml_cc_module
+      use ml_cc_module , only : ml_cc
 
       type(ml_layout), intent(in   ) :: mla
       type(mg_tower ), intent(inout) :: mgt(:)
@@ -132,7 +132,7 @@ contains
 
    subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in)
 
-       use ml_nd_module
+       use ml_nd_module, only : ml_nd
 
        type(ml_layout), intent(in   )           :: mla
        type(mg_tower) , intent(inout)           :: mgt(:)
