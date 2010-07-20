@@ -16,7 +16,6 @@ f90sources += sparse_solve.f90
 f90sources += stencil.f90
 f90sources += stencil_fill.f90
 f90sources += stencil_nodal.f90
-f90sources += mg_defect.f90
 f90sources += mg_prolongation.f90
 f90sources += mg_restriction.f90
 f90sources += ml_interface_stencil.f90
