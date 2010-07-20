@@ -10,7 +10,7 @@ module ml_nd_module
 contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio, &
-                   do_diagnostics,eps,abs_eps_in)
+                   do_diagnostics,rel_eps,abs_eps_in)
 
     use bl_prof_module
     use ml_util_module
@@ -25,7 +25,7 @@ contains
     type( multifab), intent(in   ) :: one_sided_ss(2:)
     integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics 
-    real(dp_t)     , intent(in   ) :: eps
+    real(dp_t)     , intent(in   ) :: rel_eps
 
     real(dp_t)     , intent(in   ), optional :: abs_eps_in
 
@@ -162,7 +162,7 @@ contains
     do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, eps, abs_eps, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -343,7 +343,7 @@ contains
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
 
-       if ( ml_fine_converged(res, soln, bnorm, Anorm, eps, abs_eps) ) then
+       if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -518,44 +518,44 @@ contains
 
     end subroutine crse_fine_residual_nodal
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, eps, abs_eps) result(r)
+    function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
+      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
       real(dp_t) :: ni_res, ni_sol
       integer    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
-!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
 !          ni_res <= abs_eps .or. &
 !          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= eps*(bnorm) .or. &
+      r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps 
-!     if (ni_res <= eps*(               bnorm) ) print *,'CONVERGED: res < eps*bnorm'
-!     if (ni_res <= eps*(Anorm*ni_sol        ) ) print *,'CONVERGED: res < eps*Anorm*ni_sol'
+!     if (ni_res <= rel_eps*(           bnorm) ) print *,'CONVERGED: res < rel_eps*bnorm'
+!     if (ni_res <= rel_eps*(Anorm*ni_sol    ) ) print *,'CONVERGED: res < eps*Anorm*ni_sol'
 !     if (ni_res <= abs_eps                    ) print *,'CONVERGED: res < abs_eps'
 !     if (ni_res <= epsilon(Anorm)*Anorm       ) print *,'CONVERGED: res < epsilon(Anorm)*Anorm'
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, eps, abs_eps, verbose) result(r)
+    function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, verbose) result(r)
       use ml_util_module
       logical :: r
       integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, eps, abs_eps, bnorm
+      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
       real(dp_t) :: ni_res, ni_sol
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
-!     r =  ni_res <= eps*(Anorm*ni_sol + bnorm) .or. &
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
 !          ni_res <= abs_eps .or. &
 !          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= eps*(bnorm) .or. &
+      r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps 
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= eps*bnorm) then
-            print *,'Converged res < eps*bnorm '
+         if (ni_res <= rel_eps*bnorm) then
+            print *,'Converged res < rel_eps*bnorm '
          else if (ni_res <= abs_eps) then
             print *,'Converged res < abs_eps '
          end if
