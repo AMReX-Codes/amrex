@@ -1464,7 +1464,11 @@ subroutine mgt_set_maxorder(max_order)
 end subroutine mgt_set_maxorder
 
 subroutine ml_fill_all_fluxes(ss, flux, uu, mm)
+
     use bl_prof_module
+    use multifab_module
+    use stencil_module
+
     type( multifab), intent(in   ) :: ss
     type( multifab), intent(inout) :: flux(:)
     type( multifab), intent(inout) :: uu
