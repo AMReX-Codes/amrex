@@ -71,7 +71,66 @@ contains
       call lmultifab_destroy(fine_mask(n))
     end do
 
+    contains
+
+      subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
+        use bl_prof_module
+        type(multifab), intent(inout) :: flux
+        type(multifab), intent(in) :: ss
+        type(multifab), intent(inout) :: uu
+        type(imultifab), intent(in) :: mm
+        integer :: face, dim
+        integer :: i, n
+        real(kind=dp_t), pointer :: fp(:,:,:,:)
+        real(kind=dp_t), pointer :: up(:,:,:,:)
+        real(kind=dp_t), pointer :: sp(:,:,:,:)
+        integer        , pointer :: mp(:,:,:,:)
+        integer :: ng
+        logical :: lcross
+        type(bl_prof_timer), save :: bpt
+
+        call build(bpt, "ml_fill_fine_fluxes")
+
+        ng = nghost(uu)
+
+        lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+
+        if ( ncomp(uu) /= ncomp(flux) ) then
+           call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
+        end if
+
+        call multifab_fill_boundary(uu, cross = lcross)
+
+        do i = 1, nboxes(flux)
+           if ( remote(flux, i) ) cycle
+           fp => dataptr(flux, i)
+           up => dataptr(uu, i)
+           sp => dataptr(ss, i)
+           mp => dataptr(mm, i)
+           do n = 1, ncomp(uu)
+              select case(get_dim(ss))
+              case (1)
+                 call stencil_fine_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+                      mp(:,1,1,1), ng, face, dim)
+              case (2)
+                 call stencil_fine_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+                      mp(:,:,1,1), ng, face, dim)
+              case (3)
+                 call stencil_fine_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
+                      mp(:,:,:,1), ng, face, dim)
+              end select
+           end do
+        end do
+    
+        call destroy(bpt)
+
+      end subroutine ml_fill_fine_fluxes
+
    end subroutine ml_cc_solve
+
+!
+! ******************************************************************************************
+!
 
    subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in)
 

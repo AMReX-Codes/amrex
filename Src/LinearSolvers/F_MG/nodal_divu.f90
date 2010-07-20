@@ -197,7 +197,7 @@ contains
 
     subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,ref_ratio,mgt)
 
-      use ml_util_module
+      use ml_util_module, only : ml_fine_contrib
 
       integer        , intent(in   ) :: n_fine,nlevs
       type(multifab) , intent(inout) :: rh_crse
