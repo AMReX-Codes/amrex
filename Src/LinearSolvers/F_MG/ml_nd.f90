@@ -15,9 +15,9 @@ contains
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio, &
                    do_diagnostics,rel_eps,abs_eps_in)
 
-    use ml_util_module
-    use ml_restriction_module, only: ml_restriction, periodic_add_copy
-    use ml_prolongation_module, only: ml_prolongation
+    use ml_util_module        , only : ml_norm_inf
+    use ml_restriction_module , only : ml_restriction, periodic_add_copy
+    use ml_prolongation_module, only : ml_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
@@ -450,8 +450,8 @@ contains
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
          crse_soln,fine_soln,one_sided_ss,ref_ratio,pdc)
 
-      use ml_util_module
-      use ml_interface_stencil_module
+      use ml_util_module              , only : ml_fine_contrib
+      use ml_interface_stencil_module , only : ml_crse_contrib
 
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
@@ -541,7 +541,9 @@ contains
     end function ml_fine_converged
 
     function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, verbose) result(r)
-      use ml_util_module
+
+      use ml_util_module, only : ml_norm_inf
+
       logical :: r
       integer :: verbose
       type(multifab), intent(in) :: res(:), sol(:)
