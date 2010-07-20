@@ -8,9 +8,7 @@ module ml_solve_module
 
    implicit none
 
-   private
-
-   public :: ml_cc_solve, ml_nd_solve
+   public  :: ml_cc_solve, ml_nd_solve
 
 contains
 
