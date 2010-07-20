@@ -14,7 +14,7 @@ module ml_solve_module
 
 contains
 
-   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics)
+   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,eps_in)
 
       use ml_cc_module
 
@@ -25,6 +25,7 @@ contains
       type(bndry_reg), intent(inout) :: fine_flx(2:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       integer        , intent(in   ) :: do_diagnostics
+      real(dp_t)     , intent(in   ), optional :: eps_in
 
       type(boxarray)  :: bac
       type(lmultifab) :: fine_mask(mla%nlevel)
@@ -34,7 +35,7 @@ contains
       dm    = mla%dim
       nlevs = mla%nlevel
 
-      eps = 1.d-12
+      eps = 1.d-12; if ( present(eps_in) ) eps = eps_in
 
       do n = nlevs, 1, -1
         call lmultifab_build(fine_mask(n), mla%la(n), 1, 0)
