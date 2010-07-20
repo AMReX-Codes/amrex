@@ -7,6 +7,8 @@ module ml_cc_module
 
   implicit none
 
+  private :: ml_fill_fluxes, ml_fill_n_fluxes
+
 contains
 
   subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
