@@ -171,10 +171,12 @@ contains
 !   call copy(mla%mba, mba)
 !   by this...
     call build(mla%mba,nlevs,mla%dim)
-    mla%mba%pd = mba%pd
+
+    mla%mba%pd(1:nlevs) = mba%pd(1:nlevs)
     do n = 1, mla%nlevel-1
       mla%mba%rr(n,:) = mba%rr(n,:)
     end do
+
     do n = 1, mla%nlevel
       call copy(mla%mba%bas(n),mba%bas(n))
     end do
