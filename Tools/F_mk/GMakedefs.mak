@@ -60,40 +60,7 @@ hdir = t/html
 
 # ALL G95's are the same
 ifeq ($(COMP),g95)
-  F_C_LINK := DBL_UNDERSCORE
-  FC := g95
-  F90 := g95
-  CC := gcc
-# F90FLAGS += -std=f95 -fintrinsic-extensions=iargc,getarg
-# FFLAGS   += -std=f95 -fintrinsic-extensions=iargc,getarg  
-  F90FLAGS += -fmod=$(mdir) -I $(mdir)
-  FFLAGS   += -fmod=$(mdir) -I $(mdir)
-# F90FLAGS += -Wall 
-# FFLAGS += -Wall 
-# CFLAGS += -Wall
-# FFLAGS += -ffloat-store
-# F90FLAGS += -ffloat-store
-  ifdef NDEBUG
-    F90FLAGS += -O3 -ffloat-store
-    FFLAGS += -O3 -ffloat-store
-    CFLAGS += -O3
-  else
-    F90FLAGS += -g
-    F90FLAGS += -fbounds-check
-    F90FLAGS += -freal=nan
-    FFLAGS += -g
-    FFLAGS += -fbounds-check
-    FFLAGS += -freal=nan
-    CFLAGS += -g
-  endif
-  ifdef GPROF
-    F90FLAGS += -pg
-    FFLAGS += -pg
-    CFLAGS += -pg
-  endif
-  ifeq ($(ARCH),Darwin)
-    xtr_libraries += -lSystemStubs
-  endif
+  include '$(FPARALLEL)/mk/comps/g95.mak'
 endif
 
 # Note, we need a recent gfortran 4.2 build to compile --
@@ -101,76 +68,16 @@ endif
 # to compile mt19937ar.f90, we need -fno-range-check, since
 # that routine relies on overflows when doing initializations
 ifeq ($(COMP),gfortran)
-  FC := gfortran
-  F90 := gfortran
-  CC := gcc
-  F90FLAGS += -J$(mdir) -I $(mdir)
-  FFLAGS   += -J$(mdir) -I $(mdir)
-  CFLAGS += -Wall
-  ifdef NDEBUG
-    F90FLAGS += -O -fno-range-check 
-    FFLAGS += -O -fno-range-check 
-    CFLAGS += -O 
-  else
-    F90FLAGS += -g -fno-range-check -O
-    F90FLAGS += -fbounds-check 
-    # F90FLAGS += -Wuninitialized -Wsurprising -fimplicit-none
-    FFLAGS += -g -fno-range-check -O
-    FFLAGS += -fbounds-check 
-    # FFLAGS += -Wuninitialized -Wsurprising -fimplicit-none
-    CFLAGS += -g -O
-  endif
+  include '$(FPARALLEL)/mk/comps/gfortran.mak'
 endif
 
 ifeq ($(COMP),xlf)
-
-  ifdef OMP
-    FC  := xlf95_r
-    F90 := xlf95_r
-    CC  := xlc_r
-
-    F90FLAGS += -qsmp=noauto:omp
-    FFLAGS   += -qsmp=noauto:omp
-    CFLAGS   += -qsmp=noauto:omp
-  else
-    FC  := xlf95
-    F90 := xlf95
-    CC  := xlc
-  endif 
-
-  F90FLAGS += -I $(mdir) -qmoddir=$(mdir)
-  FFLAGS   += -I $(mdir) -qmoddir=$(mdir)
-  CFLAGS += 
-
-  F_C_LINK := LOWERCASE
-  ifdef NDEBUG
-    F90FLAGS += -O 
-    FFLAGS += -O 
-    CFLAGS += -O
-  else
-    F90FLAGS += -g 
-    FFLAGS += -g 
-    CFLAGS += -g
-  endif
+  include '$(FPARALLEL)/mk/comps/xlf.mak'
 endif
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
-    F_C_LINK := LOWERCASE
-    FC := xlf
-    F90 := xlf95
-    CC  := xlc
-    F90FLAGS += -qsuffix=f=f90 -qnosave
-    F90FLAGS += -qmoddir=$(mdir)
-    ifdef NDEBUG
-      F90FLAGS += -O5 -qtune=auto -qarch=auto -qunroll=auto
-      FFLAGS   += -O5 -qtune=auto -qarch=auto -qunroll=auto
-      CFLAGS   += -O5 -Q=20 -qtune-auto -qarch=auto -qunroll=auto -qaltivec
-    else
-      F90FLAGS += -g -C
-      FFLAGS   += -g -C
-    endif
-    F90FLAGS += -I$(mdir)
+    include '$(FPARALLEL)/mk/comps/Darwin_ibm.mak'
   endif
 endif
 
@@ -179,448 +86,52 @@ endif
 
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),catamount)
-    CC  := cc -target=catamount
-    FC  := ftn -target=catamount -module $(mdir) -I$(mdir) 
-    F90 := ftn -target=catamount -module $(mdir) -I$(mdir) 
-    ifdef NDEBUG
-      FFLAGS   += -O
-      F90FLAGS += -O
-    else
-      FFLAGS   += -g
-      F90FLAGS += -g
-    endif
+    include '$(FPARALLEL)/mk/comps/Linux_catamount.mak'
   endif
 
   ifeq ($(COMP),xt4)
-    CC  := cc -target=linux
-    ifdef MPI
-      FC  := ftn -target=linux -module $(mdir) -I$(mdir) 
-      F90 := ftn -target=linux -module $(mdir) -I$(mdir) 
-    else
-      FC  := pgf95 -module $(mdir) -I$(mdir) 
-      F90 := pgf95 -module $(mdir) -I$(mdir) 
-    endif        
-    ifdef NDEBUG
-      FFLAGS   += -O
-      F90FLAGS += -O
-    else
-      FFLAGS   += -g -Mbounds
-      F90FLAGS += -g -Mbounds
-    endif
+    include '$(FPARALLEL)/mk/comps/Linux_xt4.mak'
   endif
 
   ifeq ($(COMP),PGI)
-    CC  := pgcc
-    FC  := pgf95
-    F90 := pgf95
-    FFLAGS   += -module $(mdir) -I$(mdir) 
-    F90FLAGS += -module $(mdir) -I$(mdir)
-
-    ifdef OMP
-      F90FLAGS += -mp=nonuma -Minfo=mp
-      FFLAGS += -mp=nonuma -Minfo=mp
-      CFLAGS += -mp=nonuma -Minfo=mp
-    endif
-
-    ifdef NDEBUG
-      FFLAGS   += -fast
-      F90FLAGS += -fast
-      CFLAGS   += -fast
-    else
-      FFLAGS   += -g
-      F90FLAGS += -g
-    endif
+    include '$(FPARALLEL)/mk/comps/Linux_pgi.mak'
   endif
 
   ifeq ($(COMP),SunStudio)
-    FC = f95
-    F90 = f95
+    include '$(FPARALLEL)/mk/comps/Linux_sunstudio.mak'
   endif
 
   ifeq ($(COMP),PathScale)
-    FC = pathf95
-    F90 = pathf95
-    CC  = pathcc
-
-    FFLAGS   += -module $(mdir) -I$(mdir) 
-    F90FLAGS += -module $(mdir) -I$(mdir)
-
-    ifdef OMP
-      F90FLAGS += -mp
-      FFLAGS += -mp
-      CFLAGS += -mp
-    endif
-
-    ifdef USE_HPCTOOLKIT
-      HPCLINK = hpclink
-      HPCLINK_FLAGS_PATHSCALE = -g
-    endif
-
-    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-    endif
-
-#   F_C_LINK := DBL_UNDERSCORE
-    ifndef NDEBUG
-
-      F90FLAGS += -g -fno-second-underscore
-      FFLAGS += -g -fno-second-underscore
-      CFLAGS += -g -fno-second-underscore
-#     F90FLAGS += -C
-#     FFLAGS += -C
-    else
-      ifdef OMP
-        F90FLAGS += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      else
-        F90FLAGS += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      endif
-    endif
-#   LDFLAGS += -static
-    CPPFLAGS += -DBL_HAS_SECOND
+    include '$(FPARALLEL)/mk/comps/Linux_pathscale.mak'
   endif
 
   ifeq ($(COMP),Intel)
-    _unamem := $(shell uname -m)
-    _ifc := ifort
-    _icc := icc 
-    _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
-    _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
-    ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
-      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-        _ifc  := mpiifort
-        _icc  := mpiicc
-        _comp := Intel11
-      else
-        _ifc  := ifort
-        _comp := Intel11
-      endif
-    else
-    ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
-      ifeq ($(findstring homer, $(UNAMEN)), homer)
-        _ifc  := mpif90
-        _icc  := mpicc
-        _comp := Intel10
-      else
-        _ifc  := ifort
-        _comp := Intel10
-      endif
-    else
-    ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
-      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-        _ifc  := mpiifort
-        _comp := Intel9
-      else
-        _ifc  := ifort
-        _comp := Intel9
-      endif
-    else
-    ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
-      _ifc  := ifort
-      _comp := Intel8
-    else
-      $(errorr "$(_ifc_version) of IFC is not supported")
-    endif
-    endif
-    endif
-    endif
-#   _ifc += -auto
-    F90 := $(_ifc)
-    FC  := $(_ifc)
-    CC  := $(_icc)
-    FFLAGS   =
-    F90FLAGS =
-    CFLAGS   =
-    FFLAGS   += -module $(mdir)
-    F90FLAGS += -module $(mdir)
-    F90FLAGS += -mp1 -fltconsistency
-    FFLAGS   += -I $(mdir)
-    F90FLAGS += -I $(mdir)
-    ifdef OMP
-      FFLAGS   += -openmp -openmp-report2
-      F90FLAGS += -openmp -openmp-report2
-    endif
-    ifeq ($(_comp),Intel11)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0 -check all -warn all -u 
-        FFLAGS   += -g -traceback -O0 -check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
-          FFLAGS += -O3 -ip -mp1 -fltconsistency
-          CFLAGS += -O3 -ip -mp1
-	endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel10)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0
-        FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all -warn all -u 
-	#F90FLAGS += -ftrapuv
-        FFLAGS   += -check all -warn all -u 
-	#FFLAGS += -ftrapuv
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
-          FFLAGS += -O3 -ip -mp1 -fltconsistency
-          CFLAGS += -O3 -ip -mp1 -fltconsistency
-	endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel9)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0
-        FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all -warn all -u
-        FFLAGS   += -check all -warn all -u
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O -mp1 
-          FFLAGS += -O -mp1
-          CFLAGS += -O -mp1
-#  ifndef GPROF
-          F90FLAGS += #-ipo
-          FFLAGS += #-ipo
-          CFLAGS += #-ipo
-#  endif
-	endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel8)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback
-        FFLAGS   += -g -traceback
-        F90FLAGS += -check all
-        FFLAGS   += -check all
-#       F90FLAGS += -check noshape -check nopointer
-#       FFLAGS   += -check noshape -check nopointer
-        CFLAGS   += -g -Wcheck
-#	LDFLAGS  += -Bstatic
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O3
-          FFLAGS += -O3
-          CFLAGS += -O3
-          ifndef GPROF
-            F90FLAGS += #-ipo
-            FFLAGS += #-ipo
-            CFLAGS += #-ipo
-          endif
-	endif
-#       LDFLAGS += -static
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-      # F90FLAGS += -stand f95
-      # FFLAGS += -stand f95
-    endif
+    include $(FPARALLEL)/mk/comps/Linux_intel.mak
   endif
+
   ifeq ($(COMP),NAG)
-    FC  = nf95
-    F90 = nf95
-    CC  = gcc
-    F90FLAGS += -mdir $(mdir) -I $(mdir)
-    FFLAGS   += -mdir $(mdir) -I $(mdir)
-    FFLAGS   += -w=x77 -fixed
-    CFLAGS += -Wall
-#   F90FLAGS += -Oassumed=always_contig
-    f2kcli_suf := _nag
-    ifdef NDEBUG
-      FFLAGS += -O4
-      F90FLAGS += -O4
-    else
-      FFLAGS += -C=all
-      F90FLAGS += -C=all
-      FFLAGS += -g
-      F90FLAGS += -g
-      FFLAGS += -nan
-      F90FLAGS += -nan
-      FFLAGS += -gline
-      F90FLAGS += -gline
-    endif
-    ifdef GPROF
-      FFLAGS += -pg
-      F90FLAGS += -pg
-      CFLAGS += -pg
-    endif
+    include '$(FPARALLEL)/mk/comps/Linux_nag.mak'
   endif
+
   ifeq ($(COMP),Lahey)
-    FC  = lf95
-    F90 = lf95
-    CC  = gcc
-    FFLAGS =
-    F90FLAGS =
-    F90FLAGS += -M $(mdir)
-    FFLAGS += -M $(mdir)
-    CFLAGS += -Wall
-    ifdef NDEBUG
-      FFLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
-      F90FLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
-    else
-      FFLAGS   += -g --pca --nsav       --ap # --chk aesu # --chkglobal
-      F90FLAGS += -g --pca --nsav --f95 --ap --chk aes  # --chkglobal
-    endif
-    ifdef OMP
-      FFLAGS += --parallel --openmp 
-      F90FLAGS += --parallel --openmp
-    endif
+    include '$(FPARALLEL)/mk/comps/Linux_lahey.mak'
   endif
 endif
 
 ifeq ($(ARCH),CRAYX1)
-  COMP = cftn
-  F90 := ftn
-  FC  := ftn
-  CC   := cc
-  FFLAGS   =
-  F90FLAGS =
-  FFLAGS   += -p $(mdir)  -J $(mdir) -e m
-  F90FLAGS += -p $(mdir)  -J $(mdir) -e m
-  ifndef NDEBUG
-    FFLAGS   += -g
-    F90FLAGS += -g
-  endif
-  f2kcli_suf := _crayx1
+  include '$(FPARALLEL)/mk/comps/crayx1.mak'
 endif
 
 ifeq ($(ARCH),AIX)
-  F_C_LINK := LOWERCASE
-  COMP = xlf
-  ifdef OMP
-    rsuf := _r
-  endif
-  F90 = xlf95$(rsuf)
-  FC  = xlf95$(rsuf)
-  F90FLAGS += -qnosave -qmoddir=$(mdir) -I$(mdir) -qsuffix=f=f90
-  FFLAGS   += -qnosave -qmoddir=$(mdir) -I$(mdir) -qsuffix=f=f -qfixed=72
-  ifdef NDEBUG
-    ifdef GPROF
-      FFLAGS   += -O2
-      F90FLAGS += -O2
-    else
-      FFLAGS   += -O3 -qstrict -qtune=auto -qarch=auto -qcache=auto -NS5000
-      F90FLAGS += -O3 -qstrict -qtune=auto -qarch=auto -qcache=auto -NS5000
-    endif
-  else
-    FFLAGS += -g
-    FFLAGS += -C
-    FFLAGS += -qinitauto=FF 
-    FFLAGS += -qlanglvl=95std
-    F90FLAGS += -g
-    F90FLAGS += -C
-    F90FLAGS += -qinitauto=FF
-    F90FLAGS += -qlanglvl=95std
-  endif
-  #
-  # You might need the following on seaborg:
-  #
-  # LDFLAGS += -bmaxdata:0x80000000
-
-  ifdef OMP
-    FFLAGS += -qsmp=omp
-    F90FLAGS += -qsmp=omp
-  endif
-  ifdef GPROF
-    FFLAGS += -pg
-    F90FLAGS += -pg
-  endif
+  include '$(FPARALLEL)/mk/comps/aix.mak'
 endif
 
 ifeq ($(ARCH),IRIX64)
-  COMP = f90
-  F90  = f90
-  FC   = f90
-  CC   = cc
-  tdir = .
-  odir = .
-  mdir = .
-  ifdef NDEBUG
-#   FFLAGS += -O
-#   F90FLAGS += -O
-      FFLAGS += -Ofast
-      F90FLAGS += -Ofast
-      LDFLAGS += -Ofast
-  else
-#   FFLAGS += -C
-    FFLAGS += -DEBUG:verbose_runtime=ON
-    FFLAGS += -DEBUG:subscript_check=ON
-#   FFLAGS += -DEBUG:trap_uninitialized=ON
-    FFLAGS += -g
-    FFLAGS += -ansi
-#   F90FLAGS += -C
-    F90FLAGS += -DEBUG:verbose_runtime=ON
-    F90FLAGS += -DEBUG:conform_check=ON
-    F90FLAGS += -DEBUG:subscript_check=ON
-#   F90FLAGS += -DEBUG:trap_uninitialized=ON
-    F90FLAGS += -g
-    F90FLAGS += -ansi
-  endif
-  F90FLAGS += -64
-  FFLAGS += -64
-  CFLAGS += -64
-  ifdef OMP
-    F90FLAGS += -mp1 
-    FFLAGS += -mp1
-  endif
+  include '$(FPARALLEL)/mk/comps/irix64.mak'
 endif
 
 ifeq ($(ARCH),OSF1)
-  COMP = f90
-  F90 = f90
-  FC  = f90
-  ifdef DEBUG
-    FFLAGS += -g   -check bounds
-    F90FLAGS += -g  -check bounds
-  else
-    FFLAGS += -fast -inline all
-    F90FLAGS += -fast -inline all
-  endif
-  ifdef OMP
-    FFLAGS += -omp
-    F90FLAGS += -omp
-    ifdef DEBUG
-      FFLAGS += -check omp_bindings
-      F90FLAGS += -check omp_bindings
-    endif
-  endif
+  include '$(FPARALLEL)/mk/comps/osf1.mak'
 endif
 
 ifdef MPI
@@ -672,5 +183,3 @@ COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
-
-
