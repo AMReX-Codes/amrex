@@ -203,7 +203,7 @@ ifeq ($(HOST),kiryu)
 endif
 
 ifeq ($(HOST),lijewski)
-  MPIHOME=/home/lijewski/mpich2
+  MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
