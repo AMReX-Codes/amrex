@@ -60,7 +60,7 @@ hdir = t/html
 
 # ALL G95's are the same
 ifeq ($(COMP),g95)
-  include '$(FPARALLEL)/mk/comps/g95.mak'
+  include $(FPARALLEL)/mk/comps/g95.mak
 endif
 
 # Note, we need a recent gfortran 4.2 build to compile --
@@ -68,16 +68,16 @@ endif
 # to compile mt19937ar.f90, we need -fno-range-check, since
 # that routine relies on overflows when doing initializations
 ifeq ($(COMP),gfortran)
-  include '$(FPARALLEL)/mk/comps/gfortran.mak'
+  include $(FPARALLEL)/mk/comps/gfortran.mak
 endif
 
 ifeq ($(COMP),xlf)
-  include '$(FPARALLEL)/mk/comps/xlf.mak'
+  include $(FPARALLEL)/mk/comps/xlf.mak
 endif
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
-    include '$(FPARALLEL)/mk/comps/Darwin_ibm.mak'
+    include $(FPARALLEL)/mk/comps/Darwin_ibm.mak
   endif
 endif
 
@@ -86,23 +86,23 @@ endif
 
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),catamount)
-    include '$(FPARALLEL)/mk/comps/Linux_catamount.mak'
+    include $(FPARALLEL)/mk/comps/Linux_catamount.mak
   endif
 
   ifeq ($(COMP),xt4)
-    include '$(FPARALLEL)/mk/comps/Linux_xt4.mak'
+    include $(FPARALLEL)/mk/comps/Linux_xt4.mak
   endif
 
   ifeq ($(COMP),PGI)
-    include '$(FPARALLEL)/mk/comps/Linux_pgi.mak'
+    include $(FPARALLEL)/mk/comps/Linux_pgi.mak
   endif
 
   ifeq ($(COMP),SunStudio)
-    include '$(FPARALLEL)/mk/comps/Linux_sunstudio.mak'
+    include $(FPARALLEL)/mk/comps/Linux_sunstudio.mak
   endif
 
   ifeq ($(COMP),PathScale)
-    include '$(FPARALLEL)/mk/comps/Linux_pathscale.mak'
+    include $(FPARALLEL)/mk/comps/Linux_pathscale.mak
   endif
 
   ifeq ($(COMP),Intel)
@@ -110,28 +110,28 @@ ifeq ($(ARCH),Linux)
   endif
 
   ifeq ($(COMP),NAG)
-    include '$(FPARALLEL)/mk/comps/Linux_nag.mak'
+    include $(FPARALLEL)/mk/comps/Linux_nag.mak
   endif
 
   ifeq ($(COMP),Lahey)
-    include '$(FPARALLEL)/mk/comps/Linux_lahey.mak'
+    include $(FPARALLEL)/mk/comps/Linux_lahey.mak
   endif
 endif
 
 ifeq ($(ARCH),CRAYX1)
-  include '$(FPARALLEL)/mk/comps/crayx1.mak'
+  include $(FPARALLEL)/mk/comps/crayx1.mak
 endif
 
 ifeq ($(ARCH),AIX)
-  include '$(FPARALLEL)/mk/comps/aix.mak'
+  include $(FPARALLEL)/mk/comps/aix.mak
 endif
 
 ifeq ($(ARCH),IRIX64)
-  include '$(FPARALLEL)/mk/comps/irix64.mak'
+  include $(FPARALLEL)/mk/comps/irix64.mak
 endif
 
 ifeq ($(ARCH),OSF1)
-  include '$(FPARALLEL)/mk/comps/osf1.mak'
+  include $(FPARALLEL)/mk/comps/osf1.mak
 endif
 
 ifdef MPI
