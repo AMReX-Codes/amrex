@@ -212,8 +212,6 @@ ifeq ($(HOST),lijewski)
   endif
 endif
 ifeq ($(HOST),manda)
-  F90 = ifort
-  CXX = icc
   MPIHOME=/home/almgren/bin/mpich2-install
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
