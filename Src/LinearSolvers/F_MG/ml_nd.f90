@@ -162,11 +162,13 @@ contains
     fine_converged = .false.
 
     if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, &
-                      rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+                      rel_eps, abs_eps, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
-    do iter = 1, mgt(nlevs)%max_iter
+    else   ! Not already converged
+
+     do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
           if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
@@ -230,9 +232,8 @@ contains
 
              if ( do_diagnostics == 1 ) then
                 tres = norm_inf(res(n))
-                if ( parallel_ioprocessor() ) then
-                   print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
-                end if
+                if ( parallel_ioprocessor() ) &
+                   print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres 
              end if
 
              ! Restrict FINE Res to COARSE Res
@@ -270,10 +271,10 @@ contains
 
           end if
 
-       end do
+        end do
 
-       !   Back up the V-cycle
-       do n = 2, nlevs
+        !   Back up the V-cycle
+        do n = 2, nlevs
 
           pd = layout_get_pd(mla%la(n))
           mglev = mgt(n)%nlevels
@@ -339,18 +340,18 @@ contains
                mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:), inject = .true.)
        end do
 
-       do n = 1,nlevs
-          call multifab_fill_boundary(soln(n), cross = lcross)
-       end do
+        do n = 1,nlevs
+           call multifab_fill_boundary(soln(n), cross = lcross)
+        end do
 
        !    Optimization so don't have to do multilevel convergence test each time
 
        !    Compute the residual on just the finest level
-       n = nlevs
-       mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+        n = nlevs
+        mglev = mgt(n)%nlevels
+        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
 
-       if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
+        if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -416,21 +417,22 @@ contains
 
        end if
 
-    end do
+     end do
 
-    iter = iter-1
-    if (iter < mgt(nlevs)%max_iter) then
-      if (mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) &
-          write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter
-    else
-      call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
-    end if
+     iter = iter-1
+     if (iter < mgt(nlevs)%max_iter) then
+       if (mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) &
+           write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter
+     else
+       call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+     end if
 
     ! Add: full_soln += soln
     do n = 1,nlevs
        call saxpy(full_soln(n),ONE,soln(n))
     end do
 
+    end if
 
     ! ****************************************************************************
 
