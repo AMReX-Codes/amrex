@@ -642,8 +642,10 @@ contains
       integer :: i, tries
       integer, parameter :: MaxTries = 100
 
-      if ( size(bxl) == 0 ) return
       cnt = 0
+
+      if ( size(bxl) == 0 ) return
+
       ba => begin(bxl)
 
       do while ( associated(ba) )

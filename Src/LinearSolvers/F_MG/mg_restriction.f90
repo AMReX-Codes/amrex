@@ -659,11 +659,13 @@ contains
 
     real (dp_t) :: fac
     integer     :: i, j, l, m
-  
+
+    fac = one
+
     if (face .eq. 1) then
-       fac = one/real(ir(2),kind=dp_t)
+       fac = fac/real(ir(2),kind=dp_t)
     else if (face .eq. 2) then
-       fac = one/real(ir(1),kind=dp_t)
+       fac = fac/real(ir(1),kind=dp_t)
     else
        call bl_error('edge_restriction_2d: face must be 1 or 2')
     end if
@@ -704,12 +706,14 @@ contains
     real (dp_t) :: fac
     integer :: i, j, k, l, m, n
 
+    fac = one
+
     if ( face .eq. 1 ) then
-       fac = one/real(ir(2)*ir(3),kind=dp_t)
+       fac = fac/real(ir(2)*ir(3),kind=dp_t)
     else if (face .eq. 2) then
-       fac = one/real(ir(1)*ir(3),kind=dp_t)
+       fac = fac/real(ir(1)*ir(3),kind=dp_t)
     else if (face .eq. 3) then
-       fac = one/real(ir(1)*ir(2),kind=dp_t)
+       fac = fac/real(ir(1)*ir(2),kind=dp_t)
     else
        call bl_error('edge_restriction_3d: face must be 1, 2 or 3')
     end if

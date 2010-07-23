@@ -86,7 +86,7 @@ contains
     do n = 1, size(fine,2)
        do i = cslope_lo(1), cslope_hi(1)
           uc_xslope(i,n) = HALF*(crse(i+1,n)-crse(i-1,n))
-          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n,dim=1)
+          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n)
        end do
 
        if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
@@ -98,7 +98,7 @@ contains
              uc_xslope(i,n) = &
                   FOURTH * (crse(i+1,n) + FIVE*crse(i,n) - SIX*crse(i-1,n) )
           end if
-          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n,dim=1)
+          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n)
        end if
 
        if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
@@ -110,7 +110,7 @@ contains
              uc_xslope(i,n) = &
                   -FOURTH * (crse(i-1,n) + FIVE*crse(i,n) - SIX*crse(i+1,n) )
           end if
-          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n, dim=1)
+          lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n)
        end if
     end do
 
@@ -190,19 +190,17 @@ contains
 
   contains
 
-    function uclc_slope_1d(uslope, crse, crse_lo, i, n, dim) result(lc)
+    function uclc_slope_1d(uslope, crse, crse_lo, i, n) result(lc)
 
       integer, intent(in) :: crse_lo(:)
       real(kind = dp_t) :: lc
       real(kind=dp_t), intent(in) :: uslope
       real(kind=dp_t), intent(in)  :: crse(crse_lo(1):,:)
       real(kind=dp_t) :: cen, forw, back, slp
-      integer, intent(in) :: i,  n, dim
-      if ( dim == 1 ) then
-         cen  = uslope
-         forw = TWO*(crse(i+1,n)-crse(i,n))
-         back = TWO*(crse(i,n)-crse(i-1,n))
-      end if
+      integer, intent(in) :: i,  n
+      cen  = uslope
+      forw = TWO*(crse(i+1,n)-crse(i,n))
+      back = TWO*(crse(i,n)-crse(i-1,n))
       slp  = min(abs(forw),abs(back))
       if (forw*back  <  ZERO) then
          slp = ZERO
@@ -562,14 +560,15 @@ contains
       real(kind=dp_t), intent(in)  :: crse(crse_lo(1):,crse_lo(2):,:)
       real(kind=dp_t) :: cen, forw, back, slp
       integer, intent(in) :: i, j, n, dim
+      cen  = uslope
+      forw = TWO
+      back = TWO
       if ( dim == 1 ) then
-         cen  = uslope
-         forw = TWO*(crse(i+1,j,n)-crse(i,j,n))
-         back = TWO*(crse(i,j,n)-crse(i-1,j,n))
+         forw = forw*(crse(i+1,j,n)-crse(i,j,n))
+         back = back*(crse(i,j,n)-crse(i-1,j,n))
       else if ( dim == 2 ) then
-         cen  = uslope
-         forw = TWO*(crse(i,j+1,n)-crse(i,j,n))
-         back = TWO*(crse(i,j,n)-crse(i,j-1,n))
+         forw = forw*(crse(i,j+1,n)-crse(i,j,n))
+         back = back*(crse(i,j,n)-crse(i,j-1,n))
       end if
       slp  = min(abs(forw),abs(back))
       if (forw*back  <  ZERO) then
@@ -1405,18 +1404,18 @@ contains
       real(kind=dp_t), intent(in)  :: crse(crse_lo(1):,crse_lo(2):,crse_lo(3):,:)
       real(kind=dp_t) :: cen, forw, back, slp
       integer, intent(in) :: i, j, k, n, dim
+      cen  = uslope
+      forw = TWO
+      back = TWO
       if ( dim == 1 ) then
-         cen  = uslope
-         forw = TWO*(crse(i+1,j,k,n)-crse(i,j,k,n))
-         back = TWO*(crse(i,j,k,n)-crse(i-1,j,k,n))
+         forw = forw*(crse(i+1,j,k,n)-crse(i,j,k,n))
+         back = back*(crse(i,j,k,n)-crse(i-1,j,k,n))
       else if ( dim == 2 ) then
-         cen  = uslope
-         forw = TWO*(crse(i,j+1,k,n)-crse(i,j,k,n))
-         back = TWO*(crse(i,j,k,n)-crse(i,j-1,k,n))
+         forw = forw*(crse(i,j+1,k,n)-crse(i,j,k,n))
+         back = back*(crse(i,j,k,n)-crse(i,j-1,k,n))
       else if ( dim == 3 ) then
-         cen  = uslope
-         forw = TWO*(crse(i,j,k+1,n)-crse(i,j,k,n))
-         back = TWO*(crse(i,j,k,n)-crse(i,j,k-1,n))
+         forw = forw*(crse(i,j,k+1,n)-crse(i,j,k,n))
+         back = back*(crse(i,j,k,n)-crse(i,j,k-1,n))
       end if
       slp  = min(abs(forw),abs(back))
       if ( forw*back  <  ZERO ) then
