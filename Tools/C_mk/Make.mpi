@@ -320,7 +320,9 @@ ifeq ($(MACHINE), Linux)
             ifneq ($(WHICHLINUX), CARVER)
               ifneq ($(HOST),davinci)
                 ifneq ($(WHICHLINUX), EUCLID)
-                  BL_MPI_LIBS += -lmpich
+                  ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
+                    BL_MPI_LIBS += -lmpich
+                  endif
                 endif
               endif
             endif
