@@ -12,7 +12,7 @@ module ml_solve_module
 
 contains
 
-   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,eps_in)
+   subroutine ml_cc_solve(mla,mgt,rh,full_soln,fine_flx,ref_ratio,do_diagnostics,rel_eps_in,abs_eps_in)
 
       use ml_cc_module , only : ml_cc
 
@@ -23,17 +23,20 @@ contains
       type(bndry_reg), intent(inout) :: fine_flx(2:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       integer        , intent(in   ) :: do_diagnostics
-      real(dp_t)     , intent(in   ), optional :: eps_in
+      real(dp_t)     , intent(in   ), optional :: rel_eps_in
+      real(dp_t)     , intent(in   ), optional :: abs_eps_in
 
       type(boxarray)  :: bac
       type(lmultifab) :: fine_mask(mla%nlevel)
       integer         :: i, dm, n, nlevs, mglev
-      real(dp_t)      :: eps
+      real(dp_t)      :: rel_eps
+      real(dp_t)      :: abs_eps
 
       dm    = mla%dim
       nlevs = mla%nlevel
 
-      eps = 1.d-12; if ( present(eps_in) ) eps = eps_in
+      rel_eps =  1.d-12; if ( present(rel_eps_in) ) rel_eps = rel_eps_in
+      abs_eps = -1.d0  ; if ( present(abs_eps_in) ) abs_eps = abs_eps_in
 
       do n = nlevs, 1, -1
         call lmultifab_build(fine_mask(n), mla%la(n), 1, 0)
@@ -48,7 +51,7 @@ contains
 
 ! ****************************************************************************
 
-      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps, &
+      call ml_cc(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,rel_eps,abs_eps, &
                  need_grad_phi_in=.true.)
 
 ! ****************************************************************************
@@ -130,7 +133,8 @@ contains
 ! ******************************************************************************************
 !
 
-   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,eps_in)
+   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,&
+                          rel_eps_in,abs_eps_in)
 
        use ml_nd_module, only : ml_nd
 
@@ -141,14 +145,16 @@ contains
        type(multifab) , intent(in   )           :: one_sided_ss(2:)
        integer        , intent(in   )           :: ref_ratio(:,:)
        integer        , intent(in   )           :: do_diagnostics 
-       real(dp_t)     , intent(in   ), optional :: eps_in
+       real(dp_t)     , intent(in   ), optional :: rel_eps_in
+       real(dp_t)     , intent(in   ), optional :: abs_eps_in
 
        type(lmultifab) :: fine_mask(mla%nlevel)
        integer         :: nlevs, n, dm, lo(get_dim(rh(mla%nlevel))), hi(get_dim(rh(mla%nlevel)))
        logical         :: nodal(get_dim(rh(mla%nlevel)))
-       real(dp_t)      :: eps
+       real(dp_t)      :: rel_eps,abs_eps
 
-       eps = 1.d-12; if ( present(eps_in) ) eps = eps_in
+       rel_eps =  1.d-12; if ( present(rel_eps_in) ) rel_eps = rel_eps_in
+       abs_eps = -1.d0  ; if ( present(abs_eps_in) ) abs_eps = abs_eps_in
 
        nlevs = mla%nlevel
        dm    = get_dim(rh(nlevs))
@@ -168,7 +174,8 @@ contains
           endif
        end do
 
-       call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+       call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,&
+                  rel_eps,abs_eps)
      
        do n = 1,nlevs
           call lmultifab_destroy(fine_mask(n))
