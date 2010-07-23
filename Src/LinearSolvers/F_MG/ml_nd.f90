@@ -161,6 +161,11 @@ contains
 
     fine_converged = .false.
 
+    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, &
+                      rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+       if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
+            write(unit=*, fmt='("F90mg: No iterations needed ")')
+
     do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
