@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.149 2010-06-07 19:41:23 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.150 2010-07-23 23:14:46 lijewski Exp $
 #
 
 #
@@ -246,7 +246,7 @@ FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 #
 ifeq ($(COMP),gcc)
     CXXPRFF    := -p
-    CXXOPTF    += -O
+    CXXOPTF    += -O3
     CXXDEBF    += -g
     CXXOPTF    += -g
     FULLWARN   := -Wall 
@@ -261,12 +261,15 @@ ifeq ($(COMP),gcc)
     ifeq ($(__gcc_major_version),2)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
+    ifeq ($(USE_OMP),TRUE)
+      CXXOPTF += -fopenmp
+      CXXDEBF += -fopenmp
+    endif
 endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
-    CXXOPTF    += -O
+    CXXOPTF    += -g -O2 -fno-exceptions
     CXXDEBF    += -g #-pedantic
-    CXXOPTF    += -g #-pedantic
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
@@ -279,12 +282,16 @@ ifeq ($(COMP),g++)
     ifeq ($(__gcc_major_version),2)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
+    ifeq ($(USE_OMP),TRUE)
+      CXXOPTF += -fopenmp
+      CXXDEBF += -fopenmp
+    endif
 endif
 ifeq ($(FCOMP),g77)
     FC := g77 -fno-second-underscore
     fC := g77 -fno-second-underscore
-    FOPTF += -O
-    fOPTF += -O
+    FOPTF += -g -O
+    fOPTF += -g -O
     FDEBF += -g
     fDEBF += -g
     _f77_lib:=$(shell g77 -print-file-name=libg2c.a)
@@ -299,10 +306,17 @@ ifeq ($(FCOMP),gfortran)
     fC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -ffixed-line-length-132
-    fOPTF += -ffixed-line-length-132
-    FDEBF += -g -ffixed-line-length-132 -Wall
-    fDEBF += -g -ffixed-line-length-132 -Wall
+    FOPTF += -ffixed-line-length-132 -g -O2
+    fOPTF += -ffixed-line-length-132 -g -O2
+    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+
+   ifeq ($(USE_OMP),TRUE)
+    FOPTF += -fopenmp
+    fOPTF += -fopenmp
+    FDEBF += -fopenmp
+    fDEBF += -fopenmp
+   endif
 endif
 ifeq ($(FCOMP),g95)
     FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
@@ -313,6 +327,20 @@ ifeq ($(FCOMP),g95)
     fOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
     FDEBF += -g -fbounds-check
     fDEBF += -g -fbounds-check
+
+   ifeq ($(USE_OMP),TRUE)
+    FOPTF += -fopenmp
+    fOPTF += -fopenmp
+    FDEBF += -fopenmp
+    fDEBF += -fopenmp
+
+     CXXOPTF += 
+     CXXDEBF += -openmp
+     ifeq ($(ICC_MAJOR_VERSION),11)
+        CXXOPTF += -openmp-report2
+        CXXDEBF += -openmp-report2
+     endif
+   endif
 endif
 
 ifeq ($(COMP),Intel)
