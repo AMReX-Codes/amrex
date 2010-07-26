@@ -26,7 +26,7 @@ contains
                             max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             st_type, &
-                            verbose, cg_verbose, nodal)
+                            verbose, cg_verbose, nodal, use_hypre)
 
     use bl_IO_module
     use bl_prof_module
@@ -46,6 +46,7 @@ contains
     real(kind=dp_t), intent(in), optional :: eps
     real(kind=dp_t), intent(in), optional :: abs_eps
     real(kind=dp_t), intent(in), optional :: bottom_solver_eps
+
     integer, intent(in), optional :: max_nlevel
     integer, intent(in), optional :: max_bottom_nlevel
     integer, intent(in), optional :: min_width
@@ -55,6 +56,7 @@ contains
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: st_type
+    integer, intent(in), optional :: use_hypre
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
@@ -100,6 +102,7 @@ contains
     if ( present(min_width)         ) mgt%min_width         = min_width
     if ( present(verbose)           ) mgt%verbose           = verbose
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
+    if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
 
     nodal_flag = .false.
     if ( present(nodal) ) then
@@ -259,7 +262,7 @@ contains
     !   creating the special bottom solver stuff
     if (mgt%nlevels == 1) mgt%bottom_solver = 1
 
-    if (mgt%bottom_solver == 4) then
+    if (mgt%bottom_solver == 4 .and. mgt%use_hypre == 0) then
 
        allocate(mgt%bottom_mgt)
 
