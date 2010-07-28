@@ -33,7 +33,8 @@ c :::
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
      $		                lratio, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi)
+     $                          sl, num_slp, strip, strip_lo, strip_hi,
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -43,6 +44,7 @@ c :::
       integer DIMDEC(fb)
       integer lratio, nvar
       integer num_slp
+      integer actual_comp,actual_state
       integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  crse(DIMV(crse), nvar)
@@ -120,7 +122,8 @@ c :::
       subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
      $		                lratio, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi)
+     $                          sl, num_slp, strip, strip_lo, strip_hi,
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -130,6 +133,7 @@ c :::
       integer DIMDEC(fb)
       integer lratio, nvar
       integer num_slp
+      integer actual_comp,actual_state
       integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  crse(DIMV(crse), nvar)
@@ -297,7 +301,8 @@ c :::
      $                          cb_l1, cb_h1,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, cvcx)
+     $                          fvcx, cvcx,
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -308,6 +313,7 @@ c :::
       integer clo, chi
       integer lratio, nvar, clen, flen, limslope
       integer bc(1,2,nvar)
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 2)
@@ -394,7 +400,8 @@ c ::: .....::::: strip out a fine grid slope vector
      $                          cb_l1, cb_h1,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, cvcx)
+     $                          fvcx, cvcx,
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -404,6 +411,7 @@ c ::: .....::::: strip out a fine grid slope vector
       integer cb_l1, cb_h1
       integer clo, chi
       integer lratio, nvar, clen, flen, limslope
+      integer actual_comp,actual_state
       integer bc(1,2,nvar)
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
@@ -572,8 +580,9 @@ c ::: ftmp         =>  1-D temp array
 c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi,
-     &                          fine,DIMS(fine),fblo,fbhi,
-     &                          longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi)
+     $                          fine,DIMS(fine),fblo,fbhi,
+     $                          longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi,
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -583,11 +592,13 @@ c :::
       integer fblo(2), fbhi(2)
       integer ftmp_lo, ftmp_hi
       integer nvar, lratio, longdir
+      integer actual_comp,actual_state
       REAL_T  crse(DIMV(crse), nvar)
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  ftmp(ftmp_lo:ftmp_hi)
-	REAL_T sumrho
 
+c     Local variables    
+      REAL_T sumrho
       integer i, j, ic, jc, ioff, joff, n
 
          do n = 1, nvar
@@ -652,15 +663,16 @@ c :::
 c ::: --------------------------------------------------------------
 c ::: 
        subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi,
-     &                             DIMS(fvcb),
-     &                             crse, DIMS(crse), DIMS(cvcb),
-     &                             uc_xslope, lc_xslope, xslope_factor,
-     &                             DIMS(cslope),
-     &                             cslopelo, cslopehi,
+     $                             DIMS(fvcb),
+     $                             crse, DIMS(crse), DIMS(cvcb),
+     $                             uc_xslope, lc_xslope, xslope_factor,
+     $                             DIMS(cslope),
+     $                             cslopelo, cslopehi,
      $                             nvar, lratiox, 
      $                             bc, lim_slope, lin_limit,
      $                             fvcx, cvcx,
-     &                             voffx, alpha, cmax, cmin)
+     $                             voffx, alpha, cmax, cmin)
+     $                             actual_comp,actual_state)
 
        implicit none
 
@@ -674,6 +686,7 @@ c :::
        integer lratiox, nvar
        integer lim_slope, lin_limit
        integer bc(1,2,nvar)
+       integer actual_comp,actual_state
        REAL_T fine(DIMV(fine),nvar)
        REAL_T crse(DIMV(crse), nvar)
        REAL_T uc_xslope(DIMV(cslope),nvar)

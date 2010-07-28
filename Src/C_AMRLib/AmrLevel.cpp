@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.113 2010-04-02 20:27:18 almgren Exp $
+// $Id: AmrLevel.cpp,v 1.114 2010-07-28 01:07:24 almgren Exp $
 //
 #include <winstd.H>
 
@@ -915,6 +915,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                int        dcomp,
                                int        idx)
 {
+
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 
@@ -1090,7 +1091,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           fine_ratio,
                           amrLevels[l].geom,
                           amrLevels[l+1].geom,
-                          bcr);
+                          bcr,
+                          m_scomp,
+                          m_index);
             //
             // Copy intersect finefab into next level m_crseboxes.
             //
@@ -1248,7 +1251,9 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            crse_ratio,
                            clev.geom,
                            geom,
-                           bcr);
+                           bcr,
+                           SComp,
+                           index);
         }
 
         DComp += NComp;
