@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.31 2010-07-28 01:07:23 almgren Exp $
+c $Id: INTERP_2D.F,v 1.32 2010-07-28 01:17:57 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -40,7 +40,7 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, nvar,
      $                          sl, num_slp,
-     $                          actual_comp,actual_slope)
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -177,7 +177,7 @@ c :::
      $                          fine, DIMS(fine), DIMS(fb),
      $		                lratiox, lratioy, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi,
-     $                          actual_comp,actual_slope)
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -290,7 +290,7 @@ c :::
      $                             bc, lim_slope, lin_limit,
      $                             fvcx, fvcy, cvcx, cvcy,
      $                             voffx, voffy, alpha, cmax, cmin,
-     $                             actual_comp,actual_slope)
+     $                             actual_comp,actual_state)
 
        implicit none
 
@@ -651,7 +651,7 @@ c
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
      $                          fvcx, fvcy, cvcx, cvcy)
-     $                          actual_comp,actual_slope)
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -835,7 +835,7 @@ c :::
      $                          fine,DIMS(fine),fblo,fbhi,
      $                          longdir,lratiox,lratioy,nvar,
      $                          ftmp,ftmp_lo,ftmp_hi,
-     $                          actual_comp,actual_slope)
+     $                          actual_comp,actual_state)
 
       implicit none
 
@@ -935,7 +935,6 @@ c :::
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer lratiox, lratioy, nvar
       integer bc(2,2,nvar)
-      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse), nvar)
       REAL_T fine_state(DIMV(state), nvar)
