@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.41 2009-11-28 07:27:53 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.42 2010-07-28 01:07:23 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -38,7 +38,8 @@ c :::
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, lratioz, nvar,
-     $                          sl, num_slp)
+     $                          sl, num_slp,
+     $                          actual_comp, actual_state)
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -46,6 +47,7 @@ c :::
       integer DIMDEC(fb)
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse),nvar)
       REAL_T sl(DIM1(cb),num_slp)
@@ -175,7 +177,8 @@ c :::
       subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
      $                          lratiox, lratioy, lratioz, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi)
+     $                          sl, num_slp, strip, strip_lo, strip_hi,
+     $                          actual_comp, actual_state)
 
       implicit none
 
@@ -186,6 +189,7 @@ c :::
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
       integer strip_lo, strip_hi
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse),nvar)
       REAL_T strip(strip_lo:strip_hi)
@@ -242,7 +246,8 @@ c :::
      $                          nvar, lratiox, lratioy, lratioz, 
      $                          bc, lim_slope, lin_limit,
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
-     $                          voffx,voffy,voffz, alpha, cmax, cmin)
+     $                          voffx,voffy,voffz, alpha, cmax, cmin,
+     $                          actual_comp, actual_state)
 
       implicit none
 
@@ -256,6 +261,7 @@ c :::
       integer lratiox, lratioy, lratioz, nvar
       integer lim_slope, lin_limit
       integer bc(3,2,nvar)
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse), nvar)
       REAL_T uc_xslope(DIMV(cslope),nvar)
@@ -771,7 +777,8 @@ c
      $                          clo, chi, DIMS(cb),
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
+     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
+     $                          actual_comp, actual_state)
 
       implicit none
 
@@ -782,6 +789,7 @@ c
       integer nvar, lratiox, lratioy, lratioz
       integer bc(3,2,nvar)
       integer clen, flen, clo, chi, limslope
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 3)
@@ -812,7 +820,8 @@ c
      $                           clo, chi, cb_l1, cb_l2, cb_l3,
      $                           cb_h1, cb_h2, cb_h3,
      $		                 fslo, fshi, cslope, clen, fslope, fdat,
-     $                           flen, voff, bc, limslope)
+     $                           flen, voff, bc, limslope,
+     $                           actual_comp, actual_state)
 
       implicit none
 
@@ -825,6 +834,7 @@ c
       integer bc(3,2,nvar)
       integer lratiox, lratioy, lratioz, nvar, clen, flen, clo, chi
       integer limslope
+      integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(cb_l1-1:cb_h1+1, cb_l2-1:cb_h2+1, 
      &            cb_l3-1:cb_h3+1, nvar )
@@ -1046,9 +1056,10 @@ c ::: ftmp         =>  1-D temp array
 c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi,
-     &                          fine,DIMS(fine),fblo,fbhi,
-     &                          longdir,lratiox,lratioy,lratioz,nvar,
-     &                          ftmp, ftmp_lo, ftmp_hi)
+     $                          fine,DIMS(fine),fblo,fbhi,
+     $                          longdir,lratiox,lratioy,lratioz,nvar,
+     $                          ftmp, ftmp_lo, ftmp_hi,
+     $                          actual_comp, actual_state)
 
       implicit none
 
@@ -1058,6 +1069,7 @@ c :::
       integer fblo(3), fbhi(3)
       integer nvar, lratiox, lratioy, lratioz, longdir
       integer ftmp_lo, ftmp_hi
+      integer actual_comp,actual_state
       REAL_T  crse(DIMV(crse), nvar)
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  ftmp(ftmp_lo:ftmp_hi)

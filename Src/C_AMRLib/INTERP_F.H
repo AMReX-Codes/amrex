@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.15 2007-10-28 19:34:25 almgren Exp $
+** $Id: INTERP_F.H,v 1.16 2010-07-28 01:07:23 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -55,7 +55,8 @@ extern "C"
                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
                         D_DECL(const int* lrx,const int* lry,const int* lrz),
-                        const int* nvar, Real* slope, const int* num_slope);
+                        const int* nvar, Real* slope, const int* num_slope,
+                        const int* actual_state, const int* actual_state);
       
     void FORT_CBINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                         ARLIM_P(cblo), ARLIM_P(cbhi),
@@ -63,7 +64,8 @@ extern "C"
                         ARLIM_P(fblo), ARLIM_P(fbhi),
                         D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const int* nvar, Real* slope, const int* num_slope,
-                        Real* strip, const int* strip_lo, const int* strip_hi);
+                        Real* strip, const int* strip_lo, const int* strip_hi,
+                        const int* actual_state, const int* actual_state);
 
     void FORT_CCINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
@@ -78,7 +80,8 @@ extern "C"
                         const int* bc, const int* lim_slope,
                         D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
                         D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
-                        Real* cmax, Real* cmin, Real* alpha);
+                        Real* cmax, Real* cmin, Real* alpha,
+                        const int* actual_state, const int* actual_state);
 
     void FORT_CCINTERP2 (Real* fine, const int* flo, const int* fhi,
                          ARLIM_P(fblo), ARLIM_P(fbhi),
@@ -92,7 +95,8 @@ extern "C"
                          Real* voff,
                          const int* bc, const int* lim_slope,
                          D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
-                         D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz));
+                         D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
+                         const int* actual_state, const int* actual_state);
 
     void FORT_LINCCINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                            const int* fblo, const int* fbhi,
@@ -118,7 +122,8 @@ extern "C"
                            D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
                            D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
                            D_DECL(const Real* voffx,const Real* voffy, const Real* voffz),
-                           Real* alpha, Real* cmax, Real* cmin);
+                           Real* alpha, Real* cmax, Real* cmin,
+                           const int* actual_state, const int* actual_state);
 
     void FORT_CQINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
@@ -132,7 +137,8 @@ extern "C"
                         Real* voff,
                         const int* bc, const int* lim_slope,
                         D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
-                        D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz));
+                        D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
+                        const int* actual_state, const int* actual_state);
 
     void FORT_PCINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                         const int* cblo, const int* cbhi,
@@ -141,7 +147,8 @@ extern "C"
                         const int* longdir,
                         D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const int* nvar, Real* strip,
-                        const int* strip_lo, const int* strip_hi);
+                        const int* strip_lo, const int* strip_hi,
+                        const int* actual_state, const int* actual_state);
 
     void FORT_PROTECT_INTERP (      Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                               const  int* fblo, const int* fbhi,

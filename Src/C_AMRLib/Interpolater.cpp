@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.38 2008-12-08 21:41:59 almgren Exp $
+// $Id: Interpolater.cpp,v 1.39 2010-07-28 01:07:23 almgren Exp $
 //
 #include <winstd.H>
 #include <climits>
@@ -71,16 +71,18 @@ NodeBilinear::CoarseBox (const Box&     fine,
 }
 
 void
-NodeBilinear::interp (const FArrayBox& crse,
-                      int              crse_comp,
-                      FArrayBox&       fine,
-                      int              fine_comp,
-                      int              ncomp,
-                      const Box&       fine_region,
-                      const IntVect&   ratio,
-                      const Geometry& /* crse_geom */,
-                      const Geometry& /* fine_geom */,
-                      Array<BCRec>&   /*bcr*/)
+NodeBilinear::interp (const FArrayBox&  crse,
+                      int               crse_comp,
+                      FArrayBox&        fine,
+                      int               fine_comp,
+                      int               ncomp,
+                      const Box&        fine_region,
+                      const IntVect&    ratio,
+                      const Geometry& /*crse_geom */,
+                      const Geometry& /*fine_geom */,
+                      Array<BCRec>&   /*bcr*/,
+                      int               actual_comp,
+                      int               actual_state)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
     //
@@ -105,7 +107,7 @@ NodeBilinear::interp (const FArrayBox& crse,
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
                    D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   strip.dataPtr(),&num_slope);
+                   strip.dataPtr(),&num_slope,&actual_comp,&actual_state);
 }
 
 CellBilinear::~CellBilinear () {}
@@ -141,16 +143,18 @@ CellBilinear::CoarseBox (const Box&     fine,
 }
 
 void
-CellBilinear::interp (const FArrayBox& crse,
-                      int              crse_comp,
-                      FArrayBox&       fine,
-                      int              fine_comp,
-                      int              ncomp,
-                      const Box&       fine_region,
-                      const IntVect &  ratio,
-                      const Geometry&  /* crse_geom */,
-                      const Geometry&  /* fine_geom */,
-                      Array<BCRec>&    /*bcr*/)
+CellBilinear::interp (const FArrayBox&  crse,
+                      int               crse_comp,
+                      FArrayBox&        fine,
+                      int               fine_comp,
+                      int               ncomp,
+                      const Box&        fine_region,
+                      const IntVect &   ratio,
+                      const Geometry& /*crse_geom*/,
+                      const Geometry& /*fine_geom*/,
+                      Array<BCRec>&   /*bcr*/,
+                      int               actual_comp,
+                      int               actual_state)
 {
 #if (BL_SPACEDIM == 3)
     BoxLib::Error("interp: not implemented");
@@ -184,7 +188,8 @@ CellBilinear::interp (const FArrayBox& crse,
     FORT_CBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
                    D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi);
+                   slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
+                   &actual_comp,&actual_state);
 }
 
 static
@@ -242,12 +247,15 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 const IntVect&   ratio,
                                 const Geometry&  crse_geom,
                                 const Geometry&  fine_geom,
-                                Array<BCRec>& bcr)
+                                Array<BCRec>&    bcr,
+                                int              actual_comp,
+                                int              actual_state)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
 
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
+
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -335,7 +343,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
-
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
                       ARLIM(fvcblo), ARLIM(fvcbhi),
@@ -355,7 +362,8 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                       D_DECL(voffx,voffy,voffz),
-                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr());
+                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
+                      &actual_comp,&actual_state);
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
@@ -396,7 +404,9 @@ CellQuadratic::interp (const FArrayBox& crse,
                        const IntVect&   ratio,
                        const Geometry&  crse_geom,
                        const Geometry&  fine_geom,
-                       Array<BCRec>&    bcr)
+                       Array<BCRec>&    bcr,
+                       int              actual_comp,
+                       int              actual_state)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
 
@@ -481,7 +491,8 @@ CellQuadratic::interp (const FArrayBox& crse,
                    cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
+                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                   &actual_comp,&actual_state);
 
 #endif /*(BL_SPACEDIM > 1)*/
 }
@@ -510,9 +521,11 @@ PCInterp::interp (const FArrayBox& crse,
                   int              ncomp,
                   const Box&       fine_region,
                   const IntVect&   ratio,
-                  const Geometry&  /*crse_geom*/,
-                  const Geometry&  /*fine_geom*/,
-                  Array<BCRec>&    /*bcr*/)
+                  const Geometry& /*crse_geom*/,
+                  const Geometry& /*fine_geom*/,
+                  Array<BCRec>&   /*bcr*/,
+                  int               actual_comp,
+                  int               actual_state)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
     //
@@ -549,7 +562,8 @@ PCInterp::interp (const FArrayBox& crse,
     FORT_PCINTERP (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
                    fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
                    &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   &ncomp,strip.dataPtr(),&strip_lo,&strip_hi);
+                   &ncomp,strip.dataPtr(),&strip_lo,&strip_hi,
+                   &actual_comp,&actual_state);
 }
 
 CellConservativeProtected::CellConservativeProtected () {}
@@ -584,7 +598,9 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                                    const IntVect&   ratio,
                                    const Geometry&  crse_geom,
                                    const Geometry&  fine_geom,
-                                   Array<BCRec>& bcr)
+                                   Array<BCRec>&    bcr,
+                                   int              actual_comp,
+                                   int              actual_state)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp");
 
@@ -696,7 +712,8 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                       D_DECL(voffx,voffy,voffz),
-                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr());
+                      alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
+                      &actual_comp,&actual_state);
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 

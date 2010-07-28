@@ -1,7 +1,7 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 //
-// $Id: Interpolater.H,v 1.11 2003-09-15 21:17:03 lijewski Exp $
+// $Id: Interpolater.H,v 1.12 2010-07-28 01:07:23 almgren Exp $
 //
 #include <Box.H>
 #include <BCRec.H>
@@ -53,7 +53,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr) = 0;
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state) = 0;
 
     //
     //@ManDoc: Re-visit the interpolation to protect against under- or overshoots.
@@ -111,7 +113,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 };
 
 //
@@ -153,7 +157,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 };
 
 //
@@ -209,7 +215,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 
 private:
     bool do_linear_limiting;
@@ -259,7 +267,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 
     //
     //@ManDoc: Re-visit the interpolation to protect against under- or overshoots.
@@ -321,7 +331,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 private:
 
     bool  do_limited_slope;
@@ -366,7 +378,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
 };
 
 //
