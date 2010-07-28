@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.32 2010-07-28 01:17:57 almgren Exp $
+c $Id: INTERP_2D.F,v 1.33 2010-07-28 01:21:08 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -650,7 +650,7 @@ c
      $                          cb_l1, cb_l2, cb_h1, cb_h2,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, fvcy, cvcx, cvcy)
+     $                          fvcx, fvcy, cvcx, cvcy,
      $                          actual_comp,actual_state)
 
       implicit none
