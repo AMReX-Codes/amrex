@@ -671,7 +671,7 @@ c :::
      $                             nvar, lratiox, 
      $                             bc, lim_slope, lin_limit,
      $                             fvcx, cvcx,
-     $                             voffx, alpha, cmax, cmin)
+     $                             voffx, alpha, cmax, cmin,
      $                             actual_comp,actual_state)
 
        implicit none
