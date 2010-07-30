@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.15 2009-11-05 23:23:24 lijewski Exp $
+c $Id: ABec_3D.F,v 1.16 2010-07-30 23:25:33 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -105,7 +105,7 @@ c-----------------------------------------------------------------------
       integer  i, j, k, ioff, n
 
       REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-      REAL_T delta, gamma, rho, rho_xy, rho_yz, rho_xz
+      REAL_T delta, gamma, rho
 
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
