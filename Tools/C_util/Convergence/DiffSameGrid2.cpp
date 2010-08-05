@@ -235,10 +235,7 @@ main (int   argc,
                     if (rc != MPI_SUCCESS)
                         ParallelDescriptor::Abort(rc);
 
-
-
-                    MPI_Status stat;
-                    int rc = MPI_Recv(rtmp.dataPtr(), nComp, datatype, 
+                    rc = MPI_Recv(rtmp.dataPtr(), nComp, datatype, 
                                       MPI_ANY_SOURCE, 
 				      ParallelDescriptor::NProcs() + proc, 
 				      ParallelDescriptor::Communicator(), 
@@ -274,7 +271,7 @@ main (int   argc,
                 ParallelDescriptor::Abort(rc);
 
 
-            int rc = MPI_Send(rnorms.dataPtr(), nComp, datatype, 
+            rc = MPI_Send(rnorms.dataPtr(), nComp, datatype, 
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::NProcs() + ParallelDescriptor::MyProc(),
                               ParallelDescriptor::Communicator());
