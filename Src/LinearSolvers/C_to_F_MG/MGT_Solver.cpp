@@ -371,11 +371,14 @@ MGT_Solver::set_mac_coefficients(const MultiFab* aa[],
       for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
 	{
 	  const FArrayBox* b[BL_SPACEDIM];
+
+	  int n = amfi.index();
+
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
 	    {
 	      b[i] = &((*(bb[lev][i]))[amfi]);
 	    }
- 	   int n = amfi.index();
+
  	   const int* lo = amfi.validbox().loVect();
 	   const int* hi = amfi.validbox().hiVect();
 
@@ -477,22 +480,26 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       mgt_init_coeffs_lev(&lev);
+
       double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
 	{
-	  pxa[i] = pxb[i] = 0;
+	  pxa[i] = pxb[i] = 0.;
 	}
 
       for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
 	{
 	  const FArrayBox* a = &((*(aa[lev]))[amfi]);
 	  const FArrayBox* b[BL_SPACEDIM];
+
+	  int n = amfi.index();
+
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
 	    {
 	      b[i] = &((*(bb[lev][i]))[amfi]);
 	    }
- 	   int n = amfi.index();
+ 	   
  	   const int* lo = amfi.validbox().loVect();
 	   const int* hi = amfi.validbox().hiVect();
 
@@ -522,6 +529,65 @@ MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_
   mgt_finalize_stencil();
 }
 
+void
+MGT_Solver::set_visc_coefficients(MultiFab* aa[], MultiFab* bb[][BL_SPACEDIM], 
+                                  const Real& beta, 
+                                  Array< Array<Real> >& xa,
+                                  Array< Array<Real> >& xb)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      mgt_init_coeffs_lev(&lev);
+
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+	{
+	  pxa[i] = pxb[i] = 0.;
+	}
+
+      for (MFIter amfi(*(aa[lev])); amfi.isValid(); ++amfi)
+	{
+	  const FArrayBox* a = &((*(aa[lev]))[amfi]);
+	  const FArrayBox* b[BL_SPACEDIM];
+
+	  int n = amfi.index();
+
+	  for ( int i = 0; i < BL_SPACEDIM; ++i )
+	    {
+	      b[i] = &((*(bb[lev][i]))[amfi]);
+	    }
+ 	   
+ 	   const int* lo = amfi.validbox().loVect();
+	   const int* hi = amfi.validbox().hiVect();
+
+	   const int* alo = a->box().loVect();
+	   const int* ahi = a->box().hiVect();
+	   mgt_set_cfa (&lev, &n, a->dataPtr(), alo, ahi, lo, hi);
+
+	   const int* bxlo = b[0]->box().loVect();
+	   const int* bxhi = b[0]->box().hiVect();
+	   mgt_set_cfbx(&lev, &n, b[0]->dataPtr(), &beta, bxlo, bxhi, lo, hi);
+
+#if (BL_SPACEDIM >= 2)
+	   const int* bylo = b[1]->box().loVect();
+	   const int* byhi = b[1]->box().hiVect();
+	   mgt_set_cfby(&lev, &n, b[1]->dataPtr(), &beta, bylo, byhi, lo, hi);
+#endif
+
+#if (BL_SPACEDIM == 3)
+           const int* bzlo = b[2]->box().loVect();
+  	   const int* bzhi = b[2]->box().hiVect();
+  	   mgt_set_cfbz(&lev, &n, b[2]->dataPtr(), &beta, bzlo, bzhi, lo, hi);
+#endif
+	}
+      int dm = BL_SPACEDIM;
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+    }
+  mgt_finalize_stencil();
+}
+
+
 void MGT_Solver::set_maxorder(const int max_order)
 {
   mgt_set_maxorder(&max_order);
@@ -531,7 +597,8 @@ void
 MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                     const MultiFab* bb[][BL_SPACEDIM], 
                                     const Real& beta, 
-                                    Array< Array<Real> >& xa, Array< Array<Real> >& xb,
+                                    Array< Array<Real> >& xa, 
+				    Array< Array<Real> >& xb,
                                     int nc_opt)
 {
   int nc = (*bb[0][0]).nComp();
@@ -549,12 +616,14 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
 	{
 	  const FArrayBox* af1 = &((*(a1[lev]))[amfi]);
 	  const FArrayBox* b[BL_SPACEDIM];
+
+	  int n = amfi.index();
+
 	  for ( int i = 0; i < BL_SPACEDIM; ++i )
 	  {
 	    b[i] = &((*(bb[lev][i]))[amfi]);
 	  }
 
-	  int n = amfi.index();
 	  const int* lo = amfi.validbox().loVect();
 	  const int* hi = amfi.validbox().hiVect();
 	  
@@ -588,7 +657,8 @@ MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[],
 	}
       int dm = BL_SPACEDIM;
       
-      mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm, &nc_opt);
+      mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				  pxa, pxb, &dm, &nc_opt);
     }
   mgt_finalize_stencil();
 }
@@ -708,7 +778,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
-
+  
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -751,6 +821,65 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 }
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  const BndryData bd[], int need_grad_phi, Real& final_resnorm)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      // Copy the boundary register values into the solution array to be copied into F90
+      for (OrientationIter oitr; oitr; ++oitr)
+	{
+	  const FabSet& fs = bd[lev].bndryValues(oitr());
+	  for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	    {
+	      FArrayBox& dest = (*(uu[lev]))[umfi];
+	      dest.copy(fs[umfi],fs[umfi].box());
+	    }
+	}
+    }
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
  
 void 
 MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
@@ -766,6 +895,60 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+
+  mgt_applyop();
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter mfi(*(res[lev])); mfi.isValid(); ++mfi)
+	{
+	  FArrayBox& resfab = (*(res[lev]))[mfi];
+	  Real* rd = resfab.dataPtr();
+	  int n = mfi.index();
+	  const int* lo = mfi.validbox().loVect();
+	  const int* hi = mfi.validbox().hiVect();
+	  const int* rlo = resfab.box().loVect();
+	  const int* rhi = resfab.box().hiVect();
+	  mgt_get_res(&lev, &n, rd, rlo, rhi, lo, hi);
+	}
+    }
+}
+
+void 
+MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[])
+{
+  // Copy the boundary register values into the solution array to be
+  // copied into F90
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      // Copy the boundary register values into the solution array to be copied into F90
+      for (OrientationIter oitr; oitr; ++oitr)
+	{
+	  const FabSet& fs = bd[lev].bndryValues(oitr());
+	  for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	    {
+	      FArrayBox& dest = (*(uu[lev]))[umfi];
+	      dest.copy(fs[umfi],fs[umfi].box());
+	    }
+	}
+    }
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {

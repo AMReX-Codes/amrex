@@ -44,6 +44,12 @@ public:
                              Array< Array<Real> >& xa,
                              Array< Array<Real> >& xb);
 
+  void set_visc_coefficients(MultiFab* aa[], 
+                             MultiFab* bb[][BL_SPACEDIM],
+                             const Real& b, 
+                             Array< Array<Real> >& xa,
+                             Array< Array<Real> >& xb);
+
   void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                const MultiFab* bb[][BL_SPACEDIM],
                                const Real& b, 
@@ -66,7 +72,12 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi, Real& final_resnorm);
 
+ void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+            const BndryData bd[], int need_grad_phi, Real& final_resnorm);
+
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
+
+  void applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[]);
 
   void applybc(MultiFab* uu[], const BndryData& bd);
 
