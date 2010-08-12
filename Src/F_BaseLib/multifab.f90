@@ -3710,11 +3710,11 @@ contains
     ! ap = ap + b1*bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
              end do
           end do
@@ -3978,11 +3978,11 @@ contains
 
     if ( present(lp) ) then
        !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
-       do n = 1, size(ap,dim=4)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
           !$OMP DO
-          do k = 1, size(ap,dim=3)
-             do j = 1, size(ap,dim=2)
-                do i = 1, size(ap,dim=1)
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
                    if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -3992,11 +3992,11 @@ contains
        !$OMP END PARALLEL
     else
        !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
-       do n = 1, size(ap,dim=4)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
           !$OMP DO
-          do k = 1, size(ap,dim=3)
-             do j = 1, size(ap,dim=2)
-                do i = 1, size(ap,dim=1)
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4163,11 +4163,11 @@ contains
     ! ap = ap/bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) / bp(i,j,k,n)
              end do
           end do
@@ -4188,11 +4188,11 @@ contains
     ! ap = ap/b
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) / b
              end do
           end do
@@ -4345,11 +4345,11 @@ contains
     ! ap = ap*bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) * bp(i,j,k,n)
              end do
           end do
@@ -4370,11 +4370,11 @@ contains
     ! ap = ap*b
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) * b
              end do
           end do
@@ -4504,11 +4504,11 @@ contains
     ! ap = ap - bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) - bp(i,j,k,n)
              end do
           end do
@@ -4529,11 +4529,11 @@ contains
     ! ap = ap - b
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) - b
              end do
           end do
@@ -4640,11 +4640,11 @@ contains
     ! ap = ap + bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + bp(i,j,k,n)
              end do
           end do
@@ -4665,11 +4665,11 @@ contains
     ! ap = ap + b
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b
              end do
           end do
