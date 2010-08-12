@@ -30,17 +30,17 @@ contains
     logical       , intent(in   ), optional :: fill_crse_input
 
 
-    integer         :: i, j, dm, local_bc(get_dim(fine),2,nc), shft(3**get_dim(fine),get_dim(fine)), cnt
+    integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
     integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
     integer         :: n_extra_valid_regions, np
     type(layout)    :: la, fla, tmpla, fine_la
     type(multifab)  :: cfine, tmpcrse, tmpfine
-    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**get_dim(fine))
+    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
-    logical         :: lim_slope, lin_limit, pmask(get_dim(fine)), have_periodic_gcells
-    logical         :: no_final_physbc, fill_crse, nodalflags(get_dim(fine))
+    logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
+    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine))
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
