@@ -223,6 +223,8 @@ module fab_module
   !
   integer(ll_t), private, save :: fab_high_water_mark = 0
 
+  private ::  fab_minval_doit,  fab_maxval_doit
+
 contains
   !
   ! Does a real(dp_t) fab contain a NaN?
@@ -1711,6 +1713,64 @@ contains
     end subroutine print_3d
   end subroutine zfab_print
 
+  function fab_minval_doit(ap) result(r)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t)          :: r, r1
+
+    integer :: i, j, k, n
+
+    ! minval(ap)
+
+    r1 = Huge(r)
+
+    !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MIN : r1)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                r1 = min(r1,ap(i,j,k,n))
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+    r = r1
+
+  end function fab_minval_doit
+
+  function fab_maxval_doit(ap) result(r)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t)          :: r, r1
+
+    integer :: i, j, k, n
+
+    ! maxval(ap)
+
+    r1 = -Huge(r)
+
+    !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                r1 = max(r1,ap(i,j,k,n))
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+    r = r1
+
+  end function fab_maxval_doit
+
   function fab_max_val(fb, all) result(r)
     real(kind=dp_t) :: r
     type(fab), intent(in) :: fb
@@ -1723,7 +1783,7 @@ contains
     else
        mp => dataptr(fb, get_ibox(fb))
     end if
-    r = maxval(mp)
+    r = fab_maxval_doit(mp)
   end function fab_max_val
   function fab_max_val_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
@@ -1739,7 +1799,7 @@ contains
     else
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
-    r = maxval(mp)
+    r = fab_maxval_doit(mp)
   end function fab_max_val_c
   function fab_max_val_bx(fb, bx) result(r)
     real(kind=dp_t) :: r
@@ -1749,7 +1809,7 @@ contains
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
-    r = maxval(mp)
+    r = fab_maxval_doit(mp)
   end function fab_max_val_bx
   function fab_max_val_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
@@ -1761,7 +1821,7 @@ contains
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
-    r = maxval(mp)
+    r = fab_maxval_doit(mp)
   end function fab_max_val_bx_c
   function ifab_max_val(fb, all) result(r)
     integer :: r
@@ -1828,7 +1888,7 @@ contains
     else
        mp => dataptr(fb, get_ibox(fb))
     end if
-    r = minval(mp)
+    r = fab_minval_doit(mp)
   end function fab_min_val
   function fab_min_val_c(fb, c, nc, all) result(r)
     real(kind=dp_t) :: r
@@ -1844,7 +1904,7 @@ contains
     else
        mp => dataptr(fb, get_ibox(fb), c, nc)
     end if
-    r = minval(mp)
+    r = fab_minval_doit(mp)
   end function fab_min_val_c
   function fab_min_val_bx(fb, bx) result(r)
     real(kind=dp_t) :: r
@@ -1854,7 +1914,7 @@ contains
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx)
-    r = minval(mp)
+    r = fab_minval_doit(mp)
   end function fab_min_val_bx
   function fab_min_val_bx_c(fb, bx, c, nc) result(r)
     real(kind=dp_t) :: r
@@ -1866,7 +1926,7 @@ contains
     type(box) :: sbx
     sbx = intersection(bx, get_ibox(fb))
     mp => dataptr(fb, sbx, c, nc)
-    r = minval(mp)
+    r = fab_minval_doit(mp)
   end function fab_min_val_bx_c
   function ifab_min_val(fb, all) result(r)
     integer :: r
