@@ -21,14 +21,16 @@
 
 #   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
-
       F90FLAGS += -g -fno-second-underscore
       FFLAGS += -g -fno-second-underscore
       CFLAGS += -g -fno-second-underscore
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      ifdef OMP
+      ifeq ($(findstring nid, $(HOST)), nid)
+      #
+      # franklin.nersc.gov
+      #
         F90FLAGS += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
         FFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
         CFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
