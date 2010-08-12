@@ -386,6 +386,8 @@ module multifab_module
   private :: multifab_saxpy_3_doit, multifab_norm_inf_doit
   private :: multifab_div_div_c_doit, multifab_div_div_s_doit
   private :: multifab_mult_mult_c_doit, multifab_mult_mult_s_doit
+  private :: multifab_sub_sub_c_doit, multifab_sub_sub_s_doit
+  private :: multifab_plus_plus_c_doit, multifab_plus_plus_s_doit
 
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
@@ -4492,6 +4494,56 @@ contains
     end do
   end subroutine multifab_mult_s_c
 
+  subroutine multifab_sub_sub_c_doit(ap, bp)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+
+    integer :: i, j, k, n
+
+    ! ap = ap - bp
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) - bp(i,j,k,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_sub_sub_c_doit
+
+  subroutine multifab_sub_sub_s_doit(ap, b)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t)          :: b
+
+    integer :: i, j, k, n
+
+    ! ap = ap - b
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) - b
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_sub_sub_s_doit
+
   subroutine multifab_sub_sub(a, b, ng)
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b
@@ -4510,7 +4562,7 @@ contains
           ap => dataptr(a, i, get_ibox(a, i))
           bp => dataptr(b, i, get_ibox(b, i))
        end if
-       ap = ap - bp
+       call multifab_sub_sub_c_doit(ap, bp)
     end do
   end subroutine multifab_sub_sub
 
@@ -4529,7 +4581,7 @@ contains
        else
           ap => dataptr(a, i, get_ibox(a, i))
        end if
-       ap = ap - b
+       call multifab_sub_sub_s_doit(ap, b)
     end do
   end subroutine multifab_sub_sub_s
 
@@ -4553,7 +4605,7 @@ contains
           ap => dataptr(a, i, get_ibox(a, i), targ, nc)
           bp => dataptr(b, i, get_ibox(b, i), src, nc)
        end if
-       ap = ap - bp
+       call multifab_sub_sub_c_doit(ap, bp)
     end do
   end subroutine multifab_sub_sub_c
 
@@ -4574,9 +4626,59 @@ contains
        else
           ap => dataptr(a, i, get_ibox(a, i), targ, nc)
        end if
-       ap = ap - b
+       call multifab_sub_sub_s_doit(ap, b)
     end do
   end subroutine multifab_sub_sub_s_c
+
+  subroutine multifab_plus_plus_c_doit(ap, bp)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+
+    integer :: i, j, k, n
+
+    ! ap = ap + bp
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) + bp(i,j,k,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_plus_plus_c_doit
+
+  subroutine multifab_plus_plus_s_doit(ap, b)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t)          :: b
+
+    integer :: i, j, k, n
+
+    ! ap = ap + b
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) + b
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_plus_plus_s_doit
 
   subroutine multifab_plus_plus_c(a, dst, b, src, nc, ng)
     integer, intent(in) :: dst, src
@@ -4598,7 +4700,7 @@ contains
           ap => dataptr(a, i, get_ibox(a, i), dst, nc)
           bp => dataptr(b, i, get_ibox(b, i), src, nc)
        end if
-       ap = ap + bp
+       call multifab_plus_plus_c_doit(ap, bp)
     end do
   end subroutine multifab_plus_plus_c
 
@@ -4629,7 +4731,7 @@ contains
        else
           ap => dataptr(a, i, get_ibox(a, i), dst, nc)
        end if
-       ap = ap + b
+       call multifab_plus_plus_s_doit(ap, b)
     end do
   end subroutine multifab_plus_plus_s_c
 
