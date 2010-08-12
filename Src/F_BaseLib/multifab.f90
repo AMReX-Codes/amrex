@@ -384,6 +384,7 @@ module multifab_module
   private :: reshape_z_4_1, reshape_z_1_4
 
   private :: multifab_saxpy_3_doit, multifab_norm_inf_doit
+  private :: multifab_div_div_c_doit, multifab_div_div_s_doit
 
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
@@ -3523,15 +3524,18 @@ contains
     type(multifab), intent(in) :: mf1
     type(multifab), intent(in), optional :: nodal_mask
 
-    type(multifab) :: mask
+    type(multifab)      :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     real(dp_t), pointer :: mp1(:,:,:,:)
     real(dp_t), pointer :: ma(:,:,:,:)
-    real(dp_t) :: r1
-    integer :: i
+    real(dp_t)          :: r1
+    integer             :: i, ii, jj, kk, nn
 
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
+
+
+
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
           mp  => dataptr(mf , i, get_box(mf , i))
@@ -3649,7 +3653,6 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
-
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
@@ -3704,11 +3707,11 @@ contains
     ! ap = ap + b1*bp
 
     !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    do n = 1, size(ap,dim=4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
              end do
           end do
@@ -3733,7 +3736,6 @@ contains
 
     do ii = 1, a%nboxes
        if ( remote(a,ii) ) cycle
-
        if (lall) then
           ap => dataptr(a,ii)
           bp => dataptr(b,ii)
@@ -3741,11 +3743,7 @@ contains
           ap => dataptr(a, ii, get_ibox(a,ii))
           bp => dataptr(b, ii, get_ibox(b,ii))
        end if
-
-       ! ap = ap + b1*bp
-
        call multifab_saxpy_3_doit(ap,b1,bp)
-
     end do
 
   end subroutine multifab_saxpy_3
@@ -3765,7 +3763,6 @@ contains
 
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-
        if (lall) then
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
@@ -3773,11 +3770,7 @@ contains
           ap => dataptr(a, i, get_ibox(a, i), ia)
           bp => dataptr(b, i, get_ibox(b, i))
        end if
-
-       ! ap = ap + b1*bp
-
        call multifab_saxpy_3_doit(ap,b1,bp)
-
     end do
   end subroutine multifab_saxpy_3_c
 
@@ -3797,7 +3790,6 @@ contains
 
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
-
        if (lall) then
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
@@ -3805,11 +3797,7 @@ contains
           ap => dataptr(a, i, get_ibox(a, i), ia, nc)
           bp => dataptr(b, i, get_ibox(b, i), ib, nc)
        end if
-
-       ! ap = ap + b1*bp
-
        call multifab_saxpy_3_doit(ap,b1,bp)
-
     end do
   end subroutine multifab_saxpy_3_cc
 
@@ -3825,7 +3813,6 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
-
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -3878,7 +3865,6 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
-
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     if ( present(mask) ) then
@@ -3989,11 +3975,11 @@ contains
 
     if ( present(lp) ) then
        !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = 1, size(ap,dim=4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = 1, size(ap,dim=3)
+             do j = 1, size(ap,dim=2)
+                do i = 1, size(ap,dim=1)
                    if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4003,11 +3989,11 @@ contains
        !$OMP END PARALLEL
     else
        !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = 1, size(ap,dim=4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = 1, size(ap,dim=3)
+             do j = 1, size(ap,dim=2)
+                do i = 1, size(ap,dim=1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4092,6 +4078,7 @@ contains
     integer :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
+
     r1 = 0
     do i = 1, mf%nboxes
        if ( remote(mf,i) ) cycle
@@ -4163,6 +4150,56 @@ contains
     call parallel_reduce(r, r1, MPI_SUM)
   end function lmultifab_count
 
+  subroutine multifab_div_div_c_doit(ap, bp)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+
+    integer :: i, j, k, n
+
+    ! ap = ap/bp
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) / bp(i,j,k,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_div_div_c_doit
+
+  subroutine multifab_div_div_s_doit(ap, b)
+
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t)          :: b
+
+    integer :: i, j, k, n
+
+    ! ap = ap/b
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = 1, size(ap,dim=4)
+       !$OMP DO
+       do k = 1, size(ap,dim=3)
+          do j = 1, size(ap,dim=2)
+             do i = 1, size(ap,dim=1)
+                ap(i,j,k,n) = ap(i,j,k,n) / b
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_div_div_s_doit
+
   subroutine multifab_div_div(a, b, ng)
     type(multifab), intent(inout) :: a
     type(multifab), intent(in   ) :: b
@@ -4170,6 +4207,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
+
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
     do i = 1, a%nboxes
@@ -4184,7 +4222,7 @@ contains
        if ( any(bp == 0.0_dp_t) ) then
           call bl_error("MULTIFAB_DIV_DIV: divide by zero")
        end if
-       ap = ap/bp
+       call multifab_div_div_c_doit(ap, bp)
     end do
   end subroutine multifab_div_div
 
@@ -4194,6 +4232,7 @@ contains
     integer, intent(in), optional :: ng
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
+
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_s")
     if ( b == 0.0_dp_t ) then
@@ -4206,7 +4245,7 @@ contains
        else
           ap => dataptr(a, i, get_ibox(a, i))
        end if
-       ap = ap/b
+       call multifab_div_div_s_doit(ap, b)
     end do
   end subroutine multifab_div_div_s
 
@@ -4219,6 +4258,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
+
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
     do i = 1, a%nboxes
@@ -4233,7 +4273,7 @@ contains
        if ( any(bp == 0.0_dp_t) ) then
           call bl_error("MULTIFAB_DIV_DIV: divide by zero")
        end if
-       ap = ap/bp
+       call multifab_div_div_c_doit(ap, bp)
     end do
   end subroutine multifab_div_div_c
 
@@ -4245,6 +4285,7 @@ contains
     real(dp_t), intent(in)  :: b
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
+
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_s_c")
     if ( b == 0.0_dp_t ) then
@@ -4257,7 +4298,7 @@ contains
        else
           ap => dataptr(a, i, get_ibox(a, i), targ, nc)
        end if
-       ap = ap/b
+       call multifab_div_div_s_doit(ap, b)
     end do
   end subroutine multifab_div_div_s_c
 
