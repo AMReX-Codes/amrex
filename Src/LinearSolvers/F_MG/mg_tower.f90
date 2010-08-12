@@ -2,7 +2,7 @@ module mg_tower_module
 
   use multifab_module
   use stencil_module
-  use sparse_solve_module
+! use sparse_solve_module
   use bl_timer_module
 
   implicit none
@@ -78,11 +78,11 @@ module mg_tower_module
      type(timer), pointer :: tm(:) => Null()
 
      ! Only relevant if bottom_solver == 3
-     type(sparse) sparse_object
-     type(multifab) :: rh1
-     type(multifab) :: uu1
-     type(multifab) :: ss1
-     type(imultifab) :: mm1
+!    type(sparse) sparse_object
+!    type(multifab) :: rh1
+!    type(multifab) :: uu1
+!    type(multifab) :: ss1
+!    type(imultifab) :: mm1
 
      ! Only relevant if bottom_solver == 1 or 2 AND nodal
      type(multifab) :: nodal_mask

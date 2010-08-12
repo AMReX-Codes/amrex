@@ -11,7 +11,6 @@ endif
 f90sources += mg.f90
 f90sources += mg_tower.f90
 f90sources += mg_smoother.f90
-f90sources += sparse_solve.f90
 f90sources += stencil.f90
 f90sources += stencil_fill.f90
 f90sources += stencil_nodal.f90
@@ -25,8 +24,8 @@ f90sources += ml_nd.f90
 f90sources += nodal_mask.f90
 f90sources += nodal_divu.f90
  
-include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
+#include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
+#VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
  
 include $(FPARALLEL)/extern/BLAS/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/extern/BLAS
