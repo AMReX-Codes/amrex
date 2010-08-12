@@ -2,7 +2,7 @@ module mg_module
 
   use multifab_module
   use stencil_module
-  use sparse_solve_module
+! use sparse_solve_module
   use mg_tower_module
   use bl_timer_module
 
@@ -188,14 +188,15 @@ contains
        la1 = la2
     end do
 
-    if ( n > 1 .and. mgt%bottom_solver == 3 ) then
-       la2 = get_layout(mgt%cc(1))
-       call layout_build_derived(la1, la2)
-       call build(mgt%rh1, la1, mgt%nc, 0, nodal)
-       call build(mgt%uu1, la1, mgt%nc, 0, nodal)
-       call build(mgt%ss1, la1, ns,     0, nodal)
-       call build(mgt%mm1, la1, 1,      0, nodal)
-    else if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
+!   if ( n > 1 .and. mgt%bottom_solver == 3 ) then
+!      la2 = get_layout(mgt%cc(1))
+!      call layout_build_derived(la1, la2)
+!      call build(mgt%rh1, la1, mgt%nc, 0, nodal)
+!      call build(mgt%uu1, la1, mgt%nc, 0, nodal)
+!      call build(mgt%ss1, la1, ns,     0, nodal)
+!      call build(mgt%mm1, la1, 1,      0, nodal)
+!   else if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
+    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
        la2 = get_layout(mgt%cc(1))
        call layout_build_derived(la1, la2)
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
@@ -434,11 +435,11 @@ contains
     deallocate(mgt%face_type)
     deallocate(mgt%skewed)
     deallocate(mgt%skewed_not_set)
-    if ( built_q(mgt%sparse_object) ) call destroy(mgt%sparse_object)
-    if ( built_q(mgt%rh1)           ) call destroy(mgt%rh1)
-    if ( built_q(mgt%uu1)           ) call destroy(mgt%uu1)
-    if ( built_q(mgt%ss1)           ) call destroy(mgt%ss1)
-    if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
+!   if ( built_q(mgt%sparse_object) ) call destroy(mgt%sparse_object)
+!   if ( built_q(mgt%rh1)           ) call destroy(mgt%rh1)
+!   if ( built_q(mgt%uu1)           ) call destroy(mgt%uu1)
+!   if ( built_q(mgt%ss1)           ) call destroy(mgt%ss1)
+!   if ( built_q(mgt%mm1)           ) call destroy(mgt%mm1)
 
     if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
 
@@ -661,22 +662,22 @@ contains
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
-    case (3)
-       call copy(mgt%rh1, rh)
-       if ( parallel_IOProcessor() ) then
-          if (nodal_q(rh)) then
-             call setval(mgt%uu1, zero)
-             call sparse_nodal_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
-                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
-                                     mgt%verbose, stat)
-          else
-             call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
-                               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, &
-                               stat)
-          end if
-       end if
-       call copy(uu, mgt%uu1)
-       call parallel_bcast(stat, 1)
+!   case (3)
+!      call copy(mgt%rh1, rh)
+!      if ( parallel_IOProcessor() ) then
+!         if (nodal_q(rh)) then
+!            call setval(mgt%uu1, zero)
+!            call sparse_nodal_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+!                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+!                                    mgt%verbose, stat)
+!         else
+!            call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+!                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, &
+!                              stat)
+!         end if
+!      end if
+!      call copy(uu, mgt%uu1)
+!      call parallel_bcast(stat, 1)
 
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
