@@ -1286,19 +1286,19 @@ contains
     real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i, n
-    type(box) :: bx1
+    type(box) :: bx, bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
+       bx = get_box(ba,n)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
-             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_pbox(mf, i))
           else
-             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_ibox(mf, i))
           end if
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
        end do
     end do
   end subroutine multifab_setval_ba
@@ -1308,19 +1308,19 @@ contains
     logical, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i, n
-    type(box) :: bx1
+    type(box) :: bx, bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
+       bx = get_box(ba,n)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
-             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_pbox(mf, i))
           else
-             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_ibox(mf, i))
           end if
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
        end do
     end do
   end subroutine lmultifab_setval_ba
@@ -1330,19 +1330,19 @@ contains
     integer, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i, n
-    type(box) :: bx1
+    type(box) :: bx, bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
+       bx = get_box(ba,n)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
-             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_pbox(mf, i))
           else
-             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_ibox(mf, i))
           end if
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
        end do
     end do
   end subroutine imultifab_setval_ba
@@ -1352,19 +1352,19 @@ contains
     complex(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i, n
-    type(box) :: bx1
+    type(box) :: bx, bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
+       bx = get_box(ba,n)
        do i = 1, mf%nboxes
           if ( remote(mf, i) ) cycle
           if ( lall ) then
-             bx1 = intersection(get_box(ba,n), get_pbox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_pbox(mf, i))
           else
-             bx1 = intersection(get_box(ba,n), get_ibox(mf, i))
-             if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
+             bx1 = intersection(bx, get_ibox(mf, i))
           end if
+          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
        end do
     end do
   end subroutine zmultifab_setval_ba
@@ -1384,11 +1384,10 @@ contains
        if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
+       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
     end do
   end subroutine multifab_setval_bx_c
   subroutine imultifab_setval_bx_c(mf, val, bx, c, nc, all)
@@ -1406,11 +1405,10 @@ contains
        if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
+       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
     end do
   end subroutine imultifab_setval_bx_c
   subroutine lmultifab_setval_bx_c(mf, val, bx, c, nc, all)
@@ -1428,11 +1426,10 @@ contains
        if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
+       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
     end do
   end subroutine lmultifab_setval_bx_c
   subroutine zmultifab_setval_bx_c(mf, val, bx, c, nc, all)
@@ -1450,11 +1447,10 @@ contains
        if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        else
           bx1 = intersection(bx, get_ibox(mf, i))
-          if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
        end if
+       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
     end do
   end subroutine zmultifab_setval_bx_c
 
