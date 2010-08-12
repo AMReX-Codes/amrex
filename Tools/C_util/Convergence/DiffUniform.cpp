@@ -1,6 +1,5 @@
-
 //
-// $Id: DiffUniform.cpp,v 1.12 2010-05-25 19:09:52 almgren Exp $
+// $Id: DiffUniform.cpp,v 1.13 2010-08-12 00:12:50 gpau Exp $
 //
 
 #include <new>
@@ -29,7 +28,7 @@ using std::ios;
 #include "AVGDOWN_F.H"
 
 #define GARBAGE 666.e+40
-
+ 
 static
 void
 PrintUsage (const char* progName)
@@ -170,12 +169,19 @@ main (int   argc,
 
             // Copy result of coarsening into error as temporary storage
             error[iLevel]->copy(aveExact,0,iComp,nc);
-
+	    
             // Subtract coarse data from coarsened exact data
             MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
             BL_ASSERT(data.boxArray() == error[iLevel]->boxArray());
-            for (MFIter dmfi(data); dmfi.isValid(); ++dmfi)
-              (*error[iLevel])[dmfi].minus(data[dmfi],0,iComp,1);
+
+	    for (MFIter dmfi(data); dmfi.isValid(); ++dmfi)
+            {
+		
+                std::cout << "DOING ICOMP " << iComp << std::endl;
+                std::cout << "BEFORE: NORM OF ERROR " << (*error[iLevel])[dmfi].norm(0,iComp,1) << std::endl;
+		(*error[iLevel])[dmfi].minus(data[dmfi],0,iComp,1);
+                std::cout << "AFTER: NORM OF ERROR " << (*error[iLevel])[dmfi].norm(0,iComp,1) << std::endl;
+            }
         }
     }
 
@@ -216,7 +222,8 @@ getRefRatio(const Box& crse,
     // IntVect if there is none suitable
     ParmParse pp("");
     Array<int> rr_in(BL_SPACEDIM,-1);
-    int Nrr = pp.countval("ref_ratio");
+    int Nrr = 0;
+    Nrr = pp.countval("ref_ratio",Nrr);
     BL_ASSERT(Nrr==0 || Nrr==BL_SPACEDIM || Nrr==1);
     if (Nrr>0) 
     {

@@ -57,7 +57,8 @@ main (int   argc,
     // Scan the arguments.
     //
     std::string iFile;
-
+    int integrate = 1;
+    pp.query("integrate", integrate);
     bool verbose = false;
     if (pp.contains("verbose"))
     {
@@ -77,11 +78,46 @@ main (int   argc,
 
     AmrData& amrData = dataServices.AmrDataRef();
 
-    ComputeAmrDataNorms(amrData, norm0, norm1, norm2, verbose);
-
-    // Write norms to screen
-    if (ParallelDescriptor::IOProcessor())
+    
+    
+    if (integrate)
     {
+      ComputeAmrDataInt(amrData, norm1,  verbose);
+
+      // Write norms to screen
+      if (ParallelDescriptor::IOProcessor())
+      {
+	const Array<std::string>& names = amrData.PlotVarNames();
+	int maxl = 0;
+	for (int i=0; i<names.size(); ++i)
+	    maxl = std::max(maxl,int(names[i].size()));
+	char sbuf[128];
+	sprintf(sbuf,"%d",maxl);
+	std::string formatStr =
+	    std::string("\t%") + sbuf + std::string("s |  %10e   \n");
+	std::string sformatStr =
+	    std::string("\t%") + sbuf + std::string("s |  %10s   \n");
+	
+	std::cout << '\n' << "Norms for pltfile = " << iFile << ": " << '\n' << '\n';
+	printf(sformatStr.c_str(),"Derived", "Integral");
+	std::cout << '\t'
+	     << "--------------+------------------------------------------" << '\n';
+	
+	for (int i=0; i<names.size(); ++i)
+	{
+	    printf(formatStr.c_str(),names[i].c_str(),norm1[i]);
+	}
+	std::cout << '\n';
+	
+      }
+    }
+    else
+    {  
+      ComputeAmrDataNorms(amrData, norm0, norm1, norm2, verbose);
+
+      // Write norms to screen
+      if (ParallelDescriptor::IOProcessor())
+      {
 	const Array<std::string>& names = amrData.PlotVarNames();
 	int maxl = 0;
 	for (int i=0; i<names.size(); ++i)
@@ -104,8 +140,8 @@ main (int   argc,
 	}
 	std::cout << '\n';
 	
+      }
     }
-    
     BoxLib::Finalize();
 }
 
