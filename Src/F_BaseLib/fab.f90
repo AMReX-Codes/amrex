@@ -1725,11 +1725,11 @@ contains
     r1 = Huge(r)
 
     !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MIN : r1)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 r1 = min(r1,ap(i,j,k,n))
              end do
           end do
@@ -1754,11 +1754,11 @@ contains
     r1 = -Huge(r)
 
     !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
-    do n = 1, size(ap,dim=4)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
        !$OMP DO
-       do k = 1, size(ap,dim=3)
-          do j = 1, size(ap,dim=2)
-             do i = 1, size(ap,dim=1)
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 r1 = max(r1,ap(i,j,k,n))
              end do
           end do
