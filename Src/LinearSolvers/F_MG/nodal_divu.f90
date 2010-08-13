@@ -785,6 +785,9 @@ contains
         ifac = -1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
+      !$OMP PRIVATE(lo_j_neu,hi_j_neu,lo_k_neu,hi_k_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
       do k = lo(3),hi(3)
       do j = lo(2),hi(2)
 
@@ -814,27 +817,22 @@ contains
 
           if (j == loflx(2)) then
              if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1))       lo_j_neu = .true.
           end if
+
           if (j == hiflx(2)) then
              if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1))       hi_j_neu = .true.
           end if
-          if (j == loflx(2)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) lo_j_neu = .true.
-          end if
-          if (j == hiflx(2)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) hi_j_neu = .true.
-          end if
+
           if (k == loflx(3)) then
              if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1))       lo_k_neu = .true.
           end if
+
           if (k == hiflx(3)) then
              if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
-          end if
-          if (k == loflx(3)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) lo_k_neu = .true.
-          end if
-          if (k == hiflx(3)) then
-             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) hi_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1))       hi_k_neu = .true.
           end if
 
           if (lo_k_not) then
@@ -904,6 +902,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
 !   Lo/Hi j side
     else if (( side == -2) .or. (side == 2) ) then
@@ -916,6 +915,9 @@ contains
         ifac = -1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
+      !$OMP PRIVATE(lo_i_neu,hi_i_neu,lo_k_neu,hi_k_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
       do k = lo(3),hi(3)
       do i = lo(1),hi(1)
 
@@ -932,27 +934,21 @@ contains
 
           if (i == loflx(1)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) lo_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1))       lo_i_neu = .true.
           end if
+
           if (i == hiflx(1)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) hi_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1))       hi_i_neu = .true.
           end if
-          if (i == loflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) lo_i_neu = .true.
-          end if
-          if (i == hiflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) hi_i_neu = .true.
-          end if
+
           if (k == loflx(3)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) lo_k_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1))       lo_k_neu = .true.
           end if
           if (k == hiflx(3)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) hi_k_not = .true.
-          end if
-          if (k == loflx(3)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) lo_k_neu = .true.
-          end if
-          if (k == hiflx(3)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) hi_k_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1))       hi_k_neu = .true.
           end if
 
           cell_pp =  (uc(i  ,j,k  ,1) )/dx(1) &
@@ -1035,6 +1031,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
 !   Lo/Hi k side
     else if (( side == -3) .or. (side == 3) ) then
@@ -1047,6 +1044,9 @@ contains
         ifac = -1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
+      !$OMP PRIVATE(lo_i_neu,hi_i_neu,lo_j_neu,hi_j_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux)
       do j = lo(2),hi(2)
       do i = lo(1),hi(1)
 
@@ -1063,27 +1063,22 @@ contains
 
           if (i == loflx(1)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) lo_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1))       lo_i_neu = .true.
           end if
+
           if (i == hiflx(1)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) hi_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1))       hi_i_neu = .true.
           end if
-          if (i == loflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) lo_i_neu = .true.
-          end if
-          if (i == hiflx(1)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) hi_i_neu = .true.
-          end if
+
           if (j == loflx(2)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) lo_j_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1))       lo_j_neu = .true.
           end if
+
           if (j == hiflx(2)) then
              if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) hi_j_not = .true.
-          end if
-          if (j == loflx(2)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) lo_j_neu = .true.
-          end if
-          if (j == hiflx(2)) then
-             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) hi_j_neu = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1))       hi_j_neu = .true.
           end if
 
           cell_pp =  (uc(i  ,j  ,k,1) )/dx(1) &
@@ -1166,6 +1161,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
     end if
 
