@@ -75,6 +75,7 @@ contains
 
     fac = one/real(product(ir),kind=dp_t)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -90,6 +91,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine cc_restriction_3d
 
@@ -603,32 +605,26 @@ contains
 
     end if
 
-    !$OMP PARALLEL DO PRIVATE(j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           if (bc_dirichlet(mm_crse(lo(1),j,k),1,0)) cc(lo(1),j,k) = ZERO
           if (bc_dirichlet(mm_crse(hi(1),j,k),1,0)) cc(hi(1),j,k) = ZERO
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           if (bc_dirichlet(mm_crse(i,lo(2),k),1,0)) cc(i,lo(2),k) = ZERO
           if (bc_dirichlet(mm_crse(i,hi(2),k),1,0)) cc(i,hi(2),k) = ZERO
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j) IF((hi(2)-lo(2)).ge.3)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           if (bc_dirichlet(mm_crse(i,j,lo(3)),1,0)) cc(i,j,lo(3)) = ZERO
           if (bc_dirichlet(mm_crse(i,j,hi(3)),1,0)) cc(i,j,hi(3)) = ZERO
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine nodal_restriction_3d
 
@@ -704,7 +700,7 @@ contains
     integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
-    integer :: i, j, k, l, m, n
+    integer     :: i, j, k, l, m, n
 
     fac = one
 
@@ -719,6 +715,7 @@ contains
     end if
 
     if ( face .eq. 1 ) then
+       !$OMP PARALLEL DO PRIVATE(i,j,k,m,n) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -732,7 +729,9 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     else if ( face .eq. 2 ) then
+       !$OMP PARALLEL DO PRIVATE(i,j,k,l,n) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -746,7 +745,9 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     else if ( face .eq. 3 ) then
+       !$OMP PARALLEL DO PRIVATE(i,j,k,l,m) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -760,6 +761,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end if
 
   end subroutine edge_restriction_3d
