@@ -10,21 +10,7 @@ module sort_box_module
      module procedure heapsort_indirect_box
   end interface box_sort
 
-  private :: box_swap, integer_swap
-
 contains
-
-  subroutine box_swap(a,b)
-    type(box), intent(inout) :: a, b
-    type(box) :: t
-    t = a; a = b; b = t
-  end subroutine box_swap
-
-  subroutine integer_swap(a,b)
-    integer, intent(inout) :: a, b
-    integer :: t
-    t = a; a = b; b = t
-  end subroutine integer_swap
 
   subroutine heapsort_box( array, cmp)
     type(box), dimension(:), intent(in out) :: array
@@ -45,6 +31,12 @@ contains
     end if
 
   contains
+
+    subroutine box_swap(a,b)
+      type(box), intent(inout) :: a, b
+      type(box) :: t
+      t = a; a = b; b = t
+    end subroutine box_swap
 
     subroutine he_sort_cmp(array,cmp)
       type(box), dimension(:), intent(in out) :: array
@@ -156,6 +148,12 @@ contains
     end if
 
   contains
+
+    subroutine integer_swap(a,b)
+      integer, intent(inout) :: a, b
+      integer :: t
+      t = a; a = b; b = t
+    end subroutine integer_swap
 
     subroutine he_sort_no_cmp(iarray)
       integer, dimension(:), intent(out) :: iarray
