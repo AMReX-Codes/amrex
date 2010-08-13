@@ -419,6 +419,7 @@ contains
 
     integer :: i, j, k
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
      do j = lo(2),hi(2)
        do i = lo(1),hi(1)
@@ -426,6 +427,7 @@ contains
        end do
      end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine ml_interface_3d_fine
 
@@ -1018,6 +1020,9 @@ contains
              sig_pp = 18
           end if
 
+          !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(jfine,kfine) IF((hi(3)-lo(3)).ge.3)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do j = lo(2),hi(2)
@@ -1092,6 +1097,7 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           !
           !   Lo/Hi j side
           !
@@ -1114,6 +1120,9 @@ contains
              sig_pp = 15
           end if
 
+          !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(ifine,kfine) IF((hi(3)-lo(3)).ge.3)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do i = lo(1),hi(1)
@@ -1186,6 +1195,7 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
           !
           !   Lo/Hi k side
           !
@@ -1208,6 +1218,9 @@ contains
              sig_pp =  8
           end if
 
+          !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
+          !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
+          !$OMP PRIVATE(ifine,jfine) IF((hi(2)-lo(2)).ge.3)
           do j = lo(2),hi(2)
              jfine = ir(2)*j
              do i = lo(1),hi(1)
@@ -1280,6 +1293,7 @@ contains
                 end if
              end do
           end do
+          !$OMP END PARALLEL DO
        end if
 
     else if (size(ss,dim=4) .eq. 7) then
