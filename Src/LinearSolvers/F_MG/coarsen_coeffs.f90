@@ -219,24 +219,28 @@ contains
   subroutine crse_cell_coeffs_3d(cc, cf, ng, loc, hic, lof)
 
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
-    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,:)
-    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,:)
-    integer :: i, i2, j, j2, k, k2
+    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,1:)
+    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
+    integer :: i, i2, j, j2, k, k2, n
 
-    do k = loc(3),hic(3)
-       do j = loc(2),hic(2)
-          do i = loc(1),hic(1)
-             i2 = 2*i
+    do n = 1, size(cc,4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       do k = loc(3),hic(3)
+          k2 = 2*k
+          do j = loc(2),hic(2)
              j2 = 2*j
-             k2 = 2*k
-             cc(i,j,k,:) = EIGHTH * ( &
-                  + cf(i2,j2  ,k2  ,:) + cf(i2+1,j2  ,k2  ,:) & 
-                  + cf(i2,j2+1,k2  ,:) + cf(i2+1,j2+1,k2  ,:) &
-                  + cf(i2,j2  ,k2+1,:) + cf(i2+1,j2  ,k2+1,:) &
-                  + cf(i2,j2+1,k2+1,:) + cf(i2+1,j2+1,k2+1,:) &
-                  )
+             do i = loc(1),hic(1)
+                i2 = 2*i
+                cc(i,j,k,n) = EIGHTH * ( &
+                     + cf(i2,j2  ,k2  ,n) + cf(i2+1,j2  ,k2  ,n) & 
+                     + cf(i2,j2+1,k2  ,n) + cf(i2+1,j2+1,k2  ,n) &
+                     + cf(i2,j2  ,k2+1,n) + cf(i2+1,j2  ,k2+1,n) &
+                     + cf(i2,j2+1,k2+1,n) + cf(i2+1,j2+1,k2+1,n) &
+                     )
+             end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
   end subroutine crse_cell_coeffs_3d
@@ -244,22 +248,26 @@ contains
   subroutine crse_xedge_coeffs_3d(cc, cf, ng, loc, hic, lof)
 
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
-    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,:)
-    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,:)
-    integer :: i, i2, j, j2, k, k2
+    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,1:)
+    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
+    integer :: i, i2, j, j2, k, k2, n
 
-    do k = loc(3),hic(3)
-       do j = loc(2),hic(2)
-          do i = loc(1),hic(1)+1
-             i2 = 2*i
+    do n = 1, size(cc,4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       do k = loc(3),hic(3)
+          k2 = 2*k
+          do j = loc(2),hic(2)
              j2 = 2*j
-             k2 = 2*k
-             cc(i,j,k,:) = FOURTH * ( &
-                  + cf(i2,j2,k2  ,:) + cf(i2,j2+1,k2  ,:) &
-                  + cf(i2,j2,k2+1,:) + cf(i2,j2+1,k2+1,:) &
-                  )
+             do i = loc(1),hic(1)+1
+                i2 = 2*i
+                cc(i,j,k,n) = FOURTH * ( &
+                     + cf(i2,j2,k2  ,n) + cf(i2,j2+1,k2  ,n) &
+                     + cf(i2,j2,k2+1,n) + cf(i2,j2+1,k2+1,n) &
+                     )
+             end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
   end subroutine crse_xedge_coeffs_3d
@@ -267,22 +275,26 @@ contains
   subroutine crse_yedge_coeffs_3d(cc, cf, ng, loc, hic, lof)
 
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
-    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,:)
-    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,:)
-    integer :: i, i2, j, j2, k, k2
+    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,1:)
+    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
+    integer :: i, i2, j, j2, k, k2, n
 
-    do k = loc(3),hic(3)
-       do j = loc(2),hic(2)+1
-          do i = loc(1),hic(1)
-             i2 = 2*i
+    do n = 1, size(cc,4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       do k = loc(3),hic(3)
+          k2 = 2*k
+          do j = loc(2),hic(2)+1
              j2 = 2*j
-             k2 = 2*k
-             cc(i,j,k,:) = FOURTH * ( &
-                  + cf(i2,j2,k2  ,:) + cf(i2+1,j2,k2  ,:) &
-                  + cf(i2,j2,k2+1,:) + cf(i2+1,j2,k2+1,:) &
-                  )
+             do i = loc(1),hic(1)
+                i2 = 2*i
+                cc(i,j,k,n) = FOURTH * ( &
+                     + cf(i2,j2,k2  ,n) + cf(i2+1,j2,k2  ,n) &
+                     + cf(i2,j2,k2+1,n) + cf(i2+1,j2,k2+1,n) &
+                     )
+             end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
   end subroutine crse_yedge_coeffs_3d
@@ -290,22 +302,26 @@ contains
   subroutine crse_zedge_coeffs_3d(cc, cf, ng, loc, hic, lof)
 
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
-    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,:)
-    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,:)
-    integer :: i, i2, j, j2, k, k2
+    real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,loc(3)-ng:,1:)
+    real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
+    integer :: i, i2, j, j2, k, k2, n
 
-    do k = loc(3),hic(3)+1
-       do j = loc(2),hic(2)
-          do i = loc(1),hic(1)
-             i2 = 2*i
+    do n = 1, size(cc,4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       do k = loc(3),hic(3)+1
+          k2 = 2*k
+          do j = loc(2),hic(2)
              j2 = 2*j
-             k2 = 2*k
-             cc(i,j,k,:) = FOURTH * ( &
-                  + cf(i2,j2  ,k2,:) + cf(i2+1,j2  ,k2,:) &
-                  + cf(i2,j2+1,k2,:) + cf(i2+1,j2+1,k2,:) &
-                  )
+             do i = loc(1),hic(1)
+                i2 = 2*i
+                cc(i,j,k,n) = FOURTH * ( &
+                     + cf(i2,j2  ,k2,n) + cf(i2+1,j2  ,k2,n) &
+                     + cf(i2,j2+1,k2,n) + cf(i2+1,j2+1,k2,n) &
+                     )
+             end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
   end subroutine crse_zedge_coeffs_3d
