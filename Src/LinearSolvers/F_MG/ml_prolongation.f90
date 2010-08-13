@@ -129,6 +129,7 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        kc = k / ir(3)
        do j = lo(2),hi(2)
@@ -139,6 +140,8 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
+
   end subroutine ml_prolongation_3d_cc
 
   subroutine ml_prolongation_1d_nodal(ff, lof, cc, loc, lo, hi, ir)
@@ -225,10 +228,9 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, l, m, n
     real (dp_t) :: fac_left, fac_rght
-!   real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
-!                              lof(2):lof(2)+size(ff,dim=2)-1,&
-!                              lof(3):lof(3)+size(ff,dim=3)-1)
-    real (dp_t) :: temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3))
+    real (dp_t), allocatable :: temp(:,:,:)
+
+    allocate(temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3)))
 
     !   Interpolate at coarse node locations only
     do k = lo(3),hi(3),ir(3)
@@ -243,6 +245,7 @@ contains
     end do
 
     !   Interpolate at fine nodes between coarse nodes in the i-direction only
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do j = lo(2),hi(2),ir(2)
           do l = 1, ir(1)-1
@@ -254,8 +257,10 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
 !   Interpolate in the j-direction.
+    !$OMP PARALLEL DO PRIVATE(i,j,k,m,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do m = 1, ir(2)-1
           fac_rght = real(m,dp_t) / real(ir(2),dp_t)
@@ -267,6 +272,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
 !   Interpolate in the k-direction.
     do n = 1, ir(3)-1
