@@ -89,7 +89,7 @@ contains
           lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n)
        end do
 
-       if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
+       if ( bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP ) then
           i = cslope_lo(1)
           if ( xok(1) ) then
              uc_xslope(i,n) = -SIXTEEN/FIFTEEN*crse(i-1,n)+ HALF*crse(i,n) &
@@ -101,7 +101,7 @@ contains
           lc_xslope(i,n) = uclc_slope_1d(uc_xslope(i,n),crse,crse_lo,i,n)
        end if
 
-       if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
+       if ( bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP ) then
           i = cslope_hi(1)
           if ( xok(1) ) then
              uc_xslope(i,n) = SIXTEEN/FIFTEEN*crse(i+1,n)- HALF*crse(i,n) &
@@ -114,7 +114,7 @@ contains
        end if
     end do
 
-    if (lim_slope) then
+    if ( lim_slope ) then
 
        if ( lin_limit ) then
 
@@ -148,15 +148,17 @@ contains
 
                 orig_corr_fact = voffx(i)*lc_xslope(ic,n)
                 fine(i,n) = crse(ic,n) + orig_corr_fact
-                if ((fine(i,n)  >  cmax(ic,n)) &
-                     .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,n)))) then
-                   corr_fact = (cmax(ic,n) - crse(ic,n)) / orig_corr_fact
-                   alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                if ( fine(i,n)  >  cmax(ic,n) ) then
+                   if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,n)) ) then
+                      corr_fact = (cmax(ic,n) - crse(ic,n)) / orig_corr_fact
+                      alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                   end if
                 end if
-                if ((fine(i,n)  <  cmin(ic,n)) &
-                     .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,n)))) then
-                   corr_fact = (cmin(ic,n) - crse(ic,n)) / orig_corr_fact
-                   alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                if ( fine(i,n)  <  cmin(ic,n) ) then
+                   if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,n)) ) then
+                      corr_fact = (cmin(ic,n) - crse(ic,n)) / orig_corr_fact
+                      alpha(ic,n) = min(alpha(ic,n),corr_fact)
+                      end if
                 end if
 
              end do
@@ -202,7 +204,7 @@ contains
       forw = TWO*(crse(i+1,n)-crse(i,n))
       back = TWO*(crse(i,n)-crse(i-1,n))
       slp  = min(abs(forw),abs(back))
-      if (forw*back  <  ZERO) then
+      if ( forw*back  <  ZERO ) then
          slp = ZERO
       end if
       lc = sign(ONE,cen)*min(slp,abs(cen))
@@ -311,7 +313,7 @@ contains
           end do
        end do
 
-       if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
+       if ( bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP ) then
           i = cslope_lo(1)
           if ( xok(1) ) then
              do j = cslope_lo(2), cslope_hi(2)
@@ -329,7 +331,7 @@ contains
           end do
        end if
 
-       if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
+       if ( bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP ) then
           i = cslope_hi(1)
           if ( xok(1) ) then
              do j = cslope_lo(2), cslope_hi(2)
@@ -354,7 +356,7 @@ contains
           end do
        end do
 
-       if (bc(2,1,n)  == EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
+       if ( bc(2,1,n)  == EXT_DIR .or. bc(2,1,n) == HOEXTRAP ) then
           j = cslope_lo(2)
           if ( xok(2) ) then
              do i = cslope_lo(1), cslope_hi(1)
@@ -372,7 +374,7 @@ contains
           end do
        end if
 
-       if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
+       if ( bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP ) then
           j = cslope_hi(2)
           if ( xok(2) ) then
              do i = cslope_lo(1), cslope_hi(1)
@@ -392,7 +394,7 @@ contains
 
     end do
 
-    if (lim_slope) then
+    if ( lim_slope ) then
 
        if ( lin_limit ) then
 
@@ -435,15 +437,17 @@ contains
 
                    orig_corr_fact = voffx(i)*lc_xslope(ic,jc,n)+ voffy(j)*lc_yslope(ic,jc,n) 
                    fine(i,j,n) = crse(ic,jc,n) + orig_corr_fact
-                   if ((fine(i,j,n)  >  cmax(ic,jc,n)) &
-                        .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,jc,n)))) then
-                      corr_fact = (cmax(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
-                      alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
+                   if ( fine(i,j,n)  >  cmax(ic,jc,n) ) then
+                      if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,n)) ) then
+                         corr_fact = (cmax(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
+                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
+                      end if
                    end if
-                   if ((fine(i,j,n)  <  cmin(ic,jc,n)) &
-                        .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,jc,n)))) then
-                      corr_fact = (cmin(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
-                      alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
+                   if ( fine(i,j,n)  <  cmin(ic,jc,n) ) then
+                      if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,n)) ) then
+                         corr_fact = (cmin(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
+                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
+                      end if
                    end if
 
                 end do
@@ -506,7 +510,7 @@ contains
          back = back*(crse(i,j,n)-crse(i,j-1,n))
       end if
       slp  = min(abs(forw),abs(back))
-      if (forw*back  <  ZERO) then
+      if ( forw*back  <  ZERO ) then
          slp = ZERO
       end if
       lc = sign(ONE,cen)*min(slp,abs(cen))
@@ -610,10 +614,13 @@ contains
        cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
        voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
     end do
-
+    !
     ! Prevent underflow for small crse values.
+    !
     where(abs(crse) < 1.0d-20) crse = ZERO
+
     alpha = ONE
+
     cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
          cslope_lo(3):cslope_hi(3),:)
     cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
@@ -623,6 +630,7 @@ contains
        !
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
        !
+       !$OMP PARALLEL DO PRIVATE(i,j,k,ioff,joff,koff)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -637,6 +645,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
     end do
     !
@@ -644,6 +653,7 @@ contains
     !
     do n = 1, size(crse,4) 
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -653,8 +663,9 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
-       if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
+       if ( bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP ) then
           i = cslope_lo(1)
           if ( xok(1) ) then
              do k = cslope_lo(3),cslope_hi(3)
@@ -679,7 +690,7 @@ contains
           end do
        end if
 
-       if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
+       if ( bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP ) then
           i = cslope_hi(1)
           if ( xok(1) ) then
              do k = cslope_lo(3),cslope_hi(3)
@@ -704,6 +715,7 @@ contains
           end do
        end if
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -713,8 +725,9 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
-       if (bc(2,1,n)  ==  EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
+       if ( bc(2,1,n)  ==  EXT_DIR .or. bc(2,1,n) == HOEXTRAP ) then
           j = cslope_lo(2)
           if ( xok(2) ) then
              do k = cslope_lo(3),cslope_hi(3)
@@ -739,7 +752,7 @@ contains
           end do
        end if
 
-       if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
+       if ( bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP ) then
           j = cslope_hi(2)
           if ( xok(2) ) then
              do k = cslope_lo(3),cslope_hi(3)
@@ -764,6 +777,7 @@ contains
           end do
        end if
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -773,8 +787,9 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
-       if (bc(3,1,n)  == EXT_DIR .or. bc(3,1,n) == HOEXTRAP ) then
+       if ( bc(3,1,n)  == EXT_DIR .or. bc(3,1,n) == HOEXTRAP ) then
           k = cslope_lo(3)
           if ( xok(3) ) then
              do j = cslope_lo(2),cslope_hi(2)
@@ -799,7 +814,7 @@ contains
           end do
        end if
 
-       if (bc(3,2,n)  ==  EXT_DIR .or. bc(3,2,n)  ==  HOEXTRAP) then
+       if ( bc(3,2,n)  ==  EXT_DIR .or. bc(3,2,n)  ==  HOEXTRAP ) then
           k = cslope_hi(3)
           if ( xok(3) ) then
              do j = cslope_lo(2),cslope_hi(2)
@@ -865,7 +880,7 @@ contains
           ! Limit slopes so as to not introduce new maxs or mins.
 
           do n = 1,size(crse,4)
-
+             !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc,orig_corr_fact,corr_fact)
              do k = fine_lo(3), fine_lo(3)+size(fine, 3) - 1
                 kc = IX_PROJ(k,lratio(3))
                 do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -877,26 +892,29 @@ contains
                            + voffy(j)*lc_yslope(ic,jc,kc,n) &
                            + voffz(k)*lc_zslope(ic,jc,kc,n)
                       fine(i,j,k,n) = crse(ic,jc,kc,n) + orig_corr_fact
-                      if ((fine(i,j,k,n)  >  cmax(ic,jc,kc,n)) &
-                           .and. (abs(orig_corr_fact) > 1.e-10*abs(crse(ic,jc,kc,n)))) then
-                         corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
-                         alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
+                      if ( fine(i,j,k,n) > cmax(ic,jc,kc,n) ) then
+                         if ( abs(orig_corr_fact) > 1.d-10*abs(crse(ic,jc,kc,n)) ) then
+                            corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
+                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
+                         end if
                       end if
-                      if ((fine(i,j,k,n)  <  cmin(ic,jc,kc,n)) &
-                           .and.(abs(orig_corr_fact)  >  1.e-10*abs(crse(ic,jc,kc,n)))) then
-                         corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
-                         alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
+                      if ( fine(i,j,k,n)  <  cmin(ic,jc,kc,n) ) then
+                         if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,kc,n)) ) then
+                            corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
+                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
+                         end if
                       end if
-
                    end do
                 end do
              end do
+          !$OMP END PARALLEL DO
           end do
        end if
-
+       !
        ! Do the interpolation with limited slopes.
-
+       !
        do n = 1, size(crse,4)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc)
           do k = fine_lo(3), fine_lo(3)+size(fine, 3) - 1
              kc = IX_PROJ(k,lratio(3))
              do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -904,21 +922,24 @@ contains
                 do i = fine_lo(1), fine_lo(1)+size(fine, 1) - 1
                    ic = IX_PROJ(i,lratio(1))
                    fine(i,j,k,n) = crse(ic,jc,kc,n) &
-                        + alpha(ic,jc,kc,n) *( &
+                        + alpha(ic,jc,kc,n) * &
+                        ( &
                         + voffx(i)*lc_xslope(ic,jc,kc,n)&
                         + voffy(j)*lc_yslope(ic,jc,kc,n)&
-                        + voffz(k)*lc_zslope(ic,jc,kc,n) &
+                        + voffz(k)*lc_zslope(ic,jc,kc,n)&
                         )
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
 
     else
-
+       !
        ! Do the interpolation using unlimited slopes.
-
+       !
        do n = 1, size(crse,4)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc)
           do k = fine_lo(3), fine_lo(3)+size(fine,3) - 1
              kc = IX_PROJ(k,lratio(3))
              do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -932,6 +953,7 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
 
     end if
