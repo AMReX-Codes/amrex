@@ -1001,6 +1001,9 @@ contains
           deallocate(header)
           deallocate(refrat)
           deallocate(dxlev)
+          do i = 1, size(balevs)
+             call destroy(balevs(i))
+          end do
           deallocate(balevs)
 
           wakeUpPID = parallel_myproc() + nAtOnce
