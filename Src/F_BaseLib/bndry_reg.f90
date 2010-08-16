@@ -91,14 +91,14 @@ contains
        allocate(br%obmf(dm,0:1), br%olaf(dm,0:1))
     end if
 
-    lpdc = box_nodalize(pdc, nodal)
+    lpdc = box_nodalize(pdc, lnodal)
 
     if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
     !
     ! Build a layout to be used in intersection tests below.
     !
     do i = 1, nboxes(lac)
-       bx = box_nodalize(get_box(lac,i),nodal)
+       bx = box_nodalize(get_box(lac,i),lnodal)
        lo = lwb(bx)
        hi = upb(bx)
        do j = 1, dm
@@ -118,7 +118,7 @@ contains
        do f = 0, 1
           cnt = 0
           do j = 1, nb
-             rbox = coarsen(box_nodalize(get_box(la,j), nodal), rr)
+             rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
              lo   = lwb(rbox)
              hi   = upb(rbox)
              select case (f)
