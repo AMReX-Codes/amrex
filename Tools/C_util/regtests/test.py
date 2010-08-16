@@ -1001,6 +1001,14 @@ def test(argv):
             warning("           skipping\n")
             continue            
 
+        if (getParam(test + ".selfTest") and make_benchmarks):
+            warning("  WARNING: test %s is a self-test -- " % (test))
+            warning("           no benchmarks are stored.")
+            warning("           skipping\n")
+            continue            
+
+
+
 
         #----------------------------------------------------------------------
         # make the run directory
@@ -1856,6 +1864,9 @@ def reportThisTestRun(suiteName, make_benchmarks, comment, note, cvsTime, tests,
                 continue
 
             if (getParam(test + ".compileTest")):
+                continue
+
+            if (getParam(test + ".selfTest")):
                 continue
 
                 
