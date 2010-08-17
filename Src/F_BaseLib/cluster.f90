@@ -14,10 +14,10 @@ module cluster_module
   integer, private, save :: cut_threshold = 2
   real(dp_t), private, save :: beta = 1.05_dp_t
 
-  integer        , parameter, private :: minwidth_default        = 4
+  integer        , parameter, private :: minwidth_default        = 8
   integer        , parameter, private :: blocking_factor_default = 8
   integer        , parameter, private :: ref_ratio_default       = 2
-  real(kind=dp_t), parameter, private :: min_eff_default  = .7
+  real(kind=dp_t), parameter, private :: min_eff_default  = 0.7_dp_t
 
   integer        , save :: minwidth  = minwidth_default
   integer        , save :: ref_ratio = ref_ratio_default
@@ -31,6 +31,7 @@ module cluster_module
   public :: cluster_set_beta
   public :: cluster_get_beta
   public :: cluster_set_minwidth
+  public :: cluster_set_blocking_factor
   public :: cluster_set_min_eff
   public :: cluster
 
@@ -46,6 +47,11 @@ contains
     integer, intent(in) :: val
     minwidth = val
   end subroutine cluster_set_minwidth
+
+  subroutine cluster_set_blocking_factor(val)
+    integer, intent(in) :: val
+    blocking_factor = val
+  end subroutine cluster_set_blocking_factor
 
   subroutine cluster_set_min_eff(val)
     real(dp_t), intent(in) :: val
