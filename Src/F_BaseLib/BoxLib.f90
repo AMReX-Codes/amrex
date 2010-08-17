@@ -21,7 +21,7 @@ contains
   subroutine boxlib_initialize()
     call parallel_initialize()
     if (parallel_IOProcessor() .and. parallel_nprocs() > 1) then
-       print*, "MPI initialized with ", parallel_nprocs(), " CPUs";
+       print*, "MPI initialized with ", parallel_nprocs(), " MPI processes";
     endif
   end subroutine boxlib_initialize
 
