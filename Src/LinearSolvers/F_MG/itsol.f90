@@ -504,6 +504,8 @@ contains
      go to 100
     end if
 
+    rho_1 = ZERO
+
     do i = 1, max_iter
        if (present(nodal_mask)) then
           rho = dot(rt, rr, nodal_mask)
@@ -764,6 +766,9 @@ contains
       end if
       go to 100
     end if
+
+    rho_1       = ZERO
+    rho_hg_orig = ZERO
 
     do i = 1, max_iter
 

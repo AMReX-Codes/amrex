@@ -578,6 +578,8 @@ contains
        call bl_error("EXTRAP_1D: max_order < 1: ", max_order)
     end if
 
+    i = 0
+
     xx(:,1) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
 
@@ -612,6 +614,8 @@ contains
     if ( max_order < 1 ) then
        call bl_error("EXTRAP_2D: max_order < 1: ", max_order)
     end if
+
+    i = 0
 
     xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
@@ -707,6 +711,8 @@ contains
     if ( max_order < 1 ) then
        call bl_error("EXTRAP_3D: max_order < 1: ", max_order)
     end if
+
+    i = 0
 
     xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
@@ -4360,6 +4366,8 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     real(kind=dp_t) xInt
 
     call random_number(ci)
+
+    j = 0
     
     x = (/ ZERO, (j+HALF,j=0,NORDER-2) /)
     do j = 0, NORDER-2

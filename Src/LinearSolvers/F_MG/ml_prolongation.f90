@@ -583,6 +583,8 @@ contains
        xloc(3) =  THREE_EIGHTHS
     end if
 
+    xder = 0; x2der = 0; yder = 0; y2der = 0; zder = 0; z2der = 0
+
 !   This is the same interpolation as done in IAMR.
     if (side == 1 .or. side == -1) then
       i  = lo(1)
@@ -757,6 +759,8 @@ contains
        xloc(2) = HALF
        xloc(3) = THREE*FOURTH
     end if
+
+    i = 0; j = 0; k = 0
 
 !   This is the same interpolation as done in IAMR.
     if (side == 1 .or. side == -1) then
