@@ -4025,7 +4025,7 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    r1 = 0
+    r1 = 0.0_dp_t
 
     if ( present(mask) ) then
        do i = 1, mf%nboxes
@@ -4314,8 +4314,6 @@ contains
     real(dp_t), intent(in)  :: val
     real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
     integer :: i,lng
-
-    print*, '*** multifab_div_s_c() !!!'
 
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_s_c")
