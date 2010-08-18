@@ -169,6 +169,7 @@ contains
     type(plotfile), intent(in) :: pf
     integer :: r(pf%flevel)
     integer :: n
+    n = 1
     r = (/(pf%grids(n)%nboxes, n=1, pf%flevel)/)
   end function plotfile_nboxes
 

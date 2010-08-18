@@ -3532,7 +3532,7 @@ contains
     real(dp_t), pointer :: mp1(:,:,:,:)
     real(dp_t), pointer :: ma(:,:,:,:)
     real(dp_t)          :: r1
-    integer             :: i, ii, jj, kk, nn
+    integer             :: i
 
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then

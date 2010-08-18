@@ -690,6 +690,8 @@ contains
     i = lo(1)
     j = lo(2)
 
+    ioff = 0; joff = 0; sig_i = 0; sig_j = 0
+
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
     if (size(ss,dim=3) .eq. 9) then
@@ -991,6 +993,8 @@ contains
     logical :: lo_i_not,lo_j_not,lo_k_not,hi_i_not,hi_j_not,hi_k_not
     real (kind = dp_t) :: crse_flux
     real (kind = dp_t) :: cell_mm, cell_mp, cell_pm, cell_pp
+
+    sig_i = 0; ioff = 0
     !
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE

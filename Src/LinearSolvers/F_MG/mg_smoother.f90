@@ -78,6 +78,8 @@ contains
 
     call build(bpt, "gs_rb_smoother_1d")
 
+    lr = 0
+
     hi = ubound(ff)
 
     if (present(skwd) ) then
