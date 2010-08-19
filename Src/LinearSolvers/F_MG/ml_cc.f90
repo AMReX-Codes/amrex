@@ -8,6 +8,7 @@ module ml_cc_module
   implicit none
 
   private :: ml_fill_fluxes, ml_fill_n_fluxes
+  private :: scale_residual_1d, scale_residual_2d, scale_residual_3d
 
 contains
 
