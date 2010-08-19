@@ -57,6 +57,12 @@ else
   endif
 endif
 
+ifdef OMP
+  f90sources += omp.f90
+else
+  f90sources += omp_stubs.f90
+endif
+
 csources += fabio_c.c
 csources += timer_c.c
 csources += ppm_util_c.c

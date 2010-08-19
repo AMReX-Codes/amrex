@@ -6,6 +6,7 @@
 module BoxLib
 
   use parallel
+  use omp_module
 
   implicit none
 
@@ -22,6 +23,7 @@ contains
     call parallel_initialize()
     if (parallel_IOProcessor() .and. parallel_nprocs() > 1) then
        print*, "MPI initialized with ", parallel_nprocs(), " MPI processes";
+       print*, "MPI initialized with ", omp_get_max_threads(), " threads";
     endif
   end subroutine boxlib_initialize
 
