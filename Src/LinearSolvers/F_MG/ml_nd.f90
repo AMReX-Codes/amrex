@@ -421,8 +421,19 @@ contains
 
      iter = iter-1
      if (iter < mgt(nlevs)%max_iter) then
-       if (mgt(nlevs)%verbose > 0 .and. parallel_IOProcessor() ) &
-           write(unit=*, fmt='("MG finished at ", i3, " iterations")') iter
+        if ( mgt(nlevs)%verbose > 0 ) then
+          tres = ml_norm_inf(res,fine_mask)
+          if ( parallel_IOProcessor() ) then
+
+             if (tres0 .gt. 0.0_dp_t) then
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
+               write(unit=*, fmt='("")')
+             else
+               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
+               write(unit=*, fmt='("")')
+             end if
+          end if
+        end if
      else
        call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
      end if
