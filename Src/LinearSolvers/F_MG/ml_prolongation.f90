@@ -15,6 +15,10 @@ module ml_prolongation_module
   real(dp_t), private, parameter :: EIGHTH= 0.125_dp_t
   real(dp_t), private, parameter :: THREE_EIGHTHS= 0.375_dp_t
 
+  private
+
+  public :: ml_prolongation, ml_interp_bcs
+
 contains
 
   subroutine ml_prolongation(fine, crse, ir)
