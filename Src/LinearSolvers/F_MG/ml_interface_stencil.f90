@@ -7,6 +7,10 @@ module ml_interface_stencil_module
 
   implicit none
 
+  private
+
+  public :: ml_interface, ml_interface_c, ml_crse_contrib
+
 contains
 
   subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim, efactor)
