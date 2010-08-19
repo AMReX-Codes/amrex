@@ -172,7 +172,7 @@ contains
 
       nc = size(a,dim=4)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF((hi(3)-lo(3)).ge.3)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.3)
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
@@ -183,8 +183,8 @@ contains
             end do
          end do
       end do
-
       !$OMP END PARALLEL DO
+
     end subroutine diag_init_cc_3d
 
     subroutine diag_init_nd_1d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
@@ -247,7 +247,7 @@ contains
 
       nc = size(a,dim=4)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF((hi(3)-lo(3)).ge.2)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.2)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
@@ -260,8 +260,8 @@ contains
             end do
          end do
       end do
-
       !$OMP END PARALLEL DO
+
     end subroutine diag_init_nd_3d
 
   function itsol_converged(rr, uu, bnorm, eps, abs_eps) result(r)
