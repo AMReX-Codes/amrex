@@ -8,7 +8,10 @@ module ml_restriction_module
   real(dp_t), private, parameter :: ZERO = 0.0_dp_t
   real(dp_t), private, parameter :: ONE  = 1.0_dp_t
 
-  private :: ml_restrict_copy_sum
+  private
+
+  public :: ml_restriction, ml_cc_restriction, ml_cc_restriction_c
+  public :: ml_edge_restriction, ml_edge_restriction_c, periodic_add_copy 
 
 contains
 
