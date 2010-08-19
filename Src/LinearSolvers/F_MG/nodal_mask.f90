@@ -5,6 +5,10 @@ module nodal_mask_module
 
   implicit none
 
+  private
+
+  public :: create_nodal_mask
+
   contains
 
   subroutine create_nodal_mask(n,mask,mm_crse,mm_fine,mla)
