@@ -114,28 +114,33 @@ contains
       ny = size(phi,dim=2)-3
       nz = size(phi,dim=3)-3
 
+      !$OMP PARALLEL DO PRIVATE(i,j,k,gpx,gpy,gpz)
       do k = 0,nz-1
-      do j = 0,ny-1
-      do i = 0,nx-1
-         gpx = FOURTH*(phi(i+1,j,k  ) + phi(i+1,j+1,k  ) &
-                      +phi(i+1,j,k+1) + phi(i+1,j+1,k+1) & 
-                      -phi(i  ,j,k  ) - phi(i  ,j+1,k  ) &
-                      -phi(i  ,j,k+1) - phi(i  ,j+1,k+1) ) /dx(1)
-         gpy = FOURTH*(phi(i,j+1,k  ) + phi(i+1,j+1,k  ) &
-                      +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
-                      -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
-                      -phi(i,j  ,k+1) - phi(i+1,j  ,k+1) ) /dx(2)
-         gpz = FOURTH*(phi(i,j  ,k+1) + phi(i+1,j  ,k+1) &
-                      +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
-                      -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
-                      -phi(i,j+1,k  ) - phi(i+1,j+1,k  ) ) /dx(3)
+         do j = 0,ny-1
+            do i = 0,nx-1
+               gpx = FOURTH* &
+                    (phi(i+1,j,k  ) + phi(i+1,j+1,k  ) &
+                    +phi(i+1,j,k+1) + phi(i+1,j+1,k+1) & 
+                    -phi(i  ,j,k  ) - phi(i  ,j+1,k  ) &
+                    -phi(i  ,j,k+1) - phi(i  ,j+1,k+1) ) /dx(1)
+               gpy = FOURTH* &
+                    (phi(i,j+1,k  ) + phi(i+1,j+1,k  ) &
+                    +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
+                    -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
+                    -phi(i,j  ,k+1) - phi(i+1,j  ,k+1) ) /dx(2)
+               gpz = FOURTH* &
+                    (phi(i,j  ,k+1) + phi(i+1,j  ,k+1) &
+                    +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
+                    -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
+                    -phi(i,j+1,k  ) - phi(i+1,j+1,k  ) ) /dx(3)
 
-         unew(i,j,k,1) = unew(i,j,k,1) - gpx / rhohalf(i,j,k)
-         unew(i,j,k,2) = unew(i,j,k,2) - gpy / rhohalf(i,j,k)
-         unew(i,j,k,3) = unew(i,j,k,3) - gpz / rhohalf(i,j,k)
+               unew(i,j,k,1) = unew(i,j,k,1) - gpx / rhohalf(i,j,k)
+               unew(i,j,k,2) = unew(i,j,k,2) - gpy / rhohalf(i,j,k)
+               unew(i,j,k,3) = unew(i,j,k,3) - gpz / rhohalf(i,j,k)
+            end do
+         end do
       end do
-      end do
-      end do
+      !$OMP END PARALLEL DO
 
     end subroutine mkunew_3d
 
