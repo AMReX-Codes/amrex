@@ -315,32 +315,26 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
-    !$OMP PARALLEL DO PRIVATE(i,j) IF(ny.ge.4)
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,k) IF(nz.ge.4)
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,k) IF(nz.ge.4)
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
     !
     ! Set sg on edges at a Neumann boundary.
     !
