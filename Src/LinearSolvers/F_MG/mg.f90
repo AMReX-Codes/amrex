@@ -275,19 +275,10 @@ contains
        call box_build_2(bxs,coarse_pd%lo(1:mgt%dim),coarse_pd%hi(1:mgt%dim))
        call boxarray_build_bx(new_coarse_ba,bxs)
 
-       ! This is how many levels could be built if we made just one grid
-       call max_mg_levels_bottom(n,new_coarse_ba,min_width)
-
-       ! This is the user-imposed limit
-       n = min(n,mgt%max_bottom_nlevel)
-
-       if ( n .eq. 1) then
-          call bl_error("DONT USE MG_BOTTOM_SOLVER == 4: BOTTOM GRID NOT PROPERLY DIVISIBLE")
-       end if
-
-       bottom_box_size = 2**n
-       if (parallel_IOProcessor() .and. verbose .ge. 1) &
-          print *,'F90mg: New levels in bottom_solver = 4: ',n
+       ! compute the initial size of each of the boxes for the fancy
+       ! bottom solver.  Each box will have bottom_box_size**dm cells
+       call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
+                                mgt%max_bottom_nlevel)
 
        call boxarray_maxsize(new_coarse_ba,bottom_box_size)
        call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
@@ -300,6 +291,7 @@ contains
           call print(layout_get_pd(old_coarse_la))
           print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
           print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
+          print *,'# cells on each side  ',bottom_box_size
        end if
 
        coarse_dx(:) = mgt%dh(:,1)
@@ -501,43 +493,72 @@ contains
 
   end function max_mg_levels
 
-  subroutine max_mg_levels_bottom(r, ba, min_size)
+  subroutine get_bottom_box_size(bottom_box_size,ba,min_size,max_bottom_nlevel)
 
+    integer       , intent(  out) :: bottom_box_size
     type(boxarray), intent(in   ) :: ba
     integer       , intent(in   ) :: min_size
-    integer       , intent(inout) :: r
+    integer       , intent(in   ) :: max_bottom_nlevel
 
     ! local
-    integer, parameter :: rrr = 2
-
     type(box)          :: bx, bx1
-    type(boxarray)     :: ba1
-    integer            :: i, rr
+    integer            :: rr
+    integer            :: bottom_levs
 
-    r = 1
-    rr = rrr
-    call copy(ba1,ba)
+    if ( nboxes(ba) .ne. 1) then
+       call bl_error("mg.f90:get_bottom_box_size: nboxes(ba) .ne. 1")
+    end if
+
+    bottom_levs = 1
+    rr = 2
+
     do
-       call boxarray_coarsen(ba1,rrr)
-       do i = 1, nboxes(ba)
-          bx = get_box(ba,i)
-          bx1 = coarsen(bx, rr)
-          if ( any(extent(bx1) < min_size) .or. any(mod(extent(bx1),2) .eq. 1)) then
-             call destroy(ba1)
-             return
+       bx = get_box(ba,1)
+       bx1 = coarsen(bx, rr)
+
+       if ( any(extent(bx1) < min_size) ) then
+          exit
+       end if
+
+       if (any(mod(extent(bx1),2) .eq. 1)) then
+
+          if (all(mod(extent(bx1),3) .eq. 0)) then
+             ! test 3
+             bottom_levs  = bottom_levs + 1
+             rr = rr*3
+             exit
+          else if (all(mod(extent(bx1),5) .eq. 0)) then
+             ! test 5
+             bottom_levs  = bottom_levs + 1
+             rr = rr*5
+             exit
+          else
+             exit
           end if
-          if ( bx /= refine(bx1, rr)  ) then
-             call destroy(ba1)
-             return
-          end if
-       end do
-       rr = rr*rrr
-       r  = r + 1
+
+       end if
+
+       if ( bx /= refine(bx1, rr)  ) then
+          ! this means bx has an odd number of cells on one or more side
+          ! we can only get here if rr=2, i.e., the first pass through this do loop
+          ! we exit the do loop with bottom_levs=1 and will abort
+          exit
+       end if
+
+       rr = rr*2
+       bottom_levs  = bottom_levs + 1
+
+       if (bottom_levs .eq. max_bottom_nlevel) exit
+
     end do
 
-    call destroy(ba1)
+    bottom_box_size = rr
 
-  end subroutine max_mg_levels_bottom
+    if ( bottom_levs .eq. 1) then
+       call bl_error("DONT USE MG_BOTTOM_SOLVER == 4: BOTTOM GRID NOT PROPERLY DIVISIBLE")
+    end if
+
+  end subroutine get_bottom_box_size
 
   subroutine mg_tower_v_cycle(mgt, uu, rh)
 
