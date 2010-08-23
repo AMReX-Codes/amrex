@@ -1173,6 +1173,7 @@ contains
 
     real (kind = dp_t) :: f1(3)
     integer            :: i, j, k, bclo, bchi, nx, ny, nz
+    integer            :: lnx, lny, lnz, lorder
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
 
     nx = hi(1)-lo(1)+1
@@ -1202,9 +1203,11 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
+    lnx = nx; lny = ny; lnz = nz; lorder = order
+
     ! x derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
@@ -1214,7 +1217,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnx)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
@@ -1224,7 +1227,7 @@ contains
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           else
-             call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lnx, 1, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
                   betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
           end if
@@ -1234,7 +1237,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
              else
-                call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lnx, 1, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
                      betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
              end if
@@ -1245,7 +1248,7 @@ contains
 
     ! y derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
@@ -1255,7 +1258,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lny)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,lo(2),k),2,-1)
@@ -1265,7 +1268,7 @@ contains
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           else
-             call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lny, 2, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
                   betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
           end if
@@ -1274,7 +1277,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
              else
-                call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lny, 2, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
                      betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
              end if
@@ -1285,7 +1288,7 @@ contains
 
     ! z derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.5)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1295,7 +1298,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(2)-lo(2)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnz)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,j,lo(3)),3,-1)
@@ -1305,7 +1308,7 @@ contains
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           else
-             call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lnz, 3, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
                   betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
           end if
@@ -1314,7 +1317,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
              else
-                call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lnz, 3, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
                      betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
              end if
@@ -1323,7 +1326,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2319,6 +2322,7 @@ b1 =       0.0d0/hy2
 
     real (kind = dp_t) :: f1(3)
     integer            :: i, j, k, bclo, bchi, nx, ny, nz, order
+    integer            :: lnx, lny, lnz, lorder
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
 
     nx = hi(1)-lo(1)+1
@@ -2351,9 +2355,11 @@ b1 =       0.0d0/hy2
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
+    lnx = nx; lny = ny; lnz = nz; lorder = order
+
     ! x derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
@@ -2363,7 +2369,7 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnx)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
@@ -2373,7 +2379,7 @@ b1 =       0.0d0/hy2
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           else
-             call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lnx, 1, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
                   betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
           end if
@@ -2383,7 +2389,7 @@ b1 =       0.0d0/hy2
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
              else
-                call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lnx, 1, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
                      betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
              end if
@@ -2394,7 +2400,7 @@ b1 =       0.0d0/hy2
 
     ! y derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
@@ -2404,7 +2410,7 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lny)
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,lo(2),k) ,2,-1)
@@ -2414,7 +2420,7 @@ b1 =       0.0d0/hy2
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           else
-             call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lny, 2, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
                   betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
           end if
@@ -2423,7 +2429,7 @@ b1 =       0.0d0/hy2
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
              else
-                call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lny, 2, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
                      betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
              end if
@@ -2434,7 +2440,7 @@ b1 =       0.0d0/hy2
 
     ! z derivatives
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.5)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2444,7 +2450,7 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) IF((hi(2)-lo(2)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnz)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,j,lo(3)) ,3,-1)
@@ -2454,7 +2460,7 @@ b1 =       0.0d0/hy2
           if (bclo .eq. BC_INT) then
              ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           else
-             call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,k), &
+             call stencil_bndry_aaa(lorder, lnz, 3, -1, mask(i,j,k), &
                   ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
                   betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
           end if
@@ -2463,7 +2469,7 @@ b1 =       0.0d0/hy2
              if (bchi .eq. BC_INT) then
                 ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
              else
-                call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,k), &
+                call stencil_bndry_aaa(lorder, lnz, 3, 1, mask(i,j,k), &
                      ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
                      betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
              end if
@@ -2472,7 +2478,7 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF((hi(3)-lo(3)).ge.3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)

@@ -1921,17 +1921,21 @@ contains
     type(box)               :: sbx, dbx
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
+    integer                 :: comp, ncomp
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    comp  = c
+    ncomp = nc
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2) FIRSTPRIVATE(comp,ncomp)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
        sbx =  bxasc%l_con%cpy(i)%sbx
        dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), dbx, comp, ncomp)
+       p2  => dataptr(mf%fbs(jj), sbx, comp, ncomp)
        call cpy_d(p1,p2)
     end do
     !$OMP END PARALLEL DO
@@ -1995,17 +1999,21 @@ contains
     type(box)            :: sbx, dbx
     type(boxassoc)       :: bxasc
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
+    integer              :: comp, ncomp
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    comp  = c
+    ncomp = nc
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2) FIRSTPRIVATE(comp,ncomp)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
        sbx =  bxasc%l_con%cpy(i)%sbx
        dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), dbx, comp, ncomp)
+       p2  => dataptr(mf%fbs(jj), sbx, comp, ncomp)
        call cpy_i(p1,p2)
     end do
     !$OMP END PARALLEL DO
@@ -2069,17 +2077,21 @@ contains
     type(box)            :: sbx, dbx
     type(boxassoc)       :: bxasc
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
+    integer              :: comp, ncomp
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    comp  = c
+    ncomp = nc
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2) FIRSTPRIVATE(comp,ncomp)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
        sbx =  bxasc%l_con%cpy(i)%sbx
        dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), dbx, comp, ncomp)
+       p2  => dataptr(mf%fbs(jj), sbx, comp, ncomp)
        call cpy_l(p1,p2)
     end do
     !$OMP END PARALLEL DO
@@ -2143,17 +2155,21 @@ contains
     type(box)                  :: sbx, dbx
     type(boxassoc)             :: bxasc
     complex(dp_t), allocatable :: g_snd_z(:), g_rcv_z(:)
+    integer                    :: comp, ncomp
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
+    comp  = c
+    ncomp = nc
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2) FIRSTPRIVATE(comp,ncomp)
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
        sbx =  bxasc%l_con%cpy(i)%sbx
        dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), dbx, comp, ncomp)
+       p2  => dataptr(mf%fbs(jj), sbx, comp, ncomp)
        call cpy_z(p1,p2)
     end do
     !$OMP END PARALLEL DO
@@ -2305,6 +2321,7 @@ contains
     type(syncassoc)                         :: snasc
     integer,    allocatable                 :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     real(dp_t), allocatable                 :: g_snd_d(:), g_rcv_d(:)
+    integer                                 :: comp, ncomp
 
     interface
        subroutine filter(out, in)
@@ -2318,14 +2335,17 @@ contains
 
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    comp  = c
+    ncomp = nc
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) FIRSTPRIVATE(comp,ncomp)
     do i = 1, snasc%l_con%ncpy
        ii   =  snasc%l_con%cpy(i)%nd
        jj   =  snasc%l_con%cpy(i)%ns
        sbx  =  snasc%l_con%cpy(i)%sbx
        dbx  =  snasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mf%fbs(ii), dbx, c, nc)
-       psrc => dataptr(mf%fbs(jj), sbx, c, nc)
+       pdst => dataptr(mf%fbs(ii), dbx, comp, ncomp)
+       psrc => dataptr(mf%fbs(jj), sbx, comp, ncomp)
        call cpy_d(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
@@ -2801,17 +2821,22 @@ contains
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     type(box)               :: sbx, dbx
+    integer                 :: ncomp, dcomp, scomp
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc)
+    ncomp = nc
+    dcomp = dstcomp
+    scomp = srccomp
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,pdst,psrc) FIRSTPRIVATE(dcomp,scomp,ncomp)
     do i = 1, cpasc%l_con%ncpy
        ii   =  cpasc%l_con%cpy(i)%nd
        jj   =  cpasc%l_con%cpy(i)%ns
        sbx  =  cpasc%l_con%cpy(i)%sbx
        dbx  =  cpasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
-       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       pdst => dataptr(mdst%fbs(ii), dbx, dcomp, ncomp)
+       psrc => dataptr(msrc%fbs(jj), sbx, scomp, ncomp)
        call cpy_d(pdst, psrc, filter)
     end do
     !$OMP END PARALLEL DO
