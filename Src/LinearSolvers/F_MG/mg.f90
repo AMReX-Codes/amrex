@@ -276,7 +276,7 @@ contains
        call boxarray_build_bx(new_coarse_ba,bxs)
 
        ! This is how many levels could be built if we made just one grid
-       n = max_mg_levels_bottom(new_coarse_ba,min_width)
+       call max_mg_levels_bottom(n,new_coarse_ba,min_width)
 
        ! This is the user-imposed limit
        n = min(n,mgt%max_bottom_nlevel)
@@ -501,29 +501,28 @@ contains
 
   end function max_mg_levels
 
-  function max_mg_levels_bottom(ba, min_size) result(r)
+  subroutine max_mg_levels_bottom(r, ba, min_size)
 
-    type(boxarray), intent(in)           :: ba
-    integer       , intent(in), optional :: min_size
-    integer                              :: r
+    type(boxarray), intent(in   ) :: ba
+    integer       , intent(in   ) :: min_size
+    integer       , intent(inout) :: r
+
+    ! local
     integer, parameter :: rrr = 2
+
     type(box)          :: bx, bx1
     type(boxarray)     :: ba1
-    real(kind=dp_t)    :: vol
-    integer            :: i, rr, lmn, dm
+    integer            :: i, rr
 
-    lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
-    dm = get_dim(ba)
     call copy(ba1,ba)
     do
        call boxarray_coarsen(ba1,rrr)
-       vol = boxarray_volume(ba1)
        do i = 1, nboxes(ba)
           bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
-          if ( any(extent(bx1) < lmn) .or. any(mod(extent(bx1),2) .eq. 1)) then
+          if ( any(extent(bx1) < min_size) .or. any(mod(extent(bx1),2) .eq. 1)) then
              call destroy(ba1)
              return
           end if
@@ -538,7 +537,7 @@ contains
 
     call destroy(ba1)
 
-  end function max_mg_levels_bottom
+  end subroutine max_mg_levels_bottom
 
   subroutine mg_tower_v_cycle(mgt, uu, rh)
 
