@@ -908,8 +908,9 @@ contains
     end if
 
     if (size(ss,dim=4) .eq. 27 .or. size(ss,dim=4) .eq. 21) then
-
-!     Corners
+       !
+       !     Corners
+       !
       i = 1
       j = 1
       k = 1
@@ -987,8 +988,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-x / Lo-y edge
+      !
+      !     Hi-x / Lo-y edge
+      !
       i = nx+1
       j = 1
       do k = kstart,kend
@@ -1000,8 +1002,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Hi-y edge
+      !
+      !     Lo-x / Hi-y edge
+      !
       i = 1
       j = ny+1
       do k = kstart,kend
@@ -1013,8 +1016,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-x / Hi-y edge
+      !
+      !     Hi-x / Hi-y edge
+      !
       i = nx+1
       j = ny+1
       do k = kstart,kend
@@ -1026,8 +1030,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Lo-z edge
+      !
+      !     Lo-x / Lo-z edge
+      !
       i = 1
       k = 1
       do j = jstart,jend
@@ -1039,8 +1044,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-x / Lo-z edge
+      !
+      !     Hi-x / Lo-z edge
+      !
       i = nx+1
       k = 1
       do j = jstart,jend
@@ -1052,8 +1058,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Hi-z edge
+      !
+      !     Lo-x / Hi-z edge
+      !
       i = 1
       k = nz+1
       do j = jstart,jend
@@ -1065,8 +1072,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-x / Hi-z edge
+      !
+      !     Hi-x / Hi-z edge
+      !
       i = nx+1
       k = nz+1
       do j = jstart,jend
@@ -1078,8 +1086,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
- 
-!     Lo-y / Lo-z edge
+      !
+      !     Lo-y / Lo-z edge
+      !
       j = 1
       k = 1
       do i = istart,iend
@@ -1091,8 +1100,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-y / Lo-z edge
+      !
+      !     Hi-y / Lo-z edge
+      !
       j = ny+1
       k = 1
       do i = istart,iend
@@ -1104,8 +1114,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
- 
-!     Lo-y / Hi-z edge
+      !
+      !     Lo-y / Hi-z edge
+      !
       j = 1
       k = nz+1
       do i = istart,iend
@@ -1117,8 +1128,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-y / Hi-z edge
+      !
+      !     Hi-y / Hi-z edge
+      !
       j = ny+1
       k = nz+1
       do i = istart,iend
@@ -1130,8 +1142,9 @@ contains
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Lo-x face
+      !
+      !     Lo-x face
+      !
       i = 1
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
@@ -1152,8 +1165,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-   
-!     Hi-x face
+      !
+      !     Hi-x face
+      !
       i = nx+1
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
@@ -1174,8 +1188,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Lo-y face
+      !
+      !     Lo-y face
+      !
       j = 1
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
@@ -1196,8 +1211,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Hi-y face
+      !
+      !     Hi-y face
+      !
       j = ny+1
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
@@ -1218,8 +1234,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-
-!     Lo-z face
+      !
+      !     Lo-z face
+      !
       k = 1
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
@@ -1240,8 +1257,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Hi-z face
+      !
+      !     Hi-z face
+      !
       k = nz+1
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
@@ -1262,8 +1280,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-
-!     Interior
+      !
+      !     Interior
+      !
         !$OMP PARALLEL DO PRIVATE(i,j,k)
         do k = kstart,kend
         do j = jstart,jend
@@ -1298,8 +1317,9 @@ contains
         !$OMP END PARALLEL DO
 
     else if (size(ss,dim=4) .eq. 7) then
-
-!     Corners
+       !
+       !     Corners
+       !
       i = 1
       j = 1
       k = 1
@@ -1363,9 +1383,9 @@ contains
                  + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
                  + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
- 
- 
-!     Lo-x / Lo-y edge
+      !
+      !     Lo-x / Lo-y edge
+      !
       i = 1
       j = 1
       do k = kstart,kend
@@ -1375,8 +1395,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-x / Lo-y edge
+      !
+      !     Hi-x / Lo-y edge
+      !
       i = nx+1
       j = 1
       do k = kstart,kend
@@ -1386,8 +1407,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Hi-y edge
+      !
+      !     Lo-x / Hi-y edge
+      !
       i = 1
       j = ny+1
       do k = kstart,kend
@@ -1397,8 +1419,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-x / Hi-y edge
+      !
+      !     Hi-x / Hi-y edge
+      !
       i = nx+1
       j = ny+1
       do k = kstart,kend
@@ -1408,8 +1431,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Lo-z edge
+      !
+      !     Lo-x / Lo-z edge
+      !
       i = 1
       k = 1
       do j = jstart,jend
@@ -1419,8 +1443,9 @@ contains
                         + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-x / Lo-z edge
+      !
+      !     Hi-x / Lo-z edge
+      !
       i = nx+1
       k = 1
       do j = jstart,jend
@@ -1430,8 +1455,9 @@ contains
                         + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-   
-!     Lo-x / Hi-z edge
+      !
+      !     Lo-x / Hi-z edge
+      !
       i = 1
       k = nz+1
       do j = jstart,jend
@@ -1441,8 +1467,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-x / Hi-z edge
+      !
+      !     Hi-x / Hi-z edge
+      !
       i = nx+1
       k = nz+1
       do j = jstart,jend
@@ -1452,8 +1479,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
- 
-!     Lo-y / Lo-z edge
+      !
+      !     Lo-y / Lo-z edge
+      !
       j = 1
       k = 1
       do i = istart,iend
@@ -1463,8 +1491,9 @@ contains
                         + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Hi-y / Lo-z edge
+      !
+      !     Hi-y / Lo-z edge
+      !
       j = ny+1
       k = 1
       do i = istart,iend
@@ -1474,8 +1503,9 @@ contains
                         + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
- 
-!     Lo-y / Hi-z edge
+      !
+      !     Lo-y / Hi-z edge
+      !
       j = 1
       k = nz+1
       do i = istart,iend
@@ -1485,8 +1515,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-  
-!     Hi-y / Hi-z edge
+      !
+      !     Hi-y / Hi-z edge
+      !
       j = ny+1
       k = nz+1
       do i = istart,iend
@@ -1496,8 +1527,9 @@ contains
                         + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
-
-!     Lo-x face
+      !
+      !     Lo-x face
+      !
       i = 1
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
@@ -1511,8 +1543,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-   
-!     Hi-x face
+      !
+      !     Hi-x face
+      !
       i = nx+1
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
@@ -1526,8 +1559,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Lo-y face
+      !
+      !     Lo-y face
+      !
       j = 1
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
@@ -1541,8 +1575,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Hi-y face
+      !
+      !     Hi-y face
+      !
       j = ny+1
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
@@ -1556,8 +1591,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-
-!     Lo-z face
+      !
+      !     Lo-z face
+      !
       k = 1
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
@@ -1571,8 +1607,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-  
-!     Hi-z face
+      !
+      !     Hi-z face
+      !
       k = nz+1
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
@@ -1586,8 +1623,9 @@ contains
       end do
       end do
       !$OMP END PARALLEL DO
-
-!     Interior
+      !
+      !     Interior
+      !
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = kstart,kend
       do j = jstart,jend
