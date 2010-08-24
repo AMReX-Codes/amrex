@@ -139,7 +139,6 @@ contains
 
     integer :: i, j, k, ifine, jfine, kfine
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        kfine = ir(3)*k
        do j = lo(2),hi(2)
@@ -150,7 +149,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine nodal_zero_3d
 
