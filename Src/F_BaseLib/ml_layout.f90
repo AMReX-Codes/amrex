@@ -13,6 +13,11 @@ module ml_layout_module
      type(layout)   , pointer ::    la(:) => Null()
      type(lmultifab), pointer ::  mask(:) => Null() ! cell-centered mask
      logical        , pointer :: pmask(:) => Null() ! periodic mask
+     !
+     ! Have to destroy all layouts, not just the coarsest one, if we're
+     ! build using ml_layout_build_n().
+     !
+     logical                  :: destroy_all_layouts = .false.
   end type ml_layout
 
   interface build
@@ -107,9 +112,10 @@ contains
   subroutine ml_layout_build_n(mla, nlevel, dm)
     type(ml_layout), intent(out) :: mla
     integer, intent(in) :: nlevel, dm
-    
-    mla%nlevel = nlevel
-    mla%dim    = dm
+
+    mla%nlevel              = nlevel
+    mla%dim                 = dm
+    mla%destroy_all_layouts = .true.
     allocate(mla%pmask(mla%dim))
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
@@ -129,8 +135,9 @@ contains
     allocate(mla%pmask(mba%dim))
     mla%pmask  = lpmask
 
-    mla%nlevel = mba%nlevel
-    mla%dim    = mba%dim
+    mla%nlevel              = mba%nlevel
+    mla%dim                 = mba%dim
+    mla%destroy_all_layouts = .false.
     call copy(mla%mba, mba)
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
@@ -251,11 +258,19 @@ contains
        call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
-    !
-    ! Recall that we need only delete the coarsest level layout
-    ! since it 'owns' the refined levels.
-    !
-    call destroy(mla%la(1))
+
+    if ( mla%destroy_all_layouts ) then
+       do n = 1, mla%nlevel
+          call destroy(mla%la(n))
+       end do
+    else
+       !
+       ! We need only delete the coarsest level layout
+       ! since it 'owns' the refined levels.
+       !
+       call destroy(mla%la(1))
+    end if
+
     deallocate(mla%la, mla%mask)
     mla%dim = 0
     mla%nlevel = 0
