@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.37 2010-07-19 20:46:04 almgren Exp $
+// $Id: BoxLib.cpp,v 1.38 2010-08-24 20:08:19 almgren Exp $
 //
 #include <winstd.H>
 
@@ -224,12 +224,14 @@ BoxLib::Initialize (int& argc, char**& argv)
 
     ParallelDescriptor::StartParallel(&argc, &argv);
 
+#ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor() && ParallelDescriptor::NProcs() > 1)
     {
         std::cout << "MPI initialized with "
                   << ParallelDescriptor::NProcs()
                   << " MPI Processes\n";
     }
+#end if
 
     if (argc == 1)
     {
