@@ -3186,13 +3186,17 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     ! other is the normal factor
     fac = ONE/real(ratio*ratio*ratio, kind=dp_t)
 
+    ! Note: Do not try to add OMP calls to this subroutine.  For example,
+    !       in the first k loop below, kc may end up having the same value 
+    !       on multiple threads, and then you try to update the same flux(1,jc,kc)
+    !       memory simultaneously on different threads.
+
     !   Lo i face
     if ( dim ==  1 ) then
        if (face == -1) then
 
           i = 1
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3209,7 +3213,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(1,:,:) = flux(1,:,:) * fac
 
           !   Hi i face
@@ -3217,7 +3220,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           i = nx
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k,jc,kc)
           do k = 1,nz
              do j = 1,ny
                 jc = (j-1)/ratio + 1
@@ -3234,7 +3236,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(1,:,:) = flux(1,:,:) * fac
 
        end if
@@ -3243,7 +3244,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
        if (face == -1) then
           j = 1
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3260,14 +3260,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(:,1,:) = flux(:,1,:) * fac
 
           !   Hi j face
        else if (face ==  1) then
           j = ny
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k,ic,kc)
           do k = 1,nz
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3285,7 +3283,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(:,1,:) = flux(:,1,:) * fac
 
           !   Lo k face
@@ -3295,7 +3292,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           k = 1
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3312,7 +3308,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(:,:,1) = flux(:,:,1) * fac
 
           !   Hi k face
@@ -3320,7 +3315,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           k = nz
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j,ic,jc)
           do j = 1,ny
              do i = 1,nx
                 ic = (i-1)/ratio + 1
@@ -3337,7 +3331,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
           flux(:,:,1) = flux(:,:,1) * fac
 
        end if
