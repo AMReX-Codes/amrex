@@ -186,7 +186,22 @@ contains
           if ( remote(ss,i) ) cycle
           sp => dataptr(ss, i)
           lp => dataptr(mask, i)
-          r1 = max(r1, maxval(sum(abs(sp),dim=4),mask=lp(:,:,:,1)))
+          !$OMP PARALLEL DO PRIVATE(j,k,m,n,sum_comps) REDUCTION(MAX:r1)
+          do k = lbound(sp,dim=3), ubound(sp,dim=3)
+             do j = lbound(sp,dim=2), ubound(sp,dim=2)
+                do m = lbound(sp,dim=1), ubound(sp,dim=1)
+                   if ( lp(i,j,k,1) ) then
+                      sum_comps = ZERO
+                      do n = lbound(sp,dim=4), ubound(sp,dim=4)
+                         sum_comps = sum_comps + abs(sp(m,j,k,n))
+                      end do
+                      r1 = max(r1,sum_comps)
+                   end if
+                end do
+             end do
+          end do
+          !$OMP END PARALLEL DO
+
        end do
     else
        do i = 1, nboxes(ss)
