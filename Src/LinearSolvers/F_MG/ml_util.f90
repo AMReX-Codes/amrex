@@ -442,21 +442,21 @@ contains
     hid(2) = lod(2) + nyc-1
     hid(3) = lod(3) + nzc-1
 
-    lo(:) = 0
+    lo     = 0
     ng_res = 1
     call impose_neumann_bcs_3d(res,mm,lo,ng_res)
 
     if (side == -1 .or. side == 1) then
 
       if (side == -1) then
-         i  = 0
+         i     = 0
          isign =  1
       else
-         i  = nx
+         i     = nx
          isign = -1
       end if
 
-      ic = lod(1)
+      ic   = lod(1)
       fac0 = 1.0_dp_t / (ratio(2)*ratio(3))
       !
       ! First average along the coarse-fine face.
@@ -511,62 +511,62 @@ contains
 
       jc = lod(2)
       kc = lod(3)
-      j = 0
-      k = 0
-      if (.not. bc_neumann(mm(i,j,k),2,-1)) then
-          if (.not. bc_neumann(mm(i,j,k),3,-1)) &
+      j  = 0
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
+          if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
                dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
        end if
 
       jc = hid(2)
       kc = lod(3)
-      j = ny
-      k = 0
-      if (.not. bc_neumann(mm(i,j,k),2,+1)) then
-         if (.not. bc_neumann(mm(i,j,k),3,-1)) &
+      j  = ny
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       jc = lod(2)
       kc = hid(3)
-      j = 0
-      k = nz
-      if (.not. bc_neumann(mm(i,j,k),2,-1)) then
-         if (.not. bc_neumann(mm(i,j,k),3,+1)) &
+      j  = 0
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       jc = hid(2)
       kc = hid(3)
-      j = ny
-      k = nz
-      if (.not. bc_neumann(mm(i,j,k),2,+1)) then
-         if (.not. bc_neumann(mm(i,j,k),3,+1)) &
+      j  = ny
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       j = 0
       do kc = lod(3),hid(3)
          k = (kc-lod(3))*ratio(3)
-         if (bc_neumann(mm(i,j,k),2,-1)) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
+         if ( bc_neumann(mm(i,j,k),2,-1) ) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
       end do
 
       j = (hid(2)-lod(2))*ratio(2)
       do kc = lod(3),hid(3)
          k = (kc-lod(3))*ratio(3)
-         if (bc_neumann(mm(i,j,k),2, 1)) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
+         if ( bc_neumann(mm(i,j,k),2, 1) ) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
       end do
 
       k = 0
       do jc = lod(2),hid(2)
          j = (jc-lod(2))*ratio(2)
-         if (bc_neumann(mm(i,j,k),3,-1)) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
+         if ( bc_neumann(mm(i,j,k),3,-1) ) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
       end do
 
       k = (hid(3)-lod(3))*ratio(3)
       do jc = lod(2),hid(2)
          j = (jc-lod(2))*ratio(2)
-         if (bc_neumann(mm(i,j,k),3, 1)) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
+         if ( bc_neumann(mm(i,j,k),3, 1) ) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
       end do
       !
       ! Now average towards the interior of the grid.
@@ -583,8 +583,6 @@ contains
             ioff = i+isign*m
             fac = (ratio(1)-m) * fac1
             if (m == 0) fac = HALF * fac
-            !$OMP PARALLEL DO PRIVATE(kc,k,jc,j,jtop,jbot,kup,kdwn) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac) IF((hid(3)-lod(3)).ge.3)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do jc = lod(2),hid(2)
@@ -664,31 +662,29 @@ contains
 
               end do
             end do
-            !$OMP END PARALLEL DO
           end do
         end do
       end do
 
-      !$OMP PARALLEL DO PRIVATE(jc,kc,j,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             j = (jc-lod(2))*ratio(2)
             k = (kc-lod(3))*ratio(3)
-            if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
          end do
       end do
-      !$OMP END PARALLEL DO
 
     else if (side == -2 .or. side == 2) then
 
       if (side == -2) then
-         j  = 0
+         j     = 0
          isign =  1
       else
-         j  = ny
+         j     = ny
          isign = -1
       end if
-      jc = lod(2)
+
+      jc   = lod(2)
       fac0 = 1.0_dp_t / (ratio(1)*ratio(3))
       !
       ! First average along the coarse-fine face.
@@ -742,62 +738,62 @@ contains
 
       ic = lod(1)
       kc = lod(3)
-      i = 0
-      k = 0
-      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
-         if (.not. bc_neumann(mm(i,j,k),3,-1) ) &
+      i  = 0
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = hid(1)
       kc = lod(3)
-      i = nx
-      k = 0
-      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
-         if (.not. bc_neumann(mm(i,j,k),3,-1) ) &
+      i  = nx
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = lod(1)
       kc = hid(3)
-      i = 0
-      k = nz
-      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
-         if (.not. bc_neumann(mm(i,j,k),3,+1) ) &
+      i  = 0
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = hid(1)
       kc = hid(3)
-      i = nx
-      k = nz
-      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
-         if (.not. bc_neumann(mm(i,j,k),3,+1) ) &
+      i  = nx
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       i = 0
       do kc = lod(3),hid(3)
          k = (kc-lod(3))*ratio(3)
-         if (bc_neumann(mm(i,j,k),1,-1)) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
+         if ( bc_neumann(mm(i,j,k),1,-1) ) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
       end do
 
       i = (hid(1)-lod(1))*ratio(1)
       do kc = lod(3),hid(3)
          k = (kc-lod(3))*ratio(3)
-         if (bc_neumann(mm(i,j,k),1, 1)) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
+         if ( bc_neumann(mm(i,j,k),1, 1) ) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
       end do
 
       k = 0
       do ic = lod(1),hid(1)
          i = (ic-lod(1))*ratio(1)
-         if (bc_neumann(mm(i,j,k),3,-1)) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
+         if ( bc_neumann(mm(i,j,k),3,-1) ) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
       end do
 
       k = (hid(3)-lod(3))*ratio(3)
       do ic = lod(1),hid(1)
          i = (ic-lod(1))*ratio(1)
-         if (bc_neumann(mm(i,j,k),3, 1)) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
+         if ( bc_neumann(mm(i,j,k),3, 1) ) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
       end do
       !
       ! Now average towards the interior of the grid.
@@ -814,8 +810,6 @@ contains
             joff = j+isign*m
             fac = (ratio(2)-m) * fac1
             if (m == 0) fac = HALF * fac
-            !$OMP PARALLEL DO PRIVATE(kc,k,ic,i,irght,ileft,kup,kdwn) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac) IF((hid(3)-lod(3)).ge.3)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do ic = lod(1),hid(1)
@@ -895,7 +889,6 @@ contains
                 end if
               end do
             end do
-            !$OMP END PARALLEL DO
           end do
         end do
       end do
@@ -904,20 +897,21 @@ contains
          do ic = lod(1),hid(1)
             i = (ic-lod(1))*ratio(1)
             k = (kc-lod(3))*ratio(3)
-            if (.not.bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
          end do
       end do
 
     else 
 
       if (side == -3) then
-         k  = 0
+         k     = 0
          isign =  1
       else
-         k  = nz
+         k     = nz
          isign = -1
       end if
-      kc = lod(3)
+
+      kc   = lod(3)
       fac0 = 1.0_dp_t / (ratio(1)*ratio(2))
       !
       ! First average along the coarse-fine face.
@@ -971,62 +965,62 @@ contains
 
       ic = lod(1)
       jc = lod(2)
-      i = 0
-      j = 0
-      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
-         if (.not. bc_neumann(mm(i,j,k),2,-1) ) &
+      i  = 0
+      j  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = hid(1)
       jc = lod(2)
-      i = nx
-      j = 0
-      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
-         if (.not. bc_neumann(mm(i,j,k),2,-1) ) &
+      i  = nx
+      j  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = lod(1)
       jc = hid(2)
-      i = 0
-      j = ny
-      if (.not. bc_neumann(mm(i,j,k),1,-1) ) then
-         if (.not. bc_neumann(mm(i,j,k),2,+1) ) &
+      i  = 0
+      j  = ny
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       ic = hid(1)
       jc = hid(2)
-      i = nx
-      j = ny
-      if (.not. bc_neumann(mm(i,j,k),1,+1) ) then
-         if (.not. bc_neumann(mm(i,j,k),2,+1) ) &
+      i  = nx
+      j  = ny
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
       end if
 
       i = 0
       do jc = lod(2),hid(2)
          j = (jc-lod(2))*ratio(2)
-         if (bc_neumann(mm(i,j,k),1,-1)) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
+         if ( bc_neumann(mm(i,j,k),1,-1) ) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
       end do
 
       i = (hid(1)-lod(1))*ratio(1)
       do jc = lod(2),hid(2)
          j = (jc-lod(2))*ratio(2)
-         if (bc_neumann(mm(i,j,k),1,+1)) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
+         if ( bc_neumann(mm(i,j,k),1,+1) ) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
       end do
 
       j = 0
       do ic = lod(1),hid(1)
          i = (ic-lod(1))*ratio(1)
-         if (bc_neumann(mm(i,j,k),2,-1)) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
+         if ( bc_neumann(mm(i,j,k),2,-1) ) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
       end do
 
       j = (hid(2)-lod(2))*ratio(2)
       do ic = lod(1),hid(1)
          i = (ic-lod(1))*ratio(1)
-         if (bc_neumann(mm(i,j,k),2,+1)) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
+         if ( bc_neumann(mm(i,j,k),2,+1) ) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
       end do
       !
       ! Now average towards the interior of the grid.
@@ -1043,8 +1037,6 @@ contains
             koff = k+isign*m
             fac = (ratio(3)-m) * fac1
             if (m == 0) fac = HALF * fac
-            !$OMP PARALLEL DO PRIVATE(jc,j,ic,i,irght,ileft,jtop,jbot) &
-            !$OMP PRIVATE(ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)  IF((hid(2)-lod(2)).ge.3)
             do jc = lod(2),hid(2)
               j = (jc-lod(2))*ratio(2)
               do ic = lod(1),hid(1)
@@ -1125,7 +1117,6 @@ contains
 
               end do
             end do
-            !$OMP END PARALLEL DO
           end do
         end do
       end do
@@ -1134,7 +1125,7 @@ contains
          do ic = lod(1),hid(1)
             i = (ic-lod(1))*ratio(1)
             j = (jc-lod(2))*ratio(2)
-            if (.not. bc_dirichlet(mm(i,j,k),1,0)) dd(ic,jc,kc) = ZERO
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
          end do
       end do
 
