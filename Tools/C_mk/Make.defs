@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.150 2010-07-23 23:14:46 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.151 2010-08-27 23:02:54 ajnonaka Exp $
 #
 
 #
@@ -302,8 +302,8 @@ ifeq ($(FCOMP),g77)
     fDEBF +=   -ffortran-bounds-check
 endif
 ifeq ($(FCOMP),gfortran)
-    FC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-    fC = gfortran -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    FC = gfortran -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    fC = gfortran -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132 -g -O2
