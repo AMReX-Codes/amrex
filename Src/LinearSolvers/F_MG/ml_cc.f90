@@ -50,7 +50,7 @@ contains
     logical :: fine_converged,need_grad_phi,lcross
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
-    real(dp_t) :: tres, tres0
+    real(dp_t) :: tres, tres0, max_norm
 
     type(bl_prof_timer), save :: bpt
 
@@ -174,6 +174,11 @@ contains
     end if
 
     ! ************************************************************************
+    !  Define norm to be used for convergence testing that is the maximum
+    !    of bnorm (norm of rhs) and tres0 (norm of resid0)
+    ! ************************************************************************
+   
+    max_norm = max(bnorm,tres0)
 
     fine_converged = .false.
 
@@ -186,7 +191,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, soln, fine_mask, max_norm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -387,7 +392,7 @@ contains
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
 
-       if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
+       if ( ml_fine_converged(res, soln, max_norm, Anorm, rel_eps, abs_eps) ) then
 
           fine_converged = .true.
 
