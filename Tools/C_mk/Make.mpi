@@ -223,7 +223,7 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),atragon)
-      MPI_HOME=/usr/local/mpich2
+      MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
