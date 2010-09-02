@@ -173,7 +173,7 @@ contains
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
-    integer :: i,j,k,m,n
+    integer :: i,j,k,n,b
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -182,18 +182,18 @@ contains
     call build(bpt, "st_norm")
     r1 = -Huge(r1)
     if ( present(mask) ) then
-       do i = 1, nboxes(ss)
-          if ( remote(ss,i) ) cycle
-          sp => dataptr(ss, i)
-          lp => dataptr(mask, i)
-          !$OMP PARALLEL DO PRIVATE(j,k,m,n,sum_comps) REDUCTION(MAX:r1)
+       do b = 1, nboxes(ss)
+          if ( remote(ss,b) ) cycle
+          sp => dataptr(ss, b)
+          lp => dataptr(mask, b)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(MAX:r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do m = lbound(sp,dim=1), ubound(sp,dim=1)
+                do i = lbound(sp,dim=1), ubound(sp,dim=1)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
                       do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                         sum_comps = sum_comps + abs(sp(m,j,k,n))
+                         sum_comps = sum_comps + abs(sp(i,j,k,n))
                       end do
                       r1 = max(r1,sum_comps)
                    end if
@@ -204,16 +204,16 @@ contains
 
        end do
     else
-       do i = 1, nboxes(ss)
-          if ( multifab_remote(ss,i) ) cycle
-          sp => dataptr(ss, i)
-          !$OMP PARALLEL DO PRIVATE(j,k,m,n,sum_comps) REDUCTION(MAX:r1)
+       do b = 1, nboxes(ss)
+          if ( multifab_remote(ss,b) ) cycle
+          sp => dataptr(ss, b)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(MAX:r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do m = lbound(sp,dim=1), ubound(sp,dim=1)
+                do i = lbound(sp,dim=1), ubound(sp,dim=1)
                    sum_comps = ZERO
                    do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                      sum_comps = sum_comps + abs(sp(m,j,k,n))
+                      sum_comps = sum_comps + abs(sp(i,j,k,n))
                    end do
                    r1 = max(r1,sum_comps)
                 end do
