@@ -472,6 +472,59 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
 }
 
 void
+MGT_Solver::set_visc_coefficients(PArray<MultiFab>& aa, 
+				  Array<PArray<MultiFab> >& bb, 
+                                  const Real& beta, 
+                                  Array< Array<Real> >& xa,
+                                  Array< Array<Real> >& xb)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+  {
+    mgt_init_coeffs_lev(&lev);
+
+    double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+
+    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+      pxa[i] = pxb[i] = 0.;
+  
+    for (MFIter amfi(aa[lev]); amfi.isValid(); ++amfi)
+    {      
+      int n = amfi.index();
+
+      const FArrayBox& a = aa[lev][amfi];
+      const int* lo = amfi.validbox().loVect();
+      const int* hi = amfi.validbox().hiVect();
+      
+      const int* alo = a.box().loVect();
+      const int* ahi = a.box().hiVect();
+      mgt_set_cfa (&lev, &n, a.dataPtr(), alo, ahi, lo, hi);
+
+      const FArrayBox& bx = bb[0][lev][amfi];
+      const int* bxlo = bx.box().loVect();
+      const int* bxhi = bx.box().hiVect();
+      mgt_set_cfbx(&lev, &n, bx.dataPtr(), &beta, bxlo, bxhi, lo, hi);
+
+#if (BL_SPACEDIM >= 2)
+      const FArrayBox& by = bb[1][lev][amfi];
+      const int* bylo = by.box().loVect();
+      const int* byhi = by.box().hiVect();
+      mgt_set_cfby(&lev, &n, by.dataPtr(), &beta, bylo, byhi, lo, hi);
+#endif
+
+#if (BL_SPACEDIM == 3)
+      const FArrayBox& bz = bb[2][lev][amfi];
+      const int* bzlo = bz.box().loVect();
+      const int* bzhi = bz.box().hiVect();
+      mgt_set_cfbz(&lev, &n, bz.dataPtr(), &beta, bzlo, bzhi, lo, hi);
+#endif
+    }
+    int dm = BL_SPACEDIM;
+    mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+  }
+  mgt_finalize_stencil();
+}
+
+void
 MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
                                   const Real& beta, 
                                   Array< Array<Real> >& xa,
@@ -591,6 +644,70 @@ MGT_Solver::set_visc_coefficients(MultiFab* aa[], MultiFab* bb[][BL_SPACEDIM],
 void MGT_Solver::set_maxorder(const int max_order)
 {
   mgt_set_maxorder(&max_order);
+}
+
+void
+MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1, 
+				    PArray<MultiFab>& a2, 
+                                    Array<PArray<MultiFab> >& bb, 
+                                    const Real& beta, 
+                                    Array< Array<Real> >& xa, 
+				    Array< Array<Real> >& xb,
+                                    int nc_opt)
+{
+  int nc = bb[0][0].nComp();
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+  {
+    mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
+    double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+    
+    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+      pxa[i] = pxb[i] = 0;
+
+    for (MFIter amfi(a1[lev]); amfi.isValid(); ++amfi)
+    {
+      int n = amfi.index();
+
+      const FArrayBox& af1 = a1[lev][amfi];
+      const int* lo = amfi.validbox().loVect();
+      const int* hi = amfi.validbox().hiVect();
+	  
+      const int* a1lo = af1.box().loVect();
+      const int* a1hi = af1.box().hiVect();
+
+      mgt_set_cfa (&lev, &n, af1.dataPtr(), a1lo, a1hi, lo, hi);
+	  
+      if (nc_opt == 0)
+      {
+	FArrayBox& af2 = a2[lev][amfi];
+	const int* a2lo = af2.box().loVect();
+	const int* a2hi = af2.box().hiVect();
+	mgt_set_cfa2 (&lev, &n, af2.dataPtr(), a2lo, a2hi, lo, hi, a2[0].nComp());
+      }
+      const FArrayBox& bx = bb[0][lev][amfi];
+      const int* bxlo = bx.box().loVect();
+      const int* bxhi = bx.box().hiVect();
+      mgt_set_cfbnx(&lev, &n, bx.dataPtr(), &beta, bxlo, bxhi, lo, hi, bx.nComp());
+
+#if (BL_SPACEDIM >= 2)
+      const FArrayBox& by = bb[1][lev][amfi];
+      const int* bylo = by.box().loVect();
+      const int* byhi = by.box().hiVect();
+      mgt_set_cfbny(&lev, &n, by.dataPtr(), &beta, bylo, byhi, lo, hi, by.nComp());
+#endif
+
+#if (BL_SPACEDIM == 3)
+      const FArrayBox& bz = bb[2][lev][amfi];
+	  const int* bzlo = bz.box().loVect();
+	  const int* bzhi = bz.box().hiVect();
+	  mgt_set_cfbnz(&lev, &n, bz.dataPtr(), &beta, bzlo, bzhi, lo, hi, bz.nComp());
+#endif
+    }
+    int dm = BL_SPACEDIM;
+    mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				pxa, pxb, &dm, &nc_opt);
+  }
+  mgt_finalize_stencil();
 }
 
 void
