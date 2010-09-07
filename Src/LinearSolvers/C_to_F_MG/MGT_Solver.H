@@ -38,6 +38,12 @@ public:
                                 Array< Array<Real> >& xb,
                                 int is_constant);
 
+  void set_visc_coefficients(PArray<MultiFab>& aa, 
+			     Array<PArray<MultiFab> >& bb, 
+			     const Real& beta, 
+			     Array< Array<Real> >& xa,
+			     Array< Array<Real> >& xb);
+
   void set_visc_coefficients(const MultiFab* aa[], 
                              const MultiFab* bb[][BL_SPACEDIM],
                              const Real& b, 
@@ -49,6 +55,14 @@ public:
                              const Real& b, 
                              Array< Array<Real> >& xa,
                              Array< Array<Real> >& xb);
+
+  void set_porous_coefficients(PArray<MultiFab>& a1, 
+			       PArray<MultiFab>& a2, 
+			       Array<PArray<MultiFab> >& bb, 
+			       const Real& beta, 
+			       Array< Array<Real> >& xa, 
+			       Array< Array<Real> >& xb,
+			       int nc_opt = 0);
 
   void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
                                const MultiFab* bb[][BL_SPACEDIM],
