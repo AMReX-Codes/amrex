@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.151 2010-08-27 23:02:54 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.152 2010-09-08 16:46:48 almgren Exp $
 #
 
 #
@@ -149,6 +149,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring ranger, $(UNAMEN)), ranger)
     WHICHLINUX := RANGER
   endif
+  ifeq ($(findstring kraken, $(UNAMEN)), kraken)
+    WHICHLINUX := KRAKEN
+  endif
   ifeq ($(findstring mothra, $(UNAMEN)), mothra)
     WHICHLINUX := MOTHRA
   endif
@@ -255,6 +258,7 @@ ifeq ($(COMP),gcc)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    CC	       := gcc
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -273,6 +277,7 @@ ifeq ($(COMP),g++)
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
