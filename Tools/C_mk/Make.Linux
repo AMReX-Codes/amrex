@@ -226,6 +226,16 @@ ifeq ($(WHICHLINUX), RANGER)
   endif
 endif
 
+ifeq ($(WHICHLINUX), KRAKEN)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
+  endif
+endif
+
 ifeq ($(WHICHLINUX), FRANKLIN)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
