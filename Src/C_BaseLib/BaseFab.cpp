@@ -110,7 +110,6 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                       ARLIM(_x_plo),
                       ARLIM(_x_phi),
                       D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                      D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
                       &numcomp);
     }
 }
@@ -234,7 +233,6 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
                   ARLIM(_x_plo),
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                  D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
                   &numcomp);
 
     return *this;
@@ -276,7 +274,6 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                   ARLIM(_x_plo),
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                  D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
                   &numcomp);
 
     return *this;
@@ -318,7 +315,6 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
                    ARLIM(_x_plo),
                    ARLIM(_x_phi),
                    D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                   D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
                    &numcomp);
 
     return *this;
@@ -360,7 +356,6 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                     ARLIM(_x_plo),
                     ARLIM(_x_phi),
                     D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                    D_DECL(_x_hi[0],_x_hi[1],_x_hi[2]),
                     &numcomp);
 
     return *this;

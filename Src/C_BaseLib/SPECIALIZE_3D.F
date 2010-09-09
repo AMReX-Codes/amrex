@@ -16,7 +16,7 @@ c
      &                          imin, jmin, kmin, imax, jmax, kmax,
      &                          src,
      &                          DIMS(src),
-     &                          imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                          imn,  jmn,  kmn,
      &                          ncomp)
 
       implicit none
@@ -28,7 +28,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer imn,  jmn,  kmn
       integer DIMDEC(src)
       integer ncomp
 
@@ -81,7 +81,6 @@ c
       kmax = hi(3)
 
       do l = 1, ncomp
-!$omp parallel do private(i,j,k)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -89,7 +88,6 @@ c
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -179,7 +177,7 @@ c
      &                          imin, jmin, kmin, imax, jmax, kmax,
      &                          src,
      &                          DIMS(src),
-     &                          imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                          imn,  jmn,  kmn,
      &                          ncomp)
 
       implicit none
@@ -191,7 +189,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer imn,  jmn,  kmn
       integer DIMDEC(src)
       integer ncomp
 
@@ -227,7 +225,7 @@ c
      &                          imin, jmin, kmin, imax, jmax, kmax,
      &                          src,
      &                          DIMS(src),
-     &                          imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                          imn,  jmn,  kmn,
      &                          ncomp)
 
       implicit none
@@ -239,7 +237,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer imn,  jmn,  kmn
       integer DIMDEC(src)
       integer ncomp
 
@@ -275,7 +273,7 @@ c
      &                           imin, jmin, kmin, imax, jmax, kmax,
      &                           src,
      &                           DIMS(src),
-     &                           imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                           imn,  jmn,  kmn,
      &                           ncomp)
 
       implicit none
@@ -287,7 +285,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer imn,  jmn,  kmn
       integer DIMDEC(src)
       integer ncomp
 
@@ -323,7 +321,7 @@ c
      &                            imin, jmin, kmin, imax, jmax, kmax,
      &                            src,
      &                            DIMS(src),
-     &                            imn,  jmn,  kmn,  imx,  jmx,  kmx,
+     &                            imn,  jmn,  kmn,
      &                            ncomp)
 
       implicit none
@@ -335,7 +333,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  jmn,  kmn,  imx,  jmx,  kmx
+      integer imn,  jmn,  kmn
       integer DIMDEC(src)
       integer ncomp
 
