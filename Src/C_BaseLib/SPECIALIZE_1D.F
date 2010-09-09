@@ -16,7 +16,7 @@ c
      &                          imin, imax,
      &                          src,
      &                          DIMS(src),
-     &                          imn, imx,
+     &                          imn,
      &                          ncomp)
 
       implicit none
@@ -28,7 +28,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  imx
+      integer imn
       integer DIMDEC(src)
       integer ncomp
       
@@ -143,7 +143,7 @@ c
      &                          imin, imax,
      &                          src,
      &                          DIMS(src),
-     &                          imn, imx,
+     &                          imn,
      &                          ncomp)
 
       implicit none
@@ -155,7 +155,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  imx
+      integer imn
       integer DIMDEC(src)
       integer ncomp
       
@@ -183,7 +183,7 @@ c
      &                          imin, imax,
      &                          src,
      &                          DIMS(src),
-     &                          imn, imx,
+     &                          imn,
      &                          ncomp)
 
       implicit none
@@ -195,7 +195,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  imx
+      integer imn
       integer DIMDEC(src)
       integer ncomp
       
@@ -223,7 +223,7 @@ c
      &                           imin, imax,
      &                           src,
      &                           DIMS(src),
-     &                           imn, imx,
+     &                           imn,
      &                           ncomp)
 
       implicit none
@@ -235,7 +235,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  imx
+      integer imn
       integer DIMDEC(src)
       integer ncomp
       
@@ -263,7 +263,7 @@ c
      &                            imin, imax,
      &                            src,
      &                            DIMS(src),
-     &                            imn, imx,
+     &                            imn,
      &                            ncomp)
 
       implicit none
@@ -275,7 +275,7 @@ c
 c
 c     Bounds to fill from src
 c
-      integer imn,  imx
+      integer imn
       integer DIMDEC(src)
       integer ncomp
       

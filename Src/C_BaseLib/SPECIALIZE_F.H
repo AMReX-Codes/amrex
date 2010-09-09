@@ -54,7 +54,6 @@ extern "C"
                         const Real* src,
                         ARLIM_P(slo), ARLIM_P(shi),
                         D_DECL(const int&,const int&,const int&),
-                        D_DECL(const int&,const int&,const int&),
                         const int* ncomp);
 
     void FORT_FASTSETVAL (const Real* val,
@@ -85,7 +84,6 @@ extern "C"
                         const Real* src,
                         ARLIM_P(slo), ARLIM_P(shi),
                         D_DECL(const int&,const int&,const int&),
-                        D_DECL(const int&,const int&,const int&),
                         const int* ncomp);
 
     void FORT_FASTMULT (Real* dest,
@@ -94,7 +92,6 @@ extern "C"
                         D_DECL(const int&,const int&,const int&),
                         const Real* src,
                         ARLIM_P(slo), ARLIM_P(shi),
-                        D_DECL(const int&,const int&,const int&),
                         D_DECL(const int&,const int&,const int&),
                         const int* ncomp);
 
@@ -105,7 +102,6 @@ extern "C"
                          const Real* src,
                          ARLIM_P(slo), ARLIM_P(shi),
                          D_DECL(const int&,const int&,const int&),
-                         D_DECL(const int&,const int&,const int&),
                          const int* ncomp);
 
     void FORT_FASTDIVIDE (Real* dest,
@@ -114,7 +110,6 @@ extern "C"
                           D_DECL(const int&,const int&,const int&),
                           const Real* src,
                           ARLIM_P(slo), ARLIM_P(shi),
-                          D_DECL(const int&,const int&,const int&),
                           D_DECL(const int&,const int&,const int&),
                           const int* ncomp);
 }
