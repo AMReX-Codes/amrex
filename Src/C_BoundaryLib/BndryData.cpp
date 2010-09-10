@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.22 2010-04-19 23:16:09 lijewski Exp $
+// $Id: BndryData.cpp,v 1.23 2010-09-10 22:35:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -39,7 +39,6 @@ BndryData::init (const BndryData& src)
     // Redefine grids and bndry array.
     //
     const int ngrd  = grids.size();
-    const int ncomp = src.nComp();
 
     for (OrientationIter fi; fi; ++fi)
     {

@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.49 2010-02-10 20:42:24 almgren Exp $
+// $Id: MultiGrid.cpp,v 1.50 2010-09-10 22:35:03 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -482,7 +482,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     prepareForLevel(level);
     if (local_usecg == 0)
     {
-        Real error0;
+        Real error0 = 0;
         if (verbose > 0)
         {
             error0 = errorEstimate(level, bc_mode);
