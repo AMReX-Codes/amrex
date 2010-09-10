@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.216 2010-07-15 04:01:29 almgren Exp $
+// $Id: Amr.cpp,v 1.217 2010-09-10 22:34:42 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1135,6 +1135,7 @@ Amr::initialInit (Real strt_time,
     }
 
     if (ParallelDescriptor::IOProcessor())
+    {
        if (verbose > 1) {
            std::cout << "INITIAL GRIDS \n";
            printGridInfo(std::cout,0,finest_level);
@@ -1142,6 +1143,7 @@ Amr::initialInit (Real strt_time,
            std::cout << "INITIAL GRIDS \n";
            printGridSummary(std::cout,0,finest_level);
        }
+    }
 
     if (record_grid_info && ParallelDescriptor::IOProcessor())
     {
@@ -1622,11 +1624,13 @@ Amr::timeStep (int  level,
         amr_level.set(0,a);
 
         if (ParallelDescriptor::IOProcessor())
+        {
            if (verbose > 1) {
               printGridInfo(std::cout,0,finest_level);
            } else if (verbose > 0) {
               printGridSummary(std::cout,0,finest_level);
            }
+        }
 
         if (record_grid_info && ParallelDescriptor::IOProcessor())
             printGridInfo(gridlog,0,finest_level);
@@ -2113,7 +2117,6 @@ Amr::printGridSummary (std::ostream& os,
         long                      ncells  = amr_level[lev].countCells();
         double                    ntot    = geom[lev].Domain().d_numPts();
         Real                      frac    = 100.0*(Real(ncells) / ntot);
-        const DistributionMapping& map    = amr_level[lev].get_new_data(0).DistributionMap();
 
         os << "  Level "
            << lev

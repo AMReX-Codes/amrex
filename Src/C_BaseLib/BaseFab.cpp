@@ -95,7 +95,6 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
         const int* _th_plo    = loVect();
         const int* _th_phi    = hiVect();
         const int* _x_lo      = srcbox.loVect();
-        const int* _x_hi      = srcbox.hiVect(); 
         const int* _x_plo     = src.loVect();
         const int* _x_phi     = src.hiVect();
         Real*       _th_p     = dataPtr(destcomp);
@@ -218,7 +217,6 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     const int* _th_plo    = loVect();
     const int* _th_phi    = hiVect();
     const int* _x_lo      = srcbox.loVect();
-    const int* _x_hi      = srcbox.hiVect(); 
     const int* _x_plo     = src.loVect();
     const int* _x_phi     = src.hiVect();
     Real*       _th_p     = dataPtr(destcomp);
@@ -259,7 +257,6 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     const int* _th_plo    = loVect();
     const int* _th_phi    = hiVect();
     const int* _x_lo      = srcbox.loVect();
-    const int* _x_hi      = srcbox.hiVect(); 
     const int* _x_plo     = src.loVect();
     const int* _x_phi     = src.hiVect();
     Real*       _th_p     = dataPtr(destcomp);
@@ -300,7 +297,6 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     const int* _th_plo    = loVect();
     const int* _th_phi    = hiVect();
     const int* _x_lo      = srcbox.loVect();
-    const int* _x_hi      = srcbox.hiVect(); 
     const int* _x_plo     = src.loVect();
     const int* _x_phi     = src.hiVect();
     Real*       _th_p     = dataPtr(destcomp);
@@ -341,7 +337,6 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     const int* _th_plo    = loVect();
     const int* _th_phi    = hiVect();
     const int* _x_lo      = srcbox.loVect();
-    const int* _x_hi      = srcbox.hiVect(); 
     const int* _x_plo     = src.loVect();
     const int* _x_phi     = src.hiVect();
     Real*       _th_p     = dataPtr(destcomp);

@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.115 2010-04-23 20:16:46 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.116 2010-09-10 22:34:20 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -1336,7 +1336,7 @@ void ParallelDescriptor::ReadAndBcastFile(const std::string &filename,
     typedef char Setbuf_Char_Type;
 #endif
     Array<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
-    int fileLength, fileLengthPadded;
+    int fileLength = 0, fileLengthPadded;
     std::ifstream iss;
 
     if(ParallelDescriptor::IOProcessor()) {
