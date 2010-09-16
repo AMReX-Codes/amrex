@@ -1,7 +1,7 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.25 2010-02-16 18:15:17 lijewski Exp $
+// $Id: IntVect.H,v 1.26 2010-09-16 21:29:17 wqzhang Exp $
 //
 #include <iosfwd>
 
@@ -37,7 +37,7 @@ namespace BoxLib
     */
     const IntVect min (const IntVect& p1, const IntVect& p2);
 
-    /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
+    /*@ManDoc: Returns the IntVect that is the component-wise maximum of two
       argument IntVects.
     */
     const IntVect max (const IntVect& p1, const IntVect& p2);
