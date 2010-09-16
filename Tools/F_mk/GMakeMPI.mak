@@ -26,7 +26,12 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
     F90 = mpif90
-    ifdef MPIHOME
+	ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+		FC = mpipathf90
+		F90 = mpipathf90
+                CC = mpipathcc
+        endif
+  ifdef MPIHOME
       mpi_include_dir = $(MPIHOME)/include
     endif
   endif
