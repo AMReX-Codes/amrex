@@ -659,11 +659,11 @@ MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1,
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
     mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
+     
     double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-    
     for ( int i = 0; i < BL_SPACEDIM; ++i ) 
       pxa[i] = pxb[i] = 0;
-
+   
     for (MFIter amfi(a1[lev]); amfi.isValid(); ++amfi)
     {
       int n = amfi.index();
@@ -676,13 +676,13 @@ MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1,
       const int* a1hi = af1.box().hiVect();
 
       mgt_set_cfa (&lev, &n, af1.dataPtr(), a1lo, a1hi, lo, hi);
-	  
+     
       if (nc_opt == 0)
       {
 	FArrayBox& af2 = a2[lev][amfi];
 	const int* a2lo = af2.box().loVect();
 	const int* a2hi = af2.box().hiVect();
-	mgt_set_cfa2 (&lev, &n, af2.dataPtr(), a2lo, a2hi, lo, hi, a2[0].nComp());
+	mgt_set_cfa2 (&lev, &n, af2.dataPtr(), a2lo, a2hi, lo, hi, a2[lev].nComp());
       }
       const FArrayBox& bx = bb[0][lev][amfi];
       const int* bxlo = bx.box().loVect();
@@ -698,9 +698,9 @@ MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1,
 
 #if (BL_SPACEDIM == 3)
       const FArrayBox& bz = bb[2][lev][amfi];
-	  const int* bzlo = bz.box().loVect();
-	  const int* bzhi = bz.box().hiVect();
-	  mgt_set_cfbnz(&lev, &n, bz.dataPtr(), &beta, bzlo, bzhi, lo, hi, bz.nComp());
+      const int* bzlo = bz.box().loVect();
+      const int* bzhi =  bz.box().hiVect();
+      mgt_set_cfbnz(&lev, &n, bz.dataPtr(), &beta, bzlo, bzhi, lo, hi, bz.nComp());
 #endif
     }
     int dm = BL_SPACEDIM;
@@ -945,7 +945,9 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      // Copy the boundary register values into the solution array to be copied into F90
+      // Copy the boundary register values into the solution array to
+      // be copied into F90
+      
       for (OrientationIter oitr; oitr; ++oitr)
 	{
 	  const FabSet& fs = bd[lev].bndryValues(oitr());
@@ -955,6 +957,8 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	      dest.copy(fs[umfi],fs[umfi].box());
 	    }
 	}
+      uu[lev]->FillBoundary();
+      
     }
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
