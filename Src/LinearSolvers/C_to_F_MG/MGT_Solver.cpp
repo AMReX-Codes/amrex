@@ -895,6 +895,9 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
+  uu[lev]->FillBoundary();
+
+  
   
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -957,9 +960,8 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	      dest.copy(fs[umfi],fs[umfi].box());
 	    }
 	}
-      uu[lev]->FillBoundary();
-      
     }
+
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -974,6 +976,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  const int* rlo = rhs.box().loVect();
 	  const int* rhi = rhs.box().hiVect();
 	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
 	  const FArrayBox& sol = (*(uu[lev]))[umfi];
 	  const Real* sd = sol.dataPtr();
 	  const int* slo = sol.box().loVect();
@@ -1003,6 +1006,53 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 }
  
 void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
+
+void 
 MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
@@ -1016,6 +1066,7 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
+  uu[lev]->FillBoundary();
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -1069,6 +1120,7 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[])
 	      dest.copy(fs[umfi],fs[umfi].box());
 	    }
 	}
+      uu[lev]->FillBoundary();
     }
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
@@ -1120,6 +1172,7 @@ MGT_Solver::applybc(MultiFab* uu[], const BndryData& bd)
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
+  uu[lev]->FillBoundary();
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {

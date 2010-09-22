@@ -86,8 +86,11 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi, Real& final_resnorm);
 
- void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-            const BndryData bd[], int need_grad_phi, Real& final_resnorm);
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+	     const BndryData bd[], int need_grad_phi, Real& final_resnorm);
+
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+	     int need_grad_phi, Real& final_resnorm);
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
