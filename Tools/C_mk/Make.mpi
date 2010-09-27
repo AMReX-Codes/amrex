@@ -268,6 +268,28 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi_f77 -lmpi
     endif
 
+    ifeq ($(HOST),angilas)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(findstring donev, $(HOSTNAME)), donev)
+      ifeq ($(MPIVENDOR),OpenMPI)
+         mpihome=$(HOME)/HPC/Libraries/MPI
+         CPPFLAGS += -DOMPI_SKIP_MPICXX
+         BL_MPI_LIBS += -lmpi_f77 -lmpi      
+      else
+         mpihome=$(HOME)/HPC/Libraries/MPI
+         CPPFLAGS += -DMPICH_SKIP_MPICXX
+         BL_MPI_LIBS += -lpthread # MPICH      
+      endif
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+    endif
+
 # JFG 2006/05/04: CAR added the following ifeq block for the 64 bit
 # Intel compilers on hive
     ifeq ($(HOST),hive)
@@ -282,13 +304,7 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi++
       BL_MPI_LIBS += -lmpi
     endif
-    ifeq ($(HOST),angilas)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
+
     ifeq ($(HOST),naphta)
       mpihome=/usr/local
       LIBRARY_LOCATIONS += $(mpihome)/lib

@@ -256,6 +256,17 @@ ifeq ($(HOST),angilas)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
+ifeq ($(findstring donev, $(HOSTNAME)), donev)
+   ifeq ($(MPIVENDOR),OpenMPI)
+      MPIHOME=$(HOME)/HPC/Libraries/OMPI
+      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90      
+   else
+      MPIHOME=$(HOME)/HPC/Libraries/MPI
+      mpi_libraries += -lmpich -lmpichf90 -lpthread    
+   endif
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+endif
 
 ifeq ($(HOST),harmonic)
   MPIHOME=/usr/local/mpich_gm
