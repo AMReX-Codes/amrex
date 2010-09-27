@@ -278,7 +278,7 @@ ifeq ($(MACHINE), Linux)
 
     ifeq ($(findstring donev, $(HOSTNAME)), donev)
       ifeq ($(MPIVENDOR),OpenMPI)
-         mpihome=$(HOME)/HPC/Libraries/MPI
+         mpihome=$(HOME)/HPC/Libraries/OMPI
          CPPFLAGS += -DOMPI_SKIP_MPICXX
          BL_MPI_LIBS += -lmpi_f77 -lmpi      
       else
@@ -345,7 +345,9 @@ ifeq ($(MACHINE), Linux)
               ifneq ($(HOST),davinci)
                 ifneq ($(WHICHLINUX), EUCLID)
                   ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
-                    BL_MPI_LIBS += -lmpich
+                    ifneq ($(WHICHLINUX), DONEV)
+                      BL_MPI_LIBS += -lmpich
+                    endif  
                   endif
                 endif
               endif
