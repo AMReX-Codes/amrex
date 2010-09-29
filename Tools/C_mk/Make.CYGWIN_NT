@@ -10,8 +10,8 @@ ifeq ($(COMP),KCC)
 endif
 
 FORT_CPP    := gcc -E -traditional
-FC  := g77 -fno-second-underscore
-fC  := $(FC)
+FFLAGS += -ffixed-line-length-132 -fno-second-underscore
+fFLAGS += -ffixed-line-length-132 -fno-second-underscore
 
 ifeq ($(FCOMP),Fujitsu)
   FC  := frt
@@ -31,6 +31,9 @@ ifeq ($(FCOMP),Absoft)
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
+ifeq ($(FCOMP),gfortran)
+  override XTRALIBS += $(shell gfortran -print-libgcc-file-name)
+endif
 endif
 endif
 
