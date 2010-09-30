@@ -6,7 +6,9 @@
 #include <BArena.H>
 #include <CArena.H>
 #include <Thread.H>
+#if !(defined(VISIT_BLD))
 #include <SPECIALIZE_F.H>
+#endif
 
 long BoxLib::total_bytes_allocated_in_fabs = 0;
 
@@ -61,7 +63,7 @@ BoxLib::The_Arena ()
     return a;
 }
 
-#if !( defined(WIN32))
+#if !(defined(WIN32)) && !(defined(VISIT_BLD))
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
