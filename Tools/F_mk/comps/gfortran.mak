@@ -11,10 +11,8 @@
     FFLAGS   += -O -fno-range-check 
     CFLAGS   += -O 
   else
-    F90FLAGS += -g -fno-range-check -O -fbounds-check -fbacktrace
-    # F90FLAGS += -Wuninitialized -Wsurprising -fimplicit-none
-    FFLAGS   += -g -fno-range-check -O -fbounds-check -fbacktrace
-    # FFLAGS += -Wuninitialized -Wsurprising -fimplicit-none
+    F90FLAGS += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused
+    FFLAGS   += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused
     CFLAGS   += -g -O
   endif
 
