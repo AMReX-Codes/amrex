@@ -1092,7 +1092,6 @@ contains
     integer, intent(in), optional :: nc
     real(kind=dp_t), intent(in) :: val
     real(kind=dp_t), pointer :: p(:,:,:,:)
-    integer :: i, j, k, n
     p => fab_dataptr_c(fb, c, nc)
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
     p = val
