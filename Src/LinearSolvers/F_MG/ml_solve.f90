@@ -149,7 +149,7 @@ contains
        real(dp_t)     , intent(in   ), optional :: abs_eps_in
 
        type(lmultifab) :: fine_mask(mla%nlevel)
-       integer         :: nlevs, n, dm, lo(get_dim(rh(mla%nlevel))), hi(get_dim(rh(mla%nlevel)))
+       integer         :: nlevs, n, dm
        logical         :: nodal(get_dim(rh(mla%nlevel)))
        real(dp_t)      :: rel_eps,abs_eps
 
