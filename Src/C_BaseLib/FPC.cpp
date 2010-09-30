@@ -1,5 +1,5 @@
 //
-// $Id: FPC.cpp,v 1.15 2007-03-29 19:40:57 lijewski Exp $
+// $Id: FPC.cpp,v 1.16 2010-09-30 22:41:03 lijewski Exp $
 //
 
 #include <FPC.H>
@@ -41,6 +41,7 @@ FPC::NativeLongDescriptor ()
     defined(__sun) || \
     defined(_AIX)  || \
     defined(__ppc__) || \
+    defined(__ppc64__) || \
     defined(_SX)   || \
     defined(__hpux)
     static const IntDescriptor  nld(sizeof(long), IntDescriptor::NormalOrder);
@@ -71,6 +72,7 @@ FPC::NativeRealDescriptor ()
     defined(__sun) || \
     defined(_AIX)  || \
     defined(__ppc__) || \
+    defined(__ppc64__) || \
     defined(_SX)   || \
     defined(powerpc) || \
     defined(__hpux)
@@ -107,6 +109,7 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(__i486__) || \
       defined(i386)     || \
       defined(__ppc__) || \
+      defined(__ppc64__) || \
       defined(__i386__) || \
       defined(__amd64__) || \
       defined(__LP64__) || \
