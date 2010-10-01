@@ -57,6 +57,7 @@ contains
   subroutine create_umac_grown(finelev,fine,crse,bc_crse,bc_fine)
 
     use define_bc_module
+    use multifab_physbc_edgevel_module, only: multifab_physbc_edgevel
 
     integer       , intent(in   ) :: finelev
     type(multifab), intent(inout) :: fine(:)
@@ -88,11 +89,7 @@ contains
        do i=1,dm
           call multifab_fill_boundary(crse(i))
        end do
-
-       ! add call to impose_phys_bcs_on_edges here
-       !
-       !
-
+       call multifab_physbc_edgevel(crse,bc_crse)
     end if
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
@@ -226,6 +223,8 @@ contains
 
        call multifab_fill_boundary(fine(i))
     end do
+
+    call multifab_physbc_edgevel(fine,bc_fine)
 
     call destroy(f_ba)
     call destroy(c_ba)
