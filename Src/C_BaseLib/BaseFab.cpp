@@ -6,7 +6,7 @@
 #include <BArena.H>
 #include <CArena.H>
 #include <Thread.H>
-#if !(defined(VISIT_BLD))
+#if !(defined(BL_NO_FORT))
 #include <SPECIALIZE_F.H>
 #endif
 
@@ -63,7 +63,7 @@ BoxLib::The_Arena ()
     return a;
 }
 
-#if !(defined(WIN32)) && !(defined(VISIT_BLD))
+#if !(defined(WIN32)) && !(defined(BL_NO_FORT))
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
