@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.37 2010-09-30 22:45:23 lijewski Exp $
+# $Id: Make.rules,v 1.38 2010-10-01 17:40:07 almgren Exp $
 #
 
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
@@ -313,7 +313,7 @@ ifdef fEXE_sources
 -include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
 endif
 ifdef f90EXE_sources
--include $(f90EXE_sources:%.f90=$(depEXETempDir)/%.d)
+-include $(depEXETempDir)/f90.depends
 endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
