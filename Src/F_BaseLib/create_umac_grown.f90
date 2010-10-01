@@ -54,11 +54,14 @@ contains
   !      |           |           |           |           |           |
   !      |-----Y-----|-----Y-----|-----Y-----|-----Y-----|-----Y-----|
 
-  subroutine create_umac_grown(finelev,fine,crse)
+  subroutine create_umac_grown(finelev,fine,crse,bc_crse,bc_fine)
+
+    use define_bc_module
 
     integer       , intent(in   ) :: finelev
     type(multifab), intent(inout) :: fine(:)
     type(multifab), intent(inout) :: crse(:)
+    type(bc_level), intent(in   ) :: bc_crse,bc_fine
 
     ! local
     integer        :: i,j,k,ng_f,ng_c,dm
@@ -78,12 +81,18 @@ contains
 
     dm = get_dim(crse(1))
 
-    ! fill_boundary on level 1
-    ! the fill_boundary for levels 2 through nlev occur later in this function
+    ! If we are filling ghost cells on level 2, we need to call multifab_fill_boundary
+    ! and impose_phys_bcs_on_edges on level 1.  We will call multifab_fill_boundary
+    ! and impose_phys_bcs_on_edges on finelev later in this subroutine
     if (finelev .eq. 2) then
        do i=1,dm
           call multifab_fill_boundary(crse(i))
        end do
+
+       ! add call to impose_phys_bcs_on_edges here
+       !
+       !
+
     end if
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
