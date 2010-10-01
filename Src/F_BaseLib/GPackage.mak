@@ -25,7 +25,6 @@ f90sources += boxarray.f90
 f90sources += box_util.f90
 f90sources += fab.f90  
 f90sources += multifab.f90
-f90sources += multifab_physbc_edgevel.f90
 f90sources += fabio.f90
 f90sources += plotfile.f90
 f90sources += filler.f90
