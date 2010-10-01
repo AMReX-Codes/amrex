@@ -1,8 +1,9 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 //
-// $Id: IntVect.H,v 1.26 2010-09-16 21:29:17 wqzhang Exp $
+// $Id: IntVect.H,v 1.27 2010-10-01 21:55:40 marc Exp $
 //
+#include <winstd.H>
 #include <iosfwd>
 
 #include <ccse-mpi.H>
