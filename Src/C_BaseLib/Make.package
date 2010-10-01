@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.41 2010-09-30 22:41:03 lijewski Exp $
+# $Id: Make.package,v 1.42 2010-10-01 21:54:57 marc Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -97,7 +97,7 @@ T_headers += ccse-mpi.H
 # Fortran interface routines.
 #
 
-ifneq ($(VISIT_BLD),TRUE)
+ifneq ($(BL_NO_FORT),TRUE)
   f$(BOXLIB_BASE)_sources += BLutil_F.f
   f$(BOXLIB_BASE)_sources += BLParmParse_F.f
   f$(BOXLIB_BASE)_sources += BLBoxLib_F.f

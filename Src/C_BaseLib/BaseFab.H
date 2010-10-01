@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.70 2010-09-30 22:41:03 lijewski Exp $
+// $Id: BaseFab.H,v 1.71 2010-10-01 21:54:57 marc Exp $
 //
 #include <winstd.H>
 
@@ -1413,7 +1413,7 @@ BaseFab<T>::performSetVal (T          val,
     }
 }
 
-#if !(defined(WIN32)) && !(defined(VISIT_BLD))
+#if !(defined(WIN32)) && !(defined(BL_NO_FORT))
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.

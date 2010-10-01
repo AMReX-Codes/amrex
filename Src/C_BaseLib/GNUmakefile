@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.24 2010-10-01 21:44:47 lijewski Exp $
+# $Id: GNUmakefile,v 1.25 2010-10-01 21:54:57 marc Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -23,8 +23,8 @@ LBASE = box
 #
 INSTALL_ROOT = $(PBOXLIB_HOME)
 
-ifeq ($(VISIT_BLD),TRUE)
-  DEFINES += -DVISIT_BLD
+ifeq ($(BL_NO_FORT),TRUE)
+  DEFINES += -DBL_NO_FORT
 endif
 
 include $(TOP)/mk/Make.defs ./Make.package
