@@ -284,7 +284,7 @@ ifeq ($(MACHINE), Linux)
       else
          mpihome=$(HOME)/HPC/Libraries/MPI
          CPPFLAGS += -DMPICH_SKIP_MPICXX
-         BL_MPI_LIBS += -lpthread # MPICH      
+         BL_MPI_LIBS += -lmpich -lpthread # MPICH      
       endif
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
