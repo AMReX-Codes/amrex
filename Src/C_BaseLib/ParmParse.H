@@ -1,7 +1,7 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.29 2006-10-06 17:06:30 sepp Exp $
+// $Id: ParmParse.H,v 1.30 2010-10-04 16:47:42 lijewski Exp $
 //
 #include <stack>
 #include <string>
@@ -355,6 +355,42 @@ public:
                int         ival = FIRST) const;
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
+               If successful, the value is converted to an int and stored
+               in reference ref.  If the kth occurrence does not exist or
+               ival'th value does not exist, or if the printed representation
+               of the value cannot be converted to an int, an error message is
+               output and the program halts.   Note that ival == 0 is the first
+               value in the list.
+    */
+    void getkth (const char* name,
+                 int         k,
+                 long&       ref,
+                 int         ival = FIRST) const;
+
+    //@ManDoc: Same as getkth() but searches for the last occurrence of name.
+    //
+    void get (const char* name,
+              long&       ref,
+              int         ival = FIRST) const;
+
+    /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
+               of name.  If successful, it returns 1 and stores the value in
+               ref.  If the kth occurrence exists, but ival'th value of that
+               occurrence does not, or if there is a type mismatch, then the
+               program signals an error and halts.
+    */
+    int querykth (const char* name,
+                  int         k,
+                  long&       ref,
+                  int         ival = FIRST) const;
+    //
+    //@ManDoc: Same as querykth() but searches for the last occurrence of name.
+    //
+    int query (const char* name,
+               long&        ref,
+               int         ival = FIRST) const;
+
+    /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to a float and stored
                in reference ref.  If the kth occurrence does not exist or
                ival'th value does not exist, or if the printed representation
@@ -570,6 +606,45 @@ public:
     //
     int queryarr (const char* name,
                   std::vector<int>& ref,
+                  int         start_ix = FIRST,
+                  int         num_val = ALL) const;
+
+    /*@ManDoc: Gets an std::vector<long> of num\_val values from kth occurrence of
+               given name.  If successful, the values are converted to a long
+               and stored in the std::vector<long> object ref.  ref is resized (if
+               necessary) to hold num\_val values.  The value in the list
+               indexed by start\_ix is copied into std::vector<long>[0], std::vector<long>[1]
+               holds start\_ix+1, etc.  If the kth occurrence does not exist
+               or there are fewer than start\_ix + num\_val values associated
+               with the kth occurrence, or if some of the values cannot be
+               converted to a long, an error message is reported and the
+               program halts.
+    */
+    void getktharr (const char* name,
+                    int         k,
+                    std::vector<long>& ref,
+                    int         start_ix = FIRST,
+                    int         num_val = ALL) const;
+    //
+    //@ManDoc: Same as getktharr() but searches for last occurrence of name.
+    //
+    void getarr (const char* name,
+                 std::vector<long>& ref,
+                 int         start_ix = FIRST,
+                 int         num_val = ALL) const;
+    //
+    //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
+    //
+    int queryktharr (const char* name,
+                     int         k,
+                     std::vector<long>& ref,
+                     int         start_ix = FIRST,
+                     int         num_val = ALL) const;
+    //
+    //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
+    //
+    int queryarr (const char* name,
+                  std::vector<long>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
 

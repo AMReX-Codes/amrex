@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.54 2007-04-19 00:58:17 vince Exp $
+// $Id: ParmParse.cpp,v 1.55 2010-10-04 16:47:42 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1155,6 +1155,86 @@ ParmParse::queryarr (const char* name,
 {
     return squeryarr(m_table, prefixedName(name),ptr,start_ix,num_val, LAST);
 }
+
+
+
+
+// LONG
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   long&       ptr,
+                   int         ival) const
+{
+    sgetval(m_table, prefixedName(name),ptr,ival,k);
+}
+
+void
+ParmParse::get (const char* name,
+                long&       ptr,
+                int         ival) const
+{
+    sgetval(m_table, prefixedName(name),ptr,ival, LAST);
+}
+
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     long&       ptr,
+                     int         ival) const
+{
+    return squeryval(m_table, prefixedName(name),ptr,ival,k);
+}
+
+int
+ParmParse::query (const char* name,
+                  long&       ptr,
+                  int         ival) const
+{
+    return squeryval(m_table, prefixedName(name),ptr,ival, LAST);
+}
+
+void
+ParmParse::getktharr (const char* name,
+                      int         k,
+                      std::vector<long>& ptr,
+                      int         start_ix,
+                      int         num_val) const
+{
+    sgetarr(m_table, prefixedName(name),ptr,start_ix,num_val,k);
+}
+
+void
+ParmParse::getarr (const char* name,
+                   std::vector<long>& ptr,
+                   int         start_ix,
+                   int         num_val) const
+{
+    sgetarr(m_table, prefixedName(name),ptr,start_ix,num_val, LAST);
+}
+
+int
+ParmParse::queryktharr (const char* name,
+                        int         k,
+                        std::vector<long>& ptr,
+                        int         start_ix,
+                        int         num_val) const
+{
+    return squeryarr(m_table, prefixedName(name),ptr,start_ix,num_val,k);
+}
+
+int
+ParmParse::queryarr (const char* name,
+                     std::vector<long>& ptr,
+                     int         start_ix,
+                     int         num_val) const
+{
+    return squeryarr(m_table, prefixedName(name),ptr,start_ix,num_val, LAST);
+}
+
+
+
+
 
 // FLOAT
 void
