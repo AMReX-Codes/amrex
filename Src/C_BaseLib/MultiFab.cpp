@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.93 2010-02-23 21:39:25 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.94 2010-10-05 23:00:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -800,5 +800,70 @@ void
 MultiFab::FillBoundary (bool local)
 {
     FillBoundary(0, n_comp, local);
+}
+
+void
+MultiFab::SumBoundary (int  scomp,
+                       int  ncomp)
+{
+    if ( n_grow <= 0 ) return;
+
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::SumBoundary()");
+
+    std::list<SIRec>       sirec;
+    MultiFabCopyDescriptor mfcd;
+    const FabArrayId       mfid = mfcd.RegisterFabArray(this);
+    const BoxArray&        ba   = boxArray();
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        const int i = mfi.index();
+
+        const Box& ibx = ba[i];
+
+        for (int j = 0; j < boxArray().size(); j++)
+        {
+            if (i == j) continue;
+
+            const Box isect = ibx & BoxLib::grow(ba[j],n_grow);
+
+            if (isect.ok())
+            {
+                sirec.push_back(SIRec(i,j,isect));
+
+                sirec.back().m_fbid = mfcd.AddBox(mfid,
+                                                  isect,
+                                                  0,
+                                                  j,
+                                                  scomp,
+                                                  scomp,
+                                                  ncomp,
+                                                  false);
+            }
+        }
+    }
+
+    mfcd.CollectData();
+
+    FArrayBox fab;
+
+    for (std::list<SIRec>::iterator it = sirec.begin(), end = sirec.end();
+         it != end;
+         ++it)
+    {
+        BL_ASSERT(DistributionMap()[it->m_i] == ParallelDescriptor::MyProc());
+
+        fab.resize(it->m_bx,ncomp);
+
+        mfcd.FillFab(mfid, it->m_fbid, fab);
+
+        (*this)[it->m_i].plus(fab,fab.box(), 0, scomp, ncomp);
+    }
+}
+
+void
+MultiFab::SumBoundary ()
+{
+    SumBoundary(0, n_comp);
 }
 
