@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.54 2009-11-10 21:43:44 lijewski Exp $
+// $Id: MultiFab.H,v 1.55 2010-10-05 23:00:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -416,12 +416,18 @@ public:
     FArrayBox& operator[] (const MFIter& mfi) { return operator[](mfi.index()); }
 
     FArrayBox& get (const MFIter& mfi) { return operator[](mfi.index()); }
-
+    //
+    // Set ghost cells that are covered by valid cells to the value of valid cells.
+    //
     void FillBoundary (bool local = false);
-    //
-    // Same as FillBoundary(), but only copies ncomp components starting at scomp.
-    //
+
     void FillBoundary (int scomp, int ncomp, bool local = false);
+    //
+    // Sum ghost cells that are covered by valid cells into the valid cells.
+    //
+    void SumBoundary ();
+
+    void SumBoundary (int scomp, int ncomp);
 
     static void Initialize ();
 
