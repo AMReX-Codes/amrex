@@ -137,6 +137,12 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     FillPeriodicBoundary(mf,0,mf.nComp(),do_corners,local);
 }
 
+void
+Geometry::SumPeriodicBoundary (MultiFab& mf) const
+{
+    SumPeriodicBoundary(mf,0,mf.nComp());
+}
+
 int
 Geometry::PIRMCacheSize ()
 {
@@ -225,6 +231,96 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     else
     {
         BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
+    }
+}
+
+void
+Geometry::SumPeriodicBoundary (MultiFab& mf,
+                               int       scomp,
+                               int       ncomp) const
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::SumPeriodicBoundary(mf)");
+
+    if (!isAnyPeriodic()) return;
+
+#ifndef NDEBUG
+    //
+    // Don't let folks ask for more grow cells than they have valid region.
+    //
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        if (isPeriodic(n))
+            BL_ASSERT(mf.nGrow() <= Domain().length(n));
+#endif
+
+    PIRMList pirm;
+
+    Array<IntVect> pshifts(27);
+
+    MultiFabCopyDescriptor mfcd;
+
+    const FabArrayId mfid = mfcd.RegisterFabArray(&mf);
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box& dest = mfi.validbox();
+
+        Box TheDomain = Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (dest.ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
+
+        if (TheDomain.contains(BoxLib::grow(dest,1))) continue;
+        //
+        // We overlap with the periodic boundary.  Some other ghost
+        // region(s) may be periodically shiftable into our valid region.
+        //
+        const BoxArray& grids = mf.boxArray();
+
+        for (int j = 0; j < grids.size(); j++)
+        {
+            Box src = BoxLib::grow(grids[j],mf.nGrow());
+
+            if (TheDomain.contains(src)) continue;
+
+            periodicShift(dest, src, pshifts);
+
+            for (int i = 0; i < pshifts.size(); i++)
+            {
+                Box shftbox = src + pshifts[i];
+                Box dbx     = dest & shftbox;
+                Box sbx     = dbx - pshifts[i];
+
+                pirm.push_back(Geometry::PIRec(mfi.index(),j,sbx,dbx));
+
+                pirm.back().fbid = mfcd.AddBox(mfid,
+                                               sbx,
+                                               0,
+                                               j,
+                                               scomp,
+                                               scomp,
+                                               ncomp,
+                                               false);
+            }
+        }
+    }
+
+    mfcd.CollectData();
+
+    FArrayBox fab;
+
+    for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
+         it != end;
+         ++it)
+    {
+        BL_ASSERT(it->fbid.box() == it->srcBox);
+        BL_ASSERT(it->srcBox.sameSize(it->dstBox));
+        BL_ASSERT(mf.DistributionMap()[it->mfid] == ParallelDescriptor::MyProc());
+
+        fab.resize(it->srcBox,ncomp);
+
+        mfcd.FillFab(mfid, it->fbid, fab);
+
+        mf[it->mfid].plus(fab, fab.box(), it->dstBox, 0, scomp, ncomp);
     }
 }
 

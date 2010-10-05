@@ -169,6 +169,17 @@ public:
                                bool      do_corners = false,
                                bool      local      = false) const;
     //
+    // Sums the values in ghost cells, that can be shifted periodically
+    // into valid region, into the corresponding cells in the valid
+    // region.  The first routine here does all components while the latter
+    // does the specified components.
+    //
+    void SumPeriodicBoundary (MultiFab& mf) const;
+
+    void SumPeriodicBoundary (MultiFab& mf,
+                              int       src_comp,
+                              int       num_comp) const;
+    //
     // Flush the cache of PIRM information.
     //
     static void FlushPIRMCache ();
@@ -177,7 +188,7 @@ public:
     //
     static int PIRMCacheSize ();
     //
-    // Src/dest box pairs to copy for FillPeriodicBoundary().
+    // Src/dest box pairs used by FillPeriodicBoundary() and SumPeriodicBoundary().
     //
     struct PIRec
     {
