@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.94 2010-10-05 23:00:00 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.95 2010-10-06 15:31:30 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -813,33 +813,36 @@ MultiFab::SumBoundary (int  scomp,
     std::list<SIRec>       sirec;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(this);
-    const BoxArray&        ba   = boxArray();
+
+    BoxArray gba = boxArray();
+
+    gba.grow(n_grow);
+
+    std::vector< std::pair<int,Box> > isects;
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        const Box& ibx = ba[i];
+        isects = gba.intersections(mfi.validbox());
 
-        for (int j = 0; j < boxArray().size(); j++)
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
+            const int  j      = isects[ii].first;
+            const Box& isect  = isects[ii].second;
+
             if (i == j) continue;
 
-            const Box isect = ibx & BoxLib::grow(ba[j],n_grow);
+            sirec.push_back(SIRec(i,j,isect));
 
-            if (isect.ok())
-            {
-                sirec.push_back(SIRec(i,j,isect));
-
-                sirec.back().m_fbid = mfcd.AddBox(mfid,
-                                                  isect,
-                                                  0,
-                                                  j,
-                                                  scomp,
-                                                  scomp,
-                                                  ncomp,
-                                                  false);
-            }
+            sirec.back().m_fbid = mfcd.AddBox(mfid,
+                                              isect,
+                                              0,
+                                              j,
+                                              scomp,
+                                              scomp,
+                                              ncomp,
+                                              false);
         }
     }
 
