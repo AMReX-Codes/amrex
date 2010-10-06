@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.13 2010-09-27 21:11:33 lijewski Exp $
+# $Id: Make.package,v 1.14 2010-10-06 20:18:19 almgren Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -26,12 +26,6 @@ F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
 
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
-endif
-
-ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES
-  C$(AMRLIB_BASE)_sources += Particles.cpp 
-  C$(AMRLIB_BASE)_headers += Particles.H
 endif
 
 ifeq ($(USE_SLABSTAT), TRUE)
