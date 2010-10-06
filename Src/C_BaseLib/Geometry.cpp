@@ -252,13 +252,10 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
             BL_ASSERT(mf.nGrow() <= Domain().length(n));
 #endif
 
-    PIRMList pirm;
-
-    Array<IntVect> pshifts(27);
-
+    PIRMList               pirm;
+    Array<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
-
-    const FabArrayId mfid = mfcd.RegisterFabArray(&mf);
+    const FabArrayId       mfid = mfcd.RegisterFabArray(&mf);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
