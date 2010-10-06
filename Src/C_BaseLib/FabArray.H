@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.205 2010-02-16 18:41:07 lijewski Exp $
+// $Id: FabArray.H,v 1.206 2010-10-06 15:44:20 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1240,9 +1240,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         thecpc.m_SndTags.resize(NProcs);
         thecpc.m_RcvTags.resize(NProcs);
 
+        std::vector< std::pair<int,Box> > isects;
+
         for (int i = 0; i < size(); i++)
         {
-            std::vector< std::pair<int,Box> > isects = src.boxarray.intersections(boxarray[i]);
+            isects = src.boxarray.intersections(boxarray[i]);
 
             for (int ii = 0; ii < isects.size(); ii++)
             {
