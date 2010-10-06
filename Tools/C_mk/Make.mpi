@@ -276,6 +276,30 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST),kumonga)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),ebirah)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),baragon)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(findstring donev, $(HOSTNAME)), donev)
       ifeq ($(MPIVENDOR),OpenMPI)
          mpihome=$(HOME)/HPC/Libraries/OMPI
