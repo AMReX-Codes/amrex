@@ -47,6 +47,11 @@ struct Particle
     //
     // The amount of Real data we hold.
     //
+    // In some cases this is:
+    // 0 - particle mass
+    // 1 - x-velocity
+    // 2 - y-velocity
+    // 3 - z-velocity
     Real m_data[N];
 };
 
@@ -73,7 +78,11 @@ public:
 
     void InitRandom (long icount, unsigned long iseed);
 
+    Real sumParticleMass (MultiFab& mf, int level) const;
+
     void Increment (MultiFab& mf, int level) const;
+
+    void AssignDensity (MultiFab& mf, int level) const;
 
     void Redistribute (bool where_already_called = false);
 
@@ -82,6 +91,25 @@ public:
     void ByteSpread () const;
 
     void MoveRandom ();
+
+    // **************************************************************************************************************** 
+
+    // If the particles move only with self-gravity from themselves and the gas, then 
+    //   we can move them according to the schemes below.
+    // The gravitational force must be computed between the calls of the parts of the integration scheme.
+
+    // The following two functions form a PREDICTOR CORRECTOR scheme for integrating the motion of the particles
+    void movePredict(MultiFab& grav_vector, int level, Real timestep);
+    void moveCorrect(MultiFab& grav_vector_old, MultiFab& grav_vector, int level, Real timestep);
+    //TODO: the methods should return a constraint on the timestep...
+
+    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles
+    void moveKickDrift(MultiFab& grav_vector, int level, Real timestep);
+    void moveKick( MultiFab& grav_vector, int level, Real timestep);
+    // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
+    // so this scheme should work in the overall algorithm...
+
+    // **************************************************************************************************************** 
 
     int Verbose () { return m_verbose; }
 
@@ -349,6 +377,273 @@ ParticleContainer<N>::Increment (MultiFab& mf, int level) const
             mf[p.m_grid](p.m_cell) += 1;
         }
     }
+}
+
+//assumes mass is in m_data[0]!
+//FIXME: might not work with MPI!!!
+template <int N>
+Real
+ParticleContainer<N>::sumParticleMass (MultiFab& mf, int level) const
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = mf.DistributionMap();
+
+    Real massSum = 0.0;
+
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        const ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            massSum += p.m_data[0];
+        }
+    }
+    return massSum;
+}
+
+//some "pseudo" cic-scheme (as in enzo)
+//assumes grid has the size of 8x8 ;) -> here be dragons
+//Will get ugly as soon as there is more than just the rootgrid
+//NOTE: does NOT return density but mass assigned in a proper way!
+//might once be ported to fortran
+template <int N>
+void
+ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = mf.DistributionMap();
+
+    const Geometry& geom = m_amr->Geom(level);
+    if(!geom.isAllPeriodic()){
+        BoxLib::Error("AssignDensity: Problem has to be periodic...");
+    }
+    mf.setVal(0.0,0,1,1);
+
+//what the cave? does this really work?
+//grow box, it shrinks again when the ghost cells are summed in the end.
+//    BoxLib::grow(mf.boxArray()[0],2);
+//    for (MFIter mfi(mf); mfi.isValid(); ++mfi) 
+//    { 
+//       Box bx = BoxLib::grow(mfi.validbox(),1);
+//    }
+
+    const Real* dx = geom.CellSize();
+    Real fracOfCell[BL_SPACEDIM];
+    Real cell_vol;
+    D_TERM(cell_vol  = dx[0];,
+           cell_vol *= dx[1];,
+           cell_vol *= dx[2];);
+
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        const ParticleType& p = *it;
+
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            IntVect centralIntersection;
+
+//FIXME: m_pos seems to be relative to geom.ProbLo?!?
+            D_TERM(centralIntersection [0] = floor( p.m_pos[0]/dx[0] + 0.5);,
+                   centralIntersection [1] = floor( p.m_pos[1]/dx[1] + 0.5);,
+                   centralIntersection [2] = floor( p.m_pos[2]/dx[2] + 0.5););
+
+            IntVect cell = centralIntersection;
+            
+            D_TERM(fracOfCell[0] = -centralIntersection[0] + p.m_pos[0]/dx[0] + 0.5;,
+                   fracOfCell[1] = -centralIntersection[1] + p.m_pos[1]/dx[1] + 0.5;,
+                   fracOfCell[2] = -centralIntersection[2] + p.m_pos[2]/dx[2] + 0.5;);
+
+#if (BL_SPACEDIM == 1)
+            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0];
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]);
+#endif
+            
+#if (BL_SPACEDIM == 2)
+            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1] ;
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1] ;
+    
+            cell = centralIntersection;
+            cell[1] = centralIntersection[1] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]);
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
+#endif
+
+
+#if (BL_SPACEDIM == 3)
+            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
+    
+            cell = centralIntersection;
+            cell[1] = centralIntersection[1] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
+
+            
+            centralIntersection[3] = centralIntersection[3] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
+            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  * (1-fracOfCell[2]);
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  * (1-fracOfCell[2]);
+    
+            cell = centralIntersection;
+            cell[1] = centralIntersection[1] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+    
+            cell[0] = centralIntersection[0] - 1;
+            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+#endif
+        }
+    }
+    mf.SumBoundary();
+    geom.SumPeriodicBoundary(mf);
+    mf.mult(1./cell_vol);
+}
+
+template <int N>
+void
+ParticleContainer<N>::movePredict(MultiFab& grav_vector, int level, Real timestep)
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = grav_vector.DistributionMap();
+
+
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            //note: m_data[0] is mass, 1 is v_x, ...
+            D_TERM(p.m_data[1] += timestep * grav_vector[p.m_grid](p.m_cell,0);,
+                   p.m_data[2] += timestep * grav_vector[p.m_grid](p.m_cell,1);,
+                   p.m_data[3] += timestep * grav_vector[p.m_grid](p.m_cell,2););
+            D_TERM(p.m_pos[0]  += timestep * p.m_data[1];,
+                   p.m_pos[1]  += timestep * p.m_data[2];,
+                   p.m_pos[2]  += timestep * p.m_data[3];);
+        }
+    }
+//NO redistribution here, this is done in the corrector-step (which is hopefully sufficient).
+}
+
+
+template <int N>
+void
+ParticleContainer<N>::moveCorrect(MultiFab& grav_vector_old, MultiFab& grav_vector, int level, Real timestep)
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = grav_vector.DistributionMap();
+
+
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            D_TERM(p.m_pos[0]  -= 0.5 * timestep * p.m_data[1];,
+                   p.m_pos[1]  -= 0.5 * timestep * p.m_data[2];,
+                   p.m_pos[2]  -= 0.5 * timestep * p.m_data[3];);
+            //note: m_data[0] is mass, 1 is v_x, ...
+            D_TERM(p.m_data[1] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,0) - grav_vector_old[p.m_grid](p.m_cell,0) );, 
+                   p.m_data[2] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,1) - grav_vector_old[p.m_grid](p.m_cell,1) );,
+                   p.m_data[3] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,2) - grav_vector_old[p.m_grid](p.m_cell,2) ););
+            D_TERM(p.m_pos[0]  += 0.5 * timestep * p.m_data[1];,
+                   p.m_pos[1]  += 0.5 * timestep * p.m_data[2];,
+                   p.m_pos[2]  += 0.5 * timestep * p.m_data[3];);
+        }
+        //
+        // Here's where we need to deal with boundary conditions.
+        //
+        // For the moment we assume all boundaries are periodic.
+        //
+        // Shift the particle back into the domain.
+        //
+        bool shifted = ParticleBase::PeriodicShift(p,m_amr);
+        //
+        // Modulo any arithmetic funny business the particle should in the problem domain.
+        //
+        BL_ASSERT(shifted == false || ParticleBase::Where(p,m_amr));
+    }
+    Redistribute();
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKickDrift(MultiFab& grav_vector, int level, Real timestep)
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = grav_vector.DistributionMap();
+
+
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            //note: m_data[0] is mass, 1 is v_x, ...
+            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
+                   p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
+                   p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
+            D_TERM(p.m_pos[0]  +=       timestep * p.m_data[1];,
+                   p.m_pos[1]  +=       timestep * p.m_data[2];,
+                   p.m_pos[2]  +=       timestep * p.m_data[3];);
+        }
+        //
+        // Here's where we need to deal with boundary conditions.
+        //
+        // For the moment we assume all boundaries are periodic.
+        //
+        // Shift the particle back into the domain.
+        //
+        bool shifted = ParticleBase::PeriodicShift(p,m_amr);
+        //
+        // Modulo any arithmetic funny business the particle should in the problem domain.
+        //
+        BL_ASSERT(shifted == false || ParticleBase::Where(p,m_amr));
+    }
+    Redistribute();
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKick(MultiFab& grav_vector, int level, Real timestep)
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = grav_vector.DistributionMap();
+
+
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            //note: m_data[0] is mass, 1 is v_x, ...
+            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
+                   p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
+                   p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
+        }
+    }
+    // No need for redistribution, we only change the velocity.
 }
 
 template <int N>
