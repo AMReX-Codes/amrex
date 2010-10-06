@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.62 2010-02-23 21:38:02 lijewski Exp $
+// $Id: FabSet.cpp,v 1.63 2010-10-06 15:15:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -215,9 +215,11 @@ FabSet::DoIt (const MultiFab& src,
     for (int i = 0; i < src.size(); i++)
         ba_src.set(i, BoxLib::grow(src.boxArray()[i],ngrow));
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        std::vector< std::pair<int,Box> > isects = ba_src.intersections((*this)[fsi].box());
+        isects = ba_src.intersections((*this)[fsi].box());
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {
@@ -385,9 +387,11 @@ FabSet::linComb (Real            a,
         ba_isects.set(i, BoxLib::grow(bxa[i],ngrow));
     }
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        std::vector< std::pair<int,Box> > isects = ba_isects.intersections(get(fsi).box());
+        isects = ba_isects.intersections(get(fsi).box());
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {
