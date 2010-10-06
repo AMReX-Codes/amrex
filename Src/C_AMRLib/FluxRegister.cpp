@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.102 2010-06-09 16:56:26 gpau Exp $
+// $Id: FluxRegister.cpp,v 1.103 2010-10-06 15:20:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -200,12 +200,14 @@ FluxRegister::Reflux (MultiFab&       S,
         ba.set(i, BoxLib::grow(grids[i],1));
     }
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersect with this grid.
         //
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
+        isects = ba.intersections(mfi.validbox());
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -417,12 +419,14 @@ FluxRegister::Reflux (MultiFab&       S,
         ba.set(i, BoxLib::grow(grids[i],1));
     }
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersect with this grid.
         //
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
+        isects = ba.intersections(mfi.validbox());
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
