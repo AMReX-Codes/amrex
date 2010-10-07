@@ -286,8 +286,9 @@ ParticleContainer<N>::InitRandom (long icount, unsigned long iseed)
 
             BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
         }
-
-        for (int i = 0; i < N; i++)
+        
+        p.m_data[0] = 1.;
+        for (int i = 1; i < N; i++)
             //
             // Just zero out the data for lack of a better value.
             //
