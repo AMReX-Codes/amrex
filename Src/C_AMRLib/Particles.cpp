@@ -12,9 +12,9 @@ ParticleBase::Index (const ParticleBase& p,
 
     const Geometry& geom = amr->Geom(lev);
 
-    D_TERM(iv[0]=int((p.m_pos[0]-geom.ProbLo(0))/geom.CellSize(0));,
-           iv[1]=int((p.m_pos[1]-geom.ProbLo(1))/geom.CellSize(1));,
-           iv[2]=int((p.m_pos[2]-geom.ProbLo(2))/geom.CellSize(2)););
+    D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))/geom.CellSize(0));,
+           iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))/geom.CellSize(1));,
+           iv[2]=floor((p.m_pos[2]-geom.ProbLo(2))/geom.CellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -45,7 +45,7 @@ ParticleBase::Where (ParticleBase& p,
             //
             return true;
 
-        if (amr->finestLevel() == p.m_lev)
+        if (p.m_lev == amr->finestLevel())
         {
             p.m_cell = iv;
 

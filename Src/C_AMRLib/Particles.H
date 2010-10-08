@@ -391,7 +391,10 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
 
-    Real dt=1e20, temp;
+    Real dt=1e20, mag_vel, mag_grav, dt_part;
+
+    const Geometry& geom = m_amr->Geom(0);
+    const Real* dx = geom.CellSize();
 
     for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -399,12 +402,23 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
 
         if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
         {  
-           D_TERM(temp  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
-                  temp += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
-                  temp += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
 
-           temp = 1./sqrt( sqrt( temp ) );
-           dt = std::min(temp, dt); 
+           D_TERM(mag_vel  = p.m_data[1] * p.m_data[1];,
+                  mag_vel += p.m_data[2] * p.m_data[2];,
+                  mag_vel += p.m_data[3] * p.m_data[3];);
+
+           mag_vel  = sqrt(mag_vel);
+
+           dt_part = 0.1 * dx[0] / mag_vel;
+
+           D_TERM(mag_grav  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
+                  mag_grav += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
+                  mag_grav += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
+
+           mag_grav = sqrt(mag_grav);
+           dt_part = std::min( dt_part, 1./sqrt( mag_grav / dx[0] ) );
+
+           dt = std::min(dt_part, dt); 
         }
     }
     ParallelDescriptor::ReduceRealMin(dt);
@@ -569,8 +583,27 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
                    p.m_pos[1]  += timestep * p.m_data[2];,
                    p.m_pos[2]  += timestep * p.m_data[3];);
         }
+
+        if (!ParticleBase::Where(p,m_amr,true))
+        {
+            //
+            // Here's where we need to deal with boundary conditions.
+            //
+            // For the moment we assume all boundaries are periodic.
+            //
+            // Shift the particle back into the domain.
+            //
+            ParticleBase::PeriodicShift(p,m_amr);
+            //
+            // The particle should now be back in the problem domain.
+            //
+        }
     }
-//NO redistribution here, this is done in the corrector-step (which is hopefully sufficient).
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "Calling Redistribute() from ParticleContainer<N>::MovePredict () ...\n";
+
+    Redistribute();
 }
 
 
@@ -600,19 +633,26 @@ ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFa
                    p.m_pos[1]  += 0.5 * timestep * p.m_data[2];,
                    p.m_pos[2]  += 0.5 * timestep * p.m_data[3];);
         }
-        //
-        // Here's where we need to deal with boundary conditions.
-        //
-        // For the moment we assume all boundaries are periodic.
-        //
-        // Shift the particle back into the domain.
-        //
-        bool shifted = ParticleBase::PeriodicShift(p,m_amr);
-        //
-        // Modulo any arithmetic funny business the particle should in the problem domain.
-        //
-        BL_ASSERT(shifted == false || ParticleBase::Where(p,m_amr));
+
+        if (!ParticleBase::Where(p,m_amr,true))
+        {
+            //
+            // Here's where we need to deal with boundary conditions.
+            //
+            // For the moment we assume all boundaries are periodic.
+            //
+            // Shift the particle back into the domain.
+            //
+            ParticleBase::PeriodicShift(p,m_amr);
+            //
+            // The particle should now be back in the problem domain.
+            //
+        }
     }
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "Calling Redistribute() from ParticleContainer<N>::MoveCorrect () ...\n";
+
     Redistribute();
 }
 
@@ -622,6 +662,8 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
+    std::cout << "Timestep in moveKickDrift is " << timestep << std::endl;
+
     const DistributionMapping& dm = grav_vector.DistributionMap();
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -630,25 +672,35 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
         if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
         {
             //note: m_data[0] is mass, 1 is v_x, ...
-            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
+            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);,
                    p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
                    p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
+
             D_TERM(p.m_pos[0]  +=       timestep * p.m_data[1];,
                    p.m_pos[1]  +=       timestep * p.m_data[2];,
                    p.m_pos[2]  +=       timestep * p.m_data[3];);
         }
-        //
-        // Here's where we need to deal with boundary conditions.
-        //
-        // For the moment we assume all boundaries are periodic.
-        //
-        // Shift the particle back into the domain.
-        //
-        ParticleBase::PeriodicShift(p,m_amr);
-        //
-        // Modulo any arithmetic funny business the particle should in the problem domain.
-        //
+
+
+        if (!ParticleBase::Where(p,m_amr,true))
+        {
+            //
+            // Here's where we need to deal with boundary conditions.
+            //
+            // For the moment we assume all boundaries are periodic.
+            //
+            // Shift the particle back into the domain.
+            //
+            ParticleBase::PeriodicShift(p,m_amr);
+            //
+            // Modulo any arithmetic funny business the particle should in the problem domain.
+            //
+        }
     }
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "Calling Redistribute() from ParticleContainer<N>::moveKickDrift () ...\n";
+
     Redistribute();
 }
 
