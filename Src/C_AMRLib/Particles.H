@@ -76,13 +76,15 @@ public:
 
     void Init (const std::string& file);
 
-    void InitRandom (long icount, unsigned long iseed);
+    void InitRandom (long icount, unsigned long iseed, Real particleMass);
 
-    Real sumParticleMass (MultiFab& mf, int level) const;
+    Real sumParticleMass (const MultiFab& mf, int level) const;
 
     void Increment (MultiFab& mf, int level) const;
 
     void AssignDensity (MultiFab& mf, int level) const;
+ 
+    Real estTimestep (const MultiFab& grav_vector, int level) const;
 
     void Redistribute (bool where_already_called = false);
 
@@ -99,13 +101,13 @@ public:
     // The gravitational force must be computed between the calls of the parts of the integration scheme.
 
     // The following two functions form a PREDICTOR CORRECTOR scheme for integrating the motion of the particles
-    void movePredict(MultiFab& grav_vector, int level, Real timestep);
-    void moveCorrect(MultiFab& grav_vector_old, MultiFab& grav_vector, int level, Real timestep);
+    void movePredict(const MultiFab& grav_vector, int level, Real timestep);
+    void moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep);
     //TODO: the methods should return a constraint on the timestep...
 
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles
-    void moveKickDrift(MultiFab& grav_vector, int level, Real timestep);
-    void moveKick( MultiFab& grav_vector, int level, Real timestep);
+    void moveKickDrift(const MultiFab& grav_vector, int level, Real timestep);
+    void moveKick     (const MultiFab& grav_vector, int level, Real timestep);
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
 
@@ -238,7 +240,7 @@ ParticleContainer<N>::Init (const std::string& file)
 
 template <int N>
 void
-ParticleContainer<N>::InitRandom (long icount, unsigned long iseed)
+ParticleContainer<N>::InitRandom (long icount, unsigned long iseed, Real particleMass)
 {
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
@@ -286,8 +288,8 @@ ParticleContainer<N>::InitRandom (long icount, unsigned long iseed)
 
             BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
         }
-        
-        p.m_data[0] = 1.;
+
+        p.m_data[0] = particleMass;
         for (int i = 1; i < N; i++)
             //
             // Just zero out the data for lack of a better value.
@@ -380,11 +382,40 @@ ParticleContainer<N>::Increment (MultiFab& mf, int level) const
     }
 }
 
-//assumes mass is in m_data[0]!
-//FIXME: might not work with MPI!!!
+//should work with MPI!
 template <int N>
 Real
-ParticleContainer<N>::sumParticleMass (MultiFab& mf, int level) const
+ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const DistributionMapping& dm = grav_vector.DistributionMap();
+
+    Real dt=1e20, temp;
+
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        const ParticleType& p = *it;
+
+        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        {  
+           D_TERM(temp  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
+                  temp += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
+                  temp += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
+
+           temp = 1./sqrt( sqrt( temp ) );
+           dt = std::min(temp, dt); 
+        }
+    }
+    ParallelDescriptor::ReduceRealMin(dt);
+    return dt;
+}
+
+//assumes mass is in m_data[0]!
+//should work with MPI
+template <int N>
+Real
+ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -401,6 +432,7 @@ ParticleContainer<N>::sumParticleMass (MultiFab& mf, int level) const
             massSum += p.m_data[0];
         }
     }
+    ParallelDescriptor::ReduceRealSum(massSum);
     return massSum;
 }
 
@@ -478,7 +510,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
             cell[0] = centralIntersection[0] - 1;
             mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
 #endif
-
+ 
 
 #if (BL_SPACEDIM == 3)
             mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
@@ -516,7 +548,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
 
 template <int N>
 void
-ParticleContainer<N>::movePredict(MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real timestep)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -544,7 +576,7 @@ ParticleContainer<N>::movePredict(MultiFab& grav_vector, int level, Real timeste
 
 template <int N>
 void
-ParticleContainer<N>::moveCorrect(MultiFab& grav_vector_old, MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -586,13 +618,11 @@ ParticleContainer<N>::moveCorrect(MultiFab& grav_vector_old, MultiFab& grav_vect
 
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift(MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real timestep)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
-
-
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
@@ -614,18 +644,17 @@ ParticleContainer<N>::moveKickDrift(MultiFab& grav_vector, int level, Real times
         //
         // Shift the particle back into the domain.
         //
-        bool shifted = ParticleBase::PeriodicShift(p,m_amr);
+        ParticleBase::PeriodicShift(p,m_amr);
         //
         // Modulo any arithmetic funny business the particle should in the problem domain.
         //
-        BL_ASSERT(shifted == false || ParticleBase::Where(p,m_amr));
     }
     Redistribute();
 }
 
 template <int N>
 void
-ParticleContainer<N>::moveKick(MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveKick(const MultiFab& grav_vector, int level, Real timestep)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
