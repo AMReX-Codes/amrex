@@ -357,7 +357,7 @@ ParticleContainer<N>::MoveRandom ()
         }
     }
 
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
         std::cout << "Calling Redistribute() from ParticleContainer<N>::MoveRandom () ...\n";
 
     Redistribute(true);
@@ -600,7 +600,7 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
         }
     }
 
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
         std::cout << "Calling Redistribute() from ParticleContainer<N>::MovePredict () ...\n";
 
     Redistribute();
@@ -650,7 +650,7 @@ ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFa
         }
     }
 
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
         std::cout << "Calling Redistribute() from ParticleContainer<N>::MoveCorrect () ...\n";
 
     Redistribute();
@@ -661,8 +661,6 @@ void
 ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real timestep)
 {
     const int MyProc = ParallelDescriptor::MyProc();
-
-    std::cout << "Timestep in moveKickDrift is " << timestep << std::endl;
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
@@ -698,7 +696,7 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
         }
     }
 
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
         std::cout << "Calling Redistribute() from ParticleContainer<N>::moveKickDrift () ...\n";
 
     Redistribute();
