@@ -64,7 +64,8 @@ contains
     type(layout) :: la1, la2
     type(boxarray) :: ba
     logical :: nodal_flag
-    real(kind=dp_t) :: vol
+    logical :: all_periodic
+    integer :: vol, vol_pd
     type(bl_prof_timer), save :: bpt
 
     ! These are added to help build the bottom_mgt
@@ -233,14 +234,28 @@ contains
           if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
        end do
     end do
+
+    all_periodic = .true.
+    ! Note that periodic boundary condition show up in the mg solver as "interior"
     do id = 1,mgt%dim
-       do i = 1,mgt%nboxes
-          if (mgt%face_type(i,id,1) == BC_INT .or. &
-               mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
-          if (mgt%face_type(i,id,2) == BC_INT .or. &
-               mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
-       end do
+       if (domain_bc(id,1) .ne. BC_INT .or. domain_bc(id,2) .ne. BC_INT) all_periodic = .false.
     end do
+
+    if (all_periodic) then
+       ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
+       vol = boxarray_volume(ba)
+       vol_pd= box_volume(pd)
+       if (vol .eq. vol_pd) mgt%bottom_singular = .true.
+    else
+       do id = 1,mgt%dim
+          do i = 1,mgt%nboxes
+             if (mgt%face_type(i,id,1) == BC_INT .or. &
+                 mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
+             if (mgt%face_type(i,id,2) == BC_INT .or. &
+                 mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
+          end do
+       end do
+    end if
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
