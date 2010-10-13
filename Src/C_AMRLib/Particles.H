@@ -95,22 +95,26 @@ public:
     void MoveRandom ();
 
     // **************************************************************************************************************** 
-
+    //
     // If the particles move only with self-gravity from themselves and the gas, then 
-    //   we can move them according to the schemes below.
+    // we can move them according to the schemes below.
     // The gravitational force must be computed between the calls of the parts of the integration scheme.
-
+    //
     // The following two functions form a PREDICTOR CORRECTOR scheme for integrating the motion of the particles
+    //
     void movePredict(const MultiFab& grav_vector, int level, Real timestep);
     void moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep);
-    //TODO: the methods should return a constraint on the timestep...
-
+    //
+    // TODO: the methods should return a constraint on the timestep...
+    //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles
+    //
     void moveKickDrift(const MultiFab& grav_vector, int level, Real timestep);
     void moveKick     (const MultiFab& grav_vector, int level, Real timestep);
+    //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
-
+    //
     // **************************************************************************************************************** 
 
     int Verbose () { return m_verbose; }
@@ -160,6 +164,8 @@ ParticleContainer<N>::Init (const std::string& file)
     if (!ifs.good())
         BoxLib::FileOpenFailed(file);
 
+    int id = 1;
+
     int cnt = 0;
 
     ifs >> cnt;
@@ -208,7 +214,7 @@ ParticleContainer<N>::Init (const std::string& file)
                 //
                 // Note that m_id always starts at 1.
                 //
-                p.m_id  = m_particles.size() + 1;
+                p.m_id  = id++;
                 p.m_cpu = MyProc;
 
                 m_particles.push_back(p);
@@ -375,62 +381,70 @@ ParticleContainer<N>::Increment (MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
             mf[p.m_grid](p.m_cell) += 1;
         }
     }
 }
 
-//should work with MPI!
 template <int N>
 Real
 ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
 {
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
 
-    Real dt=1e20, mag_vel, mag_grav, dt_part;
+    Real dt = 1e200, mag_vel, mag_grav, dt_part;
 
     const Geometry& geom = m_amr->Geom(0);
-    const Real* dx = geom.CellSize();
+    const Real*     dx   = geom.CellSize();
 
     for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         const ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
-        {  
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        {
+            D_TERM(mag_vel  = p.m_data[1] * p.m_data[1];,
+                   mag_vel += p.m_data[2] * p.m_data[2];,
+                   mag_vel += p.m_data[3] * p.m_data[3];);
 
-           D_TERM(mag_vel  = p.m_data[1] * p.m_data[1];,
-                  mag_vel += p.m_data[2] * p.m_data[2];,
-                  mag_vel += p.m_data[3] * p.m_data[3];);
+            mag_vel = sqrt(mag_vel);
 
-           mag_vel  = sqrt(mag_vel);
+            dt_part = 1e200;
 
-           dt_part = 0.1 * dx[0] / mag_vel;
+            if (mag_vel > 0)
+                dt_part = 0.1 * dx[0] / mag_vel;
 
-           D_TERM(mag_grav  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
-                  mag_grav += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
-                  mag_grav += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
+            D_TERM(mag_grav  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
+                   mag_grav += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
+                   mag_grav += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
 
-           mag_grav = sqrt(mag_grav);
-           dt_part = std::min( dt_part, 1./sqrt( mag_grav / dx[0] ) );
-
-           dt = std::min(dt_part, dt); 
+            mag_grav = sqrt(mag_grav);
+            dt_part  = std::min( dt_part, 1./sqrt( mag_grav / dx[0] ) );
+            dt       = std::min(dt_part, dt); 
         }
     }
+
     ParallelDescriptor::ReduceRealMin(dt);
+
     return dt;
 }
 
-//assumes mass is in m_data[0]!
-//should work with MPI
+//
+// Assumes mass is in m_data[0]!
+//
+
 template <int N>
 Real
 ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
 {
+    BL_ASSERT(N >= 1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = mf.DistributionMap();
@@ -441,33 +455,44 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
             massSum += p.m_data[0];
         }
     }
+
     ParallelDescriptor::ReduceRealSum(massSum);
+
     return massSum;
 }
 
-//some "pseudo" cic-scheme (as in enzo)
-//assumes grid has the size of 8x8 ;) -> here be dragons
-//Will get ugly as soon as there is more than just the rootgrid
-//NOTE: does NOT return density but mass assigned in a proper way!
-//might once be ported to fortran
+//
+// Some "pseudo" cic-scheme (as in enzo)
+// assumes grid has the size of 8x8 ;) -> here be dragons
+// Will get ugly as soon as there is more than just the rootgrid
+// NOTE: does NOT return density but mass assigned in a proper way!
+// might once be ported to fortran.
+//
+
 template <int N>
 void
 ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
 {
+    BL_ASSERT(N >= 1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = mf.DistributionMap();
 
     const Geometry& geom = m_amr->Geom(level);
-    if(!geom.isAllPeriodic()){
+
+    if (!geom.isAllPeriodic())
         BoxLib::Error("AssignDensity: Problem has to be periodic...");
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        mf[mfi].setVal(0);
     }
-    mf.setVal(0.0,0,1,1);
 
 //what the cave? does this really work?
 //grow box, it shrinks again when the ghost cells are summed in the end.
@@ -488,8 +513,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
             IntVect centralIntersection;
 
@@ -564,21 +588,25 @@ template <int N>
 void
 ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real timestep)
 {
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
-
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
-            //note: m_data[0] is mass, 1 is v_x, ...
+            //
+            // Note: m_data[0] is mass, 1 is v_x, ...
+            //
             D_TERM(p.m_data[1] += timestep * grav_vector[p.m_grid](p.m_cell,0);,
                    p.m_data[2] += timestep * grav_vector[p.m_grid](p.m_cell,1);,
                    p.m_data[3] += timestep * grav_vector[p.m_grid](p.m_cell,2););
+
             D_TERM(p.m_pos[0]  += timestep * p.m_data[1];,
                    p.m_pos[1]  += timestep * p.m_data[2];,
                    p.m_pos[2]  += timestep * p.m_data[3];);
@@ -611,24 +639,28 @@ template <int N>
 void
 ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep)
 {
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
-
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
             D_TERM(p.m_pos[0]  -= 0.5 * timestep * p.m_data[1];,
                    p.m_pos[1]  -= 0.5 * timestep * p.m_data[2];,
                    p.m_pos[2]  -= 0.5 * timestep * p.m_data[3];);
-            //note: m_data[0] is mass, 1 is v_x, ...
+            //
+            // Note: m_data[0] is mass, 1 is v_x, ...
+            //
             D_TERM(p.m_data[1] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,0) - grav_vector_old[p.m_grid](p.m_cell,0) );, 
                    p.m_data[2] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,1) - grav_vector_old[p.m_grid](p.m_cell,1) );,
                    p.m_data[3] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,2) - grav_vector_old[p.m_grid](p.m_cell,2) ););
+
             D_TERM(p.m_pos[0]  += 0.5 * timestep * p.m_data[1];,
                    p.m_pos[1]  += 0.5 * timestep * p.m_data[2];,
                    p.m_pos[2]  += 0.5 * timestep * p.m_data[3];);
@@ -660,16 +692,21 @@ template <int N>
 void
 ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real timestep)
 {
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
+
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
-            //note: m_data[0] is mass, 1 is v_x, ...
+            //
+            // note: m_data[0] is mass, 1 is v_x, ...
+            //
             D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);,
                    p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
                    p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
@@ -678,7 +715,6 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
                    p.m_pos[1]  +=       timestep * p.m_data[2];,
                    p.m_pos[2]  +=       timestep * p.m_data[3];);
         }
-
 
         if (!ParticleBase::Where(p,m_amr,true))
         {
@@ -706,24 +742,29 @@ template <int N>
 void
 ParticleContainer<N>::moveKick(const MultiFab& grav_vector, int level, Real timestep)
 {
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     const DistributionMapping& dm = grav_vector.DistributionMap();
-
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_id > 0 && p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == level && dm[p.m_grid] == MyProc)
         {
-            //note: m_data[0] is mass, 1 is v_x, ...
+            //
+            // Note: m_data[0] is mass, 1 is v_x, ...
+            //
             D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
                    p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
                    p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
         }
     }
+    //
     // No need for redistribution, we only change the velocity.
+    //
 }
 
 template <int N>
@@ -1041,7 +1082,7 @@ ParticleContainer<N>::OK () const
     {
         ParticleType p = *it;
 
-        if (p.m_id <= 0) continue;
+        BL_ASSERT(p.m_id > 0);
 
         if (!ParticleBase::Where(p,m_amr))
             return false;
