@@ -127,12 +127,10 @@ protected:
     //
     // Helper function for Checkpoint().
     //
-    void WriteParticles (int                level,
-                         const std::string& dir,
-                         const std::string& prefix,
-                         int                igrid,
-                         int&               which,
-                         long&              where) const;
+    void WriteParticles (int            level,
+                         std::ofstream& ofs,
+                         Array<int>&    which,
+                         Array<long>&   where) const;
     //
     // The data.
     //
@@ -1125,6 +1123,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
     BL_ASSERT(OK());
 
     const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
     //
@@ -1189,9 +1188,14 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         //
     }
     //
-    // The actual particle data is stored in files of the form: Data_NNNN.
+    // The actual particle data is stored in files of the form: DATA_nnnn.
     //
-    static const std::string DataPrefix = "DATA";
+    static const std::string DataPrefix = "DATA_";
+    //
+    // We want to write the data in parallel.
+    // We'll allow up to nOutFiles active writers at a time.
+    //
+    int nOutFiles = std::min(64,NProcs);
 
     for (int i = 0; i <= m_amr->finestLevel(); i++)
     {
@@ -1224,16 +1228,77 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         Array<int>  which(state.size(),0);
         Array<long> where(state.size(),0);
 
-        for (MFIter mfi(state); mfi.isValid(); ++mfi)
-        {
-            const int igrid = mfi.index();
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-            WriteParticles(i,
-                           LevelDir,
-                           DataPrefix,
-                           igrid,
-                           which[igrid],
-                           where[igrid]);
+        std::ofstream ParticleFile;
+
+        ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+        sprintf(buf, "%04d", MyProc % nOutFiles);
+
+        std::string FullFileName = LevelDir;
+
+        FullFileName += '/';
+        FullFileName += DataPrefix;
+        FullFileName += buf;
+
+        const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+        const int mySet = (MyProc / nOutFiles);
+
+        for (int iSet = 0; iSet < nSets; ++iSet)
+        {
+            if (mySet == iSet)
+            {
+                //
+                // Write all the data at this level to the file.
+                //
+                if (iSet == 0)
+                {
+                    //
+                    // First set.
+                    //
+                    ParticleFile.open(FullFileName.c_str(),
+                                      std::ios::out|std::ios::trunc|std::ios::binary);
+                }
+                else
+                {
+                    ParticleFile.open(FullFileName.c_str(),
+                                      std::ios::out|std::ios::app|std::ios::binary);
+                    //
+                    // Set to the end of the file.
+                    //
+                    ParticleFile.seekp(0, std::ios::end);
+                }
+
+                if (!ParticleFile.good())
+                    BoxLib::FileOpenFailed(FullFileName);
+
+                WriteParticles(i, ParticleFile, which, where);
+
+                ParticleFile.flush();
+#ifdef BL_USECLOSE
+                ParticleFile.close();
+#endif
+                int iBuff     = 0;
+                int wakeUpPID = (MyProc + nOutFiles);
+                int tag       = (MyProc % nOutFiles);
+
+                if (wakeUpPID < NProcs)
+                {
+                    ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                }
+            }
+
+            if (mySet == (iSet + 1))
+            {
+                //
+                // Next set waits.
+                //
+                int iBuff;
+                int waitForPID = (MyProc - nOutFiles);
+                int tag        = (MyProc % nOutFiles);
+                ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+            }
         }
 
         ParallelDescriptor::ReduceIntSum(which.dataPtr(), which.size(), IOProc);
@@ -1244,27 +1309,29 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         {
             char buf[64];
 
-            for (int i = 0; i <= m_amr->finestLevel(); i++)
+            for (int j = 0; j < state.size(); j++)
             {
-                for (int j = 0; j < state.size(); j++)
-                {
-                    //
-                    // We now write the file name & file offset into which
-                    // the data for each grid was written to the header file.
-                    // We only write the filename relative to the main
-                    // directory containing the particles.
-                    //
-                    sprintf(buf,
-                            "Level_%d/%s_%04d",
-                            i,
-                            DataPrefix.c_str(),
-                            which[j]);
+                //
+                // We now write the file name & file offset into which
+                // the data for each grid was written to the header file.
+                // We only write the filename relative to the main
+                // directory containing the particles.
+                //
+                sprintf(buf,
+                        "Level_%d/%s%04d",
+                        i,
+                        DataPrefix.c_str(),
+                        which[j]);
 
-                    HdrFile << buf << ' ' << where[j] << '\n';
-                }
+                HdrFile << buf << ' ' << where[j] << '\n';
             }
         }
     }
+
+    HdrFile.flush();
+#ifdef BL_USECLOSE
+    HdrFile.close();
+#endif
 
     Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1278,15 +1345,12 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
 
 template <int N>
 void
-ParticleContainer<N>::WriteParticles (int                level,
-                                      const std::string& dir,
-                                      const std::string& prefix,
-                                      int                igrid,
-                                      int&               which,
-                                      long&              where) const
+ParticleContainer<N>::WriteParticles (int            level,
+                                      std::ofstream& ofs,
+                                      Array<int>&    which,
+                                      Array<long>&   where) const
 {
-    which = 0;
-    where = 0;
+
 }
 
 
