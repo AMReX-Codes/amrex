@@ -1188,9 +1188,9 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         //
         // Then the number of grids at each level.
         //
-        for (int i = 0; i <= m_amr->finestLevel(); i++)
+        for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
         {
-            HdrFile << m_amr->boxArray(i).size() << '\n';
+            HdrFile << m_amr->boxArray(lev).size() << '\n';
         }
         //
         // This stuff will mostly be used for sanity checking on restart.
@@ -1206,7 +1206,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
     //
     int nOutFiles = std::min(64,NProcs);
 
-    for (int i = 0; i <= m_amr->finestLevel(); i++)
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
         //
         // We store the particles at each level in their own subdirectory.
@@ -1217,7 +1217,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
             LevelDir += '/';
         
         char buf[32];
-        sprintf(buf, "Level_%d", i);
+        sprintf(buf, "Level_%d", lev);
 
         LevelDir += buf;
 
@@ -1229,7 +1229,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         //
         ParallelDescriptor::Barrier();
 
-        const MultiFab& state = m_amr->getLevel(i).get_new_data(0);
+        const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
         //
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
@@ -1288,7 +1288,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
                 // Do it grid block by grid block remembering the seek offset
                 // for the start of writing of each block of data.
                 //
-                WriteParticles(i, ParticleFile, FileNumber, which, where);
+                WriteParticles(lev, ParticleFile, FileNumber, which, where);
 
                 ParticleFile.flush();
 #ifdef BL_USECLOSE
@@ -1334,7 +1334,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
                 //
                 sprintf(buf,
                         "Level_%d/%s%04d",
-                        i,
+                        lev,
                         DataPrefix.c_str(),
                         which[j]);
 
@@ -1360,15 +1360,15 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
 
 template <int N>
 void
-ParticleContainer<N>::WriteParticles (int            level,
+ParticleContainer<N>::WriteParticles (int            lev,
                                       std::ofstream& ofs,
                                       int            fnum,
                                       Array<int>&    which,
                                       Array<long>&   where) const
 {
-    BL_ASSERT(m_amr->finestLevel() <= level);
+    BL_ASSERT(m_amr->finestLevel() <= lev);
 
-    const MultiFab& state = m_amr->getLevel(level).get_new_data(0);
+    const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
     int oldprec = ofs.precision(16);
 
@@ -1385,7 +1385,7 @@ ParticleContainer<N>::WriteParticles (int            level,
         {
             const ParticleType& p = *it;
 
-            if (p.m_lev == level && p.m_grid == grid)
+            if (p.m_lev == lev && p.m_grid == grid)
             {
                 cnt++;
             }
@@ -1399,13 +1399,13 @@ ParticleContainer<N>::WriteParticles (int            level,
         {
             const ParticleType& p = *it;
 
-            if (p.m_lev == level && p.m_grid == grid)
+            if (p.m_lev == lev && p.m_grid == grid)
             {
                 ofs << p.m_id   << ' '
-                   << p.m_cpu  << ' '
-                   << p.m_lev  << ' '
-                   << p.m_grid << ' '
-                   << p.m_cell << ' ';
+                    << p.m_cpu  << ' '
+                    << p.m_lev  << ' '
+                    << p.m_grid << ' '
+                    << p.m_cell << ' ';
 
                 for (int i = 0; i < BL_SPACEDIM; i++)
                     ofs << p.m_pos[i] << ' ';
