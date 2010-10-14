@@ -117,11 +117,22 @@ public:
     //
     // **************************************************************************************************************** 
 
+    void Checkpoint (const std::string& dir, const std::string& name) const;
+
     int Verbose () { return m_verbose; }
 
     void Verbose (int verbose) { m_verbose = verbose; }
 
 protected:
+    //
+    // Helper function for Checkpoint().
+    //
+    void WriteParticles (int                level,
+                         const std::string& dir,
+                         const std::string& prefix,
+                         int                igrid,
+                         int&               which,
+                         long&              where) const;
     //
     // The data.
     //
@@ -1106,5 +1117,177 @@ ParticleContainer<N>::OK () const
     }
     return true;
 }
+
+template <int N>
+void
+ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& name) const
+{
+    BL_ASSERT(OK());
+
+    const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real strttime = ParallelDescriptor::second();
+    //
+    // We store the particles in a subdirectory of "dir".
+    //
+    std::string pdir = dir;
+
+    if (!pdir.empty() && pdir[pdir.size()-1] != '/')
+        pdir += '/';
+
+    pdir += name;
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!BoxLib::UtilCreateDirectory(pdir, 0755))
+            BoxLib::CreateDirectoryFailed(pdir);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+    //
+    // The header contains the info we need to read back in the particles.
+    // Only the I/O processor writes to the header file.
+    //
+    std::ofstream HdrFile;
+
+    long nparticles = m_particles.size();
+
+    ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::string HdrFileName = pdir;
+
+        if (!HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+            HdrFileName += '/';
+
+        HdrFileName += "Header";
+
+        HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
+
+        if (!HdrFile.good())
+            BoxLib::FileOpenFailed(HdrFileName);
+        //
+        // First comes the total number of particles which
+        //
+        HdrFile << nparticles << '\n';
+        //
+        // Then the finest level of the AMR hierarchy.
+        //
+        HdrFile << m_amr->finestLevel() << '\n';
+        //
+        // Then the number of grids at each level.
+        //
+        for (int i = 0; i <= m_amr->finestLevel(); i++)
+        {
+            HdrFile << m_amr->boxArray(i).size() << '\n';
+        }
+        //
+        // This stuff will mostly be used for sanity checking on restart.
+        //
+    }
+    //
+    // The actual particle data is stored in files of the form: Data_NNNN.
+    //
+    static const std::string DataPrefix = "DATA";
+
+    for (int i = 0; i <= m_amr->finestLevel(); i++)
+    {
+        //
+        // We store the particles at each level in their own subdirectory.
+        //
+        std::string LevelDir = pdir;
+
+        if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
+            LevelDir += '/';
+        
+        char buf[32];
+        sprintf(buf, "Level_%d", i);
+
+        LevelDir += buf;
+
+        if (ParallelDescriptor::IOProcessor())
+            if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
+                BoxLib::CreateDirectoryFailed(LevelDir);
+        //
+        // Force other processors to wait till directory is built.
+        //
+        ParallelDescriptor::Barrier();
+
+        const MultiFab& state = m_amr->getLevel(i).get_new_data(0);
+        //
+        // We eventually want to write out the file name and the offset
+        // into that file into which each grid of particles is written.
+        //
+        Array<int>  which(state.size(),0);
+        Array<long> where(state.size(),0);
+
+        for (MFIter mfi(state); mfi.isValid(); ++mfi)
+        {
+            const int igrid = mfi.index();
+
+            WriteParticles(i,
+                           LevelDir,
+                           DataPrefix,
+                           igrid,
+                           which[igrid],
+                           where[igrid]);
+        }
+
+        ParallelDescriptor::ReduceIntSum(which.dataPtr(), which.size(), IOProc);
+
+        ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            char buf[64];
+
+            for (int i = 0; i <= m_amr->finestLevel(); i++)
+            {
+                for (int j = 0; j < state.size(); j++)
+                {
+                    //
+                    // We now write the file name & file offset into which
+                    // the data for each grid was written to the header file.
+                    // We only write the filename relative to the main
+                    // directory containing the particles.
+                    //
+                    sprintf(buf,
+                            "Level_%d/%s_%04d",
+                            i,
+                            DataPrefix.c_str(),
+                            which[j]);
+
+                    HdrFile << buf << ' ' << where[j] << '\n';
+                }
+            }
+        }
+    }
+
+    Real stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "\nParticleContainer<N>::Checkpoint() time: " << stoptime << "\n\n";
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::WriteParticles (int                level,
+                                      const std::string& dir,
+                                      const std::string& prefix,
+                                      int                igrid,
+                                      int&               which,
+                                      long&              where) const
+{
+    which = 0;
+    where = 0;
+}
+
 
 #endif /*_PARTICLES_H_*/
