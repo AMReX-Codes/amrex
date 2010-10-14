@@ -1112,7 +1112,14 @@ ParticleContainer<N>::OK () const
 
         BL_ASSERT(p.m_id > 0);
 
+        const int     lev  = p.m_lev;
+        const int     grid = p.m_grid;
+        const IntVect cell = p.m_cell;
+
         if (!ParticleBase::Where(p,m_amr))
+            return false;
+
+        if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
             return false;
     }
     return true;
