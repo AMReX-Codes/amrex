@@ -420,13 +420,20 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
             if (mag_vel > 0)
                 dt_part = 0.1 * dx[0] / mag_vel;
 
-            D_TERM(mag_grav  = grav_vector[p.m_grid](p.m_cell,0)*grav_vector[p.m_grid](p.m_cell,0);,
-                   mag_grav += grav_vector[p.m_grid](p.m_cell,1)*grav_vector[p.m_grid](p.m_cell,1);,
-                   mag_grav += grav_vector[p.m_grid](p.m_cell,2)*grav_vector[p.m_grid](p.m_cell,2););
+            const FArrayBox& gfab = grav_vector[p.m_grid];
+
+            Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
+
+            D_TERM(mag_grav  = gval[0]*gval[0];,
+                   mag_grav += gval[1]*gval[1];,
+                   mag_grav += gval[2]*gval[2];);
 
             mag_grav = sqrt(mag_grav);
-            dt_part  = std::min( dt_part, 1./sqrt( mag_grav / dx[0] ) );
-            dt       = std::min(dt_part, dt); 
+
+            if (mag_grav > 0)
+                dt_part = std::min( dt_part, 1./sqrt( mag_grav / dx[0] ) );
+
+            dt = std::min(dt_part, dt); 
         }
     }
 
@@ -494,17 +501,17 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
         mf[mfi].setVal(0);
     }
 
-//what the cave? does this really work?
-//grow box, it shrinks again when the ghost cells are summed in the end.
-//    BoxLib::grow(mf.boxArray()[0],2);
-//    for (MFIter mfi(mf); mfi.isValid(); ++mfi) 
-//    { 
-//       Box bx = BoxLib::grow(mfi.validbox(),1);
-//    }
+    //what the cave? does this really work?
+    //grow box, it shrinks again when the ghost cells are summed in the end.
+    //    BoxLib::grow(mf.boxArray()[0],2);
+    //    for (MFIter mfi(mf); mfi.isValid(); ++mfi) 
+    //    { 
+    //       Box bx = BoxLib::grow(mfi.validbox(),1);
+    //    }
 
     const Real* dx = geom.CellSize();
-    Real fracOfCell[BL_SPACEDIM];
-    Real cell_vol;
+    Real fracOfCell[BL_SPACEDIM], cell_vol;
+
     D_TERM(cell_vol  = dx[0];,
            cell_vol *= dx[1];,
            cell_vol *= dx[2];);
@@ -528,54 +535,56 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
                    fracOfCell[1] = -centralIntersection[1] + p.m_pos[1]/dx[1] + 0.5;,
                    fracOfCell[2] = -centralIntersection[2] + p.m_pos[2]/dx[2] + 0.5;);
 
+            FArrayBox& fab = mf[p.m_grid];
+
 #if (BL_SPACEDIM == 1)
-            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0];
+            fab(centralIntersection) += p.m_data[0] *    fracOfCell[0];
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]);
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1] ;
+            fab(centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1] ;
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1] ;
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1] ;
     
             cell = centralIntersection;
             cell[1] = centralIntersection[1] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]);
+            fab(cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]);
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
 #endif
  
 
 #if (BL_SPACEDIM == 3)
-            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
+            fab(centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
     
             cell = centralIntersection;
             cell[1] = centralIntersection[1] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
+            fab(cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
 
             
             centralIntersection[3] = centralIntersection[3] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
-            mf[p.m_grid](centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  * (1-fracOfCell[2]);
+            fab(centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  * (1-fracOfCell[2]);
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  * (1-fracOfCell[2]);
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  * (1-fracOfCell[2]);
     
             cell = centralIntersection;
             cell[1] = centralIntersection[1] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+            fab(cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) * (1-fracOfCell[2]);
     
             cell[0] = centralIntersection[0] - 1;
-            mf[p.m_grid](cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+            fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) * (1-fracOfCell[2]);
 #endif
         }
     }
@@ -603,9 +612,11 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            D_TERM(p.m_data[1] += timestep * grav_vector[p.m_grid](p.m_cell,0);,
-                   p.m_data[2] += timestep * grav_vector[p.m_grid](p.m_cell,1);,
-                   p.m_data[3] += timestep * grav_vector[p.m_grid](p.m_cell,2););
+            const FArrayBox& gfab = grav_vector[p.m_grid];
+
+            D_TERM(p.m_data[1] += timestep * gfab(p.m_cell,0);,
+                   p.m_data[2] += timestep * gfab(p.m_cell,1);,
+                   p.m_data[3] += timestep * gfab(p.m_cell,2););
 
             D_TERM(p.m_pos[0]  += timestep * p.m_data[1];,
                    p.m_pos[1]  += timestep * p.m_data[2];,
@@ -634,7 +645,6 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
     Redistribute();
 }
 
-
 template <int N>
 void
 ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep)
@@ -657,9 +667,12 @@ ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFa
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            D_TERM(p.m_data[1] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,0) - grav_vector_old[p.m_grid](p.m_cell,0) );, 
-                   p.m_data[2] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,1) - grav_vector_old[p.m_grid](p.m_cell,1) );,
-                   p.m_data[3] += 0.5 * timestep * ( grav_vector[p.m_grid](p.m_cell,2) - grav_vector_old[p.m_grid](p.m_cell,2) ););
+            const FArrayBox& gfab     = grav_vector[p.m_grid];
+            const FArrayBox& gfab_old = grav_vector_old[p.m_grid];
+            
+            D_TERM(p.m_data[1] += 0.5 * timestep * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );, 
+                   p.m_data[2] += 0.5 * timestep * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
+                   p.m_data[3] += 0.5 * timestep * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
 
             D_TERM(p.m_pos[0]  += 0.5 * timestep * p.m_data[1];,
                    p.m_pos[1]  += 0.5 * timestep * p.m_data[2];,
@@ -707,9 +720,11 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
             //
             // note: m_data[0] is mass, 1 is v_x, ...
             //
-            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);,
-                   p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
-                   p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
+            const FArrayBox& gfab = grav_vector[p.m_grid];
+
+            D_TERM(p.m_data[1] += 0.5 * timestep * gfab(p.m_cell,0);,
+                   p.m_data[2] += 0.5 * timestep * gfab(p.m_cell,1);,
+                   p.m_data[3] += 0.5 * timestep * gfab(p.m_cell,2););
 
             D_TERM(p.m_pos[0]  +=       timestep * p.m_data[1];,
                    p.m_pos[1]  +=       timestep * p.m_data[2];,
@@ -757,9 +772,11 @@ ParticleContainer<N>::moveKick(const MultiFab& grav_vector, int level, Real time
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            D_TERM(p.m_data[1] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
-                   p.m_data[2] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,1);,
-                   p.m_data[3] += 0.5 * timestep * grav_vector[p.m_grid](p.m_cell,2););
+            const FArrayBox& gfab = grav_vector[p.m_grid];
+
+            D_TERM(p.m_data[1] += 0.5 * timestep * gfab(p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
+                   p.m_data[2] += 0.5 * timestep * gfab(p.m_cell,1);,
+                   p.m_data[3] += 0.5 * timestep * gfab(p.m_cell,2););
         }
     }
     //
