@@ -94,9 +94,17 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
-          FFLAGS += -O3 -ip -mp1 -fltconsistency
-          CFLAGS += -O3 -ip -mp1 -fltconsistency
+         # A. Donev added this to make moderately optimized executables:         
+         ifndef BL_FAST_COMP
+           F90FLAGS += -O3 -ip -mp1 -fltconsistency 
+           FFLAGS += -O3 -ip -mp1 -fltconsistency
+           CFLAGS += -O3 -ip -mp1 -fltconsistency
+         else
+           # Fast compiles and fast-enough runs:
+           F90FLAGS += -O2 -mp1 -fltconsistency
+           FFLAGS += -O2 -mp1 -fltconsistency
+           CFLAGS += -O2 -mp1
+         endif        
 	endif
       endif
       ifdef GPROF
