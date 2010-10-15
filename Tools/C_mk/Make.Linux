@@ -249,6 +249,13 @@ ifeq ($(WHICHLINUX), FRANKLIN)
   endif
 endif
 
+ifeq ($(WHICHLINUX), ORION)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpicxx
+  endif
+endif
+
 ifeq ($(WHICHLINUX), CARVER)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
