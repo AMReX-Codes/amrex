@@ -301,7 +301,7 @@ contains
 
        call boxarray_destroy(new_coarse_ba)
 
-       if (parallel_IOProcessor() && verbose > 1) then
+       if (parallel_IOProcessor() .and. verbose > 1) then
           print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
           call print(layout_get_pd(old_coarse_la))
           print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
