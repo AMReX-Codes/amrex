@@ -1178,7 +1178,13 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         if (!HdrFile.good())
             BoxLib::FileOpenFailed(HdrFileName);
         //
-        // First comes the total number of particles.
+        // BL_SPACEDIM and N for sanity checking.
+        //
+        HdrFile << BL_SPACEDIM << '\n';
+
+        HdrFile << N << '\n';
+        //
+        // The total number of particles.
         //
         HdrFile << nparticles << '\n';
         //
@@ -1192,9 +1198,6 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         {
             HdrFile << m_amr->boxArray(lev).size() << '\n';
         }
-        //
-        // This stuff will mostly be used for sanity checking on restart.
-        //
     }
     //
     // The actual particle data is stored in files of the form: DATA_nnnn.
@@ -1370,8 +1373,6 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
     const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
-    int oldprec = ofs.precision(16);
-
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
         const int grid = mfi.index();
@@ -1382,43 +1383,73 @@ ParticleContainer<N>::WriteParticles (int            lev,
         int cnt = 0;
 
         for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
-        {
-            const ParticleType& p = *it;
-
-            if (p.m_lev == lev && p.m_grid == grid)
-            {
+            if (it->m_lev == lev && it->m_grid == grid)
                 cnt++;
-            }
-        }
         
         ofs << cnt << '\n';
-        //
-        // For now lets write stuff out in ASCII.
-        //
-        for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+
+        if (cnt == 0) continue;
+
         {
-            const ParticleType& p = *it;
+            //
+            // First write out the integer data in binary.
+            //
+            const int ChunkSize = 4+BL_SPACEDIM;
 
-            if (p.m_lev == lev && p.m_grid == grid)
+            Array<int> istuff(cnt*ChunkSize);
+
+            int* iptr = istuff.dataPtr();
+
+            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
             {
-                ofs << p.m_id   << ' '
-                    << p.m_cpu  << ' '
-                    << p.m_lev  << ' '
-                    << p.m_grid << ' '
-                    << p.m_cell << ' ';
+                const ParticleType& p = *it;
 
-                for (int i = 0; i < BL_SPACEDIM; i++)
-                    ofs << p.m_pos[i] << ' ';
+                if (p.m_lev == lev && p.m_grid == grid)
+                {
+                    iptr[0] = p.m_id;
+                    iptr[1] = p.m_cpu;
+                    iptr[2] = p.m_lev;
+                    iptr[3] = p.m_grid;
 
-                for (int i = 0; i < N; i++)
-                    ofs << p.m_data[i] << ' ';
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                        iptr[4+i] = p.m_cell[i];
 
-                ofs << '\n';
+                    iptr += ChunkSize;
+                }
             }
+
+            ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        }
+
+        {
+            //
+            // Then the Real data in binary.
+            //
+            const int ChunkSize = BL_SPACEDIM+N;
+
+            Array<Real> rstuff(cnt*ChunkSize);
+
+            Real* rptr = rstuff.dataPtr();
+
+            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+            {
+                const ParticleType& p = *it;
+
+                if (p.m_lev == lev && p.m_grid == grid)
+                {
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                        rptr[i] = p.m_pos[i];
+
+                    for (int i = 0; i < N; i++)
+                        rptr[BL_SPACEDIM+i] = p.m_data[i];
+
+                    rptr += ChunkSize;
+                }
+            }
+
+            ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
         }
     }
-
-    ofs.precision(oldprec);
 }
 
 
