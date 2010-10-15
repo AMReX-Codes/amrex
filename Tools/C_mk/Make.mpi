@@ -214,6 +214,14 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST),orion)
+      MPI_HOME=/usr/local
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOST),battra)
       MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -361,6 +369,7 @@ ifeq ($(MACHINE), Linux)
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
     endif
+
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
@@ -380,6 +389,7 @@ ifeq ($(MACHINE), Linux)
         endif
       endif
     endif
+
     ifeq ($(WHICHLINUX), COLUMBIA)
       BL_MPI_LIBS += -lmpi
     endif
@@ -425,4 +435,3 @@ ifndef MPI_HOME
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
 endif
-

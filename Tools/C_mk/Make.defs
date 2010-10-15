@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.155 2010-09-30 22:45:23 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.156 2010-10-15 22:55:19 almgren Exp $
 #
 
 #
@@ -154,6 +154,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring mothra, $(UNAMEN)), mothra)
     WHICHLINUX := MOTHRA
+  endif
+  ifeq ($(findstring orion, $(UNAMEN)), orion)
+    WHICHLINUX := ORION
   endif
   ifeq ($(findstring nid, $(UNAMEN)), nid)
     WHICHLINUX := FRANKLIN
